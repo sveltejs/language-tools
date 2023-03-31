@@ -207,6 +207,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                 normalizePath(virtualDocInfo.virtualDoc.getFilePath()!)
             );
 
+            console.log(JSON.stringify(fix.changes, null, 2));
             for (const change of fix.changes) {
                 if (getCanonicalFileName(normalizePath(change.fileName)) === virtualDocPath) {
                     change.fileName = tsDoc.filePath;
@@ -214,6 +215,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                     this.removeDuplicatedComponentImport(virtualDocInfo.insertedNames, change);
                 }
             }
+            console.log(JSON.stringify(fix.changes, null, 2));
 
             await this.lsAndTsDocResolver.deleteSnapshot(virtualDocPath);
         }
@@ -342,7 +344,13 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             change.textChanges = change.textChanges
                 .map((textChange) => ({
                     ...textChange,
-                    newText: textChange.newText.replace(importRegex, '')
+                    newText: textChange.newText.replace(importRegex, (match) => {
+                        if (match.split('\n').length > 2) {
+                            return '\n';
+                        } else {
+                            return '';
+                        }
+                    })
                 }))
                 // in case there are replacements
                 .filter((change) => change.span.length || change.newText);
