@@ -60,7 +60,7 @@ declare class Svelte2TsxComponent<
     $inject_state(): void;
 }
 
-/** @internal PRIVATE API, DO NOT USE */
+/** @deprecated PRIVATE API, DO NOT USE, REMOVED SOON */
 interface Svelte2TsxComponentConstructorParameters<Props extends {}> {
     /**
      * An HTMLElement to render to. This option is required.
@@ -82,7 +82,7 @@ interface Svelte2TsxComponentConstructorParameters<Props extends {}> {
 
 type AConstructorTypeOf<T, U extends any[] = any[]> = new (...args: U) => T;
 /** @internal PRIVATE API, DO NOT USE */
-type SvelteComponentConstructor<T, U extends Svelte2TsxComponentConstructorParameters<any>> = new (options: U) => T;
+type SvelteComponentConstructor<T, U extends import('svelte').ComponentConstructorOptions<any>> = new (options: U) => T;
 
 /** @internal PRIVATE API, DO NOT USE */
 type SvelteActionReturnType = {
@@ -207,7 +207,7 @@ declare function __sveltets_2_unionType(...types: any[]): any;
 
 declare function __sveltets_2_createSvelte2TsxComponent<Props, Events, Slots>(
     render: {props: Props, events: Events, slots: Slots }
-): SvelteComponentConstructor<import("svelte").SvelteComponentTyped<Props, Events, Slots>,Svelte2TsxComponentConstructorParameters<Props>>;
+): SvelteComponentConstructor<import("svelte").SvelteComponentTyped<Props, Events, Slots>,import('svelte').ComponentConstructorOptions<Props>>;
 
 declare function __sveltets_2_unwrapArr<T>(arr: ArrayLike<T>): T
 declare function __sveltets_2_unwrapPromiseLike<T>(promise: PromiseLike<T> | T): T

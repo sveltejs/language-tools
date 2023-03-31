@@ -84,9 +84,10 @@ class __sveltets_Render${genericsDef} {
             '\n}';
     } else {
         statement +=
-            `\n\n${doc}export default class${
+            '\n\nimport { SvelteComponentTyped as __SvelteComponentTyped__ } from "svelte" \n' +
+            `${doc}export default class${
                 className ? ` ${className}` : ''
-            }${genericsDef} extends Svelte2TsxComponent<${returnType('props')}, ${returnType(
+            }${genericsDef} extends __SvelteComponentTyped__<${returnType('props')}, ${returnType(
                 'events'
             )}, ${returnType('slots')}> {` +
             exportedNames.createClassGetters() +
