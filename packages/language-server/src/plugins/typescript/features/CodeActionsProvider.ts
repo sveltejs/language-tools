@@ -31,7 +31,8 @@ import {
     modifyLines,
     normalizePath,
     pathToUrl,
-    possiblyComponent
+    possiblyComponent,
+    removeLineWithString
 } from '../../../utils';
 import { CodeActionsProvider } from '../../interfaces';
 import { DocumentSnapshot, SvelteDocumentSnapshot } from '../DocumentSnapshot';
@@ -207,7 +208,6 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                 normalizePath(virtualDocInfo.virtualDoc.getFilePath()!)
             );
 
-            console.log(JSON.stringify(fix.changes, null, 2));
             for (const change of fix.changes) {
                 if (getCanonicalFileName(normalizePath(change.fileName)) === virtualDocPath) {
                     change.fileName = tsDoc.filePath;
@@ -215,7 +215,6 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                     this.removeDuplicatedComponentImport(virtualDocInfo.insertedNames, change);
                 }
             }
-            console.log(JSON.stringify(fix.changes, null, 2));
 
             await this.lsAndTsDocResolver.deleteSnapshot(virtualDocPath);
         }
@@ -432,18 +431,29 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                 // Organize Imports will only affect the current file, so no need to check the file path
                 return TextDocumentEdit.create(
                     OptionalVersionedTextDocumentIdentifier.create(document.url, null),
-                    change.textChanges.map((edit) => {
-                        const range = this.checkRemoveImportCodeActionRange(
-                            edit,
-                            tsDoc,
-                            mapRangeToOriginal(tsDoc, convertRange(tsDoc, edit.span))
-                        );
+                    change.textChanges
+                        .map((edit) => {
+                            const range = this.checkRemoveImportCodeActionRange(
+                                edit,
+                                tsDoc,
+                                mapRangeToOriginal(tsDoc, convertRange(tsDoc, edit.span))
+                            );
 
-                        return this.fixIndentationOfImports(
-                            TextEdit.replace(range, edit.newText),
-                            document
-                        );
-                    })
+                            edit.newText = removeLineWithString(
+                                edit.newText,
+                                'SvelteComponentTyped as __SvelteComponentTyped__'
+                            );
+
+                            return this.fixIndentationOfImports(
+                                TextEdit.replace(range, edit.newText),
+                                document
+                            );
+                        })
+                        .filter(
+                            (edit) =>
+                                // The __SvelteComponentTyped__ import is added by us and will have a negative mapped line
+                                edit.range.start.line !== -1
+                        )
                 );
             })
         );

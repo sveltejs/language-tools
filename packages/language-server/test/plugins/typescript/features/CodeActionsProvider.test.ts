@@ -1787,6 +1787,65 @@ describe('CodeActionsProvider', () => {
         });
     });
 
+    it('organize imports ignores generated __SvelteComponentTyped__', async () => {
+        const { provider, document } = setup('organize-imports-with-generics.svelte');
+
+        const codeActions = await provider.getCodeActions(
+            document,
+            Range.create(Position.create(1, 4), Position.create(1, 5)),
+            {
+                diagnostics: [],
+                only: [CodeActionKind.SourceOrganizeImports]
+            }
+        );
+
+        console.log(JSON.stringify(codeActions, null, 2));
+        assert.deepStrictEqual(codeActions, [
+            {
+                title: 'Organize Imports',
+                edit: {
+                    documentChanges: [
+                        {
+                            textDocument: {
+                                uri: getUri('organize-imports-with-generics.svelte'),
+                                version: null
+                            },
+                            edits: [
+                                {
+                                    range: {
+                                        start: {
+                                            line: 1,
+                                            character: 2
+                                        },
+                                        end: {
+                                            line: 2,
+                                            character: 2
+                                        }
+                                    },
+                                    newText: "import A from './A';\n"
+                                },
+                                {
+                                    range: {
+                                        start: {
+                                            line: 2,
+                                            character: 2
+                                        },
+                                        end: {
+                                            line: 3,
+                                            character: 0
+                                        }
+                                    },
+                                    newText: ''
+                                }
+                            ]
+                        }
+                    ]
+                },
+                kind: 'source.organizeImports'
+            }
+        ]);
+    });
+
     it('should do extract into function refactor', async () => {
         const { provider, document } = setup('codeactions.svelte');
 

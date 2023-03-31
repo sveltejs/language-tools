@@ -22,7 +22,8 @@ class __sveltets_Render<A> {
 }
 
 
-export default class Input__SvelteComponent_<A> extends Svelte2TsxComponent<ReturnType<__sveltets_Render<A>['props']>, ReturnType<__sveltets_Render<A>['events']>, ReturnType<__sveltets_Render<A>['slots']>> {
+import { SvelteComponentTyped as __SvelteComponentTyped__ } from "svelte" 
+export default class Input__SvelteComponent_<A> extends __SvelteComponentTyped__<ReturnType<__sveltets_Render<A>['props']>, ReturnType<__sveltets_Render<A>['events']>, ReturnType<__sveltets_Render<A>['slots']>> {
     get a() { return this.$$prop_def.a }
     /**accessor*/
     set a(_) {}

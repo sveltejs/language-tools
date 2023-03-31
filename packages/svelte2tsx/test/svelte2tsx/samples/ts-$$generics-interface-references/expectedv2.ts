@@ -34,5 +34,6 @@ class __sveltets_Render<A,B extends ReferencedByGeneric> {
 }
 
 
-export default class Input__SvelteComponent_<A,B extends ReferencedByGeneric> extends Svelte2TsxComponent<ReturnType<__sveltets_Render<A,B>['props']>, ReturnType<__sveltets_Render<A,B>['events']>, ReturnType<__sveltets_Render<A,B>['slots']>> {
+import { SvelteComponentTyped as __SvelteComponentTyped__ } from "svelte" 
+export default class Input__SvelteComponent_<A,B extends ReferencedByGeneric> extends __SvelteComponentTyped__<ReturnType<__sveltets_Render<A,B>['props']>, ReturnType<__sveltets_Render<A,B>['events']>, ReturnType<__sveltets_Render<A,B>['slots']>> {
 }

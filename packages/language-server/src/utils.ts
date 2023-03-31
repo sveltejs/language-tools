@@ -334,3 +334,9 @@ export function memoize<T>(callback: () => T): () => T {
         return value;
     };
 }
+
+export function removeLineWithString(str: string, keyword: string) {
+    const lines = str.split('\n');
+    const filteredLines = lines.filter((line) => !line.includes(keyword));
+    return filteredLines.join('\n');
+}
