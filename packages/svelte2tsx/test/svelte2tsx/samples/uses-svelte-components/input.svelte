@@ -11,3 +11,4 @@
 </svelte:head>
 <svelte:options />
 <svelte:fragment />
+<svelte:document foo="bar" on:click={e => {}} />

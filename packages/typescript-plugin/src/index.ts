@@ -60,8 +60,9 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
                 const snapshot = getScriptSnapshot(fileName);
                 if (snapshot) {
                     const originalText = snapshot.getText(0, snapshot.getLength());
+                    const toReplace = '/// <reference lib="dom" />';
                     return modules.typescript.ScriptSnapshot.fromString(
-                        originalText.replace('/// <reference lib="dom" />', '')
+                        originalText.replace(toReplace, ' '.repeat(toReplace.length))
                     );
                 }
                 return snapshot;
@@ -72,14 +73,12 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
                     if (!originalText.includes('// -- start svelte-ls-remove --')) {
                         return snapshot; // uses an older version of svelte2tsx or is already patched
                     }
+                    const startIdx = originalText.indexOf('// -- start svelte-ls-remove --');
+                    const endIdx = originalText.indexOf('// -- end svelte-ls-remove --');
                     originalText =
-                        originalText.substring(
-                            0,
-                            originalText.indexOf('// -- start svelte-ls-remove --')
-                        ) +
-                        originalText.substring(
-                            originalText.indexOf('// -- end svelte-ls-remove --')
-                        );
+                        originalText.substring(0, startIdx) +
+                        ' '.repeat(endIdx - startIdx) +
+                        originalText.substring(endIdx);
                     return modules.typescript.ScriptSnapshot.fromString(originalText);
                 }
                 return snapshot;
@@ -230,7 +229,12 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
             project.projectService.openFiles.set(scriptInfo.path, undefined);
         }
 
-        project.addRoot(scriptInfo);
+        if ((project as any).projectRootPath) {
+            // Only add the file to the project if it has a projectRootPath, because else
+            // a ts.Assert error will be thrown when multiple inferred projects are tried
+            // to be merged.
+            project.addRoot(scriptInfo);
+        }
     }
 
     return { create, getExternalFiles, onConfigurationChanged };

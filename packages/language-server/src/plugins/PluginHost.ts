@@ -349,6 +349,23 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         );
     }
 
+    async resolveCodeAction(
+        textDocument: TextDocumentIdentifier,
+        codeAction: CodeAction,
+        cancellationToken: CancellationToken
+    ): Promise<CodeAction> {
+        const document = this.getDocument(textDocument.uri);
+
+        const result = await this.execute<CodeAction>(
+            'resolveCodeAction',
+            [document, codeAction, cancellationToken],
+            ExecuteMode.FirstNonNull,
+            'high'
+        );
+
+        return result ?? codeAction;
+    }
+
     async updateImports(fileRename: FileRename): Promise<WorkspaceEdit | null> {
         return await this.execute<WorkspaceEdit>(
             'updateImports',

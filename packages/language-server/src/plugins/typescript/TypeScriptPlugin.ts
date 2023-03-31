@@ -434,6 +434,14 @@ export class TypeScriptPlugin
         return this.codeActionsProvider.getCodeActions(document, range, context, cancellationToken);
     }
 
+    async resolveCodeAction(
+        document: Document,
+        codeAction: CodeAction,
+        cancellationToken?: CancellationToken | undefined
+    ): Promise<CodeAction> {
+        return this.codeActionsProvider.resolveCodeAction(document, codeAction, cancellationToken);
+    }
+
     async executeCommand(
         document: Document,
         command: string,

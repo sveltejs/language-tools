@@ -25,7 +25,7 @@ import { not, flatten, passMap, swapRangeStartEndIfNecessary, memoize } from '..
 import { LSConfigManager } from '../../../ls-config';
 import { isAttributeName, isEventHandler } from '../svelte-ast-utils';
 
-enum DiagnosticCode {
+export enum DiagnosticCode {
     MODIFIERS_CANNOT_APPEAR_HERE = 1184, // "Modifiers cannot appear here."
     USED_BEFORE_ASSIGNED = 2454, // "Variable '{0}' is used before being assigned."
     JSX_ELEMENT_DOES_NOT_SUPPORT_ATTRIBUTES = 2607, // "JSX element class does not support attributes because it does not have a '{0}' property."
@@ -40,7 +40,8 @@ enum DiagnosticCode {
     TYPE_X_NOT_ASSIGNABLE_TO_TYPE_Y = 2345, // "Argument of type '..' is not assignable to parameter of type '..'."
     MISSING_PROPS = 2739, // "Type '...' is missing the following properties from type '..': ..."
     MISSING_PROP = 2741, // "Property '..' is missing in type '..' but required in type '..'."
-    NO_OVERLOAD_MATCHES_CALL = 2769 // "No overload matches this call"
+    NO_OVERLOAD_MATCHES_CALL = 2769, // "No overload matches this call"
+    CANNOT_FIND_NAME = 2304 // "Cannot find name 'xxx'"
 }
 
 export class DiagnosticsProviderImpl implements DiagnosticsProvider {

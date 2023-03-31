@@ -22,7 +22,7 @@ describe('Internal Helpers - upsertKitFile', () => {
         upsert(
             '+page.ts',
             `export function load(e) { return e; }`,
-            `export function load(e: import('./$types').PageLoadEvent) { return e; }`
+            `export function load(e: import('./$types.js').PageLoadEvent) { return e; }`
         );
     });
 
@@ -38,7 +38,7 @@ describe('Internal Helpers - upsertKitFile', () => {
         upsert(
             '+server.ts',
             `export async function GET(e) {}`,
-            `export async function GET(e: import('./$types').RequestEvent) : Response | Promise<Response> {}`
+            `export async function GET(e: import('./$types.js').RequestEvent) : Response | Promise<Response> {}`
         );
     });
 
@@ -46,7 +46,7 @@ describe('Internal Helpers - upsertKitFile', () => {
         upsert(
             '+page.ts',
             `export const load = (async (e) => {});`,
-            `export const load = (async (e: import('./$types').PageLoadEvent) => {});`
+            `export const load = (async (e: import('./$types.js').PageLoadEvent) => {});`
         );
     });
 

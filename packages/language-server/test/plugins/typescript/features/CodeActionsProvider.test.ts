@@ -108,6 +108,15 @@ describe('CodeActionsProvider', () => {
                 },
                 kind: CodeActionKind.QuickFix,
                 title: "Remove unused declaration for: 'a'"
+            },
+            {
+                data: {
+                    fixId: 'unusedIdentifier_delete',
+                    fixName: 'unusedIdentifier',
+                    uri: getUri('codeactions.svelte')
+                },
+                kind: 'quickfix',
+                title: 'Delete all unused declarations'
             }
         ]);
     });
@@ -211,6 +220,15 @@ describe('CodeActionsProvider', () => {
                 },
                 kind: CodeActionKind.QuickFix,
                 title: "Add missing function declaration 'handleClick'"
+            },
+            {
+                data: {
+                    fixId: 'fixMissingFunctionDeclaration',
+                    fixName: 'fixMissingFunctionDeclaration',
+                    uri: getUri('codeactions.svelte')
+                },
+                kind: 'quickfix',
+                title: 'Add all missing function declarations'
             }
         ]);
     });
@@ -311,6 +329,15 @@ describe('CodeActionsProvider', () => {
                 },
                 kind: CodeActionKind.QuickFix,
                 title: "Add missing function declaration 'abc'"
+            },
+            {
+                data: {
+                    fixId: 'fixMissingFunctionDeclaration',
+                    fixName: 'fixMissingFunctionDeclaration',
+                    uri: getUri('codeactions.svelte')
+                },
+                kind: 'quickfix',
+                title: 'Add all missing function declarations'
             }
         ]);
     }
@@ -346,7 +373,7 @@ describe('CodeActionsProvider', () => {
                         {
                             edits: [
                                 {
-                                    newText: `\n${indent}import { blubb } from "../definitions";\n\n`,
+                                    newText: `\n${indent}import { blubb } from "../definitions";\n`,
                                     range: Range.create(
                                         Position.create(0, 8),
                                         Position.create(0, 8)
@@ -469,6 +496,15 @@ describe('CodeActionsProvider', () => {
 
                 kind: 'quickfix',
                 title: 'Disable checking for this file'
+            },
+            {
+                data: {
+                    fixId: 'disableJsDiagnostics',
+                    fixName: 'disableJsDiagnostics',
+                    uri: getUri('codeaction-checkJs-module.svelte')
+                },
+                kind: 'quickfix',
+                title: "Add '@ts-ignore' to all error messages"
             }
         ]);
     });
@@ -605,6 +641,15 @@ describe('CodeActionsProvider', () => {
                 },
                 kind: 'quickfix',
                 title: 'Add import from "../empty.svelte"'
+            },
+            {
+                data: {
+                    fixId: 'fixMissingImport',
+                    fixName: 'import',
+                    uri: getUri('codeactions.svelte')
+                },
+                kind: 'quickfix',
+                title: 'Add all missing imports'
             }
         ]);
     });
@@ -703,6 +748,15 @@ describe('CodeActionsProvider', () => {
                 },
                 kind: 'quickfix',
                 title: "Convert 'const' to 'let'"
+            },
+            {
+                data: {
+                    fixId: 'fixConvertConstToLet',
+                    fixName: 'fixConvertConstToLet',
+                    uri: getUri('codeaction-const-reassign.svelte')
+                },
+                kind: 'quickfix',
+                title: "Convert all 'const' to 'let'"
             }
         ]);
     });
@@ -727,6 +781,342 @@ describe('CodeActionsProvider', () => {
         );
 
         assert.deepStrictEqual(codeActions, []);
+    });
+
+    it('provide quick fix to fix all errors when possible', async () => {
+        const { provider, document } = setup('codeactions.svelte');
+
+        const codeActions = await provider.getCodeActions(
+            document,
+            Range.create(Position.create(9, 0), Position.create(9, 3)),
+            {
+                diagnostics: [
+                    {
+                        code: 2304,
+                        message: "Cannot find name 'abc'.",
+                        range: Range.create(Position.create(9, 0), Position.create(9, 3)),
+                        source: 'ts'
+                    }
+                ],
+                only: [CodeActionKind.QuickFix]
+            }
+        );
+
+        const fixAll = codeActions.find((action) => action.data);
+        const resolvedFixAll = await provider.resolveCodeAction(document, fixAll!);
+
+        (<TextDocumentEdit>resolvedFixAll?.edit?.documentChanges?.[0])?.edits.forEach(
+            (edit) => (edit.newText = harmonizeNewLines(edit.newText))
+        );
+
+        assert.deepStrictEqual(resolvedFixAll.edit, {
+            documentChanges: [
+                {
+                    edits: [
+                        {
+                            newText:
+                                `\n\n${indent}function abc() {\n` +
+                                `${indent}${indent}throw new Error('Function not implemented.');\n` +
+                                `${indent}}\n`,
+                            range: {
+                                start: {
+                                    character: 0,
+                                    line: 10
+                                },
+                                end: {
+                                    character: 0,
+                                    line: 10
+                                }
+                            }
+                        },
+                        {
+                            newText:
+                                `\n\n${indent}function handleClick(e: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement; }): any {\n` +
+                                `${indent}${indent}throw new Error('Function not implemented.');\n` +
+                                `${indent}}\n`,
+                            range: {
+                                start: {
+                                    character: 0,
+                                    line: 10
+                                },
+                                end: {
+                                    character: 0,
+                                    line: 10
+                                }
+                            }
+                        }
+                    ],
+                    textDocument: {
+                        uri: getUri('codeactions.svelte'),
+                        version: null
+                    }
+                }
+            ]
+        });
+    });
+
+    it('provide quick fix to fix all missing import component', async () => {
+        const { provider, document } = setup('codeaction-custom-fix-all-component.svelte');
+
+        const range = Range.create(Position.create(4, 1), Position.create(4, 15));
+        const codeActions = await provider.getCodeActions(document, range, {
+            diagnostics: [
+                {
+                    code: 2304,
+                    message: "Cannot find name 'FixAllImported'.",
+                    range: range,
+                    source: 'ts'
+                }
+            ],
+            only: [CodeActionKind.QuickFix]
+        });
+
+        const fixAll = codeActions.find((action) => action.data);
+        const resolvedFixAll = await provider.resolveCodeAction(document, fixAll!);
+
+        (<TextDocumentEdit>resolvedFixAll?.edit?.documentChanges?.[0])?.edits.forEach(
+            (edit) => (edit.newText = harmonizeNewLines(edit.newText))
+        );
+
+        assert.deepStrictEqual(resolvedFixAll.edit, {
+            documentChanges: [
+                {
+                    edits: [
+                        {
+                            newText:
+                                `\n${indent}import FixAllImported from \"./importing/FixAllImported.svelte\";\n` +
+                                `${indent}import FixAllImported2 from \"./importing/FixAllImported2.svelte\";\n`,
+                            range: {
+                                start: {
+                                    character: 18,
+                                    line: 0
+                                },
+                                end: {
+                                    character: 18,
+                                    line: 0
+                                }
+                            }
+                        }
+                    ],
+                    textDocument: {
+                        uri: getUri('codeaction-custom-fix-all-component.svelte'),
+                        version: null
+                    }
+                }
+            ]
+        });
+    });
+
+    it('provide quick fix to fix all missing import component without duplicate (script)', async () => {
+        const { provider, document } = setup('codeaction-custom-fix-all-component2.svelte');
+
+        const range = Range.create(Position.create(2, 4), Position.create(2, 19));
+        const codeActions = await provider.getCodeActions(document, range, {
+            diagnostics: [
+                {
+                    code: 2304,
+                    message: "Cannot find name 'FixAllImported3'.",
+                    range: range,
+                    source: 'ts'
+                }
+            ],
+            only: [CodeActionKind.QuickFix]
+        });
+
+        const fixAll = codeActions.find((action) => action.data);
+        const resolvedFixAll = await provider.resolveCodeAction(document, fixAll!);
+
+        (<TextDocumentEdit>resolvedFixAll?.edit?.documentChanges?.[0])?.edits.forEach(
+            (edit) => (edit.newText = harmonizeNewLines(edit.newText))
+        );
+
+        assert.deepStrictEqual(resolvedFixAll.edit, {
+            documentChanges: [
+                {
+                    edits: [
+                        {
+                            newText:
+                                `\n${indent}import { FixAllImported3 } from \"./importing/c\";\n` +
+                                `${indent}import FixAllImported2 from \"./importing/FixAllImported2.svelte\";\n`,
+                            range: {
+                                start: {
+                                    character: 18,
+                                    line: 0
+                                },
+                                end: {
+                                    character: 18,
+                                    line: 0
+                                }
+                            }
+                        }
+                    ],
+                    textDocument: {
+                        uri: getUri('codeaction-custom-fix-all-component2.svelte'),
+                        version: null
+                    }
+                }
+            ]
+        });
+    });
+
+    it('provide quick fix to fix all missing import component without duplicate (template)', async () => {
+        const { provider, document } = setup('codeaction-custom-fix-all-component3.svelte');
+
+        const range = Range.create(Position.create(4, 1), Position.create(4, 16));
+        const codeActions = await provider.getCodeActions(document, range, {
+            diagnostics: [
+                {
+                    code: 2304,
+                    message: "Cannot find name 'FixAllImported3'.",
+                    range: range,
+                    source: 'ts'
+                }
+            ],
+            only: [CodeActionKind.QuickFix]
+        });
+
+        const fixAll = codeActions.find((action) => action.data);
+        const resolvedFixAll = await provider.resolveCodeAction(document, fixAll!);
+
+        (<TextDocumentEdit>resolvedFixAll?.edit?.documentChanges?.[0])?.edits.forEach(
+            (edit) => (edit.newText = harmonizeNewLines(edit.newText))
+        );
+
+        assert.deepStrictEqual(resolvedFixAll.edit, {
+            documentChanges: [
+                {
+                    edits: [
+                        {
+                            newText:
+                                `\n${indent}import { FixAllImported3 } from \"./importing/c\";\n` +
+                                `${indent}import FixAllImported2 from \"./importing/FixAllImported2.svelte\";\n`,
+                            range: {
+                                start: {
+                                    character: 18,
+                                    line: 0
+                                },
+                                end: {
+                                    character: 18,
+                                    line: 0
+                                }
+                            }
+                        }
+                    ],
+                    textDocument: {
+                        uri: getUri('codeaction-custom-fix-all-component3.svelte'),
+                        version: null
+                    }
+                }
+            ]
+        });
+    });
+
+    it('provide quick fix to fix all missing import stores', async () => {
+        const { provider, document } = setup('codeaction-custom-fix-all-store.svelte');
+
+        const range = Range.create(Position.create(1, 4), Position.create(1, 19));
+        const codeActions = await provider.getCodeActions(document, range, {
+            diagnostics: [
+                {
+                    code: 2304,
+                    message: "Cannot find name '$someOtherStore'.",
+                    range: range,
+                    source: 'ts'
+                }
+            ],
+            only: [CodeActionKind.QuickFix]
+        });
+
+        const fixAll = codeActions.find((action) => action.data);
+        const resolvedFixAll = await provider.resolveCodeAction(document, fixAll!);
+
+        (<TextDocumentEdit>resolvedFixAll?.edit?.documentChanges?.[0])?.edits.forEach(
+            (edit) => (edit.newText = harmonizeNewLines(edit.newText))
+        );
+
+        assert.deepStrictEqual(resolvedFixAll.edit, {
+            documentChanges: [
+                {
+                    edits: [
+                        {
+                            newText:
+                                `\n${indent}import { someStore } from \"./importing/a\";\n` +
+                                `${indent}import { someOtherStore } from \"./importing/b\";\n`,
+                            range: {
+                                start: {
+                                    character: 18,
+                                    line: 0
+                                },
+                                end: {
+                                    character: 18,
+                                    line: 0
+                                }
+                            }
+                        }
+                    ],
+                    textDocument: {
+                        uri: getUri('codeaction-custom-fix-all-store.svelte'),
+                        version: null
+                    }
+                }
+            ]
+        });
+    });
+
+    it('provide quick fix to fix all missing import component (without script tag)', async () => {
+        const { provider, document } = setup(
+            'check-js/codeaction-custom-fix-all-component3.svelte'
+        );
+
+        const range = Range.create(Position.create(0, 1), Position.create(0, 15));
+        const codeActions = await provider.getCodeActions(document, range, {
+            diagnostics: [
+                {
+                    code: 2304,
+                    message: "Cannot find name 'FixAllImported'.",
+                    range: range,
+                    source: 'js'
+                }
+            ],
+            only: [CodeActionKind.QuickFix]
+        });
+
+        const fixAll = codeActions.find((action) => action.data);
+        const resolvedFixAll = await provider.resolveCodeAction(document, fixAll!);
+
+        (<TextDocumentEdit>resolvedFixAll?.edit?.documentChanges?.[0])?.edits.forEach(
+            (edit) => (edit.newText = harmonizeNewLines(edit.newText))
+        );
+
+        assert.deepStrictEqual(resolvedFixAll.edit, {
+            documentChanges: [
+                {
+                    edits: [
+                        {
+                            newText:
+                                '<script>\n' +
+                                `${indent}import FixAllImported from \"./importing/FixAllImported.svelte\";\n` +
+                                `${indent}import FixAllImported2 from \"./importing/FixAllImported2.svelte\";\n\n` +
+                                '</script>\n',
+                            range: {
+                                start: {
+                                    character: 0,
+                                    line: 0
+                                },
+                                end: {
+                                    character: 0,
+                                    line: 0
+                                }
+                            }
+                        }
+                    ],
+                    textDocument: {
+                        uri: getUri('check-js/codeaction-custom-fix-all-component3.svelte'),
+                        version: null
+                    }
+                }
+            ]
+        });
     });
 
     it('organizes imports', async () => {

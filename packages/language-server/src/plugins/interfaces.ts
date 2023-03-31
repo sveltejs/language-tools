@@ -119,6 +119,12 @@ export interface CodeActionsProvider {
         command: string,
         args?: any[]
     ): Resolvable<WorkspaceEdit | string | null>;
+
+    resolveCodeAction?(
+        document: Document,
+        codeAction: CodeAction,
+        cancellationToken?: CancellationToken
+    ): Resolvable<CodeAction>;
 }
 
 export interface FileRename {

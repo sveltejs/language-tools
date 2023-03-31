@@ -85,7 +85,7 @@ export function parseOptions(cb: (opts: SvelteCheckCliOptions) => any) {
 }
 
 const outputFormats = ['human', 'human-verbose', 'machine'] as const;
-type OutputFormat = typeof outputFormats[number];
+type OutputFormat = (typeof outputFormats)[number];
 
 function getOutputFormat(opts: Record<string, any>): OutputFormat {
     return outputFormats.includes(opts.output) ? opts.output : 'human-verbose';
@@ -163,7 +163,7 @@ function getCompilerWarnings(opts: Record<string, any>) {
 }
 
 const diagnosticSources = ['js', 'css', 'svelte'] as const;
-type DiagnosticSource = typeof diagnosticSources[number];
+type DiagnosticSource = (typeof diagnosticSources)[number];
 
 function getDiagnosticSources(opts: Record<string, any>): DiagnosticSource[] {
     const sources = opts['diagnostic-sources'];
@@ -180,7 +180,7 @@ function getFilepathsToIgnore(opts: Record<string, any>): string[] {
 }
 
 const thresholds = ['warning', 'error'] as const;
-type Threshold = typeof thresholds[number];
+type Threshold = (typeof thresholds)[number];
 
 function getThreshold(opts: Record<string, any>): Threshold {
     if (thresholds.includes(opts.threshold)) {

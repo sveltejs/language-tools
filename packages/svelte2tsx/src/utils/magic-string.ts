@@ -39,9 +39,16 @@ function updatePrepends(
     toAppend: string,
     removeExisting?: boolean
 ): string[] {
-    (str as any).__prepends__ = (str as any).__prepends__ || new Map<string, string[]>();
+    (str as any).__prepends__ = (str as any).__prepends__ || new Map<number, string[]>();
     const prepends = removeExisting ? [] : (str as any).__prepends__.get(index) || [];
     prepends.push(toAppend);
     (str as any).__prepends__.set(index, prepends);
     return prepends;
+}
+
+/**
+ * Returns the prepends that were added at the given index (if any).
+ */
+export function getCurrentPrepends(str: MagicString, index: number): string[] {
+    return (str as any).__prepends__?.get(index) || [];
 }

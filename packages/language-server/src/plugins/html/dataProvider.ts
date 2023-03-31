@@ -44,6 +44,10 @@ const svelteAttributes: IAttributeData[] = [
         description: 'Available when contenteditable=true'
     },
     {
+        name: 'bind:innerText',
+        description: 'Available when contenteditable=true'
+    },
+    {
         name: 'bind:clientWidth',
         description: 'Available for block level elements. (read-only)'
     },
@@ -303,6 +307,9 @@ const mediaAttributes: IAttributeData[] = [
     },
     {
         name: 'bind:muted'
+    },
+    {
+        name: 'bind:readyState'
     }
 ];
 const videoAttributes: IAttributeData[] = [
@@ -331,6 +338,7 @@ const addAttributes: Record<string, IAttributeData[]> = {
         indeterminateAttribute,
         { ...indeterminateAttribute, name: 'bind:indeterminate' }
     ],
+    img: [{ name: 'bind:naturalWidth' }, { name: 'bind:naturalHeight' }],
     textarea: [{ name: 'bind:value' }],
     video: [...mediaAttributes, ...videoAttributes],
     audio: [...mediaAttributes],
