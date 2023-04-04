@@ -181,6 +181,12 @@ export class SvelteCheck {
 
     private async getDiagnosticsForTsconfig(tsconfigPath: string) {
         const lsContainer = await this.getLSContainer(tsconfigPath);
+
+        const noInputsFoundError = lsContainer.configErrors?.find((e) => e.code === 18003);
+        if (noInputsFoundError) {
+            throw new Error(noInputsFoundError.messageText.toString());
+        }
+
         const lang = lsContainer.getService();
         const files = lang.getProgram()?.getSourceFiles() || [];
         const options = lang.getProgram()?.getCompilerOptions() || {};

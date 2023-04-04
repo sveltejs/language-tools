@@ -81,7 +81,9 @@ export function parseOptions(cb: (opts: SvelteCheckCliOptions) => any) {
             });
         });
 
-    prog.parse(process.argv);
+    prog.parse(process.argv, {
+        unknown: (arg) => `Unknown option ${arg}`
+    });
 }
 
 const outputFormats = ['human', 'human-verbose', 'machine'] as const;
