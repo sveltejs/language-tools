@@ -53,6 +53,7 @@ const serviceSizeMap = new FileMap<number>();
 const configWatchers = new FileMap<ts.FileWatcher>();
 const extendedConfigWatchers = new FileMap<ts.FileWatcher>();
 const extendedConfigToTsConfigPath = new FileMap<FileSet>();
+const configFileModifiedTime = new FileMap<Date | undefined>();
 const configFileForOpenFiles = new FileMap<string>();
 const pendingReloads = new FileSet();
 
@@ -579,7 +580,18 @@ async function createLanguageService(
         }
     }
 
-    async function watchConfigCallback(fileName: string, kind: ts.FileWatcherEventKind) {
+    async function watchConfigCallback(
+        fileName: string,
+        kind: ts.FileWatcherEventKind,
+        modifiedTime: Date | undefined
+    ) {
+        if (
+            kind === ts.FileWatcherEventKind.Changed &&
+            configFileModified(fileName, modifiedTime)
+        ) {
+            return;
+        }
+
         dispose();
 
         if (kind === ts.FileWatcherEventKind.Changed) {
@@ -651,7 +663,18 @@ function exceedsTotalSizeLimitForNonTsFiles(
  * So that GC won't drop it and cause memory leaks
  */
 function createWatchExtendedConfigCallback(docContext: LanguageServiceDocumentContext) {
-    return async (fileName: string) => {
+    return async (
+        fileName: string,
+        kind: ts.FileWatcherEventKind,
+        modifiedTime: Date | undefined
+    ) => {
+        if (
+            kind === ts.FileWatcherEventKind.Changed &&
+            configFileModified(fileName, modifiedTime)
+        ) {
+            return;
+        }
+
         docContext.extendedConfigCache.delete(fileName);
 
         const promises = Array.from(extendedConfigToTsConfigPath.get(fileName) ?? []).map(
@@ -665,6 +688,23 @@ function createWatchExtendedConfigCallback(docContext: LanguageServiceDocumentCo
         await Promise.all(promises);
         docContext.onProjectReloaded?.();
     };
+}
+
+/**
+ * check if file content is modified instead of attributes changed
+ */
+function configFileModified(fileName: string, modifiedTime: Date | undefined) {
+    const previousModifiedTime = configFileModifiedTime.get(fileName);
+    if (!modifiedTime || !previousModifiedTime) {
+        return true;
+    }
+
+    if (previousModifiedTime >= modifiedTime) {
+        return false;
+    }
+
+    configFileModifiedTime.set(fileName, modifiedTime);
+    return true;
 }
 
 /**
