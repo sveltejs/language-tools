@@ -13,6 +13,7 @@ export function createVirtualTsSystem(currentDirectory: string): ts.System {
     const watchers = new FileMap<ts.FileWatcherCallback[]>();
     const watchTimeout = new FileMap<Array<ReturnType<typeof setTimeout>>>();
     const getCanonicalFileName = createGetCanonicalFileName(ts.sys.useCaseSensitiveFileNames);
+    const modifiedTime = new FileMap<Date>();
 
     function toAbsolute(path: string) {
         return isAbsolute(path) ? path : join(currentDirectory, path);
@@ -27,6 +28,7 @@ export function createVirtualTsSystem(currentDirectory: string): ts.System {
             const normalizedPath = normalizePath(toAbsolute(path));
             const existsBefore = virtualFs.has(normalizedPath);
             virtualFs.set(normalizedPath, data);
+            modifiedTime.set(normalizedPath, new Date());
             triggerWatch(
                 normalizedPath,
                 existsBefore ? ts.FileWatcherEventKind.Changed : ts.FileWatcherEventKind.Created
@@ -82,6 +84,9 @@ export function createVirtualTsSystem(currentDirectory: string): ts.System {
                     }
                 }
             };
+        },
+        getModifiedTime(path) {
+            return modifiedTime.get(normalizePath(toAbsolute(path)));
         }
     };
 
