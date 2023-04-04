@@ -560,6 +560,7 @@ async function createLanguageService(
         }
 
         if (!configWatchers.has(tsconfigPath) && tsconfigPath) {
+            configFileModifiedTime.set(tsconfigPath, tsSystem.getModifiedTime?.(tsconfigPath));
             configWatchers.set(
                 tsconfigPath,
                 // for some reason setting the polling interval is necessary, else some error in TS is thrown
@@ -572,6 +573,7 @@ async function createLanguageService(
                 continue;
             }
 
+            configFileModifiedTime.set(config, tsSystem.getModifiedTime?.(config));
             extendedConfigWatchers.set(
                 config,
                 // for some reason setting the polling interval is necessary, else some error in TS is thrown
@@ -587,7 +589,7 @@ async function createLanguageService(
     ) {
         if (
             kind === ts.FileWatcherEventKind.Changed &&
-            configFileModified(fileName, modifiedTime)
+            !configFileModified(fileName, modifiedTime ?? tsSystem.getModifiedTime?.(fileName))
         ) {
             return;
         }
@@ -670,7 +672,10 @@ function createWatchExtendedConfigCallback(docContext: LanguageServiceDocumentCo
     ) => {
         if (
             kind === ts.FileWatcherEventKind.Changed &&
-            configFileModified(fileName, modifiedTime)
+            !configFileModified(
+                fileName,
+                modifiedTime ?? docContext.tsSystem.getModifiedTime?.(fileName)
+            )
         ) {
             return;
         }
