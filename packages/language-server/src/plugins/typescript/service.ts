@@ -24,6 +24,7 @@ import {
 export interface LanguageServiceContainer {
     readonly tsconfigPath: string;
     readonly compilerOptions: ts.CompilerOptions;
+    readonly configErrors: ts.Diagnostic[];
     /**
      * @internal Public for tests only
      */
@@ -167,6 +168,7 @@ async function createLanguageService(
 
     const {
         options: compilerOptions,
+        errors: configErrors,
         fileNames: files,
         raw,
         extendedConfigPaths
@@ -247,6 +249,7 @@ async function createLanguageService(
     return {
         tsconfigPath,
         compilerOptions,
+        configErrors,
         getService: () => languageService,
         updateSnapshot,
         deleteSnapshot,

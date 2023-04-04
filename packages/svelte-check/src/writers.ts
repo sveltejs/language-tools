@@ -112,8 +112,13 @@ export class HumanFriendlyWriter implements Writer {
         const message = [
             'svelte-check found ',
             `${errorCount} ${errorCount === 1 ? 'error' : 'errors'} and `,
-            `${warningCount} ${warningCount === 1 ? 'warning' : 'warnings'} in `,
-            `${fileCountWithProblems} ${fileCountWithProblems === 1 ? 'file' : 'files'}\n`
+            `${warningCount} ${warningCount === 1 ? 'warning' : 'warnings'}`,
+            `${
+                fileCountWithProblems
+                    ? // prettier-ignore
+                      ` in ${fileCountWithProblems} ${fileCountWithProblems === 1 ? 'file' : 'files'}`
+                    : ''
+            }\n`
         ].join('');
         if (errorCount !== 0) {
             this.stream.write(pc.red(message));
