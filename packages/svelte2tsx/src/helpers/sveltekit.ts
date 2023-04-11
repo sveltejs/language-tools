@@ -171,6 +171,23 @@ function upserKitRouteFile(
         insert(pos, inserted);
     }
 
+    // add type to entries function if not explicitly typed
+    const entries = exports.get('entries');
+    if (
+        entries?.type === 'function' &&
+        entries.node.parameters.length === 0 &&
+        !entries.hasTypeDefinition &&
+        !basename.includes('layout')
+    ) {
+        if (!entries.node.type && entries.node.body) {
+            const returnPos = ts.isArrowFunction(entries.node)
+                ? entries.node.equalsGreaterThanToken.getStart()
+                : entries.node.body.getStart();
+            const returnInsertion = surround(`: Array<import('./$types.js').RouteParams> `);
+            insert(returnPos, returnInsertion);
+        }
+    }
+
     // add type to actions variable if not explicitly typed
     const actions = exports.get('actions');
     if (actions?.type === 'var' && !actions.hasTypeDefinition && actions.node.initializer) {
