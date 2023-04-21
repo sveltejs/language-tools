@@ -184,7 +184,7 @@ function upserKitRouteFile(
                 ? entries.node.equalsGreaterThanToken.getStart()
                 : entries.node.body.getStart();
             const returnInsertion = surround(
-                `: Promise<Array<import('./$types.js').RouteParams>> | Array<import('./$types.js').RouteParams> `
+                `: Promise<Array<ReturnType<import('./$types.js').EntryGenerator>>> | Array<ReturnType<import('./$types.js').EntryGenerator>> `
             );
             insert(returnPos, returnInsertion);
         }
