@@ -183,9 +183,7 @@ function upserKitRouteFile(
             const returnPos = ts.isArrowFunction(entries.node)
                 ? entries.node.equalsGreaterThanToken.getStart()
                 : entries.node.body.getStart();
-            const returnInsertion = surround(
-                `: ReturnType<import('./$types.js').EntryGenerator> `
-            );
+            const returnInsertion = surround(`: ReturnType<import('./$types.js').EntryGenerator> `);
             insert(returnPos, returnInsertion);
         }
     }
