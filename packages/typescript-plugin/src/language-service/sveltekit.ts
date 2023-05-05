@@ -381,6 +381,43 @@ export const kitExports: Record<
             }
         ]
     },
+    entries: {
+        allowedIn: ['layout', 'page', 'server', 'universal'],
+        displayParts: [
+            {
+                text: 'export',
+                kind: 'keyword'
+            },
+            {
+                text: ' ',
+                kind: 'space'
+            },
+            {
+                text: 'function',
+                kind: 'keyword'
+            },
+            {
+                text: ' ',
+                kind: 'space'
+            },
+            {
+                text: 'entries',
+                kind: 'functionName'
+            },
+            {
+                text: '() {}',
+                kind: 'punctuation'
+            }
+        ],
+        documentation: [
+            {
+                text:
+                    'Generate values for dynamic parameters in prerendered pages.\n' +
+                    'More info: https://kit.svelte.dev/docs/page-options#entries',
+                kind: 'text'
+            }
+        ]
+    },
     GET: createApiExport('GET'),
     POST: createApiExport('POST'),
     PUT: createApiExport('PUT'),
