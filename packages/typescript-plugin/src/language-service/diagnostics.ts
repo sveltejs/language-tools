@@ -175,6 +175,7 @@ function getKitDiagnostics<
                 if (!validExports.includes(exportName) && !exportName.startsWith('_')) {
                     const node = exports.get(exportName)!.node;
                     const identifier = findIdentifier(ts, node) ?? node;
+
                     diagnostics.push({
                         file: source,
                         start: identifier.getStart(),
