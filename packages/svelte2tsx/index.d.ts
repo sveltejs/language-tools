@@ -4,6 +4,9 @@ export interface SvelteCompiledToTsx {
     code: string;
     map: import("magic-string").SourceMap;
     exportedNames: IExportedNames;
+    /**
+     * @deprecated Use TypeScript's `TypeChecker` to get the type information instead. This only covers literal typings.
+     */
     events: ComponentEvents;
 }
 
@@ -11,6 +14,9 @@ export interface IExportedNames {
     has(name: string): boolean;
 }
 
+/**
+ * @deprecated Use TypeScript's `TypeChecker` to get the type information instead. This only covers literal typings.
+ */
 export interface ComponentEvents {
     getAll(): { name: string; type: string; doc?: string }[];
 }
