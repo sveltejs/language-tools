@@ -43,7 +43,7 @@ export interface LanguageServiceContainer {
      * Careful, don't call often, or it will hurt performance.
      * Only works for TS versions that have ScriptKind.Deferred
      */
-    fileBelongsToProject(filePath: string): boolean;
+    fileBelongsToProject(filePath: string, isNew: boolean): boolean;
 
     dispose(): void;
 }
@@ -368,9 +368,9 @@ async function createLanguageService(
         return snapshotManager.has(filePath);
     }
 
-    function fileBelongsToProject(filePath: string): boolean {
+    function fileBelongsToProject(filePath: string, isNew: boolean): boolean {
         filePath = normalizePath(filePath);
-        return hasFile(filePath) || getParsedConfig().fileNames.includes(filePath);
+        return hasFile(filePath) || (isNew && getParsedConfig().fileNames.includes(filePath));
     }
 
     function updateTsOrJsFile(fileName: string, changes?: TextDocumentContentChangeEvent[]): void {
