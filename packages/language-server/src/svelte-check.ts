@@ -109,9 +109,9 @@ export class SvelteCheck {
     async upsertDocument(doc: { text: string; uri: string }, isNew: boolean): Promise<void> {
         const filePath = urlToPath(doc.uri) || '';
 
-        if (isNew && this.options.tsconfig) {
+        if (this.options.tsconfig) {
             const lsContainer = await this.getLSContainer(this.options.tsconfig);
-            if (!lsContainer.fileBelongsToProject(filePath)) {
+            if (!lsContainer.fileBelongsToProject(filePath, isNew)) {
                 return;
             }
         }
