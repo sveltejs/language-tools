@@ -1,9 +1,8 @@
-import { ComponentEvents } from 'svelte2tsx';
 import ts from 'typescript';
 import { flatten, isNotNullOrUndefined } from '../../utils';
 import { findContainingNode } from './features/utils';
 
-export type ComponentPartInfo = ReturnType<ComponentEvents['getAll']>;
+export type ComponentPartInfo = Array<{ name: string; type: string; doc?: string }>;
 
 export interface ComponentInfoProvider {
     getEvents(): ComponentPartInfo;
