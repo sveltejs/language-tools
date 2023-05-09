@@ -382,7 +382,7 @@ export const kitExports: Record<
         ]
     },
     entries: {
-        allowedIn: ['layout', 'page', 'server', 'universal'],
+        allowedIn: ['api', 'layout', 'page', 'server', 'universal'],
         displayParts: [
             {
                 text: 'export',
