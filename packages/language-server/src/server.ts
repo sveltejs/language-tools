@@ -21,7 +21,8 @@ import {
     CallHierarchyOutgoingCallsRequest,
     InlayHintRequest,
     SemanticTokensRefreshRequest,
-    InlayHintRefreshRequest
+    InlayHintRefreshRequest,
+    DidChangeWatchedFilesNotification
 } from 'vscode-languageserver';
 import { IPCMessageReader, IPCMessageWriter, createConnection } from 'vscode-languageserver/node';
 import { DiagnosticsManager } from './lib/DiagnosticsManager';
@@ -294,6 +295,22 @@ export function startServer(options?: LSOptions) {
                 callHierarchyProvider: true
             }
         };
+    });
+
+    connection.onInitialized(() => {
+        if (
+            !watcher &&
+            configManager.getClientCapabilities()?.workspace?.didChangeWatchedFiles
+                ?.dynamicRegistration
+        ) {
+            connection?.client.register(DidChangeWatchedFilesNotification.type, {
+                watchers: [
+                    {
+                        globPattern: '**/*.{ts,js,mts,mjs,cjs,cts,json}'
+                    }
+                ]
+            });
+        }
     });
 
     function notifyTsServiceExceedSizeLimit() {
