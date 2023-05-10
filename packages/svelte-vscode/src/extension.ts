@@ -151,8 +151,7 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
                 'less',
                 'scss',
                 'html'
-            ],
-            fileEvents: workspace.createFileSystemWatcher('{**/*.js,**/*.ts}', false, false, false)
+            ]
         },
         initializationOptions: {
             configuration: {
