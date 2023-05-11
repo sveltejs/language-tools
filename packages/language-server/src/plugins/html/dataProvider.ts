@@ -32,7 +32,8 @@ const svelteEvents = [
     { name: 'on:mouseenter' },
     { name: 'on:mouseleave' },
     // Other
-    { name: 'on:hashchange' }
+    { name: 'on:hashchange' },
+    { name: 'on:visibilitychange' }
 ];
 const svelteAttributes: IAttributeData[] = [
     {
@@ -179,6 +180,22 @@ const svelteTags: ITagData[] = [
             {
                 name: 'bind:online',
                 description: 'An alias for window.navigator.onLine'
+            }
+        ]
+    },
+    {
+        name: 'svelte:document',
+        description:
+            "As with <svelte:window>, this element allows you to add listeners to events on document, such as visibilitychange, which don't fire on window.",
+        attributes: [
+            {
+                name: 'bind:fullscreenElement',
+                description:
+                    'Bind to the element that is being in full screen mode in this document. (read-only)'
+            },
+            {
+                name: 'bind:visibilityState',
+                description: 'Bind to visibility of the document. (read-only)'
             }
         ]
     },
