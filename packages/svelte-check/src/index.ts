@@ -173,7 +173,11 @@ function instantiateWriter(opts: SvelteCheckCliOptions): Writer {
             filter
         );
     } else {
-        return new MachineFriendlyWriter(process.stdout, filter);
+        return new MachineFriendlyWriter(
+            process.stdout,
+            opts.outputFormat === 'machine-verbose',
+            filter
+        );
     }
 }
 

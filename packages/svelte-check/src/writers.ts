@@ -138,7 +138,11 @@ export class HumanFriendlyWriter implements Writer {
 }
 
 export class MachineFriendlyWriter implements Writer {
-    constructor(private stream: Writable, private diagnosticFilter = DEFAULT_FILTER) {}
+    constructor(
+        private stream: Writable,
+        private isVerbose = false,
+        private diagnosticFilter = DEFAULT_FILTER
+    ) {}
 
     private log(msg: string) {
         this.stream.write(`${new Date().getTime()} ${msg}\n`);
@@ -150,7 +154,7 @@ export class MachineFriendlyWriter implements Writer {
 
     file(diagnostics: Diagnostic[], workspaceDir: string, filename: string, _text: string) {
         diagnostics.filter(this.diagnosticFilter).forEach((d) => {
-            const { message, severity, range } = d;
+            const { message, severity, range, code, codeDescription, source } = d;
             const type =
                 severity === DiagnosticSeverity.Error
                     ? 'ERROR'
@@ -159,10 +163,23 @@ export class MachineFriendlyWriter implements Writer {
                     : null;
 
             if (type) {
-                const { line, character } = range.start;
+                const { line: startLine, character: startCharacter } = range.start;
+                const { line: endLine, character: endCharacter } = range.end;
                 const fn = JSON.stringify(filename);
                 const msg = JSON.stringify(message);
-                this.log(`${type} ${fn} ${line + 1}:${character + 1} ${msg}`);
+                if (this.isVerbose) {
+                    const stringifiedCodeDescription = JSON.stringify(codeDescription);
+                    const stringifiedSource = JSON.stringify(source);
+                    this.log(
+                        `${type} ${fn} ${startLine + 1}:${startCharacter + 1} ${endLine + 1}:${
+                            endCharacter + 1
+                        } ${msg} "${code ?? ''}" ${stringifiedCodeDescription ?? '""'} ${
+                            stringifiedSource ?? '""'
+                        }`
+                    );
+                } else {
+                    this.log(`${type} ${fn} ${startLine + 1}:${startCharacter + 1} ${msg}`);
+                }
             }
         });
     }
