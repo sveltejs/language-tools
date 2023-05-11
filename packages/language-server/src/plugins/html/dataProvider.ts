@@ -190,7 +190,8 @@ const svelteTags: ITagData[] = [
         attributes: [
             {
                 name: 'bind:fullscreenElement',
-                description: 'Bind to the element that is being in full screen mode in this document. (read-only)'
+                description:
+                    'Bind to the element that is being in full screen mode in this document. (read-only)'
             },
             {
                 name: 'bind:visibilityState',
