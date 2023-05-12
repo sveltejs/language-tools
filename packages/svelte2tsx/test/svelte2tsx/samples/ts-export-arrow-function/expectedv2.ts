@@ -9,5 +9,5 @@
 async () => {};
 return { props: {f: f} as {f?: typeof f}, slots: {}, events: {} }}
 
-export default class Input__SvelteComponent_ extends __sveltets_1_createSvelte2TsxComponent(__sveltets_1_with_any_event(render())) {
+export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_with_any_event(render())) {
 }

@@ -8,6 +8,9 @@ import {
     TextDocumentContentChangeEvent
 } from 'vscode-languageserver';
 import {
+    CallHierarchyIncomingCall,
+    CallHierarchyItem,
+    CallHierarchyOutgoingCall,
     CodeAction,
     CodeActionContext,
     Color,
@@ -17,19 +20,20 @@ import {
     CompletionList,
     DefinitionLink,
     Diagnostic,
+    FoldingRange,
     FormattingOptions,
     Hover,
+    InlayHint,
     Location,
     Position,
     Range,
     ReferenceContext,
+    SelectionRange,
+    SignatureHelp,
     SymbolInformation,
     TextDocumentIdentifier,
     TextEdit,
-    WorkspaceEdit,
-    SelectionRange,
-    SignatureHelp,
-    FoldingRange
+    WorkspaceEdit
 } from 'vscode-languageserver-types';
 import { Document } from '../lib/documents';
 
@@ -116,6 +120,12 @@ export interface CodeActionsProvider {
         command: string,
         args?: any[]
     ): Resolvable<WorkspaceEdit | string | null>;
+
+    resolveCodeAction?(
+        document: Document,
+        codeAction: CodeAction,
+        cancellationToken?: CancellationToken
+    ): Resolvable<CodeAction>;
 }
 
 export interface FileRename {
@@ -184,13 +194,38 @@ export interface TypeDefinitionProvider {
     getTypeDefinition(document: Document, position: Position): Resolvable<Location[] | null>;
 }
 
-export interface FoldingRangeProvider {
-    getFoldingRange(document: Document): Resolvable<FoldingRange[]>
+export interface CallHierarchyProvider {
+    prepareCallHierarchy(
+        document: Document,
+        position: Position
+    ): Resolvable<CallHierarchyItem[] | null>;
+
+    getIncomingCalls(
+        item: CallHierarchyItem,
+        cancellationToken?: CancellationToken
+    ): Resolvable<CallHierarchyIncomingCall[] | null>;
+
+    getOutgoingCalls(
+        item: CallHierarchyItem,
+        cancellationToken?: CancellationToken
+    ): Resolvable<CallHierarchyOutgoingCall[] | null>;
 }
 
 export interface OnWatchFileChangesPara {
     fileName: string;
     changeType: FileChangeType;
+}
+
+export interface InlayHintProvider {
+    getInlayHints(
+        document: Document,
+        range: Range,
+        cancellationToken?: CancellationToken
+    ): Resolvable<InlayHint[] | null>;
+}
+
+export interface FoldingRangeProvider {
+    getFoldingRange(document: Document): Resolvable<FoldingRange[]>
 }
 
 export interface OnWatchFileChanges {
@@ -220,6 +255,8 @@ type ProviderBase = DiagnosticsProvider &
     LinkedEditingRangesProvider &
     ImplementationProvider &
     TypeDefinitionProvider &
+    InlayHintProvider &
+    CallHierarchyProvider &
     FoldingRangeProvider;
 
 export type LSProvider = ProviderBase & BackwardsCompatibleDefinitionsProvider;

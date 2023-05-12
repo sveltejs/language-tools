@@ -1,5 +1,8 @@
 import ts, { NavigationTree } from 'typescript';
 import {
+    CallHierarchyIncomingCall,
+    CallHierarchyItem,
+    CallHierarchyOutgoingCall,
     CancellationToken,
     CodeAction,
     CodeActionContext,
@@ -10,6 +13,7 @@ import {
     FileChangeType,
     FoldingRange,
     Hover,
+    InlayHint,
     Location,
     LocationLink,
     Position,
@@ -26,21 +30,24 @@ import {
 } from 'vscode-languageserver';
 import { Document, getTextInRange, mapSymbolInformationToOriginal } from '../../lib/documents';
 import { LSConfigManager, LSTypescriptConfig } from '../../ls-config';
-import { isNotNullOrUndefined, isZeroLengthRange, pathToUrl } from '../../utils';
+import { isNotNullOrUndefined, isZeroLengthRange } from '../../utils';
 import {
     AppCompletionItem,
     AppCompletionList,
+    CallHierarchyProvider,
     CodeActionsProvider,
     CompletionsProvider,
     DefinitionsProvider,
     DiagnosticsProvider,
     DocumentSymbolsProvider,
-    FileRename,
-    FindReferencesProvider,
     FileReferencesProvider,
+    FileRename,
     FindComponentReferencesProvider,
+    FindReferencesProvider,
+    FoldingRangeProvider,
     HoverProvider,
     ImplementationProvider,
+    InlayHintProvider,
     OnWatchFileChanges,
     OnWatchFileChangesPara,
     RenameProvider,
@@ -49,42 +56,44 @@ import {
     SignatureHelpProvider,
     TypeDefinitionProvider,
     UpdateImportsProvider,
-    UpdateTsOrJsFile,
-    FoldingRangeProvider
+    UpdateTsOrJsFile
 } from '../interfaces';
+import { LSAndTSDocResolver } from './LSAndTSDocResolver';
+import { ignoredBuildDirectories } from './SnapshotManager';
+import { CallHierarchyProviderImpl } from './features/CallHierarchyProvider';
 import { CodeActionsProviderImpl } from './features/CodeActionsProvider';
 import {
     CompletionEntryWithIdentifier,
     CompletionsProviderImpl
 } from './features/CompletionProvider';
 import { DiagnosticsProviderImpl } from './features/DiagnosticsProvider';
-import { FindFileReferencesProviderImpl } from './features/FindFileReferencesProvider';
 import { FindComponentReferencesProviderImpl } from './features/FindComponentReferencesProvider';
+import { FindFileReferencesProviderImpl } from './features/FindFileReferencesProvider';
 import { FindReferencesProviderImpl } from './features/FindReferencesProvider';
-import { getDirectiveCommentCompletions } from './features/getDirectiveCommentCompletions';
+import { FoldingRangeProviderImpl } from './features/FoldingRangeProvider';
 import { HoverProviderImpl } from './features/HoverProvider';
 import { ImplementationProviderImpl } from './features/ImplementationProvider';
+import { InlayHintProviderImpl } from './features/InlayHintProvider';
 import { RenameProviderImpl } from './features/RenameProvider';
 import { SelectionRangeProviderImpl } from './features/SelectionRangeProvider';
 import { SemanticTokensProviderImpl } from './features/SemanticTokensProvider';
 import { SignatureHelpProviderImpl } from './features/SignatureHelpProvider';
 import { TypeDefinitionProviderImpl } from './features/TypeDefinitionProvider';
 import { UpdateImportsProviderImpl } from './features/UpdateImportsProvider';
+import { getDirectiveCommentCompletions } from './features/getDirectiveCommentCompletions';
 import {
+    SnapshotMap,
     is$storeVariableIn$storeDeclaration,
-    isTextSpanInGeneratedCode,
-    SnapshotMap
+    isTextSpanInGeneratedCode
 } from './features/utils';
-import { LSAndTSDocResolver } from './LSAndTSDocResolver';
-import { ignoredBuildDirectories } from './SnapshotManager';
 import { isAttributeName, isAttributeShorthand, isEventHandler } from './svelte-ast-utils';
 import {
+    convertToLocationForReferenceOrDefinition,
     convertToLocationRange,
     getScriptKindFromFileName,
     isInScript,
     symbolKindFromString
 } from './utils';
-import { FoldingRangeProviderImpl } from './features/FoldingRangeProvider';
 
 export class TypeScriptPlugin
     implements
@@ -103,6 +112,8 @@ export class TypeScriptPlugin
         SemanticTokensProvider,
         ImplementationProvider,
         TypeDefinitionProvider,
+        InlayHintProvider,
+        CallHierarchyProvider,
         FoldingRangeProvider,
         OnWatchFileChanges,
         CompletionsProvider<CompletionEntryWithIdentifier>,
@@ -126,9 +137,15 @@ export class TypeScriptPlugin
     private readonly semanticTokensProvider: SemanticTokensProviderImpl;
     private readonly implementationProvider: ImplementationProviderImpl;
     private readonly typeDefinitionProvider: TypeDefinitionProviderImpl;
+    private readonly inlayHintProvider: InlayHintProviderImpl;
     private readonly foldingRangeProvider: FoldingRangeProviderImpl;
-
-    constructor(configManager: LSConfigManager, lsAndTsDocResolver: LSAndTSDocResolver) {
+    private readonly callHierarchyProvider: CallHierarchyProviderImpl;
+    
+    constructor(
+        configManager: LSConfigManager,
+        lsAndTsDocResolver: LSAndTSDocResolver,
+        workspaceUris: string[]
+    ) {
         this.configManager = configManager;
         this.lsAndTsDocResolver = lsAndTsDocResolver;
         this.completionProvider = new CompletionsProviderImpl(
@@ -159,6 +176,11 @@ export class TypeScriptPlugin
         this.semanticTokensProvider = new SemanticTokensProviderImpl(this.lsAndTsDocResolver);
         this.implementationProvider = new ImplementationProviderImpl(this.lsAndTsDocResolver);
         this.typeDefinitionProvider = new TypeDefinitionProviderImpl(this.lsAndTsDocResolver);
+        this.inlayHintProvider = new InlayHintProviderImpl(this.lsAndTsDocResolver);
+        this.callHierarchyProvider = new CallHierarchyProviderImpl(
+            this.lsAndTsDocResolver,
+            workspaceUris
+            );
         this.foldingRangeProvider = new FoldingRangeProviderImpl(this.lsAndTsDocResolver);
     }
 
@@ -378,10 +400,14 @@ export class TypeScriptPlugin
                     snapshot = await snapshots.retrieve(def.fileName);
                 }
 
+                const defLocation = convertToLocationForReferenceOrDefinition(
+                    snapshot,
+                    def.textSpan
+                );
                 return LocationLink.create(
-                    pathToUrl(def.fileName),
-                    convertToLocationRange(snapshot, def.textSpan),
-                    convertToLocationRange(snapshot, def.textSpan),
+                    defLocation.uri,
+                    defLocation.range,
+                    defLocation.range,
                     convertToLocationRange(tsDoc, defs.textSpan)
                 );
             })
@@ -412,6 +438,14 @@ export class TypeScriptPlugin
         }
 
         return this.codeActionsProvider.getCodeActions(document, range, context, cancellationToken);
+    }
+
+    async resolveCodeAction(
+        document: Document,
+        codeAction: CodeAction,
+        cancellationToken?: CancellationToken | undefined
+    ): Promise<CodeAction> {
+        return this.codeActionsProvider.resolveCodeAction(document, codeAction, cancellationToken);
     }
 
     async executeCommand(
@@ -553,6 +587,44 @@ export class TypeScriptPlugin
 
     async getTypeDefinition(document: Document, position: Position): Promise<Location[] | null> {
         return this.typeDefinitionProvider.getTypeDefinition(document, position);
+    }
+
+    async getInlayHints(
+        document: Document,
+        range: Range,
+        cancellationToken?: CancellationToken
+    ): Promise<InlayHint[] | null> {
+        if (!this.configManager.enabled('typescript.enable')) {
+            return null;
+        }
+
+        return this.inlayHintProvider.getInlayHints(document, range, cancellationToken);
+    }
+
+    prepareCallHierarchy(
+        document: Document,
+        position: Position,
+        cancellationToken?: CancellationToken
+    ): Promise<CallHierarchyItem[] | null> {
+        return this.callHierarchyProvider.prepareCallHierarchy(
+            document,
+            position,
+            cancellationToken
+        );
+    }
+
+    getIncomingCalls(
+        item: CallHierarchyItem,
+        cancellationToken?: CancellationToken | undefined
+    ): Promise<CallHierarchyIncomingCall[] | null> {
+        return this.callHierarchyProvider.getIncomingCalls(item, cancellationToken);
+    }
+
+    async getOutgoingCalls(
+        item: CallHierarchyItem,
+        cancellationToken?: CancellationToken | undefined
+    ): Promise<CallHierarchyOutgoingCall[] | null> {
+        return this.callHierarchyProvider.getOutgoingCalls(item, cancellationToken);
     }
 
     async getFoldingRange(document: Document): Promise<FoldingRange[]> {

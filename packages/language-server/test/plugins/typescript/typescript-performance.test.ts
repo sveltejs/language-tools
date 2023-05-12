@@ -15,9 +15,11 @@ describe('TypeScript Plugin Performance Tests', () => {
         const uri = pathToUrl(filePath);
         const document = new Document(uri, ts.sys.readFile(filePath) || '');
         const pluginManager = new LSConfigManager();
+        const workspaceUris = [pathToUrl(testDir)];
         const plugin = new TypeScriptPlugin(
             pluginManager,
-            new LSAndTSDocResolver(docManager, [pathToUrl(testDir)], pluginManager)
+            new LSAndTSDocResolver(docManager, workspaceUris, pluginManager),
+            workspaceUris
         );
         docManager.openDocument({ uri, text: document.getText() });
         const append = (newText: string) =>

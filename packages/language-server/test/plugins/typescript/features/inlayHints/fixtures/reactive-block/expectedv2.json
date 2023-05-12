@@ -1,0 +1,29 @@
+[
+    {
+        "label": ": number",
+        "position": {
+            "line": 1,
+            "character": 12
+        },
+        "kind": 1,
+        "paddingLeft": true
+    },
+    {
+        "label": "message:",
+        "position": {
+            "line": 2,
+            "character": 19
+        },
+        "kind": 2,
+        "paddingRight": true
+    },
+    {
+        "label": "message:",
+        "position": {
+            "line": 4,
+            "character": 20
+        },
+        "kind": 2,
+        "paddingRight": true
+    }
+]

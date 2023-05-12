@@ -1,13 +1,17 @@
 <script lang="ts">
-  let tag = 'div';
-  let element: HTMLAnchorElement | HTMLButtonElement;
+  import {} from 'svelte/elements'
+  let tag: 'div' = 'div';
+  let tagString: string = '';
+  let elementDiv: HTMLDivElement;
+  let elementOther: HTMLAnchorElement | HTMLButtonElement;
 </script>
 
 <!-- valid -->
 <svelte:element this={tag} />
 <svelte:element this={tag}>{tag}</svelte:element>
-<svelte:element this={tag} on:click={() => tag} />
-<svelte:element this={tag} bind:this={element} />
+<svelte:element this={tag} bind:this={elementDiv} on:click={() => tag} />
+<svelte:element this={tagString} bind:this={elementOther} on:click={e => e.currentTarget} />
 
-<!-- error -->
-<svelte:element />
+<!-- invalid -->
+<svelte:element this={tag} bind:this={elementOther} />
+<svelte:element this={tag} cellpadding="{1}" />

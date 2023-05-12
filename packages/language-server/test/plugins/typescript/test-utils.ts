@@ -1,15 +1,19 @@
-import path, { isAbsolute, join } from 'path';
+import path, { dirname, isAbsolute, join } from 'path';
+import { existsSync, readdirSync, statSync, writeFileSync } from 'fs';
 import ts from 'typescript';
 import { DocumentManager, Document } from '../../../src/lib/documents';
+import { FileMap } from '../../../src/lib/documents/fileCollection';
 import { LSConfigManager } from '../../../src/ls-config';
 import { LSAndTSDocResolver } from '../../../src/plugins';
-import { normalizePath, pathToUrl } from '../../../src/utils';
+import { createGetCanonicalFileName, normalizePath, pathToUrl } from '../../../src/utils';
 
 export function createVirtualTsSystem(currentDirectory: string): ts.System {
-    const virtualFs = new Map<string, string>();
+    const virtualFs = new FileMap<string>();
     // array behave more similar to the actual fs event than Set
-    const watchers = new Map<string, ts.FileWatcherCallback[]>();
-    const watchTimeout = new Map<string, Array<ReturnType<typeof setTimeout>>>();
+    const watchers = new FileMap<ts.FileWatcherCallback[]>();
+    const watchTimeout = new FileMap<Array<ReturnType<typeof setTimeout>>>();
+    const getCanonicalFileName = createGetCanonicalFileName(ts.sys.useCaseSensitiveFileNames);
+    const modifiedTime = new FileMap<Date>();
 
     function toAbsolute(path: string) {
         return isAbsolute(path) ? path : join(currentDirectory, path);
@@ -24,6 +28,7 @@ export function createVirtualTsSystem(currentDirectory: string): ts.System {
             const normalizedPath = normalizePath(toAbsolute(path));
             const existsBefore = virtualFs.has(normalizedPath);
             virtualFs.set(normalizedPath, data);
+            modifiedTime.set(normalizedPath, new Date());
             triggerWatch(
                 normalizedPath,
                 existsBefore ? ts.FileWatcherEventKind.Changed : ts.FileWatcherEventKind.Created
@@ -36,7 +41,7 @@ export function createVirtualTsSystem(currentDirectory: string): ts.System {
             return virtualFs.has(normalizePath(toAbsolute(path)));
         },
         directoryExists(path) {
-            const normalizedPath = normalizePath(toAbsolute(path));
+            const normalizedPath = getCanonicalFileName(normalizePath(toAbsolute(path)));
             return Array.from(virtualFs.keys()).some((fileName) =>
                 fileName.startsWith(normalizedPath)
             );
@@ -79,6 +84,9 @@ export function createVirtualTsSystem(currentDirectory: string): ts.System {
                     }
                 }
             };
+        },
+        getModifiedTime(path) {
+            return modifiedTime.get(normalizePath(toAbsolute(path)));
         }
     };
 
@@ -111,22 +119,19 @@ export function getRandomVirtualDirPath(testDir: string) {
 interface VirtualEnvironmentOptions {
     testDir: string;
     filename: string;
-    useNewTransformation: boolean;
     fileContent: string;
 }
 
 export function setupVirtualEnvironment({
     testDir,
     fileContent,
-    filename,
-    useNewTransformation
+    filename
 }: VirtualEnvironmentOptions) {
     const docManager = new DocumentManager(
         (textDocument) => new Document(textDocument.uri, textDocument.text)
     );
 
     const lsConfigManager = new LSConfigManager();
-    lsConfigManager.update({ svelte: { useNewTransformation } });
 
     const virtualSystem = createVirtualTsSystem(testDir);
     const lsAndTsDocResolver = new LSAndTSDocResolver(
@@ -152,4 +157,64 @@ export function setupVirtualEnvironment({
         virtualSystem,
         lsConfigManager
     };
+}
+
+export function createSnapshotTester<TestOptions extends { dir: string; workspaceDir: string }>(
+    executeTest: (inputFile: string, testOptions: TestOptions) => Promise<void>
+) {
+    return function executeTests(testOptions: TestOptions) {
+        const { dir } = testOptions;
+        const inputFile = join(dir, 'input.svelte');
+        if (existsSync(inputFile)) {
+            const _it = dir.endsWith('.only') ? it.only : it;
+            _it(dir.substring(__dirname.length), () => executeTest(inputFile, testOptions)).timeout(
+                5000
+            );
+        } else {
+            const _describe = dir.endsWith('.only') ? describe.only : describe;
+            _describe(dir.substring(__dirname.length), () => {
+                const subDirs = readdirSync(dir);
+
+                for (const subDir of subDirs) {
+                    if (statSync(join(dir, subDir)).isDirectory()) {
+                        executeTests({
+                            ...testOptions,
+                            dir: join(dir, subDir)
+                        });
+                    }
+                }
+            });
+        }
+    };
+}
+
+export function updateSnapshotIfFailedOrEmpty({
+    assertion,
+    expectedFile,
+    rootDir,
+    getFileContent
+}: {
+    assertion: () => void;
+    expectedFile: string;
+    rootDir: string;
+    getFileContent: () => string;
+}) {
+    if (existsSync(expectedFile)) {
+        try {
+            assertion();
+        } catch (e) {
+            if (process.argv.includes('--auto')) {
+                writeFile(`Updated ${expectedFile} for`);
+            } else {
+                throw e;
+            }
+        }
+    } else {
+        writeFile(`Created ${expectedFile} for`);
+    }
+
+    function writeFile(msg: string) {
+        console.info(msg, dirname(expectedFile).substring(rootDir.length));
+        writeFileSync(expectedFile, getFileContent(), 'utf-8');
+    }
 }

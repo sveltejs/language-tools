@@ -3,7 +3,8 @@ import {
     getLanguageService,
     HTMLDocument,
     CompletionItem as HtmlCompletionItem,
-    Node
+    Node,
+    newHTMLDataProvider
 } from 'vscode-html-languageservice';
 import {
     CompletionList,
@@ -15,7 +16,8 @@ import {
     TextEdit,
     Range,
     WorkspaceEdit,
-    LinkedEditingRanges
+    LinkedEditingRanges,
+    CompletionContext
 } from 'vscode-languageserver';
 import {
     DocumentManager,
@@ -32,23 +34,28 @@ import {
     LinkedEditingRangesProvider
 } from '../interfaces';
 import { isInsideMoustacheTag, toRange } from '../../lib/documents/utils';
-import { possiblyComponent } from '../../utils';
+import { isNotNullOrUndefined, possiblyComponent } from '../../utils';
 import { importPrettier } from '../../importPackage';
+import path from 'path';
+import { Logger } from '../../logger';
 
 export class HTMLPlugin
     implements HoverProvider, CompletionsProvider, RenameProvider, LinkedEditingRangesProvider
 {
     __name = 'html';
-    private configManager: LSConfigManager;
     private lang = getLanguageService({
-        customDataProviders: [svelteHtmlDataProvider],
+        customDataProviders: this.getCustomDataProviders(),
         useDefaultDataProvider: false
     });
     private documents = new WeakMap<Document, HTMLDocument>();
     private styleScriptTemplate = new Set(['template', 'style', 'script']);
 
-    constructor(docManager: DocumentManager, configManager: LSConfigManager) {
-        this.configManager = configManager;
+    private htmlTriggerCharacters = ['.', ':', '<', '"', '=', '/'];
+
+    constructor(docManager: DocumentManager, private configManager: LSConfigManager) {
+        configManager.onChange(() =>
+            this.lang.setDataProviders(false, this.getCustomDataProviders())
+        );
         docManager.on('documentChange', (document) => {
             this.documents.set(document, document.html);
         });
@@ -72,7 +79,11 @@ export class HTMLPlugin
         return this.lang.doHover(document, position, html);
     }
 
-    async getCompletions(document: Document, position: Position): Promise<CompletionList | null> {
+    async getCompletions(
+        document: Document,
+        position: Position,
+        completionContext?: CompletionContext
+    ): Promise<CompletionList | null> {
         if (!this.featureEnabled('completions')) {
             return null;
         }
@@ -94,22 +105,27 @@ export class HTMLPlugin
             isIncomplete: false,
             items: []
         };
+
+        let doEmmetCompleteInner = (): CompletionList | null | undefined => null;
         if (
             this.configManager.getConfig().html.completions.emmet &&
             this.configManager.getEmmetConfig().showExpandedAbbreviation !== 'never'
         ) {
+            doEmmetCompleteInner = () =>
+                doEmmetComplete(document, position, 'html', this.configManager.getEmmetConfig());
+
             this.lang.setCompletionParticipants([
                 {
-                    onHtmlContent: () =>
-                        (emmetResults =
-                            doEmmetComplete(
-                                document,
-                                position,
-                                'html',
-                                this.configManager.getEmmetConfig()
-                            ) || emmetResults)
+                    onHtmlContent: () => (emmetResults = doEmmetCompleteInner() || emmetResults)
                 }
             ]);
+        }
+
+        if (
+            completionContext?.triggerCharacter &&
+            !this.htmlTriggerCharacters.includes(completionContext?.triggerCharacter)
+        ) {
+            return doEmmetCompleteInner() ?? null;
         }
 
         const results = this.isInComponentTag(html, document, position)
@@ -321,6 +337,23 @@ export class HTMLPlugin
         const isAtEndTag =
             node.endTagStart !== undefined && offset >= node.endTagStart && offset < node.end;
         return isAtStartTag || isAtEndTag;
+    }
+
+    private getCustomDataProviders() {
+        const providers =
+            this.configManager
+                .getHTMLConfig()
+                ?.customData?.map((customDataPath) => {
+                    try {
+                        const jsonPath = path.resolve(customDataPath);
+                        return newHTMLDataProvider(customDataPath, require(jsonPath));
+                    } catch (error) {
+                        Logger.error(error);
+                    }
+                })
+                .filter(isNotNullOrUndefined) ?? [];
+
+        return [svelteHtmlDataProvider].concat(providers);
     }
 
     private featureEnabled(feature: keyof LSHTMLConfig) {

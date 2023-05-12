@@ -6,10 +6,11 @@ import { SvelteSnapshotManager } from './svelte-snapshots';
 import type ts from 'typescript/lib/tsserverlibrary';
 import { ConfigManager, Configuration } from './config-manager';
 import { ProjectSvelteFilesManager } from './project-svelte-files';
-import { getConfigPathForProject } from './utils';
+import { getConfigPathForProject, hasNodeModule } from './utils';
 
 function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
     const configManager = new ConfigManager();
+    let resolvedSvelteTsxFiles: string[] | undefined;
 
     function create(info: ts.server.PluginCreateInfo) {
         const logger = new Logger(info.project.projectService.logger);
@@ -41,6 +42,49 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
         const parsedCommandLine = info.languageServiceHost.getParsedCommandLine?.(
             getConfigPathForProject(info.project)
         );
+
+        // For some reason it's no longer enough to patch this at the projectService level, so we do it here, too
+        // TODO investigate if we can use the script snapshot for all Svelte files, too, enabling Svelte file
+        // updates getting picked up without a file save - move this logic into the snapshot manager then?
+        const getScriptSnapshot = info.languageServiceHost.getScriptSnapshot.bind(
+            info.languageServiceHost
+        );
+        info.languageServiceHost.getScriptSnapshot = (fileName) => {
+            const normalizedPath = fileName.replace(/\\/g, '/');
+            if (normalizedPath.endsWith('node_modules/svelte/types/runtime/ambient.d.ts')) {
+                return modules.typescript.ScriptSnapshot.fromString('');
+            } else if (normalizedPath.endsWith('svelte2tsx/svelte-jsx.d.ts')) {
+                // Remove the dom lib reference to not load these ambient types in case
+                // the user has a tsconfig.json with different lib settings like in
+                // https://github.com/sveltejs/language-tools/issues/1733
+                const snapshot = getScriptSnapshot(fileName);
+                if (snapshot) {
+                    const originalText = snapshot.getText(0, snapshot.getLength());
+                    const toReplace = '/// <reference lib="dom" />';
+                    return modules.typescript.ScriptSnapshot.fromString(
+                        originalText.replace(toReplace, ' '.repeat(toReplace.length))
+                    );
+                }
+                return snapshot;
+            } else if (normalizedPath.endsWith('svelte2tsx/svelte-shims.d.ts')) {
+                const snapshot = getScriptSnapshot(fileName);
+                if (snapshot) {
+                    let originalText = snapshot.getText(0, snapshot.getLength());
+                    if (!originalText.includes('// -- start svelte-ls-remove --')) {
+                        return snapshot; // uses an older version of svelte2tsx or is already patched
+                    }
+                    const startIdx = originalText.indexOf('// -- start svelte-ls-remove --');
+                    const endIdx = originalText.indexOf('// -- end svelte-ls-remove --');
+                    originalText =
+                        originalText.substring(0, startIdx) +
+                        ' '.repeat(endIdx - startIdx) +
+                        originalText.substring(endIdx);
+                    return modules.typescript.ScriptSnapshot.fromString(originalText);
+                }
+                return snapshot;
+            }
+            return getScriptSnapshot(fileName);
+        };
 
         const svelteOptions = parsedCommandLine?.raw?.svelteOptions || { namespace: 'svelteHTML' };
         logger.log('svelteOptions:', svelteOptions);
@@ -87,7 +131,14 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
         });
 
         return decorateLanguageServiceDispose(
-            decorateLanguageService(info.languageService, snapshotManager, logger, configManager),
+            decorateLanguageService(
+                info.languageService,
+                snapshotManager,
+                logger,
+                configManager,
+                info,
+                modules.typescript
+            ),
             projectSvelteFilesManager ?? {
                 dispose() {}
             }
@@ -100,12 +151,13 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
         }
 
         // Needed so the ambient definitions are known inside the tsx files
-        const svelteTsPath = dirname(require.resolve('svelte2tsx'));
-        const svelteTsxFiles = [
-            './svelte-shims.d.ts',
-            './svelte-jsx.d.ts',
-            './svelte-native-jsx.d.ts'
-        ].map((f) => modules.typescript.sys.resolvePath(resolve(svelteTsPath, f)));
+        const svelteTsxFiles = resolveSvelteTsxFiles();
+
+        if (!project.getCompilerOptions().configFilePath) {
+            svelteTsxFiles.forEach((file) => {
+                openSvelteTsxFileForInferredProject(project, file);
+            });
+        }
 
         // let ts know project svelte files to do its optimization
         return svelteTsxFiles.concat(
@@ -113,17 +165,26 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
         );
     }
 
+    function resolveSvelteTsxFiles() {
+        if (resolvedSvelteTsxFiles) {
+            return resolvedSvelteTsxFiles;
+        }
+
+        const svelteTsPath = dirname(require.resolve('svelte2tsx'));
+        const svelteTsxFiles = [
+            './svelte-shims.d.ts',
+            './svelte-jsx.d.ts',
+            './svelte-native-jsx.d.ts'
+        ].map((f) => modules.typescript.sys.resolvePath(resolve(svelteTsPath, f)));
+
+        resolvedSvelteTsxFiles = svelteTsxFiles;
+
+        return svelteTsxFiles;
+    }
+
     function isSvelteProject(compilerOptions: ts.CompilerOptions) {
         // Add more checks like "no Svelte file found" or "no config file found"?
-        try {
-            const isSvelteProject =
-                typeof compilerOptions.configFilePath !== 'string' ||
-                require.resolve('svelte', { paths: [compilerOptions.configFilePath] });
-            return isSvelteProject;
-        } catch (e) {
-            // If require.resolve fails, we end up here
-            return false;
-        }
+        return hasNodeModule(compilerOptions, 'svelte');
     }
 
     function onConfigurationChanged(config: Configuration) {
@@ -142,6 +203,38 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
         };
 
         return languageService;
+    }
+
+    /**
+     * TypeScript doesn't load the external files in projects without a config file. So we load it by ourselves.
+     * TypeScript also seems to expect files added to the root to be opened by the client in this situation.
+     */
+    function openSvelteTsxFileForInferredProject(project: ts.server.Project, file: string) {
+        const normalizedPath = modules.typescript.server.toNormalizedPath(file);
+        if (project.containsFile(normalizedPath)) {
+            return;
+        }
+
+        const scriptInfo = project.projectService.getOrCreateScriptInfoForNormalizedPath(
+            normalizedPath,
+            /*openedByClient*/ true,
+            project.readFile(file)
+        );
+
+        if (!scriptInfo) {
+            return;
+        }
+
+        if (!project.projectService.openFiles.has(scriptInfo.path)) {
+            project.projectService.openFiles.set(scriptInfo.path, undefined);
+        }
+
+        if ((project as any).projectRootPath) {
+            // Only add the file to the project if it has a projectRootPath, because else
+            // a ts.Assert error will be thrown when multiple inferred projects are tried
+            // to be merged.
+            project.addRoot(scriptInfo);
+        }
     }
 
     return { create, getExternalFiles, onConfigurationChanged };

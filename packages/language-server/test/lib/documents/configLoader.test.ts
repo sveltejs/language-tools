@@ -91,7 +91,7 @@ describe('ConfigLoader', () => {
             Object.keys(
                 configLoader.getConfig(normalizePath('/some/path/comp.svelte'))?.preprocess || {}
             ).sort(),
-            ['defaultLanguages', 'markup', 'script', 'style'].sort()
+            ['markup', 'script', 'style'].sort()
         );
     });
 

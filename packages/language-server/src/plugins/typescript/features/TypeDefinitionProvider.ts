@@ -1,6 +1,6 @@
 import { Position, Location } from 'vscode-languageserver-protocol';
-import { Document, mapRangeToOriginal } from '../../../lib/documents';
-import { pathToUrl, isNotNullOrUndefined } from '../../../utils';
+import { Document, mapLocationToOriginal } from '../../../lib/documents';
+import { isNotNullOrUndefined } from '../../../utils';
 import { TypeDefinitionProvider } from '../../interfaces';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { convertRange } from '../utils';
@@ -29,13 +29,13 @@ export class TypeDefinitionProviderImpl implements TypeDefinitionProvider {
                     return;
                 }
 
-                const range = mapRangeToOriginal(
+                const location = mapLocationToOriginal(
                     snapshot,
                     convertRange(snapshot, typeDef.textSpan)
                 );
 
-                if (range.start.line >= 0 && range.end.line >= 0) {
-                    return Location.create(pathToUrl(typeDef.fileName), range);
+                if (location.range.start.line >= 0 && location.range.end.line >= 0) {
+                    return location;
                 }
             })
         );

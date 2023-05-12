@@ -122,6 +122,9 @@ export class Document extends WritableDocument {
         );
     }
 
+    /**
+     * @deprecated This no longer exists in svelte-preprocess v5, we leave it in in case someone is using this with v4
+     */
     private addDefaultLanguage(
         config: SvelteConfig | undefined,
         tagInfo: TagInformation | null,

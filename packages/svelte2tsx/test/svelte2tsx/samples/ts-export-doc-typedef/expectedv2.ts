@@ -9,7 +9,7 @@
      * DOCS!
      * @typedef {'ABC'} ABC
      */
-     let a/*Ωignore_startΩ*/;a = __sveltets_1_any(a);/*Ωignore_endΩ*/;
+     let a/*Ωignore_startΩ*/;a = __sveltets_2_any(a);/*Ωignore_endΩ*/;
 ;
 async () => {};
 return { props: {
@@ -18,5 +18,5 @@ return { props: {
      * 
      */a: a}, slots: {}, events: {} }}
 
-export default class Input__SvelteComponent_ extends __sveltets_1_createSvelte2TsxComponent(__sveltets_1_with_any_event(render())) {
+export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_with_any_event(render())) {
 }

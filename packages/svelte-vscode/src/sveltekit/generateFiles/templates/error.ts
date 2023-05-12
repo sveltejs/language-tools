@@ -17,5 +17,5 @@ export default async function (config: GenerateConfig) {
 <h1>{$page.status}: {$page.error.message}</h1>
     `.trim();
 
-    return config.typescript ? ts : js;
+    return config.type === 'js' ? js : ts;
 }

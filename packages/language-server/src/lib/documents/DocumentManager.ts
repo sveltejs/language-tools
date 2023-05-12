@@ -6,6 +6,8 @@ import {
 } from 'vscode-languageserver';
 import { Document } from './Document';
 import { normalizeUri } from '../../utils';
+import ts from 'typescript';
+import { FileMap, FileSet } from './fileCollection';
 
 export type DocumentEvent = 'documentOpen' | 'documentChange' | 'documentClose';
 
@@ -14,17 +16,28 @@ export type DocumentEvent = 'documentOpen' | 'documentChange' | 'documentClose';
  */
 export class DocumentManager {
     private emitter = new EventEmitter();
-    private openedInClient = new Set<string>();
-    private documents: Map<string, Document> = new Map();
-    private locked = new Set<string>();
-    private deleteCandidates = new Set<string>();
+    private openedInClient: FileSet;
+    private documents: FileMap<Document>;
+    private locked: FileSet;
+    private deleteCandidates: FileSet;
 
     constructor(
-        private createDocument: (textDocument: Pick<TextDocumentItem, 'text' | 'uri'>) => Document
-    ) {}
+        private createDocument: (textDocument: Pick<TextDocumentItem, 'text' | 'uri'>) => Document,
+        options: { useCaseSensitiveFileNames: boolean } = {
+            useCaseSensitiveFileNames: ts.sys.useCaseSensitiveFileNames
+        }
+    ) {
+        this.openedInClient = new FileSet(options.useCaseSensitiveFileNames);
+        this.documents = new FileMap(options.useCaseSensitiveFileNames);
+        this.locked = new FileSet(options.useCaseSensitiveFileNames);
+        this.deleteCandidates = new FileSet(options.useCaseSensitiveFileNames);
+    }
 
     openDocument(textDocument: Pick<TextDocumentItem, 'text' | 'uri'>): Document {
-        textDocument = { ...textDocument, uri: normalizeUri(textDocument.uri) };
+        textDocument = {
+            ...textDocument,
+            uri: normalizeUri(textDocument.uri)
+        };
 
         let document: Document;
         if (this.documents.has(textDocument.uri)) {

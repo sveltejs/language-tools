@@ -32,7 +32,8 @@ const svelteEvents = [
     { name: 'on:mouseenter' },
     { name: 'on:mouseleave' },
     // Other
-    { name: 'on:hashchange' }
+    { name: 'on:hashchange' },
+    { name: 'on:visibilitychange' }
 ];
 const svelteAttributes: IAttributeData[] = [
     {
@@ -41,6 +42,10 @@ const svelteAttributes: IAttributeData[] = [
     },
     {
         name: 'bind:textContent',
+        description: 'Available when contenteditable=true'
+    },
+    {
+        name: 'bind:innerText',
         description: 'Available when contenteditable=true'
     },
     {
@@ -63,6 +68,52 @@ const svelteAttributes: IAttributeData[] = [
         name: 'bind:this',
         description:
             'To get a reference to a DOM node, use bind:this. If used on a component, gets a reference to that component instance.'
+    }
+];
+const sveltekitAttributes: IAttributeData[] = [
+    {
+        name: 'data-sveltekit-keepfocus',
+        description:
+            'SvelteKit-specific attribute. Currently focused element will retain focus after navigation. Otherwise, focus will be reset to the body.',
+        valueSet: 'v'
+    },
+    {
+        name: 'data-sveltekit-noscroll',
+        description:
+            'SvelteKit-specific attribute. Will prevent scrolling after the link is clicked.',
+        valueSet: 'v'
+    },
+    {
+        name: 'data-sveltekit-preload-code',
+        description:
+            "SvelteKit-specific attribute. Will cause SvelteKit to run the page's load function as soon as the user hovers over the link (on a desktop) or touches it (on mobile), rather than waiting for the click event to trigger navigation.",
+        valueSet: 'v',
+        values: [
+            { name: 'eager' },
+            { name: 'viewport' },
+            { name: 'hover' },
+            { name: 'tap' },
+            { name: 'off' }
+        ]
+    },
+    {
+        name: 'data-sveltekit-preload-data',
+        description:
+            "SvelteKit-specific attribute. Will cause SvelteKit to run the page's load function as soon as the user hovers over the link (on a desktop) or touches it (on mobile), rather than waiting for the click event to trigger navigation.",
+        valueSet: 'v',
+        values: [{ name: 'hover' }, { name: 'tap' }, { name: 'off' }]
+    },
+    {
+        name: 'data-sveltekit-reload',
+        description:
+            'SvelteKit-specific attribute. Will cause SvelteKit to do a normal browser navigation which results in a full page reload.',
+        valueSet: 'v'
+    },
+    {
+        name: 'data-sveltekit-replacestate',
+        description:
+            'SvelteKit-specific attribute. Will replace the current `history` entry rather than creating a new one with `pushState` when the link is clicked.',
+        valueSet: 'v'
     }
 ];
 
@@ -129,6 +180,22 @@ const svelteTags: ITagData[] = [
             {
                 name: 'bind:online',
                 description: 'An alias for window.navigator.onLine'
+            }
+        ]
+    },
+    {
+        name: 'svelte:document',
+        description:
+            "As with <svelte:window>, this element allows you to add listeners to events on document, such as visibilitychange, which don't fire on window.",
+        attributes: [
+            {
+                name: 'bind:fullscreenElement',
+                description:
+                    'Bind to the element that is being in full screen mode in this document. (read-only)'
+            },
+            {
+                name: 'bind:visibilityState',
+                description: 'Bind to visibility of the document. (read-only)'
             }
         ]
     },
@@ -257,6 +324,9 @@ const mediaAttributes: IAttributeData[] = [
     },
     {
         name: 'bind:muted'
+    },
+    {
+        name: 'bind:readyState'
     }
 ];
 const videoAttributes: IAttributeData[] = [
@@ -285,29 +355,10 @@ const addAttributes: Record<string, IAttributeData[]> = {
         indeterminateAttribute,
         { ...indeterminateAttribute, name: 'bind:indeterminate' }
     ],
+    img: [{ name: 'bind:naturalWidth' }, { name: 'bind:naturalHeight' }],
     textarea: [{ name: 'bind:value' }],
     video: [...mediaAttributes, ...videoAttributes],
     audio: [...mediaAttributes],
-    a: [
-        {
-            name: 'sveltekit:noscroll',
-            description:
-                'SvelteKit-specific attribute. Will prevent scrolling after the link is clicked.',
-            valueSet: 'v'
-        },
-        {
-            name: 'sveltekit:prefetch',
-            description:
-                "SvelteKit-specific attribute. Will cause SvelteKit to run the page's load function as soon as the user hovers over the link (on a desktop) or touches it (on mobile), rather than waiting for the click event to trigger navigation.",
-            valueSet: 'v'
-        },
-        {
-            name: 'sveltekit:reload',
-            description:
-                'SvelteKit-specific attribute. Will cause SvelteKit to do a normal browser navigation which results in a full page reload.',
-            valueSet: 'v'
-        }
-    ],
     details: [
         {
             name: 'bind:open'
@@ -328,7 +379,12 @@ const html5Tags = htmlData.tags!.map((tag) => {
 
 export const svelteHtmlDataProvider = newHTMLDataProvider('svelte-builtin', {
     version: 1,
-    globalAttributes: [...htmlData.globalAttributes!, ...svelteEvents, ...svelteAttributes],
+    globalAttributes: [
+        ...htmlData.globalAttributes!,
+        ...svelteEvents,
+        ...svelteAttributes,
+        ...sveltekitAttributes
+    ],
     tags: [...html5Tags, ...svelteTags],
     valueSets: htmlData.valueSets
 });

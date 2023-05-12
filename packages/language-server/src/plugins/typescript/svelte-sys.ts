@@ -1,6 +1,7 @@
 import { DocumentSnapshot } from './DocumentSnapshot';
 import ts from 'typescript';
 import { ensureRealSvelteFilePath, isVirtualSvelteFilePath, toRealSvelteFilePath } from './utils';
+import { FileMap } from '../../lib/documents/fileCollection';
 
 /**
  * This should only be accessed by TS svelte module resolution.
@@ -9,7 +10,7 @@ export function createSvelteSys(
     getSnapshot: (fileName: string) => DocumentSnapshot,
     tsSystem: ts.System
 ) {
-    const fileExistsCache = new Map<string, boolean>();
+    const fileExistsCache = new FileMap<boolean>();
 
     const svelteSys: ts.System & { deleteFromCache: (path: string) => void } = {
         ...tsSystem,
@@ -24,7 +25,7 @@ export function createSvelteSys(
             return snapshot.getText(0, snapshot.getLength());
         },
         readDirectory(path, extensions, exclude, include, depth) {
-            const extensionsWithSvelte = (extensions ?? []).concat('.svelte');
+            const extensionsWithSvelte = extensions ? [...extensions, '.svelte'] : undefined;
 
             return tsSystem.readDirectory(path, extensionsWithSvelte, exclude, include, depth);
         },

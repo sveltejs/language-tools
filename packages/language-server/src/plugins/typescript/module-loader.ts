@@ -1,5 +1,6 @@
 import ts from 'typescript';
-import { getLastPartOfPath } from '../../utils';
+import { FileMap } from '../../lib/documents/fileCollection';
+import { createGetCanonicalFileName, getLastPartOfPath } from '../../utils';
 import { DocumentSnapshot } from './DocumentSnapshot';
 import { createSvelteSys } from './svelte-sys';
 import {
@@ -14,7 +15,8 @@ import {
  * Caches resolved modules.
  */
 class ModuleResolutionCache {
-    private cache = new Map<string, ts.ResolvedModule | undefined>();
+    private cache = new FileMap<ts.ResolvedModule | undefined>();
+    private getCanonicalFileName = createGetCanonicalFileName(ts.sys.useCaseSensitiveFileNames);
 
     /**
      * Tries to get a cached module.
@@ -43,8 +45,9 @@ class ModuleResolutionCache {
      * @param resolvedModuleName full path of the module
      */
     delete(resolvedModuleName: string): void {
+        resolvedModuleName = this.getCanonicalFileName(resolvedModuleName);
         this.cache.forEach((val, key) => {
-            if (val?.resolvedFileName === resolvedModuleName) {
+            if (val && this.getCanonicalFileName(val.resolvedFileName) === resolvedModuleName) {
                 this.cache.delete(key);
             }
         });
@@ -55,7 +58,8 @@ class ModuleResolutionCache {
      * and which might match the path.
      */
     deleteUnresolvedResolutionsFromCache(path: string): void {
-        const fileNameWithoutEnding = getLastPartOfPath(path).split('.').shift() || '';
+        const fileNameWithoutEnding =
+            getLastPartOfPath(this.getCanonicalFileName(path)).split('.').shift() || '';
         this.cache.forEach((val, key) => {
             const moduleName = key.split(':::').pop() || '';
             if (!val && moduleName.includes(fileNameWithoutEnding)) {
@@ -70,7 +74,7 @@ class ModuleResolutionCache {
 }
 
 class ImpliedNodeFormatResolver {
-    private alreadyResolved = new Map<string, ReturnType<typeof ts.getModeForResolutionAtIndex>>();
+    private alreadyResolved = new FileMap<ReturnType<typeof ts.getModeForResolutionAtIndex>>();
 
     resolve(
         importPath: string,
@@ -122,7 +126,8 @@ class ImpliedNodeFormatResolver {
 export function createSvelteModuleLoader(
     getSnapshot: (fileName: string) => DocumentSnapshot,
     compilerOptions: ts.CompilerOptions,
-    tsSystem: ts.System
+    tsSystem: ts.System,
+    tsResolveModuleName: typeof ts.resolveModuleName
 ) {
     const svelteSys = createSvelteSys(getSnapshot, tsSystem);
     const moduleCache = new ModuleResolutionCache();
@@ -182,7 +187,7 @@ export function createSvelteModuleLoader(
         // Delegate to the TS resolver first.
         // If that does not bring up anything, try the Svelte Module loader
         // which is able to deal with .svelte files.
-        const tsResolvedModule = ts.resolveModuleName(
+        const tsResolvedModule = tsResolveModuleName(
             name,
             containingFile,
             compilerOptions,
@@ -195,7 +200,7 @@ export function createSvelteModuleLoader(
             return tsResolvedModule;
         }
 
-        const svelteResolvedModule = ts.resolveModuleName(
+        const svelteResolvedModule = tsResolveModuleName(
             name,
             containingFile,
             compilerOptions,

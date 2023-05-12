@@ -4,7 +4,7 @@ import { addResourceCommandMap } from './commands';
 import { generateResources } from './generate';
 import { resourcesMap } from './resources';
 import { FileType, ResourceType, GenerateConfig, CommandType } from './types';
-import { checkIfTypescriptProject } from '../utils';
+import { checkProjectType } from '../utils';
 
 class GenerateError extends Error {}
 
@@ -38,7 +38,7 @@ async function handleSingle(uri: Uri | undefined, resourceType: ResourceType) {
     }
     const resources = [resource];
 
-    const { isTs, rootPath, scriptExtension } = await getCommonConfig(uri);
+    const { type, rootPath, scriptExtension } = await getCommonConfig(uri);
 
     const itemPath = await promptResourcePath();
 
@@ -48,7 +48,7 @@ async function handleSingle(uri: Uri | undefined, resourceType: ResourceType) {
 
     await generate({
         path: path.join(rootPath, itemPath),
-        typescript: isTs,
+        type,
         pageExtension: 'svelte',
         scriptExtension,
         resources
@@ -56,7 +56,7 @@ async function handleSingle(uri: Uri | undefined, resourceType: ResourceType) {
 }
 
 async function handleMultiple(uri: Uri | undefined) {
-    const { isTs, rootPath, scriptExtension } = await getCommonConfig(uri);
+    const { type, rootPath, scriptExtension } = await getCommonConfig(uri);
     const itemPath = await promptResourcePath();
 
     if (!itemPath) {
@@ -71,9 +71,9 @@ async function handleMultiple(uri: Uri | undefined) {
         ResourceType.LAYOUT,
         ResourceType.LAYOUT_LOAD,
         ResourceType.LAYOUT_SERVER,
-        ResourceType.ERROR
+        ResourceType.ERROR,
+        ResourceType.SERVER
     ].map((type) => {
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         const resource = resourcesMap.get(type)!;
         // const iconName = resource.type === FileType.PAGE ? 'svelte' : isTs ? 'typescript' : 'javascript';
         const extension = resource.type === FileType.PAGE ? 'svelte' : scriptExtension;
@@ -92,7 +92,7 @@ async function handleMultiple(uri: Uri | undefined) {
 
     await generate({
         path: path.join(rootPath, itemPath),
-        typescript: isTs,
+        type,
         pageExtension: 'svelte',
         scriptExtension,
         resources: result.map((res) => res.value)
@@ -125,13 +125,13 @@ async function getCommonConfig(uri: Uri | undefined) {
         );
     }
 
-    const isTs = await checkIfTypescriptProject(rootPath);
-    const scriptExtension = isTs ? 'ts' : 'js';
+    const type = await checkProjectType(rootPath);
+    const scriptExtension = type === 'js' ? 'js' : 'ts';
     return {
-        isTs,
+        type,
         scriptExtension,
         rootPath
-    };
+    } as const;
 }
 
 function getRootPath(uri: Uri | undefined) {

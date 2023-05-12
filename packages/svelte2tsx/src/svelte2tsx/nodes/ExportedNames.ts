@@ -1,5 +1,6 @@
 import MagicString from 'magic-string';
 import ts from 'typescript';
+import { internalHelpers } from '../../helpers';
 import { surroundWithIgnoreComments } from '../../utils/ignore';
 import { preprendStr, overwriteStr } from '../../utils/magic-string';
 import { findExportKeyword, getLastLeadingDoc, isInterfaceOrTypeDeclaration } from '../utils/tsAst';
@@ -19,6 +20,9 @@ interface ExportedName {
 }
 
 export class ExportedNames {
+    /**
+     * Uses the $$Props type
+     */
     public uses$$Props = false;
     private exports = new Map<string, ExportedName>();
     private possibleExports = new Map<
@@ -30,7 +34,7 @@ export class ExportedNames {
     private doneDeclarationTransformation = new Set<ts.VariableDeclarationList>();
     private getters = new Set<string>();
 
-    constructor(private str: MagicString, private astOffset: number) {}
+    constructor(private str: MagicString, private astOffset: number, private basename: string) {}
 
     handleVariableStatement(node: ts.VariableStatement, parent: ts.Node): void {
         const exportModifier = findExportKeyword(node);
@@ -47,6 +51,18 @@ export class ExportedNames {
                 node.declarationList.forEachChild((n) => {
                     if (ts.isVariableDeclaration(n) && ts.isIdentifier(n.name)) {
                         this.addGetter(n.name);
+
+                        const type = n.type || ts.getJSDocType(n);
+                        const isKitExport =
+                            internalHelpers.isKitRouteFile(this.basename) &&
+                            n.name.getText() === 'snapshot';
+                        // TS types are not allowed in JS files, but TS will still pick it up and the ignore comment will filter out the error
+                        const kitType =
+                            isKitExport && !type ? `: import('./$types.js').Snapshot` : '';
+                        const nameEnd = n.name.end + this.astOffset;
+                        if (kitType) {
+                            preprendStr(this.str, nameEnd, surroundWithIgnoreComments(kitType));
+                        }
                     }
                 });
             }
@@ -96,7 +112,7 @@ export class ExportedNames {
     }
 
     /**
-     * Appends `prop = __sveltets_1_any(prop)`  to given declaration in order to
+     * Appends `prop = __sveltets_2_any(prop)`  to given declaration in order to
      * trick TS into widening the type. Else for example `let foo: string | undefined = undefined`
      * is narrowed to `undefined` by TS.
      */
@@ -110,6 +126,25 @@ export class ExportedNames {
             const tsType = declaration.type;
             const jsDocType = ts.getJSDocType(declaration);
             const type = tsType || jsDocType;
+            const name = identifier.getText();
+            const isKitExport =
+                internalHelpers.isKitRouteFile(this.basename) &&
+                (name === 'data' || name === 'form' || name === 'snapshot');
+            // TS types are not allowed in JS files, but TS will still pick it up and the ignore comment will filter out the error
+            const kitType =
+                isKitExport && !type
+                    ? `: import('./$types.js').${
+                          name === 'data'
+                              ? this.basename.includes('layout')
+                                  ? 'LayoutData'
+                                  : 'PageData'
+                              : name === 'form'
+                              ? 'ActionData'
+                              : 'Snapshot'
+                      }`
+                    : '';
+            const nameEnd = identifier.end + this.astOffset;
+            const end = declaration.end + this.astOffset;
 
             if (
                 ts.isIdentifier(identifier) &&
@@ -126,13 +161,27 @@ export class ExportedNames {
                         )))
             ) {
                 const name = identifier.getText();
-                const end = declaration.end + this.astOffset;
 
-                preprendStr(
-                    this.str,
-                    end,
-                    surroundWithIgnoreComments(`;${name} = __sveltets_1_any(${name});`)
-                );
+                if (nameEnd === end) {
+                    preprendStr(
+                        this.str,
+                        end,
+                        surroundWithIgnoreComments(
+                            `${kitType};${name} = __sveltets_2_any(${name});`
+                        )
+                    );
+                } else {
+                    if (kitType) {
+                        preprendStr(this.str, nameEnd, surroundWithIgnoreComments(kitType));
+                    }
+                    preprendStr(
+                        this.str,
+                        end,
+                        surroundWithIgnoreComments(`;${name} = __sveltets_2_any(${name});`)
+                    );
+                }
+            } else if (kitType) {
+                preprendStr(this.str, nameEnd, surroundWithIgnoreComments(kitType));
             }
         };
 
@@ -195,7 +244,13 @@ export class ExportedNames {
 
     createClassGetters(): string {
         return Array.from(this.getters)
-            .map((name) => `\n    get ${name}() { return this.$$prop_def.${name} }`)
+            .map(
+                (name) =>
+                    // getters are const/classes/functions, which are always defined.
+                    // We have to remove the `| undefined` from the type here because it was necessary to
+                    // be added in a previous step so people are not expected to provide these as props.
+                    `\n    get ${name}() { return __sveltets_2_nonNullable(this.$$prop_def.${name}) }`
+            )
             .join('');
     }
 
@@ -315,27 +370,24 @@ export class ExportedNames {
      * Creates a string from the collected props
      *
      * @param isTsFile Whether this is a TypeScript file or not.
+     * @param uses$$propsOr$$restProps whether the file references the $$props or $$restProps variable
      */
-    createPropsStr(isTsFile: boolean): string {
+    createPropsStr(isTsFile: boolean, uses$$propsOr$$restProps: boolean): string {
         const names = Array.from(this.exports.entries());
 
         if (this.uses$$Props) {
             const lets = names.filter(([, { isLet }]) => isLet);
             const others = names.filter(([, { isLet }]) => !isLet);
-            // We need to check both ways:
-            // - The check if exports are assignable to Parial<$$Props> is necessary to make sure
-            //   no props are missing. Partial<$$Props> is needed because props with a default value
-            //   count as optional, but semantically speaking it is still correctly implementing the interface
             // - The check if $$Props is assignable to exports is necessary to make sure no extraneous props
             //   are defined and that no props are required that should be optional
-            // __sveltets_1_ensureRightProps needs to be declared in a way that doesn't affect the type result of props
+            // - The check if exports are assignable to $$Props is not done because a component should be allowed
+            //   to use less props than defined (it just ignores them)
+            // - __sveltets_2_ensureRightProps needs to be declared in a way that doesn't affect the type result of props
             return (
-                '{...__sveltets_1_ensureRightProps<{' +
+                '{...__sveltets_2_ensureRightProps<{' +
                 this.createReturnElementsType(lets).join(',') +
-                '}>(__sveltets_1_any("") as $$Props), ' +
-                '...__sveltets_1_ensureRightProps<Partial<$$Props>>({' +
-                this.createReturnElements(lets, false).join(',') +
-                '}), ...{} as unknown as $$Props, ...{' +
+                '}>(__sveltets_2_any("") as $$Props), ' +
+                '...{} as unknown as $$Props, ...{' +
                 // We add other exports of classes and functions here because
                 // they need to appear in the props object in order to properly
                 // type bind:xx but they are not needed to be part of $$Props
@@ -346,13 +398,18 @@ export class ExportedNames {
             );
         }
 
+        if (names.length === 0 && !uses$$propsOr$$restProps) {
+            // Necessary, because {} roughly equals to any
+            return isTsFile
+                ? '{} as Record<string, never>'
+                : '/** @type {Record<string, never>} */ ({})';
+        }
+
         const dontAddTypeDef =
-            !isTsFile ||
-            names.length === 0 ||
-            names.every(([_, value]) => !value.type && value.required);
+            !isTsFile || names.every(([_, value]) => !value.type && value.required);
         const returnElements = this.createReturnElements(names, dontAddTypeDef);
         if (dontAddTypeDef) {
-            // No exports or only `typeof` exports -> omit the `as {...}` completely.
+            // Only `typeof` exports -> omit the `as {...}` completely.
             // If not TS, omit the types to not have a "cannot use types in jsx" error.
             return `{${returnElements.join(' , ')}}`;
         }

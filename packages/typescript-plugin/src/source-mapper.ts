@@ -1,4 +1,4 @@
-import { decode } from 'sourcemap-codec';
+import { decode } from '@jridgewell/sourcemap-codec';
 import type ts from 'typescript/lib/tsserverlibrary';
 
 type LineChar = ts.LineAndCharacter;
@@ -61,7 +61,7 @@ function binarySearch<T extends object | number>(
     let high = array.length - 1;
     while (low <= high) {
         const i = low + ((high - low) >> 1);
-        const item = undefined === key ? array[i] : array[i][key];
+        const item = (undefined === key ? array[i] : array[i][key]) as number;
         if (item === target) {
             return i;
         }

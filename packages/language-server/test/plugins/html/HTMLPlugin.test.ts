@@ -6,7 +6,8 @@ import {
     CompletionItem,
     TextEdit,
     CompletionItemKind,
-    InsertTextFormat
+    InsertTextFormat,
+    CompletionTriggerKind
 } from 'vscode-languageserver';
 import { HTMLPlugin } from '../../../src/plugins';
 import { DocumentManager, Document } from '../../../src/lib/documents';
@@ -152,6 +153,26 @@ describe('HTML Plugin', () => {
             completions!.items.find((item) => item.label === 'style (lang="less")'),
             undefined
         );
+    });
+
+    it('skip HTML completions for non-HTML trigger characters', async () => {
+        const { plugin, document } = setup('<div><div>');
+
+        const completions = await plugin.getCompletions(document, Position.create(0, 5), {
+            triggerCharacter: '>',
+            triggerKind: CompletionTriggerKind.TriggerCharacter
+        });
+        assert.strictEqual(completions, null);
+    });
+
+    it('provide emmet completions with >', async () => {
+        const { plugin, document } = setup('div>');
+
+        const completions = await plugin.getCompletions(document, Position.create(0, 5), {
+            triggerCharacter: '>',
+            triggerKind: CompletionTriggerKind.TriggerCharacter
+        });
+        assert.strictEqual(completions?.items[0]?.label, 'div>');
     });
 
     it('does not provide rename for element being uppercase', async () => {

@@ -18,7 +18,6 @@ describe('createSvelteModuleLoader', () => {
         const resolveStub = sinon.stub().returns(<ts.ResolvedModuleWithFailedLookupLocations>{
             resolvedModule
         });
-        sinon.replace(ts, 'resolveModuleName', resolveStub);
 
         const svelteSys = <any>'svelteSys';
         sinon.stub(svS, 'createSvelteSys').returns(svelteSys);
@@ -27,7 +26,8 @@ describe('createSvelteModuleLoader', () => {
         const moduleResolver = createSvelteModuleLoader(
             getSvelteSnapshotStub,
             compilerOptions,
-            ts.sys
+            ts.sys,
+            resolveStub
         );
 
         return {

@@ -1,1 +1,1 @@
-<script lang="typescript">export let prop: string;</script>
+<script lang="ts">export let prop: string;</script>

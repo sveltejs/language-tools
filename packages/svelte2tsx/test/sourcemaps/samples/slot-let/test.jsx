@@ -1,6 +1,6 @@
 /** tested-ranges: [[15,2,"hi"],[22,9,"hi2:hi_2"],[37,3,"hi3"]] */                                                                                    {/**
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
-<><Component   >{() => { let {hi, hi2:hi_2, hi3} = /*Ωignore_startΩ*/new Component({target: __sveltets_1_any(''), props: {}})/*Ωignore_endΩ*/.$$slot_def['default'];<>{/**
+<><Component   >{() => { let {hi, hi2:hi_2, hi3} = /*Ωignore_startΩ*/new Component({target: __sveltets_2_any(''), props: {}})/*Ωignore_endΩ*/.$$slot_def['default'];<>{/**
                               1=  2=======  3==                                                                                                                         [generated] line 3 */}
 <Component let:hi let:hi2={hi_2} let:hi3>                                                                                                             {/**
                1=     2========      3==                                                                                                                                [original] line 1

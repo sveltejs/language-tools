@@ -3,7 +3,7 @@
 async () => {if(true){
  { __sveltets_2_createComponentAny({  "prop1":1,});}
 }
- { const $$_svelte_component0C = __sveltets_2_ensureComponent(testComponent); new $$_svelte_component0C({ target: __sveltets_2_any(), props: {   "propa":5,}});
+ { const $$_tnenopmoc_etlevs0C = __sveltets_2_ensureComponent(testComponent); new $$_tnenopmoc_etlevs0C({ target: __sveltets_2_any(), props: {   "propa":5,}});
      { svelteHTML.createElement("h1", {});  }
  }
  { svelteHTML.createElement("svelte:window", {   "on:click":e => {},});}
@@ -12,8 +12,9 @@ async () => {if(true){
      { svelteHTML.createElement("h1", {});  }
  }
  { svelteHTML.createElement("svelte:options", {});}
- { svelteHTML.createElement("svelte:fragment", {});}};
-return { props: {}, slots: {}, events: {} }}
+ { svelteHTML.createElement("svelte:fragment", {});}
+ { svelteHTML.createElement("svelte:document", {    "foo":`bar`,"on:click":e => {},});}};
+return { props: /** @type {Record<string, never>} */ ({}), slots: {}, events: {} }}
 
-export default class Input__SvelteComponent_ extends __sveltets_1_createSvelte2TsxComponent(__sveltets_1_partial(__sveltets_1_with_any_event(render()))) {
+export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial(__sveltets_2_with_any_event(render()))) {
 }

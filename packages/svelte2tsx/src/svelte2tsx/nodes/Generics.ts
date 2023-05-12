@@ -5,6 +5,7 @@ import { throwError } from '../utils/error';
 
 export class Generics {
     private definitions: string[] = [];
+    private typeReferences: string[] = [];
     private references: string[] = [];
 
     constructor(private str: MagicString, private astOffset: number) {}
@@ -15,11 +16,11 @@ export class Generics {
                 throw new Error('Invalid $$Generic declaration: Only one type argument allowed');
             }
             if (node.type.typeArguments?.length === 1) {
-                this.definitions.push(
-                    `${node.name.text} extends ${node.type.typeArguments[0].getText()}`
-                );
+                const typeReference = node.type.typeArguments[0].getText();
+                this.typeReferences.push(typeReference);
+                this.definitions.push(`${node.name.text} extends ${typeReference}`);
             } else {
-                this.definitions.push(`${node.name.text}`);
+                this.definitions.push(node.name.text);
             }
             this.references.push(node.name.text);
             this.str.remove(this.astOffset + node.getStart(), this.astOffset + node.getEnd());
@@ -43,6 +44,10 @@ export class Generics {
             ts.isIdentifier(node.typeName) &&
             node.typeName.text === '$$Generic'
         );
+    }
+
+    getTypeReferences() {
+        return this.typeReferences;
     }
 
     toDefinitionString(addIgnore = false) {

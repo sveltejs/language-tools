@@ -1,6 +1,9 @@
 import { flatten } from 'lodash';
 import { performance } from 'perf_hooks';
 import {
+    CallHierarchyIncomingCall,
+    CallHierarchyItem,
+    CallHierarchyOutgoingCall,
     CancellationToken,
     CodeAction,
     CodeActionContext,
@@ -28,7 +31,8 @@ import {
     TextDocumentContentChangeEvent,
     TextDocumentIdentifier,
     TextEdit,
-    WorkspaceEdit
+    WorkspaceEdit,
+    InlayHint
 } from 'vscode-languageserver';
 import { DocumentManager, getNodeIfIsInHTMLStartTag } from '../lib/documents';
 import { Logger } from '../logger';
@@ -314,7 +318,7 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
     ): Promise<CodeAction[]> {
         const document = this.getDocument(textDocument.uri);
 
-        return flatten(
+        const actions = flatten(
             await this.execute<CodeAction[]>(
                 'getCodeActions',
                 [document, range, context, cancellationToken],
@@ -322,6 +326,13 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
                 'high'
             )
         );
+        // Sort Svelte actions below other actions as they are often less relevant
+        actions.sort((a, b) => {
+            const aPrio = a.title.startsWith('(svelte)') ? 1 : 0;
+            const bPrio = b.title.startsWith('(svelte)') ? 1 : 0;
+            return aPrio - bPrio;
+        });
+        return actions;
     }
 
     async executeCommand(
@@ -337,6 +348,23 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
             ExecuteMode.FirstNonNull,
             'high'
         );
+    }
+
+    async resolveCodeAction(
+        textDocument: TextDocumentIdentifier,
+        codeAction: CodeAction,
+        cancellationToken: CancellationToken
+    ): Promise<CodeAction> {
+        const document = this.getDocument(textDocument.uri);
+
+        const result = await this.execute<CodeAction>(
+            'resolveCodeAction',
+            [document, codeAction, cancellationToken],
+            ExecuteMode.FirstNonNull,
+            'high'
+        );
+
+        return result ?? codeAction;
     }
 
     async updateImports(fileRename: FileRename): Promise<WorkspaceEdit | null> {
@@ -509,6 +537,60 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         return this.execute<Location[] | null>(
             'getTypeDefinition',
             [document, position],
+            ExecuteMode.FirstNonNull,
+            'high'
+        );
+    }
+
+    getInlayHints(
+        textDocument: TextDocumentIdentifier,
+        range: Range,
+        cancellationToken?: CancellationToken
+    ): Promise<InlayHint[] | null> {
+        const document = this.getDocument(textDocument.uri);
+
+        return this.execute<InlayHint[] | null>(
+            'getInlayHints',
+            [document, range, cancellationToken],
+            ExecuteMode.FirstNonNull,
+            'smart'
+        );
+    }
+
+    prepareCallHierarchy(
+        textDocument: TextDocumentIdentifier,
+        position: Position,
+        cancellationToken?: CancellationToken
+    ): Promise<CallHierarchyItem[] | null> {
+        const document = this.getDocument(textDocument.uri);
+
+        return this.execute<CallHierarchyItem[] | null>(
+            'prepareCallHierarchy',
+            [document, position, cancellationToken],
+            ExecuteMode.FirstNonNull,
+            'high'
+        );
+    }
+
+    getIncomingCalls(
+        item: CallHierarchyItem,
+        cancellationToken?: CancellationToken | undefined
+    ): Promise<CallHierarchyIncomingCall[] | null> {
+        return this.execute<CallHierarchyIncomingCall[] | null>(
+            'getIncomingCalls',
+            [item, cancellationToken],
+            ExecuteMode.FirstNonNull,
+            'high'
+        );
+    }
+
+    getOutgoingCalls(
+        item: CallHierarchyItem,
+        cancellationToken?: CancellationToken | undefined
+    ): Promise<CallHierarchyOutgoingCall[] | null> {
+        return this.execute<CallHierarchyOutgoingCall[] | null>(
+            'getOutgoingCalls',
+            [item, cancellationToken],
             ExecuteMode.FirstNonNull,
             'high'
         );

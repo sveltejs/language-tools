@@ -12,7 +12,7 @@ export interface CreateRenderFunctionPara extends InstanceScriptProcessResult {
     events: ComponentEvents;
     isTsFile: boolean;
     uses$$SlotsInterface: boolean;
-    mode?: 'ts' | 'tsx' | 'dts';
+    mode?: 'ts' | 'dts';
 }
 
 export function createRenderFunction({
@@ -30,20 +30,19 @@ export function createRenderFunction({
     generics,
     mode
 }: CreateRenderFunctionPara) {
-    const useNewTransformation = mode === 'ts';
     const htmlx = str.original;
     let propsDecl = '';
 
     if (uses$$props) {
-        propsDecl += ' let $$props = __sveltets_1_allPropsType();';
+        propsDecl += ' let $$props = __sveltets_2_allPropsType();';
     }
     if (uses$$restProps) {
-        propsDecl += ' let $$restProps = __sveltets_1_restPropsType();';
+        propsDecl += ' let $$restProps = __sveltets_2_restPropsType();';
     }
 
     if (uses$$slots) {
         propsDecl +=
-            ' let $$slots = __sveltets_1_slotsType({' +
+            ' let $$slots = __sveltets_2_slotsType({' +
             Array.from(slots.keys())
                 .map((name) => `'${name}': ''`)
                 .join(', ') +
@@ -54,20 +53,16 @@ export function createRenderFunction({
         slots.size > 0 && mode !== 'dts'
             ? '\n' +
               surroundWithIgnoreComments(
-                  useNewTransformation
-                      ? ';const __sveltets_createSlot = __sveltets_2_createCreateSlot' +
-                            (uses$$SlotsInterface ? '<$$Slots>' : '') +
-                            '();'
-                      : ';const __sveltets_ensureSlot = __sveltets_1_createEnsureSlot' +
-                            (uses$$SlotsInterface ? '<$$Slots>' : '') +
-                            '();'
+                  ';const __sveltets_createSlot = __sveltets_2_createCreateSlot' +
+                      (uses$$SlotsInterface ? '<$$Slots>' : '') +
+                      '();'
               )
             : '';
 
     if (scriptTag) {
         //I couldn't get magicstring to let me put the script before the <> we prepend during conversion of the template to jsx, so we just close it instead
         const scriptTagEnd = htmlx.lastIndexOf('>', scriptTag.content.start) + 1;
-        str.overwrite(scriptTag.start, scriptTag.start + 1, useNewTransformation ? ';' : '</>;');
+        str.overwrite(scriptTag.start, scriptTag.start + 1, ';');
         str.overwrite(
             scriptTag.start + 1,
             scriptTagEnd,
@@ -79,9 +74,8 @@ export function createRenderFunction({
         str.overwrite(
             scriptEndTagStart,
             scriptTag.end,
-            useNewTransformation
-                ? `${slotsDeclaration};\nasync () => {`
-                : `${slotsDeclaration};\n() => (<>`,
+            `${slotsDeclaration};\nasync () => {`,
+
             {
                 contentOnly: true
             }
@@ -89,10 +83,8 @@ export function createRenderFunction({
     } else {
         str.prependRight(
             scriptDestination,
-            `${useNewTransformation ? '' : '</>'};function render${generics.toDefinitionString(
-                true
-            )}() {` +
-                `${propsDecl}${slotsDeclaration}\n${useNewTransformation ? 'async () => {' : '<>'}`
+            `;function render${generics.toDefinitionString(true)}() {` +
+                `${propsDecl}${slotsDeclaration}\nasync () => {`
         );
     }
 
@@ -114,16 +106,15 @@ export function createRenderFunction({
           '}';
 
     const returnString =
-        `\nreturn { props: ${exportedNames.createPropsStr(isTsFile)}` +
+        `\nreturn { props: ${exportedNames.createPropsStr(
+            isTsFile,
+            uses$$props || uses$$restProps
+        )}` +
         `, slots: ${slotsAsDef}` +
         `, events: ${events.toDefString()} }}`;
 
     // wrap template with callback
-    if (useNewTransformation) {
-        str.append('};');
-    } else if (scriptTag) {
-        str.append(');');
-    }
+    str.append('};');
 
     str.append(returnString);
 }

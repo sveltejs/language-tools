@@ -24,24 +24,26 @@ export class UpdateImportsProviderImpl implements UpdateImportsProvider {
         }
 
         const ls = await this.getLSForPath(newPath);
+        const oldPathTsProgramCasing = ls.getProgram()?.getSourceFile(oldPath)?.fileName ?? oldPath;
         // `getEditsForFileRename` might take a while
         const fileChanges = ls
-            .getEditsForFileRename(oldPath, newPath, {}, {})
+            .getEditsForFileRename(oldPathTsProgramCasing, newPath, {}, {})
             // Assumption: Updating imports will not create new files, and to make sure just filter those out
             // who - for whatever reason - might be new ones.
-            .filter((change) => !change.isNewFile || change.fileName === oldPath);
+            .filter((change) => !change.isNewFile || change.fileName === oldPathTsProgramCasing);
 
-        await this.lsAndTsDocResolver.updateSnapshotPath(oldPath, newPath);
+        await this.lsAndTsDocResolver.updateSnapshotPath(oldPathTsProgramCasing, newPath);
 
         const editInOldPath = fileChanges.find(
             (change) =>
-                change.fileName.startsWith(oldPath) &&
-                (oldPath.includes(newPath) || !change.fileName.startsWith(newPath))
+                change.fileName.startsWith(oldPathTsProgramCasing) &&
+                (oldPathTsProgramCasing.includes(newPath) || !change.fileName.startsWith(newPath))
         );
         const editInNewPath = fileChanges.find(
             (change) =>
                 change.fileName.startsWith(newPath) &&
-                (newPath.includes(oldPath) || !change.fileName.startsWith(oldPath))
+                (newPath.includes(oldPathTsProgramCasing) ||
+                    !change.fileName.startsWith(oldPathTsProgramCasing))
         );
         const updateImportsChanges = fileChanges
             .filter((change) => {
@@ -61,7 +63,7 @@ export class UpdateImportsProviderImpl implements UpdateImportsProvider {
                 if (change === editInOldPath) {
                     // The language service might want to do edits to the old path, not the new path -> rewire it.
                     // If there is a better solution for this, please file a PR :)
-                    change.fileName = change.fileName.replace(oldPath, newPath);
+                    change.fileName = change.fileName.replace(oldPathTsProgramCasing, newPath);
                 }
                 change.textChanges = change.textChanges.filter(
                     (textChange) =>

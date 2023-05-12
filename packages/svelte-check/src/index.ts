@@ -22,7 +22,7 @@ type Result = {
     fileCount: number;
     errorCount: number;
     warningCount: number;
-    hintCount: number;
+    fileCountWithProblems: number;
 };
 
 async function openAllDocuments(
@@ -62,7 +62,7 @@ async function getDiagnostics(
             fileCount: diagnostics.length,
             errorCount: 0,
             warningCount: 0,
-            hintCount: 0
+            fileCountWithProblems: 0
         };
 
         for (const diagnostic of diagnostics) {
@@ -73,22 +73,28 @@ async function getDiagnostics(
                 diagnostic.text
             );
 
+            let fileHasProblems = false;
+
             diagnostic.diagnostics.forEach((d: Diagnostic) => {
                 if (d.severity === DiagnosticSeverity.Error) {
                     result.errorCount += 1;
+                    fileHasProblems = true;
                 } else if (d.severity === DiagnosticSeverity.Warning) {
                     result.warningCount += 1;
-                } else if (d.severity === DiagnosticSeverity.Hint) {
-                    result.hintCount += 1;
+                    fileHasProblems = true;
                 }
             });
+
+            if (fileHasProblems) {
+                result.fileCountWithProblems += 1;
+            }
         }
 
         writer.completion(
             result.fileCount,
             result.errorCount,
             result.warningCount,
-            result.hintCount
+            result.fileCountWithProblems
         );
         return result;
     } catch (err: any) {
@@ -107,7 +113,7 @@ class DiagnosticsWatcher {
         filePathsToIgnore: string[],
         ignoreInitialAdd: boolean
     ) {
-        watch(`${workspaceUri.fsPath}/**/*.{svelte,d.ts,ts,js}`, {
+        watch(`${workspaceUri.fsPath}/**/*.{svelte,d.ts,ts,js,jsx,tsx,mjs,cjs,mts,cts}`, {
             ignored: ['node_modules']
                 .concat(filePathsToIgnore)
                 .map((ignore) => path.join(workspaceUri.fsPath, ignore)),
@@ -163,6 +169,7 @@ function instantiateWriter(opts: SvelteCheckCliOptions): Writer {
             process.stdout,
             opts.outputFormat === 'human-verbose',
             opts.watch,
+            !opts.preserveWatchOutput,
             filter
         );
     } else {
@@ -178,7 +185,6 @@ parseOptions(async (opts) => {
             compilerWarnings: opts.compilerWarnings,
             diagnosticSources: opts.diagnosticSources,
             tsconfig: opts.tsconfig,
-            useNewTransformation: opts.useNewTransformation,
             watch: opts.watch
         };
 
@@ -201,8 +207,7 @@ parseOptions(async (opts) => {
             if (
                 result &&
                 result.errorCount === 0 &&
-                (!opts.failOnWarnings || result.warningCount === 0) &&
-                (!opts.failOnHints || result.hintCount === 0)
+                (!opts.failOnWarnings || result.warningCount === 0)
             ) {
                 process.exit(0);
             } else {

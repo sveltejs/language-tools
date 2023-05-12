@@ -7,6 +7,7 @@ import {
     CompletionItemKind,
     CompletionList,
     CompletionTriggerKind,
+    InsertTextFormat,
     MarkupContent,
     MarkupKind,
     Position,
@@ -26,7 +27,13 @@ import {
 } from '../../../lib/documents';
 import { AttributeContext, getAttributeContextAtPosition } from '../../../lib/documents/parseHtml';
 import { LSConfigManager } from '../../../ls-config';
-import { flatten, getRegExpMatches, isNotNullOrUndefined, pathToUrl } from '../../../utils';
+import {
+    flatten,
+    getRegExpMatches,
+    isNotNullOrUndefined,
+    modifyLines,
+    pathToUrl
+} from '../../../utils';
 import { AppCompletionItem, AppCompletionList, CompletionsProvider } from '../../interfaces';
 import { ComponentInfoProvider, ComponentPartInfo } from '../ComponentInfoProvider';
 import { SvelteDocumentSnapshot } from '../DocumentSnapshot';
@@ -35,17 +42,19 @@ import { getMarkdownDocumentation } from '../previewer';
 import {
     changeSvelteComponentName,
     convertRange,
-    getCommitCharactersForScriptElement,
     isInScript,
+    isGeneratedSvelteComponentName,
     scriptElementKindToCompletionItemKind
 } from '../utils';
 import { getJsDocTemplateCompletion } from './getJsDocTemplateCompletion';
 import {
-    findContainingNode,
     getComponentAtPosition,
+    getFormatCodeBasis,
+    getNewScriptStartTag,
     isKitTypePath,
     isPartOfImportStatement
 } from './utils';
+import { isInTag as svelteIsInTag } from '../svelte-ast-utils';
 
 export interface CompletionEntryWithIdentifier extends ts.CompletionEntry, TextDocumentIdentifier {
     position: Position;
@@ -72,6 +81,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
      * Therefore, only use the characters the typescript compiler treats as valid.
      */
     private readonly validTriggerCharacters = ['.', '"', "'", '`', '/', '@', '<', '#'] as const;
+    private commitCharacters = ['.', ',', ';', '('];
     /**
      * For performance reasons, try to reuse the last completion if possible.
      */
@@ -192,26 +202,20 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             return null;
         }
 
-        let completions =
-            lang.getCompletionsAtPosition(
-                filePath,
-                offset,
-                {
-                    ...userPreferences,
-                    triggerCharacter: validTriggerCharacter
-                },
-                formatSettings
-            )?.entries || [];
-
-        if (!completions.length) {
-            completions =
-                this.jsxTransformationPropStringLiteralCompletion(
-                    lang,
-                    componentInfo,
-                    offset,
-                    tsDoc
-                ) ?? [];
-        }
+        const response = lang.getCompletionsAtPosition(
+            filePath,
+            offset,
+            {
+                ...userPreferences,
+                triggerCharacter: validTriggerCharacter
+            },
+            formatSettings
+        );
+        const addCommitCharacters =
+            // replicating VS Code behavior https://github.com/microsoft/vscode/blob/main/extensions/typescript-language-features/src/languageFeatures/completions.ts
+            response?.isNewIdentifierLocation !== true &&
+            (!tsDoc.parserError || isInScript(position, tsDoc));
+        let completions = response?.entries || [];
 
         if (completions.length === 0 && eventAndSlotLetCompletions.length === 0) {
             return tsDoc.parserError ? CompletionList.create([], true) : null;
@@ -254,16 +258,48 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             );
         }
 
+        // moved here due to perf reasons
         const existingImports = this.getExistingImports(document);
         const wordRangeStartPosition = document.positionAt(wordRange.start);
+        const word = document.getText().substring(wordRange.start, wordRange.end);
+        const fileUrl = pathToUrl(tsDoc.filePath);
+        const isCompletionInTag = svelteIsInTag(svelteNode, originalOffset);
+
+        // If completion is about a store which is not imported yet, do another
+        // completion request at the beginning of the file to get all global
+        // import completions and then filter them down to likely matches.
+        if (word.charAt(0) === '$') {
+            const storeName = word.substring(1);
+            const text = '__sveltets_2_store_get(' + storeName;
+            if (!tsDoc.getFullText().includes(text)) {
+                const storeImportCompletions =
+                    lang
+                        .getCompletionsAtPosition(
+                            filePath,
+                            0,
+                            {
+                                ...userPreferences,
+                                triggerCharacter: validTriggerCharacter
+                            },
+                            formatSettings
+                        )
+                        ?.entries.filter(
+                            (entry) => entry.source && entry.name.startsWith(storeName)
+                        ) || [];
+                completions.push(...storeImportCompletions);
+            }
+        }
+
         const completionItems = completions
             .filter(isValidCompletion(document, position, !!tsDoc.parserError))
             .map((comp) =>
                 this.toCompletionItem(
                     tsDoc,
                     comp,
-                    pathToUrl(tsDoc.filePath),
+                    fileUrl,
                     position,
+                    isCompletionInTag,
+                    addCommitCharacters,
                     existingImports
                 )
             )
@@ -414,6 +450,8 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         comp: ts.CompletionEntry,
         uri: string,
         position: Position,
+        isCompletionInTag: boolean,
+        addCommitCharacters: boolean,
         existingImports: Set<string>
     ): AppCompletionItem<CompletionEntryWithIdentifier> | null {
         const completionLabelAndInsert = this.getCompletionLabelAndInsert(snapshot, comp);
@@ -421,25 +459,45 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             return null;
         }
 
-        const { label, insertText, isSvelteComp, replacementSpan } = completionLabelAndInsert;
+        let { label, insertText, isSvelteComp, replacementSpan } = completionLabelAndInsert;
         // TS may suggest another Svelte component even if there already exists an import
         // with the same name, because under the hood every Svelte component is postfixed
         // with `__SvelteComponent`. In this case, filter out this completion by returning null.
         if (isSvelteComp && existingImports.has(label)) {
             return null;
         }
+        // Remove wrong quotes, for example when using --css-props
+        if (
+            isCompletionInTag &&
+            !insertText &&
+            label[0] === '"' &&
+            label[label.length - 1] === '"'
+        ) {
+            label = label.slice(1, -1);
+        }
+
         const textEdit = replacementSpan
             ? TextEdit.replace(convertRange(snapshot, replacementSpan), insertText ?? label)
             : undefined;
+
+        const labelDetails =
+            comp.labelDetails ??
+            (comp.sourceDisplay
+                ? {
+                      description: ts.displayPartsToString(comp.sourceDisplay)
+                  }
+                : undefined);
 
         return {
             label,
             insertText,
             kind: scriptElementKindToCompletionItemKind(comp.kind),
-            commitCharacters: getCommitCharactersForScriptElement(comp.kind),
+            commitCharacters: addCommitCharacters ? this.commitCharacters : undefined,
             // Make sure svelte component takes precedence
             sortText: isSvelteComp ? '-1' : comp.sortText,
             preselect: isSvelteComp ? true : comp.isRecommended,
+            insertTextFormat: comp.isSnippet ? InsertTextFormat.Snippet : undefined,
+            labelDetails,
             textEdit,
             // pass essential data for resolving completion
             data: {
@@ -457,7 +515,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         let { name, insertText, kindModifiers } = comp;
         const isScriptElement = comp.kind === ts.ScriptElementKind.scriptElement;
         const hasModifier = Boolean(comp.kindModifiers);
-        const isSvelteComp = this.isSvelteComponentImport(name);
+        const isSvelteComp = isGeneratedSvelteComponentName(name);
         if (isSvelteComp) {
             name = changeSvelteComponentName(name);
 
@@ -487,6 +545,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
 
         return {
             label: name,
+            insertText,
             isSvelteComp
         };
     }
@@ -603,6 +662,15 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             const { detail: itemDetail, documentation: itemDocumentation } =
                 this.getCompletionDocument(detail, is$typeImport);
 
+            // VSCode + tsserver won't have this pop-in effect
+            // because tsserver has internal APIs for caching
+            // TODO: consider if we should adopt the internal APIs
+            if (detail.sourceDisplay && !completionItem.labelDetails) {
+                completionItem.labelDetails = {
+                    description: ts.displayPartsToString(detail.sourceDisplay)
+                };
+            }
+
             completionItem.detail = itemDetail;
             completionItem.documentation = itemDocumentation;
         }
@@ -613,6 +681,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         if (actions) {
             const edit: TextEdit[] = [];
 
+            const formatCodeBasis = getFormatCodeBasis(formatCodeOptions);
             for (const action of actions) {
                 for (const change of action.changes) {
                     edit.push(
@@ -622,6 +691,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
                             change,
                             isImport,
                             comp.position,
+                            formatCodeBasis.newLine,
                             is$typeImport
                         )
                     );
@@ -638,16 +708,18 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
 
     private getCompletionDocument(compDetail: ts.CompletionEntryDetails, is$typeImport: boolean) {
         const { sourceDisplay, documentation: tsDocumentation, displayParts, tags } = compDetail;
-        let detail: string = changeSvelteComponentName(ts.displayPartsToString(displayParts));
+        let parts = compDetail.codeActions?.map((codeAction) => codeAction.description) ?? [];
 
-        if (sourceDisplay) {
-            let importPath = ts.displayPartsToString(sourceDisplay);
-            if (is$typeImport) {
-                // Take into account Node16 moduleResolution
-                importPath = `'./$types${importPath.endsWith('.js') ? '.js' : ''}'`;
-            }
-            detail = `Auto import from ${importPath}\n${detail}`;
+        if (sourceDisplay && is$typeImport) {
+            const importPath = ts.displayPartsToString(sourceDisplay);
+
+            // Take into account Node16 moduleResolution
+            parts = parts.map((detail) =>
+                detail.replace(importPath, `'./$types${importPath.endsWith('.js') ? '.js' : ''}'`)
+            );
         }
+
+        parts.push(changeSvelteComponentName(ts.displayPartsToString(displayParts)));
 
         const markdownDoc = getMarkdownDocumentation(tsDocumentation, tags);
         const documentation: MarkupContent | undefined = markdownDoc
@@ -656,7 +728,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
 
         return {
             documentation,
-            detail
+            detail: parts.filter(Boolean).join('\n\n')
         };
     }
 
@@ -666,6 +738,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         changes: ts.FileTextChanges,
         isImport: boolean,
         originalTriggerPosition: Position,
+        newLine: string,
         is$typeImport?: boolean
     ): TextEdit[] {
         return changes.textChanges.map((change) =>
@@ -675,6 +748,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
                 change,
                 isImport,
                 originalTriggerPosition,
+                newLine,
                 is$typeImport
             )
         );
@@ -686,23 +760,35 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         change: ts.TextChange,
         isImport: boolean,
         originalTriggerPosition: Position,
-        is$typeImport?: boolean
+        newLine: string,
+        is$typeImport?: boolean,
+        isCombinedCodeAction?: boolean
     ): TextEdit {
-        change.newText = this.changeComponentImport(
-            change.newText,
-            isInScript(originalTriggerPosition, doc),
-            is$typeImport
-        );
+        change.newText = isCombinedCodeAction
+            ? modifyLines(change.newText, (line) =>
+                  this.fixImportNewText(
+                      line,
+                      isInScript(originalTriggerPosition, doc),
+                      is$typeImport
+                  )
+              )
+            : this.fixImportNewText(
+                  change.newText,
+                  isInScript(originalTriggerPosition, doc),
+                  is$typeImport
+              );
 
         const scriptTagInfo = snapshot.scriptInfo || snapshot.moduleScriptInfo;
+        // no script tag defined yet, add it.
         if (!scriptTagInfo) {
-            // no script tag defined yet, add it.
-            const lang = this.configManager.getConfig().svelte.defaultScriptLanguage;
-            const scriptLang = lang === 'none' ? '' : ` lang="${lang}"`;
+            if (isCombinedCodeAction) {
+                return TextEdit.insert(Position.create(0, 0), change.newText);
+            }
 
+            const config = this.configManager.getConfig();
             return TextEdit.replace(
                 beginOfDocumentRange,
-                `<script${scriptLang}>${ts.sys.newLine}${change.newText}</script>${ts.sys.newLine}`
+                `${getNewScriptStartTag(config)}${change.newText}</script>${newLine}`
             );
         }
 
@@ -746,7 +832,14 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             !change.newText.startsWith('\r\n') &&
             !change.newText.startsWith('\n')
         ) {
-            change.newText = ts.sys.newLine + change.newText;
+            change.newText = newLine + change.newText;
+        }
+
+        const after = doc.getText().slice(doc.offsetAt(range.end));
+        // typescript add empty line after import when the generated ts file
+        // doesn't have new line at the start of the file
+        if (after.startsWith('\r\n') || after.startsWith('\n')) {
+            change.newText = change.newText.trimEnd() + newLine;
         }
 
         return TextEdit.replace(range, change.newText);
@@ -765,11 +858,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         );
     }
 
-    private isSvelteComponentImport(className: string) {
-        return className.endsWith('__SvelteComponent_');
-    }
-
-    private changeComponentImport(
+    private fixImportNewText(
         importText: string,
         actionTriggeredInScript: boolean,
         is$typeImport?: boolean
@@ -791,56 +880,12 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
 
         return importText;
     }
-
-    private jsxTransformationPropStringLiteralCompletion(
-        lang: ts.LanguageService,
-        componentInfo: ComponentInfoProvider | null,
-        position: number,
-        tsDoc: SvelteDocumentSnapshot
-    ) {
-        if (!componentInfo || this.configManager.getConfig().svelte.useNewTransformation) {
-            return null;
-        }
-
-        const program = lang.getProgram();
-        const sourceFile = program?.getSourceFile(tsDoc.filePath);
-        if (!sourceFile) {
-            return null;
-        }
-
-        const jsxAttribute = findContainingNode(
-            sourceFile,
-            { start: position, length: 0 },
-            ts.isJsxAttribute
-        );
-        if (
-            !jsxAttribute ||
-            !jsxAttribute.initializer ||
-            !ts.isStringLiteral(jsxAttribute.initializer)
-        ) {
-            return null;
-        }
-
-        const replacementSpan = jsxAttribute.initializer.getWidth()
-            ? {
-                  // skip quote
-                  start: jsxAttribute.initializer.getStart() + 1,
-                  length: jsxAttribute.initializer.getWidth() - 2
-              }
-            : undefined;
-
-        return componentInfo.getProp(jsxAttribute.name.getText()).map((item) => ({
-            ...item,
-            replacementSpan
-        }));
-    }
 }
 
 const beginOfDocumentRange = Range.create(Position.create(0, 0), Position.create(0, 0));
 
 // `import {...} from '..'` or `import ... from '..'`
 // Note: Does not take into account if import is within a comment.
-// eslint-disable-next-line max-len
 const scriptImportRegex =
     /\bimport\s+{([^}]*?)}\s+?from\s+['"`].+?['"`]|\bimport\s+(\w+?)\s+from\s+['"`].+?['"`]/g;
 
@@ -881,10 +926,13 @@ function isValidCompletion(
             ? (value: ts.CompletionEntry) => startsWithUppercase.test(value.name)
             : () => true;
 
-    const isNoSvelte2tsxCompletion = (value: ts.CompletionEntry) =>
-        value.kindModifiers !== 'declare' ||
-        (!value.name.startsWith('__sveltets_') && !svelte2tsxTypes.has(value.name));
+    const isNoSvelte2tsxCompletion = (value: ts.CompletionEntry) => {
+        if (value.kindModifiers === 'declare') {
+            return !value.name.startsWith('__sveltets_') && !svelte2tsxTypes.has(value.name);
+        }
 
+        return !value.name.startsWith('$$_');
+    };
     const isCompletionInHTMLStartTag = !!getNodeIfIsInHTMLStartTag(
         document.html,
         document.offsetAt(position)
@@ -896,11 +944,5 @@ function isValidCompletion(
     // which is also true for all properties of any other object -> how reliably filter this out?
     // ---> another /*ignore*/ pragma?
     // ---> OR: make these lower priority if we find out they are inside a html start tag
-    return (value) =>
-        // Remove jsx attributes on html tags because they are doubled by the HTML
-        // attribute suggestions, and for events they are wrong (onX instead of on:X).
-        // Therefore filter them out.
-        value.kind !== ts.ScriptElementKind.jsxAttribute &&
-        isNoSvelte2tsxCompletion(value) &&
-        noWrongCompletionAtStartTag(value);
+    return (value) => isNoSvelte2tsxCompletion(value) && noWrongCompletionAtStartTag(value);
 }

@@ -5,10 +5,12 @@ import {
     CodeActionContext,
     CodeActionKind,
     Diagnostic,
+    LSPAny,
     OptionalVersionedTextDocumentIdentifier,
     Position,
     Range,
     TextDocumentEdit,
+    TextDocumentIdentifier,
     TextEdit,
     WorkspaceEdit
 } from 'vscode-languageserver';
@@ -21,13 +23,39 @@ import {
     mapRangeToOriginal
 } from '../../../lib/documents';
 import { LSConfigManager } from '../../../ls-config';
-import { flatten, getIndent, isNotNullOrUndefined, modifyLines, pathToUrl } from '../../../utils';
+import {
+    flatten,
+    getIndent,
+    isNotNullOrUndefined,
+    memoize,
+    modifyLines,
+    normalizePath,
+    pathToUrl,
+    possiblyComponent,
+    removeLineWithString
+} from '../../../utils';
 import { CodeActionsProvider } from '../../interfaces';
 import { DocumentSnapshot, SvelteDocumentSnapshot } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
-import { changeSvelteComponentName, convertRange } from '../utils';
+import {
+    changeSvelteComponentName,
+    convertRange,
+    isInScript,
+    toGeneratedSvelteComponentName
+} from '../utils';
 import { CompletionsProviderImpl } from './CompletionProvider';
-import { findContainingNode, isTextSpanInGeneratedCode, SnapshotMap } from './utils';
+import {
+    findClosestContainingNode,
+    findContainingNode,
+    FormatCodeBasis,
+    getFormatCodeBasis,
+    getNewScriptStartTag,
+    getQuotePreference,
+    isTextSpanInGeneratedCode,
+    SnapshotMap
+} from './utils';
+import { DiagnosticCode } from './DiagnosticsProvider';
+import { createGetCanonicalFileName } from '../../../utils';
 
 /**
  * TODO change this to protocol constant if it's part of the protocol
@@ -40,6 +68,32 @@ interface RefactorArgs {
     textRange: ts.TextRange;
     originalRange: Range;
 }
+
+interface CustomFixCannotFindNameInfo extends ts.CodeFixAction {
+    position: Position;
+}
+
+interface QuickFixConversionOptions {
+    fix: ts.CodeFixAction | CustomFixCannotFindNameInfo;
+    snapshots: SnapshotMap;
+    document: Document;
+    formatCodeSettings: ts.FormatCodeSettings;
+    formatCodeBasis: FormatCodeBasis;
+    getDiagnostics: () => Diagnostic[];
+    skipAddScriptTag?: boolean;
+}
+
+type FixId = NonNullable<ts.CodeFixAction['fixId']>;
+
+interface QuickFixAllResolveInfo extends TextDocumentIdentifier {
+    fixId: FixId;
+    fixName: string;
+}
+
+const FIX_IMPORT_FIX_NAME = 'import';
+const FIX_IMPORT_FIX_ID = 'fixMissingImport';
+const FIX_IMPORT_FIX_DESCRIPTION = 'Add all missing imports';
+const nonIdentifierRegex = /[\`\~\!\%\^\&\*\(\)\-\=\+\[\{\]\}\\\|\;\:\'\"\,\.\<\>/\?\s]/;
 
 export class CodeActionsProviderImpl implements CodeActionsProvider {
     constructor(
@@ -93,6 +147,249 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         return [];
     }
 
+    async resolveCodeAction(
+        document: Document,
+        codeAction: CodeAction,
+        cancellationToken?: CancellationToken | undefined
+    ): Promise<CodeAction> {
+        if (!this.isQuickFixAllResolveInfo(codeAction.data)) {
+            return codeAction;
+        }
+
+        const { lang, tsDoc, userPreferences } = await this.lsAndTsDocResolver.getLSAndTSDoc(
+            document
+        );
+        if (cancellationToken?.isCancellationRequested) {
+            return codeAction;
+        }
+
+        const formatCodeSettings = await this.configManager.getFormatCodeSettingsForFile(
+            document,
+            tsDoc.scriptKind
+        );
+        const formatCodeBasis = getFormatCodeBasis(formatCodeSettings);
+
+        const getDiagnostics = memoize(() =>
+            lang.getSemanticDiagnostics(tsDoc.filePath).map(
+                (dia): Diagnostic => ({
+                    range: mapRangeToOriginal(tsDoc, convertRange(tsDoc, dia)),
+                    message: '',
+                    code: dia.code
+                })
+            )
+        );
+
+        const isImportFix = codeAction.data.fixName === FIX_IMPORT_FIX_NAME;
+        const virtualDocInfo = isImportFix
+            ? await this.createVirtualDocumentForCombinedImportCodeFix(
+                  document,
+                  getDiagnostics(),
+                  tsDoc,
+                  lang
+              )
+            : undefined;
+
+        const fix = lang.getCombinedCodeFix(
+            {
+                type: 'file',
+                fileName: (virtualDocInfo?.virtualDoc ?? document).getFilePath()!
+            },
+            codeAction.data.fixId,
+            formatCodeSettings,
+            userPreferences
+        );
+
+        if (virtualDocInfo) {
+            const getCanonicalFileName = createGetCanonicalFileName(
+                ts.sys.useCaseSensitiveFileNames
+            );
+
+            const virtualDocPath = getCanonicalFileName(
+                normalizePath(virtualDocInfo.virtualDoc.getFilePath()!)
+            );
+
+            for (const change of fix.changes) {
+                if (getCanonicalFileName(normalizePath(change.fileName)) === virtualDocPath) {
+                    change.fileName = tsDoc.filePath;
+
+                    this.removeDuplicatedComponentImport(virtualDocInfo.insertedNames, change);
+                }
+            }
+
+            await this.lsAndTsDocResolver.deleteSnapshot(virtualDocPath);
+        }
+
+        const snapshots = new SnapshotMap(this.lsAndTsDocResolver);
+        const fixActions: ts.CodeFixAction[] = [
+            {
+                fixName: codeAction.data.fixName,
+                changes: Array.from(fix.changes),
+                description: ''
+            }
+        ];
+
+        const documentChangesPromises = fixActions.map((fix) =>
+            this.convertAndFixCodeFixAction({
+                document,
+                fix,
+                formatCodeBasis,
+                formatCodeSettings,
+                getDiagnostics,
+                snapshots,
+                skipAddScriptTag: true
+            })
+        );
+        const documentChanges = (await Promise.all(documentChangesPromises)).flat();
+
+        if (cancellationToken?.isCancellationRequested) {
+            return codeAction;
+        }
+
+        if (isImportFix) {
+            this.fixCombinedImportQuickFix(documentChanges, document, formatCodeBasis);
+        }
+
+        codeAction.edit = {
+            documentChanges
+        };
+
+        return codeAction;
+    }
+
+    /**
+     * Do not use this in regular code action
+     * This'll cause TypeScript to rebuild and invalidate caches every time. It'll be slow
+     */
+    private async createVirtualDocumentForCombinedImportCodeFix(
+        document: Document,
+        diagnostics: Diagnostic[],
+        tsDoc: DocumentSnapshot,
+        lang: ts.LanguageService
+    ) {
+        const virtualUri = document.uri + '.__virtual__.svelte';
+        const names = new Set<string>();
+        const sourceFile = lang.getProgram()?.getSourceFile(tsDoc.filePath);
+        if (!sourceFile) {
+            return undefined;
+        }
+
+        for (const diagnostic of diagnostics) {
+            if (
+                diagnostic.range.start.line < 0 ||
+                diagnostic.range.end.line < 0 ||
+                diagnostic.code !== DiagnosticCode.CANNOT_FIND_NAME
+            ) {
+                continue;
+            }
+            const identifier = this.findIdentifierForDiagnostic(tsDoc, diagnostic, sourceFile);
+            const name = identifier?.text;
+            if (!name || names.has(name)) {
+                continue;
+            }
+
+            if (name.startsWith('$')) {
+                names.add(name.slice(1));
+            } else if (!isInScript(diagnostic.range.start, document)) {
+                if (this.isComponentStartTag(identifier)) {
+                    names.add(toGeneratedSvelteComponentName(name));
+                }
+            }
+        }
+
+        if (!names.size) {
+            return undefined;
+        }
+
+        const inserts = Array.from(names.values())
+            .map((name) => name + ';')
+            .join('');
+
+        // assumption: imports are always at the top of the script tag
+        // so these appends won't change the position of the edits
+        const text = document.getText();
+        const newText = document.scriptInfo
+            ? text.slice(0, document.scriptInfo.end) + inserts + text.slice(document.scriptInfo.end)
+            : `${document.getText()}<script>${inserts}</script>`;
+
+        const virtualDoc = new Document(virtualUri, newText);
+        // let typescript know about the virtual document
+        await this.lsAndTsDocResolver.getSnapshot(virtualDoc);
+
+        return {
+            virtualDoc: new Document(virtualUri, newText),
+            insertedNames: names
+        };
+    }
+
+    /**
+     * Remove component default import if there is a named import with the same name
+     * Usually happens with reexport or inheritance of component library
+     */
+    private removeDuplicatedComponentImport(
+        insertedNames: Set<string>,
+        change: ts.FileTextChanges
+    ) {
+        for (const name of insertedNames) {
+            const unSuffixedNames = changeSvelteComponentName(name);
+            const matchRegex = unSuffixedNames != name && this.toImportMemberRegex(unSuffixedNames);
+            if (
+                !matchRegex ||
+                !change.textChanges.some((textChange) => textChange.newText.match(matchRegex))
+            ) {
+                continue;
+            }
+
+            const importRegex = new RegExp(`\\s+import ${name} from ('|")(.*)('|");?\r?\n?`);
+            change.textChanges = change.textChanges
+                .map((textChange) => ({
+                    ...textChange,
+                    newText: textChange.newText.replace(importRegex, (match) => {
+                        if (match.split('\n').length > 2) {
+                            return '\n';
+                        } else {
+                            return '';
+                        }
+                    })
+                }))
+                // in case there are replacements
+                .filter((change) => change.span.length || change.newText);
+        }
+    }
+
+    private fixCombinedImportQuickFix(
+        documentChanges: TextDocumentEdit[],
+        document: Document,
+        formatCodeBasis: FormatCodeBasis
+    ) {
+        if (!documentChanges.length || document.scriptInfo || document.moduleScriptInfo) {
+            return;
+        }
+
+        const editForThisFile = documentChanges.find(
+            (change) => change.textDocument.uri === document.uri
+        );
+
+        if (editForThisFile?.edits.length) {
+            const [first] = editForThisFile.edits;
+            first.newText =
+                getNewScriptStartTag(this.configManager.getConfig()) +
+                formatCodeBasis.baseIndent +
+                first.newText.trimStart();
+
+            const last = editForThisFile.edits[editForThisFile.edits.length - 1];
+            last.newText = last.newText + '</script>' + formatCodeBasis.newLine;
+        }
+    }
+
+    private toImportMemberRegex(name: string) {
+        return new RegExp(`${name}($| |,)`);
+    }
+
+    private isQuickFixAllResolveInfo(data: LSPAny): data is QuickFixAllResolveInfo {
+        const asserted = data as QuickFixAllResolveInfo | undefined;
+        return asserted?.fixId != undefined && typeof asserted.fixName === 'string';
+    }
+
     private async organizeImports(
         document: Document,
         cancellationToken: CancellationToken | undefined,
@@ -134,18 +431,29 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                 // Organize Imports will only affect the current file, so no need to check the file path
                 return TextDocumentEdit.create(
                     OptionalVersionedTextDocumentIdentifier.create(document.url, null),
-                    change.textChanges.map((edit) => {
-                        const range = this.checkRemoveImportCodeActionRange(
-                            edit,
-                            tsDoc,
-                            mapRangeToOriginal(tsDoc, convertRange(tsDoc, edit.span))
-                        );
+                    change.textChanges
+                        .map((edit) => {
+                            const range = this.checkRemoveImportCodeActionRange(
+                                edit,
+                                tsDoc,
+                                mapRangeToOriginal(tsDoc, convertRange(tsDoc, edit.span))
+                            );
 
-                        return this.fixIndentationOfImports(
-                            TextEdit.replace(range, edit.newText),
-                            document
-                        );
-                    })
+                            edit.newText = removeLineWithString(
+                                edit.newText,
+                                'SvelteComponentTyped as __SvelteComponentTyped__'
+                            );
+
+                            return this.fixIndentationOfImports(
+                                TextEdit.replace(range, edit.newText),
+                                document
+                            );
+                        })
+                        .filter(
+                            (edit) =>
+                                // The __SvelteComponentTyped__ import is added by us and will have a negative mapped line
+                                edit.range.start.line !== -1
+                        )
                 );
             })
         );
@@ -250,148 +558,320 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         const start = tsDoc.offsetAt(tsDoc.getGeneratedPosition(range.start));
         const end = tsDoc.offsetAt(tsDoc.getGeneratedPosition(range.end));
         const errorCodes: number[] = context.diagnostics.map((diag) => Number(diag.code));
-        const cannotFoundNameDiagnostic = context.diagnostics.filter(
-            (diagnostic) => diagnostic.code === 2304
-        ); // "Cannot find name '...'."
+        const cannotFindNameDiagnostic = context.diagnostics.filter(
+            (diagnostic) => diagnostic.code === DiagnosticCode.CANNOT_FIND_NAME
+        );
 
         const formatCodeSettings = await this.configManager.getFormatCodeSettingsForFile(
             document,
             tsDoc.scriptKind
         );
+        const formatCodeBasis = getFormatCodeBasis(formatCodeSettings);
 
-        let codeFixes = cannotFoundNameDiagnostic.length
-            ? this.getComponentImportQuickFix(
-                  start,
-                  end,
-                  lang,
-                  tsDoc,
-                  userPreferences,
-                  cannotFoundNameDiagnostic,
-                  formatCodeSettings
-              )
-            : undefined;
+        let codeFixes: Array<CustomFixCannotFindNameInfo | ts.CodeFixAction> | undefined =
+            cannotFindNameDiagnostic.length
+                ? this.getComponentImportQuickFix(
+                      document,
+                      lang,
+                      tsDoc,
+                      userPreferences,
+                      cannotFindNameDiagnostic,
+                      formatCodeSettings
+                  )
+                : undefined;
         codeFixes =
             // either-or situation
-            codeFixes ||
-            lang.getCodeFixesAtPosition(
-                tsDoc.filePath,
-                start,
-                end,
-                errorCodes,
-                formatCodeSettings,
-                userPreferences
-            );
+            codeFixes || [
+                ...lang.getCodeFixesAtPosition(
+                    tsDoc.filePath,
+                    start,
+                    end,
+                    errorCodes,
+                    formatCodeSettings,
+                    userPreferences
+                ),
+                ...this.getSvelteQuickFixes(
+                    lang,
+                    document,
+                    cannotFindNameDiagnostic,
+                    tsDoc,
+                    formatCodeBasis,
+                    userPreferences,
+                    formatCodeSettings
+                )
+            ];
 
         const snapshots = new SnapshotMap(this.lsAndTsDocResolver);
         snapshots.set(tsDoc.filePath, tsDoc);
 
         const codeActionsPromises = codeFixes.map(async (fix) => {
-            const documentChangesPromises = fix.changes.map(async (change) => {
-                const snapshot = await snapshots.retrieve(change.fileName);
-                return TextDocumentEdit.create(
-                    OptionalVersionedTextDocumentIdentifier.create(
-                        pathToUrl(change.fileName),
-                        null
-                    ),
-                    change.textChanges
-                        .map((edit) => {
-                            if (
-                                fix.fixName === 'import' &&
-                                snapshot instanceof SvelteDocumentSnapshot
-                            ) {
-                                return this.completionProvider.codeActionChangeToTextEdit(
-                                    document,
-                                    snapshot,
-                                    edit,
-                                    true,
-                                    range.start
-                                );
-                            }
-
-                            if (isTextSpanInGeneratedCode(snapshot.getFullText(), edit.span)) {
-                                return undefined;
-                            }
-
-                            let originalRange = mapRangeToOriginal(
-                                snapshot,
-                                convertRange(snapshot, edit.span)
-                            );
-
-                            if (fix.fixName === 'unusedIdentifier') {
-                                originalRange = this.checkRemoveImportCodeActionRange(
-                                    edit,
-                                    snapshot,
-                                    originalRange
-                                );
-                            }
-
-                            if (fix.fixName === 'fixMissingFunctionDeclaration') {
-                                originalRange = this.checkEndOfFileCodeInsert(
-                                    originalRange,
-                                    range,
-                                    document
-                                );
-
-                                // ts doesn't add base indent to the first line
-                                if (formatCodeSettings.baseIndentSize) {
-                                    const indent =
-                                        formatCodeSettings.convertTabsToSpaces ?? true
-                                            ? ' '.repeat(formatCodeSettings.baseIndentSize)
-                                            : '\t';
-                                    const emptyLine = (
-                                        formatCodeSettings.newLineCharacter ?? ts.sys.newLine
-                                    ).repeat(2);
-                                    edit.newText = emptyLine + indent + edit.newText.trimLeft();
-                                }
-                            }
-
-                            if (fix.fixName === 'disableJsDiagnostics') {
-                                if (edit.newText.includes('ts-nocheck')) {
-                                    return this.checkTsNoCheckCodeInsert(document, edit);
-                                }
-
-                                return this.checkDisableJsDiagnosticsCodeInsert(
-                                    originalRange,
-                                    document,
-                                    edit
-                                );
-                            }
-
-                            if (fix.fixName === 'inferFromUsage') {
-                                originalRange = this.checkAddJsDocCodeActionRange(
-                                    snapshot,
-                                    originalRange,
-                                    document
-                                );
-                            }
-
-                            if (originalRange.start.line < 0 || originalRange.end.line < 0) {
-                                return undefined;
-                            }
-
-                            return TextEdit.replace(originalRange, edit.newText);
-                        })
-                        .filter(isNotNullOrUndefined)
-                );
+            const documentChanges = await this.convertAndFixCodeFixAction({
+                fix,
+                snapshots,
+                document,
+                formatCodeSettings,
+                formatCodeBasis,
+                getDiagnostics: () => context.diagnostics
             });
-            const documentChanges = await Promise.all(documentChangesPromises);
-            return CodeAction.create(
+
+            const codeAction = CodeAction.create(
                 fix.description,
                 {
                     documentChanges
                 },
                 CodeActionKind.QuickFix
             );
+
+            return {
+                fix,
+                codeAction
+            };
         });
 
-        const codeActions = await Promise.all(codeActionsPromises);
+        const identifier: TextDocumentIdentifier = {
+            uri: document.uri
+        };
 
-        // filter out empty code action
-        return codeActions.filter((codeAction) =>
+        const codeActions = await Promise.all(codeActionsPromises);
+        if (cancellationToken?.isCancellationRequested) {
+            return [];
+        }
+
+        const codeActionsNotFilteredOut = codeActions.filter(({ codeAction }) =>
             codeAction.edit?.documentChanges?.every(
                 (change) => (<TextDocumentEdit>change).edits.length > 0
             )
         );
+
+        const fixAllActions = this.getFixAllActions(
+            codeActionsNotFilteredOut.map(({ fix }) => fix),
+            identifier,
+            tsDoc.filePath,
+            lang
+        );
+
+        // filter out empty code action
+        return codeActionsNotFilteredOut.map(({ codeAction }) => codeAction).concat(fixAllActions);
+    }
+
+    private async convertAndFixCodeFixAction({
+        fix,
+        snapshots,
+        document,
+        formatCodeSettings,
+        formatCodeBasis,
+        getDiagnostics,
+        skipAddScriptTag
+    }: QuickFixConversionOptions) {
+        const documentChangesPromises = fix.changes.map(async (change) => {
+            const snapshot = await snapshots.retrieve(change.fileName);
+            return TextDocumentEdit.create(
+                OptionalVersionedTextDocumentIdentifier.create(pathToUrl(change.fileName), null),
+                change.textChanges
+                    .map((edit) => {
+                        if (
+                            fix.fixName === FIX_IMPORT_FIX_NAME &&
+                            snapshot instanceof SvelteDocumentSnapshot
+                        ) {
+                            const namePosition = 'position' in fix ? fix.position : undefined;
+                            const startPos =
+                                namePosition ??
+                                this.findDiagnosticForImportFix(document, edit, getDiagnostics())
+                                    ?.range?.start ??
+                                Position.create(0, 0);
+
+                            return this.completionProvider.codeActionChangeToTextEdit(
+                                document,
+                                snapshot,
+                                edit,
+                                true,
+                                startPos,
+                                formatCodeBasis.newLine,
+                                undefined,
+                                skipAddScriptTag
+                            );
+                        }
+
+                        if (isTextSpanInGeneratedCode(snapshot.getFullText(), edit.span)) {
+                            return undefined;
+                        }
+
+                        let originalRange = mapRangeToOriginal(
+                            snapshot,
+                            convertRange(snapshot, edit.span)
+                        );
+
+                        if (fix.fixName === 'unusedIdentifier') {
+                            originalRange = this.checkRemoveImportCodeActionRange(
+                                edit,
+                                snapshot,
+                                originalRange
+                            );
+                        }
+
+                        if (fix.fixName === 'fixMissingFunctionDeclaration') {
+                            const position = 'position' in fix ? fix.position : undefined;
+                            const checkRange = position
+                                ? Range.create(position, position)
+                                : this.findDiagnosticForQuickFix(
+                                      document,
+                                      DiagnosticCode.CANNOT_FIND_NAME,
+                                      getDiagnostics(),
+                                      (possiblyIdentifier) => {
+                                          return edit.newText.includes(
+                                              'function ' + possiblyIdentifier + '('
+                                          );
+                                      }
+                                  )?.range;
+
+                            originalRange = this.checkEndOfFileCodeInsert(
+                                originalRange,
+                                checkRange,
+                                document
+                            );
+
+                            // ts doesn't add base indent to the first line
+                            if (formatCodeSettings.baseIndentSize) {
+                                const emptyLine = formatCodeBasis.newLine.repeat(2);
+                                edit.newText =
+                                    emptyLine +
+                                    formatCodeBasis.baseIndent +
+                                    edit.newText.trimLeft();
+                            }
+                        }
+
+                        if (fix.fixName === 'disableJsDiagnostics') {
+                            if (edit.newText.includes('ts-nocheck')) {
+                                return this.checkTsNoCheckCodeInsert(document, edit);
+                            }
+
+                            return this.checkDisableJsDiagnosticsCodeInsert(
+                                originalRange,
+                                document,
+                                edit
+                            );
+                        }
+
+                        if (fix.fixName === 'inferFromUsage') {
+                            originalRange = this.checkAddJsDocCodeActionRange(
+                                snapshot,
+                                originalRange,
+                                document
+                            );
+                        }
+
+                        if (fix.fixName === 'fixConvertConstToLet') {
+                            const offset = document.offsetAt(originalRange.start);
+                            const constOffset = document.getText().indexOf('const', offset);
+                            if (constOffset < 0) {
+                                return undefined;
+                            }
+                            const beforeConst = document.getText().slice(0, constOffset);
+                            if (
+                                beforeConst[beforeConst.length - 1] === '@' &&
+                                beforeConst
+                                    .slice(0, beforeConst.length - 1)
+                                    .trimEnd()
+                                    .endsWith('{')
+                            ) {
+                                return undefined;
+                            }
+                        }
+
+                        if (originalRange.start.line < 0 || originalRange.end.line < 0) {
+                            return undefined;
+                        }
+
+                        return TextEdit.replace(originalRange, edit.newText);
+                    })
+                    .filter(isNotNullOrUndefined)
+            );
+        });
+        const documentChanges = await Promise.all(documentChangesPromises);
+        return documentChanges;
+    }
+
+    private findDiagnosticForImportFix(
+        document: Document,
+        edit: ts.TextChange,
+        diagnostics: Diagnostic[]
+    ) {
+        return this.findDiagnosticForQuickFix(
+            document,
+            DiagnosticCode.CANNOT_FIND_NAME,
+            diagnostics,
+            (possibleIdentifier) =>
+                !nonIdentifierRegex.test(possibleIdentifier) &&
+                this.toImportMemberRegex(possibleIdentifier).test(edit.newText)
+        );
+    }
+
+    private findDiagnosticForQuickFix(
+        document: Document,
+        targetCode: number,
+        diagnostics: Diagnostic[],
+        match: (identifier: string) => boolean
+    ) {
+        const diagnostic = diagnostics.find((diagnostic) => {
+            if (diagnostic.code !== targetCode) {
+                return false;
+            }
+
+            const possibleIdentifier = document.getText(diagnostic.range);
+            if (possibleIdentifier) {
+                return match(possibleIdentifier);
+            }
+
+            return false;
+        });
+
+        return diagnostic;
+    }
+
+    private getFixAllActions(
+        codeFixes: readonly ts.CodeFixAction[],
+        identifier: TextDocumentIdentifier,
+        fileName: string,
+        lang: ts.LanguageService
+    ) {
+        const checkedFixIds = new Set<FixId>();
+        const fixAll: CodeAction[] = [];
+
+        for (const codeFix of codeFixes) {
+            if (!codeFix.fixId || !codeFix.fixAllDescription || checkedFixIds.has(codeFix.fixId)) {
+                continue;
+            }
+
+            // we have custom fix for import
+            // check it again if fix-all might be necessary
+            if (codeFix.fixName === FIX_IMPORT_FIX_NAME) {
+                const allCannotFindNameDiagnostics = lang
+                    .getSemanticDiagnostics(fileName)
+                    .filter((diagnostic) => diagnostic.code === DiagnosticCode.CANNOT_FIND_NAME);
+
+                if (allCannotFindNameDiagnostics.length < 2) {
+                    checkedFixIds.add(codeFix.fixId);
+                    continue;
+                }
+            }
+
+            const codeAction = CodeAction.create(
+                codeFix.fixAllDescription,
+                CodeActionKind.QuickFix
+            );
+
+            const data: QuickFixAllResolveInfo = {
+                ...identifier,
+                fixName: codeFix.fixName,
+                fixId: codeFix.fixId
+            };
+
+            codeAction.data = data;
+            checkedFixIds.add(codeFix.fixId);
+            fixAll.push(codeAction);
+        }
+
+        return fixAll;
     }
 
     /**
@@ -400,90 +880,370 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
      * a local variable. So we use auto-import completion as a workaround here.
      */
     private getComponentImportQuickFix(
-        start: number,
-        end: number,
+        document: Document,
         lang: ts.LanguageService,
         tsDoc: DocumentSnapshot,
         userPreferences: ts.UserPreferences,
         diagnostics: Diagnostic[],
         formatCodeSetting: ts.FormatCodeSettings
-    ): readonly ts.CodeFixAction[] | undefined {
+    ): CustomFixCannotFindNameInfo[] | undefined {
         const sourceFile = lang.getProgram()?.getSourceFile(tsDoc.filePath);
 
         if (!sourceFile) {
             return;
         }
 
-        const node = findContainingNode(
-            sourceFile,
-            {
-                start,
-                length: end - start
-            },
-            (node): node is ts.JsxOpeningLikeElement | ts.JsxClosingElement | ts.Identifier =>
-                this.configManager.getConfig().svelte.useNewTransformation
-                    ? ts.isCallExpression(node.parent) &&
-                      ts.isIdentifier(node.parent.expression) &&
-                      node.parent.expression.text === '__sveltets_2_ensureComponent' &&
-                      ts.isIdentifier(node)
-                    : ts.isJsxClosingElement(node) || ts.isJsxOpeningLikeElement(node)
-        );
+        const nameToPosition = new Map<string, number>();
 
-        if (!node) {
+        for (const diagnostic of diagnostics) {
+            if (isInScript(diagnostic.range.start, document)) {
+                continue;
+            }
+            const possibleIdentifier = document.getText(diagnostic.range);
+            if (
+                !possibleIdentifier ||
+                !possiblyComponent(possibleIdentifier) ||
+                nameToPosition.has(possibleIdentifier)
+            ) {
+                continue;
+            }
+
+            const node = this.findIdentifierForDiagnostic(tsDoc, diagnostic, sourceFile);
+            if (!node || !this.isComponentStartTag(node)) {
+                return;
+            }
+
+            const tagNameEnd = node.getEnd();
+            const name = node.getText();
+
+            if (possiblyComponent(name)) {
+                nameToPosition.set(name, tagNameEnd);
+            }
+        }
+
+        if (!nameToPosition.size) {
             return;
         }
 
-        const tagName = ts.isIdentifier(node) ? node : node.tagName;
-        const tagNameEnd = tagName.getEnd();
-        const tagNameEndOriginalPosition = tsDoc.offsetAt(
-            tsDoc.getOriginalPosition(tsDoc.positionAt(tagNameEnd))
-        );
-        const hasDiagnosticForTag = diagnostics.some(
-            ({ range }) =>
-                tsDoc.offsetAt(range.start) <= tagNameEndOriginalPosition &&
-                tagNameEndOriginalPosition <= tsDoc.offsetAt(range.end)
-        );
+        const result: CustomFixCannotFindNameInfo[] = [];
+        for (const [name, position] of nameToPosition) {
+            const errorPreventingUserPreferences =
+                this.completionProvider.fixUserPreferencesForSvelteComponentImport(userPreferences);
 
-        if (!hasDiagnosticForTag) {
-            return;
-        }
-
-        const completion = lang.getCompletionsAtPosition(
-            tsDoc.filePath,
-            tagNameEnd,
-            userPreferences,
-            formatCodeSetting
-        );
-
-        if (!completion) {
-            return;
-        }
-
-        const name = tagName.getText();
-        const suffixedName = name + '__SvelteComponent_';
-        const errorPreventingUserPreferences =
-            this.completionProvider.fixUserPreferencesForSvelteComponentImport(userPreferences);
-
-        const toFix = (c: ts.CompletionEntry) =>
-            lang
-                .getCompletionEntryDetails(
+            const resolvedCompletion = (c: ts.CompletionEntry) =>
+                lang.getCompletionEntryDetails(
                     tsDoc.filePath,
-                    end,
+                    position,
                     c.name,
                     formatCodeSetting,
                     c.source,
                     errorPreventingUserPreferences,
                     c.data
+                );
+
+            const toFix = (c: ts.CompletionEntryDetails) =>
+                c.codeActions?.map(
+                    (a): CustomFixCannotFindNameInfo => ({
+                        ...a,
+                        description: changeSvelteComponentName(a.description),
+                        fixName: FIX_IMPORT_FIX_NAME,
+                        fixId: FIX_IMPORT_FIX_ID,
+                        fixAllDescription: FIX_IMPORT_FIX_DESCRIPTION,
+                        position: originalPosition
+                    })
+                ) ?? [];
+
+            const completion = lang.getCompletionsAtPosition(
+                tsDoc.filePath,
+                position,
+                userPreferences,
+                formatCodeSetting
+            );
+
+            const entries = completion?.entries
+                .filter((c) => c.name === name || c.name === toGeneratedSvelteComponentName(name))
+                .map(resolvedCompletion)
+                .sort(
+                    (a, b) =>
+                        this.numberOfDirectorySeparators(
+                            ts.displayPartsToString(a?.sourceDisplay ?? [])
+                        ) -
+                        this.numberOfDirectorySeparators(
+                            ts.displayPartsToString(b?.sourceDisplay ?? [])
+                        )
+                )
+                .filter(isNotNullOrUndefined);
+
+            if (!entries?.length) {
+                continue;
+            }
+
+            const originalPosition = tsDoc.getOriginalPosition(tsDoc.positionAt(position));
+            const resultForName = entries.flatMap(toFix);
+
+            result.push(...resultForName);
+        }
+
+        return result;
+    }
+
+    private isComponentStartTag(node: ts.Identifier) {
+        return (
+            ts.isCallExpression(node.parent) &&
+            ts.isIdentifier(node.parent.expression) &&
+            node.parent.expression.text === '__sveltets_2_ensureComponent' &&
+            ts.isIdentifier(node)
+        );
+    }
+
+    private numberOfDirectorySeparators(path: string) {
+        return path.split('/').length - 1;
+    }
+
+    private getSvelteQuickFixes(
+        lang: ts.LanguageService,
+        document: Document,
+        cannotFindNameDiagnostics: Diagnostic[],
+        tsDoc: DocumentSnapshot,
+        formatCodeBasis: FormatCodeBasis,
+        userPreferences: ts.UserPreferences,
+        formatCodeSettings: ts.FormatCodeSettings
+    ): CustomFixCannotFindNameInfo[] {
+        const program = lang.getProgram();
+        const sourceFile = program?.getSourceFile(tsDoc.filePath);
+        if (!program || !sourceFile) {
+            return [];
+        }
+
+        const typeChecker = program.getTypeChecker();
+        const results: CustomFixCannotFindNameInfo[] = [];
+        const quote = getQuotePreference(sourceFile, userPreferences);
+        const getGlobalCompletion = memoize(() =>
+            lang.getCompletionsAtPosition(tsDoc.filePath, 0, userPreferences, formatCodeSettings)
+        );
+        const [tsMajorStr] = ts.version.split('.');
+        const tsSupportHandlerQuickFix = parseInt(tsMajorStr) >= 5;
+
+        for (const diagnostic of cannotFindNameDiagnostics) {
+            const identifier = this.findIdentifierForDiagnostic(tsDoc, diagnostic, sourceFile);
+
+            if (!identifier) {
+                continue;
+            }
+
+            const isQuickFixTargetTargetStore = identifier?.escapedText.toString().startsWith('$');
+
+            const fixes: ts.CodeFixAction[] = [];
+            if (isQuickFixTargetTargetStore) {
+                fixes.push(
+                    ...this.getSvelteStoreQuickFixes(
+                        identifier,
+                        lang,
+                        tsDoc,
+                        userPreferences,
+                        formatCodeSettings,
+                        getGlobalCompletion
+                    )
+                );
+            }
+
+            if (!tsSupportHandlerQuickFix) {
+                const isQuickFixTargetEventHandler = this.isQuickFixForEventHandler(
+                    document,
+                    diagnostic
+                );
+                if (isQuickFixTargetEventHandler) {
+                    fixes.push(
+                        ...this.getEventHandlerQuickFixes(
+                            identifier,
+                            tsDoc,
+                            typeChecker,
+                            quote,
+                            formatCodeBasis
+                        )
+                    );
+                }
+            }
+
+            if (!fixes.length) {
+                continue;
+            }
+
+            const originalPosition = tsDoc.getOriginalPosition(tsDoc.positionAt(identifier.pos));
+            results.push(
+                ...fixes.map((fix) => ({
+                    name: identifier.getText(),
+                    position: originalPosition,
+                    ...fix
+                }))
+            );
+        }
+
+        return results;
+    }
+
+    private findIdentifierForDiagnostic(
+        tsDoc: DocumentSnapshot,
+        diagnostic: Diagnostic,
+        sourceFile: ts.SourceFile
+    ) {
+        const start = tsDoc.offsetAt(tsDoc.getGeneratedPosition(diagnostic.range.start));
+        const end = tsDoc.offsetAt(tsDoc.getGeneratedPosition(diagnostic.range.end));
+
+        const identifier = findClosestContainingNode(
+            sourceFile,
+            { start, length: end - start },
+            ts.isIdentifier
+        );
+
+        return identifier;
+    }
+
+    // TODO: Remove this in late 2023
+    // when most users have upgraded to TS 5.0+
+    private getSvelteStoreQuickFixes(
+        identifier: ts.Identifier,
+        lang: ts.LanguageService,
+        tsDoc: DocumentSnapshot,
+        userPreferences: ts.UserPreferences,
+        formatCodeSettings: ts.FormatCodeSettings,
+        getCompletions: () => ts.CompletionInfo | undefined
+    ): ts.CodeFixAction[] {
+        const storeIdentifier = identifier.escapedText.toString().substring(1);
+        const completion = getCompletions();
+
+        if (!completion) {
+            return [];
+        }
+
+        const toFix = (c: ts.CompletionEntry) =>
+            lang
+                .getCompletionEntryDetails(
+                    tsDoc.filePath,
+                    0,
+                    c.name,
+                    formatCodeSettings,
+                    c.source,
+                    userPreferences,
+                    c.data
                 )
                 ?.codeActions?.map((a) => ({
                     ...a,
-                    description: changeSvelteComponentName(a.description),
-                    fixName: 'import'
+                    changes: a.changes.map((change) => {
+                        return {
+                            ...change,
+                            textChanges: change.textChanges.map((textChange) => {
+                                // For some reason, TS sometimes adds the `type` modifier. Remove it.
+                                return {
+                                    ...textChange,
+                                    newText: textChange.newText.replace(' type ', ' ')
+                                };
+                            })
+                        };
+                    }),
+                    fixName: FIX_IMPORT_FIX_NAME,
+                    fixId: FIX_IMPORT_FIX_ID,
+                    fixAllDescription: FIX_IMPORT_FIX_DESCRIPTION
                 })) ?? [];
 
-        return flatten(
-            completion.entries.filter((c) => c.name === name || c.name === suffixedName).map(toFix)
-        );
+        return flatten(completion.entries.filter((c) => c.name === storeIdentifier).map(toFix));
+    }
+
+    /**
+     * Workaround for TypeScript doesn't provide a quick fix if the signature is typed as union type, like `(() => void) | null`
+     * We can remove this once TypeScript doesn't have this limitation.
+     */
+    private getEventHandlerQuickFixes(
+        identifier: ts.Identifier,
+        tsDoc: DocumentSnapshot,
+        typeChecker: ts.TypeChecker,
+        quote: string,
+        formatCodeBasis: FormatCodeBasis
+    ): ts.CodeFixAction[] {
+        const type = identifier && typeChecker.getContextualType(identifier);
+
+        // if it's not union typescript should be able to do it. no need to enhance
+        if (!type || !type.isUnion()) {
+            return [];
+        }
+
+        const nonNullable = type.getNonNullableType();
+
+        if (
+            !(
+                nonNullable.flags & ts.TypeFlags.Object &&
+                (nonNullable as ts.ObjectType).objectFlags & ts.ObjectFlags.Anonymous
+            )
+        ) {
+            return [];
+        }
+
+        const signature = typeChecker.getSignaturesOfType(nonNullable, ts.SignatureKind.Call)[0];
+
+        const parameters = signature.parameters.map((p) => {
+            const declaration = p.valueDeclaration ?? p.declarations?.[0];
+            const typeString = declaration
+                ? typeChecker.typeToString(typeChecker.getTypeOfSymbolAtLocation(p, declaration))
+                : '';
+
+            return { name: p.name, typeString };
+        });
+
+        const returnType = typeChecker.typeToString(signature.getReturnType());
+        const useJsDoc =
+            tsDoc.scriptKind === ts.ScriptKind.JS || tsDoc.scriptKind === ts.ScriptKind.JSX;
+        const parametersText = (
+            useJsDoc
+                ? parameters.map((p) => p.name)
+                : parameters.map((p) => p.name + (p.typeString ? ': ' + p.typeString : ''))
+        ).join(', ');
+
+        const jsDoc = useJsDoc
+            ? ['/**', ...parameters.map((p) => ` * @param {${p.typeString}} ${p.name}`), ' */']
+            : [];
+
+        const newText = [
+            ...jsDoc,
+            `function ${identifier.text}(${parametersText})${
+                useJsDoc || returnType === 'any' ? '' : ': ' + returnType
+            } {`,
+            formatCodeBasis.indent +
+                `throw new Error(${quote}Function not implemented.${quote})` +
+                formatCodeBasis.semi,
+            '}'
+        ]
+            .map((line) => formatCodeBasis.baseIndent + line + formatCodeBasis.newLine)
+            .join('');
+
+        return [
+            {
+                description: `Add missing function declaration '${identifier.text}'`,
+                fixName: 'fixMissingFunctionDeclaration',
+                changes: [
+                    {
+                        fileName: tsDoc.filePath,
+                        textChanges: [
+                            {
+                                newText,
+                                span: { start: 0, length: 0 }
+                            }
+                        ]
+                    }
+                ]
+            }
+        ];
+    }
+
+    private isQuickFixForEventHandler(document: Document, diagnostic: Diagnostic) {
+        const htmlNode = document.html.findNodeAt(document.offsetAt(diagnostic.range.start));
+        if (
+            !htmlNode.attributes ||
+            !Object.keys(htmlNode.attributes).some((attr) => attr.startsWith('on:'))
+        ) {
+            return false;
+        }
+
+        return true;
     }
 
     private async getApplicableRefactors(
@@ -642,9 +1402,16 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
      * Some refactorings place the new code at the end of svelte2tsx' render function,
      *  which is unmapped. In this case, add it to the end of the script tag ourselves.
      */
-    private checkEndOfFileCodeInsert(resultRange: Range, targetRange: Range, document: Document) {
+    private checkEndOfFileCodeInsert(
+        resultRange: Range,
+        targetRange: Range | undefined,
+        document: Document
+    ) {
         if (resultRange.start.line < 0 || resultRange.end.line < 0) {
-            if (isRangeInTag(targetRange, document.moduleScriptInfo)) {
+            if (
+                document.moduleScriptInfo &&
+                (!targetRange || isRangeInTag(targetRange, document.moduleScriptInfo))
+            ) {
                 return Range.create(
                     document.moduleScriptInfo.endPos,
                     document.moduleScriptInfo.endPos
@@ -656,6 +1423,9 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             }
         }
 
+        // don't add script tag here because the code action is calculated
+        // when the file is treated as js
+        // but user might want a ts version of the code action
         return resultRange;
     }
 

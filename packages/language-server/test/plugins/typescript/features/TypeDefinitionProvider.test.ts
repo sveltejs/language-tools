@@ -86,4 +86,19 @@ describe('TypeDefinitionProvider', () => {
             }
         ]);
     });
+
+    it('map definition of dts with declarationMap to source ', async () => {
+        const { provider, document } = setup('../declaration-map/importing.svelte');
+
+        const typeDefs = await provider.getTypeDefinition(document, { line: 1, character: 13 });
+        assert.deepStrictEqual(typeDefs, <Location[]>[
+            {
+                range: {
+                    end: { line: 1, character: 18 },
+                    start: { line: 1, character: 16 }
+                },
+                uri: getUri('../declaration-map/declaration-map-project/index.ts')
+            }
+        ]);
+    });
 });

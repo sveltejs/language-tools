@@ -14,7 +14,10 @@ const oneWayBindingAttributes: Set<string> = new Set([
     'seekable',
     'seeking',
     'played',
-    'ended'
+    'ended',
+    'readyState',
+    'naturalWidth',
+    'naturalHeight'
 ]);
 /**
  * List of all binding names that are transformed to sth like `binding = variable`.

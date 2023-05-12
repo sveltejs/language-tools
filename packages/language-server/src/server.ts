@@ -15,7 +15,14 @@ import {
     SemanticTokensRequest,
     SemanticTokensRangeRequest,
     DidChangeWatchedFilesParams,
-    LinkedEditingRangeRequest
+    LinkedEditingRangeRequest,
+    CallHierarchyPrepareRequest,
+    CallHierarchyIncomingCallsRequest,
+    CallHierarchyOutgoingCallsRequest,
+    InlayHintRequest,
+    SemanticTokensRefreshRequest,
+    InlayHintRefreshRequest,
+    DidChangeWatchedFilesNotification
 } from 'vscode-languageserver';
 import { IPCMessageReader, IPCMessageWriter, createConnection } from 'vscode-languageserver/node';
 import { DiagnosticsManager } from './lib/DiagnosticsManager';
@@ -149,6 +156,8 @@ export function startServer(options?: LSOptions) {
         configManager.updateCssConfig(evt.initializationOptions?.configuration?.css);
         configManager.updateScssConfig(evt.initializationOptions?.configuration?.scss);
         configManager.updateLessConfig(evt.initializationOptions?.configuration?.less);
+        configManager.updateHTMLConfig(evt.initializationOptions?.configuration?.html);
+        configManager.updateClientCapabilities(evt.capabilities);
 
         pluginHost.initialize({
             filterIncompleteCompletions:
@@ -167,14 +176,16 @@ export function startServer(options?: LSOptions) {
         pluginHost.register(
             new CSSPlugin(docManager, configManager, workspaceFolders, cssLanguageServices)
         );
+        const normalizedWorkspaceUris = workspaceUris.map(normalizeUri);
         pluginHost.register(
             new TypeScriptPlugin(
                 configManager,
-                new LSAndTSDocResolver(docManager, workspaceUris.map(normalizeUri), configManager, {
+                new LSAndTSDocResolver(docManager, normalizedWorkspaceUris, configManager, {
                     notifyExceedSizeLimit: notifyTsServiceExceedSizeLimit,
-                    onProjectReloaded: updateAllDiagnostics,
+                    onProjectReloaded: refreshCrossFilesSemanticFeatures,
                     watchTsConfig: true
-                })
+                }),
+                normalizedWorkspaceUris
             )
         );
 
@@ -222,7 +233,10 @@ export function startServer(options?: LSOptions) {
                         // Svelte
                         ':',
                         '|'
-                    ]
+                    ],
+                    completionItem: {
+                        labelDetailsSupport: true
+                    }
                 },
                 documentFormattingProvider: true,
                 colorProvider: true,
@@ -240,7 +254,8 @@ export function startServer(options?: LSOptions) {
                                   evt.initializationOptions?.shouldFilterCodeActionKind
                                   ? (kind) => clientSupportedCodeActionKinds.includes(kind)
                                   : () => true
-                          )
+                          ),
+                          resolveProvider: true
                       }
                     : true,
                 executeCommandProvider: clientSupportApplyEditCommand
@@ -276,9 +291,27 @@ export function startServer(options?: LSOptions) {
                 linkedEditingRangeProvider: true,
                 implementationProvider: true,
                 typeDefinitionProvider: true,
+                inlayHintProvider: true,
+                callHierarchyProvider: true,
                 foldingRangeProvider: true
             }
         };
+    });
+
+    connection.onInitialized(() => {
+        if (
+            !watcher &&
+            configManager.getClientCapabilities()?.workspace?.didChangeWatchedFiles
+                ?.dynamicRegistration
+        ) {
+            connection?.client.register(DidChangeWatchedFilesNotification.type, {
+                watchers: [
+                    {
+                        globPattern: '**/*.{ts,js,mts,mjs,cjs,cts,json}'
+                    }
+                ]
+            });
+        }
     });
 
     function notifyTsServiceExceedSizeLimit() {
@@ -309,6 +342,7 @@ export function startServer(options?: LSOptions) {
         configManager.updateCssConfig(settings.css);
         configManager.updateScssConfig(settings.scss);
         configManager.updateLessConfig(settings.less);
+        configManager.updateHTMLConfig(settings.html);
         Logger.setDebug(settings.svelte?.['language-server']?.debug);
     });
 
@@ -363,6 +397,10 @@ export function startServer(options?: LSOptions) {
             });
         }
     });
+    connection.onCodeActionResolve((codeAction, cancellationToken) => {
+        const data = codeAction.data as TextDocumentIdentifier;
+        return pluginHost.resolveCodeAction(data, codeAction, cancellationToken);
+    });
 
     connection.onCompletionResolve((completionItem, cancellationToken) => {
         const data = (completionItem as AppCompletionItem).data as TextDocumentIdentifier;
@@ -399,6 +437,22 @@ export function startServer(options?: LSOptions) {
     );
 
     const updateAllDiagnostics = debounceThrottle(() => diagnosticsManager.updateAll(), 1000);
+    const refreshSemanticTokens = debounceThrottle(() => {
+        if (configManager?.getClientCapabilities()?.workspace?.semanticTokens?.refreshSupport) {
+            connection?.sendRequest(SemanticTokensRefreshRequest.method);
+        }
+    }, 1500);
+    const refreshInlayHints = debounceThrottle(() => {
+        if (configManager?.getClientCapabilities()?.workspace?.inlayHint?.refreshSupport) {
+            connection?.sendRequest(InlayHintRefreshRequest.method);
+        }
+    }, 1500);
+
+    const refreshCrossFilesSemanticFeatures = () => {
+        updateAllDiagnostics();
+        refreshInlayHints();
+        refreshSemanticTokens();
+    };
 
     connection.onDidChangeWatchedFiles(onDidChangeWatchedFiles);
     function onDidChangeWatchedFiles(para: DidChangeWatchedFilesParams) {
@@ -411,7 +465,7 @@ export function startServer(options?: LSOptions) {
 
         pluginHost.onWatchFileChanges(onWatchFileChangesParas);
 
-        updateAllDiagnostics();
+        refreshCrossFilesSemanticFeatures();
     }
 
     connection.onDidSaveTextDocument(updateAllDiagnostics);
@@ -420,7 +474,8 @@ export function startServer(options?: LSOptions) {
         if (path) {
             pluginHost.updateTsOrJsFile(path, e.changes);
         }
-        updateAllDiagnostics();
+
+        refreshCrossFilesSemanticFeatures();
     });
 
     connection.onRequest(SemanticTokensRequest.type, (evt, cancellationToken) =>
@@ -433,6 +488,26 @@ export function startServer(options?: LSOptions) {
     connection.onRequest(
         LinkedEditingRangeRequest.type,
         async (evt) => await pluginHost.getLinkedEditingRanges(evt.textDocument, evt.position)
+    );
+
+    connection.onRequest(InlayHintRequest.type, (evt, cancellationToken) =>
+        pluginHost.getInlayHints(evt.textDocument, evt.range, cancellationToken)
+    );
+
+    connection.onRequest(
+        CallHierarchyPrepareRequest.type,
+        async (evt, token) =>
+            await pluginHost.prepareCallHierarchy(evt.textDocument, evt.position, token)
+    );
+
+    connection.onRequest(
+        CallHierarchyIncomingCallsRequest.type,
+        async (evt, token) => await pluginHost.getIncomingCalls(evt.item, token)
+    );
+
+    connection.onRequest(
+        CallHierarchyOutgoingCallsRequest.type,
+        async (evt, token) => await pluginHost.getOutgoingCalls(evt.item, token)
     );
 
     docManager.on(

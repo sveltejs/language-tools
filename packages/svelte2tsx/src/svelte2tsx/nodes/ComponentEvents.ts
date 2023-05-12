@@ -140,7 +140,7 @@ class ComponentEventsFromInterface {
         if (!dispatcherTyping) {
             this.str.prependLeft(
                 dispatcherCreationExpr.expression.getEnd() + this.astOffset,
-                '<__sveltets_1_CustomEvents<$$Events>>'
+                '<__sveltets_2_CustomEvents<$$Events>>'
             );
         }
     }
@@ -224,17 +224,20 @@ class ComponentEventsFromEventsMap {
 
         const { dispatcherTyping, dispatcherName } = result;
 
-        if (dispatcherTyping && ts.isTypeLiteralNode(dispatcherTyping)) {
+        if (dispatcherTyping) {
             this.eventDispatchers.push({
                 name: dispatcherName,
                 typing: dispatcherTyping.getText()
             });
-            dispatcherTyping.members.filter(ts.isPropertySignature).forEach((member) => {
-                this.addToEvents(getName(member.name), {
-                    type: `CustomEvent<${member.type?.getText() || 'any'}>`,
-                    doc: getDoc(member)
+
+            if (ts.isTypeLiteralNode(dispatcherTyping)) {
+                dispatcherTyping.members.filter(ts.isPropertySignature).forEach((member) => {
+                    this.addToEvents(getName(member.name), {
+                        type: `CustomEvent<${member.type?.getText() || 'any'}>`,
+                        doc: getDoc(member)
+                    });
                 });
-            });
+            }
         } else {
             this.eventDispatchers.push({ name: dispatcherName });
             this.eventHandler
@@ -290,11 +293,11 @@ class ComponentEventsFromEventsMap {
                     .map(
                         (dispatcher) =>
                             dispatcher.typing &&
-                            `...__sveltets_1_toEventTypings<${dispatcher.typing}>()`
+                            `...__sveltets_2_toEventTypings<${dispatcher.typing}>()`
                     )
                     .filter((str) => !!str),
                 ...this.eventHandler.bubbledEventsAsStrings(),
-                ...[...this.dispatchedEvents.keys()].map((e) => `'${e}': __sveltets_1_customEvent`)
+                ...[...this.dispatchedEvents.keys()].map((e) => `'${e}': __sveltets_2_customEvent`)
             ].join(', ') +
             '}'
         );

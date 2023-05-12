@@ -5,9 +5,9 @@ function render() {
 
      
 ;
-async () => {  { const $$_Test0C = __sveltets_2_ensureComponent(Test); new $$_Test0C({ target: __sveltets_2_any(), props: { "b":`6`,}}); Test} 
+async () => {  { const $$_tseT0C = __sveltets_2_ensureComponent(Test); new $$_tseT0C({ target: __sveltets_2_any(), props: { "b":`6`,}}); Test} 
 };
-return { props: {}, slots: {}, events: {} }}
+return { props: /** @type {Record<string, never>} */ ({}), slots: {}, events: {} }}
 
-export default class Input__SvelteComponent_ extends __sveltets_1_createSvelte2TsxComponent(__sveltets_1_partial(__sveltets_1_with_any_event(render()))) {
+export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial(__sveltets_2_with_any_event(render()))) {
 }
