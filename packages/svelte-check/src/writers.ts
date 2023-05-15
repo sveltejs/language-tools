@@ -163,22 +163,24 @@ export class MachineFriendlyWriter implements Writer {
                     : null;
 
             if (type) {
-                const { line: startLine, character: startCharacter } = range.start;
-                const { line: endLine, character: endCharacter } = range.end;
+                const { start, end } = range;
                 const fn = JSON.stringify(filename);
                 const msg = JSON.stringify(message);
                 if (this.isVerbose) {
-                    const stringifiedCodeDescription = JSON.stringify(codeDescription);
-                    const stringifiedSource = JSON.stringify(source);
                     this.log(
-                        `${type} ${fn} ${startLine + 1}:${startCharacter + 1} ${endLine + 1}:${
-                            endCharacter + 1
-                        } ${msg} "${code ?? ''}" ${stringifiedCodeDescription ?? '""'} ${
-                            stringifiedSource ?? '""'
-                        }`
+                        JSON.stringify({
+                            type,
+                            filename,
+                            start,
+                            end,
+                            message,
+                            code,
+                            codeDescription,
+                            source
+                        })
                     );
                 } else {
-                    this.log(`${type} ${fn} ${startLine + 1}:${startCharacter + 1} ${msg}`);
+                    this.log(`${type} ${fn} ${start.line + 1}:${start.character + 1} ${msg}`);
                 }
             }
         });

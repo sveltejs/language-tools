@@ -94,7 +94,7 @@ The first row is of type `START` and contains the workspace folder (wrapped in q
 
 Any number of `ERROR` or `WARNING` records may follow. Their structure is identical and depends on the output argoument.
 
-If the agroument is `machine` it will tell us the filename, the starting line and column numbers, and the error message. The filename is relative to the workspace directory. The filename and the message are both wrapped in quotes.
+If the argument is `machine` it will tell us the filename, the starting line and column numbers, and the error message. The filename is relative to the workspace directory. The filename and the message are both wrapped in quotes.
 
 ###### Example:
 
@@ -103,13 +103,14 @@ If the agroument is `machine` it will tell us the filename, the starting line an
 1590680326778 WARNING "imported-file.svelte" 0:37 "Component has unused export property 'prop'. If it is for external reference only, please consider using `export const prop`"
 ```
 
-If the agroument is `machine-verbose` it will tell us the filename, the starting line and column numbers, the ending line and column numbers, the error message, the code of diagnostic, the human-friendly description of the code and the human-friendly source of the diagnostic (eg. svelte/typescript). The filename is relative to the workspace directory. The filename, the message, the code, the description of the code and the source are all wrapped in quotes.
+If the argument is `machine-verbose` it will tell us the filename, the starting line and column numbers, the ending line and column numbers, the error message, the code of diagnostic, the human-friendly description of the code and the human-friendly source of the diagnostic (eg. svelte/typescript). The filename is relative to the workspace directory. All the information's are represented as [ndjson](https://en.wikipedia.org/wiki/JSON_streaming#Newline-Delimited_JSON)
 
 ###### Example:
 
 ```
-1590680326283 ERROR "codeactions.svelte" 1:16 1:23 "Cannot find module 'blubb' or its corresponding type declarations." "2307" "" "js"
-1590680326778 WARNING "imported-file.svelte" 0:37 0:51 "Component has unused export property 'prop'. If it is for external reference only, please consider using `export const prop`" "unused-export-let" "" "svelte"
+1590680326283 {"type":"ERROR","fn":"codeaction.svelte","start":{"line":1,"character":16},"end":{"line":1,"character":23},"message":"Cannot find module 'blubb' or its corresponding type declarations.","code":2307,"source":"js"}
+1590680326778 {"type":"WARNING","filename":"imported-file.svelte","start":{"line":0,"character":37},"end":{"line":0,"character":51},"message":"Component has unused export property 'prop'. If it is for external reference only, please consider using `export 
+const prop`","code":"unused-export-let","source":"svelte"}
 ```
 
 The output concludes with a `COMPLETED` message that summarizes total numbers of files, errors and warnings that were encountered during the check.
