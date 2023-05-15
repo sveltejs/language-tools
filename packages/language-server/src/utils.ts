@@ -361,7 +361,7 @@ export function indentBasedFoldingRange(document: Document, range?: Range) {
     const tabs = sum(indents.map((l) => l.tabCount));
     const spaces = sum(indents.map((l) => l.spaceCount));
 
-    const tabSize = tabs && spaces ? guessTabSize(indents) : 1;
+    const tabSize = tabs && spaces ? guessTabSize(indents) : 4;
 }
 
 function collectIndents(line: string) {
@@ -386,5 +386,29 @@ function collectIndents(line: string) {
 }
 
 function guessTabSize(nonEmptyLines: Array<{ spaceCount: number; tabCount: number }>): number {
-    const guessingTabSize = [];
+    const guessingTabSize = [2, 4, 6, 8, 3, 5, 7];
+    const matchCounts  = new Map<number, number>();
+
+    for (const line of nonEmptyLines) {
+        if (line.spaceCount === 0) {
+            continue;
+        }
+
+        for (const guess of guessingTabSize) {
+            if (line.spaceCount % guess === 0) {
+                matchCounts.set(guess, (matchCounts.get(guess) ?? 0) + 1);
+            }
+        }
+    }
+
+    let max = 0;
+    let tabSize: number | undefined;
+    for (const [size, count] of matchCounts) {
+        max = Math.max(max, count);
+        if (max === count) {
+            tabSize = size;
+        }
+    }
+
+    return tabSize ?? 4;
 }
