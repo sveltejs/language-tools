@@ -164,8 +164,6 @@ export class MachineFriendlyWriter implements Writer {
 
             if (type) {
                 const { start, end } = range;
-                const fn = JSON.stringify(filename);
-                const msg = JSON.stringify(message);
                 if (this.isVerbose) {
                     this.log(
                         JSON.stringify({
@@ -180,6 +178,8 @@ export class MachineFriendlyWriter implements Writer {
                         })
                     );
                 } else {
+                    const fn = JSON.stringify(filename);
+                    const msg = JSON.stringify(message);
                     this.log(`${type} ${fn} ${start.line + 1}:${start.character + 1} ${msg}`);
                 }
             }
