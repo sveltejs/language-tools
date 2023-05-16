@@ -40,7 +40,7 @@ async function snapShotTest() {
         'source.svelte',
         '-t',
         './test/grammar/samples/**/*.svelte',
-        ...allGrammars.reduce((previous, path) => [...previous, '-g', path], []),
+        ...allGrammars.reduce((previous, path) => [...previous, '-g', path], /** @type {string[]} */([])),
         ...extraArgs
     ];
 

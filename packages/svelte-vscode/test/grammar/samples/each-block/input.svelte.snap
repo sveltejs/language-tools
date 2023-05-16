@@ -46,11 +46,11 @@
 #       ^^^^^^^^^^ source.svelte meta.special.each.svelte meta.special.start.svelte meta.embedded.expression.svelte source.ts
 #                 ^ source.svelte meta.special.each.svelte meta.special.start.svelte
 #                  ^^ source.svelte meta.special.each.svelte meta.special.start.svelte keyword.control.as.svelte
-#                    ^^ source.svelte meta.special.each.svelte meta.special.start.svelte
-#                      ^^^ source.svelte meta.special.each.svelte meta.special.start.svelte meta.embedded.expression.svelte source.ts
-#                         ^ source.svelte meta.special.each.svelte meta.special.start.svelte punctuation.separator.svelte
-#                          ^^^^^^ source.svelte meta.special.each.svelte meta.special.start.svelte meta.embedded.expression.svelte source.ts
-#                                ^^ source.svelte meta.special.each.svelte meta.special.start.svelte
+#                    ^ source.svelte meta.special.each.svelte meta.special.start.svelte
+#                     ^ source.svelte meta.special.each.svelte meta.special.start.svelte meta.embedded.expression.svelte source.ts
+#                      ^^^^^^^^^^ source.svelte meta.special.each.svelte meta.special.start.svelte meta.embedded.expression.svelte source.ts
+#                                ^ source.svelte meta.special.each.svelte meta.special.start.svelte meta.embedded.expression.svelte source.ts
+#                                 ^ source.svelte meta.special.each.svelte meta.special.start.svelte
 #                                  ^ source.svelte meta.special.each.svelte meta.special.start.svelte meta.brace.round.svelte
 #                                   ^^^ source.svelte meta.special.each.svelte meta.special.start.svelte meta.embedded.expression.svelte source.ts
 #                                      ^ source.svelte meta.special.each.svelte meta.special.start.svelte meta.brace.round.svelte
