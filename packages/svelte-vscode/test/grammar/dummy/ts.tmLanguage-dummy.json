@@ -9,18 +9,18 @@
         },
         "object-binding-pattern-const": {
             "comment": "Referenced in source.svelte#destructuring-const",
-			"begin": "(?:(\\.\\.\\.)\\s*)?(\\{)",
-			"end": "\\}"
-		},
+            "begin": "(?:(\\.\\.\\.)\\s*)?(\\{)",
+            "end": "\\}"
+        },
         "array-binding-pattern": {
             "comment": "Referenced in source.svelte#destructuring",
             "begin": "(?:(\\.\\.\\.)\\s*)?(\\[)",
             "end": "\\]"
         },
-		"array-binding-pattern-const": {
+        "array-binding-pattern-const": {
             "comment": "Referenced in source.svelte#destructuring-const",
-			"begin": "(?:(\\.\\.\\.)\\s*)?(\\[)",
-			"end": "\\]"
-		}
+            "begin": "(?:(\\.\\.\\.)\\s*)?(\\[)",
+            "end": "\\]"
+        }
     }
 }
