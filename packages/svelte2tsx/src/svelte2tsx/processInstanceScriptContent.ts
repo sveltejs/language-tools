@@ -53,7 +53,7 @@ export function processInstanceScriptContent(
     );
     const astOffset = script.content.start;
     const exportedNames = new ExportedNames(str, astOffset, basename);
-    const generics = new Generics(str, astOffset);
+    const generics = new Generics(str, astOffset, script);
     const interfacesAndTypes = new InterfacesAndTypes();
 
     const implicitTopLevelNames = new ImplicitTopLevelNames(str, astOffset);

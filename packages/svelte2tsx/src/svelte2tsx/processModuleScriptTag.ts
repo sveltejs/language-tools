@@ -25,7 +25,7 @@ export function processModuleScriptTag(
     );
     const astOffset = script.content.start;
 
-    const generics = new Generics(str, astOffset);
+    const generics = new Generics(str, astOffset, script);
 
     const walk = (node: ts.Node) => {
         resolveImplicitStoreValue(node, implicitStoreValues, str, astOffset);

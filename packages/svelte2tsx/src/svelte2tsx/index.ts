@@ -355,7 +355,7 @@ export function svelte2tsx(
     const implicitStoreValues = new ImplicitStoreValues(resolvedStores, renderFunctionStart);
     //move the instance script and process the content
     let exportedNames = new ExportedNames(str, 0, basename);
-    let generics = new Generics(str, 0);
+    let generics = new Generics(str, 0, { attributes: [] } as any);
     let uses$$SlotsInterface = false;
     if (scriptTag) {
         //ensure it is between the module script and the rest of the template (the variables need to be declared before the jsx template)
