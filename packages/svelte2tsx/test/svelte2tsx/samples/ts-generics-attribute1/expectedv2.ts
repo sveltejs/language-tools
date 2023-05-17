@@ -1,7 +1,7 @@
 ///<reference types="svelte" />
 ;
 import { createEventDispatcher } from 'svelte';
-function render<A,B extends keyof A,C extends boolean>() {
+function render<A, B extends keyof A, C extends boolean>() {
 
     
 
