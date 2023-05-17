@@ -118,7 +118,7 @@ export class ProjectSvelteFilesManager {
         this.snapshotManager.create(newFile);
         const snapshot = this.project.projectService.getScriptInfo(newFile);
 
-        if (snapshot) {
+        if (snapshot && !this.project.isRoot(snapshot)) {
             this.project.addRoot(snapshot);
         }
     }

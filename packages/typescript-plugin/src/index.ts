@@ -19,7 +19,7 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
             return info.languageService;
         }
 
-        if (isPatched(info.languageService)) {
+        if (isPatched(info.project)) {
             logger.log('Already patched. Checking tsconfig updates.');
 
             ProjectSvelteFilesManager.getInstance(
@@ -130,18 +130,14 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
             }
         });
 
-        return decorateLanguageServiceDispose(
-            decorateLanguageService(
-                info.languageService,
-                snapshotManager,
-                logger,
-                configManager,
-                info,
-                modules.typescript
-            ),
-            projectSvelteFilesManager ?? {
-                dispose() {}
-            }
+        return decorateLanguageService(
+            info.languageService,
+            snapshotManager,
+            logger,
+            configManager,
+            info,
+            modules.typescript,
+            () => projectSvelteFilesManager?.dispose()
         );
     }
 
@@ -189,20 +185,6 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
 
     function onConfigurationChanged(config: Configuration) {
         configManager.updateConfigFromPluginConfig(config);
-    }
-
-    function decorateLanguageServiceDispose(
-        languageService: ts.LanguageService,
-        disposable: { dispose(): void }
-    ) {
-        const dispose = languageService.dispose;
-
-        languageService.dispose = () => {
-            disposable.dispose();
-            dispose();
-        };
-
-        return languageService;
     }
 
     /**
