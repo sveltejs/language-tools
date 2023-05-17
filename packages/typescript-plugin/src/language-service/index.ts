@@ -69,7 +69,7 @@ function createProxyHandler(configManager: ConfigManager): ProxyHandler<ts.Langu
 
     return {
         get(target, p) {
-            if (!configManager.getConfig().enable || p === 'dispose') {
+            if (!configManager.getConfig().enable) {
                 return target[p as keyof ts.LanguageService];
             }
 
