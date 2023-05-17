@@ -454,13 +454,16 @@ repository:
 
   # Matches the generics attribute on script tags
   attributes-generics:
-    match: (generics)(=)(["'])(.*?)(\3)
-    captures:
+    begin: (generics)(=)(["'])
+    beginCaptures:
       1: { name: entity.other.attribute-name.svelte }
       2: { name: punctuation.separator.key-value.svelte }
       3: { name: punctuation.definition.string.begin.svelte }
-      4: { name: meta.embedded.expression.svelte source.ts, patterns: [ include: '#type-parameters' ] }
-      5: { name: punctuation.definition.string.end.svelte }
+    end: (\3)
+    endCaptures:
+      1: { name: punctuation.definition.string.end.svelte }
+    contentName: meta.embedded.expression.svelte source.ts
+    patterns: [ include: '#type-parameters' ]
 
   # Copied over from https://github.com/microsoft/TypeScript-TmLanguage/blob/master/TypeScript.YAML-tmLanguage#L2308
   # and removed the start/end matches which have the < and > included, which are not present in our case
