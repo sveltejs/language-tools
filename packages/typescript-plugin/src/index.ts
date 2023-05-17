@@ -104,6 +104,7 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
                   info.project,
                   info.serverHost,
                   snapshotManager,
+                  logger,
                   parsedCommandLine,
                   configManager
               )

@@ -2,6 +2,7 @@ import type ts from 'typescript/lib/tsserverlibrary';
 import { ConfigManager, Configuration } from './config-manager';
 import { SvelteSnapshotManager } from './svelte-snapshots';
 import { getConfigPathForProject, isSvelteFilePath } from './utils';
+import { Logger } from './logger';
 
 export interface TsFilesSpec {
     include?: readonly string[];
@@ -23,6 +24,7 @@ export class ProjectSvelteFilesManager {
         private readonly project: ts.server.Project,
         private readonly serverHost: ts.server.ServerHost,
         private readonly snapshotManager: SvelteSnapshotManager,
+        private readonly logger: Logger,
         private parsedCommandLine: ts.ParsedCommandLine,
         configManager: ConfigManager
     ) {
@@ -118,9 +120,16 @@ export class ProjectSvelteFilesManager {
         this.snapshotManager.create(newFile);
         const snapshot = this.project.projectService.getScriptInfo(newFile);
 
-        if (snapshot && !this.project.isRoot(snapshot)) {
-            this.project.addRoot(snapshot);
+        if (!snapshot) {
+            return;
         }
+
+        if (this.project.isRoot(snapshot)) {
+            this.logger.debug(`File ${newFile} is already in root`);
+            return;
+        }
+
+        this.project.addRoot(snapshot);
     }
 
     private readProjectSvelteFilesFromFs() {
