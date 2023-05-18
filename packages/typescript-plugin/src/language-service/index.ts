@@ -69,7 +69,8 @@ function createProxyHandler(configManager: ConfigManager): ProxyHandler<ts.Langu
 
     return {
         get(target, p) {
-            if (!configManager.getConfig().enable) {
+            // always check for decorated dispose
+            if (!configManager.getConfig().enable && p !== 'dispose') {
                 return target[p as keyof ts.LanguageService];
             }
 
