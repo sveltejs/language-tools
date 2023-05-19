@@ -1,4 +1,26 @@
 {
     "comment": "Dummy TS TextMate grammar for use in testing",
-    "scopeName": "source.ts"
+    "scopeName": "source.ts",
+    "repository": {
+        "object-binding-pattern": {
+            "comment": "Referenced in source.svelte#destructuring, needed to be defined here so that matching won't end at the } of destructuring",
+            "begin": "(?:(\\.\\.\\.)\\s*)?(\\{)",
+            "end": "\\}"
+        },
+        "object-binding-pattern-const": {
+            "comment": "Referenced in source.svelte#destructuring-const",
+            "begin": "(?:(\\.\\.\\.)\\s*)?(\\{)",
+            "end": "\\}"
+        },
+        "array-binding-pattern": {
+            "comment": "Referenced in source.svelte#destructuring",
+            "begin": "(?:(\\.\\.\\.)\\s*)?(\\[)",
+            "end": "\\]"
+        },
+        "array-binding-pattern-const": {
+            "comment": "Referenced in source.svelte#destructuring-const",
+            "begin": "(?:(\\.\\.\\.)\\s*)?(\\[)",
+            "end": "\\]"
+        }
+    }
 }

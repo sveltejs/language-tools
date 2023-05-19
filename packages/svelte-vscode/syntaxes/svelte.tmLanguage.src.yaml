@@ -178,6 +178,16 @@ repository:
     - { begin: '(?=\[)', end: '(?<=\])',
         name: meta.embedded.expression.svelte source.ts,
         patterns: [include: source.ts#array-binding-pattern] }
+  destructuring-const:
+    patterns:
+    # {...}
+    - { begin: '(?={)', end: '(?<=})',
+        name: meta.embedded.expression.svelte source.ts,
+        patterns: [include: source.ts#object-binding-pattern-const] }
+    # [...]
+    - { begin: '(?=\[)', end: '(?<=\])',
+        name: meta.embedded.expression.svelte source.ts,
+        patterns: [include: source.ts#array-binding-pattern-const] }
 
   # Plain old interpolation between `{...}` blocks.
   interpolation:
@@ -231,12 +241,14 @@ repository:
     - begin: (?<=const.*?)\G
       end: (?=})
       patterns:
+      - include: '#destructuring-const'
       # Variable.
       - begin: \G\s*([_$[:alpha:]][_$[:alnum:]]+)\s*
         end: (?=\=)
         beginCaptures: { 1: { name: variable.other.constant.svelte } }
       # Expression (starting with "=").
       - begin: (?=\=)
+        name: meta.embedded.expression.svelte source.ts
         end: (?=})
         patterns: [ include: source.ts ]
 
