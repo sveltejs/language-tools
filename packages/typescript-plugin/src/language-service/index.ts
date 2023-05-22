@@ -15,10 +15,10 @@ import { decorateRename } from './rename';
 import { decorateUpdateImports } from './update-imports';
 import { decorateLanguageServiceHost } from './host';
 
-const sveltePluginPatchSymbol = Symbol('sveltePluginPatchSymbol');
+const patchedProject = new Set<string>();
 
-export function isPatched(ls: ts.LanguageService) {
-    return (ls as any)[sveltePluginPatchSymbol] === true;
+export function isPatched(project: ts.server.Project) {
+    return patchedProject.has(project.getProjectName());
 }
 
 export function decorateLanguageService(
@@ -27,13 +27,16 @@ export function decorateLanguageService(
     logger: Logger,
     configManager: ConfigManager,
     info: ts.server.PluginCreateInfo,
-    typescript: typeof ts
+    typescript: typeof ts,
+    onDispose: () => void
 ) {
+    patchedProject.add(info.project.getProjectName());
+
     // Decorate using a proxy so we can dynamically enable/disable method
     // patches depending on the enabled state of our config
     const proxy = new Proxy(ls, createProxyHandler(configManager));
     decorateLanguageServiceHost(info.languageServiceHost);
-    decorateLanguageServiceInner(proxy, snapshotManager, logger, info, typescript);
+    decorateLanguageServiceInner(proxy, snapshotManager, logger, info, typescript, onDispose);
 
     return proxy;
 }
@@ -43,7 +46,8 @@ function decorateLanguageServiceInner(
     snapshotManager: SvelteSnapshotManager,
     logger: Logger,
     info: ts.server.PluginCreateInfo,
-    typescript: typeof ts
+    typescript: typeof ts,
+    onDispose: () => void
 ): ts.LanguageService {
     patchLineColumnOffset(ls, snapshotManager);
     decorateRename(ls, snapshotManager, logger);
@@ -56,6 +60,7 @@ function decorateLanguageServiceInner(
     decorateCallHierarchy(ls, snapshotManager, typescript);
     decorateHover(ls, info, typescript, logger);
     decorateInlayHints(ls, info, typescript, logger);
+    decorateDispose(ls, info.project, onDispose);
     return ls;
 }
 
@@ -64,12 +69,8 @@ function createProxyHandler(configManager: ConfigManager): ProxyHandler<ts.Langu
 
     return {
         get(target, p) {
-            // always return patch symbol whether the plugin is enabled or not
-            if (p === sveltePluginPatchSymbol) {
-                return true;
-            }
-
-            if (!configManager.getConfig().enable || p === 'dispose') {
+            // always check for decorated dispose
+            if (!configManager.getConfig().enable && p !== 'dispose') {
                 return target[p as keyof ts.LanguageService];
             }
 
@@ -101,4 +102,20 @@ function patchLineColumnOffset(ls: ts.LanguageService, snapshotManager: SvelteSn
         }
         return toLineColumnOffset(fileName, position);
     };
+}
+
+function decorateDispose(
+    ls: ts.LanguageService,
+    project: ts.server.Project,
+    onDispose: () => void
+) {
+    const dispose = ls.dispose;
+
+    ls.dispose = () => {
+        patchedProject.delete(project.getProjectName());
+        onDispose();
+        dispose();
+    };
+
+    return ls;
 }
