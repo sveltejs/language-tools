@@ -22,5 +22,6 @@
         "prettier": "2.8.6",
         "cross-env": "^7.0.2",
         "ts-node": "^10.0.0"
-    }
+    },
+    "packageManager": "yarn@1.22.19"
 }
