@@ -70,7 +70,8 @@ export class SemanticTokensProviderImpl implements SemanticTokensProvider {
                 textDocument,
                 tsDoc,
                 generatedOffset,
-                generatedLength
+                generatedLength,
+                encodedClassification
             );
             if (!originalPosition) {
                 continue;
@@ -106,14 +107,14 @@ export class SemanticTokensProviderImpl implements SemanticTokensProvider {
         document: Document,
         snapshot: SvelteDocumentSnapshot,
         generatedOffset: number,
-        generatedLength: number
+        generatedLength: number,
+        token: number
     ): [line: number, character: number, length: number, start: number] | undefined {
+        const text = snapshot.getFullText();
         if (
-            isInGeneratedCode(
-                snapshot.getFullText(),
-                generatedOffset,
-                generatedOffset + generatedLength
-            )
+            isInGeneratedCode(text, generatedOffset, generatedOffset + generatedLength) ||
+            (token === 2817 /* top level function */ &&
+                text.substring(generatedOffset, generatedOffset + generatedLength) === 'render')
         ) {
             return;
         }
