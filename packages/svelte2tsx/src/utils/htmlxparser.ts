@@ -3,7 +3,7 @@ import { Node } from 'estree-walker';
 
 function parseAttributes(str: string, start: number) {
     const attrs: Node[] = [];
-    const pattern = /(\w+\b)(?:=(?:"([^"]*)"|'([^']*)'|(\S+)))?/g;
+    const pattern = /([\w-$]+\b)(?:=(?:"([^"]*)"|'([^']*)'|(\S+)))?/g;
 
     let match: RegExpMatchArray;
     while ((match = pattern.exec(str)) !== null) {
