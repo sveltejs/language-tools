@@ -45,9 +45,9 @@ This repo contains the tools which provide editor integrations for Svelte files 
 
 ## Packages
 
-This repo uses [`yarn workspaces`](https://classic.yarnpkg.com/blog/2017/08/02/introducing-workspaces/), which TLDR means if you want to run a commands in each project then you can either `cd` to that directory and run the command, or use `yarn workspace [package_name] [command]`.
+This repo uses [`pnpm workspaces`](https://pnpm.io/workspaces/), which TLDR means if you want to run a commands in each project then you can either `cd` to that directory and run the command, or use `pnpm -r [command]`.
 
-For example `yarn workspace svelte-language-server test`.
+For example `pnpm -r test`.
 
 #### [`svelte-language-server`](packages/language-server)
 
@@ -127,16 +127,16 @@ To install and work on these tools locally:
 ```bash
 git clone https://github.com/sveltejs/language-tools.git svelte-language-tools
 cd svelte-language-tools
-yarn install
-yarn bootstrap
+pnpm install
+pnpm bootstrap
 ```
 
-> Do not use npm to install the dependencies, as the specific package versions in `yarn.lock` are used to build and test Svelte.
+> Do not use npm to install the dependencies, as the specific package versions in `pnpm-lock.yaml` are used to build and test Svelte.
 
 To build all of the tools, run:
 
 ```bash
-yarn build
+pnpm build
 ```
 
 The tools are written in [TypeScript](https://www.typescriptlang.org/), but don't let that put you off — it's basically just JavaScript with type annotations. You'll pick it up in no time. If you're using an editor other than [Visual Studio Code](https://code.visualstudio.com/) you may need to install a plugin in order to get syntax highlighting and code hints etc.
@@ -153,7 +153,7 @@ To run the developer version of both the language server and the VSCode extensio
 -   Go to the debugging panel
 -   Make sure "Run VSCode Extension" is selected, and hit run
 
-This launches a new VSCode window and a watcher for your changes. In this dev window you can choose an existing Svelte project to work against. If you don't use pure Javascript and CSS, but languages like Typescript or SCSS, your project will need a [Svelte preprocessor setup](docs#using-with-preprocessors). When you make changes to the extension or language server you can use the command "Reload Window" in the VSCode command palette to see your changes. When you make changes to `svelte2tsx`, you first need to run `yarn build` within its folder.
+This launches a new VSCode window and a watcher for your changes. In this dev window you can choose an existing Svelte project to work against. If you don't use pure Javascript and CSS, but languages like Typescript or SCSS, your project will need a [Svelte preprocessor setup](docs#using-with-preprocessors). When you make changes to the extension or language server you can use the command "Reload Window" in the VSCode command palette to see your changes. When you make changes to `svelte2tsx`, you first need to run `pnpm build` within its folder.
 
 ### Running Tests
 
@@ -162,7 +162,7 @@ You might think that as a language server, you'd need to handle a lot of back an
 This means it's easy to write tests for your changes:
 
 ```bash
-yarn test
+pnpm test
 ```
 
 For tricker issues, you can run the tests with a debugger in VSCode by setting a breakpoint (or adding `debugger` in the code) and launching the task: "Run tests with debugger".

@@ -44,7 +44,7 @@ describe('CSS Plugin', () => {
             assert.deepStrictEqual(plugin.doHover(document, Position.create(0, 8)), <Hover>{
                 contents: [
                     { language: 'html', value: '<h1>' },
-                    '[Selector Specificity](https://developer.mozilla.org/en-US/docs/Web/CSS/Specificity): (0, 0, 1)'
+                    '[Selector Specificity](https://developer.mozilla.org/docs/Web/CSS/Specificity): (0, 0, 1)'
                 ],
                 range: Range.create(0, 7, 0, 9)
             });
