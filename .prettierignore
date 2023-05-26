@@ -14,3 +14,4 @@ packages/typescript-plugin/src/**/*.d.ts
 **/dist
 .github/**
 .history/**
+pnpm-lock.yaml
