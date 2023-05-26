@@ -33,7 +33,7 @@
         "typescript": "^5.0.3"
     },
     "peerDependencies": {
-        "svelte": "^3.55.0 || 4.0.0-next.0 || 4.0.0-next.1 || ^4.0.0"
+        "svelte": "^3.55.0 || ^4.0.0-next.0 || ^4.0.0"
     },
     "scripts": {
         "build": "rollup -c && node ./dist/src/index.js --workspace ./test --tsconfig ./tsconfig.json",
