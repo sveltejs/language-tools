@@ -425,6 +425,7 @@ export function svelte2tsx(
         // Prepend the import which is used for TS files
         // The other shims need to be provided by the user ambient-style,
         // for example through filenames.push(require.resolve('svelte2tsx/svelte-shims.d.ts'))
+        // TODO replace with SvelteComponent for Svelte 5, keep old for backwards compatibility with Svelte 3
         str.prepend('import { SvelteComponentTyped } from "svelte"\n' + '\n');
         let code = str.toString();
         // Remove all tsx occurences and the template part from the output

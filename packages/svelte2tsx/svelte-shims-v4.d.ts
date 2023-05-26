@@ -2,84 +2,7 @@
 // This way, we avoid the situation where multiple ambient versions of svelte2tsx
 // are loaded and their declarations conflict each other
 // See https://github.com/sveltejs/language-tools/issues/1059 for an example bug that stems from it
-// If you change anything in this file, think about whether or not it should also be added to svelte-shims-v4.d.ts
-
-// -- start svelte-ls-remove --
-declare module '*.svelte' {
-    type _SvelteComponent<Props=any,Events=any,Slots=any> = import("svelte").SvelteComponentTyped<Props,Events,Slots>;
-    export default _SvelteComponent
-}
-// -- end svelte-ls-remove --
-
-/**
- * @deprecated This will be removed soon. Use `SvelteComponentTyped` instead:
- * ```ts
- * import type { SvelteComponentTyped } from 'svelte';
- * ```
- */
-declare class Svelte2TsxComponent<
-    Props extends {} = {},
-    Events extends {} = {},
-    Slots extends {} = {}
-> {
-    // svelte2tsx-specific
-    /**
-     * @internal This is for type checking capabilities only
-     * and does not exist at runtime. Don't use this property.
-     */
-    $$prop_def: Props;
-    /**
-     * @internal This is for type checking capabilities only
-     * and does not exist at runtime. Don't use this property.
-     */
-    $$events_def: Events;
-    /**
-     * @internal This is for type checking capabilities only
-     * and does not exist at runtime. Don't use this property.
-     */
-    $$slot_def: Slots;
-    // https://svelte.dev/docs#Client-side_component_API
-    constructor(options: Svelte2TsxComponentConstructorParameters<Props>);
-    /**
-     * Causes the callback function to be called whenever the component dispatches an event.
-     * A function is returned that will remove the event listener when called.
-     */
-    $on<K extends keyof Events & string>(event: K, handler: ((e: Events[K]) => any) | null | undefined): () => void;
-    /**
-     * Removes a component from the DOM and triggers any `onDestroy` handlers.
-     */
-    $destroy(): void;
-    /**
-     * Programmatically sets props on an instance.
-     * `component.$set({ x: 1 })` is equivalent to `x = 1` inside the component's `<script>` block.
-     * Calling this method schedules an update for the next microtask — the DOM is __not__ updated synchronously.
-     */
-    $set(props?: Partial<Props>): void;
-    // From SvelteComponent(Dev) definition
-    $$: any;
-    $capture_state(): void;
-    $inject_state(): void;
-}
-
-/** @deprecated PRIVATE API, DO NOT USE, REMOVED SOON */
-interface Svelte2TsxComponentConstructorParameters<Props extends {}> {
-    /**
-     * An HTMLElement to render to. This option is required.
-     */
-    target: Element | Document | ShadowRoot;
-    /**
-     * A child of `target` to render the component immediately before.
-     */
-    anchor?: Element;
-    /**
-     * An object of properties to supply to the component.
-     */
-    props?: Props;
-    context?: Map<any, any>;
-    hydrate?: boolean;
-    intro?: boolean;
-    $$inline?: boolean;
-}
+// If you change anything in this file, think about whether or not it should be backported to svelte-shims.d.ts
 
 type AConstructorTypeOf<T, U extends any[] = any[]> = new (...args: U) => T;
 /** @internal PRIVATE API, DO NOT USE */
@@ -301,4 +224,4 @@ declare type ATypedSvelteComponent = {
 declare type ConstructorOfATypedSvelteComponent = new (args: {target: any, props?: any}) => ATypedSvelteComponent
 declare function __sveltets_2_ensureComponent<T extends ConstructorOfATypedSvelteComponent | null | undefined>(type: T): NonNullable<T>;
 
-declare function __sveltets_2_ensureArray<T extends ArrayLike<unknown>>(array: T): T extends ArrayLike<infer U> ? U[] : any[];
+declare function __sveltets_2_ensureArray<T extends ArrayLike<unknown> | Iterable<unknown>>(array: T): T extends ArrayLike<infer U> ? U[] : T extends Iterable<infer U> ? Iterable<U> : any[];

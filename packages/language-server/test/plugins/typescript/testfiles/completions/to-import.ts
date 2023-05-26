@@ -1,5 +1,5 @@
-import { writable } from 'svelte/store';
+import type { Writable } from 'svelte/store';
 
 export class ScndImport {}
 
-export const store = writable('');
+export const store = null as any as Writable<number>;

@@ -147,10 +147,14 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
             return [];
         }
 
-        // Needed so the ambient definitions are known inside the tsx files
-        const svelteTsxFiles = resolveSvelteTsxFiles();
+        const configFilePath = project.getCompilerOptions().configFilePath;
 
-        if (!project.getCompilerOptions().configFilePath) {
+        // Needed so the ambient definitions are known inside the tsx files
+        const svelteTsxFiles = resolveSvelteTsxFiles(
+            typeof configFilePath === 'string' ? configFilePath : undefined
+        );
+
+        if (!configFilePath) {
             svelteTsxFiles.forEach((file) => {
                 openSvelteTsxFileForInferredProject(project, file);
             });
@@ -162,17 +166,22 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
         );
     }
 
-    function resolveSvelteTsxFiles() {
+    function resolveSvelteTsxFiles(configFilePath: string | undefined) {
         if (resolvedSvelteTsxFiles) {
             return resolvedSvelteTsxFiles;
         }
 
         const svelteTsPath = dirname(require.resolve('svelte2tsx'));
-        const svelteTsxFiles = [
-            './svelte-shims.d.ts',
-            './svelte-jsx.d.ts',
-            './svelte-native-jsx.d.ts'
-        ].map((f) => modules.typescript.sys.resolvePath(resolve(svelteTsPath, f)));
+        const sveltePath = require.resolve(
+            'svelte/compiler',
+            configFilePath ? { paths: [configFilePath] } : undefined
+        );
+        const VERSION = require(sveltePath).VERSION;
+        const svelteTsxFiles = (
+            VERSION.split('.')[0] === '3'
+                ? ['./svelte-shims.d.ts', './svelte-jsx.d.ts', './svelte-native-jsx.d.ts']
+                : ['./svelte-shims-v4.d.ts', './svelte-jsx-v4.d.ts', './svelte-native-jsx.d.ts']
+        ).map((f) => modules.typescript.sys.resolvePath(resolve(svelteTsPath, f)));
 
         resolvedSvelteTsxFiles = svelteTsxFiles;
 
