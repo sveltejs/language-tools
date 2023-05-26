@@ -6,6 +6,4 @@ export async function GET() {
     return new Response();
 };
     `.trim();
-
-    return config.type === 'js' ? js : ts;
 }

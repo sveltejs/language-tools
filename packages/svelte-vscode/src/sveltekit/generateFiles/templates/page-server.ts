@@ -7,5 +7,4 @@ export async function load() {
 };
     `.trim();
 
-    return config.type === 'js' ? js : config.type === 'ts' ? ts : tsSatisfies;
 }
