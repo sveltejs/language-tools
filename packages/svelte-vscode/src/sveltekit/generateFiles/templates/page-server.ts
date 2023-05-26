@@ -6,5 +6,4 @@ export async function load() {
     return {};
 };
     `.trim();
-
 }
