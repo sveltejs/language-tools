@@ -31,7 +31,7 @@ jobs:
 
       # To deploy we need isolated node_modules folders which pnpm won't do because it is a workspace
       # So, remove the workspace
-      - run: "rm package.json pnpm-workspace.yaml pnpm-lock.yaml" # Re-run the  pnpm install outside of the workspace
+      - run: "rm package.json pnpm-workspace.yaml pnpm-lock.yaml packages/svelte-vscode/node_modules" # Re-run the  pnpm install outside of the workspace
       # ... and remove the workspace:* references
       - run: json -I -f packages/svelte-vscode/package.json -e 'this.dependencies["svelte-language-server"]="*"'
       - run: json -I -f packages/svelte-vscode/package.json -e 'this.dependencies["typescript-svelte-plugin"]="*"'
