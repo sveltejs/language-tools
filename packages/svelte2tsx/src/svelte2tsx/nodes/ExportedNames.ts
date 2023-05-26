@@ -43,7 +43,7 @@ export class ExportedNames {
             const isConst = node.declarationList.flags === ts.NodeFlags.Const;
 
             this.handleExportedVariableDeclarationList(node.declarationList, (_, ...args) =>
-                this.addExport(...args)
+                this.addExportForBindingPattern(...args)
             );
             if (isLet) {
                 this.propTypeAssertToUserDefined(node.declarationList);
@@ -294,7 +294,7 @@ export class ExportedNames {
                 declaration,
                 isLet,
                 type: type?.getText(),
-                identifierText: (target as ts.Identifier).text,
+                identifierText: target.text,
                 required,
                 doc: this.getDoc(target)
             });
@@ -305,31 +305,23 @@ export class ExportedNames {
             });
         }
     }
-
     /**
      * Adds export to map
      */
     private addExport(
-        name: ts.BindingName,
+        name: ts.Identifier,
         isLet: boolean,
-        target: ts.BindingName = null,
+        target: ts.Identifier = null,
         type: ts.TypeNode = null,
         required = false
     ): void {
-        if (name.kind != ts.SyntaxKind.Identifier) {
-            throw Error('export source kind not supported ' + name);
-        }
-        if (target && target.kind != ts.SyntaxKind.Identifier) {
-            throw Error('export target kind not supported ' + target);
-        }
-
         const existingDeclaration = this.possibleExports.get(name.text);
 
         if (target) {
             this.exports.set(name.text, {
                 isLet: isLet || existingDeclaration?.isLet,
                 type: type?.getText() || existingDeclaration?.type,
-                identifierText: (target as ts.Identifier).text,
+                identifierText: target.text,
                 required: required || existingDeclaration?.required,
                 doc: this.getDoc(target) || existingDeclaration?.doc
             });
@@ -345,6 +337,25 @@ export class ExportedNames {
         if (existingDeclaration?.isLet) {
             this.propTypeAssertToUserDefined(existingDeclaration.declaration);
         }
+    }
+
+    private addExportForBindingPattern(
+        name: ts.BindingName,
+        isLet: boolean,
+        target: ts.BindingName = null,
+        type: ts.TypeNode = null,
+        required = false
+    ): void {
+        if (ts.isIdentifier(name)) {
+            if (!target || ts.isIdentifier(target)) {
+                this.addExport(name, isLet, target as ts.Identifier | null, type, required);
+            }
+            return;
+        }
+
+        name.elements.forEach((child) => {
+            this.addExportForBindingPattern(child.name, isLet, undefined, type, required);
+        });
     }
 
     private getDoc(target: ts.BindingName) {
