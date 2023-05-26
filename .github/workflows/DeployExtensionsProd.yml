@@ -44,8 +44,8 @@ jobs:
           echo "Once a year this expires, tell Orta to access https://dev.azure.com/ortatherox0608/_usersSettings/tokens (logging in with GitHub) to get a new one"
 
           # Ship it
-          npx vsce publish --npm -p $VSCE_TOKEN
-          npx ovsx publish --npm -p $OVSX_TOKEN
+          npx vsce publish -p $VSCE_TOKEN
+          npx ovsx publish -p $OVSX_TOKEN
 
         env:
           VSCE_TOKEN: ${{ secrets.AZURE_PAN_TOKEN }}

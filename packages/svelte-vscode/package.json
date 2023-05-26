@@ -711,6 +711,7 @@
         "@types/node": "^16.0.0",
         "@types/vscode": "^1.67",
         "js-yaml": "^3.14.0",
+        "tslib": "^2.4.0",
         "typescript": "*",
         "vscode-tmgrammar-test": "^0.0.11"
     },

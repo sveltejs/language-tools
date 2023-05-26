@@ -221,6 +221,9 @@ importers:
       js-yaml:
         specifier: ^3.14.0
         version: 3.14.1
+      tslib:
+        specifier: ^2.4.0
+        version: 2.5.2
       typescript:
         specifier: '*'
         version: 5.0.4
