@@ -1,24 +1,7 @@
 import { GenerateConfig } from '../types';
 
 export default async function (config: GenerateConfig) {
-    const ts = `
-import type { PageServerLoad } from './$types';
-
-export const load: PageServerLoad = async () => {
-    return {};
-};
-    `.trim();
-
-    const tsSatisfies = `
-import type { PageServerLoad } from './$types';
-
-export const load = (async () => {
-    return {};
-}) satisfies PageServerLoad;
-    `.trim();
-
-    const js = `
-/** @type {import('./$types').PageServerLoad} */
+    return `
 export async function load() {
     return {};
 };
