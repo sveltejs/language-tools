@@ -1,4 +1,4 @@
-import { readable, writable } from 'svelte/store';
+import type { Readable, Writable } from 'svelte/store';
 
-export const someStore = readable(1);
-export const someOtherStore = writable(1);
+export const someStore = null as any as Readable<number>;
+export const someOtherStore = null as any as Writable<number>;

@@ -43,7 +43,7 @@
         "typescript": "^5.0.3"
     },
     "peerDependencies": {
-        "svelte": "^3.55",
+        "svelte": "^3.55 || ^4.0",
         "typescript": "^4.9.4 || ^5.0.0"
     },
     "scripts": {
@@ -59,9 +59,10 @@
         "README.md",
         "LICENSE",
         "svelte-jsx.d.ts",
+        "svelte-jsx-v4.d.ts",
         "svelte-native-jsx.d.ts",
         "svelte-shims.d.ts",
-        "svelte-html-do-not-use.d.ts"
+        "svelte-shims-v4.d.ts"
     ],
     "dependencies": {
         "dedent-js": "^1.0.1",

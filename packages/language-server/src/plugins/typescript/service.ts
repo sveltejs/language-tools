@@ -1,7 +1,7 @@
 import { dirname, resolve } from 'path';
 import ts from 'typescript';
 import { TextDocumentContentChangeEvent } from 'vscode-languageserver-protocol';
-import { getPackageInfo } from '../../importPackage';
+import { getPackageInfo, importSvelte } from '../../importPackage';
 import { Document } from '../../lib/documents';
 import { configLoader } from '../../lib/documents/configLoader';
 import { FileMap, FileSet } from '../../lib/documents/fileCollection';
@@ -201,11 +201,12 @@ async function createLanguageService(
         // Fall back to dirname
         svelteTsPath = __dirname;
     }
-    const svelteTsxFiles = [
-        './svelte-shims.d.ts',
-        './svelte-jsx.d.ts',
-        './svelte-native-jsx.d.ts'
-    ].map((f) => tsSystem.resolvePath(resolve(svelteTsPath, f)));
+    const VERSION = importSvelte(tsconfigPath || workspacePath).VERSION;
+    const svelteTsxFiles = (
+        VERSION.split('.')[0] === '3'
+            ? ['./svelte-shims.d.ts', './svelte-jsx.d.ts', './svelte-native-jsx.d.ts']
+            : ['./svelte-shims-v4.d.ts', './svelte-jsx-v4.d.ts', './svelte-native-jsx.d.ts']
+    ).map((f) => tsSystem.resolvePath(resolve(svelteTsPath, f)));
 
     let languageServiceReducedMode = false;
     let projectVersion = 0;
