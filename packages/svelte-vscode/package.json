@@ -7,7 +7,7 @@
         "build:grammar": "npx js-yaml syntaxes/svelte.tmLanguage.src.yaml > syntaxes/svelte.tmLanguage.json && npx js-yaml syntaxes/postcss.src.yaml > syntaxes/postcss.json",
         "build:ts": "tsc -p ./",
         "build": "npm run build:ts && npm run build:grammar",
-        "vscode:prepublish": "npm run build && npm prune --production",
+        "vscode:prepublish": "npm install && npm run build && npm prune --production",
         "watch": "npm run build:grammar && tsc -w -p ./",
         "test": "npm run build:grammar && node test/grammar/test.js"
     },
