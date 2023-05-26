@@ -41,7 +41,7 @@ export default [
                     {
                         src: [
                             // workspace
-                            '../../node_modules/svelte2tsx/svelte*.d.ts',
+                            '../svelte2tsx/svelte*.d.ts',
                             // standalone
                             'node_modules/svelte2tsx/svelte*.d.ts'
                         ],
