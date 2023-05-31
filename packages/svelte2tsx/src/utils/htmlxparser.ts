@@ -1,33 +1,32 @@
 import { parse } from 'svelte/compiler';
 import { Node } from 'estree-walker';
 
-function parseAttributeValue(value: string): string {
-    return /^['"]/.test(value) ? value.slice(1, -1) : value;
-}
-
 function parseAttributes(str: string, start: number) {
     const attrs: Node[] = [];
-    str.split(/\s+/)
-        .filter(Boolean)
-        .forEach((attr) => {
-            const attrStart = start + str.indexOf(attr);
-            const [name, value] = attr.split('=');
-            attrs[name] = value ? parseAttributeValue(value) : name;
-            attrs.push({
-                type: 'Attribute',
-                name,
-                value: !value || [
-                    {
-                        type: 'Text',
-                        start: attrStart + attr.indexOf('=') + 1,
-                        end: attrStart + attr.length,
-                        raw: parseAttributeValue(value)
-                    }
-                ],
-                start: attrStart,
-                end: attrStart + attr.length
-            });
+    const pattern = /([\w-$]+\b)(?:=(?:"([^"]*)"|'([^']*)'|(\S+)))?/g;
+
+    let match: RegExpMatchArray;
+    while ((match = pattern.exec(str)) !== null) {
+        const attr = match[0];
+        const name = match[1];
+        const value = match[2] || match[3] || match[4];
+        const attrStart = start + str.indexOf(attr);
+        attrs[name] = value ?? name;
+        attrs.push({
+            type: 'Attribute',
+            name,
+            value: !value || [
+                {
+                    type: 'Text',
+                    start: attrStart + attr.indexOf('=') + 1,
+                    end: attrStart + attr.length,
+                    raw: value
+                }
+            ],
+            start: attrStart,
+            end: attrStart + attr.length
         });
+    }
 
     return attrs;
 }

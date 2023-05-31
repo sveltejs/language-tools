@@ -11,15 +11,16 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+      - uses: pnpm/action-setup@v2.2.4
       - uses: actions/setup-node@v3
         with:
           node-version: "16.x"
           registry-url: "https://registry.npmjs.org"
-          cache: yarn
+          cache: pnpm
 
       # Ensure everything is compiling
-      - run: "yarn install"
-      - run: "yarn build"
+      - run: "pnpm install"
+      - run: "pnpm build"
 
       # Lets us use one-liner JSON manipulations the package.json files
       - run: "npm install -g json"
@@ -30,8 +31,8 @@ jobs:
       # Ship it
       - run: |
           cd packages/svelte2tsx
-          npm install
-          npm publish
+          pnpm install
+          pnpm publish --no-git-checks
 
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

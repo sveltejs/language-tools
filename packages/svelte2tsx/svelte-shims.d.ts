@@ -2,6 +2,7 @@
 // This way, we avoid the situation where multiple ambient versions of svelte2tsx
 // are loaded and their declarations conflict each other
 // See https://github.com/sveltejs/language-tools/issues/1059 for an example bug that stems from it
+// If you change anything in this file, think about whether or not it should also be added to svelte-shims-v4.d.ts
 
 // -- start svelte-ls-remove --
 declare module '*.svelte' {

@@ -63,28 +63,37 @@ export function createRenderFunction({
         //I couldn't get magicstring to let me put the script before the <> we prepend during conversion of the template to jsx, so we just close it instead
         const scriptTagEnd = htmlx.lastIndexOf('>', scriptTag.content.start) + 1;
         str.overwrite(scriptTag.start, scriptTag.start + 1, ';');
-        str.overwrite(
-            scriptTag.start + 1,
-            scriptTagEnd,
-            `function render${generics.toDefinitionString(true)}() {${propsDecl}\n`
-        );
+        if (generics.genericsAttr) {
+            let start = generics.genericsAttr.value[0].start;
+            let end = generics.genericsAttr.value[0].end;
+            if (htmlx.charAt(start) === '"' || htmlx.charAt(start) === "'") {
+                start++;
+                end--;
+            }
+            str.overwrite(scriptTag.start + 1, start - 1, `function render`);
+            str.overwrite(start - 1, start, `<`); // if the generics are unused, only this char is colored opaque
+            if (end < scriptTagEnd) {
+                str.overwrite(end, scriptTagEnd, `>() {${propsDecl}\n`);
+            } else {
+                str.prependRight(end, `>() {${propsDecl}\n`);
+            }
+        } else {
+            str.overwrite(
+                scriptTag.start + 1,
+                scriptTagEnd,
+                `function render${generics.toDefinitionString(true)}() {${propsDecl}\n`
+            );
+        }
 
         const scriptEndTagStart = htmlx.lastIndexOf('<', scriptTag.end - 1);
         // wrap template with callback
-        str.overwrite(
-            scriptEndTagStart,
-            scriptTag.end,
-            `${slotsDeclaration};\nasync () => {`,
-
-            {
-                contentOnly: true
-            }
-        );
+        str.overwrite(scriptEndTagStart, scriptTag.end, `${slotsDeclaration};\nasync () => {`, {
+            contentOnly: true
+        });
     } else {
         str.prependRight(
             scriptDestination,
-            `;function render${generics.toDefinitionString(true)}() {` +
-                `${propsDecl}${slotsDeclaration}\nasync () => {`
+            `;function render() {` + `${propsDecl}${slotsDeclaration}\nasync () => {`
         );
     }
 

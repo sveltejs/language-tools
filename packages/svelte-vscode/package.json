@@ -7,7 +7,7 @@
         "build:grammar": "npx js-yaml syntaxes/svelte.tmLanguage.src.yaml > syntaxes/svelte.tmLanguage.json && npx js-yaml syntaxes/postcss.src.yaml > syntaxes/postcss.json",
         "build:ts": "tsc -p ./",
         "build": "npm run build:ts && npm run build:grammar",
-        "vscode:prepublish": "npm run build && npm prune --production",
+        "vscode:prepublish": "npm install && npm run build && npm prune --production",
         "watch": "npm run build:grammar && tsc -w -p ./",
         "test": "npm run build:grammar && node test/grammar/test.js"
     },
@@ -711,13 +711,15 @@
         "@types/node": "^16.0.0",
         "@types/vscode": "^1.67",
         "js-yaml": "^3.14.0",
+        "tslib": "^2.4.0",
         "typescript": "*",
         "vscode-tmgrammar-test": "^0.0.11"
     },
     "dependencies": {
         "lodash": "^4.17.21",
-        "svelte-language-server": "*",
+        "svelte-language-server": "workspace:*",
+        "typescript-svelte-plugin": "workspace:*",
         "vscode-languageclient": "^8.0.0",
-        "typescript-svelte-plugin": "*"
+        "vscode-languageserver-protocol": "3.17.2"
     }
 }

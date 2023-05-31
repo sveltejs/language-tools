@@ -1,6 +1,6 @@
 import { Logger } from '../../logger';
 import { CompileOptions } from 'svelte/types/compiler/interfaces';
-import { PreprocessorGroup } from 'svelte/types/compiler/preprocess/types';
+import { PreprocessorGroup } from 'svelte/types/compiler/preprocess';
 import { importSveltePreprocess } from '../../importPackage';
 import _glob from 'fast-glob';
 import _path from 'path';

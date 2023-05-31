@@ -2,6 +2,7 @@ import type ts from 'typescript/lib/tsserverlibrary';
 import { ConfigManager, Configuration } from './config-manager';
 import { SvelteSnapshotManager } from './svelte-snapshots';
 import { getConfigPathForProject, isSvelteFilePath } from './utils';
+import { Logger } from './logger';
 
 export interface TsFilesSpec {
     include?: readonly string[];
@@ -9,7 +10,7 @@ export interface TsFilesSpec {
 }
 
 export class ProjectSvelteFilesManager {
-    private files = new Set<string>();
+    private projectFileToOriginalCasing = new Map<string, string>();
     private directoryWatchers = new Set<ts.FileWatcher>();
 
     private static instances = new Map<string, ProjectSvelteFilesManager>();
@@ -23,6 +24,7 @@ export class ProjectSvelteFilesManager {
         private readonly project: ts.server.Project,
         private readonly serverHost: ts.server.ServerHost,
         private readonly snapshotManager: SvelteSnapshotManager,
+        private readonly logger: Logger,
         private parsedCommandLine: ts.ParsedCommandLine,
         configManager: ConfigManager
     ) {
@@ -51,7 +53,7 @@ export class ProjectSvelteFilesManager {
     }
 
     getFiles() {
-        return Array.from(this.files);
+        return Array.from(this.projectFileToOriginalCasing.values());
     }
 
     /**
@@ -94,23 +96,34 @@ export class ProjectSvelteFilesManager {
     }
 
     private updateProjectSvelteFiles() {
-        const fileNamesAfter = this.readProjectSvelteFilesFromFs();
-        const removedFiles = new Set(...this.files);
-        const newFiles = fileNamesAfter.filter((fileName) => {
-            const has = this.files.has(fileName);
-            if (has) {
-                removedFiles.delete(fileName);
+        const fileNamesAfter = this.readProjectSvelteFilesFromFs().map((file) => ({
+            originalCasing: file,
+            canonicalFileName: this.project.projectService.toCanonicalFileName(file)
+        }));
+
+        const removedFiles = new Set(this.projectFileToOriginalCasing.keys());
+        const newFiles: typeof fileNamesAfter = [];
+
+        for (const file of fileNamesAfter) {
+            const existingFile = this.projectFileToOriginalCasing.get(file.canonicalFileName);
+            if (!existingFile) {
+                newFiles.push(file);
+                continue;
             }
-            return !has;
-        });
+
+            removedFiles.delete(file.canonicalFileName);
+            if (existingFile !== file.originalCasing) {
+                this.projectFileToOriginalCasing.set(file.canonicalFileName, file.originalCasing);
+            }
+        }
 
         for (const newFile of newFiles) {
-            this.addFileToProject(newFile);
-            this.files.add(newFile);
+            this.addFileToProject(newFile.originalCasing);
+            this.projectFileToOriginalCasing.set(newFile.canonicalFileName, newFile.originalCasing);
         }
         for (const removedFile of removedFiles) {
             this.removeFileFromProject(removedFile, false);
-            this.files.delete(removedFile);
+            this.projectFileToOriginalCasing.delete(removedFile);
         }
     }
 
@@ -118,9 +131,16 @@ export class ProjectSvelteFilesManager {
         this.snapshotManager.create(newFile);
         const snapshot = this.project.projectService.getScriptInfo(newFile);
 
-        if (snapshot) {
-            this.project.addRoot(snapshot);
+        if (!snapshot) {
+            return;
         }
+
+        if (this.project.isRoot(snapshot)) {
+            this.logger.debug(`File ${newFile} is already in root`);
+            return;
+        }
+
+        this.project.addRoot(snapshot);
     }
 
     private readProjectSvelteFilesFromFs() {
@@ -162,8 +182,8 @@ export class ProjectSvelteFilesManager {
         this.directoryWatchers.forEach((watcher) => watcher.close());
         this.directoryWatchers.clear();
 
-        this.files.forEach((file) => this.removeFileFromProject(file));
-        this.files.clear();
+        this.projectFileToOriginalCasing.forEach((file) => this.removeFileFromProject(file));
+        this.projectFileToOriginalCasing.clear();
     }
 
     dispose() {

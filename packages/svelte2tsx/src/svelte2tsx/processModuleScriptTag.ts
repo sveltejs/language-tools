@@ -25,7 +25,16 @@ export function processModuleScriptTag(
     );
     const astOffset = script.content.start;
 
-    const generics = new Generics(str, astOffset);
+    const generics = new Generics(str, astOffset, script);
+    if (generics.genericsAttr) {
+        const start = htmlx.indexOf('generics', script.start);
+        throwError(
+            start,
+            start + 8,
+            'The generics attribute is only allowed on the instance script',
+            str.original
+        );
+    }
 
     const walk = (node: ts.Node) => {
         resolveImplicitStoreValue(node, implicitStoreValues, str, astOffset);

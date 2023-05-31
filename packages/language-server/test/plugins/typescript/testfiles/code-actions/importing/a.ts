@@ -1,3 +1,3 @@
-import { writable } from 'svelte/store';
+import type { Writable } from 'svelte/store';
 
-export const someStore = writable(1);
+export const someStore = null as any as Writable<number>;

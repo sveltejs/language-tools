@@ -24,10 +24,13 @@
         "@rollup/plugin-json": "^6.0.0",
         "@rollup/plugin-node-resolve": "^15.0.0",
         "@rollup/plugin-typescript": "^10.0.0",
+        "@types/estree": "^0.0.42",
         "@types/mocha": "^9.1.0",
         "@types/node": "^16.0.0",
         "@types/unist": "^2.0.3",
         "@types/vfile": "^3.0.2",
+        "builtin-modules": "^3.3.0",
+        "estree-walker": "^2.0.1",
         "magic-string": "^0.27.0",
         "mocha": "^9.2.0",
         "periscopic": "^2.0.2",
@@ -40,7 +43,7 @@
         "typescript": "^5.0.3"
     },
     "peerDependencies": {
-        "svelte": "^3.55",
+        "svelte": "^3.55 || ^4.0.0-next.0 || ^4.0",
         "typescript": "^4.9.4 || ^5.0.0"
     },
     "scripts": {
@@ -56,9 +59,10 @@
         "README.md",
         "LICENSE",
         "svelte-jsx.d.ts",
+        "svelte-jsx-v4.d.ts",
         "svelte-native-jsx.d.ts",
         "svelte-shims.d.ts",
-        "svelte-html-do-not-use.d.ts"
+        "svelte-shims-v4.d.ts"
     ],
     "dependencies": {
         "dedent-js": "^1.0.1",

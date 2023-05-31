@@ -8,7 +8,7 @@ import {
     ITranspiledSvelteDocument
 } from '../../../src/plugins/svelte/SvelteDocument';
 import { configLoader, SvelteConfig } from '../../../src/lib/documents/configLoader';
-import { Preprocessor } from 'svelte/types/compiler/preprocess/types';
+import { Preprocessor } from 'svelte/types/compiler/preprocess';
 
 describe('Svelte Document', () => {
     function getSourceCode(transpiled: boolean): string {

@@ -1,3 +1,3 @@
-<div on:click="{(e) => {console.log(e)}}"></div>
+<div on:click="{(e) => console.log(e)}"></div>
 
-<Component on:click={(e) => {console.log(e)}}></Component>
+<Component on:click={(e) => console.log(e)}></Component>

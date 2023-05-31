@@ -363,6 +363,13 @@ const addAttributes: Record<string, IAttributeData[]> = {
         {
             name: 'bind:open'
         }
+    ],
+    script: [
+        {
+            name: 'generics',
+            description:
+                'Generics used within the components. Only available when using TypeScript.'
+        }
     ]
 };
 
