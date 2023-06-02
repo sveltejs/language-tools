@@ -326,7 +326,7 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
                 : this.parent.offsetAt(positionOrOffset);
 
         let foundNode: SvelteNode | null = null;
-        walk((this.htmlAst as any), {
+        walk(this.htmlAst as any, {
             enter(node) {
                 // In case the offset is at a point where a node ends and a new one begins,
                 // the node where the code ends is used. If this introduces problems, introduce
