@@ -48,6 +48,7 @@ import { AttributeContext, getAttributeContextAtPosition } from '../../lib/docum
 import { StyleAttributeDocument } from './StyleAttributeDocument';
 import { getDocumentContext } from '../documentContext';
 import { FoldingRange } from 'vscode-languageserver-types';
+import { indentBasedFoldingRange } from '../../utils';
 
 export class CSSPlugin
     implements
@@ -376,7 +377,16 @@ export class CSSPlugin
     }
 
     getFoldingRange(document: Document): FoldingRange[] {
+        if (!document.styleInfo) {
+            return [];
+        } 
+
         const cssDocument = this.getCSSDoc(document);
+
+        if (shouldSseIndentBasedFolding(cssDocument.languageId)) {
+            return indentBasedFoldingRange(document, document.styleInfo)
+        }
+
         return this.getLanguageService(extractLanguage(cssDocument))
             .getFoldingRanges(cssDocument)
             .map((range) => {
@@ -466,6 +476,18 @@ function shouldExcludeHover(document: CSSDocument) {
 
 function shouldExcludeColor(document: CSSDocument) {
     switch (extractLanguage(document)) {
+        case 'sass':
+        case 'stylus':
+        case 'styl':
+            return true;
+        default:
+            return false;
+    }
+}
+
+function shouldSseIndentBasedFolding(kind?: string) {
+    switch (kind) {
+        case 'postcss':
         case 'sass':
         case 'stylus':
         case 'styl':

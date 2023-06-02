@@ -494,7 +494,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             kind: scriptElementKindToCompletionItemKind(comp.kind),
             commitCharacters: addCommitCharacters ? this.commitCharacters : undefined,
             // Make sure svelte component takes precedence
-            sortText: isSvelteComp ? '-1' : comp.sortText,
+            sortText: /*isSvelteComp ? '-1' :*/ comp.sortText,
             preselect: isSvelteComp ? true : comp.isRecommended,
             insertTextFormat: comp.isSnippet ? InsertTextFormat.Snippet : undefined,
             labelDetails,

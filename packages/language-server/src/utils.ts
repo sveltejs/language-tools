@@ -1,8 +1,8 @@
 import { isEqual, sum, uniqWith } from 'lodash';
-import { Node } from 'vscode-html-languageservice';
+import { FoldingRange, Node } from 'vscode-html-languageservice';
 import { Position, Range } from 'vscode-languageserver';
 import { URI } from 'vscode-uri';
-import { Document } from './lib/documents';
+import { Document, TagInformation } from './lib/documents';
 
 type Predicate<T> = (x: T) => boolean;
 
@@ -347,7 +347,18 @@ export function removeLineWithString(str: string, keyword: string) {
  * 1. check tab and space counts for lines
  * 2. if there're mixing space and tab guess the tabSize
  */
-export function indentBasedFoldingRange(document: Document, range?: Range) {
+export function indentBasedFoldingRange(document: Document, tag: TagInformation): FoldingRange[] {
+    if (tag.startPos.line === tag.endPos.line) {
+        return [];
+    }
+
+    const startLine = tag.startPos.line + 1;
+    const endLine = tag.endPos.line - 1;
+
+    if (startLine > endLine || startLine === endLine) {
+        return [];
+    }
+
     const text = document.getText();
     const lines = text.split(/\r?\n/);
 
@@ -362,6 +373,43 @@ export function indentBasedFoldingRange(document: Document, range?: Range) {
     const spaces = sum(indents.map((l) => l.spaceCount));
 
     const tabSize = tabs && spaces ? guessTabSize(indents) : 4;
+
+    let currentIndent: number | undefined;
+    const result: [indent: number, fold: FoldingRange][] = [];
+    for (const indentInfo of indents) {
+        if (indentInfo.index < startLine || indentInfo.empty) {
+            continue;
+        }
+
+        if (indentInfo.index > endLine) {
+            break;
+        }
+
+        const lineIndent = indentInfo.tabCount * tabSize + indentInfo.spaceCount;
+
+        currentIndent ??= lineIndent;
+
+        if (lineIndent > currentIndent) {
+            result.unshift([
+                lineIndent,
+                {
+                    startLine: indentInfo.index - 1,
+                    endLine: indentInfo.index
+                }
+            ]);
+
+            currentIndent = lineIndent;
+        }
+
+        if (lineIndent < currentIndent) {
+            const last = result.find(([indentOfFold]) => indentOfFold === lineIndent);
+            if (last) {
+                last[1].endLine = indentInfo.index;
+            }
+        }
+    }
+
+    return result.reverse().map(([, fold]) => fold);
 }
 
 function collectIndents(line: string) {
@@ -387,7 +435,7 @@ function collectIndents(line: string) {
 
 function guessTabSize(nonEmptyLines: Array<{ spaceCount: number; tabCount: number }>): number {
     const guessingTabSize = [2, 4, 6, 8, 3, 5, 7];
-    const matchCounts  = new Map<number, number>();
+    const matchCounts = new Map<number, number>();
 
     for (const line of nonEmptyLines) {
         if (line.spaceCount === 0) {

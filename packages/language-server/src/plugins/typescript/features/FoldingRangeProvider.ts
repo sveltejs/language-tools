@@ -2,7 +2,7 @@ import ts from 'typescript';
 import { FoldingRangeKind, Range } from 'vscode-languageserver';
 import { FoldingRange } from 'vscode-languageserver-types';
 import { Document, mapRangeToOriginal } from '../../../lib/documents';
-import { isNotNullOrUndefined } from '../../../utils';
+import { indentBasedFoldingRange, isNotNullOrUndefined } from '../../../utils';
 import { FoldingRangeProvider } from '../../interfaces';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { convertRange } from '../utils';
@@ -38,6 +38,9 @@ export class FoldingRangeProviderImpl implements FoldingRangeProvider {
             });
 
         const htmlRegionComments = this.collectHTMLRegionComment(document, tags);
+        const templateRange = document.templateInfo
+            ? indentBasedFoldingRange(document, document.templateInfo)
+            : [];
 
         return foldingRanges
             .filter((span) => !isTextSpanInGeneratedCode(tsDoc.getFullText(), span.textSpan))
@@ -54,6 +57,7 @@ export class FoldingRangeProviderImpl implements FoldingRangeProvider {
             .filter(isNotNullOrUndefined)
             .concat(tags)
             .concat(htmlRegionComments)
+            .concat(templateRange)
             .filter((foldingRange) => foldingRange.startLine !== foldingRange.endLine);
     }
 
