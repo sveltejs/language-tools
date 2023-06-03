@@ -9,6 +9,7 @@ import { DiagnosticsProviderImpl } from '../../../../../src/plugins/typescript/f
 import { __resetCache } from '../../../../../src/plugins/typescript/service';
 import { pathToUrl } from '../../../../../src/utils';
 import { createSnapshotTester, updateSnapshotIfFailedOrEmpty } from '../../test-utils';
+import { getPackageInfo } from '../../../../../src/importPackage';
 
 function setup(workspaceDir: string, filePath: string) {
     const docManager = new DocumentManager(
@@ -28,6 +29,8 @@ function setup(workspaceDir: string, filePath: string) {
     return { plugin, document, docManager, lsAndTsDocResolver };
 }
 
+
+const { version: { major } } = getPackageInfo('svelte', __dirname);
 async function executeTest(
     inputFile: string,
     {
@@ -38,7 +41,7 @@ async function executeTest(
         dir: string;
     }
 ) {
-    const expected = 'expectedv2.json';
+    const expected = major === 3 ? 'expectedv2.json' : `expectedv2_svelte_${major}.json`;
     const { plugin, document } = setup(workspaceDir, inputFile);
     const diagnostics = await plugin.getDiagnostics(document);
 
@@ -57,7 +60,7 @@ async function executeTest(
 
 const executeTests = createSnapshotTester(executeTest);
 
-describe('DiagnosticsProvider', () => {
+describe.only('DiagnosticsProvider', () => {
     executeTests({
         dir: join(__dirname, 'fixtures'),
         workspaceDir: join(__dirname, 'fixtures')
