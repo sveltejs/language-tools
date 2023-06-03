@@ -1799,7 +1799,6 @@ describe('CodeActionsProvider', () => {
             }
         );
 
-        console.log(JSON.stringify(codeActions, null, 2));
         assert.deepStrictEqual(codeActions, [
             {
                 title: 'Organize Imports',

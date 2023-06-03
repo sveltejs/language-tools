@@ -8,7 +8,7 @@
 </Generics>
 
 <!-- invalid -->
-<Generics a={['a', 'b']} b={'asd'} c={''} on:b={(e) => e.detail === true} let:a>
+<Generics a={[{a:1, b:1}]} b={'asd'} c={''} on:b={(e) => e.detail === true} let:a>
   {a === true}
 </Generics>
 

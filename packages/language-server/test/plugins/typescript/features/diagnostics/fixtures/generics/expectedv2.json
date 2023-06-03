@@ -1,19 +1,19 @@
 [
     {
         "range": {
-            "start": { "line": 10, "character": 25 },
-            "end": { "line": 10, "character": 26 }
+            "start": { "line": 10, "character": 27 },
+            "end": { "line": 10, "character": 28 }
         },
         "severity": 1,
         "source": "ts",
-        "message": "Type '\"asd\"' is not assignable to type 'number | unique symbol | \"link\" | \"small\" | \"sub\" | \"sup\" | \"big\" | \"search\" | \"substring\" | \"anchor\" | \"toString\" | \"charAt\" | \"charCodeAt\" | \"concat\" | \"indexOf\" | \"lastIndexOf\" | ... 34 more ... | \"at\"'.",
+        "message": "Type '\"asd\"' is not assignable to type '\"a\" | \"b\"'.",
         "code": 2322,
         "tags": []
     },
     {
         "range": {
-            "start": { "line": 10, "character": 35 },
-            "end": { "line": 10, "character": 36 }
+            "start": { "line": 10, "character": 37 },
+            "end": { "line": 10, "character": 38 }
         },
         "severity": 1,
         "source": "ts",
@@ -23,12 +23,12 @@
     },
     {
         "range": {
-            "start": { "line": 10, "character": 55 },
-            "end": { "line": 10, "character": 72 }
+            "start": { "line": 10, "character": 57 },
+            "end": { "line": 10, "character": 74 }
         },
         "severity": 1,
         "source": "ts",
-        "message": "This comparison appears to be unintentional because the types 'string' and 'boolean' have no overlap.",
+        "message": "This comparison appears to be unintentional because the types '{ a: number; b: number; }' and 'boolean' have no overlap.",
         "code": 2367,
         "tags": []
     },
@@ -39,7 +39,7 @@
         },
         "severity": 1,
         "source": "ts",
-        "message": "This comparison appears to be unintentional because the types 'string' and 'boolean' have no overlap.",
+        "message": "This comparison appears to be unintentional because the types '{ a: number; b: number; }' and 'boolean' have no overlap.",
         "code": 2367,
         "tags": []
     },
