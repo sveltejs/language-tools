@@ -55,8 +55,11 @@ export function convertHtmlxToJsx(
 
     let element: Element | InlineComponent | undefined;
 
-    walk(ast, {
-        enter: (node: TemplateNode, parent: BaseNode, prop: string, index: number) => {
+    walk(ast as any, {
+        enter: (estreeTypedNode, estreeTypedParent, prop: string, index: number) => {
+            const node = estreeTypedNode as TemplateNode;
+            const parent = estreeTypedParent as BaseNode;
+
             try {
                 switch (node.type) {
                     case 'IfBlock':
@@ -172,7 +175,10 @@ export function convertHtmlxToJsx(
             }
         },
 
-        leave: (node: TemplateNode, parent: BaseNode, prop: string, index: number) => {
+        leave: (estreeTypedNode, estreeTypedParent, prop: string, index: number) => {
+            const node = estreeTypedNode as TemplateNode;
+            const parent = estreeTypedParent as BaseNode;
+
             try {
                 switch (node.type) {
                     case 'IfBlock':

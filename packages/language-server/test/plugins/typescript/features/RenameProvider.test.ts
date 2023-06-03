@@ -276,8 +276,6 @@ describe('RenameProvider', () => {
         const { provider, renameDoc3 } = await setup();
         const result = await provider.rename(renameDoc3, Position.create(2, 20), 'newName');
 
-        console.log(JSON.stringify(result, null, 3));
-
         assert.deepStrictEqual(result, {
             changes: {
                 [getUri('rename3.svelte')]: [

@@ -1,35 +1,19 @@
 [
     {
-        "range": { "start": { "line": 4, "character": 6 }, "end": { "line": 4, "character": 16 } },
-        "severity": 4,
-        "source": "ts",
-        "message": "'elementDiv' is declared but its value is never read.",
-        "code": 6133,
-        "tags": [1]
-    },
-    {
-        "range": { "start": { "line": 5, "character": 6 }, "end": { "line": 5, "character": 18 } },
-        "severity": 4,
-        "source": "ts",
-        "message": "'elementOther' is declared but its value is never read.",
-        "code": 6133,
-        "tags": [1]
-    },
-    {
         "range": {
-            "start": { "line": 15, "character": 38 },
-            "end": { "line": 15, "character": 50 }
+            "start": { "line": 22, "character": 38 },
+            "end": { "line": 22, "character": 51 }
         },
         "severity": 1,
         "source": "ts",
-        "message": "Type 'HTMLDivElement' is not assignable to type 'HTMLButtonElement | HTMLAnchorElement'.\n  Type 'HTMLDivElement' is missing the following properties from type 'HTMLAnchorElement': charset, coords, download, hreflang, and 21 more.",
-        "code": 2322,
+        "message": "Type 'HTMLDivElement' is missing the following properties from type 'HTMLAnchorElement': charset, coords, download, hreflang, and 21 more.",
+        "code": 2740,
         "tags": []
     },
     {
         "range": {
-            "start": { "line": 16, "character": 27 },
-            "end": { "line": 16, "character": 42 }
+            "start": { "line": 23, "character": 27 },
+            "end": { "line": 23, "character": 42 }
         },
         "severity": 1,
         "source": "ts",

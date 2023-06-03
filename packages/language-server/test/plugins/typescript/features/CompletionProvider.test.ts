@@ -710,21 +710,17 @@ describe('CompletionProviderImpl', () => {
         );
         document.version++;
 
-        const item = completions?.items.find((item) => item.label === 'onMount');
+        const item = completions?.items.find((item) => item.label === 'ComponentDef');
         const { additionalTextEdits, detail } = await completionProvider.resolveCompletion(
             document,
             item!
         );
 
-        assert.strictEqual(
-            detail,
-            'Add import from "svelte"\n\nfunction onMount(fn: () => any): void'
-        );
+        assert.strictEqual(detail, 'Add import from "./ComponentDef"\n\nclass ComponentDef');
 
         assert.strictEqual(
             harmonizeNewLines(additionalTextEdits![0]?.newText),
-            // " instead of ' because VSCode uses " by default when there are no other imports indicating otherwise
-            `${newLine}${indent}import { onMount } from "svelte";${newLine}`
+            `${newLine}${indent}import { ComponentDef } from "./ComponentDef";${newLine}`
         );
 
         assert.deepEqual(
