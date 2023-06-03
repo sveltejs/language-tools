@@ -29,8 +29,9 @@ function setup(workspaceDir: string, filePath: string) {
     return { plugin, document, docManager, lsAndTsDocResolver };
 }
 
-
-const { version: { major } } = getPackageInfo('svelte', __dirname);
+const {
+    version: { major }
+} = getPackageInfo('svelte', __dirname);
 const expected = 'expectedv2.json';
 const newSvelteMajorExpected = `expected_svelte_${major}.json`;
 
@@ -53,7 +54,9 @@ async function executeTest(
         assertion() {
             assert.deepStrictEqual(diagnostics, JSON.parse(readFileSync(expectedFile, 'utf-8')));
         },
-        expectedFile: existsSync(newSvelteMajorExpectedFile) ? newSvelteMajorExpectedFile : expectedFile,
+        expectedFile: existsSync(newSvelteMajorExpectedFile)
+            ? newSvelteMajorExpectedFile
+            : expectedFile,
         getFileContent() {
             return JSON.stringify(diagnostics, null, 4);
         },

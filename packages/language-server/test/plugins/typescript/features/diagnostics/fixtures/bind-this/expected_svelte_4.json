@@ -14,9 +14,7 @@
         "source": "ts",
         "message": "'element' is declared but its value is never read.",
         "code": 6133,
-        "tags": [
-            1
-        ]
+        "tags": [1]
     },
     {
         "range": {
