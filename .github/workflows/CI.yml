@@ -14,7 +14,7 @@ jobs:
           cache: pnpm
 
       # Get projects set up
-      - run: pnpm install
+      - run: pnpm install --force
       - run: pnpm bootstrap
       - run: pnpm build
 
