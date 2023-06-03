@@ -1,5 +1,5 @@
 import * as assert from 'assert';
-import { readFileSync } from 'fs';
+import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 import ts from 'typescript';
 import { Document, DocumentManager } from '../../../../../src/lib/documents';
@@ -31,6 +31,9 @@ function setup(workspaceDir: string, filePath: string) {
 
 
 const { version: { major } } = getPackageInfo('svelte', __dirname);
+const expected = 'expectedv2.json';
+const newSvelteMajorExpected = `expected_svelte_${major}.json`;
+
 async function executeTest(
     inputFile: string,
     {
@@ -41,16 +44,16 @@ async function executeTest(
         dir: string;
     }
 ) {
-    const expected = major === 3 ? 'expectedv2.json' : `expectedv2_svelte_${major}.json`;
     const { plugin, document } = setup(workspaceDir, inputFile);
     const diagnostics = await plugin.getDiagnostics(document);
 
     const expectedFile = join(dir, expected);
+    const newSvelteMajorExpectedFile = join(dir, newSvelteMajorExpected);
     updateSnapshotIfFailedOrEmpty({
         assertion() {
             assert.deepStrictEqual(diagnostics, JSON.parse(readFileSync(expectedFile, 'utf-8')));
         },
-        expectedFile,
+        expectedFile: existsSync(newSvelteMajorExpectedFile) ? newSvelteMajorExpectedFile : expectedFile,
         getFileContent() {
             return JSON.stringify(diagnostics, null, 4);
         },
