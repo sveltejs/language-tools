@@ -48,15 +48,17 @@ async function executeTest(
     const { plugin, document } = setup(workspaceDir, inputFile);
     const diagnostics = await plugin.getDiagnostics(document);
 
-    const expectedFile = join(dir, expected);
-    const newSvelteMajorExpectedFile = join(dir, newSvelteMajorExpected);
+    const defaultExpectedFile = join(dir, expected);
+    const expectedFileForCurrentSvelteMajor = join(dir, newSvelteMajorExpected);
+    const expectedFile = existsSync(expectedFileForCurrentSvelteMajor)
+        ? expectedFileForCurrentSvelteMajor
+        : defaultExpectedFile;
+
     updateSnapshotIfFailedOrEmpty({
         assertion() {
             assert.deepStrictEqual(diagnostics, JSON.parse(readFileSync(expectedFile, 'utf-8')));
         },
-        expectedFile: existsSync(newSvelteMajorExpectedFile)
-            ? newSvelteMajorExpectedFile
-            : expectedFile,
+        expectedFile,
         getFileContent() {
             return JSON.stringify(diagnostics, null, 4);
         },
@@ -66,7 +68,7 @@ async function executeTest(
 
 const executeTests = createSnapshotTester(executeTest);
 
-describe.only('DiagnosticsProvider', () => {
+describe('DiagnosticsProvider', () => {
     executeTests({
         dir: join(__dirname, 'fixtures'),
         workspaceDir: join(__dirname, 'fixtures')
