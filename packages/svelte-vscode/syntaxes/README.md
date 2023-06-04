@@ -8,20 +8,20 @@ A good document to read in more detail about TextMate: https://www.apeth.com/non
 
 ## Developing the grammar
 
-The grammar for pug and markdown is written in JSON. You can edit that directly. The main grammar is written in `yaml` because that's easier to structure than JSON. However, VS Code expects a JSON format. Therefore you need to run the `build:grammar` script afterwards. This will produce a JSON version of the file. Afterwards you need to restart your extension window for the changes to take effect.
+The grammar for pug and markdown is written in JSON. You can edit that directly. The main grammar is written in `yaml` because that's easier to structure than JSON. However, VS Code expects a JSON format. Therefore you need to run the `build:`grammar` script afterward. This will produce a JSON version of the file. Afterward, you need to restart your extension window for the changes to take effect.
 
 ### Snapshot test for the grammar
 
-The snapshot test is run by [vscode-textmate-test](https://github.com/PanAeon/vscode-tmgrammar-test). The `test` command called a node script to build the argument and execute the `vscode-textmate-test` command. If you updated the svelte grammar file, Be sure to add the test cases to the `test/sample` directory.
+The snapshot test is run by [vscode-textmate-test](https://github.com/PanAeon/vscode-tmgrammar-test). The `test` command calls a node script to build the argument and execute the `vscode-textmate-test` command. If you updated the svelte grammar file, Be sure to add the test cases to the `test/sample` directory.
 
-Then run the test to check if the update affect existing cases
+Then run the test to check if the update affects existing cases
 
 ```bash
-yarn test
+pnpm run test
 ```
 
-Update existing snapshot to match the changes
+Update existing snapshots to match the changes
 
 ```bash
-yarn test --updateSnapshot
+pnpm run test -- --updateSnapshot
 ```
