@@ -65,6 +65,22 @@ const svelteAttributes: IAttributeData[] = [
         description: 'Available for block level elements. (read-only)'
     },
     {
+        name: 'contentRect',
+        description: 'Available for all elements. (read-only)'
+    },
+    {
+        name: 'contentBoxSize',
+        description: 'Available for all elements. (read-only)'
+    },
+    {
+        name: 'borderBoxSize',
+        description: 'Available for all elements. (read-only)'
+    },
+    {
+        name: 'devicePixelContentBoxSize',
+        description: 'Available for all elements. (read-only)'
+    },
+    {
         name: 'bind:this',
         description:
             'To get a reference to a DOM node, use bind:this. If used on a component, gets a reference to that component instance.'

@@ -17,7 +17,11 @@ const oneWayBindingAttributes: Set<string> = new Set([
     'ended',
     'readyState',
     'naturalWidth',
-    'naturalHeight'
+    'naturalHeight',
+    'contentRect',
+    'contentBoxSize',
+    'borderBoxSize',
+    'devicePixelContentBoxSize'
 ]);
 /**
  * List of all binding names that are transformed to sth like `binding = variable`.
