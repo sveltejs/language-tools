@@ -65,19 +65,19 @@ const svelteAttributes: IAttributeData[] = [
         description: 'Available for block level elements. (read-only)'
     },
     {
-        name: 'contentRect',
+        name: 'bind:contentRect',
         description: 'Available for all elements. (read-only)'
     },
     {
-        name: 'contentBoxSize',
+        name: 'bind:contentBoxSize',
         description: 'Available for all elements. (read-only)'
     },
     {
-        name: 'borderBoxSize',
+        name: 'bind:borderBoxSize',
         description: 'Available for all elements. (read-only)'
     },
     {
-        name: 'devicePixelContentBoxSize',
+        name: 'bind:devicePixelContentBoxSize',
         description: 'Available for all elements. (read-only)'
     },
     {
