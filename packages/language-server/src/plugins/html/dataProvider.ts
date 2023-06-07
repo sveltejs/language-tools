@@ -68,6 +68,59 @@ const svelteAttributes: IAttributeData[] = [
         name: 'bind:this',
         description:
             'To get a reference to a DOM node, use bind:this. If used on a component, gets a reference to that component instance.'
+    },
+    {
+        name: 'transition:blur',
+        description: "Animates a blur filter alongside an element's opacity."
+    },
+    { name: 'in:blur', description: "Animates a blur filter alongside an element's opacity." },
+    { name: 'out:blur', description: "Animates a blur filter alongside an element's opacity." },
+    { name: 'transition:draw', description: '' },
+    { name: 'in:draw', description: '' },
+    { name: 'out:draw', description: '' },
+    {
+        name: 'transition:fade',
+        description:
+            'Animates the opacity of an element from 0 to the current opacity for in transitions and from the current opacity to 0 for out transitions.'
+    },
+    {
+        name: 'in:fade',
+        description: 'Animates the opacity of an element from 0 to the current opacity.'
+    },
+    {
+        name: 'out:fade',
+        description: 'Animates the opacity of an element from the current opacity to 0.'
+    },
+    {
+        name: 'transition:fly',
+        description: 'Animates the x and y positions and the opacity of an element.'
+    },
+    {
+        name: 'in:fly',
+        description:
+            "Animates from the provided values, passed as parameters to the element's default values, passed as parameters to the element's default values."
+    },
+    {
+        name: 'out:fly',
+        description: "Animates from the element's default values to the provided values"
+    },
+    { name: 'transition:scale', description: 'Animates the opacity and scale of an element.' },
+    {
+        name: 'in:scale',
+        description:
+            "Animates from an element's current (default) values to the provided values, passed as parameters."
+    },
+    {
+        name: 'out:scale',
+        description: "Animates from the provided values to an element's default values."
+    },
+    { name: 'transition:slide', description: 'Slides an element in and out.' },
+    { name: 'in:slide', description: 'Slides an element in.' },
+    { name: 'out:slide', description: 'Slides an element out.' },
+    {
+        name: 'animate:flip',
+        description:
+            'Calculates the start and end position of an element and animates between them, translating the x and y values.'
     }
 ];
 const sveltekitAttributes: IAttributeData[] = [
