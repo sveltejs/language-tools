@@ -318,7 +318,7 @@ export const isInReactiveStatement = (node: ts.Node) => isSomeAncestor(node, isR
 
 export function gatherDescendants<T extends ts.Node>(
     node: ts.Node,
-    predicate: NodePredicate | NodeTypePredicate<T>,
+    predicate: NodeTypePredicate<T>,
     dest: T[] = []
 ) {
     if (predicate(node)) {

@@ -1,6 +1,7 @@
 import path, { dirname, isAbsolute, join } from 'path';
 import { existsSync, readdirSync, statSync, writeFileSync } from 'fs';
 import ts from 'typescript';
+import { resolveConfig, format } from 'prettier';
 import { DocumentManager, Document } from '../../../src/lib/documents';
 import { FileMap } from '../../../src/lib/documents/fileCollection';
 import { LSConfigManager } from '../../../src/ls-config';
@@ -217,4 +218,18 @@ export function updateSnapshotIfFailedOrEmpty({
         console.info(msg, dirname(expectedFile).substring(rootDir.length));
         writeFileSync(expectedFile, getFileContent(), 'utf-8');
     }
+}
+
+export async function createJsonSnapshotFormatter(dir: string) {
+    if (!process.argv.includes('--auto')) {
+        return (_obj: any) => '';
+    }
+
+    const prettierOptions = await resolveConfig(dir);
+
+    return (obj: any) =>
+        format(JSON.stringify(obj), {
+            ...prettierOptions,
+            parser: 'json'
+        });
 }
