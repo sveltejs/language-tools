@@ -508,10 +508,7 @@ export function startServer(options?: LSOptions) {
         async (evt, token) => await pluginHost.getOutgoingCalls(evt.item, token)
     );
 
-    docManager.on(
-        'documentChange',
-        diagnosticsManager.scheduleUpdate.bind(diagnosticsManager)
-    );
+    docManager.on('documentChange', diagnosticsManager.scheduleUpdate.bind(diagnosticsManager));
     docManager.on('documentClose', (document: Document) =>
         diagnosticsManager.removeDiagnostics(document)
     );
