@@ -68,6 +68,10 @@ export class DocumentManager {
         );
     }
 
+    isOpenedInClient(uri: string) {
+        return this.openedInClient.has(normalizeUri(uri));
+    }
+
     releaseDocument(uri: string): void {
         uri = normalizeUri(uri);
 
