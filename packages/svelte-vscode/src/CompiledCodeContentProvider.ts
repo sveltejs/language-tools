@@ -87,10 +87,12 @@ export default class CompiledCodeContentProvider implements TextDocumentContentP
             this.selectedSvelteFile
         );
 
+        const path = this.selectedSvelteFile.replace('file://', '');
+
         if (response?.js?.code) {
-            return response.js.code;
+            return `/* Compiled: ${path} */\n${response.js.code}`;
         } else {
-            window.setStatusBarMessage(`Svelte: fail to compile ${this.selectedSvelteFile}`, 3000);
+            window.setStatusBarMessage(`Svelte: fail to compile ${path}`, 3000);
         }
     }
 
