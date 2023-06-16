@@ -934,6 +934,24 @@ describe('CompletionProviderImpl', () => {
         ]);
     });
 
+    it('indent according to prettier config', async () => {
+        const { completionProvider, document } = setup('useTabs/importcompletions1.svelte');
+
+        const completions = await completionProvider.getCompletions(
+            document,
+            Position.create(1, 3)
+        );
+
+        const item = completions?.items.find((item) => item.label === 'blubb');
+
+        const { additionalTextEdits } = await completionProvider.resolveCompletion(document, item!);
+
+        assert.strictEqual(
+            harmonizeNewLines(additionalTextEdits![0]?.newText),
+            `${newLine}\timport { blubb } from "../../definitions";${newLine}`
+        );
+    });
+
     it('can be canceled before promise resolved', async () => {
         const { completionProvider, document } = setup('importcompletions1.svelte');
         const cancellationTokenSource = new CancellationTokenSource();
