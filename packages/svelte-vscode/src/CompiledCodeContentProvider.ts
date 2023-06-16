@@ -71,7 +71,7 @@ export default class CompiledCodeContentProvider implements TextDocumentContentP
     // we can trigger this using the didChangeEmitter
     async provideTextDocumentContent(): Promise<string | undefined> {
         // If there is no selected svelte file, try to get it from the activeTextEditor
-        // This should only happen when the svelte.showCompiledCodeToSide command is first called
+        // This should only happen when the svelte.showCompiledCodeToSide command is called the first time
         if (!this.selectedSvelteFile && window.activeTextEditor) {
             this.selectedSvelteFile = window.activeTextEditor.document.uri.toString();
         }
