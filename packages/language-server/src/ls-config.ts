@@ -603,7 +603,8 @@ export class LSConfigManager {
             convertTabsToSpaces: !prettierConfig.useTabs,
             semicolons: useSemicolons
                 ? ts.SemicolonPreference.Insert
-                : ts.SemicolonPreference.Remove
+                : ts.SemicolonPreference.Remove,
+            tabSize: indentSize
         };
     }
 
