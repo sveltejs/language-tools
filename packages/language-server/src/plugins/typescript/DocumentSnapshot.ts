@@ -130,7 +130,15 @@ export namespace DocumentSnapshot {
         if (!normalizedPath.endsWith('node_modules/svelte/types/runtime/ambient.d.ts')) {
             originalText = tsSystem.readFile(filePath) || '';
         }
-        if (
+
+        if (normalizedPath.endsWith('node_modules/svelte/types/index.d.ts')) {
+            const startIdx = originalText.indexOf(`declare module '*.svelte' {`);
+            const endIdx = originalText.indexOf(`}`, originalText.indexOf(';', startIdx)) + 1;
+            originalText =
+                originalText.substring(0, startIdx) +
+                ' '.repeat(endIdx - startIdx) +
+                originalText.substring(endIdx);
+        } else if (
             normalizedPath.endsWith('svelte2tsx/svelte-shims.d.ts') ||
             normalizedPath.endsWith('svelte-check/dist/src/svelte-shims.d.ts')
         ) {
