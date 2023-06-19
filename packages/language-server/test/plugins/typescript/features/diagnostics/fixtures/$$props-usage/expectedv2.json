@@ -13,7 +13,7 @@
     {
         "range": {
             "start": { "line": 11, "character": 43 },
-            "end": { "line": 11, "character": 61 }
+            "end": { "line": 11, "character": 54 }
         },
         "severity": 1,
         "source": "ts",

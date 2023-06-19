@@ -8,7 +8,11 @@ import { LSAndTSDocResolver } from '../../../../../src/plugins';
 import { DiagnosticsProviderImpl } from '../../../../../src/plugins/typescript/features/DiagnosticsProvider';
 import { __resetCache } from '../../../../../src/plugins/typescript/service';
 import { pathToUrl } from '../../../../../src/utils';
-import { createSnapshotTester, updateSnapshotIfFailedOrEmpty } from '../../test-utils';
+import {
+    createJsonSnapshotFormatter,
+    createSnapshotTester,
+    updateSnapshotIfFailedOrEmpty
+} from '../../test-utils';
 import { getPackageInfo } from '../../../../../src/importPackage';
 
 function setup(workspaceDir: string, filePath: string) {
@@ -53,6 +57,7 @@ async function executeTest(
     const expectedFile = existsSync(expectedFileForCurrentSvelteMajor)
         ? expectedFileForCurrentSvelteMajor
         : defaultExpectedFile;
+    const snapshotFormatter = await createJsonSnapshotFormatter(dir);
 
     updateSnapshotIfFailedOrEmpty({
         assertion() {
@@ -60,7 +65,7 @@ async function executeTest(
         },
         expectedFile,
         getFileContent() {
-            return JSON.stringify(diagnostics, null, 4);
+            return snapshotFormatter(diagnostics);
         },
         rootDir: __dirname
     });

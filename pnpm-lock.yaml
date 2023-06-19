@@ -5,8 +5,8 @@ importers:
   .:
     dependencies:
       typescript:
-        specifier: ^5.0.3
-        version: 5.0.4
+        specifier: ^5.1.3
+        version: 5.1.3
     devDependencies:
       cross-env:
         specifier: ^7.0.2
@@ -16,7 +16,7 @@ importers:
         version: 2.8.6
       ts-node:
         specifier: ^10.0.0
-        version: 10.9.1(@types/node@16.18.32)(typescript@5.0.4)
+        version: 10.9.1(@types/node@16.18.32)(typescript@5.1.3)
 
   packages/language-server:
     dependencies:
@@ -49,13 +49,13 @@ importers:
         version: 3.57.0
       svelte-preprocess:
         specifier: ~5.0.3
-        version: 5.0.3(svelte@3.57.0)(typescript@5.0.4)
+        version: 5.0.3(svelte@3.57.0)(typescript@5.1.3)
       svelte2tsx:
         specifier: workspace:~
         version: link:../svelte2tsx
       typescript:
         specifier: '*'
-        version: 5.0.4
+        version: 5.1.3
       vscode-css-languageservice:
         specifier: ~6.2.0
         version: 6.2.5
@@ -107,7 +107,7 @@ importers:
         version: 11.1.2
       ts-node:
         specifier: ^10.0.0
-        version: 10.9.1(@types/node@16.18.32)(typescript@5.0.4)
+        version: 10.9.1(@types/node@16.18.32)(typescript@5.1.3)
 
   packages/svelte-check:
     dependencies:
@@ -134,10 +134,10 @@ importers:
         version: 3.57.0
       svelte-preprocess:
         specifier: ^5.0.3
-        version: 5.0.3(svelte@3.57.0)(typescript@5.0.4)
+        version: 5.0.3(svelte@3.57.0)(typescript@5.1.3)
       typescript:
         specifier: ^5.0.3
-        version: 5.0.4
+        version: 5.1.3
     devDependencies:
       '@rollup/plugin-commonjs':
         specifier: ^24.0.0
@@ -153,7 +153,7 @@ importers:
         version: 5.0.2(rollup@3.7.5)
       '@rollup/plugin-typescript':
         specifier: ^10.0.0
-        version: 10.0.1(rollup@3.7.5)(tslib@2.5.2)(typescript@5.0.4)
+        version: 10.0.1(rollup@3.7.5)(tslib@2.5.2)(typescript@5.1.3)
       '@tsconfig/node16':
         specifier: ^1.0.0
         version: 1.0.4
@@ -226,7 +226,7 @@ importers:
         version: 2.5.2
       typescript:
         specifier: '*'
-        version: 5.0.4
+        version: 5.1.3
       vscode-tmgrammar-test:
         specifier: ^0.0.11
         version: 0.0.11
@@ -257,7 +257,7 @@ importers:
         version: 15.0.2(rollup@3.7.5)
       '@rollup/plugin-typescript':
         specifier: ^10.0.0
-        version: 10.0.1(rollup@3.7.5)(tslib@2.5.2)(typescript@5.0.4)
+        version: 10.0.1(rollup@3.7.5)(tslib@2.5.2)(typescript@5.1.3)
       '@types/estree':
         specifier: ^0.0.42
         version: 0.0.42
@@ -307,8 +307,8 @@ importers:
         specifier: ^2.4.0
         version: 2.5.2
       typescript:
-        specifier: ^5.0.3
-        version: 5.0.4
+        specifier: ^5.1.3
+        version: 5.1.3
 
   packages/typescript-plugin:
     dependencies:
@@ -327,7 +327,7 @@ importers:
         version: 16.18.32
       typescript:
         specifier: '*'
-        version: 5.0.4
+        version: 5.1.3
 
 packages:
 
@@ -463,7 +463,7 @@ packages:
       rollup: 3.7.5
     dev: true
 
-  /@rollup/plugin-typescript@10.0.1(rollup@3.7.5)(tslib@2.5.2)(typescript@5.0.4):
+  /@rollup/plugin-typescript@10.0.1(rollup@3.7.5)(tslib@2.5.2)(typescript@5.1.3):
     resolution: {integrity: sha512-wBykxRLlX7EzL8BmUqMqk5zpx2onnmRMSw/l9M1sVfkJvdwfxogZQVNUM9gVMJbjRLDR5H6U0OMOrlDGmIV45A==}
     engines: {node: '>=14.0.0'}
     peerDependencies:
@@ -480,7 +480,7 @@ packages:
       resolve: 1.22.2
       rollup: 3.7.5
       tslib: 2.5.2
-      typescript: 5.0.4
+      typescript: 5.1.3
     dev: true
 
   /@rollup/pluginutils@5.0.2(rollup@3.7.5):
@@ -1829,7 +1829,7 @@ packages:
     engines: {node: '>= 0.4'}
     dev: true
 
-  /svelte-preprocess@5.0.3(svelte@3.57.0)(typescript@5.0.4):
+  /svelte-preprocess@5.0.3(svelte@3.57.0)(typescript@5.1.3):
     resolution: {integrity: sha512-GrHF1rusdJVbOZOwgPWtpqmaexkydznKzy5qIC2FabgpFyKN57bjMUUUqPRfbBXK5igiEWn1uO/DXsa2vJ5VHA==}
     engines: {node: '>= 14.10.0'}
     requiresBuild: true
@@ -1873,7 +1873,7 @@ packages:
       sorcery: 0.11.0
       strip-indent: 3.0.0
       svelte: 3.57.0
-      typescript: 5.0.4
+      typescript: 5.1.3
     dev: false
 
   /svelte@3.57.0:
@@ -1893,7 +1893,7 @@ packages:
     dependencies:
       is-number: 7.0.0
 
-  /ts-node@10.9.1(@types/node@16.18.32)(typescript@5.0.4):
+  /ts-node@10.9.1(@types/node@16.18.32)(typescript@5.1.3):
     resolution: {integrity: sha512-NtVysVPkxxrwFGUUxGYhfux8k78pQB3JqYBXlLRZgdGUqTO5wU/UyHop5p70iEbGhB7q5KmiZiU0Y3KlJrScEw==}
     hasBin: true
     peerDependencies:
@@ -1919,7 +1919,7 @@ packages:
       create-require: 1.1.1
       diff: 4.0.2
       make-error: 1.3.6
-      typescript: 5.0.4
+      typescript: 5.1.3
       v8-compile-cache-lib: 3.0.1
       yn: 3.1.1
     dev: true
@@ -1932,9 +1932,9 @@ packages:
     engines: {node: '>=4'}
     dev: true
 
-  /typescript@5.0.4:
-    resolution: {integrity: sha512-cW9T5W9xY37cc+jfEnaUvX91foxtHkza3Nw3wkoF4sSlKn0MONdkdEndig/qPBWXNkmplh3NzayQzCiHM4/hqw==}
-    engines: {node: '>=12.20'}
+  /typescript@5.1.3:
+    resolution: {integrity: sha512-XH627E9vkeqhlZFQuL+UsyAXEnibT0kWR2FWONlr4sTjvxyJYnyefgrkyECLzM5NenmKzRAy2rR/OlYLA1HkZw==}
+    engines: {node: '>=14.17'}
     hasBin: true
 
   /unist-util-stringify-position@3.0.3:

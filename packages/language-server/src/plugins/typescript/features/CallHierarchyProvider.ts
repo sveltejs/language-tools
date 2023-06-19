@@ -26,7 +26,7 @@ import {
     symbolKindFromString,
     toGeneratedSvelteComponentName
 } from '../utils';
-import { findContainingNode, findNodeAtSpan, gatherDescendants, SnapshotMap } from './utils';
+import { findNodeAtSpan, gatherDescendants, SnapshotMap } from './utils';
 
 const ENSURE_COMPONENT_HELPER = '__sveltets_2_ensureComponent';
 
