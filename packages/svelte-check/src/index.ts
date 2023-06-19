@@ -114,7 +114,7 @@ class DiagnosticsWatcher {
         ignoreInitialAdd: boolean
     ) {
         watch(`${workspaceUri.fsPath}/**/*.{svelte,d.ts,ts,js,jsx,tsx,mjs,cjs,mts,cts}`, {
-            ignored: ['node_modules']
+            ignored: ['node_modules', 'vite.config.{js,ts}.timestamp-*']
                 .concat(filePathsToIgnore)
                 .map((ignore) => path.join(workspaceUri.fsPath, ignore)),
             ignoreInitial: ignoreInitialAdd
