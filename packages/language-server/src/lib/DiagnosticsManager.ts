@@ -18,6 +18,7 @@ export class DiagnosticsManager {
         this.docManager.getAllOpenedByClient().forEach((doc) => {
             this.update(doc[1]);
         });
+        this.pendingUpdates.clear();
     }
 
     scheduleUpdateAll = debounceThrottle(() => this.updateAll(), 1000);
