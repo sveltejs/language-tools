@@ -7,10 +7,14 @@ import { LSAndTSDocResolver } from '../../../../src/plugins';
 import { ImplementationProviderImpl } from '../../../../src/plugins/typescript/features/ImplementationProvider';
 import { pathToUrl } from '../../../../src/utils';
 import { Location } from 'vscode-languageserver-protocol';
+import { serviceWarmup } from '../test-utils';
 
 const testDir = path.join(__dirname, '..');
+const implementationTestDir = path.join(testDir, 'testfiles', 'implementation');
 
-describe('ImplementationProvider', () => {
+describe('ImplementationProvider', function () {
+    serviceWarmup(this, implementationTestDir, pathToUrl(testDir));
+
     function getFullPath(filename: string) {
         return path.join(testDir, 'testfiles', 'implementation', filename);
     }

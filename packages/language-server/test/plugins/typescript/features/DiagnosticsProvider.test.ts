@@ -8,10 +8,13 @@ import { DiagnosticsProviderImpl } from '../../../../src/plugins/typescript/feat
 import { LSAndTSDocResolver } from '../../../../src/plugins/typescript/LSAndTSDocResolver';
 import { __resetCache } from '../../../../src/plugins/typescript/service';
 import { normalizePath, pathToUrl } from '../../../../src/utils';
+import { serviceWarmup } from '../test-utils';
 
 const testDir = path.join(__dirname, '..', 'testfiles', 'diagnostics');
 
-describe('DiagnosticsProvider', () => {
+describe('DiagnosticsProvider', function () {
+    serviceWarmup(this, testDir);
+
     function setup(filename: string) {
         const docManager = new DocumentManager(
             (textDocument) => new Document(textDocument.uri, textDocument.text)

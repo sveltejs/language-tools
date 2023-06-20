@@ -122,9 +122,10 @@ async function executeTest(
 
 const executeTests = createSnapshotTester(executeTest);
 
-describe('InlayHintProvider', () => {
+describe('InlayHintProvider', function () {
     executeTests({
         dir: join(__dirname, 'fixtures'),
-        workspaceDir: join(__dirname, 'fixtures')
+        workspaceDir: join(__dirname, 'fixtures'),
+        context: this
     });
 });

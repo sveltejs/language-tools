@@ -160,33 +160,58 @@ export function setupVirtualEnvironment({
     };
 }
 
-export function createSnapshotTester<TestOptions extends { dir: string; workspaceDir: string }>(
-    executeTest: (inputFile: string, testOptions: TestOptions) => Promise<void>
-) {
-    return function executeTests(testOptions: TestOptions) {
+export function createSnapshotTester<
+    TestOptions extends {
+        dir: string;
+        workspaceDir: string;
+        timeout?: number;
+        context: Mocha.Suite;
+    }
+>(executeTest: (inputFile: string, testOptions: TestOptions) => Promise<void>) {
+    return (testOptions: TestOptions) => {
+        serviceWarmup(testOptions.context, testOptions.dir, pathToUrl(testOptions.workspaceDir));
+        executeTests(testOptions);
+    };
+
+    function executeTests(testOptions: TestOptions) {
         const { dir } = testOptions;
+        const workspaceUri = pathToUrl(testOptions.workspaceDir);
+
         const inputFile = join(dir, 'input.svelte');
+        const tsconfig = join(dir, 'tsconfig.json');
+        const jsconfig = join(dir, 'jsconfig.json');
+
+        if (existsSync(tsconfig) || existsSync(jsconfig)) {
+            serviceWarmup(testOptions.context, dir, workspaceUri);
+        }
+
         if (existsSync(inputFile)) {
             const _it = dir.endsWith('.only') ? it.only : it;
-            _it(dir.substring(__dirname.length), () => executeTest(inputFile, testOptions)).timeout(
-                5000
+            const test = _it(dir.substring(__dirname.length), () =>
+                executeTest(inputFile, testOptions)
             );
+
+            if (testOptions.timeout) {
+                test.timeout(testOptions.timeout);
+            }
         } else {
             const _describe = dir.endsWith('.only') ? describe.only : describe;
-            _describe(dir.substring(__dirname.length), () => {
+            _describe(dir.substring(__dirname.length), function () {
                 const subDirs = readdirSync(dir);
 
                 for (const subDir of subDirs) {
-                    if (statSync(join(dir, subDir)).isDirectory()) {
+                    const stat = statSync(join(dir, subDir));
+                    if (stat.isDirectory()) {
                         executeTests({
                             ...testOptions,
+                            context: this,
                             dir: join(dir, subDir)
                         });
                     }
                 }
             });
         }
-    };
+    }
 }
 
 export function updateSnapshotIfFailedOrEmpty({
@@ -232,4 +257,69 @@ export async function createJsonSnapshotFormatter(dir: string) {
             ...prettierOptions,
             parser: 'json'
         });
+}
+
+const warmupTimeout = process.env.WARMUP_TIMEOUT ? parseInt(process.env.WARMUP_TIMEOUT) : 5_000;
+export function serviceWarmup(suite: Mocha.Suite, testDir: string, rootUri = pathToUrl(testDir)) {
+    const defaultTimeout = suite.timeout();
+
+    suite.timeout(warmupTimeout);
+    before(async () => {
+        const start = Date.now();
+        console.log('Warming up language service...');
+
+        const docManager = new DocumentManager(
+            (textDocument) => new Document(textDocument.uri, textDocument.text)
+        );
+        const lsAndTsDocResolver = new LSAndTSDocResolver(
+            docManager,
+            [rootUri],
+            new LSConfigManager()
+        );
+
+        const filePath = join(testDir, 'DoesNotMater.svelte');
+        const document = docManager.openDocument(<any>{
+            uri: pathToUrl(filePath),
+            text: ts.sys.readFile(filePath) || ''
+        });
+
+        const { lang } = await lsAndTsDocResolver.getLSAndTSDoc(document);
+        lang.getProgram();
+
+        console.log(`Service warming up done in ${Date.now() - start}ms`);
+    });
+
+    suite.timeout(defaultTimeout);
+}
+
+export function recursiveServiceWarmup(
+    suite: Mocha.Suite,
+    testDir: string,
+    rootUri = pathToUrl(testDir)
+) {
+    serviceWarmup(suite, testDir, rootUri);
+    recursiveServiceWarmupNonRoot(suite, testDir, rootUri);
+}
+
+function recursiveServiceWarmupNonRoot(
+    suite: Mocha.Suite,
+    testDir: string,
+    rootUri = pathToUrl(testDir)
+) {
+    const subDirs = readdirSync(testDir);
+
+    for (const subDirOrFile of subDirs) {
+        const stat = statSync(join(testDir, subDirOrFile));
+
+        if (
+            stat.isFile() &&
+            (subDirOrFile === 'tsconfig.json' || subDirOrFile === 'jsconfig.json')
+        ) {
+            serviceWarmup(suite, testDir, rootUri);
+        }
+
+        if (stat.isDirectory()) {
+            recursiveServiceWarmupNonRoot(suite, join(testDir, subDirOrFile), rootUri);
+        }
+    }
 }

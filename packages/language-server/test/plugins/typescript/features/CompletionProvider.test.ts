@@ -23,7 +23,7 @@ import { LSAndTSDocResolver } from '../../../../src/plugins/typescript/LSAndTSDo
 import { sortBy } from 'lodash';
 import { LSConfigManager } from '../../../../src/ls-config';
 import { __resetCache } from '../../../../src/plugins/typescript/service';
-import { getRandomVirtualDirPath, setupVirtualEnvironment } from '../test-utils';
+import { getRandomVirtualDirPath, serviceWarmup, setupVirtualEnvironment } from '../test-utils';
 
 const testDir = join(__dirname, '..');
 const testFilesDir = join(testDir, 'testfiles', 'completions');
@@ -39,7 +39,9 @@ function harmonizeNewLines(input?: string) {
 }
 
 // describe('CompletionProviderImpl (old transformation)', test(false));
-describe('CompletionProviderImpl', () => {
+describe('CompletionProviderImpl', function () {
+    serviceWarmup(this, testFilesDir, pathToUrl(testDir));
+
     function setup(filename: string) {
         const docManager = new DocumentManager(
             (textDocument) => new Document(textDocument.uri, textDocument.text)
