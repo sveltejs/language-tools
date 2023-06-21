@@ -25,6 +25,7 @@ export function decorateRename(
             position,
             findInStrings,
             findInComments,
+            // @ts-expect-error overload shenanigans
             providePrefixAndSuffixTextForRename
         );
         if (!renameLocations) {

@@ -191,7 +191,7 @@ export function offsetOfGeneratedComponentExport(snapshot: SvelteSnapshot) {
 
 export function gatherDescendants<T extends ts.Node>(
     node: ts.Node,
-    predicate: NodePredicate | NodeTypePredicate<T>,
+    predicate: NodeTypePredicate<T>,
     dest: T[] = []
 ) {
     if (predicate(node)) {
