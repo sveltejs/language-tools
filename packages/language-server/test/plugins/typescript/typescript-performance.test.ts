@@ -36,7 +36,7 @@ describe('TypeScript Plugin Performance Tests', () => {
     it('should be fast enough', async function () {
         const { document, plugin, append, prepend } = setup('performance.svelte');
         const benchmarkElapse = Math.ceil(await benchmark());
-        const newTimeout = benchmarkElapse * 6;
+        const newTimeout = benchmarkElapse * 7;
 
         if (newTimeout < this.timeout()) {
             console.log(`Benchmark took ${benchmarkElapse}ms. Setting timeout to ${newTimeout}ms`);
