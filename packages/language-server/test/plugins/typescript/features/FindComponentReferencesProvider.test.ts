@@ -6,10 +6,13 @@ import { LSConfigManager } from '../../../../src/ls-config';
 import { FindComponentReferencesProviderImpl } from '../../../../src/plugins/typescript/features/FindComponentReferencesProvider';
 import { LSAndTSDocResolver } from '../../../../src/plugins/typescript/LSAndTSDocResolver';
 import { pathToUrl } from '../../../../src/utils';
+import { serviceWarmup } from '../test-utils';
 
 const testDir = path.join(__dirname, '..');
 
-describe('FindComponentReferencesProvider', () => {
+describe('FindComponentReferencesProvider', function () {
+    serviceWarmup(this, testDir);
+
     function getFullPath(filename: string) {
         return path.join(testDir, 'testfiles', filename);
     }
@@ -24,7 +27,11 @@ describe('FindComponentReferencesProvider', () => {
         );
         const lsConfigManager = new LSConfigManager();
 
-        const lsAndTsDocResolver = new LSAndTSDocResolver(docManager, [testDir], lsConfigManager);
+        const lsAndTsDocResolver = new LSAndTSDocResolver(
+            docManager,
+            [pathToUrl(testDir)],
+            lsConfigManager
+        );
         const provider = new FindComponentReferencesProviderImpl(lsAndTsDocResolver);
         const document = openDoc(filename);
         return { provider, document, openDoc, lsConfigManager };

@@ -1,5 +1,5 @@
 import * as assert from 'assert';
-import { readFileSync, existsSync } from 'fs';
+import { readFileSync, existsSync, readdirSync } from 'fs';
 import { join } from 'path';
 import ts from 'typescript';
 import { Document, DocumentManager } from '../../../../../src/lib/documents';
@@ -73,11 +73,13 @@ async function executeTest(
 
 const executeTests = createSnapshotTester(executeTest);
 
-describe('DiagnosticsProvider', () => {
+describe('DiagnosticsProvider', function () {
     executeTests({
         dir: join(__dirname, 'fixtures'),
-        workspaceDir: join(__dirname, 'fixtures')
+        workspaceDir: join(__dirname, 'fixtures'),
+        context: this
     });
+
     // Hacky, but it works. Needed due to testing both new and old transformation
     after(() => {
         __resetCache();

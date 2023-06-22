@@ -7,10 +7,14 @@ import { SelectionRangeProviderImpl } from '../../../../src/plugins/typescript/f
 import { LSAndTSDocResolver } from '../../../../src/plugins/typescript/LSAndTSDocResolver';
 import { pathToUrl } from '../../../../src/utils';
 import { LSConfigManager } from '../../../../src/ls-config';
+import { serviceWarmup } from '../test-utils';
 
 const testDir = path.join(__dirname, '..');
+const selectionRangeTestDir = path.join(testDir, 'testfiles', 'selection-range');
 
-describe('SelectionRangeProvider', () => {
+describe('SelectionRangeProvider', function () {
+    serviceWarmup(this, selectionRangeTestDir, pathToUrl(testDir));
+
     function setup() {
         const docManager = new DocumentManager(
             (textDocument) => new Document(textDocument.uri, textDocument.text)

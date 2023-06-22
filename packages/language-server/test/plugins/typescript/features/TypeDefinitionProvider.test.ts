@@ -7,12 +7,16 @@ import { LSConfigManager } from '../../../../src/ls-config';
 import { LSAndTSDocResolver } from '../../../../src/plugins';
 import { TypeDefinitionProviderImpl } from '../../../../src/plugins/typescript/features/TypeDefinitionProvider';
 import { pathToUrl } from '../../../../src/utils';
+import { serviceWarmup } from '../test-utils';
 
 const testDir = path.join(__dirname, '..');
+const typeDefinitionTestDir = path.join(testDir, 'testfiles', 'typedefinition');
 
-describe('TypeDefinitionProvider', () => {
+describe('TypeDefinitionProvider', function () {
+    serviceWarmup(this, typeDefinitionTestDir, pathToUrl(testDir));
+
     function getFullPath(filename: string) {
-        return path.join(testDir, 'testfiles', 'typedefinition', filename);
+        return path.join(typeDefinitionTestDir, filename);
     }
 
     function getUri(filename: string) {

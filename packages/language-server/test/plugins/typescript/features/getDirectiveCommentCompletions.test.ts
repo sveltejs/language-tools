@@ -5,19 +5,19 @@ import { Document } from '../../../../src/lib/documents';
 import { pathToUrl } from '../../../../src/utils';
 import { Position, CompletionContext, CompletionTriggerKind } from 'vscode-languageserver';
 import { getDirectiveCommentCompletions } from '../../../../src/plugins/typescript/features/getDirectiveCommentCompletions';
+import { serviceWarmup } from '../test-utils';
 
-describe('can get typescript directive comment completions', () => {
+const testDir = path.join(__dirname, '..');
+const completionTestDir = path.join(testDir, 'testfiles', 'completions');
+
+describe('can get typescript directive comment completions', function () {
+    serviceWarmup(this, completionTestDir, pathToUrl(testDir));
+
     function setup(
         position: Position,
         context: CompletionContext = { triggerKind: CompletionTriggerKind.Invoked }
     ) {
-        const testDir = path.join(__dirname, '..');
-        const filePath = path.join(
-            testDir,
-            'testfiles',
-            'completions',
-            'ts-directive-comment.svelte'
-        );
+        const filePath = path.join(completionTestDir, 'ts-directive-comment.svelte');
         const document = new Document(pathToUrl(filePath), ts.sys.readFile(filePath)!);
         const result = getDirectiveCommentCompletions(position, document, context);
 

@@ -14,11 +14,14 @@ import { LSConfigManager } from '../../../../src/ls-config';
 import { UpdateImportsProviderImpl } from '../../../../src/plugins/typescript/features/UpdateImportsProvider';
 import { LSAndTSDocResolver } from '../../../../src/plugins/typescript/LSAndTSDocResolver';
 import { pathToUrl } from '../../../../src/utils';
+import { serviceWarmup } from '../test-utils';
 
 const testDir = join(__dirname, '..');
-const testFilesDir = join(testDir, 'testfiles', 'update-imports');
+const updateImportTestDir = join(testDir, 'testfiles', 'update-imports');
 
-describe('UpdateImportsProviderImpl', () => {
+describe('UpdateImportsProviderImpl', function () {
+    serviceWarmup(this, updateImportTestDir, pathToUrl(testDir));
+
     async function setup(filename: string, useCaseSensitiveFileNames: boolean) {
         const docManager = new DocumentManager(
             (textDocument) => new Document(textDocument.uri, textDocument.text),
@@ -31,7 +34,7 @@ describe('UpdateImportsProviderImpl', () => {
             { tsSystem: { ...ts.sys, useCaseSensitiveFileNames } }
         );
         const updateImportsProvider = new UpdateImportsProviderImpl(lsAndTsDocResolver);
-        const filePath = join(testFilesDir, filename);
+        const filePath = join(updateImportTestDir, filename);
         const fileUri = pathToUrl(filePath);
         const document = docManager.openDocument(<any>{
             uri: fileUri,
@@ -50,8 +53,8 @@ describe('UpdateImportsProviderImpl', () => {
         );
 
         const workspaceEdit = await updateImportsProvider.updateImports({
-            oldUri: pathToUrl(join(testFilesDir, 'imported.svelte')),
-            newUri: pathToUrl(join(testFilesDir, 'documentation.svelte'))
+            oldUri: pathToUrl(join(updateImportTestDir, 'imported.svelte')),
+            newUri: pathToUrl(join(updateImportTestDir, 'documentation.svelte'))
         });
 
         assert.deepStrictEqual(workspaceEdit?.documentChanges, [
@@ -71,8 +74,8 @@ describe('UpdateImportsProviderImpl', () => {
         );
 
         const workspaceEdit = await updateImportsProvider.updateImports({
-            oldUri: pathToUrl(join(testFilesDir, 'imported.svelte')),
-            newUri: pathToUrl(join(testFilesDir, 'Imported.svelte'))
+            oldUri: pathToUrl(join(updateImportTestDir, 'imported.svelte')),
+            newUri: pathToUrl(join(updateImportTestDir, 'Imported.svelte'))
         });
 
         assert.deepStrictEqual(workspaceEdit?.documentChanges, [
