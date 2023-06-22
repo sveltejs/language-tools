@@ -83,8 +83,11 @@ function render() {
     let world = 'name';
     // -- the transformed template
     async () => {
-      { svelteHTML.createElement("h1", {}); world; }
-    }
+        {
+            svelteHTML.createElement('h1', {});
+            world;
+        }
+    };
     // -- obtained props, slots and events,
     //    to get intellisense for this component in other components
     return { props: { world }, slots: {}, events: {} };
