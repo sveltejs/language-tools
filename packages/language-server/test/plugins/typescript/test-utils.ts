@@ -186,9 +186,7 @@ export function createSnapshotTester<
 
         if (existsSync(inputFile)) {
             const _it = dir.endsWith('.only') ? it.only : it;
-            _it(dir.substring(__dirname.length), () =>
-                executeTest(inputFile, testOptions)
-            );
+            _it(dir.substring(__dirname.length), () => executeTest(inputFile, testOptions));
         } else {
             const _describe = dir.endsWith('.only') ? describe.only : describe;
             _describe(dir.substring(__dirname.length), function () {
