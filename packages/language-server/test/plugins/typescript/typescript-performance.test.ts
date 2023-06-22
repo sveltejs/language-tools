@@ -37,7 +37,7 @@ describe('TypeScript Plugin Performance Tests', () => {
         const { document, plugin, append, prepend } = setup('performance.svelte');
         const benchmarkElapse = Math.ceil(await benchmark());
         // it usually takes around 5-6 times of the benchmark result
-        // plus 1 for the benchmark itself 
+        // plus 1 for the benchmark itself
         const newTimeout = benchmarkElapse * 7;
 
         if (newTimeout < this.timeout()) {
