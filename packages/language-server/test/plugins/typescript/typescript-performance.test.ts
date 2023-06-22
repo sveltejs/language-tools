@@ -68,9 +68,9 @@ describe('TypeScript Plugin Performance Tests', () => {
             const start = performance.now();
             for (let i = 0; i < 5; i++) {
                 ts.createProgram({
-                    options: {  },
-                    rootNames: [document.getFilePath()!],
-                })
+                    options: {},
+                    rootNames: [document.getFilePath()!]
+                });
             }
             const end = performance.now();
 
