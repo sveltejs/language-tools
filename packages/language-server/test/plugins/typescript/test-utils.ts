@@ -164,7 +164,6 @@ export function createSnapshotTester<
     TestOptions extends {
         dir: string;
         workspaceDir: string;
-        timeout?: number;
         context: Mocha.Suite;
     }
 >(executeTest: (inputFile: string, testOptions: TestOptions) => Promise<void>) {
@@ -187,13 +186,9 @@ export function createSnapshotTester<
 
         if (existsSync(inputFile)) {
             const _it = dir.endsWith('.only') ? it.only : it;
-            const test = _it(dir.substring(__dirname.length), () =>
+            _it(dir.substring(__dirname.length), () =>
                 executeTest(inputFile, testOptions)
             );
-
-            if (testOptions.timeout) {
-                test.timeout(testOptions.timeout);
-            }
         } else {
             const _describe = dir.endsWith('.only') ? describe.only : describe;
             _describe(dir.substring(__dirname.length), function () {
@@ -259,11 +254,10 @@ export async function createJsonSnapshotFormatter(dir: string) {
         });
 }
 
-const warmupTimeout = process.env.WARMUP_TIMEOUT ? parseInt(process.env.WARMUP_TIMEOUT) : 5_000;
 export function serviceWarmup(suite: Mocha.Suite, testDir: string, rootUri = pathToUrl(testDir)) {
     const defaultTimeout = suite.timeout();
 
-    suite.timeout(warmupTimeout);
+    suite.timeout(5_000);
     before(async () => {
         const start = Date.now();
         console.log('Warming up language service...');
