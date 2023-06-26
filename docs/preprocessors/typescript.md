@@ -150,7 +150,7 @@ You may need to set `baseUrl` in `tsconfig.json` at the project root to include 
 
 ### I'm using an attribute/event on a DOM element and it throws a type error
 
-If it's a non-experimental standard attribute/event, this may very well be a missing typing from our [HTML typings](https://github.com/sveltejs/svelte/blob/master/elements/index.d.ts). In that case, you are welcome to open an issue and/or a PR fixing it.
+If it's a non-experimental standard attribute/event, this may very well be a missing typing from our [HTML typings](https://github.com/sveltejs/svelte/blob/master/packages/svelte/elements.d.ts). In that case, you are welcome to open an issue and/or a PR fixing it.
 
 In case this is a custom or experimental attribute/event, you can enhance the typings like this:
 Create a `additional-svelte-typings.d.ts` file:
