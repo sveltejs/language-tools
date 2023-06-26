@@ -9,7 +9,7 @@ import { transform, TransformationArray } from '../utils/node-utils';
  * - If code is
  *   `{#each items as items,i (key)}`
  *   then the transformation is
- *   `{ const $$_each = __sveltets_2_ensureArray(items); for (const items of $$_each) { let i = 0;key;`.
+ *   `{ const $$_each = __sveltets_2_ensureArray(items); for (const items of $$_each) { let i: number = 0;key;`.
  *   Transform it this way because `{#each items as items}` is valid Svelte code, but the transformation
  *   `for(const items of items){..}` is invalid ("variable used before declaration"). Don't do the transformation
  *   like this everytime because `$$_each` could turn up in the auto completion.
@@ -50,7 +50,8 @@ export function handleEach(str: MagicString, eachBlock: BaseNode): void {
     if (eachBlock.index) {
         const indexStart = str.original.indexOf(eachBlock.index, eachBlock.context.end);
         const indexEnd = indexStart + eachBlock.index.length;
-        transforms.push('let ', [indexStart, indexEnd], ' = 1;');
+        // supress `: number` inlay hint as its position is not calculated correctly
+        transforms.push('let ', [indexStart, indexEnd], ': number = 1;');
     }
     if (eachBlock.key) {
         transforms.push([eachBlock.key.start, eachBlock.key.end], ';');
