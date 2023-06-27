@@ -277,7 +277,11 @@ class PackageJsonCache {
         private readonly watchPackageJson: boolean,
         private readonly getCanonicalFileName: GetCanonicalFileName,
         private readonly updateSnapshotsInDirectory: (directory: string) => void
-    ) {}
+    ) {
+        this.watchers = new FileMap(tsSystem.useCaseSensitiveFileNames);
+    }
+
+    private readonly watchers: FileMap<ts.FileWatcher>;
 
     private packageJsonCache = new FileMap<
         { text: string; modifiedTime: number | undefined } | undefined
@@ -288,7 +292,6 @@ class PackageJsonCache {
             this.packageJsonCache.set(path, this.initWatcherAndRead(path));
         }
         
-        console.log('getPackageJson', path, this.packageJsonCache.get(path));
         return this.packageJsonCache.get(path);
     }
 
@@ -317,7 +320,9 @@ class PackageJsonCache {
         const dir = dirname(path);
 
         if (onWatchChange === ts.FileWatcherEventKind.Deleted) {
-            this.packageJsonCache.set(path, undefined);
+            this.packageJsonCache.delete(path);
+            this.watchers.get(path)?.close();
+            this.watchers.delete(path);
         } else {
             this.packageJsonCache.set(path, this.readPackageJson(path));
         }
