@@ -19,7 +19,7 @@ describe('createSvelteModuleLoader', () => {
             resolvedModule
         });
         const moduleCacheMock = <ts.ModuleResolutionCache>{
-            getPackageJsonInfoCache: () => ({}),
+            getPackageJsonInfoCache: () => ({})
         };
 
         const svelteSys = <any>'svelteSys';
@@ -33,7 +33,7 @@ describe('createSvelteModuleLoader', () => {
             {
                 ...ts,
                 createModuleResolutionCache: () => moduleCacheMock,
-                resolveModuleName: resolveStub,
+                resolveModuleName: resolveStub
             }
         );
 
@@ -56,7 +56,8 @@ describe('createSvelteModuleLoader', () => {
             extension: ts.Extension.Ts,
             resolvedFileName: 'filename.ts'
         };
-        const { resolveStub, moduleResolver, compilerOptions, moduleCacheMock } = setup(resolvedModule);
+        const { resolveStub, moduleResolver, compilerOptions, moduleCacheMock } =
+            setup(resolvedModule);
         const result = moduleResolver.resolveModuleNames(
             ['./normal.ts'],
             'C:/somerepo/somefile.svelte',
@@ -82,7 +83,8 @@ describe('createSvelteModuleLoader', () => {
             extension: ts.Extension.Ts,
             resolvedFileName: 'filename.ts'
         };
-        const { resolveStub, moduleResolver, compilerOptions, moduleCacheMock } = setup(resolvedModule);
+        const { resolveStub, moduleResolver, compilerOptions, moduleCacheMock } =
+            setup(resolvedModule);
         const result = moduleResolver.resolveModuleNames(
             ['/@/normal'],
             'C:/somerepo/somefile.svelte',
@@ -108,7 +110,8 @@ describe('createSvelteModuleLoader', () => {
             extension: ts.Extension.Dts,
             resolvedFileName: 'filename.d.ts'
         };
-        const { resolveStub, moduleResolver, compilerOptions, moduleCacheMock } = setup(resolvedModule);
+        const { resolveStub, moduleResolver, compilerOptions, moduleCacheMock } =
+            setup(resolvedModule);
         const result = moduleResolver.resolveModuleNames(
             ['./normal.ts'],
             'C:/somerepo/somefile.svelte',

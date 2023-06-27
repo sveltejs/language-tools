@@ -620,7 +620,7 @@ async function createLanguageService(
      * Update import would read the declaration map's sourcemap and the file that the sourcemap points to.
      * We don't need to cache those. And don't need to update the project version.
      * It'll cause Typescript to recompile while there isn't actually a change.
-     * While TypeScript doesn't cache package.json in the tsserver. 
+     * While TypeScript doesn't cache package.json in the tsserver.
      * The information they get from package.json is cached with other internal APIs.
      */
     function readFileWithPackageJsonCache(

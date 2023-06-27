@@ -291,7 +291,7 @@ class PackageJsonCache {
         if (!this.packageJsonCache.has(path)) {
             this.packageJsonCache.set(path, this.initWatcherAndRead(path));
         }
-        
+
         return this.packageJsonCache.get(path);
     }
 
