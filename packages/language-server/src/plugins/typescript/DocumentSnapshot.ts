@@ -154,18 +154,11 @@ export namespace DocumentSnapshot {
         }
 
         const declarationExtensions = [ts.Extension.Dcts, ts.Extension.Dts, ts.Extension.Dmts];
-        const modifiedTime = tsSystem.getModifiedTime?.(filePath)?.valueOf();
         if (declarationExtensions.some((ext) => normalizedPath.endsWith(ext))) {
-            return new DtsDocumentSnapshot(
-                INITIAL_VERSION,
-                filePath,
-                originalText,
-                tsSystem,
-                modifiedTime
-            );
+            return new DtsDocumentSnapshot(INITIAL_VERSION, filePath, originalText, tsSystem);
         }
 
-        return new JSOrTSDocumentSnapshot(INITIAL_VERSION, filePath, originalText, modifiedTime);
+        return new JSOrTSDocumentSnapshot(INITIAL_VERSION, filePath, originalText);
     }
 
     /**
@@ -435,12 +428,7 @@ export class JSOrTSDocumentSnapshot extends IdentityMapper implements DocumentSn
     private serverHooksPath = 'src/hooks.server';
     private clientHooksPath = 'src/hooks.client';
 
-    constructor(
-        public version: number,
-        public readonly filePath: string,
-        private text: string,
-        public readonly modifiedTime: number | undefined
-    ) {
+    constructor(public version: number, public readonly filePath: string, private text: string) {
         super(pathToUrl(filePath));
         this.adjustText();
     }
@@ -610,14 +598,8 @@ export class DtsDocumentSnapshot extends JSOrTSDocumentSnapshot implements Docum
     private traceMap: TraceMap | undefined;
     private mapperInitialized = false;
 
-    constructor(
-        version: number,
-        filePath: string,
-        text: string,
-        private tsSys: ts.System,
-        modifiedTime: number | undefined
-    ) {
-        super(version, filePath, text, modifiedTime);
+    constructor(version: number, filePath: string, text: string, private tsSys: ts.System) {
+        super(version, filePath, text);
     }
 
     getOriginalFilePosition(generatedPosition: Position): FilePosition {

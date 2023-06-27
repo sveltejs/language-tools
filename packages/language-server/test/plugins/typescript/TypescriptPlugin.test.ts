@@ -624,7 +624,6 @@ describe('TypescriptPlugin', function () {
         const { plugin, snapshotManager, targetSvelteFile } = await setupForOnWatchedFileChanges();
 
         const projectJsFile = path.join(path.dirname(targetSvelteFile), 'documentation.ts');
-        fs.writeFileSync(projectJsFile, fs.readFileSync(projectJsFile));
         await plugin.onWatchFileChanges([
             {
                 fileName: projectJsFile,
@@ -648,7 +647,6 @@ describe('TypescriptPlugin', function () {
 
         assert.notEqual(firstVersion, INITIAL_VERSION);
 
-        fs.writeFileSync(projectJsFile, fs.readFileSync(projectJsFile));
         await plugin.onWatchFileChanges([
             {
                 fileName: projectJsFile,

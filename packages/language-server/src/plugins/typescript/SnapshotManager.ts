@@ -70,14 +70,6 @@ export class GlobalSnapshotsManager {
             this.emitter.emit('change', fileName, previousSnapshot);
             return previousSnapshot;
         } else {
-            const modifiedTime = this.tsSystem.getModifiedTime?.(fileName);
-            if (
-                previousSnapshot instanceof JSOrTSDocumentSnapshot &&
-                modifiedTime &&
-                (previousSnapshot.modifiedTime ?? 0) >= modifiedTime.valueOf()
-            ) {
-                return previousSnapshot;
-            }
             const newSnapshot = DocumentSnapshot.fromNonSvelteFilePath(fileName, this.tsSystem);
 
             if (previousSnapshot) {
