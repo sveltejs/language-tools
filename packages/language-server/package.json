@@ -55,7 +55,7 @@
         "lodash": "^4.17.21",
         "prettier": "2.8.6",
         "prettier-plugin-svelte": "~2.10.0",
-        "svelte": "^4.0.0",
+        "svelte": "^3.57.0",
         "svelte-preprocess": "~5.0.3",
         "svelte2tsx": "workspace:~",
         "typescript": "*",
