@@ -3,6 +3,7 @@ import { rangeWithTrailingPropertyAccess, TransformationArray } from '../utils/n
 import { BaseDirective, BaseNode } from '../../interfaces';
 import { Element } from './Element';
 import { InlineComponent } from './InlineComponent';
+import { surroundWithIgnoreComments } from '../../utils/ignore';
 
 const oneWayBindingAttributes: Set<string> = new Set([
     'clientWidth',
@@ -17,12 +18,16 @@ const oneWayBindingAttributes: Set<string> = new Set([
     'ended',
     'readyState',
     'naturalWidth',
-    'naturalHeight',
-    'contentRect',
-    'contentBoxSize',
-    'borderBoxSize',
-    'devicePixelContentBoxSize'
+    'naturalHeight'
 ]);
+
+const oneWayBindingAttributesNotOnElement: Map<string, string> = new Map([
+    ['contentRect', 'DOMRectReadOnly'],
+    ['contentBoxSize', 'ResizeObserverSize[]'],
+    ['borderBoxSize', 'ResizeObserverSize[]'],
+    ['devicePixelContentBoxSize', 'ResizeObserverSize[]']
+]);
+
 /**
  * List of all binding names that are transformed to sth like `binding = variable`.
  * This applies to readonly bindings and the this binding.
@@ -74,6 +79,17 @@ export function handleBinding(
         element.appendToStartEnd([
             [attr.expression.start, attr.expression.end],
             `= ${element.name}.${attr.name};`
+        ]);
+        return;
+    }
+
+    // one way binding whose property is not on the element
+    if (oneWayBindingAttributesNotOnElement.has(attr.name) && element instanceof Element) {
+        element.appendToStartEnd([
+            [attr.expression.start, attr.expression.end],
+            `= ${surroundWithIgnoreComments(
+                `null as ${oneWayBindingAttributesNotOnElement.get(attr.name)}`
+            )};`
         ]);
         return;
     }
