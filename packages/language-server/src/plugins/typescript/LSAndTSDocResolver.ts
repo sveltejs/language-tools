@@ -35,7 +35,7 @@ interface LSAndTSDocResolverOptions {
     tsconfigPath?: string;
 
     onProjectReloaded?: () => void;
-    watchTsConfig?: boolean;
+    watch?: boolean;
     tsSystem?: ts.System;
 }
 
@@ -86,7 +86,10 @@ export class LSAndTSDocResolver {
         return document;
     };
 
-    private globalSnapshotsManager = new GlobalSnapshotsManager(this.lsDocumentContext.tsSystem);
+    private globalSnapshotsManager = new GlobalSnapshotsManager(
+        this.lsDocumentContext.tsSystem,
+        /* watchPackageJson */ !!this.options?.watch
+    );
     private extendedConfigCache = new Map<string, ts.ExtendedConfigCacheEntry>();
     private getCanonicalFileName: GetCanonicalFileName;
 
@@ -99,7 +102,7 @@ export class LSAndTSDocResolver {
             notifyExceedSizeLimit: this.options?.notifyExceedSizeLimit,
             extendedConfigCache: this.extendedConfigCache,
             onProjectReloaded: this.options?.onProjectReloaded,
-            watchTsConfig: !!this.options?.watchTsConfig,
+            watchTsConfig: !!this.options?.watch,
             tsSystem: this.options?.tsSystem ?? ts.sys
         };
     }
@@ -122,7 +125,7 @@ export class LSAndTSDocResolver {
 
     /**
      * Retrieves and updates the snapshot for the given document or path from
-     * the ts service it primarely belongs into.
+     * the ts service it primarily belongs into.
      * The update is mirrored in all other services, too.
      */
     async getSnapshot(document: Document): Promise<SvelteDocumentSnapshot>;

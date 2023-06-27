@@ -183,7 +183,7 @@ export function startServer(options?: LSOptions) {
                 new LSAndTSDocResolver(docManager, normalizedWorkspaceUris, configManager, {
                     notifyExceedSizeLimit: notifyTsServiceExceedSizeLimit,
                     onProjectReloaded: refreshCrossFilesSemanticFeatures,
-                    watchTsConfig: true
+                    watch: true
                 }),
                 normalizedWorkspaceUris
             )

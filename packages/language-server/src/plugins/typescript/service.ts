@@ -1,4 +1,4 @@
-import { dirname, resolve } from 'path';
+import { basename, dirname, resolve } from 'path';
 import ts from 'typescript';
 import { TextDocumentContentChangeEvent } from 'vscode-languageserver-protocol';
 import { getPackageInfo, importSvelte } from '../../importPackage';
@@ -185,12 +185,16 @@ async function createLanguageService(
     // Load all configs within the tsconfig scope and the one above so that they are all loaded
     // by the time they need to be accessed synchronously by DocumentSnapshots.
     await configLoader.loadConfigs(workspacePath);
+    const tsSystemWithPackageJsonCache = {
+        ...tsSystem,
+        readFile: readFileWithPackageJsonCache
+    };
 
     const svelteModuleLoader = createSvelteModuleLoader(
         getSnapshot,
         compilerOptions,
-        tsSystem,
-        ts.resolveModuleName
+        tsSystemWithPackageJsonCache,
+        ts
     );
 
     let svelteTsPath: string;
@@ -222,14 +226,16 @@ async function createLanguageService(
         getCurrentDirectory: () => workspacePath,
         getDefaultLibFileName: ts.getDefaultLibFilePath,
         fileExists: svelteModuleLoader.fileExists,
-        readFile: svelteModuleLoader.readFile,
+        readFile: readFileWithPackageJsonCache,
         resolveModuleNames: svelteModuleLoader.resolveModuleNames,
         readDirectory: svelteModuleLoader.readDirectory,
         getDirectories: tsSystem.getDirectories,
         useCaseSensitiveFileNames: () => tsSystem.useCaseSensitiveFileNames,
         getScriptKind: (fileName: string) => getSnapshot(fileName).scriptKind,
         getProjectVersion: () => projectVersion.toString(),
-        getNewLine: () => tsSystem.newLine
+        getNewLine: () => tsSystem.newLine,
+        resolveTypeReferenceDirectiveReferences:
+            svelteModuleLoader.resolveTypeReferenceDirectiveReferences
     };
 
     let languageService = ts.createLanguageService(host);
@@ -608,6 +614,24 @@ async function createLanguageService(
         }
 
         docContext.onProjectReloaded?.();
+    }
+
+    /**
+     * Update import would read the declaration map's sourcemap and the file that the sourcemap points to.
+     * We don't need to cache those. And don't need to update the project version.
+     * It'll cause Typescript to recompile while there isn't actually a change.
+     * While TypeScript doesn't cache package.json in the tsserver. 
+     * The information they get from package.json is cached with other internal APIs.
+     */
+    function readFileWithPackageJsonCache(
+        path: string,
+        encoding?: string | undefined
+    ): string | undefined {
+        if (basename(path) === 'package.json') {
+            return docContext.globalSnapshotsManager.getPackageJson(path)?.text;
+        }
+
+        return tsSystem.readFile(path, encoding);
     }
 }
 

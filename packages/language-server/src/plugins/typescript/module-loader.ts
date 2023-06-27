@@ -1,6 +1,6 @@
 import ts from 'typescript';
 import { FileMap } from '../../lib/documents/fileCollection';
-import { createGetCanonicalFileName, getLastPartOfPath } from '../../utils';
+import { createGetCanonicalFileName, getLastPartOfPath, toFileNameLowerCase } from '../../utils';
 import { DocumentSnapshot } from './DocumentSnapshot';
 import { createSvelteSys } from './svelte-sys';
 import {
@@ -89,26 +89,48 @@ class ImpliedNodeFormatResolver {
 
         let mode = undefined;
         if (sourceFile) {
-            if (!sourceFile.impliedNodeFormat && isSvelteFilePath(sourceFile.fileName)) {
-                // impliedNodeFormat is not set for Svelte files, because the TS function which
-                // calculates this works with a fixed set of file extensions,
-                // which .svelte is obv not part of. Make it work by faking a TS file.
-                if (!this.alreadyResolved.has(sourceFile.fileName)) {
-                    sourceFile.impliedNodeFormat = ts.getImpliedNodeFormatForFile(
-                        toVirtualSvelteFilePath(sourceFile.fileName) as any,
-                        undefined,
-                        ts.sys,
-                        compilerOptions
-                    );
-                    this.alreadyResolved.set(sourceFile.fileName, sourceFile.impliedNodeFormat);
-                } else {
-                    sourceFile.impliedNodeFormat = this.alreadyResolved.get(sourceFile.fileName);
-                }
-            }
+            this.cacheImpliedNodeFormat(sourceFile, compilerOptions);
             mode = ts.getModeForResolutionAtIndex(sourceFile, importIdxInFile);
         }
         return mode;
     }
+
+    private cacheImpliedNodeFormat(sourceFile: ts.SourceFile, compilerOptions: ts.CompilerOptions) {
+        if (!sourceFile.impliedNodeFormat && isSvelteFilePath(sourceFile.fileName)) {
+            // impliedNodeFormat is not set for Svelte files, because the TS function which
+            // calculates this works with a fixed set of file extensions,
+            // which .svelte is obv not part of. Make it work by faking a TS file.
+            if (!this.alreadyResolved.has(sourceFile.fileName)) {
+                sourceFile.impliedNodeFormat = ts.getImpliedNodeFormatForFile(
+                    toVirtualSvelteFilePath(sourceFile.fileName) as any,
+                    undefined,
+                    ts.sys,
+                    compilerOptions
+                );
+                this.alreadyResolved.set(sourceFile.fileName, sourceFile.impliedNodeFormat);
+            } else {
+                sourceFile.impliedNodeFormat = this.alreadyResolved.get(sourceFile.fileName);
+            }
+        }
+    }
+
+    resolveForTypeReference(
+        entry: string | ts.FileReference,
+        sourceFile: ts.SourceFile | undefined,
+        compilerOptions: ts.CompilerOptions
+    ) {
+        let mode = undefined;
+        if (sourceFile) {
+            this.cacheImpliedNodeFormat(sourceFile, compilerOptions);
+            mode = ts.getModeForFileReference(entry, sourceFile?.impliedNodeFormat);
+        }
+        return mode;
+    }
+}
+
+// https://github.com/microsoft/TypeScript/blob/dddd0667f012c51582c2ac92c08b8e57f2456587/src/compiler/program.ts#L989
+function getTypeReferenceResolutionName<T extends ts.FileReference | string>(entry: T) {
+    return typeof entry !== 'string' ? toFileNameLowerCase(entry.fileName) : entry;
 }
 
 /**
@@ -127,10 +149,27 @@ export function createSvelteModuleLoader(
     getSnapshot: (fileName: string) => DocumentSnapshot,
     compilerOptions: ts.CompilerOptions,
     tsSystem: ts.System,
-    tsResolveModuleName: typeof ts.resolveModuleName
+    tsModule: typeof ts
 ) {
+    const getCanonicalFileName = createGetCanonicalFileName(tsSystem.useCaseSensitiveFileNames);
     const svelteSys = createSvelteSys(getSnapshot, tsSystem);
+    // tsModuleCache caches package.json parsing and module resolution for directory
+    const tsModuleCache = tsModule.createModuleResolutionCache(
+        tsSystem.getCurrentDirectory(),
+        createGetCanonicalFileName(tsSystem.useCaseSensitiveFileNames)
+    );
+    const tsTypeReferenceDirectiveCache = tsModule.createTypeReferenceDirectiveResolutionCache(
+        tsSystem.getCurrentDirectory(),
+        getCanonicalFileName,
+        undefined,
+        tsModuleCache.getPackageJsonInfoCache()
+    );
     const moduleCache = new ModuleResolutionCache();
+    const typeReferenceCache = new Map<
+        string,
+        ts.ResolvedTypeReferenceDirectiveWithFailedLookupLocations
+    >();
+
     const impliedNodeFormatResolver = new ImpliedNodeFormatResolver();
 
     return {
@@ -145,7 +184,8 @@ export function createSvelteModuleLoader(
             svelteSys.deleteFromCache(path);
             moduleCache.deleteUnresolvedResolutionsFromCache(path);
         },
-        resolveModuleNames
+        resolveModuleNames,
+        resolveTypeReferenceDirectiveReferences
     };
 
     function resolveModuleNames(
@@ -187,12 +227,12 @@ export function createSvelteModuleLoader(
         // Delegate to the TS resolver first.
         // If that does not bring up anything, try the Svelte Module loader
         // which is able to deal with .svelte files.
-        const tsResolvedModule = tsResolveModuleName(
+        const tsResolvedModule = tsModule.resolveModuleName(
             name,
             containingFile,
             compilerOptions,
             ts.sys,
-            undefined,
+            tsModuleCache,
             undefined,
             mode
         ).resolvedModule;
@@ -200,7 +240,7 @@ export function createSvelteModuleLoader(
             return tsResolvedModule;
         }
 
-        const svelteResolvedModule = tsResolveModuleName(
+        const svelteResolvedModule = tsModule.resolveModuleName(
             name,
             containingFile,
             compilerOptions,
@@ -225,5 +265,42 @@ export function createSvelteModuleLoader(
             isExternalLibraryImport: svelteResolvedModule.isExternalLibraryImport
         };
         return resolvedSvelteModule;
+    }
+
+    function resolveTypeReferenceDirectiveReferences<T extends ts.FileReference | string>(
+        typeDirectiveNames: readonly T[],
+        containingFile: string,
+        redirectedReference: ts.ResolvedProjectReference | undefined,
+        options: ts.CompilerOptions,
+        containingSourceFile: ts.SourceFile | undefined
+    ): readonly ts.ResolvedTypeReferenceDirectiveWithFailedLookupLocations[] {
+        return typeDirectiveNames.map((typeDirectiveName) => {
+            const entry = getTypeReferenceResolutionName(typeDirectiveName);
+            const mode = impliedNodeFormatResolver.resolveForTypeReference(
+                entry,
+                containingSourceFile,
+                options
+            );
+
+            const key = `${entry}|${mode}`;
+            let result = typeReferenceCache.get(key);
+            if (!result) {
+                result = ts.resolveTypeReferenceDirective(
+                    entry,
+                    containingFile,
+                    options,
+                    {
+                        ...tsSystem
+                    },
+                    redirectedReference,
+                    tsTypeReferenceDirectiveCache,
+                    mode
+                );
+
+                typeReferenceCache.set(key, result);
+            }
+
+            return result;
+        });
     }
 }

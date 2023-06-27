@@ -18,6 +18,9 @@ describe('createSvelteModuleLoader', () => {
         const resolveStub = sinon.stub().returns(<ts.ResolvedModuleWithFailedLookupLocations>{
             resolvedModule
         });
+        const moduleCacheMock = <ts.ModuleResolutionCache>{
+            getPackageJsonInfoCache: () => ({}),
+        };
 
         const svelteSys = <any>'svelteSys';
         sinon.stub(svS, 'createSvelteSys').returns(svelteSys);
@@ -27,11 +30,16 @@ describe('createSvelteModuleLoader', () => {
             getSvelteSnapshotStub,
             compilerOptions,
             ts.sys,
-            resolveStub
+            {
+                ...ts,
+                createModuleResolutionCache: () => moduleCacheMock,
+                resolveModuleName: resolveStub,
+            }
         );
 
         return {
             getSvelteSnapshotStub,
+            moduleCacheMock: moduleCacheMock,
             resolveStub,
             compilerOptions,
             moduleResolver,
@@ -48,7 +56,7 @@ describe('createSvelteModuleLoader', () => {
             extension: ts.Extension.Ts,
             resolvedFileName: 'filename.ts'
         };
-        const { resolveStub, moduleResolver, compilerOptions } = setup(resolvedModule);
+        const { resolveStub, moduleResolver, compilerOptions, moduleCacheMock } = setup(resolvedModule);
         const result = moduleResolver.resolveModuleNames(
             ['./normal.ts'],
             'C:/somerepo/somefile.svelte',
@@ -63,7 +71,7 @@ describe('createSvelteModuleLoader', () => {
             'C:/somerepo/somefile.svelte',
             compilerOptions,
             ts.sys,
-            undefined,
+            moduleCacheMock,
             undefined,
             undefined
         ]);
@@ -74,7 +82,7 @@ describe('createSvelteModuleLoader', () => {
             extension: ts.Extension.Ts,
             resolvedFileName: 'filename.ts'
         };
-        const { resolveStub, moduleResolver, compilerOptions } = setup(resolvedModule);
+        const { resolveStub, moduleResolver, compilerOptions, moduleCacheMock } = setup(resolvedModule);
         const result = moduleResolver.resolveModuleNames(
             ['/@/normal'],
             'C:/somerepo/somefile.svelte',
@@ -89,7 +97,7 @@ describe('createSvelteModuleLoader', () => {
             'C:/somerepo/somefile.svelte',
             compilerOptions,
             ts.sys,
-            undefined,
+            moduleCacheMock,
             undefined,
             undefined
         ]);
@@ -100,7 +108,7 @@ describe('createSvelteModuleLoader', () => {
             extension: ts.Extension.Dts,
             resolvedFileName: 'filename.d.ts'
         };
-        const { resolveStub, moduleResolver, compilerOptions } = setup(resolvedModule);
+        const { resolveStub, moduleResolver, compilerOptions, moduleCacheMock } = setup(resolvedModule);
         const result = moduleResolver.resolveModuleNames(
             ['./normal.ts'],
             'C:/somerepo/somefile.svelte',
@@ -115,7 +123,7 @@ describe('createSvelteModuleLoader', () => {
             'C:/somerepo/somefile.svelte',
             compilerOptions,
             ts.sys,
-            undefined,
+            moduleCacheMock,
             undefined,
             undefined
         ]);
