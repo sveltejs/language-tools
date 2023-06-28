@@ -7,7 +7,11 @@ import { LSConfigManager, TsInlayHintsConfig } from '../../../../../src/ls-confi
 import { LSAndTSDocResolver } from '../../../../../src/plugins';
 import { InlayHintProviderImpl } from '../../../../../src/plugins/typescript/features/InlayHintProvider';
 import { pathToUrl } from '../../../../../src/utils';
-import { createSnapshotTester, updateSnapshotIfFailedOrEmpty } from '../../test-utils';
+import {
+    createJsonSnapshotFormatter,
+    createSnapshotTester,
+    updateSnapshotIfFailedOrEmpty
+} from '../../test-utils';
 
 function setup(workspaceDir: string, filePath: string) {
     const docManager = new DocumentManager(
@@ -65,6 +69,8 @@ async function executeTest(
         writeFileSync(join(dir, 'debug.svelte'), appendInlayHintAsComment());
     }
 
+    const snapshotFormatter = await createJsonSnapshotFormatter(dir);
+
     updateSnapshotIfFailedOrEmpty({
         assertion() {
             assert.deepStrictEqual(
@@ -74,7 +80,7 @@ async function executeTest(
         },
         expectedFile,
         getFileContent() {
-            return JSON.stringify(inlayHints, null, 4);
+            return snapshotFormatter(inlayHints);
         },
         rootDir: __dirname
     });
@@ -116,9 +122,10 @@ async function executeTest(
 
 const executeTests = createSnapshotTester(executeTest);
 
-describe('InlayHintProvider', () => {
+describe('InlayHintProvider', function () {
     executeTests({
         dir: join(__dirname, 'fixtures'),
-        workspaceDir: join(__dirname, 'fixtures')
+        workspaceDir: join(__dirname, 'fixtures'),
+        context: this
     });
 });

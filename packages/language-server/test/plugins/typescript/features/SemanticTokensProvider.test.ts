@@ -13,17 +13,20 @@ import { LSConfigManager } from '../../../../src/ls-config';
 import { SemanticTokensProviderImpl } from '../../../../src/plugins/typescript/features/SemanticTokensProvider';
 import { LSAndTSDocResolver } from '../../../../src/plugins/typescript/LSAndTSDocResolver';
 import { pathToUrl } from '../../../../src/utils';
+import { serviceWarmup } from '../test-utils';
 
 const testDir = path.join(__dirname, '..');
+const semanticTokenTestDir = path.join(testDir, 'testfiles', 'semantic-tokens');
 
-describe('SemanticTokensProvider', () => {
+describe('SemanticTokensProvider', function () {
     const tsFile = 'tokens.svelte';
+    serviceWarmup(this, semanticTokenTestDir, pathToUrl(testDir));
 
     function setup(filename: string) {
         const docManager = new DocumentManager(
             (textDocument) => new Document(textDocument.uri, textDocument.text)
         );
-        const filePath = path.join(testDir, 'testfiles', 'semantic-tokens', filename);
+        const filePath = path.join(semanticTokenTestDir, filename);
         const lsAndTsDocResolver = new LSAndTSDocResolver(
             docManager,
             [pathToUrl(testDir)],
@@ -38,7 +41,7 @@ describe('SemanticTokensProvider', () => {
     }
 
     // TODO reenable with updated tokens for new transformation
-    it.skip('provides semantic token', async () => {
+    it('provides semantic token', async () => {
         const { provider, document } = setup(tsFile);
 
         const { data } = (await provider.getSemanticTokens(document)) ?? {
@@ -184,8 +187,15 @@ describe('SemanticTokensProvider', () => {
                 line: 11,
                 character: 25,
                 length: 'text'.length,
-                type: TokenType.parameter,
-                modifiers: [TokenModifier.declaration]
+                type: TokenType.variable,
+                modifiers: [TokenModifier.declaration, TokenModifier.local, TokenModifier.readonly]
+            },
+            {
+                line: 12,
+                character: 5,
+                length: 'Imported'.length,
+                type: TokenType.class,
+                modifiers: []
             },
             {
                 line: 12,
@@ -198,8 +208,8 @@ describe('SemanticTokensProvider', () => {
                 line: 12,
                 character: 43,
                 length: 'text'.length,
-                type: TokenType.parameter,
-                modifiers: []
+                type: TokenType.variable,
+                modifiers: [TokenModifier.local, TokenModifier.readonly]
             },
             {
                 line: 12,
@@ -212,15 +222,15 @@ describe('SemanticTokensProvider', () => {
                 line: 14,
                 character: 16,
                 length: 1,
-                type: TokenType.parameter,
-                modifiers: [TokenModifier.declaration]
+                type: TokenType.variable,
+                modifiers: [TokenModifier.declaration, TokenModifier.local]
             },
             {
                 line: 15,
                 character: 5,
                 length: 1,
-                type: TokenType.parameter,
-                modifiers: []
+                type: TokenType.variable,
+                modifiers: [TokenModifier.local]
             }
         ];
 

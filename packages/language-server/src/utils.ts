@@ -163,28 +163,28 @@ export function debounceSameArg<T>(
  * the next invocation. This avoids needless calls when a synchronous call (like diagnostics)
  * took too long and the whole timeout of the next call was eaten up already.
  *
- * @param fn The function with it's argument
+ * @param fn The function
  * @param miliseconds Number of miliseconds to debounce/throttle
  */
-export function debounceThrottle<T extends (...args: any) => void>(fn: T, miliseconds: number): T {
+export function debounceThrottle(fn: () => void, miliseconds: number): () => void {
     let timeout: any;
     let lastInvocation = Date.now() - miliseconds;
 
-    function maybeCall(...args: any) {
+    function maybeCall() {
         clearTimeout(timeout);
 
         timeout = setTimeout(() => {
             if (Date.now() - lastInvocation < miliseconds) {
-                maybeCall(...args);
+                maybeCall();
                 return;
             }
 
-            fn(...args);
+            fn();
             lastInvocation = Date.now();
         }, miliseconds);
     }
 
-    return maybeCall as any;
+    return maybeCall;
 }
 
 /**

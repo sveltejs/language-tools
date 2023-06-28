@@ -13,7 +13,7 @@
     {
         "range": {
             "start": { "line": 14, "character": 20 },
-            "end": { "line": 14, "character": 39 }
+            "end": { "line": 14, "character": 32 }
         },
         "severity": 1,
         "source": "ts",
@@ -35,7 +35,7 @@
     {
         "range": {
             "start": { "line": 16, "character": 31 },
-            "end": { "line": 16, "character": 50 }
+            "end": { "line": 16, "character": 43 }
         },
         "severity": 1,
         "source": "ts",

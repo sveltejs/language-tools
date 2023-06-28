@@ -1,5 +1,5 @@
 import * as assert from 'assert';
-import { readFileSync } from 'fs';
+import { readFileSync, existsSync, readdirSync } from 'fs';
 import { join } from 'path';
 import ts from 'typescript';
 import { Document, DocumentManager } from '../../../../../src/lib/documents';
@@ -8,7 +8,12 @@ import { LSAndTSDocResolver } from '../../../../../src/plugins';
 import { DiagnosticsProviderImpl } from '../../../../../src/plugins/typescript/features/DiagnosticsProvider';
 import { __resetCache } from '../../../../../src/plugins/typescript/service';
 import { pathToUrl } from '../../../../../src/utils';
-import { createSnapshotTester, updateSnapshotIfFailedOrEmpty } from '../../test-utils';
+import {
+    createJsonSnapshotFormatter,
+    createSnapshotTester,
+    updateSnapshotIfFailedOrEmpty
+} from '../../test-utils';
+import { getPackageInfo } from '../../../../../src/importPackage';
 
 function setup(workspaceDir: string, filePath: string) {
     const docManager = new DocumentManager(
@@ -28,6 +33,12 @@ function setup(workspaceDir: string, filePath: string) {
     return { plugin, document, docManager, lsAndTsDocResolver };
 }
 
+const {
+    version: { major }
+} = getPackageInfo('svelte', __dirname);
+const expected = 'expectedv2.json';
+const newSvelteMajorExpected = `expected_svelte_${major}.json`;
+
 async function executeTest(
     inputFile: string,
     {
@@ -38,18 +49,23 @@ async function executeTest(
         dir: string;
     }
 ) {
-    const expected = 'expectedv2.json';
     const { plugin, document } = setup(workspaceDir, inputFile);
     const diagnostics = await plugin.getDiagnostics(document);
 
-    const expectedFile = join(dir, expected);
+    const defaultExpectedFile = join(dir, expected);
+    const expectedFileForCurrentSvelteMajor = join(dir, newSvelteMajorExpected);
+    const expectedFile = existsSync(expectedFileForCurrentSvelteMajor)
+        ? expectedFileForCurrentSvelteMajor
+        : defaultExpectedFile;
+    const snapshotFormatter = await createJsonSnapshotFormatter(dir);
+
     updateSnapshotIfFailedOrEmpty({
         assertion() {
             assert.deepStrictEqual(diagnostics, JSON.parse(readFileSync(expectedFile, 'utf-8')));
         },
         expectedFile,
         getFileContent() {
-            return JSON.stringify(diagnostics, null, 4);
+            return snapshotFormatter(diagnostics);
         },
         rootDir: __dirname
     });
@@ -57,11 +73,13 @@ async function executeTest(
 
 const executeTests = createSnapshotTester(executeTest);
 
-describe('DiagnosticsProvider', () => {
+describe('DiagnosticsProvider', function () {
     executeTests({
         dir: join(__dirname, 'fixtures'),
-        workspaceDir: join(__dirname, 'fixtures')
+        workspaceDir: join(__dirname, 'fixtures'),
+        context: this
     });
+
     // Hacky, but it works. Needed due to testing both new and old transformation
     after(() => {
         __resetCache();

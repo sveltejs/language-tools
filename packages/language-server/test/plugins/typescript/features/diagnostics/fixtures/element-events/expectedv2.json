@@ -2,7 +2,7 @@
     {
         "range": {
             "start": { "line": 10, "character": 8 },
-            "end": { "line": 10, "character": 21 }
+            "end": { "line": 10, "character": 11 }
         },
         "severity": 1,
         "source": "ts",

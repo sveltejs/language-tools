@@ -53,6 +53,19 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
             const normalizedPath = fileName.replace(/\\/g, '/');
             if (normalizedPath.endsWith('node_modules/svelte/types/runtime/ambient.d.ts')) {
                 return modules.typescript.ScriptSnapshot.fromString('');
+            } else if (normalizedPath.endsWith('node_modules/svelte/types/index.d.ts')) {
+                const snapshot = getScriptSnapshot(fileName);
+                if (snapshot) {
+                    const originalText = snapshot.getText(0, snapshot.getLength());
+                    const startIdx = originalText.indexOf(`declare module '*.svelte' {`);
+                    const endIdx =
+                        originalText.indexOf(`}`, originalText.indexOf(';', startIdx)) + 1;
+                    return modules.typescript.ScriptSnapshot.fromString(
+                        originalText.substring(0, startIdx) +
+                            ' '.repeat(endIdx - startIdx) +
+                            originalText.substring(endIdx)
+                    );
+                }
             } else if (normalizedPath.endsWith('svelte2tsx/svelte-jsx.d.ts')) {
                 // Remove the dom lib reference to not load these ambient types in case
                 // the user has a tsconfig.json with different lib settings like in

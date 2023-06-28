@@ -4,6 +4,13 @@
   let tagString: string = '';
   let elementDiv: HTMLDivElement;
   let elementOther: HTMLAnchorElement | HTMLButtonElement;
+  let elementOther2: HTMLAnchorElement;
+
+  () => {
+    elementDiv;
+    elementOther;
+    elementOther2;
+  }
 </script>
 
 <!-- valid -->
@@ -13,5 +20,5 @@
 <svelte:element this={tagString} bind:this={elementOther} on:click={e => e.currentTarget} />
 
 <!-- invalid -->
-<svelte:element this={tag} bind:this={elementOther} />
+<svelte:element this={tag} bind:this={elementOther2} />
 <svelte:element this={tag} cellpadding="{1}" />

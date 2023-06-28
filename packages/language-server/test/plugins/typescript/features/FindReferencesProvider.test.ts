@@ -8,10 +8,13 @@ import { FindReferencesProviderImpl } from '../../../../src/plugins/typescript/f
 import { LSAndTSDocResolver } from '../../../../src/plugins/typescript/LSAndTSDocResolver';
 import { __resetCache } from '../../../../src/plugins/typescript/service';
 import { pathToUrl } from '../../../../src/utils';
+import { serviceWarmup } from '../test-utils';
 
 const testDir = path.join(__dirname, '..');
 
-describe('FindReferencesProvider', () => {
+describe('FindReferencesProvider', function () {
+    serviceWarmup(this, testDir);
+
     function getFullPath(filename: string) {
         return path.join(testDir, 'testfiles', filename);
     }

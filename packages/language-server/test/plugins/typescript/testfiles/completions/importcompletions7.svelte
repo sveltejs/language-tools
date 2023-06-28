@@ -5,5 +5,5 @@
 <script>
 	import * as data from "./to-import";
 
-	onMoun
+	Compon
 </script>

@@ -16,8 +16,13 @@ import { INITIAL_VERSION } from '../../../src/plugins/typescript/DocumentSnapsho
 import { __resetCache } from '../../../src/plugins/typescript/service';
 import { ignoredBuildDirectories } from '../../../src/plugins/typescript/SnapshotManager';
 import { pathToUrl } from '../../../src/utils';
+import { serviceWarmup } from './test-utils';
 
-describe('TypescriptPlugin', () => {
+const testDir = path.join(__dirname, 'testfiles');
+
+describe('TypescriptPlugin', function () {
+    serviceWarmup(this, testDir);
+
     function getUri(filename: string) {
         const filePath = path.join(__dirname, 'testfiles', filename);
         return pathToUrl(filePath);
@@ -33,7 +38,6 @@ describe('TypescriptPlugin', () => {
                 ? new Document(args.uri, harmonizeNewLines(args.text))
                 : document
         );
-        const testDir = path.join(__dirname, 'testfiles');
         const filePath = path.join(testDir, filename);
         const document = new Document(pathToUrl(filePath), ts.sys.readFile(filePath) || '');
         const lsConfigManager = new LSConfigManager();

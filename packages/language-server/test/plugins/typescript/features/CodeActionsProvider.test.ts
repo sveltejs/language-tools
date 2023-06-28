@@ -19,11 +19,18 @@ import { CompletionsProviderImpl } from '../../../../src/plugins/typescript/feat
 import { LSAndTSDocResolver } from '../../../../src/plugins/typescript/LSAndTSDocResolver';
 import { __resetCache } from '../../../../src/plugins/typescript/service';
 import { pathToUrl } from '../../../../src/utils';
+import { recursiveServiceWarmup } from '../test-utils';
 
 const testDir = path.join(__dirname, '..');
 const indent = ' '.repeat(4);
 
-describe('CodeActionsProvider', () => {
+describe('CodeActionsProvider', function () {
+    recursiveServiceWarmup(
+        this,
+        path.join(testDir, 'testfiles', 'code-actions'),
+        pathToUrl(testDir)
+    );
+
     function getFullPath(filename: string) {
         return path.join(testDir, 'testfiles', 'code-actions', filename);
     }
@@ -1799,7 +1806,6 @@ describe('CodeActionsProvider', () => {
             }
         );
 
-        console.log(JSON.stringify(codeActions, null, 2));
         assert.deepStrictEqual(codeActions, [
             {
                 title: 'Organize Imports',

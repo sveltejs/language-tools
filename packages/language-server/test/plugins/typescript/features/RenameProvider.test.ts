@@ -8,12 +8,16 @@ import { RenameProviderImpl } from '../../../../src/plugins/typescript/features/
 import { LSAndTSDocResolver } from '../../../../src/plugins/typescript/LSAndTSDocResolver';
 import { __resetCache } from '../../../../src/plugins/typescript/service';
 import { pathToUrl } from '../../../../src/utils';
+import { serviceWarmup } from '../test-utils';
 
 const testDir = path.join(__dirname, '..');
+const renameTestDir = path.join(testDir, 'testfiles', 'rename');
 
-describe('RenameProvider', () => {
+describe('RenameProvider', function () {
+    serviceWarmup(this, renameTestDir, pathToUrl(testDir));
+
     function getFullPath(filename: string) {
-        return path.join(testDir, 'testfiles', 'rename', filename);
+        return path.join(renameTestDir, filename);
     }
 
     function getUri(filename: string) {
@@ -275,8 +279,6 @@ describe('RenameProvider', () => {
     it('should do rename of prop without type of component A in component A that is used with shorthands in component B', async () => {
         const { provider, renameDoc3 } = await setup();
         const result = await provider.rename(renameDoc3, Position.create(2, 20), 'newName');
-
-        console.log(JSON.stringify(result, null, 3));
 
         assert.deepStrictEqual(result, {
             changes: {

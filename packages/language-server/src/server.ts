@@ -347,8 +347,9 @@ export function startServer(options?: LSOptions) {
     });
 
     connection.onDidOpenTextDocument((evt) => {
-        docManager.openDocument(evt.textDocument);
+        const document = docManager.openDocument(evt.textDocument);
         docManager.markAsOpenedInClient(evt.textDocument.uri);
+        diagnosticsManager.scheduleUpdate(document);
     });
 
     connection.onDidCloseTextDocument((evt) => docManager.closeDocument(evt.textDocument.uri));
@@ -436,12 +437,12 @@ export function startServer(options?: LSOptions) {
         pluginHost.getDiagnostics.bind(pluginHost)
     );
 
-    const updateAllDiagnostics = debounceThrottle(() => diagnosticsManager.updateAll(), 1000);
     const refreshSemanticTokens = debounceThrottle(() => {
         if (configManager?.getClientCapabilities()?.workspace?.semanticTokens?.refreshSupport) {
             connection?.sendRequest(SemanticTokensRefreshRequest.method);
         }
     }, 1500);
+
     const refreshInlayHints = debounceThrottle(() => {
         if (configManager?.getClientCapabilities()?.workspace?.inlayHint?.refreshSupport) {
             connection?.sendRequest(InlayHintRefreshRequest.method);
@@ -449,7 +450,7 @@ export function startServer(options?: LSOptions) {
     }, 1500);
 
     const refreshCrossFilesSemanticFeatures = () => {
-        updateAllDiagnostics();
+        diagnosticsManager.scheduleUpdateAll();
         refreshInlayHints();
         refreshSemanticTokens();
     };
@@ -468,7 +469,7 @@ export function startServer(options?: LSOptions) {
         refreshCrossFilesSemanticFeatures();
     }
 
-    connection.onDidSaveTextDocument(updateAllDiagnostics);
+    connection.onDidSaveTextDocument(diagnosticsManager.scheduleUpdateAll);
     connection.onNotification('$/onDidChangeTsOrJsFile', async (e: any) => {
         const path = urlToPath(e.uri);
         if (path) {
@@ -510,10 +511,7 @@ export function startServer(options?: LSOptions) {
         async (evt, token) => await pluginHost.getOutgoingCalls(evt.item, token)
     );
 
-    docManager.on(
-        'documentChange',
-        debounceThrottle(async (document: Document) => diagnosticsManager.update(document), 750)
-    );
+    docManager.on('documentChange', diagnosticsManager.scheduleUpdate.bind(diagnosticsManager));
     docManager.on('documentClose', (document: Document) =>
         diagnosticsManager.removeDiagnostics(document)
     );

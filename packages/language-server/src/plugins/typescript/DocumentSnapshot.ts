@@ -130,7 +130,15 @@ export namespace DocumentSnapshot {
         if (!normalizedPath.endsWith('node_modules/svelte/types/runtime/ambient.d.ts')) {
             originalText = tsSystem.readFile(filePath) || '';
         }
-        if (
+
+        if (normalizedPath.endsWith('node_modules/svelte/types/index.d.ts')) {
+            const startIdx = originalText.indexOf(`declare module '*.svelte' {`);
+            const endIdx = originalText.indexOf(`}`, originalText.indexOf(';', startIdx)) + 1;
+            originalText =
+                originalText.substring(0, startIdx) +
+                ' '.repeat(endIdx - startIdx) +
+                originalText.substring(endIdx);
+        } else if (
             normalizedPath.endsWith('svelte2tsx/svelte-shims.d.ts') ||
             normalizedPath.endsWith('svelte-check/dist/src/svelte-shims.d.ts')
         ) {
@@ -326,7 +334,7 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
                 : this.parent.offsetAt(positionOrOffset);
 
         let foundNode: SvelteNode | null = null;
-        walk(this.htmlAst, {
+        walk(this.htmlAst as any, {
             enter(node) {
                 // In case the offset is at a point where a node ends and a new one begins,
                 // the node where the code ends is used. If this introduces problems, introduce

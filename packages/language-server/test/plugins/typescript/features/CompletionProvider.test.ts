@@ -23,7 +23,7 @@ import { LSAndTSDocResolver } from '../../../../src/plugins/typescript/LSAndTSDo
 import { sortBy } from 'lodash';
 import { LSConfigManager } from '../../../../src/ls-config';
 import { __resetCache } from '../../../../src/plugins/typescript/service';
-import { getRandomVirtualDirPath, setupVirtualEnvironment } from '../test-utils';
+import { getRandomVirtualDirPath, serviceWarmup, setupVirtualEnvironment } from '../test-utils';
 
 const testDir = join(__dirname, '..');
 const testFilesDir = join(testDir, 'testfiles', 'completions');
@@ -39,7 +39,9 @@ function harmonizeNewLines(input?: string) {
 }
 
 // describe('CompletionProviderImpl (old transformation)', test(false));
-describe('CompletionProviderImpl', () => {
+describe('CompletionProviderImpl', function () {
+    serviceWarmup(this, testFilesDir, pathToUrl(testDir));
+
     function setup(filename: string) {
         const docManager = new DocumentManager(
             (textDocument) => new Document(textDocument.uri, textDocument.text)
@@ -710,21 +712,17 @@ describe('CompletionProviderImpl', () => {
         );
         document.version++;
 
-        const item = completions?.items.find((item) => item.label === 'onMount');
+        const item = completions?.items.find((item) => item.label === 'ComponentDef');
         const { additionalTextEdits, detail } = await completionProvider.resolveCompletion(
             document,
             item!
         );
 
-        assert.strictEqual(
-            detail,
-            'Add import from "svelte"\n\nfunction onMount(fn: () => any): void'
-        );
+        assert.strictEqual(detail, 'Add import from "./ComponentDef"\n\nclass ComponentDef');
 
         assert.strictEqual(
             harmonizeNewLines(additionalTextEdits![0]?.newText),
-            // " instead of ' because VSCode uses " by default when there are no other imports indicating otherwise
-            `${newLine}${indent}import { onMount } from "svelte";${newLine}`
+            `${newLine}${indent}import { ComponentDef } from "./ComponentDef";${newLine}`
         );
 
         assert.deepEqual(
@@ -936,6 +934,24 @@ describe('CompletionProviderImpl', () => {
                 range: Range.create(Position.create(1, 11), Position.create(1, 14))
             }
         ]);
+    });
+
+    it('indent according to prettier config', async () => {
+        const { completionProvider, document } = setup('useTabs/importcompletions1.svelte');
+
+        const completions = await completionProvider.getCompletions(
+            document,
+            Position.create(1, 3)
+        );
+
+        const item = completions?.items.find((item) => item.label === 'blubb');
+
+        const { additionalTextEdits } = await completionProvider.resolveCompletion(document, item!);
+
+        assert.strictEqual(
+            harmonizeNewLines(additionalTextEdits![0]?.newText),
+            `${newLine}\timport { blubb } from "../../definitions";${newLine}`
+        );
     });
 
     it('can be canceled before promise resolved', async () => {
