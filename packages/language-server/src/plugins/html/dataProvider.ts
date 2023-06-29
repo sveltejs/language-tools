@@ -1,8 +1,9 @@
 import { IAttributeData, ITagData, newHTMLDataProvider } from 'vscode-html-languageservice';
 import { htmlData } from 'vscode-html-languageservice/lib/umd/languageFacts/data/webCustomData';
+import { unique } from '../../utils';
 
 const svelteEvents = [
-    ...htmlData.globalAttributes!.map(mapToSvelteEvent),
+    ...(htmlData.globalAttributes?.filter(isEvent).map(mapToSvelteEvent) ?? []),
     {
         name: 'on:introstart',
         description: 'Available when element has transition'
@@ -409,8 +410,18 @@ export const svelteHtmlDataProvider = newHTMLDataProvider('svelte-builtin', {
         ...sveltekitAttributes
     ],
     tags: [...html5Tags, ...svelteTags],
-    valueSets: htmlData.valueSets
+
+    // TODO remove this after it's fixed in the html language service
+    valueSets:
+        htmlData.valueSets?.map((set) => ({
+            name: set.name,
+            values: unique(set.values)
+        })) ?? []
 });
+
+function isEvent(attr: IAttributeData) {
+    return attr.name.startsWith('on');
+}
 
 function mapToSvelteEvent(attr: IAttributeData) {
     return {
