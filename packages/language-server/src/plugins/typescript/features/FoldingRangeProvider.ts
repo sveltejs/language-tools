@@ -1,9 +1,15 @@
 import ts from 'typescript';
+import { Node } from 'vscode-html-languageservice';
 import { FoldingRangeKind, Range } from 'vscode-languageserver';
 import { FoldingRange } from 'vscode-languageserver-types';
 import { Document, mapRangeToOriginal } from '../../../lib/documents';
-import { indentBasedFoldingRange, isNotNullOrUndefined } from '../../../utils';
+import {
+    indentBasedFoldingRange,
+    indentBasedFoldingRangeForTag,
+    isNotNullOrUndefined
+} from '../../../utils';
 import { FoldingRangeProvider } from '../../interfaces';
+import { SvelteDocumentSnapshot } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { convertRange } from '../utils';
 import { isTextSpanInGeneratedCode } from './utils';
@@ -17,7 +23,10 @@ export class FoldingRangeProviderImpl implements FoldingRangeProvider {
     async getFoldingRange(document: Document): Promise<FoldingRange[]> {
         const { lang, tsDoc } = await this.lsAndTsDocResolver.getLSAndTSDoc(document);
 
-        const foldingRanges = lang.getOutliningSpans(tsDoc.filePath);
+        const foldingRanges =
+            tsDoc.parserError && !document.moduleScriptInfo && !document.scriptInfo
+                ? []
+                : lang.getOutliningSpans(tsDoc.filePath);
 
         const tags = [
             document.templateInfo,
@@ -39,7 +48,7 @@ export class FoldingRangeProviderImpl implements FoldingRangeProvider {
 
         const htmlRegionComments = this.collectHTMLRegionComment(document, tags);
         const templateRange = document.templateInfo
-            ? indentBasedFoldingRange(document, document.templateInfo)
+            ? indentBasedFoldingRangeForTag(document, document.templateInfo)
             : [];
 
         return foldingRanges
@@ -55,9 +64,8 @@ export class FoldingRangeProviderImpl implements FoldingRangeProvider {
                 this.convertOutliningSpan(span, document, originalRange)
             )
             .filter(isNotNullOrUndefined)
-            .concat(tags)
-            .concat(htmlRegionComments)
-            .concat(templateRange)
+            .concat(tags, htmlRegionComments, templateRange)
+            .concat(this.getFallbackFoldingIfParserError(document, tsDoc))
             .filter((foldingRange) => foldingRange.startLine !== foldingRange.endLine);
     }
 
@@ -141,5 +149,89 @@ export class FoldingRangeProviderImpl implements FoldingRangeProvider {
         }
 
         return result;
+    }
+
+    private getFallbackFoldingIfParserError(
+        document: Document,
+        tsDoc: SvelteDocumentSnapshot
+    ): FoldingRange[] {
+        if (!tsDoc.parserError) {
+            return [];
+        }
+
+        const htmlResult = new Map<number, FoldingRange>();
+
+        for (const node of document.html.roots) {
+            if (node.tag === 'script' || node.tag === 'style' || node.tag === 'template') {
+                continue;
+            }
+
+            this.collectFallbackHtmlFoldingRanges(document, node, htmlResult);
+        }
+
+        const tagStartLines = [
+            document.templateInfo,
+            document.moduleScriptInfo,
+            document.styleInfo,
+            document.scriptInfo
+        ]
+            .filter(isNotNullOrUndefined)
+            .map((tag) => document.positionAt(tag.container.start).line);
+
+        const templateInfo = document.templateInfo;
+        const isInSideTemplate = templateInfo
+            ? (line: number) => {
+                  return line >= templateInfo.startPos.line && line <= templateInfo.endPos.line;
+              }
+            : this.alwaysFalse;
+
+        const svelteTagResult = indentBasedFoldingRange(
+            document,
+            undefined,
+            (line, lineContent) => {
+                return (
+                    htmlResult.has(line) ||
+                    tagStartLines.includes(line) ||
+                    isInSideTemplate(line) ||
+                    (!lineContent.includes('{#') &&
+                        !lineContent.includes('{/') &&
+                        !lineContent.includes('{:'))
+                );
+            }
+        );
+
+        return [...htmlResult.values(), ...svelteTagResult];
+    }
+
+    /**
+     * saving memory by reusing the same function
+     */
+    private alwaysFalse() {
+        return false;
+    }
+
+    private collectFallbackHtmlFoldingRanges(
+        document: Document,
+        node: Node,
+        result: Map<number, FoldingRange>
+    ) {
+        const startLine = document.positionAt(node.start).line;
+        const endLine = document.positionAt(node.end).line - 1;
+
+        if (endLine <= startLine) {
+            return;
+        }
+
+        if (!result.has(startLine)) {
+            result.set(startLine, {
+                startLine,
+                endLine,
+                kind: FoldingRangeKind.Region
+            });
+        }
+
+        for (const child of node.children) {
+            this.collectFallbackHtmlFoldingRanges(document, child, result);
+        }
     }
 }

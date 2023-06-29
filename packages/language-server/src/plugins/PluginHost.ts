@@ -599,7 +599,7 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
     async getFoldingRange(textDocument: TextDocumentIdentifier): Promise<FoldingRange[]> {
         const document = this.getDocument(textDocument.uri);
 
-        return flatten(
+        const result = flatten(
             await this.execute<FoldingRange[]>(
                 'getFoldingRange',
                 [document],
@@ -608,6 +608,10 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
                 'high'
             )
         );
+
+        console.log(result);
+
+        return result;
     }
 
     onWatchFileChanges(onWatchFileChangesParas: OnWatchFileChangesPara[]): void {

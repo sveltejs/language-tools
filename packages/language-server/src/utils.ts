@@ -347,7 +347,10 @@ export function removeLineWithString(str: string, keyword: string) {
  * 1. check tab and space counts for lines
  * 2. if there're mixing space and tab guess the tabSize
  */
-export function indentBasedFoldingRange(document: Document, tag: TagInformation): FoldingRange[] {
+export function indentBasedFoldingRangeForTag(
+    document: Document,
+    tag: TagInformation
+): FoldingRange[] {
     if (tag.startPos.line === tag.endPos.line) {
         return [];
     }
@@ -359,6 +362,14 @@ export function indentBasedFoldingRange(document: Document, tag: TagInformation)
         return [];
     }
 
+    return indentBasedFoldingRange(document, { startLine, endLine });
+}
+
+export function indentBasedFoldingRange(
+    document: Document,
+    range: { startLine: number; endLine: number } | undefined,
+    skipLine?: (line: number, lineContent: string) => boolean
+): FoldingRange[] {
     const text = document.getText();
     const lines = text.split(/\r?\n/);
 
@@ -376,12 +387,14 @@ export function indentBasedFoldingRange(document: Document, tag: TagInformation)
 
     let currentIndent: number | undefined;
     const result: [indent: number, fold: FoldingRange][] = [];
+    range ??= { startLine: 0, endLine: lines.length - 1 };
+
     for (const indentInfo of indents) {
-        if (indentInfo.index < startLine || indentInfo.empty) {
+        if (indentInfo.index < range.startLine || indentInfo.empty) {
             continue;
         }
 
-        if (indentInfo.index > endLine) {
+        if (indentInfo.index > range.endLine) {
             break;
         }
 
@@ -390,13 +403,15 @@ export function indentBasedFoldingRange(document: Document, tag: TagInformation)
         currentIndent ??= lineIndent;
 
         if (lineIndent > currentIndent) {
-            result.unshift([
-                lineIndent,
-                {
-                    startLine: indentInfo.index - 1,
-                    endLine: indentInfo.index
-                }
-            ]);
+            if (!skipLine?.(indentInfo.index, lines[indentInfo.index])) {
+                result.unshift([
+                    lineIndent,
+                    {
+                        startLine: indentInfo.index - 1,
+                        endLine: indentInfo.index
+                    }
+                ]);
+            }
 
             currentIndent = lineIndent;
         }
