@@ -604,7 +604,6 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
                 'getFoldingRange',
                 [document],
                 ExecuteMode.Collect,
-                // TODO changes to smart
                 'high'
             )
         );

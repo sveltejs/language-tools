@@ -13,9 +13,13 @@ import { SvelteDocumentSnapshot } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { convertRange } from '../utils';
 import { isTextSpanInGeneratedCode } from './utils';
+import { LSConfigManager } from '../../../ls-config';
 
 export class FoldingRangeProviderImpl implements FoldingRangeProvider {
-    constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
+    constructor(
+        private readonly lsAndTsDocResolver: LSAndTSDocResolver,
+        private readonly configManager: LSConfigManager
+    ) {}
     private readonly foldEndPairCharacters = ['}', ']', ')', '`', '>'];
     private readonly htmlRegionRegex = /^\s*<!--\s*#region\b/;
     private readonly htmlEndRegionRegex = /^\s*<!--\s*#endregion\b/;
@@ -50,8 +54,11 @@ export class FoldingRangeProviderImpl implements FoldingRangeProvider {
         const templateRange = document.templateInfo
             ? indentBasedFoldingRangeForTag(document, document.templateInfo)
             : [];
+        const lineFoldingOnly =
+            !!this.configManager.getClientCapabilities()?.textDocument?.foldingRange
+                ?.lineFoldingOnly;
 
-        return foldingRanges
+        const result = foldingRanges
             .filter((span) => !isTextSpanInGeneratedCode(tsDoc.getFullText(), span.textSpan))
             .map((span) => ({
                 originalRange: mapRangeToOriginal(tsDoc, convertRange(tsDoc, span.textSpan)),
@@ -61,23 +68,28 @@ export class FoldingRangeProviderImpl implements FoldingRangeProvider {
                 ({ originalRange }) => originalRange.start.line >= 0 && originalRange.end.line >= 0
             )
             .map(({ originalRange, span }) =>
-                this.convertOutliningSpan(span, document, originalRange)
+                this.convertOutliningSpan(span, document, originalRange, lineFoldingOnly)
             )
             .filter(isNotNullOrUndefined)
             .concat(tags, htmlRegionComments, templateRange)
-            .concat(this.getFallbackFoldingIfParserError(document, tsDoc))
-            .filter((foldingRange) => foldingRange.startLine !== foldingRange.endLine);
+            .concat(this.getFallbackFoldingIfParserError(document, tsDoc));
+
+        return result;
     }
 
     private convertOutliningSpan(
         span: ts.OutliningSpan,
         document: Document,
-        originalRange: Range
+        originalRange: Range,
+        lineFoldingOnly: boolean
     ): FoldingRange | null {
+        const end = this.adjustFoldingEnd(originalRange, document, lineFoldingOnly);
         return {
             startLine: originalRange.start.line,
-            endLine: this.adjustFoldingEnd(originalRange, document),
-            kind: this.getFoldingRangeKind(span)
+            endLine: end.line,
+            kind: this.getFoldingRangeKind(span),
+            startCharacter: lineFoldingOnly ? undefined : originalRange.start.character,
+            endCharacter: lineFoldingOnly ? undefined : end.character
         };
     }
 
@@ -95,7 +107,11 @@ export class FoldingRangeProviderImpl implements FoldingRangeProvider {
         }
     }
 
-    private adjustFoldingEnd(range: Range, document: Document) {
+    private adjustFoldingEnd(
+        range: Range,
+        document: Document,
+        lineFoldingOnly: boolean
+    ): { line: number; character?: number } {
         // don't fold end bracket, brace...
         if (range.end.character > 0) {
             const text = document.getText();
@@ -105,17 +121,43 @@ export class FoldingRangeProviderImpl implements FoldingRangeProvider {
             });
             const foldEndCharacter = text[offsetBeforeEnd];
             if (this.foldEndPairCharacters.includes(foldEndCharacter)) {
-                return this.previousLineOfEndLine(range.start.line, range.end.line);
+                if (lineFoldingOnly) {
+                    return { line: this.previousLineOfEndLine(range.start.line, range.end.line) };
+                }
+
+                return { line: range.end.line, character: range.end.character - 1 };
             }
         }
 
-        const slice = document.getText().slice(document.offsetAt(range.end));
+        let endOffset = document.offsetAt(range.end);
+        const elseKeyword = ':else';
+        const lastPossibleOffsetIfOverlap = endOffset - elseKeyword.length + 1;
+        const isMiddleOfElseBlock = document
+            .getText()
+            .slice(lastPossibleOffsetIfOverlap, endOffset + elseKeyword.length - 1)
+            .includes(elseKeyword);
 
-        if (slice.startsWith('{:') || slice.startsWith('{/')) {
-            return this.previousLineOfEndLine(range.start.line, range.end.line);
+        if (isMiddleOfElseBlock) {
+            endOffset = document
+                .getText()
+                .lastIndexOf(
+                    '{',
+                    document.getText().indexOf(elseKeyword, lastPossibleOffsetIfOverlap)
+                );
+            range.end = document.positionAt(endOffset);
         }
 
-        return range.end.line;
+        if (!lineFoldingOnly) {
+            return range.end;
+        }
+
+        const after = document.getText().slice(endOffset);
+
+        if (after.startsWith('{:') || after.startsWith('{/')) {
+            return { line: this.previousLineOfEndLine(range.start.line, range.end.line) };
+        }
+
+        return range.end;
     }
 
     private previousLineOfEndLine(startLine: number, endLine: number) {
@@ -169,45 +211,32 @@ export class FoldingRangeProviderImpl implements FoldingRangeProvider {
             this.collectFallbackHtmlFoldingRanges(document, node, htmlResult);
         }
 
-        const tagStartLines = [
+        const tagRanges = [
             document.templateInfo,
             document.moduleScriptInfo,
             document.styleInfo,
             document.scriptInfo
         ]
             .filter(isNotNullOrUndefined)
-            .map((tag) => document.positionAt(tag.container.start).line);
+            .map((tag) => ({
+                startLine: document.positionAt(tag.container.start).line,
+                endLine: document.positionAt(tag.container.end).line
+            }));
 
-        const templateInfo = document.templateInfo;
-        const isInSideTemplate = templateInfo
-            ? (line: number) => {
-                  return line >= templateInfo.startPos.line && line <= templateInfo.endPos.line;
-              }
-            : this.alwaysFalse;
-
-        const svelteTagResult = indentBasedFoldingRange(
+        const svelteTagResult = indentBasedFoldingRange({
             document,
-            undefined,
-            (line, lineContent) => {
+            skipFold: (line, lineContent) => {
                 return (
                     htmlResult.has(line) ||
-                    tagStartLines.includes(line) ||
-                    isInSideTemplate(line) ||
                     (!lineContent.includes('{#') &&
                         !lineContent.includes('{/') &&
                         !lineContent.includes('{:'))
                 );
-            }
-        );
+            },
+            skipRanges: tagRanges
+        });
 
         return [...htmlResult.values(), ...svelteTagResult];
-    }
-
-    /**
-     * saving memory by reusing the same function
-     */
-    private alwaysFalse() {
-        return false;
     }
 
     private collectFallbackHtmlFoldingRanges(

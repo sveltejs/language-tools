@@ -362,14 +362,25 @@ export function indentBasedFoldingRangeForTag(
         return [];
     }
 
-    return indentBasedFoldingRange(document, { startLine, endLine });
+    return indentBasedFoldingRange({ document, range: { startLine, endLine } });
 }
 
-export function indentBasedFoldingRange(
-    document: Document,
-    range: { startLine: number; endLine: number } | undefined,
-    skipLine?: (line: number, lineContent: string) => boolean
-): FoldingRange[] {
+export interface LineRange {
+    startLine: number;
+    endLine: number;
+}
+
+export function indentBasedFoldingRange({
+    document,
+    range,
+    skipFold,
+    skipRanges
+}: {
+    document: Document;
+    range?: LineRange | undefined;
+    skipFold?: (startLine: number, startLineContent: string) => boolean;
+    skipRanges?: LineRange[];
+}): FoldingRange[] {
     const text = document.getText();
     const lines = text.split(/\r?\n/);
 
@@ -386,11 +397,16 @@ export function indentBasedFoldingRange(
     const tabSize = tabs && spaces ? guessTabSize(indents) : 4;
 
     let currentIndent: number | undefined;
-    const result: [indent: number, fold: FoldingRange][] = [];
+    const result: FoldingRange[] = [];
+    const unfinishedFolds = new Map<number, { startLine: number; endLine: number }>();
     range ??= { startLine: 0, endLine: lines.length - 1 };
 
     for (const indentInfo of indents) {
-        if (indentInfo.index < range.startLine || indentInfo.empty) {
+        if (
+            indentInfo.index < range.startLine ||
+            indentInfo.empty ||
+            withinRange(skipRanges, indentInfo.index)
+        ) {
             continue;
         }
 
@@ -403,28 +419,36 @@ export function indentBasedFoldingRange(
         currentIndent ??= lineIndent;
 
         if (lineIndent > currentIndent) {
-            if (!skipLine?.(indentInfo.index, lines[indentInfo.index])) {
-                result.unshift([
-                    lineIndent,
-                    {
-                        startLine: indentInfo.index - 1,
-                        endLine: indentInfo.index
-                    }
-                ]);
+            const startLine = indentInfo.index - 1;
+            if (!skipFold?.(startLine, lines[startLine])) {
+                const fold = { startLine, endLine: indentInfo.index };
+                unfinishedFolds.set(currentIndent, fold);
+                result.push(fold);
             }
 
             currentIndent = lineIndent;
         }
 
         if (lineIndent < currentIndent) {
-            const last = result.find(([indentOfFold]) => indentOfFold === lineIndent);
+            const last = unfinishedFolds.get(lineIndent);
+            unfinishedFolds.delete(lineIndent);
             if (last) {
-                last[1].endLine = indentInfo.index;
+                last.endLine = Math.max(last.endLine, indentInfo.index - 1);
             }
+
+            currentIndent = lineIndent;
         }
     }
 
-    return result.reverse().map(([, fold]) => fold);
+    for (const fold of unfinishedFolds.values()) {
+        fold.endLine = range.endLine;
+    }
+
+    return result;
+}
+
+function withinRange(ranges: LineRange[] | undefined, line: number) {
+    return ranges?.some((range) => range.startLine <= line && range.endLine >= line);
 }
 
 function collectIndents(line: string) {

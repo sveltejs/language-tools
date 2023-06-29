@@ -140,7 +140,7 @@ export class TypeScriptPlugin
     private readonly inlayHintProvider: InlayHintProviderImpl;
     private readonly foldingRangeProvider: FoldingRangeProviderImpl;
     private readonly callHierarchyProvider: CallHierarchyProviderImpl;
-    
+
     constructor(
         configManager: LSConfigManager,
         lsAndTsDocResolver: LSAndTSDocResolver,
@@ -180,8 +180,11 @@ export class TypeScriptPlugin
         this.callHierarchyProvider = new CallHierarchyProviderImpl(
             this.lsAndTsDocResolver,
             workspaceUris
-            );
-        this.foldingRangeProvider = new FoldingRangeProviderImpl(this.lsAndTsDocResolver);
+        );
+        this.foldingRangeProvider = new FoldingRangeProviderImpl(
+            this.lsAndTsDocResolver,
+            configManager
+        );
     }
 
     async getDiagnostics(
