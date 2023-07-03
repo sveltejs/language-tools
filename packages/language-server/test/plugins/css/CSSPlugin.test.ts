@@ -475,4 +475,24 @@ describe('CSS Plugin', () => {
 
         assert.equal(selectionRange, null);
     });
+
+    describe('folding ranges', () => {
+        it('provides folding ranges', () => {
+            const { plugin, document } = setup('<style>\n.hi {\ndisplay:none;\n}\n</style>');
+
+            const foldingRanges = plugin.getFoldingRanges(document);
+
+            assert.deepStrictEqual(foldingRanges, [{ startLine: 1, endLine: 2, kind: undefined }]);
+        });
+
+        it('provides folding ranges for known indent style', () => {
+            const { plugin, document } = setup(
+                '<style lang="sass">\n.hi\n  display:none\n.hi2\n  display: none</style>'
+            );
+
+            const foldingRanges = plugin.getFoldingRanges(document);
+
+            assert.deepStrictEqual(foldingRanges, [{ startLine: 1, endLine: 2 }]);
+        });
+    });
 });

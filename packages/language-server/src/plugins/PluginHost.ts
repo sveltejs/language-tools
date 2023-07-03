@@ -596,19 +596,19 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         );
     }
 
-    async getFoldingRange(textDocument: TextDocumentIdentifier): Promise<FoldingRange[]> {
+    async getFoldingRanges(textDocument: TextDocumentIdentifier): Promise<FoldingRange[]> {
         const document = this.getDocument(textDocument.uri);
 
         const result = flatten(
             await this.execute<FoldingRange[]>(
-                'getFoldingRange',
+                'getFoldingRanges',
                 [document],
                 ExecuteMode.Collect,
                 'high'
             )
         );
 
-        console.log(result);
+        // console.log(JSON.parse(JSON.stringify(result.sort((a, b) => a.startLine - b.startLine))));
 
         return result;
     }

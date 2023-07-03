@@ -225,7 +225,7 @@ export interface InlayHintProvider {
 }
 
 export interface FoldingRangeProvider {
-    getFoldingRange(document: Document): Resolvable<FoldingRange[]>
+    getFoldingRanges(document: Document): Resolvable<FoldingRange[]>;
 }
 
 export interface OnWatchFileChanges {

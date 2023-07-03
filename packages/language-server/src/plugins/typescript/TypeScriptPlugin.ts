@@ -630,8 +630,8 @@ export class TypeScriptPlugin
         return this.callHierarchyProvider.getOutgoingCalls(item, cancellationToken);
     }
 
-    async getFoldingRange(document: Document): Promise<FoldingRange[]> {
-        return this.foldingRangeProvider.getFoldingRange(document);
+    async getFoldingRanges(document: Document): Promise<FoldingRange[]> {
+        return this.foldingRangeProvider.getFoldingRanges(document);
     }
 
     private async getLSAndTSDoc(document: Document) {

@@ -48,7 +48,7 @@ import { AttributeContext, getAttributeContextAtPosition } from '../../lib/docum
 import { StyleAttributeDocument } from './StyleAttributeDocument';
 import { getDocumentContext } from '../documentContext';
 import { FoldingRange } from 'vscode-languageserver-types';
-import { indentBasedFoldingRangeForTag } from '../../utils';
+import { indentBasedFoldingRangeForTag } from '../../lib/foldingRange/indentFolding';
 
 export class CSSPlugin
     implements
@@ -376,15 +376,15 @@ export class CSSPlugin
             .map((symbol) => mapSymbolInformationToOriginal(cssDocument, symbol));
     }
 
-    getFoldingRange(document: Document): FoldingRange[] {
+    getFoldingRanges(document: Document): FoldingRange[] {
         if (!document.styleInfo) {
             return [];
-        } 
+        }
 
         const cssDocument = this.getCSSDoc(document);
 
         if (shouldSseIndentBasedFolding(cssDocument.languageId)) {
-            return indentBasedFoldingRangeForTag(document, document.styleInfo)
+            return indentBasedFoldingRangeForTag(document, document.styleInfo);
         }
 
         return this.getLanguageService(extractLanguage(cssDocument))

@@ -7,7 +7,8 @@ import {
     TextEdit,
     CompletionItemKind,
     InsertTextFormat,
-    CompletionTriggerKind
+    CompletionTriggerKind,
+    FoldingRange
 } from 'vscode-languageserver';
 import { HTMLPlugin } from '../../../src/plugins';
 import { DocumentManager, Document } from '../../../src/lib/documents';
@@ -257,5 +258,29 @@ describe('HTML Plugin', () => {
                 { start: { line: 0, character: 7 }, end: { line: 0, character: 10 } }
             ]
         });
+    });
+
+    it('provides folding range', () => {
+        const { plugin, document } = setup('<div>\n  <div>\n  </div>\n  </div>');
+
+        const ranges = plugin.getFoldingRanges(document);
+        assert.deepStrictEqual(ranges, <FoldingRange[]>[{ startLine: 0, endLine: 2 }]);
+    });
+
+    it('provides folding range for element with arrow function handler', () => {
+        const { plugin, document } = setup('<div \non:click={() => {}}\n />');
+
+        const ranges = plugin.getFoldingRanges(document);
+        assert.deepStrictEqual(ranges, <FoldingRange[]>[{ startLine: 0, endLine: 1 }]);
+    });
+
+    it('provides indent based folding range for template tag', () => {
+        const { plugin, document } = setup('<template lang="pug">\np\n  div\n</template>');
+
+        const ranges = plugin.getFoldingRanges(document);
+        assert.deepStrictEqual(ranges, <FoldingRange[]>[
+            { startLine: 0, endLine: 2 },
+            { startLine: 1, endLine: 2 }
+        ]);
     });
 });

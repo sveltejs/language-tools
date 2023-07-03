@@ -429,7 +429,7 @@ export function startServer(options?: LSOptions) {
         pluginHost.getTypeDefinition(evt.textDocument, evt.position)
     );
 
-    connection.onFoldingRanges((evt) => pluginHost.getFoldingRange(evt.textDocument));
+    connection.onFoldingRanges((evt) => pluginHost.getFoldingRanges(evt.textDocument));
 
     const diagnosticsManager = new DiagnosticsManager(
         connection.sendDiagnostics,

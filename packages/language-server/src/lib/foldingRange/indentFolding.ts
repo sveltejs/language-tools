@@ -22,7 +22,7 @@ export function indentBasedFoldingRangeForTag(
         return [];
     }
 
-    return indentBasedFoldingRange({ document, range: { startLine, endLine } });
+    return indentBasedFoldingRange({ document, ranges: [{ startLine, endLine }] });
 }
 
 export interface LineRange {
@@ -32,14 +32,12 @@ export interface LineRange {
 
 export function indentBasedFoldingRange({
     document,
-    range,
-    skipFold,
-    skipRanges
+    ranges,
+    skipFold
 }: {
     document: Document;
-    range?: LineRange | undefined;
+    ranges?: LineRange[] | undefined;
     skipFold?: (startLine: number, startLineContent: string) => boolean;
-    skipRanges?: LineRange[];
 }): FoldingRange[] {
     const text = document.getText();
     const lines = text.split(/\r?\n/);
@@ -59,19 +57,28 @@ export function indentBasedFoldingRange({
     let currentIndent: number | undefined;
     const result: FoldingRange[] = [];
     const unfinishedFolds = new Map<number, { startLine: number; endLine: number }>();
-    range ??= { startLine: 0, endLine: lines.length - 1 };
+    ranges ??= [{ startLine: 0, endLine: lines.length - 1 }];
+    let rangeIndex = 0;
+    let range = ranges[rangeIndex++];
+
+    if (!range) {
+        return [];
+    }
 
     for (const indentInfo of indents) {
-        if (
-            indentInfo.index < range.startLine ||
-            indentInfo.empty ||
-            withinRange(skipRanges, indentInfo.index)
-        ) {
+        if (indentInfo.index < range.startLine || indentInfo.empty) {
             continue;
         }
 
         if (indentInfo.index > range.endLine) {
-            break;
+            for (const fold of unfinishedFolds.values()) {
+                fold.endLine = range.endLine;
+            }
+
+            range = ranges[rangeIndex++];
+            if (!range) {
+                break;
+            }
         }
 
         const lineIndent = indentInfo.tabCount * tabSize + indentInfo.spaceCount;
@@ -98,10 +105,6 @@ export function indentBasedFoldingRange({
 
             currentIndent = lineIndent;
         }
-    }
-
-    for (const fold of unfinishedFolds.values()) {
-        fold.endLine = range.endLine;
     }
 
     return result;

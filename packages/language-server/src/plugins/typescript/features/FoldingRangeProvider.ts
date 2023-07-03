@@ -5,12 +5,12 @@ import { FoldingRange } from 'vscode-languageserver-types';
 import { Document, mapRangeToOriginal } from '../../../lib/documents';
 import { isNotNullOrUndefined } from '../../../utils';
 import { FoldingRangeProvider } from '../../interfaces';
-import { SvelteDocumentSnapshot } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { convertRange } from '../utils';
 import { isTextSpanInGeneratedCode } from './utils';
 import { LSConfigManager } from '../../../ls-config';
-import { indentBasedFoldingRange, indentBasedFoldingRangeForTag } from '../../../lib/foldingRange/indentFolding';
+import { LineRange, indentBasedFoldingRange } from '../../../lib/foldingRange/indentFolding';
+import { SvelteDocumentSnapshot } from '../DocumentSnapshot';
 
 export class FoldingRangeProviderImpl implements FoldingRangeProvider {
     constructor(
@@ -18,10 +18,8 @@ export class FoldingRangeProviderImpl implements FoldingRangeProvider {
         private readonly configManager: LSConfigManager
     ) {}
     private readonly foldEndPairCharacters = ['}', ']', ')', '`', '>'];
-    private readonly htmlRegionRegex = /^\s*<!--\s*#region\b/;
-    private readonly htmlEndRegionRegex = /^\s*<!--\s*#endregion\b/;
 
-    async getFoldingRange(document: Document): Promise<FoldingRange[]> {
+    async getFoldingRanges(document: Document): Promise<FoldingRange[]> {
         const { lang, tsDoc } = await this.lsAndTsDocResolver.getLSAndTSDoc(document);
 
         const foldingRanges =
@@ -29,31 +27,18 @@ export class FoldingRangeProviderImpl implements FoldingRangeProvider {
                 ? []
                 : lang.getOutliningSpans(tsDoc.filePath);
 
-        const tags = [
-            document.templateInfo,
-            document.moduleScriptInfo,
-            document.scriptInfo,
-            document.styleInfo
-        ]
-            .filter(isNotNullOrUndefined)
-            .map((tag): FoldingRange => {
-                const startLine = document.positionAt(tag.container.start).line;
-                return {
-                    startLine,
-                    endLine: this.previousLineOfEndLine(
-                        startLine,
-                        document.positionAt(tag.container.end).line
-                    )
-                };
-            });
-
-        const htmlRegionComments = this.collectHTMLRegionComment(document, tags);
-        const templateRange = document.templateInfo
-            ? indentBasedFoldingRangeForTag(document, document.templateInfo)
-            : [];
         const lineFoldingOnly =
             !!this.configManager.getClientCapabilities()?.textDocument?.foldingRange
                 ?.lineFoldingOnly;
+
+        const htmlStartMap = new Map<number, Node>();
+        const collectHTMLTag = (node: Node) => {
+            htmlStartMap.set(node.start, node);
+            node.children?.forEach(collectHTMLTag);
+        };
+        for (const node of document.html.roots) {
+            collectHTMLTag(node);
+        }
 
         const result = foldingRanges
             .filter((span) => !isTextSpanInGeneratedCode(tsDoc.getFullText(), span.textSpan))
@@ -62,14 +47,19 @@ export class FoldingRangeProviderImpl implements FoldingRangeProvider {
                 span
             }))
             .filter(
-                ({ originalRange }) => originalRange.start.line >= 0 && originalRange.end.line >= 0
+                ({ originalRange }) =>
+                    originalRange.start.line >= 0 &&
+                    originalRange.end.line >= 0 &&
+                    !htmlStartMap.has(document.offsetAt(originalRange.start))
             )
             .map(({ originalRange, span }) =>
                 this.convertOutliningSpan(span, document, originalRange, lineFoldingOnly)
             )
             .filter(isNotNullOrUndefined)
-            .concat(tags, htmlRegionComments, templateRange)
-            .concat(this.getFallbackFoldingIfParserError(document, tsDoc));
+            .concat(this.getSvelteTagFoldingIfParserError(document, tsDoc))
+            .filter(
+                (r) => r.startLine < r.endLine && (!lineFoldingOnly || r.startLine !== r.endLine)
+            );
 
         return result;
     }
@@ -110,7 +100,7 @@ export class FoldingRangeProviderImpl implements FoldingRangeProvider {
         lineFoldingOnly: boolean
     ): { line: number; character?: number } {
         // don't fold end bracket, brace...
-        if (range.end.character > 0) {
+        if (range.end.character > 0 && lineFoldingOnly) {
             const text = document.getText();
             const offsetBeforeEnd = document.offsetAt({
                 line: range.end.line,
@@ -118,11 +108,7 @@ export class FoldingRangeProviderImpl implements FoldingRangeProvider {
             });
             const foldEndCharacter = text[offsetBeforeEnd];
             if (this.foldEndPairCharacters.includes(foldEndCharacter)) {
-                if (lineFoldingOnly) {
-                    return { line: this.previousLineOfEndLine(range.start.line, range.end.line) };
-                }
-
-                return { line: range.end.line, character: range.end.character - 1 };
+                return { line: this.previousLineOfEndLine(range.start.line, range.end.line) };
             }
         }
 
@@ -157,107 +143,67 @@ export class FoldingRangeProviderImpl implements FoldingRangeProvider {
         return range.end;
     }
 
-    private previousLineOfEndLine(startLine: number, endLine: number) {
-        return Math.max(endLine - 1, startLine);
-    }
-
-    private collectHTMLRegionComment(document: Document, tagRanges: FoldingRange[]) {
-        const lines = document.content.split('\n');
-        const result: FoldingRange[] = [];
-        let startLine: number | undefined;
-
-        for (let index = 0; index < lines.length; index++) {
-            if (tagRanges.some((tag) => index >= tag.startLine && index <= tag.endLine)) {
-                continue;
-            }
-
-            const line = lines[index];
-
-            if (this.htmlRegionRegex.test(line)) {
-                startLine = index;
-                continue;
-            }
-            if (this.htmlEndRegionRegex.test(line) && startLine) {
-                result.push({
-                    startLine,
-                    endLine: index - 1,
-                    kind: FoldingRangeKind.Region
-                });
-                startLine = undefined;
-            }
-        }
-
-        return result;
-    }
-
-    private getFallbackFoldingIfParserError(
-        document: Document,
-        tsDoc: SvelteDocumentSnapshot
-    ): FoldingRange[] {
+    private getSvelteTagFoldingIfParserError(document: Document, tsDoc: SvelteDocumentSnapshot) {
         if (!tsDoc.parserError) {
             return [];
         }
 
-        const htmlResult = new Map<number, FoldingRange>();
+        const htmlTemplateRanges = this.getHtmlTemplateRangesForChecking(document);
 
-        for (const node of document.html.roots) {
-            if (node.tag === 'script' || node.tag === 'style' || node.tag === 'template') {
-                continue;
-            }
-
-            this.collectFallbackHtmlFoldingRanges(document, node, htmlResult);
-        }
-
-        const tagRanges = [
-            document.templateInfo,
-            document.moduleScriptInfo,
-            document.styleInfo,
-            document.scriptInfo
-        ]
-            .filter(isNotNullOrUndefined)
-            .map((tag) => ({
-                startLine: document.positionAt(tag.container.start).line,
-                endLine: document.positionAt(tag.container.end).line
-            }));
-
-        const svelteTagResult = indentBasedFoldingRange({
+        return indentBasedFoldingRange({
             document,
-            skipFold: (line, lineContent) => {
+            skipFold: (_, lineContent) => {
                 return (
-                    htmlResult.has(line) ||
-                    (!lineContent.includes('{#') &&
-                        !lineContent.includes('{/') &&
-                        !lineContent.includes('{:'))
+                    !lineContent.includes('{#') &&
+                    !lineContent.includes('{/') &&
+                    !lineContent.includes('{:')
                 );
             },
-            skipRanges: tagRanges
+            ranges: htmlTemplateRanges
         });
-
-        return [...htmlResult.values(), ...svelteTagResult];
     }
 
-    private collectFallbackHtmlFoldingRanges(
-        document: Document,
-        node: Node,
-        result: Map<number, FoldingRange>
-    ) {
-        const startLine = document.positionAt(node.start).line;
-        const endLine = document.positionAt(node.end).line - 1;
+    private getHtmlTemplateRangesForChecking(document: Document) {
+        const ranges: LineRange[] = [];
 
-        if (endLine <= startLine) {
-            return;
+        const excludeTags = [
+            document.templateInfo,
+            document.moduleScriptInfo,
+            document.scriptInfo,
+            document.styleInfo
+        ]
+            .filter(isNotNullOrUndefined)
+            .map((info) => ({
+                startLine: document.positionAt(info.container.start).line,
+                endLine: document.positionAt(info.container.end).line
+            }))
+            .sort((a, b) => a.startLine - b.startLine);
+
+        if (excludeTags.length === 0) {
+            return [{ startLine: 0, endLine: document.lineCount - 1 }];
         }
 
-        if (!result.has(startLine)) {
-            result.set(startLine, {
-                startLine,
-                endLine,
-                kind: FoldingRangeKind.Region
+        if (excludeTags[0].startLine > 0) {
+            ranges.push({
+                startLine: 0,
+                endLine: excludeTags[0].startLine - 1
             });
         }
 
-        for (const child of node.children) {
-            this.collectFallbackHtmlFoldingRanges(document, child, result);
+        for (let index = 0; index < excludeTags.length; index++) {
+            const element = excludeTags[index];
+            const next = excludeTags[index + 1];
+
+            ranges.push({
+                startLine: element.endLine + 1,
+                endLine: next ? next.startLine - 1 : document.lineCount - 1
+            });
         }
+
+        return ranges;
+    }
+
+    private previousLineOfEndLine(startLine: number, endLine: number) {
+        return Math.max(endLine - 1, startLine);
     }
 }
