@@ -3,17 +3,14 @@ import { Node } from 'vscode-html-languageservice';
 import { FoldingRangeKind, Range } from 'vscode-languageserver';
 import { FoldingRange } from 'vscode-languageserver-types';
 import { Document, mapRangeToOriginal } from '../../../lib/documents';
-import {
-    indentBasedFoldingRange,
-    indentBasedFoldingRangeForTag,
-    isNotNullOrUndefined
-} from '../../../utils';
+import { isNotNullOrUndefined } from '../../../utils';
 import { FoldingRangeProvider } from '../../interfaces';
 import { SvelteDocumentSnapshot } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { convertRange } from '../utils';
 import { isTextSpanInGeneratedCode } from './utils';
 import { LSConfigManager } from '../../../ls-config';
+import { indentBasedFoldingRange, indentBasedFoldingRangeForTag } from '../../../lib/foldingRange/indentFolding';
 
 export class FoldingRangeProviderImpl implements FoldingRangeProvider {
     constructor(
