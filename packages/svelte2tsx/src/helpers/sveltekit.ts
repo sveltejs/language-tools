@@ -201,7 +201,7 @@ function upserKitRouteFile(
     addTypeToVariable(exports, surround, insert, 'ssr', `boolean`);
     addTypeToVariable(exports, surround, insert, 'csr', `boolean`);
 
-    // add types to GET/PUT/POST/PATCH/DELETE/OPTIONS if not explicitly typed
+    // add types to GET/PUT/POST/PATCH/DELETE/OPTIONS/HEAD if not explicitly typed
     const insertApiMethod = (name: string) => {
         addTypeToFunction(
             ts,
@@ -219,6 +219,7 @@ function upserKitRouteFile(
     insertApiMethod('PATCH');
     insertApiMethod('DELETE');
     insertApiMethod('OPTIONS');
+    insertApiMethod('HEAD');
 
     return { addedCode, originalText: source.getFullText() };
 }

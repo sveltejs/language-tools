@@ -424,6 +424,7 @@ export const kitExports: Record<
     PATCH: createApiExport('PATCH'),
     DELETE: createApiExport('DELETE'),
     OPTIONS: createApiExport('OPTIONS'),
+    HEAD: createApiExport('HEAD'),
     // param matching
     match: {
         allowedIn: [],
