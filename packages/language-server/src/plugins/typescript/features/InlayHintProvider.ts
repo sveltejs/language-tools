@@ -1,10 +1,10 @@
 import ts from 'typescript';
 import { CancellationToken } from 'vscode-languageserver';
-import { Range, InlayHint, InlayHintKind } from 'vscode-languageserver-types';
+import { Position, Range, InlayHint, InlayHintKind } from 'vscode-languageserver-types';
 import { Document, isInTag } from '../../../lib/documents';
 import { getAttributeContextAtPosition } from '../../../lib/documents/parseHtml';
 import { InlayHintProvider } from '../../interfaces';
-import { DocumentSnapshot } from '../DocumentSnapshot';
+import { DocumentSnapshot, SvelteDocumentSnapshot } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import {
     findContainingNode,
@@ -61,7 +61,7 @@ export class InlayHintProviderImpl implements InlayHintProvider {
             )
             .map((inlayHint) => ({
                 label: inlayHint.text,
-                position: tsDoc.getOriginalPosition(tsDoc.positionAt(inlayHint.position)),
+                position: this.getOriginalPosition(document, tsDoc, inlayHint),
                 kind: this.convertInlayHintKind(inlayHint.kind),
                 paddingLeft: inlayHint.whitespaceBefore,
                 paddingRight: inlayHint.whitespaceAfter
@@ -102,6 +102,31 @@ export class InlayHintProviderImpl implements InlayHintProvider {
             start,
             length: end - start
         };
+    }
+
+    private getOriginalPosition(
+        document: Document,
+        tsDoc: SvelteDocumentSnapshot,
+        inlayHint: ts.InlayHint
+    ): Position {
+        let originalPosition = tsDoc.getOriginalPosition(tsDoc.positionAt(inlayHint.position));
+        if (inlayHint.kind === ts.InlayHintKind.Type) {
+            const originalOffset = document.offsetAt(originalPosition);
+            const source = document.getText();
+            // detect if inlay hint position is off by one
+            // by checking if source[offset] is part of an identifier
+            // https://github.com/sveltejs/language-tools/pull/2070
+            if (
+                originalOffset < source.length &&
+                !/[\x00-\x23\x25-\x2F\x3A-\x40\x5B\x5D-\x5E\x60\x7B-\x7F]/.test(
+                    source[originalOffset]
+                )
+            ) {
+                originalPosition.character += 1;
+            }
+        }
+
+        return originalPosition;
     }
 
     private convertInlayHintKind(kind: ts.InlayHintKind): InlayHintKind | undefined {
