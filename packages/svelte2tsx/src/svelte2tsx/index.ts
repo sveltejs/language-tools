@@ -311,6 +311,7 @@ export function svelte2tsx(
         mode?: 'ts' | 'dts';
         accessors?: boolean;
         typingsNamespace?: string;
+        noSvelteComponentTyped?: boolean;
     } = {}
 ) {
     options.mode = options.mode || 'ts';
@@ -418,7 +419,8 @@ export function svelte2tsx(
         fileName: options?.filename,
         componentDocumentation,
         mode: options.mode,
-        generics
+        generics,
+        noSvelteComponentTyped: options.noSvelteComponentTyped
     });
 
     if (options.mode === 'dts') {
@@ -426,7 +428,11 @@ export function svelte2tsx(
         // The other shims need to be provided by the user ambient-style,
         // for example through filenames.push(require.resolve('svelte2tsx/svelte-shims.d.ts'))
         // TODO replace with SvelteComponent for Svelte 5, keep old for backwards compatibility with Svelte 3
-        str.prepend('import { SvelteComponentTyped } from "svelte"\n' + '\n');
+        if (options.noSvelteComponentTyped) {
+            str.prepend('import { SvelteComponent } from "svelte"\n' + '\n');
+        } else {
+            str.prepend('import { SvelteComponentTyped } from "svelte"\n' + '\n');
+        }
         let code = str.toString();
         // Remove all tsx occurences and the template part from the output
         code = code
