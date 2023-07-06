@@ -121,11 +121,25 @@ function addSimpleComponentExport({
 
     let statement: string;
     if (mode === 'dts' && isTsFile) {
+        const addTypeExport = (type: string) => {
+            const exportName = className + type;
+
+            if (!str.original.includes(exportName)) {
+                return `export type ${exportName} = typeof __propDef.${type.toLowerCase()};\n`;
+            }
+
+            let replacement = exportName + '_';
+            while (str.original.includes(replacement)) {
+                replacement += '_';
+            }
+            return `type ${replacement} = typeof __propDef.${type.toLowerCase()};\nexport { ${replacement} as ${exportName} };\n`;
+        };
+
         statement =
             `\nconst __propDef = ${propDef};\n` +
-            `export type ${className}Props = typeof __propDef.props;\n` +
-            `export type ${className}Events = typeof __propDef.events;\n` +
-            `export type ${className}Slots = typeof __propDef.slots;\n` +
+            addTypeExport('Props') +
+            addTypeExport('Events') +
+            addTypeExport('Slots') +
             `\n${doc}export default class${
                 className ? ` ${className}` : ''
             } extends SvelteComponentTyped<${className}Props, ${className}Events, ${className}Slots> {` +
