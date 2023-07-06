@@ -1,7 +1,7 @@
-/** @typedef {typeof __propDef.props}  TestProps */
-/** @typedef {typeof __propDef.events}  TestEvents */
-/** @typedef {typeof __propDef.slots}  TestSlots */
-export default class Test extends SvelteComponent<{
+/** @typedef {typeof __propDef.props}  TestJsProps */
+/** @typedef {typeof __propDef.events}  TestJsEvents */
+/** @typedef {typeof __propDef.slots}  TestJsSlots */
+export default class TestJs extends SvelteComponentTyped<{
     astring: string;
 }, {
     event: CustomEvent<any>;
@@ -14,10 +14,10 @@ export default class Test extends SvelteComponent<{
 }> {
     get astring(): string;
 }
-export type TestProps = typeof __propDef.props;
-export type TestEvents = typeof __propDef.events;
-export type TestSlots = typeof __propDef.slots;
-import { SvelteComponent } from "svelte";
+export type TestJsProps = typeof __propDef.props;
+export type TestJsEvents = typeof __propDef.events;
+export type TestJsSlots = typeof __propDef.slots;
+import { SvelteComponentTyped } from "svelte";
 declare const __propDef: {
     props: {
         astring: string;
