@@ -187,7 +187,18 @@ async function createLanguageService(
     await configLoader.loadConfigs(workspacePath);
     const tsSystemWithPackageJsonCache = {
         ...tsSystem,
-        readFile: readFileWithPackageJsonCache
+        /**
+         * While TypeScript doesn't cache package.json in the tsserver, they do cache the
+         * information they get from it within other internal APIs. We'll somewhat do the same
+         * by caching the text of the package.json file here.
+         */
+        readFile: (path: string, encoding?: string | undefined) => {
+            if (basename(path) === 'package.json') {
+                return docContext.globalSnapshotsManager.getPackageJson(path)?.text;
+            }
+
+            return tsSystem.readFile(path, encoding);
+        }
     };
 
     const svelteModuleLoader = createSvelteModuleLoader(
@@ -226,7 +237,7 @@ async function createLanguageService(
         getCurrentDirectory: () => workspacePath,
         getDefaultLibFileName: ts.getDefaultLibFilePath,
         fileExists: svelteModuleLoader.fileExists,
-        readFile: readFileWithPackageJsonCache,
+        readFile: svelteModuleLoader.readFile,
         resolveModuleNames: svelteModuleLoader.resolveModuleNames,
         readDirectory: svelteModuleLoader.readDirectory,
         getDirectories: tsSystem.getDirectories,
@@ -614,24 +625,6 @@ async function createLanguageService(
         }
 
         docContext.onProjectReloaded?.();
-    }
-
-    /**
-     * Update import would read the declaration map's sourcemap and the file that the sourcemap points to.
-     * We don't need to cache those. And don't need to update the project version.
-     * It'll cause Typescript to recompile while there isn't actually a change.
-     * While TypeScript doesn't cache package.json in the tsserver.
-     * The information they get from package.json is cached with other internal APIs.
-     */
-    function readFileWithPackageJsonCache(
-        path: string,
-        encoding?: string | undefined
-    ): string | undefined {
-        if (basename(path) === 'package.json') {
-            return docContext.globalSnapshotsManager.getPackageJson(path)?.text;
-        }
-
-        return tsSystem.readFile(path, encoding);
     }
 }
 

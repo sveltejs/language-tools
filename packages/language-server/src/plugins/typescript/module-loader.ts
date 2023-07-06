@@ -152,7 +152,7 @@ export function createSvelteModuleLoader(
     tsModule: typeof ts
 ) {
     const getCanonicalFileName = createGetCanonicalFileName(tsSystem.useCaseSensitiveFileNames);
-    const svelteSys = createSvelteSys(getSnapshot, tsSystem);
+    const svelteSys = createSvelteSys(tsSystem);
     // tsModuleCache caches package.json parsing and module resolution for directory
     const tsModuleCache = tsModule.createModuleResolutionCache(
         tsSystem.getCurrentDirectory(),
