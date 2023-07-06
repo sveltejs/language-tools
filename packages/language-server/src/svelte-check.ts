@@ -87,7 +87,7 @@ export class SvelteCheck {
                     tsconfigPath: options.tsconfig,
                     isSvelteCheck: true,
                     onProjectReloaded: options.onProjectReload,
-                    watchTsConfig: options.watch
+                    watch: options.watch
                 }
             );
             this.pluginHost.register(

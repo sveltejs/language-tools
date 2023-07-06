@@ -1,4 +1,4 @@
-import { dirname, resolve } from 'path';
+import { basename, dirname, resolve } from 'path';
 import ts from 'typescript';
 import { TextDocumentContentChangeEvent } from 'vscode-languageserver-protocol';
 import { getPackageInfo, importSvelte } from '../../importPackage';
@@ -185,12 +185,27 @@ async function createLanguageService(
     // Load all configs within the tsconfig scope and the one above so that they are all loaded
     // by the time they need to be accessed synchronously by DocumentSnapshots.
     await configLoader.loadConfigs(workspacePath);
+    const tsSystemWithPackageJsonCache = {
+        ...tsSystem,
+        /**
+         * While TypeScript doesn't cache package.json in the tsserver, they do cache the
+         * information they get from it within other internal APIs. We'll somewhat do the same
+         * by caching the text of the package.json file here.
+         */
+        readFile: (path: string, encoding?: string | undefined) => {
+            if (basename(path) === 'package.json') {
+                return docContext.globalSnapshotsManager.getPackageJson(path)?.text;
+            }
+
+            return tsSystem.readFile(path, encoding);
+        }
+    };
 
     const svelteModuleLoader = createSvelteModuleLoader(
         getSnapshot,
         compilerOptions,
-        tsSystem,
-        ts.resolveModuleName
+        tsSystemWithPackageJsonCache,
+        ts
     );
 
     let svelteTsPath: string;
@@ -229,7 +244,9 @@ async function createLanguageService(
         useCaseSensitiveFileNames: () => tsSystem.useCaseSensitiveFileNames,
         getScriptKind: (fileName: string) => getSnapshot(fileName).scriptKind,
         getProjectVersion: () => projectVersion.toString(),
-        getNewLine: () => tsSystem.newLine
+        getNewLine: () => tsSystem.newLine,
+        resolveTypeReferenceDirectiveReferences:
+            svelteModuleLoader.resolveTypeReferenceDirectiveReferences
     };
 
     let languageService = ts.createLanguageService(host);
