@@ -166,7 +166,7 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
                 html: workspace.getConfiguration('html')
             },
             dontFilterIncompleteCompletions: true, // VSCode filters client side and is smarter at it than us
-            isTrusted: (workspace as any).isTrusted
+            isTrusted: workspace.isTrusted
         }
     };
 
