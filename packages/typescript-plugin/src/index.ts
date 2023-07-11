@@ -134,7 +134,9 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
 
         configManager.onConfigurationChanged(() => {
             // enabling/disabling the plugin means TS has to recompute stuff
-            info.languageService.cleanupSemanticCache();
+            // don't clear semantic cache here
+            // typescript now expected the program updates to be completely in their control
+            // doing so will result in a crash
             info.project.markAsDirty();
 
             // updateGraph checks for new root files
@@ -207,7 +209,9 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
     }
 
     function onConfigurationChanged(config: Configuration) {
-        configManager.updateConfigFromPluginConfig(config);
+        if (configManager.isConfigChanged(config)) {
+            configManager.updateConfigFromPluginConfig(config);
+        }
     }
 
     /**

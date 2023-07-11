@@ -16,6 +16,11 @@ export class ConfigManager {
         this.emitter.on(configurationEventName, listener);
     }
 
+    isConfigChanged(config: Configuration) {
+        // right now we only care about enable
+        return config.enable !== this.config.enable;
+    }
+
     updateConfigFromPluginConfig(config: Configuration) {
         this.config = {
             ...this.config,
