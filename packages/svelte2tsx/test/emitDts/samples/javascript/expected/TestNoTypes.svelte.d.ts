@@ -1,7 +1,7 @@
 /** @typedef {typeof __propDef.props}  TestNoTypesProps */
 /** @typedef {typeof __propDef.events}  TestNoTypesEvents */
 /** @typedef {typeof __propDef.slots}  TestNoTypesSlots */
-export default class TestNoTypes extends SvelteComponent<{
+export default class TestNoTypes extends SvelteComponentTyped<{
     noType: any;
     initializer?: string;
 }, {
@@ -17,7 +17,7 @@ export default class TestNoTypes extends SvelteComponent<{
 export type TestNoTypesProps = typeof __propDef.props;
 export type TestNoTypesEvents = typeof __propDef.events;
 export type TestNoTypesSlots = typeof __propDef.slots;
-import { SvelteComponent } from "svelte";
+import { SvelteComponentTyped } from "svelte";
 declare const __propDef: {
     props: {
         noType: any;
