@@ -75,7 +75,7 @@ export class SveltePlugin
         }
 
         const filePath = document.getFilePath()!;
-        const prettier = importPrettier(filePath);
+        const prettier = await importFittingPrettier();
         // Try resolving the config through prettier and fall back to possible editor config
         const config = this.configManager.getMergedPrettierConfig(
             await prettier.resolveConfig(filePath, { editorconfig: true }),
@@ -95,6 +95,16 @@ export class SveltePlugin
                 .replace('-options', '')
                 .replace('options-', '');
         }
+        // If user has prettier-plugin-svelte 3.x, then add `options` from the sort
+        // order or else it will throw a config error (now required).
+        if (
+            config?.svelteSortOrder &&
+            !config.svelteSortOrder.includes('options') &&
+            config.svelteSortOrder !== 'none' &&
+            getPackageInfo('prettier-plugin-svelte', filePath)?.version.major >= 3
+        ) {
+            config.svelteSortOrder = 'options-' + config.svelteSortOrder;
+        }
         // Take .prettierignore into account
         const fileInfo = await prettier.getFileInfo(filePath, {
             ignorePath: this.configManager.getPrettierConfig()?.ignorePath ?? '.prettierignore',
@@ -106,14 +116,15 @@ export class SveltePlugin
             return [];
         }
 
-        const formattedCode = prettier.format(document.getText(), {
+        // Prettier v3 format is async, v2 is not
+        const formattedCode = await prettier.format(document.getText(), {
             ...config,
             plugins: Array.from(
                 new Set([
                     ...((config.plugins as string[]) ?? [])
                         .map(resolvePlugin)
                         .filter(isNotNullOrUndefined),
-                    ...getSveltePlugin()
+                    ...(await getSveltePlugin())
                 ])
             ),
             parser: 'svelte' as any
@@ -131,15 +142,35 @@ export class SveltePlugin
                   )
               ];
 
-        function getSveltePlugin() {
+        async function getSveltePlugin() {
             // Only provide our version of the svelte plugin if the user doesn't have one in
             // the workspace already. If we did it, Prettier would - for some reason - use
             // the workspace version for parsing and the extension version for printing,
             // which could crash if the contract of the parser output changed.
-            const hasPluginLoadedAlready = prettier
-                .getSupportInfo()
-                .languages.some((l) => l.name === 'svelte');
+            const hasPluginLoadedAlready = await hasSveltePluginLoaded(prettier);
             return hasPluginLoadedAlready ? [] : [require.resolve('prettier-plugin-svelte')];
+        }
+
+        /**
+         * Prettier v2 can't use v3 plugins and vice versa. Therefore, we need to check
+         * which version of prettier is used in the workspace and import the correct
+         * version of the Svelte plugin. If user uses Prettier >= 3 and has no Svelte plugin
+         * then fall back to our built-in versions which are both v2 and compatible with
+         * each other.
+         * TODO switch this around at some point to load Prettier v3 by default because it's
+         * more likely that users have that installed.
+         */
+        async function importFittingPrettier() {
+            const prettier = importPrettier(filePath);
+            if (Number(prettier.version[0]) < 3 || (await hasSveltePluginLoaded(prettier))) {
+                return prettier;
+            }
+            return importPrettier('.');
+        }
+
+        async function hasSveltePluginLoaded(p: typeof prettier) {
+            // Prettier v3 getSupportInfo is async, v2 is not
+            return (await p.getSupportInfo()).languages.some((l) => l.name === 'svelte');
         }
 
         function resolvePlugin(plugin: string) {

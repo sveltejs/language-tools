@@ -71,7 +71,7 @@ async function executeTest(
 
     const snapshotFormatter = await createJsonSnapshotFormatter(dir);
 
-    updateSnapshotIfFailedOrEmpty({
+    await updateSnapshotIfFailedOrEmpty({
         assertion() {
             assert.deepStrictEqual(
                 JSON.parse(JSON.stringify(inlayHints)),
