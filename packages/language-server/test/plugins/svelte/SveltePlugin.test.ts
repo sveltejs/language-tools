@@ -67,11 +67,12 @@ describe('Svelte Plugin', () => {
         assert.deepStrictEqual(diagnostics, []);
     });
 
-    describe('#formatDocument', () => {
+    describe.only('#formatDocument', () => {
         function stubPrettier(config: any) {
             const formatStub = sinon.stub().returns('formatted');
 
             sinon.stub(importPackage, 'importPrettier').returns(<any>{
+                version: '2.8.0',
                 resolveConfig: () => Promise.resolve(config),
                 getFileInfo: () => ({ ignored: false }),
                 format: formatStub,
