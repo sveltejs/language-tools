@@ -183,7 +183,7 @@ export class SveltePlugin
         }
 
         async function hasSveltePluginLoaded(p: typeof prettier, plugins: string[] = []) {
-            if (plugins.includes('prettier-plugin-svelte')) return true;
+            if (plugins.some((plugin) => plugin.includes('prettier-plugin-svelte'))) return true;
             if (Number(p.version[0]) >= 3) return false; // Prettier version 3 has removed the "search plugins" feature
             // Prettier v3 getSupportInfo is async, v2 is not
             const info = await p.getSupportInfo();
