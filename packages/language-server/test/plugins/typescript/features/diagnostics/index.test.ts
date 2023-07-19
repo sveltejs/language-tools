@@ -59,7 +59,7 @@ async function executeTest(
         : defaultExpectedFile;
     const snapshotFormatter = await createJsonSnapshotFormatter(dir);
 
-    updateSnapshotIfFailedOrEmpty({
+    await updateSnapshotIfFailedOrEmpty({
         assertion() {
             assert.deepStrictEqual(diagnostics, JSON.parse(readFileSync(expectedFile, 'utf-8')));
         },
