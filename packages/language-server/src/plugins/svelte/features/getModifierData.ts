@@ -41,12 +41,20 @@ export function getModifierData(): ModifierData[] {
         },
         {
             modifier: 'self',
-            documentation: 'only trigger handler if `event.target` is the element itself'
+            documentation: 'only trigger handler if `event.target` is the element itself',
+            modifiersInvalidWith: ['self']
+        },
+        {
+            modifier: 'nonself',
+            documentation:
+                'only trigger handler if `event.target` was a different element, ' +
+                'eg. bubbling from a child element',
+            modifiersInvalidWith: ['self']
         },
         {
             modifier: 'trusted',
             documentation:
-                'only trigger handler if event.isTrusted is true. ' +
+                'only trigger handler if `event.isTrusted` is true. ' +
                 'I.e. if the event is triggered by a user action'
         }
     ].map((item) => ({
