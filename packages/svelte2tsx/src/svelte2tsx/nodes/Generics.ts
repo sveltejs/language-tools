@@ -14,11 +14,29 @@ export class Generics {
         this.genericsAttr = script.attributes.find((attr) => attr.name === 'generics');
         const generics = this.genericsAttr?.value[0]?.raw as string | undefined;
         if (generics) {
-            this.definitions = generics.split(',').map((g) => g.trim());
-            this.references = this.definitions.map((def) => def.split(/\s/)[0]);
+            const typeParameters = this.getGenericTypeParameters(generics);
+
+            this.definitions = typeParameters?.map((param) => param.getText()) ?? [];
+            this.references = typeParameters?.map((param) => param.name.getText()) ?? [];
         } else {
             this.genericsAttr = undefined;
         }
+    }
+
+    private getGenericTypeParameters(rawGenericsAttr: string) {
+        const sourceFile = ts.createSourceFile('index.ts', `<${rawGenericsAttr}>() => {}`, ts.ScriptTarget.Latest, true);
+        const firstStatement = sourceFile.statements[0];
+
+        if (!firstStatement || !ts.isExpressionStatement(firstStatement)) {
+            return;
+        }
+
+        const arrowFunction = firstStatement.expression;
+        if (!ts.isArrowFunction(arrowFunction)) {
+            return;
+        }
+
+        return arrowFunction.typeParameters;
     }
 
     addIfIsGeneric(node: ts.Node) {
