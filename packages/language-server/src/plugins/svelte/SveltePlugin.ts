@@ -14,6 +14,7 @@ import {
     TextEdit,
     WorkspaceEdit
 } from 'vscode-languageserver';
+import { Plugin } from 'prettier';
 import { getPackageInfo, importPrettier } from '../../importPackage';
 import { Document } from '../../lib/documents';
 import { Logger } from '../../logger';
@@ -100,20 +101,22 @@ export class SveltePlugin
 
             const prettier1 = importPrettier(filePath);
             const config1 = await getConfig(prettier1);
-            const pluginLoaded = await hasSveltePluginLoaded(prettier1, config1.plugins);
+            const resolvedPlugins1 = resolvePlugins(config1.plugins);
+            const pluginLoaded = await hasSveltePluginLoaded(prettier1, resolvedPlugins1);
             if (Number(prettier1.version[0]) < 3 || pluginLoaded) {
                 // plugin loaded, or referenced in user config as a plugin, or same version as our fallback version -> ok
-                return { prettier: prettier1, config: config1, isFallback: false };
+                return { prettier: prettier1, config: config1, isFallback: false, resolvedPlugins: resolvedPlugins1 };
             }
 
             // User either only has Plugin or incompatible Prettier major version installed or none
             // -> load our fallback version
             const prettier2 = importPrettier(__dirname);
             const config2 = await getConfig(prettier2);
-            return { prettier: prettier2, config: config2, isFallback: true };
+            const resolvedPlugins2 = resolvePlugins(config2.plugins);
+            return { prettier: prettier2, config: config2, isFallback: true, resolvedPlugins: resolvedPlugins2 };
         };
 
-        const { prettier, config, isFallback } = await importFittingPrettier();
+        const { prettier, config, isFallback, resolvedPlugins } = await importFittingPrettier();
 
         // If user has prettier-plugin-svelte 1.x, then remove `options` from the sort
         // order or else it will throw a config error (`options` was not present back then).
@@ -150,12 +153,7 @@ export class SveltePlugin
         const formattedCode = await prettier.format(document.getText(), {
             ...config,
             plugins: Array.from(
-                new Set([
-                    ...((config.plugins as string[]) ?? [])
-                        .map(resolvePlugin)
-                        .filter(isNotNullOrUndefined),
-                    ...(await getSveltePlugin(config.plugins))
-                ])
+                new Set([...resolvedPlugins, ...(await getSveltePlugin(resolvedPlugins))])
             ),
             parser: 'svelte' as any
         });
@@ -172,7 +170,7 @@ export class SveltePlugin
                   )
               ];
 
-        async function getSveltePlugin(plugins: string[] = []) {
+        async function getSveltePlugin(plugins: Array<string | Plugin> = []) {
             // Only provide our version of the svelte plugin if the user doesn't have one in
             // the workspace already. If we did it, Prettier would - for some reason - use
             // the workspace version for parsing and the extension version for printing,
@@ -182,15 +180,22 @@ export class SveltePlugin
                 : [require.resolve('prettier-plugin-svelte')];
         }
 
-        async function hasSveltePluginLoaded(p: typeof prettier, plugins: string[] = []) {
-            if (plugins.some((plugin) => plugin.includes('prettier-plugin-svelte'))) return true;
+        async function hasSveltePluginLoaded(
+            p: typeof prettier,
+            plugins: Array<Plugin | string> = []
+        ) {
+            if (plugins.some(SveltePlugin.isPrettierPluginSvelte)) return true;
             if (Number(p.version[0]) >= 3) return false; // Prettier version 3 has removed the "search plugins" feature
             // Prettier v3 getSupportInfo is async, v2 is not
             const info = await p.getSupportInfo();
             return info.languages.some((l) => l.name === 'svelte');
         }
 
-        function resolvePlugin(plugin: string) {
+        function resolvePlugins(plugins: Array<string | Plugin> | undefined) {
+            return (plugins ?? []).map(resolvePlugin).filter(isNotNullOrUndefined);
+        }
+
+        function resolvePlugin(plugin: string | Plugin) {
             // https://github.com/prettier/prettier-vscode/blob/160b0e92d88fa19003dce2745d5ab8c67e886a04/src/ModuleResolver.ts#L373
             if (typeof plugin != 'string' || isAbsolute(plugin) || plugin.startsWith('.')) {
                 return plugin;
@@ -204,6 +209,14 @@ export class SveltePlugin
                 Logger.error(`failed to resolve plugin ${plugin} with error:\n`, error);
             }
         }
+    }
+
+    private static isPrettierPluginSvelte(plugin: string | Plugin): boolean {
+        if (typeof plugin === 'string') {
+            return plugin.includes('prettier-plugin-svelte');
+        }
+
+        return !!plugin.languages?.find((l) => l.name === 'svelte');
     }
 
     async getCompletions(
