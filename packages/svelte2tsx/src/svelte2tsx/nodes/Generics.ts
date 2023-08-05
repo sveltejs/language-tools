@@ -24,7 +24,12 @@ export class Generics {
     }
 
     private getGenericTypeParameters(rawGenericsAttr: string) {
-        const sourceFile = ts.createSourceFile('index.ts', `<${rawGenericsAttr}>() => {}`, ts.ScriptTarget.Latest, true);
+        const sourceFile = ts.createSourceFile(
+            'index.ts',
+            `<${rawGenericsAttr}>() => {}`,
+            ts.ScriptTarget.Latest,
+            true
+        );
         const firstStatement = sourceFile.statements[0];
 
         if (!firstStatement || !ts.isExpressionStatement(firstStatement)) {
