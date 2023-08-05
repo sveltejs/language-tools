@@ -332,7 +332,7 @@ describe('Svelte Plugin', () => {
 
             await testFormat(
                 {
-                    plugins: ['./do-not-exist/node_modules/prettier-plugin-svelte']
+                    plugins: ['@do-not-exist/prettier-plugin-svelte']
                 },
                 {},
                 undefined,
