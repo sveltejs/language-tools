@@ -105,7 +105,12 @@ export class SveltePlugin
             const pluginLoaded = await hasSveltePluginLoaded(prettier1, resolvedPlugins1);
             if (Number(prettier1.version[0]) < 3 || pluginLoaded) {
                 // plugin loaded, or referenced in user config as a plugin, or same version as our fallback version -> ok
-                return { prettier: prettier1, config: config1, isFallback: false, resolvedPlugins: resolvedPlugins1 };
+                return {
+                    prettier: prettier1,
+                    config: config1,
+                    isFallback: false,
+                    resolvedPlugins: resolvedPlugins1
+                };
             }
 
             // User either only has Plugin or incompatible Prettier major version installed or none
@@ -113,7 +118,12 @@ export class SveltePlugin
             const prettier2 = importPrettier(__dirname);
             const config2 = await getConfig(prettier2);
             const resolvedPlugins2 = resolvePlugins(config2.plugins);
-            return { prettier: prettier2, config: config2, isFallback: true, resolvedPlugins: resolvedPlugins2 };
+            return {
+                prettier: prettier2,
+                config: config2,
+                isFallback: true,
+                resolvedPlugins: resolvedPlugins2
+            };
         };
 
         const { prettier, config, isFallback, resolvedPlugins } = await importFittingPrettier();
@@ -216,7 +226,7 @@ export class SveltePlugin
             return plugin.includes('prettier-plugin-svelte');
         }
 
-        return !!plugin.languages?.find((l) => l.name === 'svelte');
+        return !!plugin?.languages?.find((l) => l.name === 'svelte');
     }
 
     async getCompletions(

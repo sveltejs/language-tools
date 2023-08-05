@@ -330,10 +330,14 @@ describe('Svelte Plugin', () => {
                 return formatStub;
             }
 
-            debugger;
-            await testFormat({
-                plugins: ["./do-not-exist/node_modules/prettier-plugin-svelte"]
-            }, {}, undefined, stubPrettier);
+            await testFormat(
+                {
+                    plugins: ['./do-not-exist/node_modules/prettier-plugin-svelte']
+                },
+                {},
+                undefined,
+                stubPrettier
+            );
         });
     });
 
