@@ -11,7 +11,7 @@ function can_auto_update() {
     if (!process.argv.includes('--auto') && !all_tests_skipped) {
         if (update_count++ === 0) {
             process.on('exit', () => {
-                const command = color.yellow('yarn run test --auto');
+                const command = color.yellow('pnpm run test -- --auto');
                 console.log(`  Run ${command} to update ${update_count} files\n`);
             });
         }
