@@ -1,7 +1,7 @@
-import { basename, dirname, resolve } from 'path';
+import { basename, dirname, join, resolve } from 'path';
 import ts from 'typescript';
 import { TextDocumentContentChangeEvent } from 'vscode-languageserver-protocol';
-import { getPackageInfo, importSvelte } from '../../importPackage';
+import { getPackageInfo } from '../../importPackage';
 import { Document } from '../../lib/documents';
 import { configLoader } from '../../lib/documents/configLoader';
 import { FileMap, FileSet } from '../../lib/documents/fileCollection';
@@ -216,11 +216,21 @@ async function createLanguageService(
         // Fall back to dirname
         svelteTsPath = __dirname;
     }
-    const VERSION = importSvelte(tsconfigPath || workspacePath).VERSION;
+    const sveltePackageInfo = getPackageInfo('svelte', tsconfigPath || workspacePath);
+
+    const isSvelte3 = sveltePackageInfo.version.major === 3;
+    const svelteHtmlDeclaration = isSvelte3
+        ? undefined
+        : join(sveltePackageInfo.path, 'svelte-html.d.ts');
+    const svelteHtmlFallbackIfNotExist =
+        svelteHtmlDeclaration && tsSystem.fileExists(svelteHtmlDeclaration)
+            ? svelteHtmlDeclaration
+            : './svelte-jsx-v4.d.ts';
+
     const svelteTsxFiles = (
-        VERSION.split('.')[0] === '3'
+        isSvelte3
             ? ['./svelte-shims.d.ts', './svelte-jsx.d.ts', './svelte-native-jsx.d.ts']
-            : ['./svelte-shims-v4.d.ts', './svelte-jsx-v4.d.ts', './svelte-native-jsx.d.ts']
+            : ['./svelte-shims-v4.d.ts', svelteHtmlFallbackIfNotExist, './svelte-native-jsx.d.ts']
     ).map((f) => tsSystem.resolvePath(resolve(svelteTsPath, f)));
 
     let languageServiceReducedMode = false;
