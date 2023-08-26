@@ -136,7 +136,7 @@ export class SvelteCheck {
                 }
             ]);
         } else {
-            this.docManager.openDocument({
+            this.docManager.openClientDocument({
                 text: doc.text,
                 uri: doc.uri
             });

@@ -78,10 +78,13 @@ export class LSAndTSDocResolver {
      */
     private createDocument = (fileName: string, content: string) => {
         const uri = pathToUrl(fileName);
-        const document = this.docManager.openDocument({
-            text: content,
-            uri
-        });
+        const document = this.docManager.openDocument(
+            {
+                text: content,
+                uri
+            },
+            /* openedByClient */ false
+        );
         this.docManager.lockDocument(uri);
         return document;
     };

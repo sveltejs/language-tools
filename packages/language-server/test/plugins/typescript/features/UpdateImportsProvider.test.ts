@@ -36,7 +36,7 @@ describe('UpdateImportsProviderImpl', function () {
         const updateImportsProvider = new UpdateImportsProviderImpl(lsAndTsDocResolver);
         const filePath = join(updateImportTestDir, filename);
         const fileUri = pathToUrl(filePath);
-        const document = docManager.openDocument(<any>{
+        const document = docManager.openClientDocument(<any>{
             uri: fileUri,
             text: ts.sys.readFile(filePath) || ''
         });

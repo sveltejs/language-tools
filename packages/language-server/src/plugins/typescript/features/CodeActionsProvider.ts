@@ -312,6 +312,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             : `${document.getText()}<script>${inserts}</script>`;
 
         const virtualDoc = new Document(virtualUri, newText);
+        virtualDoc.openedByClient = true;
         // let typescript know about the virtual document
         await this.lsAndTsDocResolver.getSnapshot(virtualDoc);
 

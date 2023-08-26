@@ -385,7 +385,7 @@ async function createLanguageService(
                 // project file is read from the file system so it's more likely to have
                 // the correct casing
                 ...snapshotManager
-                    .getFileNames()
+                    .getClientFileNames()
                     .filter((file) => !canonicalProjectFileNames.has(getCanonicalFileName(file))),
                 ...svelteTsxFiles
             ])

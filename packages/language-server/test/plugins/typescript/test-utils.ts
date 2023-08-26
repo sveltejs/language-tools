@@ -146,7 +146,7 @@ export function setupVirtualEnvironment({
 
     const filePath = join(testDir, filename);
     virtualSystem.writeFile(filePath, fileContent);
-    const document = docManager.openDocument(<any>{
+    const document = docManager.openClientDocument(<any>{
         uri: pathToUrl(filePath),
         text: virtualSystem.readFile(filePath) || ''
     });
@@ -270,7 +270,7 @@ export function serviceWarmup(suite: Mocha.Suite, testDir: string, rootUri = pat
         );
 
         const filePath = join(testDir, 'DoesNotMater.svelte');
-        const document = docManager.openDocument(<any>{
+        const document = docManager.openClientDocument(<any>{
             uri: pathToUrl(filePath),
             text: ts.sys.readFile(filePath) || ''
         });

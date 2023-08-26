@@ -26,7 +26,7 @@ describe('DiagnosticsProvider', function () {
         );
         const plugin = new DiagnosticsProviderImpl(lsAndTsDocResolver, new LSConfigManager());
         const filePath = path.join(testDir, filename);
-        const document = docManager.openDocument(<any>{
+        const document = docManager.openClientDocument(<any>{
             uri: pathToUrl(filePath),
             text: ts.sys.readFile(filePath) || ''
         });
@@ -95,14 +95,14 @@ describe('DiagnosticsProvider', function () {
             'different-ts-service',
             'different-ts-service.svelte'
         );
-        const otherDocument = docManager.openDocument(<any>{
+        const otherDocument = docManager.openClientDocument(<any>{
             uri: pathToUrl(otherFilePath),
             text: ts.sys.readFile(otherFilePath) || ''
         });
         // needed because tests have nasty dependencies between them. The ts service
         // is cached and knows the docs already
         const sharedFilePath = path.join(testDir, 'shared-comp.svelte');
-        docManager.openDocument(<any>{
+        docManager.openClientDocument(<any>{
             uri: pathToUrl(sharedFilePath),
             text: ts.sys.readFile(sharedFilePath) || ''
         });

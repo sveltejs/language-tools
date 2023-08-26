@@ -346,7 +346,7 @@ export function startServer(options?: LSOptions) {
     });
 
     connection.onDidOpenTextDocument((evt) => {
-        const document = docManager.openDocument(evt.textDocument);
+        const document = docManager.openClientDocument(evt.textDocument);
         docManager.markAsOpenedInClient(evt.textDocument.uri);
         diagnosticsManager.scheduleUpdate(document);
     });

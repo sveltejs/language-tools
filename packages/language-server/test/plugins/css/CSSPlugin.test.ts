@@ -33,7 +33,7 @@ describe('CSS Plugin', () => {
             ],
             createLanguageServices(lsOptions)
         );
-        docManager.openDocument(<any>'some doc');
+        docManager.openClientDocument(<any>'some doc');
         return { plugin, document };
     }
 

@@ -16,7 +16,7 @@ export type DocumentEvent = 'documentOpen' | 'documentChange' | 'documentClose';
  */
 export class DocumentManager {
     private emitter = new EventEmitter();
-    private openedInClient: FileSet;
+    // private openedInClient: FileSet;
     private documents: FileMap<Document>;
     private locked: FileSet;
     private deleteCandidates: FileSet;
@@ -27,13 +27,20 @@ export class DocumentManager {
             useCaseSensitiveFileNames: ts.sys.useCaseSensitiveFileNames
         }
     ) {
-        this.openedInClient = new FileSet(options.useCaseSensitiveFileNames);
+        // this.openedInClient = new FileSet(options.useCaseSensitiveFileNames);
         this.documents = new FileMap(options.useCaseSensitiveFileNames);
         this.locked = new FileSet(options.useCaseSensitiveFileNames);
         this.deleteCandidates = new FileSet(options.useCaseSensitiveFileNames);
     }
 
-    openDocument(textDocument: Pick<TextDocumentItem, 'text' | 'uri'>): Document {
+    openClientDocument(textDocument: Pick<TextDocumentItem, 'text' | 'uri'>): Document {
+        return this.openDocument(textDocument, /**openedByClient */ true);
+    }
+
+    openDocument(
+        textDocument: Pick<TextDocumentItem, 'text' | 'uri'>,
+        openedByClient: boolean
+    ): Document {
         textDocument = {
             ...textDocument,
             uri: normalizeUri(textDocument.uri)
@@ -50,6 +57,7 @@ export class DocumentManager {
         }
 
         this.notify('documentChange', document);
+        document.openedByClient = openedByClient;
 
         return document;
     }
@@ -59,24 +67,29 @@ export class DocumentManager {
     }
 
     markAsOpenedInClient(uri: string): void {
-        this.openedInClient.add(normalizeUri(uri));
+        // const document = this.documents.get(normalizeUri(uri));
+        // if (document) {
+        //     document.openedByClient = true;
+        // }
     }
 
     getAllOpenedByClient() {
-        return Array.from(this.documents.entries()).filter((doc) =>
-            this.openedInClient.has(doc[0])
-        );
+        return Array.from(this.documents.entries()).filter((doc) => doc[1].openedByClient);
     }
 
     isOpenedInClient(uri: string) {
-        return this.openedInClient.has(normalizeUri(uri));
+        const document = this.documents.get(normalizeUri(uri));
+        return !!document?.openedByClient;
     }
 
     releaseDocument(uri: string): void {
         uri = normalizeUri(uri);
 
         this.locked.delete(uri);
-        this.openedInClient.delete(uri);
+        const document = this.documents.get(uri);
+        if (document) {
+            document.openedByClient = false;
+        }
         if (this.deleteCandidates.has(uri)) {
             this.deleteCandidates.delete(uri);
             this.closeDocument(uri);
@@ -100,7 +113,7 @@ export class DocumentManager {
             this.deleteCandidates.add(uri);
         }
 
-        this.openedInClient.delete(uri);
+        document.openedByClient = false;
     }
 
     updateDocument(
