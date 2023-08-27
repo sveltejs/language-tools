@@ -17,6 +17,12 @@ export function createSvelteSys(ts: _ts, logger: Logger) {
             const extensionsWithSvelte = (extensions ?? []).concat('.svelte');
 
             return ts.sys.readDirectory(path, extensionsWithSvelte, exclude, include, depth);
+        },
+        readFile(path, encoding) {
+            // imba typescript plugin patch this with Object.defineProperty
+            // and copying the property descriptor from a class that extends the original ts.sys
+            // so we explicitly define it here
+            return ts.sys.readFile(path, encoding);
         }
     };
 
