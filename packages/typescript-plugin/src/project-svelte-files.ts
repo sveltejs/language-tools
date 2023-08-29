@@ -46,7 +46,7 @@ export class ProjectSvelteFilesManager {
             return;
         }
 
-        this.disposeWatchers();        
+        this.disposeWatchers();
         this.clearProjectFile();
         this.parsedCommandLine = parsedCommandLine;
         this.setupWatchers();
@@ -163,7 +163,7 @@ export class ProjectSvelteFilesManager {
     }
 
     private onConfigChanged(config: Configuration) {
-        this.disposeWatchers();        
+        this.disposeWatchers();
         this.clearProjectFile();
 
         if (config.enable) {
