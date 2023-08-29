@@ -195,7 +195,7 @@ export class ProjectSvelteFilesManager {
 
         // Don't remove files from the project here
         // because TypeScript already does that when the project is closed
-        // And because the project is closed. project.removeFile will result in an error
+        // - and because the project is closed, `project.removeFile` will result in an error
         this.projectFileToOriginalCasing.clear();
 
         ProjectSvelteFilesManager.instances.delete(this.project.getProjectName());
