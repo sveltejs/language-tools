@@ -57,7 +57,7 @@
         "svelte": "^3.57.0",
         "svelte-preprocess": "~5.0.4",
         "svelte2tsx": "workspace:~",
-        "typescript": "*",
+        "typescript": "^5.2.2",
         "vscode-css-languageservice": "~6.2.0",
         "vscode-html-languageservice": "~5.0.0",
         "vscode-languageserver": "8.0.2",

@@ -476,6 +476,7 @@ describe('CompletionProviderImpl', function () {
         assert.deepStrictEqual(data, {
             data: undefined,
             hasAction: undefined,
+            filterText: undefined,
             insertText: undefined,
             isPackageJsonImport: undefined,
             isImportStatementCompletion: undefined,
@@ -1441,7 +1442,7 @@ describe('CompletionProviderImpl', function () {
         assert.deepStrictEqual(item, {
             label: 'hi',
             kind: CompletionItemKind.Method,
-            sortText: '17',
+            sortText: '11',
             preselect: undefined,
             insertText: `hi(name: string): string {${newLine}${indent}$0${newLine}}`,
             insertTextFormat: 2,
