@@ -708,13 +708,12 @@
         ]
     },
     "devDependencies": {
-        "@tsconfig/node16": "^1.0.0",
         "@types/lodash": "^4.14.116",
         "@types/node": "^16.0.0",
         "@types/vscode": "^1.67",
         "js-yaml": "^3.14.0",
         "tslib": "^2.4.0",
-        "typescript": "*",
+        "typescript": "^5.2.2",
         "vscode-tmgrammar-test": "^0.0.11"
     },
     "dependencies": {

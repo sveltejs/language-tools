@@ -25,7 +25,7 @@
         },
         "severity": 1,
         "source": "ts",
-        "message": "Type 'HTMLDivElement' is missing the following properties from type 'HTMLInputElement': accept, alt, autocomplete, capture, and 52 more.",
+        "message": "Type 'HTMLDivElement' is missing the following properties from type 'HTMLInputElement': accept, alt, autocomplete, capture, and 54 more.",
         "code": 2740,
         "tags": []
     },

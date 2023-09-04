@@ -46,7 +46,6 @@
         "@rollup/plugin-node-resolve": "^15.0.0",
         "@rollup/plugin-replace": "5.0.2",
         "@rollup/plugin-typescript": "^10.0.0",
-        "@tsconfig/node16": "^1.0.0",
         "@types/sade": "^1.7.2",
         "builtin-modules": "^3.3.0",
         "rollup": "3.7.5",
