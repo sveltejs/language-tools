@@ -31,8 +31,8 @@
     ],
     "folding": {
         "markers": {
-            "start": "^\\s*//\\s*#?region\\b|^<(template|style|script)[^>]*>|^\\s*<!--\\s*#region\\b",
-            "end": "^\\s*//\\s*#?endregion\\b|^</(template|style|script)>|^\\s*<!--\\s*#endregion\\b"
+            "start": "^\\s*(//|/\\*\\*?)\\s*#?region\\b|^<(template|style|script)[^>]*>|^\\s*<!--\\s*#region\\b",
+            "end": "^\\s*(//|/\\*\\*?)\\s*#?endregion\\b|^</(template|style|script)>|^\\s*<!--\\s*#endregion\\b"
         }
     }
 }

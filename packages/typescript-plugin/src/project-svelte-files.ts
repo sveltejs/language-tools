@@ -46,7 +46,8 @@ export class ProjectSvelteFilesManager {
             return;
         }
 
-        this.disposeWatchersAndFiles();
+        this.disposeWatchers();
+        this.clearProjectFile();
         this.parsedCommandLine = parsedCommandLine;
         this.setupWatchers();
         this.updateProjectSvelteFiles();
@@ -162,7 +163,8 @@ export class ProjectSvelteFilesManager {
     }
 
     private onConfigChanged(config: Configuration) {
-        this.disposeWatchersAndFiles();
+        this.disposeWatchers();
+        this.clearProjectFile();
 
         if (config.enable) {
             this.setupWatchers();
@@ -178,16 +180,23 @@ export class ProjectSvelteFilesManager {
         }
     }
 
-    private disposeWatchersAndFiles() {
+    private disposeWatchers() {
         this.directoryWatchers.forEach((watcher) => watcher.close());
         this.directoryWatchers.clear();
+    }
 
+    private clearProjectFile() {
         this.projectFileToOriginalCasing.forEach((file) => this.removeFileFromProject(file));
         this.projectFileToOriginalCasing.clear();
     }
 
     dispose() {
-        this.disposeWatchersAndFiles();
+        this.disposeWatchers();
+
+        // Don't remove files from the project here
+        // because TypeScript already does that when the project is closed
+        // - and because the project is closed, `project.removeFile` will result in an error
+        this.projectFileToOriginalCasing.clear();
 
         ProjectSvelteFilesManager.instances.delete(this.project.getProjectName());
     }

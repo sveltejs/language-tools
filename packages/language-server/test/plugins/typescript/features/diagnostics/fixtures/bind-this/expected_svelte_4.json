@@ -25,7 +25,7 @@
         },
         "severity": 1,
         "source": "ts",
-        "message": "Type 'HTMLDivElement' is missing the following properties from type 'HTMLInputElement': accept, alt, autocomplete, capture, and 52 more.",
+        "message": "Type 'HTMLDivElement' is missing the following properties from type 'HTMLInputElement': accept, alt, autocomplete, capture, and 54 more.",
         "code": 2740,
         "tags": []
     },
@@ -36,7 +36,7 @@
         },
         "severity": 1,
         "source": "ts",
-        "message": "Type 'Component' is not assignable to type 'OtherComponent'.\n  Types of property '$$prop_def' are incompatible.\n    Type '{ prop: boolean; }' is not assignable to type '{ prop: string; }'.",
+        "message": "Type 'Component' is not assignable to type 'OtherComponent'.\n  Type '{ prop: boolean; }' is not assignable to type '{ prop: string; }'.\n    Types of property 'prop' are incompatible.\n      Type 'boolean' is not assignable to type 'string'.",
         "code": 2322,
         "tags": []
     },
