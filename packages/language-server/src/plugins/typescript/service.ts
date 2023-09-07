@@ -45,7 +45,15 @@ export interface LanguageServiceContainer {
      */
     fileBelongsToProject(filePath: string, isNew: boolean): boolean;
 
+    updateIfDirty(): void;
+
     dispose(): void;
+}
+
+declare module 'typescript' {
+    interface LanguageServiceHost {
+        /** @internal */ hasInvalidatedResolutions?: (sourceFile: string) => boolean;
+    }
 }
 
 const maxProgramSizeForNonTsFiles = 20 * 1024 * 1024; // 20 MB
@@ -156,6 +164,8 @@ export async function getServiceForTsconfig(
         service = await services.get(tsconfigPathOrWorkspacePath)!;
     }
 
+    service.updateIfDirty();
+
     return service;
 }
 
@@ -235,6 +245,8 @@ async function createLanguageService(
 
     let languageServiceReducedMode = false;
     let projectVersion = 0;
+    let dirty = false;
+    let timer: NodeJS.Timeout | undefined;
 
     const getCanonicalFileName = createGetCanonicalFileName(tsSystem.useCaseSensitiveFileNames);
 
@@ -256,7 +268,8 @@ async function createLanguageService(
         getProjectVersion: () => projectVersion.toString(),
         getNewLine: () => tsSystem.newLine,
         resolveTypeReferenceDirectiveReferences:
-            svelteModuleLoader.resolveTypeReferenceDirectiveReferences
+            svelteModuleLoader.resolveTypeReferenceDirectiveReferences,
+        hasInvalidatedResolutions: svelteModuleLoader.mightHaveInvalidatedResolutions,
     };
 
     let languageService = ts.createLanguageService(host);
@@ -267,6 +280,8 @@ async function createLanguageService(
 
     const onSnapshotChange = () => {
         projectVersion++;
+        dirty = true;
+        scheduleUpdate();
     };
     docContext.globalSnapshotsManager.onChange(onSnapshotChange);
 
@@ -286,6 +301,7 @@ async function createLanguageService(
         hasFile,
         fileBelongsToProject,
         snapshotManager,
+        updateIfDirty,
         dispose
     };
 
@@ -635,6 +651,29 @@ async function createLanguageService(
         }
 
         docContext.onProjectReloaded?.();
+    }
+
+    function updateIfDirty() {
+        if (timer) {
+            clearTimeout(timer);
+            timer = undefined;
+        }
+        if (!dirty) {
+            return;
+        }
+
+        languageService.getProgram();
+        svelteModuleLoader.clearPendingInvalidations();
+
+        dirty = false;
+    }
+
+    function scheduleUpdate() {
+        if (timer) {
+            clearTimeout(timer);
+        }
+
+        timer = setTimeout(updateIfDirty, 1000);
     }
 }
 

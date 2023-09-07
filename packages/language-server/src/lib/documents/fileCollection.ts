@@ -91,6 +91,10 @@ export class FileSet implements Iterable<string> {
         return this.set.delete(this.getCanonicalFileName(filePath));
     }
 
+    clear() {
+        this.set.clear();
+    }
+
     [Symbol.iterator](): Iterator<string> {
         return this.set[Symbol.iterator]();
     }
