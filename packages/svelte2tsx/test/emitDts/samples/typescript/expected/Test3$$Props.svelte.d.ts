@@ -2,6 +2,7 @@ import { SvelteComponentTyped } from "svelte";
 declare const __propDef: {
     props: {
         b?: () => void;
+    } & {
         /**
          * comment is preserved
          */
