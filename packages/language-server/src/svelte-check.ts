@@ -140,7 +140,6 @@ export class SvelteCheck {
                 text: doc.text,
                 uri: doc.uri
             });
-            this.docManager.markAsOpenedInClient(doc.uri);
         }
     }
 

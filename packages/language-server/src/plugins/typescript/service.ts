@@ -82,11 +82,6 @@ const configFileModifiedTime = new FileMap<Date | undefined>();
 const configFileForOpenFiles = new FileMap<string>();
 const pendingReloads = new FileSet();
 
-process.on('exit', () => {
-    // so that the schedule update doesn't keep the process open
-    forAllServices((service) => service.dispose());
-});
-
 /**
  * For testing only: Reset the cache for services.
  * Try to refactor this some day so that this file provides
@@ -175,6 +170,7 @@ export async function getServiceForTsconfig(
             Logger.log('Reloading ts service at ', tsconfigPath, ' due to config updated');
         } else {
             Logger.log('Initialize new ts service at ', tsconfigPath);
+            console.trace();
         }
 
         pendingReloads.delete(tsconfigPath);
@@ -267,7 +263,6 @@ async function createLanguageService(
     let languageServiceReducedMode = false;
     let projectVersion = 0;
     let dirty = false;
-    let timer: NodeJS.Timeout | undefined;
 
     const getCanonicalFileName = createGetCanonicalFileName(tsSystem.useCaseSensitiveFileNames);
 
@@ -427,6 +422,7 @@ async function createLanguageService(
 
     function updateProjectFiles(): void {
         projectVersion++;
+        dirty = true;
         const projectFileCountBefore = snapshotManager.getProjectFileNames().length;
         snapshotManager.updateProjectFiles();
         const projectFileCountAfter = snapshotManager.getProjectFileNames().length;
@@ -630,7 +626,6 @@ async function createLanguageService(
     }
 
     function dispose() {
-        clearTimeout(timer);
         languageService.dispose();
         snapshotManager.dispose();
         configWatchers.get(tsconfigPath)?.close();
@@ -704,10 +699,6 @@ async function createLanguageService(
     }
 
     function updateIfDirty() {
-        if (timer) {
-            clearTimeout(timer);
-            timer = undefined;
-        }
         if (!dirty) {
             return;
         }
@@ -719,14 +710,13 @@ async function createLanguageService(
     }
 
     function scheduleUpdate() {
-        projectVersion++;
-        dirty = true;
-
-        if (timer) {
-            clearTimeout(timer);
+        if (dirty) {
+            return;
         }
 
-        timer = setTimeout(updateIfDirty, 1000);
+        projectVersion++;
+        dirty = true;
+        console.log('scheduleUpdate');
     }
 }
 

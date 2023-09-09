@@ -16,7 +16,6 @@ export type DocumentEvent = 'documentOpen' | 'documentChange' | 'documentClose';
  */
 export class DocumentManager {
     private emitter = new EventEmitter();
-    // private openedInClient: FileSet;
     private documents: FileMap<Document>;
     private locked: FileSet;
     private deleteCandidates: FileSet;
@@ -67,10 +66,10 @@ export class DocumentManager {
     }
 
     markAsOpenedInClient(uri: string): void {
-        // const document = this.documents.get(normalizeUri(uri));
-        // if (document) {
-        //     document.openedByClient = true;
-        // }
+        const document = this.documents.get(normalizeUri(uri));
+        if (document) {
+            document.openedByClient = true;
+        }
     }
 
     getAllOpenedByClient() {
