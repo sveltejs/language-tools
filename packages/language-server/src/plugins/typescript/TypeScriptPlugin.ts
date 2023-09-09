@@ -510,14 +510,21 @@ export class TypeScriptPlugin
                 continue;
             }
 
-            if (changeType === FileChangeType.Created && !doneUpdateProjectFiles) {
-                doneUpdateProjectFiles = true;
-                await this.lsAndTsDocResolver.updateProjectFiles();
-            } else if (changeType === FileChangeType.Deleted) {
+            if (changeType === FileChangeType.Deleted) {
                 await this.lsAndTsDocResolver.deleteSnapshot(fileName);
-            } else {
-                await this.lsAndTsDocResolver.updateExistingTsOrJsFile(fileName);
+                continue;
             }
+
+            if (changeType === FileChangeType.Created) {
+                if (!doneUpdateProjectFiles) {
+                    doneUpdateProjectFiles = true;
+                    await this.lsAndTsDocResolver.updateProjectFiles();
+                }
+                await this.lsAndTsDocResolver.deleteModuleResolutionCache(fileName);
+                continue;
+            }
+
+            await this.lsAndTsDocResolver.updateExistingTsOrJsFile(fileName);
         }
     }
 

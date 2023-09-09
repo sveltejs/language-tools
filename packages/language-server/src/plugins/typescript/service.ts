@@ -32,6 +32,7 @@ export interface LanguageServiceContainer {
     getService(): ts.LanguageService;
     updateSnapshot(documentOrFilePath: Document | string): DocumentSnapshot;
     deleteSnapshot(filePath: string): void;
+    invalidateModuleCache(filePath: string): void;
     updateProjectFiles(): void;
     updateTsOrJsFile(fileName: string, changes?: TextDocumentContentChangeEvent[]): void;
     /**
@@ -54,6 +55,21 @@ declare module 'typescript' {
     interface LanguageServiceHost {
         /** @internal */ hasInvalidatedResolutions?: (sourceFile: string) => boolean;
     }
+
+    interface ResolvedModuleWithFailedLookupLocations {
+        /** @internal */
+        failedLookupLocations?: string[];
+        /** @internal */
+        affectingLocations?: string[];
+        /** @internal */
+        resolutionDiagnostics?: ts.Diagnostic[];
+        /**
+         * @internal
+         * Used to issue a diagnostic if typings for a non-relative import couldn't be found
+         * while respecting package.json `exports`, but were found when disabling `exports`.
+         */
+        node10Result?: string;
+    }
 }
 
 const maxProgramSizeForNonTsFiles = 20 * 1024 * 1024; // 20 MB
@@ -65,6 +81,11 @@ const extendedConfigToTsConfigPath = new FileMap<FileSet>();
 const configFileModifiedTime = new FileMap<Date | undefined>();
 const configFileForOpenFiles = new FileMap<string>();
 const pendingReloads = new FileSet();
+
+process.on('exit', () => {
+    // so that the schedule update doesn't keep the process open
+    forAllServices((service) => service.dispose());
+});
 
 /**
  * For testing only: Reset the cache for services.
@@ -254,8 +275,9 @@ async function createLanguageService(
         log: (message) => Logger.debug(`[ts] ${message}`),
         getCompilationSettings: () => compilerOptions,
         getScriptFileNames,
-        getScriptVersion: (fileName: string) => getSnapshot(fileName).version.toString(),
-        getScriptSnapshot: getSnapshot,
+        getScriptVersion: (fileName: string) =>
+            getSnapshotIfExists(fileName)?.version.toString() || '',
+        getScriptSnapshot: getSnapshotIfExists,
         getCurrentDirectory: () => workspacePath,
         getDefaultLibFileName: ts.getDefaultLibFilePath,
         fileExists: svelteModuleLoader.fileExists,
@@ -269,7 +291,7 @@ async function createLanguageService(
         getNewLine: () => tsSystem.newLine,
         resolveTypeReferenceDirectiveReferences:
             svelteModuleLoader.resolveTypeReferenceDirectiveReferences,
-        hasInvalidatedResolutions: svelteModuleLoader.mightHaveInvalidatedResolutions,
+        hasInvalidatedResolutions: svelteModuleLoader.mightHaveInvalidatedResolutions
     };
 
     let languageService = ts.createLanguageService(host);
@@ -278,12 +300,7 @@ async function createLanguageService(
         typingsNamespace: raw?.svelteOptions?.namespace || 'svelteHTML'
     };
 
-    const onSnapshotChange = () => {
-        projectVersion++;
-        dirty = true;
-        scheduleUpdate();
-    };
-    docContext.globalSnapshotsManager.onChange(onSnapshotChange);
+    docContext.globalSnapshotsManager.onChange(scheduleUpdate);
 
     reduceLanguageServiceCapabilityIfFileSizeTooBig();
     updateExtendedConfigDependents();
@@ -302,6 +319,7 @@ async function createLanguageService(
         fileBelongsToProject,
         snapshotManager,
         updateIfDirty,
+        invalidateModuleCache,
         dispose
     };
 
@@ -309,6 +327,13 @@ async function createLanguageService(
         svelteModuleLoader.deleteFromModuleCache(filePath);
         snapshotManager.delete(filePath);
         configFileForOpenFiles.delete(filePath);
+    }
+
+    function invalidateModuleCache(filePath: string) {
+        svelteModuleLoader.deleteFromModuleCache(filePath);
+        svelteModuleLoader.deleteUnresolvedResolutionsFromCache(filePath);
+
+        scheduleUpdate();
     }
 
     function updateSnapshot(documentOrFilePath: Document | string): DocumentSnapshot {
@@ -357,6 +382,26 @@ async function createLanguageService(
         return newSnapshot;
     }
 
+    /**
+     * Deleted files will still be requested during the program update.
+     * Don't create snapshots for them.
+     * Otherwise, deleteUnresolvedResolutionsFromCache won't be called when the file is created again     *
+     */
+    function getSnapshotIfExists(fileName: string): DocumentSnapshot | undefined {
+        fileName = ensureRealSvelteFilePath(fileName);
+
+        let doc = snapshotManager.get(fileName);
+        if (doc) {
+            return doc;
+        }
+
+        if (!svelteModuleLoader.fileExists(fileName)) {
+            return undefined;
+        }
+
+        return createSnapshot(fileName, doc);
+    }
+
     function getSnapshot(fileName: string): DocumentSnapshot {
         fileName = ensureRealSvelteFilePath(fileName);
 
@@ -365,6 +410,10 @@ async function createLanguageService(
             return doc;
         }
 
+        return createSnapshot(fileName, doc);
+    }
+
+    function createSnapshot(fileName: string, doc: DocumentSnapshot | undefined) {
         svelteModuleLoader.deleteUnresolvedResolutionsFromCache(fileName);
         doc = DocumentSnapshot.fromFilePath(
             fileName,
@@ -581,12 +630,13 @@ async function createLanguageService(
     }
 
     function dispose() {
+        clearTimeout(timer);
         languageService.dispose();
         snapshotManager.dispose();
         configWatchers.get(tsconfigPath)?.close();
         configWatchers.delete(tsconfigPath);
         configFileForOpenFiles.clear();
-        docContext.globalSnapshotsManager.removeChangeListener(onSnapshotChange);
+        docContext.globalSnapshotsManager.removeChangeListener(scheduleUpdate);
     }
 
     function updateExtendedConfigDependents() {
@@ -669,6 +719,9 @@ async function createLanguageService(
     }
 
     function scheduleUpdate() {
+        projectVersion++;
+        dirty = true;
+
         if (timer) {
             clearTimeout(timer);
         }

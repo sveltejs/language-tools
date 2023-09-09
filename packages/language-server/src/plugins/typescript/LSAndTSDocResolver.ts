@@ -164,6 +164,10 @@ export class LSAndTSDocResolver {
         this.docManager.releaseDocument(uri);
     }
 
+    async deleteModuleResolutionCache(filePath: string) {
+        await forAllServices((service) => service.invalidateModuleCache(filePath));
+    }
+
     /**
      * Updates project files in all existing ts services
      */

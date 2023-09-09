@@ -230,8 +230,15 @@ export function createSvelteModuleLoader(
                 containingSourceFile,
                 index
             );
-            moduleCache.set(moduleName, containingFile, resolvedModule);
-            return resolvedModule;
+
+            resolvedModule?.failedLookupLocations?.forEach((failedLocation) => {
+                const failedPaths = failedPathToContainingFile.get(failedLocation) ?? new FileSet();
+                failedPaths.add(containingFile);
+                failedPathToContainingFile.set(failedLocation, failedPaths);
+            });
+
+            moduleCache.set(moduleName, containingFile, resolvedModule?.resolvedModule);
+            return resolvedModule?.resolvedModule;
         });
     }
 
@@ -240,7 +247,7 @@ export function createSvelteModuleLoader(
         containingFile: string,
         containingSourceFile: ts.SourceFile | undefined,
         index: number
-    ): ts.ResolvedModule | undefined {
+    ): ts.ResolvedModuleWithFailedLookupLocations {
         const mode = impliedNodeFormatResolver.resolve(
             name,
             index,
@@ -250,33 +257,37 @@ export function createSvelteModuleLoader(
         // Delegate to the TS resolver first.
         // If that does not bring up anything, try the Svelte Module loader
         // which is able to deal with .svelte files.
-        const tsResolvedModule = tsModule.resolveModuleName(
+        const tsResolvedModuleWithFailedLookup = tsModule.resolveModuleName(
             name,
             containingFile,
             compilerOptions,
-            wrapSystemWithMonitor(ts.sys, containingFile),
+            ts.sys,
             tsModuleCache,
             undefined,
             mode
-        ).resolvedModule;
+        );
+
+        const tsResolvedModule = tsResolvedModuleWithFailedLookup.resolvedModule;
         if (tsResolvedModule && !isVirtualSvelteFilePath(tsResolvedModule.resolvedFileName)) {
-            return tsResolvedModule;
+            return tsResolvedModuleWithFailedLookup;
         }
 
-        const svelteResolvedModule = tsModule.resolveModuleName(
+        const svelteResolvedModuleWithFailedLookup = tsModule.resolveModuleName(
             name,
             containingFile,
             compilerOptions,
-            wrapSystemWithMonitor(svelteSys, containingFile),
+            svelteSys,
             undefined,
             undefined,
             mode
-        ).resolvedModule;
+        );
+
+        const svelteResolvedModule = svelteResolvedModuleWithFailedLookup.resolvedModule;
         if (
             !svelteResolvedModule ||
             !isVirtualSvelteFilePath(svelteResolvedModule.resolvedFileName)
         ) {
-            return svelteResolvedModule;
+            return svelteResolvedModuleWithFailedLookup;
         }
 
         const resolvedFileName = ensureRealSvelteFilePath(svelteResolvedModule.resolvedFileName);
@@ -287,26 +298,9 @@ export function createSvelteModuleLoader(
             resolvedFileName,
             isExternalLibraryImport: svelteResolvedModule.isExternalLibraryImport
         };
-        return resolvedSvelteModule;
-    }
-
-    function wrapSystemWithMonitor(sys: ts.System, containingFile: string): ts.System {
         return {
-            ...sys,
-            fileExists(path) {
-                path = ensureRealSvelteFilePath(path);
-                const exists = sys.fileExists(path);
-
-                if (exists) {
-                    return true;
-                }
-
-                const set = failedPathToContainingFile.get(path) ?? new FileSet();
-                set.add(containingFile);
-                failedPathToContainingFile.set(path, set);
-
-                return false;
-            }
+            ...svelteResolvedModuleWithFailedLookup,
+            resolvedModule: resolvedSvelteModule
         };
     }
 
