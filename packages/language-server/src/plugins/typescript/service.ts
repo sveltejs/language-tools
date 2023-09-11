@@ -51,7 +51,12 @@ export interface LanguageServiceContainer {
 
 declare module 'typescript' {
     interface LanguageServiceHost {
-        /** @internal */ hasInvalidatedResolutions?: (sourceFile: string) => boolean;
+        /**
+         * @internal
+         * This is needed for the languageService program to know that there is a new file
+         * that might change the module resolution results
+         */
+        hasInvalidatedResolutions?: (sourceFile: string) => boolean;
     }
 
     interface ResolvedModuleWithFailedLookupLocations {
