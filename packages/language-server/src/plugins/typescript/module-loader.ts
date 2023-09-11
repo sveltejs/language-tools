@@ -11,6 +11,7 @@ import {
     toVirtualSvelteFilePath
 } from './utils';
 
+const CACHE_KEY_SEPARATOR = ':::';
 /**
  * Caches resolved modules.
  */
@@ -50,7 +51,7 @@ class ModuleResolutionCache {
         this.cache.forEach((val, key) => {
             if (val && this.getCanonicalFileName(val.resolvedFileName) === resolvedModuleName) {
                 this.cache.delete(key);
-                this.pendingInvalidations.add(key.split(':::').shift() || '');
+                this.pendingInvalidations.add(key.split(CACHE_KEY_SEPARATOR).shift() || '');
             }
         });
     }
@@ -63,9 +64,7 @@ class ModuleResolutionCache {
         const fileNameWithoutEnding =
             getLastPartOfPath(this.getCanonicalFileName(path)).split('.').shift() || '';
         this.cache.forEach((val, key) => {
-            const split = key.split(':::');
-            const moduleName = key.split(':::').pop() || '';
-            const containingFile = split[0];
+            const [containingFile, moduleName = ''] = key.split(CACHE_KEY_SEPARATOR);
             if (!val && moduleName.includes(fileNameWithoutEnding)) {
                 this.cache.delete(key);
                 this.pendingInvalidations.add(containingFile);
@@ -74,7 +73,7 @@ class ModuleResolutionCache {
     }
 
     private getKey(moduleName: string, containingFile: string) {
-        return containingFile + ':::' + ensureRealSvelteFilePath(moduleName);
+        return containingFile + CACHE_KEY_SEPARATOR + ensureRealSvelteFilePath(moduleName);
     }
 
     clearPendingInvalidations() {
