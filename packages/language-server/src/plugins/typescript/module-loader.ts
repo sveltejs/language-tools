@@ -1,5 +1,5 @@
 import ts from 'typescript';
-import { FileMap } from '../../lib/documents/fileCollection';
+import { FileMap, FileSet } from '../../lib/documents/fileCollection';
 import { createGetCanonicalFileName, getLastPartOfPath, toFileNameLowerCase } from '../../utils';
 import { DocumentSnapshot } from './DocumentSnapshot';
 import { createSvelteSys } from './svelte-sys';
@@ -11,11 +11,13 @@ import {
     toVirtualSvelteFilePath
 } from './utils';
 
+const CACHE_KEY_SEPARATOR = ':::';
 /**
  * Caches resolved modules.
  */
 class ModuleResolutionCache {
     private cache = new FileMap<ts.ResolvedModule | undefined>();
+    private pendingInvalidations = new FileSet();
     private getCanonicalFileName = createGetCanonicalFileName(ts.sys.useCaseSensitiveFileNames);
 
     /**
@@ -49,6 +51,7 @@ class ModuleResolutionCache {
         this.cache.forEach((val, key) => {
             if (val && this.getCanonicalFileName(val.resolvedFileName) === resolvedModuleName) {
                 this.cache.delete(key);
+                this.pendingInvalidations.add(key.split(CACHE_KEY_SEPARATOR).shift() || '');
             }
         });
     }
@@ -61,15 +64,24 @@ class ModuleResolutionCache {
         const fileNameWithoutEnding =
             getLastPartOfPath(this.getCanonicalFileName(path)).split('.').shift() || '';
         this.cache.forEach((val, key) => {
-            const moduleName = key.split(':::').pop() || '';
+            const [containingFile, moduleName = ''] = key.split(CACHE_KEY_SEPARATOR);
             if (!val && moduleName.includes(fileNameWithoutEnding)) {
                 this.cache.delete(key);
+                this.pendingInvalidations.add(containingFile);
             }
         });
     }
 
     private getKey(moduleName: string, containingFile: string) {
-        return containingFile + ':::' + ensureRealSvelteFilePath(moduleName);
+        return containingFile + CACHE_KEY_SEPARATOR + ensureRealSvelteFilePath(moduleName);
+    }
+
+    clearPendingInvalidations() {
+        this.pendingInvalidations.clear();
+    }
+
+    oneOfResolvedModuleChanged(path: string) {
+        return this.pendingInvalidations.has(path);
     }
 }
 
@@ -171,6 +183,8 @@ export function createSvelteModuleLoader(
     >();
 
     const impliedNodeFormatResolver = new ImpliedNodeFormatResolver();
+    const failedPathToContainingFile = new FileMap<FileSet>();
+    const failedLocationInvalidated = new FileSet();
 
     return {
         fileExists: svelteSys.fileExists,
@@ -183,9 +197,17 @@ export function createSvelteModuleLoader(
         deleteUnresolvedResolutionsFromCache: (path: string) => {
             svelteSys.deleteFromCache(path);
             moduleCache.deleteUnresolvedResolutionsFromCache(path);
+
+            const previousTriedButFailed = failedPathToContainingFile.get(path);
+
+            for (const containingFile of previousTriedButFailed ?? []) {
+                failedLocationInvalidated.add(containingFile);
+            }
         },
         resolveModuleNames,
-        resolveTypeReferenceDirectiveReferences
+        resolveTypeReferenceDirectiveReferences,
+        mightHaveInvalidatedResolutions,
+        clearPendingInvalidations
     };
 
     function resolveModuleNames(
@@ -207,8 +229,15 @@ export function createSvelteModuleLoader(
                 containingSourceFile,
                 index
             );
-            moduleCache.set(moduleName, containingFile, resolvedModule);
-            return resolvedModule;
+
+            resolvedModule?.failedLookupLocations?.forEach((failedLocation) => {
+                const failedPaths = failedPathToContainingFile.get(failedLocation) ?? new FileSet();
+                failedPaths.add(containingFile);
+                failedPathToContainingFile.set(failedLocation, failedPaths);
+            });
+
+            moduleCache.set(moduleName, containingFile, resolvedModule?.resolvedModule);
+            return resolvedModule?.resolvedModule;
         });
     }
 
@@ -217,7 +246,7 @@ export function createSvelteModuleLoader(
         containingFile: string,
         containingSourceFile: ts.SourceFile | undefined,
         index: number
-    ): ts.ResolvedModule | undefined {
+    ): ts.ResolvedModuleWithFailedLookupLocations {
         const mode = impliedNodeFormatResolver.resolve(
             name,
             index,
@@ -227,7 +256,7 @@ export function createSvelteModuleLoader(
         // Delegate to the TS resolver first.
         // If that does not bring up anything, try the Svelte Module loader
         // which is able to deal with .svelte files.
-        const tsResolvedModule = tsModule.resolveModuleName(
+        const tsResolvedModuleWithFailedLookup = tsModule.resolveModuleName(
             name,
             containingFile,
             compilerOptions,
@@ -235,12 +264,14 @@ export function createSvelteModuleLoader(
             tsModuleCache,
             undefined,
             mode
-        ).resolvedModule;
+        );
+
+        const tsResolvedModule = tsResolvedModuleWithFailedLookup.resolvedModule;
         if (tsResolvedModule && !isVirtualSvelteFilePath(tsResolvedModule.resolvedFileName)) {
-            return tsResolvedModule;
+            return tsResolvedModuleWithFailedLookup;
         }
 
-        const svelteResolvedModule = tsModule.resolveModuleName(
+        const svelteResolvedModuleWithFailedLookup = tsModule.resolveModuleName(
             name,
             containingFile,
             compilerOptions,
@@ -248,12 +279,14 @@ export function createSvelteModuleLoader(
             undefined,
             undefined,
             mode
-        ).resolvedModule;
+        );
+
+        const svelteResolvedModule = svelteResolvedModuleWithFailedLookup.resolvedModule;
         if (
             !svelteResolvedModule ||
             !isVirtualSvelteFilePath(svelteResolvedModule.resolvedFileName)
         ) {
-            return svelteResolvedModule;
+            return svelteResolvedModuleWithFailedLookup;
         }
 
         const resolvedFileName = ensureRealSvelteFilePath(svelteResolvedModule.resolvedFileName);
@@ -264,7 +297,10 @@ export function createSvelteModuleLoader(
             resolvedFileName,
             isExternalLibraryImport: svelteResolvedModule.isExternalLibraryImport
         };
-        return resolvedSvelteModule;
+        return {
+            ...svelteResolvedModuleWithFailedLookup,
+            resolvedModule: resolvedSvelteModule
+        };
     }
 
     function resolveTypeReferenceDirectiveReferences<T extends ts.FileReference | string>(
@@ -302,5 +338,18 @@ export function createSvelteModuleLoader(
 
             return result;
         });
+    }
+
+    function mightHaveInvalidatedResolutions(path: string) {
+        return (
+            moduleCache.oneOfResolvedModuleChanged(path) ||
+            // tried but failed file might now exist
+            failedLocationInvalidated.has(path)
+        );
+    }
+
+    function clearPendingInvalidations() {
+        moduleCache.clearPendingInvalidations();
+        failedLocationInvalidated.clear();
     }
 }

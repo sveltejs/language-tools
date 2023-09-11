@@ -19,7 +19,7 @@ describe('HTML Plugin', () => {
         const docManager = new DocumentManager(() => document);
         const configManager = new LSConfigManager();
         const plugin = new HTMLPlugin(docManager, configManager);
-        docManager.openDocument(<any>'some doc');
+        docManager.openClientDocument(<any>'some doc');
         return { plugin, document, configManager };
     }
 

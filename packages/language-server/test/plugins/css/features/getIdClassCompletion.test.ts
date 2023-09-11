@@ -55,7 +55,7 @@ describe('getIdClassCompletion', () => {
             [{ name: '', uri: pathToUrl(process.cwd()) }],
             createLanguageServices()
         );
-        docManager.openDocument(<any>'some doc');
+        docManager.openClientDocument(<any>'some doc');
         return { plugin, document };
     }
 

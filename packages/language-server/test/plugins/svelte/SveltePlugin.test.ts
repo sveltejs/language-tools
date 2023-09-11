@@ -25,7 +25,7 @@ describe('Svelte Plugin', () => {
         pluginManager.updateIsTrusted(trusted);
         pluginManager.updatePrettierConfig(prettierConfig);
         const plugin = new SveltePlugin(pluginManager);
-        docManager.openDocument(<any>'some doc');
+        docManager.openClientDocument(<any>'some doc');
         return { plugin, document };
     }
 

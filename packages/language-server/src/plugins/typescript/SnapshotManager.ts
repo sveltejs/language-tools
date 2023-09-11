@@ -225,8 +225,10 @@ export class SnapshotManager {
         this.globalSnapshotsManager.delete(fileName);
     }
 
-    getFileNames(): string[] {
-        return Array.from(this.documents.entries()).map(([_, doc]) => doc.filePath);
+    getClientFileNames(): string[] {
+        return Array.from(this.documents.values())
+            .filter((doc) => doc.isOpenedInClient())
+            .map((doc) => doc.filePath);
     }
 
     getProjectFileNames(): string[] {
