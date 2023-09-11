@@ -520,7 +520,7 @@ export class TypeScriptPlugin
                     doneUpdateProjectFiles = true;
                     await this.lsAndTsDocResolver.updateProjectFiles();
                 }
-                await this.lsAndTsDocResolver.deleteModuleResolutionCache(fileName);
+                await this.lsAndTsDocResolver.invalidateModuleCache(fileName);
                 continue;
             }
 

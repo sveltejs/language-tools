@@ -387,7 +387,7 @@ async function createLanguageService(
     /**
      * Deleted files will still be requested during the program update.
      * Don't create snapshots for them.
-     * Otherwise, deleteUnresolvedResolutionsFromCache won't be called when the file is created again     *
+     * Otherwise, deleteUnresolvedResolutionsFromCache won't be called when the file is created again
      */
     function getSnapshotIfExists(fileName: string): DocumentSnapshot | undefined {
         fileName = ensureRealSvelteFilePath(fileName);

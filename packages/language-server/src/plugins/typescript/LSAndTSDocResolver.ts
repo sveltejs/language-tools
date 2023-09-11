@@ -184,7 +184,7 @@ export class LSAndTSDocResolver {
         this.docManager.releaseDocument(uri);
     }
 
-    async deleteModuleResolutionCache(filePath: string) {
+    async invalidateModuleCache(filePath: string) {
         await forAllServices((service) => service.invalidateModuleCache(filePath));
     }
 

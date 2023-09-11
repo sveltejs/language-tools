@@ -43,7 +43,7 @@ describe('DiagnosticsProvider', function () {
         const newFilePath = normalizePath(path.join(testDir, 'doesntexistyet.js')) || '';
         writeFileSync(newFilePath, 'export default function foo() {}');
         assert.ok(existsSync(newFilePath));
-        await lsAndTsDocResolver.deleteModuleResolutionCache(newFilePath);
+        await lsAndTsDocResolver.invalidateModuleCache(newFilePath);
 
         try {
             const diagnostics2 = await plugin.getDiagnostics(document);
@@ -68,7 +68,7 @@ describe('DiagnosticsProvider', function () {
         const newTsFilePath = normalizePath(path.join(testDir, 'doesntexistyet.ts')) || '';
         writeFileSync(newFilePath, 'export function foo() {}');
         assert.ok(existsSync(newFilePath));
-        await lsAndTsDocResolver.deleteModuleResolutionCache(newFilePath);
+        await lsAndTsDocResolver.invalidateModuleCache(newFilePath);
 
         try {
             const diagnostics2 = await plugin.getDiagnostics(document);
@@ -80,7 +80,7 @@ describe('DiagnosticsProvider', function () {
 
         writeFileSync(newTsFilePath, 'export default function foo() {}');
         assert.ok(existsSync(newTsFilePath));
-        await lsAndTsDocResolver.deleteModuleResolutionCache(newTsFilePath);
+        await lsAndTsDocResolver.invalidateModuleCache(newTsFilePath);
 
         try {
             const diagnostics3 = await plugin.getDiagnostics(document);

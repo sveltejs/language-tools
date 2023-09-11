@@ -26,7 +26,6 @@ export class DocumentManager {
             useCaseSensitiveFileNames: ts.sys.useCaseSensitiveFileNames
         }
     ) {
-        // this.openedInClient = new FileSet(options.useCaseSensitiveFileNames);
         this.documents = new FileMap(options.useCaseSensitiveFileNames);
         this.locked = new FileSet(options.useCaseSensitiveFileNames);
         this.deleteCandidates = new FileSet(options.useCaseSensitiveFileNames);
