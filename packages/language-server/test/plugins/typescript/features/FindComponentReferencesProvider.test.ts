@@ -8,16 +8,16 @@ import { LSAndTSDocResolver } from '../../../../src/plugins/typescript/LSAndTSDo
 import { pathToUrl } from '../../../../src/utils';
 import { serviceWarmup } from '../test-utils';
 
-const testDir = path.join(__dirname, '..');
+const testDir = path.join(__dirname, '..', 'testfiles');
 
 describe('FindComponentReferencesProvider', function () {
     serviceWarmup(this, testDir);
 
     function getFullPath(filename: string) {
-        return path.join(testDir, 'testfiles', filename);
+        return path.join(testDir, filename);
     }
     function getUri(filename: string) {
-        const filePath = path.join(testDir, 'testfiles', filename);
+        const filePath = path.join(testDir, filename);
         return pathToUrl(filePath);
     }
 

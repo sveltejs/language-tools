@@ -29,7 +29,7 @@ export interface LanguageServiceContainer {
      * @internal Public for tests only
      */
     readonly snapshotManager: SnapshotManager;
-    getService(): ts.LanguageService;
+    getService(skipSynchronize?: boolean): ts.LanguageService;
     updateSnapshot(documentOrFilePath: Document | string): DocumentSnapshot;
     deleteSnapshot(filePath: string): void;
     invalidateModuleCache(filePath: string): void;
@@ -45,8 +45,6 @@ export interface LanguageServiceContainer {
      * Only works for TS versions that have ScriptKind.Deferred
      */
     fileBelongsToProject(filePath: string, isNew: boolean): boolean;
-
-    updateIfDirty(): void;
 
     dispose(): void;
 }
@@ -170,7 +168,6 @@ export async function getServiceForTsconfig(
             Logger.log('Reloading ts service at ', tsconfigPath, ' due to config updated');
         } else {
             Logger.log('Initialize new ts service at ', tsconfigPath);
-            console.trace();
         }
 
         pendingReloads.delete(tsconfigPath);
@@ -180,8 +177,6 @@ export async function getServiceForTsconfig(
     } else {
         service = await services.get(tsconfigPathOrWorkspacePath)!;
     }
-
-    service.updateIfDirty();
 
     return service;
 }
@@ -305,7 +300,7 @@ async function createLanguageService(
         tsconfigPath,
         compilerOptions,
         configErrors,
-        getService: () => languageService,
+        getService,
         updateSnapshot,
         deleteSnapshot,
         updateProjectFiles,
@@ -313,10 +308,17 @@ async function createLanguageService(
         hasFile,
         fileBelongsToProject,
         snapshotManager,
-        updateIfDirty,
         invalidateModuleCache,
         dispose
     };
+
+    function getService(skipSynchronize?: boolean) {
+        if (!skipSynchronize) {
+            updateIfDirty();
+        }
+
+        return languageService;
+    }
 
     function deleteSnapshot(filePath: string): void {
         svelteModuleLoader.deleteFromModuleCache(filePath);
@@ -716,7 +718,6 @@ async function createLanguageService(
 
         projectVersion++;
         dirty = true;
-        console.log('scheduleUpdate');
     }
 }
 

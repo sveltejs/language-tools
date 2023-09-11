@@ -119,11 +119,31 @@ export class LSAndTSDocResolver {
         lang: ts.LanguageService;
         userPreferences: ts.UserPreferences;
     }> {
-        const lang = await this.getLSForPath(document.getFilePath() || '');
+        const { tsDoc, lsContainer, userPreferences } = await this.getLSAndTSDocWorker(document);
+
+        return { tsDoc, lang: lsContainer.getService(), userPreferences };
+    }
+
+    /**
+     * Retrieves the LS for operations that don't need cross-files information.
+     * can save some time by not synchronizing languageService program
+     */
+    async getLsForSyntheticOperations(document: Document): Promise<{
+        tsDoc: SvelteDocumentSnapshot;
+        lang: ts.LanguageService;
+        userPreferences: ts.UserPreferences;
+    }> {
+        const { tsDoc, lsContainer, userPreferences } = await this.getLSAndTSDocWorker(document);
+
+        return { tsDoc, userPreferences, lang: lsContainer.getService(/* skipSynchronize */ true) };
+    }
+
+    private async getLSAndTSDocWorker(document: Document) {
+        const lsContainer = await this.getTSService(document.getFilePath() || '');
         const tsDoc = await this.getSnapshot(document);
         const userPreferences = this.getUserPreferences(tsDoc);
 
-        return { tsDoc, lang, userPreferences };
+        return { tsDoc, lsContainer, userPreferences };
     }
 
     /**

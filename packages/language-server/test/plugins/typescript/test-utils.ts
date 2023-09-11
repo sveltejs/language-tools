@@ -275,8 +275,7 @@ export function serviceWarmup(suite: Mocha.Suite, testDir: string, rootUri = pat
             text: ts.sys.readFile(filePath) || ''
         });
 
-        const { lang } = await lsAndTsDocResolver.getLSAndTSDoc(document);
-        lang.getProgram();
+        await lsAndTsDocResolver.getLSAndTSDoc(document);
 
         console.log(`Service warming up done in ${Date.now() - start}ms`);
     });

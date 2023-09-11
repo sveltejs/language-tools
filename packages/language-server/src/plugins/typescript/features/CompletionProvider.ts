@@ -103,9 +103,11 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             return null;
         }
 
-        const { lang, tsDoc, userPreferences } = await this.lsAndTsDocResolver.getLSAndTSDoc(
-            document
-        );
+        const {
+            lang: langForSyntheticOperations,
+            tsDoc,
+            userPreferences
+        } = await this.lsAndTsDocResolver.getLsForSyntheticOperations(document);
 
         const filePath = tsDoc.filePath;
         if (!filePath) {
@@ -156,7 +158,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         const offset = tsDoc.offsetAt(tsDoc.getGeneratedPosition(position));
 
         if (isJsDocTriggerCharacter) {
-            return getJsDocTemplateCompletion(tsDoc, lang, filePath, offset);
+            return getJsDocTemplateCompletion(tsDoc, langForSyntheticOperations, filePath, offset);
         }
 
         const svelteNode = tsDoc.svelteNodeAt(originalOffset);
@@ -172,6 +174,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             return null;
         }
 
+        const { lang } = await this.lsAndTsDocResolver.getLSAndTSDoc(document);
         if (cancellationToken?.isCancellationRequested) {
             return null;
         }

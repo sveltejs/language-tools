@@ -22,17 +22,19 @@ export class InlayHintProviderImpl implements InlayHintProvider {
         range: Range,
         cancellationToken?: CancellationToken
     ): Promise<InlayHint[] | null> {
-        const { lang, tsDoc, userPreferences } = await this.lsAndTsDocResolver.getLSAndTSDoc(
+        // Don't sync yet so we can skip TypeScript's synchronizeHostData if inlay hints are disabled
+        const { userPreferences } = await this.lsAndTsDocResolver.getLsForSyntheticOperations(
             document
         );
 
         if (
             cancellationToken?.isCancellationRequested ||
-            // skip TypeScript's synchronizeHostData
             !this.areInlayHintsEnabled(userPreferences)
         ) {
             return null;
         }
+
+        const { tsDoc, lang } = await this.lsAndTsDocResolver.getLSAndTSDoc(document);
 
         const inlayHints = lang.provideInlayHints(
             tsDoc.filePath,
