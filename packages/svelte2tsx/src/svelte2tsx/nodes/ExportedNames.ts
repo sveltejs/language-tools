@@ -395,9 +395,9 @@ export class ExportedNames {
             //   to use less props than defined (it just ignores them)
             // - __sveltets_2_ensureRightProps needs to be declared in a way that doesn't affect the type result of props
             return (
-                '__sveltets_2_ensureRightProps<{' +
+                '{ ...__sveltets_2_ensureRightProps<{' +
                 this.createReturnElementsType(lets).join(',') +
-                '}>(__sveltets_2_any("") as $$Props) as ' +
+                '}>(__sveltets_2_any("") as $$Props)} as ' +
                 // We add other exports of classes and functions here because
                 // they need to appear in the props object in order to properly
                 // type bind:xx but they are not needed to be part of $$Props
