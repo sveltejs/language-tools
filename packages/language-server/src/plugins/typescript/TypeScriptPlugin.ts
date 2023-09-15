@@ -159,12 +159,15 @@ export class TypeScriptPlugin
         );
         this.renameProvider = new RenameProviderImpl(this.lsAndTsDocResolver, configManager);
         this.hoverProvider = new HoverProviderImpl(this.lsAndTsDocResolver);
-        this.findReferencesProvider = new FindReferencesProviderImpl(this.lsAndTsDocResolver);
         this.findFileReferencesProvider = new FindFileReferencesProviderImpl(
             this.lsAndTsDocResolver
         );
         this.findComponentReferencesProvider = new FindComponentReferencesProviderImpl(
             this.lsAndTsDocResolver
+        );
+        this.findReferencesProvider = new FindReferencesProviderImpl(
+            this.lsAndTsDocResolver,
+            this.findComponentReferencesProvider
         );
         this.selectionRangeProvider = new SelectionRangeProviderImpl(this.lsAndTsDocResolver);
         this.signatureHelpProvider = new SignatureHelpProviderImpl(this.lsAndTsDocResolver);

@@ -50,6 +50,7 @@ describe('FindComponentReferencesProvider', function () {
         const { provider, document, openDoc } = setup('find-component-references-child.svelte');
         //Make known all the associated files
         openDoc('find-component-references-parent.svelte');
+        openDoc('find-component-references-parent2.svelte');
 
         const results = await provider.findComponentReferences(document.uri.toString());
 
@@ -105,6 +106,19 @@ describe('FindComponentReferencesProvider', function () {
                     }
                 },
                 uri: getUri('find-component-references-parent.svelte')
+            },
+            {
+                range: {
+                    start: {
+                        line: 1,
+                        character: 9
+                    },
+                    end: {
+                        line: 1,
+                        character: 19
+                    }
+                },
+                uri: getUri('find-component-references-parent2.svelte')
             }
         ]);
     });
