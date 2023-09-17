@@ -639,7 +639,7 @@ function getProxiedLanguageService(info: ts.server.PluginCreateInfo, ts: _ts, lo
             const snap = ts.ScriptSnapshot.fromString(text);
             snap.getChangeRange = (_) => undefined;
 
-            // If this is a new file, typescript might have cached the unpatched version 
+            // If this is a new file, typescript might have cached the unpatched version
             // It won't update even if we return the patched version in getScriptSnapshot, so we force an update
             // This should only happen to files that are opened by the client after the first compilation of the proxy language service
             // and won't happen if there are any updates to the file afterwards
