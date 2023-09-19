@@ -220,6 +220,7 @@ function upserKitRouteFile(
     insertApiMethod('DELETE');
     insertApiMethod('OPTIONS');
     insertApiMethod('HEAD');
+    insertApiMethod('fallback');
 
     return { addedCode, originalText: source.getFullText() };
 }
