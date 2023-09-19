@@ -613,8 +613,8 @@ function getProxiedLanguageService(info: ts.server.PluginCreateInfo, ts: _ts, lo
             const scriptVersion = this.getScriptVersion(fileName);
             if (
                 !this.files[fileName] ||
-                (scriptVersion !== originalLanguageServiceHost.getScriptVersion(fileName) &&
-                    scriptVersion !== FORCE_UPDATE_VERSION)
+                scriptVersion !== originalLanguageServiceHost.getScriptVersion(fileName) ||
+                scriptVersion === FORCE_UPDATE_VERSION
             ) {
                 return undefined;
             }
