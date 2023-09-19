@@ -1,9 +1,9 @@
 {
     "compilerOptions": {
         "lib": ["es2021"],
-        "module": "CommonJS",
+        "module": "ES2022",
         "target": "es2021",
-        "moduleResolution": "node",
+        "moduleResolution": "bundler",
 
         "strict": true,
         "esModuleInterop": true,
