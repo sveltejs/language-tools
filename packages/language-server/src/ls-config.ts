@@ -247,7 +247,7 @@ export interface TsInlayHintsConfig {
         | undefined;
     parameterTypes: { enabled: boolean } | undefined;
     propertyDeclarationTypes: { enabled: boolean } | undefined;
-    variableTypes: { enabled: boolean } | undefined;
+    variableTypes: { enabled: boolean; suppressWhenTypeMatchesName: boolean } | undefined;
 }
 
 export type TsUserConfigLang = 'typescript' | 'javascript';
@@ -440,9 +440,13 @@ export class LSConfigManager {
             includeInlayFunctionLikeReturnTypeHints: inlayHints?.functionLikeReturnTypes?.enabled,
             includeInlayParameterNameHints: inlayHints?.parameterNames?.enabled,
             includeInlayParameterNameHintsWhenArgumentMatchesName:
-                inlayHints?.parameterNames?.suppressWhenArgumentMatchesName,
+                inlayHints?.parameterNames?.suppressWhenArgumentMatchesName === false,
             includeInlayFunctionParameterTypeHints: inlayHints?.parameterTypes?.enabled,
-            includeInlayVariableTypeHints: inlayHints?.variableTypes?.enabled
+            includeInlayVariableTypeHints: inlayHints?.variableTypes?.enabled,
+            includeInlayPropertyDeclarationTypeHints: inlayHints?.propertyDeclarationTypes?.enabled,
+            includeInlayVariableTypeHintsWhenTypeMatchesName:
+                inlayHints?.variableTypes?.suppressWhenTypeMatchesName === false,
+            interactiveInlayHints: true
         };
     }
 

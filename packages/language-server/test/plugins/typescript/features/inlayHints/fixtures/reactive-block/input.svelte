@@ -1,7 +1,12 @@
 <script>
     let test = 1;
-    $: console.log(test);
+    $: log(test);
     $: if (test) {
-        console.log(test)
+        log(test)
     }
+
+    /**
+     * @returns {void}
+     */
+    function log(message) {}
 </script>
