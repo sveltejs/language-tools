@@ -73,7 +73,18 @@ function extractTag(htmlx: string, tag: 'script' | 'style') {
 }
 
 function findVerbatimElements(htmlx: string) {
-    return [...extractTag(htmlx, 'script'), ...extractTag(htmlx, 'style')];
+    const styleTags = extractTag(htmlx, 'style');
+    const tags = extractTag(htmlx, 'script');
+    for (const styleTag of styleTags) {
+        // Could happen if someone has a `<style>...</style>` string in their script tag
+        const insideScript = tags.some(
+            (tag) => tag.start < styleTag.start && tag.end > styleTag.end
+        );
+        if (!insideScript) {
+            tags.push(styleTag);
+        }
+    }
+    return tags;
 }
 
 function blankVerbatimContent(htmlx: string, verbatimElements: Node[]) {

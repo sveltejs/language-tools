@@ -40,7 +40,7 @@ function setup(workspaceDir: string, filePath: string) {
         configManager
     );
     const plugin = new InlayHintProviderImpl(lsAndTsDocResolver);
-    const document = docManager.openDocument(<any>{
+    const document = docManager.openClientDocument(<any>{
         uri: pathToUrl(filePath),
         text: ts.sys.readFile(filePath) || ''
     });
@@ -71,7 +71,7 @@ async function executeTest(
 
     const snapshotFormatter = await createJsonSnapshotFormatter(dir);
 
-    updateSnapshotIfFailedOrEmpty({
+    await updateSnapshotIfFailedOrEmpty({
         assertion() {
             assert.deepStrictEqual(
                 JSON.parse(JSON.stringify(inlayHints)),

@@ -164,12 +164,15 @@ export class TypeScriptPlugin
         );
         this.renameProvider = new RenameProviderImpl(this.lsAndTsDocResolver, configManager);
         this.hoverProvider = new HoverProviderImpl(this.lsAndTsDocResolver);
-        this.findReferencesProvider = new FindReferencesProviderImpl(this.lsAndTsDocResolver);
         this.findFileReferencesProvider = new FindFileReferencesProviderImpl(
             this.lsAndTsDocResolver
         );
         this.findComponentReferencesProvider = new FindComponentReferencesProviderImpl(
             this.lsAndTsDocResolver
+        );
+        this.findReferencesProvider = new FindReferencesProviderImpl(
+            this.lsAndTsDocResolver,
+            this.findComponentReferencesProvider
         );
         this.selectionRangeProvider = new SelectionRangeProviderImpl(this.lsAndTsDocResolver);
         this.signatureHelpProvider = new SignatureHelpProviderImpl(this.lsAndTsDocResolver);
@@ -519,14 +522,21 @@ export class TypeScriptPlugin
                 continue;
             }
 
-            if (changeType === FileChangeType.Created && !doneUpdateProjectFiles) {
-                doneUpdateProjectFiles = true;
-                await this.lsAndTsDocResolver.updateProjectFiles();
-            } else if (changeType === FileChangeType.Deleted) {
+            if (changeType === FileChangeType.Deleted) {
                 await this.lsAndTsDocResolver.deleteSnapshot(fileName);
-            } else {
-                await this.lsAndTsDocResolver.updateExistingTsOrJsFile(fileName);
+                continue;
             }
+
+            if (changeType === FileChangeType.Created) {
+                if (!doneUpdateProjectFiles) {
+                    doneUpdateProjectFiles = true;
+                    await this.lsAndTsDocResolver.updateProjectFiles();
+                }
+                await this.lsAndTsDocResolver.invalidateModuleCache(fileName);
+                continue;
+            }
+
+            await this.lsAndTsDocResolver.updateExistingTsOrJsFile(fileName);
         }
     }
 

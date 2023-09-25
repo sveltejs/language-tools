@@ -86,6 +86,10 @@ export interface EmitDtsConfig {
     /**
      * Path to `svelte-shims.d.ts` of `svelte2tsx`.
      * Example: `require.resolve('svelte2tsx/svelte-shims.d.ts')`
+     * 
+     * If a path is given that points to `svelte-shims-v4.d.ts`,
+     * the `SvelteComponent` import is used instead of
+     * `SvelteComponentTyped` which is deprecated in Svelte v4.
      */
     svelteShimsPath: string;
     /**

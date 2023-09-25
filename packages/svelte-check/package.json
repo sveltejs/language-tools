@@ -29,7 +29,7 @@
         "import-fresh": "^3.2.1",
         "picocolors": "^1.0.0",
         "sade": "^1.7.4",
-        "svelte-preprocess": "^5.0.3",
+        "svelte-preprocess": "^5.0.4",
         "typescript": "^5.0.3"
     },
     "peerDependencies": {
@@ -46,7 +46,6 @@
         "@rollup/plugin-node-resolve": "^15.0.0",
         "@rollup/plugin-replace": "5.0.2",
         "@rollup/plugin-typescript": "^10.0.0",
-        "@tsconfig/node16": "^1.0.0",
         "@types/sade": "^1.7.2",
         "builtin-modules": "^3.3.0",
         "rollup": "3.7.5",

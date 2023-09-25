@@ -54,7 +54,7 @@ describe('CompletionProviderImpl', function () {
         );
         const completionProvider = new CompletionsProviderImpl(lsAndTsDocResolver, lsConfigManager);
         const filePath = join(testFilesDir, filename);
-        const document = docManager.openDocument(<any>{
+        const document = docManager.openClientDocument(<any>{
             uri: pathToUrl(filePath),
             text: ts.sys.readFile(filePath) || ''
         });
@@ -476,6 +476,7 @@ describe('CompletionProviderImpl', function () {
         assert.deepStrictEqual(data, {
             data: undefined,
             hasAction: undefined,
+            filterText: undefined,
             insertText: undefined,
             isPackageJsonImport: undefined,
             isImportStatementCompletion: undefined,
@@ -785,7 +786,7 @@ describe('CompletionProviderImpl', function () {
         name = 'imported-file.svelte'
     ) {
         const filePath = join(testFilesDir, name);
-        const hoverinfoDoc = docManager.openDocument(<any>{
+        const hoverinfoDoc = docManager.openClientDocument(<any>{
             uri: pathToUrl(filePath),
             text: ts.sys.readFile(filePath) || ''
         });
@@ -1367,7 +1368,7 @@ describe('CompletionProviderImpl', function () {
         const completionProvider = new CompletionsProviderImpl(lsAndTsDocResolver, lsConfigManager);
 
         // let the language service aware of random-package and random-package2
-        docManager.openDocument({
+        docManager.openClientDocument({
             text: '<script>import {} from "random-package";</script>',
             uri: pathToUrl(join(virtualTestDir, 'test.svelte'))
         });
@@ -1441,7 +1442,7 @@ describe('CompletionProviderImpl', function () {
         assert.deepStrictEqual(item, {
             label: 'hi',
             kind: CompletionItemKind.Method,
-            sortText: '17',
+            sortText: '11',
             preselect: undefined,
             insertText: `hi(name: string): string {${newLine}${indent}$0${newLine}}`,
             insertTextFormat: 2,

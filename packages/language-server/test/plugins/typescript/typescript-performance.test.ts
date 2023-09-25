@@ -21,7 +21,7 @@ describe('TypeScript Plugin Performance Tests', () => {
             new LSAndTSDocResolver(docManager, workspaceUris, pluginManager),
             workspaceUris
         );
-        docManager.openDocument({ uri, text: document.getText() });
+        docManager.openClientDocument({ uri, text: document.getText() });
         const append = (newText: string) =>
             docManager.updateDocument({ uri, version: 1 }, [
                 { range: Range.create(Position.create(9, 0), Position.create(9, 0)), text: newText }

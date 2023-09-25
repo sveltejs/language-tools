@@ -18,6 +18,7 @@ export class Document extends WritableDocument {
     configPromise: Promise<SvelteConfig | undefined>;
     config?: SvelteConfig;
     html!: HTMLDocument;
+    openedByClient = false;
     /**
      * Compute and cache directly because of performance reasons
      * and it will be called anyway.

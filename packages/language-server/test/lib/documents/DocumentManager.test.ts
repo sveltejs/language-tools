@@ -15,10 +15,10 @@ describe('Document Manager', () => {
         new Document(textDocument.uri, textDocument.text);
 
     it('opens documents', () => {
-        const createDocument = sinon.spy();
+        const createDocument = sinon.spy((_) => new Document('', ''));
         const manager = new DocumentManager(createDocument);
 
-        manager.openDocument(textDocument);
+        manager.openClientDocument(textDocument);
 
         sinon.assert.calledOnce(createDocument);
         sinon.assert.calledWith(createDocument.firstCall, textDocument);
@@ -30,7 +30,7 @@ describe('Document Manager', () => {
         const createDocument = sinon.stub().returns(document);
         const manager = new DocumentManager(createDocument);
 
-        manager.openDocument(textDocument);
+        manager.openClientDocument(textDocument);
         manager.updateDocument(textDocument, [{ text: 'New content' }]);
 
         sinon.assert.calledOnce(update);
@@ -43,7 +43,7 @@ describe('Document Manager', () => {
         const createDocument = sinon.stub().returns(document);
         const manager = new DocumentManager(createDocument);
 
-        manager.openDocument(textDocument);
+        manager.openClientDocument(textDocument);
         manager.updateDocument(textDocument, [
             {
                 text: 'svelte',
@@ -74,7 +74,7 @@ describe('Document Manager', () => {
 
         manager.on('documentChange', cb);
 
-        manager.openDocument(textDocument);
+        manager.openClientDocument(textDocument);
         sinon.assert.calledOnce(cb);
 
         manager.updateDocument(textDocument, []);
@@ -92,7 +92,7 @@ describe('Document Manager', () => {
             useCaseSensitiveFileNames: false
         });
 
-        manager.openDocument(textDocument);
+        manager.openClientDocument(textDocument);
         const firstVersion = manager.get(textDocument.uri)!.version;
 
         const position = { line: 0, character: textDocument.text.length };

@@ -100,8 +100,6 @@ declare function __sveltets_2_with_any_event<Props = {}, Events = {}, Slots = {}
 declare function __sveltets_2_store_get<T = any>(store: SvelteStore<T>): T
 declare function __sveltets_2_store_get<Store extends SvelteStore<any> | undefined | null>(store: Store): Store extends SvelteStore<infer T> ? T : Store;
 declare function __sveltets_2_any(dummy: any): any;
-// declare function __sveltets_1_empty(...dummy: any[]): {};
-// declare function __sveltets_1_componentType(): AConstructorTypeOf<import("svelte").SvelteComponentTyped<any, any, any>>
 declare function __sveltets_2_invalidate<T>(getValue: () => T): T
 
 declare function __sveltets_2_mapWindowEvent<K extends keyof HTMLBodyElementEventMap>(
@@ -129,16 +127,16 @@ declare function __sveltets_2_unionType<T1, T2, T3>(t1: T1, t2: T2, t3: T3): T1 
 declare function __sveltets_2_unionType<T1, T2, T3, T4>(t1: T1, t2: T2, t3: T3, t4: T4): T1 | T2 | T3 | T4;
 declare function __sveltets_2_unionType(...types: any[]): any;
 
-declare function __sveltets_2_createSvelte2TsxComponent<Props, Events, Slots>(
+declare function __sveltets_2_createSvelte2TsxComponent<Props extends {}, Events extends {}, Slots extends {}>(
     render: {props: Props, events: Events, slots: Slots }
-): SvelteComponentConstructor<import("svelte").SvelteComponentTyped<Props, Events, Slots>,import('svelte').ComponentConstructorOptions<Props>>;
+): SvelteComponentConstructor<import("svelte").SvelteComponent<Props, Events, Slots>,import('svelte').ComponentConstructorOptions<Props>>;
 
 declare function __sveltets_2_unwrapArr<T>(arr: ArrayLike<T>): T
 declare function __sveltets_2_unwrapPromiseLike<T>(promise: PromiseLike<T> | T): T
 
 // v2
 declare function __sveltets_2_createCreateSlot<Slots = Record<string, Record<string, any>>>(): <SlotName extends keyof Slots>(slotName: SlotName, attrs: Slots[SlotName]) => Record<string, any>;
-declare function __sveltets_2_createComponentAny(props: Record<string, any>): import("svelte").SvelteComponentTyped<any, any, any>;
+declare function __sveltets_2_createComponentAny(props: Record<string, any>): import("svelte").SvelteComponent<any, any, any>;
 
 declare function __sveltets_2_any(...dummy: any[]): any;
 declare function __sveltets_2_empty(...dummy: any[]): {};
@@ -214,11 +212,11 @@ declare type ATypedSvelteComponent = {
 /**
  * Ambient type only used for intellisense, DO NOT USE IN YOUR PROJECT.
  * 
- * If you're looking for the type of a Svelte Component, use `SvelteComponentTyped` and `ComponentType` instead:
+ * If you're looking for the type of a Svelte Component, use `SvelteComponent` and `ComponentType` instead:
  *
  * ```ts
- * import type { ComponentType, SvelteComponentTyped } from "svelte";
- * let myComponentConstructor: ComponentType<SvelteComponentTyped> = ..;
+ * import type { ComponentType, SvelteComponent } from "svelte";
+ * let myComponentConstructor: ComponentType<SvelteComponent> = ..;
  * ```
  */
 declare type ConstructorOfATypedSvelteComponent = new (args: {target: any, props?: any}) => ATypedSvelteComponent

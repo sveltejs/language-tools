@@ -18,9 +18,8 @@
     "author": "The Svelte Community",
     "license": "MIT",
     "devDependencies": {
-        "@tsconfig/node16": "^1.0.0",
         "@types/node": "^16.0.0",
-        "typescript": "*"
+        "typescript": "^5.2.2"
     },
     "dependencies": {
         "@jridgewell/sourcemap-codec": "^1.4.14",

@@ -226,18 +226,19 @@ interface SvelteMap {
  * early on when we first need to look at the file contents and can read
  * those transformed source later on.
  */
-async function createSvelteMap(config): Promise<SvelteMap> {
+async function createSvelteMap(config: EmitDtsConfig): Promise<SvelteMap> {
     const svelteFiles = new Map();
 
     function add(path: string): boolean {
         const code = ts.sys.readFile(path, 'utf-8');
-        const isTsFile = // svelte-preprocess allows default languages
-            ['ts', 'typescript'].includes(config.preprocess?.defaultLanguages?.script) ||
-            /<script\s+[^>]*?lang=('|")(ts|typescript)('|")/.test(code);
+        const isTsFile = /<script\s+[^>]*?lang=('|")(ts|typescript)('|")/.test(code);
         const transformed = svelte2tsx(code, {
             filename: path,
             isTsFile,
-            mode: 'dts'
+            mode: 'dts',
+            noSvelteComponentTyped: config.svelteShimsPath
+                .replace(/\\/g, '/')
+                .endsWith('svelte2tsx/svelte-shims-v4.d.ts')
         }).code;
         svelteFiles.set(path, transformed);
         return isTsFile;

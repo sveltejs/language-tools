@@ -5,6 +5,7 @@ import { TextDocumentContentChangeEvent } from 'vscode-languageserver';
 import { createGetCanonicalFileName, GetCanonicalFileName, normalizePath } from '../../utils';
 import { EventEmitter } from 'events';
 import { FileMap } from '../../lib/documents/fileCollection';
+import { dirname } from 'path';
 
 type SnapshotChangeHandler = (fileName: string, newDocument: DocumentSnapshot | undefined) => void;
 
@@ -17,10 +18,17 @@ export class GlobalSnapshotsManager {
     private emitter = new EventEmitter();
     private documents: FileMap<DocumentSnapshot>;
     private getCanonicalFileName: GetCanonicalFileName;
+    private packageJsonCache: PackageJsonCache;
 
-    constructor(private readonly tsSystem: ts.System) {
+    constructor(private readonly tsSystem: ts.System, watchPackageJson = false) {
         this.documents = new FileMap(tsSystem.useCaseSensitiveFileNames);
         this.getCanonicalFileName = createGetCanonicalFileName(tsSystem.useCaseSensitiveFileNames);
+        this.packageJsonCache = new PackageJsonCache(
+            tsSystem,
+            watchPackageJson,
+            this.getCanonicalFileName,
+            this.updateSnapshotsInDirectory.bind(this)
+        );
     }
 
     get(fileName: string) {
@@ -82,6 +90,16 @@ export class GlobalSnapshotsManager {
 
     removeChangeListener(listener: SnapshotChangeHandler) {
         this.emitter.off('change', listener);
+    }
+
+    getPackageJson(path: string) {
+        return this.packageJsonCache.getPackageJson(path);
+    }
+
+    private updateSnapshotsInDirectory(dir: string) {
+        this.getByPrefix(dir).forEach((snapshot) => {
+            this.updateTsOrJsFile(snapshot.filePath);
+        });
     }
 }
 
@@ -207,8 +225,10 @@ export class SnapshotManager {
         this.globalSnapshotsManager.delete(fileName);
     }
 
-    getFileNames(): string[] {
-        return Array.from(this.documents.entries()).map(([_, doc]) => doc.filePath);
+    getClientFileNames(): string[] {
+        return Array.from(this.documents.values())
+            .filter((doc) => doc.isOpenedInClient())
+            .map((doc) => doc.filePath);
     }
 
     getProjectFileNames(): string[] {
@@ -244,3 +264,76 @@ export class SnapshotManager {
 }
 
 export const ignoredBuildDirectories = ['__sapper__', '.svelte-kit'];
+
+class PackageJsonCache {
+    constructor(
+        private readonly tsSystem: ts.System,
+        private readonly watchPackageJson: boolean,
+        private readonly getCanonicalFileName: GetCanonicalFileName,
+        private readonly updateSnapshotsInDirectory: (directory: string) => void
+    ) {
+        this.watchers = new FileMap(tsSystem.useCaseSensitiveFileNames);
+    }
+
+    private readonly watchers: FileMap<ts.FileWatcher>;
+
+    private packageJsonCache = new FileMap<
+        { text: string; modifiedTime: number | undefined } | undefined
+    >();
+
+    getPackageJson(path: string) {
+        if (!this.packageJsonCache.has(path)) {
+            this.packageJsonCache.set(path, this.initWatcherAndRead(path));
+        }
+
+        return this.packageJsonCache.get(path);
+    }
+
+    private initWatcherAndRead(path: string) {
+        if (this.watchPackageJson) {
+            this.tsSystem.watchFile?.(path, this.onPackageJsonWatchChange.bind(this), 3_000);
+        }
+        const exist = this.tsSystem.fileExists(path);
+
+        if (!exist) {
+            return undefined;
+        }
+
+        return this.readPackageJson(path);
+    }
+
+    private readPackageJson(path: string) {
+        return {
+            text: this.tsSystem.readFile(path) ?? '',
+            modifiedTime: this.tsSystem.getModifiedTime?.(path)?.valueOf()
+        };
+    }
+
+    private onPackageJsonWatchChange(path: string, onWatchChange: ts.FileWatcherEventKind) {
+        const dir = dirname(path);
+
+        if (onWatchChange === ts.FileWatcherEventKind.Deleted) {
+            this.packageJsonCache.delete(path);
+            this.watchers.get(path)?.close();
+            this.watchers.delete(path);
+        } else {
+            this.packageJsonCache.set(path, this.readPackageJson(path));
+        }
+
+        if (!path.includes('node_modules')) {
+            return;
+        }
+
+        setTimeout(() => {
+            this.updateSnapshotsInDirectory(dir);
+            const realPath =
+                this.tsSystem.realpath &&
+                this.getCanonicalFileName(normalizePath(this.tsSystem.realpath?.(dir)));
+
+            // pnpm
+            if (realPath && realPath !== dir) {
+                this.updateSnapshotsInDirectory(realPath);
+            }
+        }, 500);
+    }
+}

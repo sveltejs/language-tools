@@ -26,7 +26,7 @@ function setup(workspaceDir: string, filePath: string) {
         configManager
     );
     const plugin = new DiagnosticsProviderImpl(lsAndTsDocResolver, configManager);
-    const document = docManager.openDocument(<any>{
+    const document = docManager.openClientDocument(<any>{
         uri: pathToUrl(filePath),
         text: ts.sys.readFile(filePath) || ''
     });
@@ -59,7 +59,7 @@ async function executeTest(
         : defaultExpectedFile;
     const snapshotFormatter = await createJsonSnapshotFormatter(dir);
 
-    updateSnapshotIfFailedOrEmpty({
+    await updateSnapshotIfFailedOrEmpty({
         assertion() {
             assert.deepStrictEqual(diagnostics, JSON.parse(readFileSync(expectedFile, 'utf-8')));
         },

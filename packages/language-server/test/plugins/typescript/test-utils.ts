@@ -146,7 +146,7 @@ export function setupVirtualEnvironment({
 
     const filePath = join(testDir, filename);
     virtualSystem.writeFile(filePath, fileContent);
-    const document = docManager.openDocument(<any>{
+    const document = docManager.openClientDocument(<any>{
         uri: pathToUrl(filePath),
         text: virtualSystem.readFile(filePath) || ''
     });
@@ -207,7 +207,7 @@ export function createSnapshotTester<
     }
 }
 
-export function updateSnapshotIfFailedOrEmpty({
+export async function updateSnapshotIfFailedOrEmpty({
     assertion,
     expectedFile,
     rootDir,
@@ -216,25 +216,25 @@ export function updateSnapshotIfFailedOrEmpty({
     assertion: () => void;
     expectedFile: string;
     rootDir: string;
-    getFileContent: () => string;
+    getFileContent: () => string | Promise<string>;
 }) {
     if (existsSync(expectedFile)) {
         try {
             assertion();
         } catch (e) {
             if (process.argv.includes('--auto')) {
-                writeFile(`Updated ${expectedFile} for`);
+                await writeFile(`Updated ${expectedFile} for`);
             } else {
                 throw e;
             }
         }
     } else {
-        writeFile(`Created ${expectedFile} for`);
+        await writeFile(`Created ${expectedFile} for`);
     }
 
-    function writeFile(msg: string) {
+    async function writeFile(msg: string) {
         console.info(msg, dirname(expectedFile).substring(rootDir.length));
-        writeFileSync(expectedFile, getFileContent(), 'utf-8');
+        writeFileSync(expectedFile, await getFileContent(), 'utf-8');
     }
 }
 
@@ -270,13 +270,12 @@ export function serviceWarmup(suite: Mocha.Suite, testDir: string, rootUri = pat
         );
 
         const filePath = join(testDir, 'DoesNotMater.svelte');
-        const document = docManager.openDocument(<any>{
+        const document = docManager.openClientDocument(<any>{
             uri: pathToUrl(filePath),
             text: ts.sys.readFile(filePath) || ''
         });
 
-        const { lang } = await lsAndTsDocResolver.getLSAndTSDoc(document);
-        lang.getProgram();
+        await lsAndTsDocResolver.getLSAndTSDoc(document);
 
         console.log(`Service warming up done in ${Date.now() - start}ms`);
     });

@@ -48,6 +48,10 @@
     "capabilities": {
         "untrustedWorkspaces": {
             "supported": "limited",
+            "restrictedConfigurations": [
+                "svelte.language-server.runtime",
+                "svelte.language-server.ls-path"
+            ],
             "description": "The extension requires workspace trust because it executes code specified by the workspace. Loading the user's node_modules and loading svelte config files is disabled when untrusted"
         }
     },
@@ -75,13 +79,11 @@
                     "description": "Ask on startup to enable the TypeScript plugin."
                 },
                 "svelte.language-server.runtime": {
-                    "scope": "application",
                     "type": "string",
                     "title": "Language Server Runtime",
                     "description": "- You normally don't need this - Path to the node executable to use to spawn the language server. This is useful when you depend on native modules such as node-sass as without this they will run in the context of vscode, meaning node version mismatch is likely. Minimum required node version is 12.17. This setting can only be changed in user settings for security reasons."
                 },
                 "svelte.language-server.ls-path": {
-                    "scope": "application",
                     "type": "string",
                     "title": "Language Server Path",
                     "description": "- You normally don't set this - Path to the language server executable. If you installed the \"svelte-language-server\" npm package, it's within there at \"bin/server.js\". Path can be either relative to your workspace root or absolute. Set this only if you want to use a custom version of the language server. This will then also use the workspace version of TypeScript. This setting can only be changed in user settings for security reasons."
@@ -706,13 +708,12 @@
         ]
     },
     "devDependencies": {
-        "@tsconfig/node16": "^1.0.0",
         "@types/lodash": "^4.14.116",
         "@types/node": "^16.0.0",
         "@types/vscode": "^1.67",
         "js-yaml": "^3.14.0",
         "tslib": "^2.4.0",
-        "typescript": "*",
+        "typescript": "^5.2.2",
         "vscode-tmgrammar-test": "^0.0.11"
     },
     "dependencies": {

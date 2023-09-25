@@ -424,6 +424,8 @@ export const kitExports: Record<
     PATCH: createApiExport('PATCH'),
     DELETE: createApiExport('DELETE'),
     OPTIONS: createApiExport('OPTIONS'),
+    HEAD: createApiExport('HEAD'),
+    fallback: createApiExport('fallback'),
     // param matching
     match: {
         allowedIn: [],
@@ -479,6 +481,8 @@ export const kitExports: Record<
         ]
     }
 };
+
+const FORCE_UPDATE_VERSION = 'FORCE_UPDATE_VERSION';
 
 export function isKitRouteExportAllowedIn(
     basename: string,
@@ -606,10 +610,11 @@ function getProxiedLanguageService(info: ts.server.PluginCreateInfo, ts: _ts, lo
         }
 
         getKitScriptSnapshotIfUpToDate(fileName: string) {
+            const scriptVersion = this.getScriptVersion(fileName);
             if (
                 !this.files[fileName] ||
-                this.getScriptVersion(fileName) !==
-                    originalLanguageServiceHost.getScriptVersion(fileName)
+                scriptVersion !== originalLanguageServiceHost.getScriptVersion(fileName) ||
+                scriptVersion === FORCE_UPDATE_VERSION
             ) {
                 return undefined;
             }
@@ -634,8 +639,16 @@ function getProxiedLanguageService(info: ts.server.PluginCreateInfo, ts: _ts, lo
             const { text, addedCode } = result;
             const snap = ts.ScriptSnapshot.fromString(text);
             snap.getChangeRange = (_) => undefined;
+
+            // If this is a new file, typescript might have cached the unpatched version
+            // It won't update even if we return the patched version in getScriptSnapshot, so we force an update
+            // This should only happen to files that are opened by the client after the first compilation of the proxy language service
+            // and won't happen if there are any updates to the file afterwards
             this.files[fileName] = {
-                version: originalLanguageServiceHost.getScriptVersion(fileName),
+                version:
+                    this.files[fileName] === undefined
+                        ? FORCE_UPDATE_VERSION
+                        : originalLanguageServiceHost.getScriptVersion(fileName),
                 file: snap,
                 addedCode
             };

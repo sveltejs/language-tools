@@ -14,7 +14,7 @@
         },
         "severity": 1,
         "source": "ts",
-        "message": "Argument of type 'HTMLParagraphElement' is not assignable to parameter of type 'HTMLInputElement'.\n  Type 'HTMLParagraphElement' is missing the following properties from type 'HTMLInputElement': accept, alt, autocomplete, capture, and 52 more.",
+        "message": "Argument of type 'HTMLParagraphElement' is not assignable to parameter of type 'HTMLInputElement'.\n  Type 'HTMLParagraphElement' is missing the following properties from type 'HTMLInputElement': accept, alt, autocomplete, capture, and 54 more.",
         "code": 2345,
         "tags": []
     }
