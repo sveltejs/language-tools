@@ -27,7 +27,8 @@ import {
     mapHoverToParent,
     mapSelectionRangeToParent,
     isInTag,
-    mapRangeToOriginal
+    mapRangeToOriginal,
+    TagInformation
 } from '../../lib/documents';
 import { LSConfigManager, LSCSSConfig } from '../../ls-config';
 import {
@@ -47,7 +48,7 @@ import { getIdClassCompletion } from './features/getIdClassCompletion';
 import { AttributeContext, getAttributeContextAtPosition } from '../../lib/documents/parseHtml';
 import { StyleAttributeDocument } from './StyleAttributeDocument';
 import { getDocumentContext } from '../documentContext';
-import { FoldingRange } from 'vscode-languageserver-types';
+import { FoldingRange, FoldingRangeKind } from 'vscode-languageserver-types';
 import { indentBasedFoldingRangeForTag } from '../../lib/foldingRange/indentFolding';
 
 export class CSSPlugin
@@ -384,7 +385,7 @@ export class CSSPlugin
         const cssDocument = this.getCSSDoc(document);
 
         if (shouldUseIndentBasedFolding(cssDocument.languageId)) {
-            return indentBasedFoldingRangeForTag(document, document.styleInfo);
+            return this.nonSyntacticFolding(document, document.styleInfo);
         }
 
         return this.getLanguageService(extractLanguage(cssDocument))
@@ -401,6 +402,38 @@ export class CSSPlugin
                     kind: range.kind
                 };
             });
+    }
+
+    private nonSyntacticFolding(document: Document, styleInfo: TagInformation): FoldingRange[] {
+        const ranges = indentBasedFoldingRangeForTag(document, styleInfo);
+        const startRegion = /^\s*(\/\/|\/\*\*?)\s*#?region\b/;
+        const endRegion = /^\s*(\/\/|\/\*\*?)\s*#?endregion\b/;
+
+        const lines = document
+            .getText()
+            .split(/\r?\n/)
+            .slice(styleInfo.startPos.line, styleInfo.endPos.line);
+
+        let start = -1;
+
+        for (let index = 0; index < lines.length; index++) {
+            const line = lines[index];
+
+            if (startRegion.test(line)) {
+                start = index;
+            } else if (endRegion.test(line)) {
+                if (start >= 0) {
+                    ranges.push({
+                        startLine: start + styleInfo.startPos.line,
+                        endLine: index + styleInfo.startPos.line,
+                        kind: FoldingRangeKind.Region
+                    });
+                }
+                start = -1;
+            }
+        }
+
+        return ranges.sort((a, b) => a.startLine - b.startLine);
     }
 
     private getCSSDoc(document: Document) {

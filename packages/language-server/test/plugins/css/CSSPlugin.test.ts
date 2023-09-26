@@ -8,7 +8,8 @@ import {
     TextEdit,
     CompletionContext,
     SelectionRange,
-    CompletionTriggerKind
+    CompletionTriggerKind,
+    FoldingRangeKind
 } from 'vscode-languageserver';
 import { DocumentManager, Document } from '../../../src/lib/documents';
 import { CSSPlugin } from '../../../src/plugins';
@@ -487,12 +488,16 @@ describe('CSS Plugin', () => {
 
         it('provides folding ranges for known indent style', () => {
             const { plugin, document } = setup(
-                '<style lang="sass">\n.hi\n  display:none\n.hi2\n  display: none</style>'
+                '<style lang="sass">\n/*#region*/\n.hi\n  display:none\n.hi2\n  display: none\n/*#endregion*/\n</style>'
             );
 
             const foldingRanges = plugin.getFoldingRanges(document);
 
-            assert.deepStrictEqual(foldingRanges, [{ startLine: 1, endLine: 2 }]);
+            assert.deepStrictEqual(foldingRanges, [
+                { startLine: 1, endLine: 6, kind: FoldingRangeKind.Region },
+                { startLine: 2, endLine: 3 },
+                { startLine: 4, endLine: 5 }
+            ]);
         });
     });
 });
