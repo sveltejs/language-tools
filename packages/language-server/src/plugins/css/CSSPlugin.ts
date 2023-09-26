@@ -383,7 +383,7 @@ export class CSSPlugin
 
         const cssDocument = this.getCSSDoc(document);
 
-        if (shouldSseIndentBasedFolding(cssDocument.languageId)) {
+        if (shouldUseIndentBasedFolding(cssDocument.languageId)) {
             return indentBasedFoldingRangeForTag(document, document.styleInfo);
         }
 
@@ -485,7 +485,7 @@ function shouldExcludeColor(document: CSSDocument) {
     }
 }
 
-function shouldSseIndentBasedFolding(kind?: string) {
+function shouldUseIndentBasedFolding(kind?: string) {
     switch (kind) {
         case 'postcss':
         case 'sass':

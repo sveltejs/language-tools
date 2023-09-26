@@ -20,7 +20,7 @@ export class FoldingRangeProviderImpl implements FoldingRangeProvider {
     private readonly foldEndPairCharacters = ['}', ']', ')', '`', '>'];
 
     async getFoldingRanges(document: Document): Promise<FoldingRange[]> {
-        const { lang, tsDoc } = await this.lsAndTsDocResolver.getLSAndTSDoc(document);
+        const { lang, tsDoc } = await this.lsAndTsDocResolver.getLsForSyntheticOperations(document);
 
         const foldingRanges =
             tsDoc.parserError && !document.moduleScriptInfo && !document.scriptInfo

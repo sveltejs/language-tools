@@ -338,8 +338,10 @@ export class HTMLPlugin
         const templateRange = document.templateInfo
             ? indentBasedFoldingRangeForTag(document, document.templateInfo)
             : [];
-        const arrow = '=>';
-        if (!document.getText().includes(arrow)) {
+
+        const ARROW = '=>';
+
+        if (!document.getText().includes(ARROW)) {
             return result.concat(templateRange);
         }
 
@@ -350,8 +352,8 @@ export class HTMLPlugin
 
         let startIndex = 0;
         while (startIndex < document.getTextLength()) {
-            const index = document.getText().indexOf(arrow, startIndex);
-            startIndex = index + arrow.length;
+            const index = document.getText().indexOf(ARROW, startIndex);
+            startIndex = index + ARROW.length;
 
             if (index === -1) {
                 break;
@@ -369,7 +371,8 @@ export class HTMLPlugin
             const tag = document.html.findNodeAt(index);
 
             // our version of html document patched it so it's within the start tag
-            // but not the folding range
+            // but not the folding range returned by the language service
+            // which uses unpatched scanner
             if (!tag.startTagEnd || index > tag.startTagEnd) {
                 continue;
             }

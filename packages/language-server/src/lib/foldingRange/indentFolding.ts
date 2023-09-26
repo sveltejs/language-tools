@@ -110,10 +110,6 @@ export function indentBasedFoldingRange({
     return result;
 }
 
-function withinRange(ranges: LineRange[] | undefined, line: number) {
-    return ranges?.some((range) => range.startLine <= line && range.endLine >= line);
-}
-
 function collectIndents(line: string) {
     let tabCount = 0;
     let spaceCount = 0;

@@ -608,8 +608,6 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
             )
         );
 
-        // console.log(JSON.parse(JSON.stringify(result.sort((a, b) => a.startLine - b.startLine))));
-
         return result;
     }
 

@@ -28,7 +28,7 @@ describe('FoldingRangeProvider', function () {
         const lsAndTsDocResolver = new LSAndTSDocResolver(docManager, [testDir], lsConfigManager);
         const provider = new FoldingRangeProviderImpl(lsAndTsDocResolver, lsConfigManager);
         const filePath = path.join(foldingTestDir, filename);
-        const document = docManager.openDocument(<any>{
+        const document = docManager.openClientDocument(<any>{
             uri: pathToUrl(filePath),
             text: ts.sys.readFile(filePath) || ''
         });
