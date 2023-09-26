@@ -5,7 +5,7 @@ import { Document, TagInformation } from '../documents';
 /**
  *
  * 1. check tab and space counts for lines
- * 2. if there're mixing space and tab guess the tabSize
+ * 2. if there're mixing space and tab guess the tabSize otherwise we only need to compare the numbers of spaces or tabs between lines.
  */
 export function indentBasedFoldingRangeForTag(
     document: Document,
@@ -131,6 +131,11 @@ function collectIndents(line: string) {
     return { tabCount, spaceCount, empty };
 }
 
+/**
+ *
+ * The indentation guessing is based on the indentation difference between lines.
+ * And if the count equals, then the one used more often takes priority.
+ */
 export function guessTabSize(
     nonEmptyLines: Array<{ spaceCount: number; tabCount: number }>
 ): number {
