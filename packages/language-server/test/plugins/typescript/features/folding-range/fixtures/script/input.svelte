@@ -6,9 +6,3 @@
 
     }
 </script>
-
-{#if 'hi'}
-        <div></div>
-    {:else}
-        <div></div>
-{/if}
