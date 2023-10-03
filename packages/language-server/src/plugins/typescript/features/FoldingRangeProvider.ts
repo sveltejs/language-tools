@@ -1,8 +1,7 @@
 import ts from 'typescript';
-import { Node } from 'vscode-html-languageservice';
 import { FoldingRangeKind, Range } from 'vscode-languageserver';
 import { FoldingRange } from 'vscode-languageserver-types';
-import { Document, mapRangeToOriginal } from '../../../lib/documents';
+import { Document, isInTag, mapRangeToOriginal, toRange } from '../../../lib/documents';
 import { isNotNullOrUndefined } from '../../../utils';
 import { FoldingRangeProvider } from '../../interfaces';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
@@ -11,6 +10,16 @@ import { isTextSpanInGeneratedCode } from './utils';
 import { LSConfigManager } from '../../../ls-config';
 import { LineRange, indentBasedFoldingRange } from '../../../lib/foldingRange/indentFolding';
 import { SvelteDocumentSnapshot } from '../DocumentSnapshot';
+import {
+    SvelteNode,
+    SvelteNodeWalker,
+    findElseBlockTagStart,
+    findIfBlockEndTagStart,
+    hasElseBlock,
+    isAwaitBlock,
+    isEachBlock,
+    isElseBlockWithElseIf
+} from '../svelte-ast-utils';
 
 export class FoldingRangeProviderImpl implements FoldingRangeProvider {
     constructor(
@@ -20,6 +29,9 @@ export class FoldingRangeProviderImpl implements FoldingRangeProvider {
     private readonly foldEndPairCharacters = ['}', ']', ')', '`', '>'];
 
     async getFoldingRanges(document: Document): Promise<FoldingRange[]> {
+        // don't use ls.getProgram unless it's necessary
+        // this feature is pure syntactic and doesn't need type information
+
         const { lang, tsDoc } = await this.lsAndTsDocResolver.getLsForSyntheticOperations(document);
 
         const foldingRanges =
@@ -31,53 +43,214 @@ export class FoldingRangeProviderImpl implements FoldingRangeProvider {
             !!this.configManager.getClientCapabilities()?.textDocument?.foldingRange
                 ?.lineFoldingOnly;
 
-        const htmlStartMap = new Map<number, Node>();
-        const collectHTMLTag = (node: Node) => {
-            htmlStartMap.set(node.start, node);
-            node.children?.forEach(collectHTMLTag);
-        };
-        for (const node of document.html.roots) {
-            collectHTMLTag(node);
-        }
-
         const result = foldingRanges
             .filter((span) => !isTextSpanInGeneratedCode(tsDoc.getFullText(), span.textSpan))
             .map((span) => ({
-                originalRange: mapRangeToOriginal(tsDoc, convertRange(tsDoc, span.textSpan)),
+                originalRange: this.mapToOriginalRange(tsDoc, span.textSpan, document),
                 span
             }))
-            .filter(
-                ({ originalRange }) =>
-                    originalRange.start.line >= 0 &&
-                    originalRange.end.line >= 0 &&
-                    !htmlStartMap.has(document.offsetAt(originalRange.start))
-            )
             .map(({ originalRange, span }) =>
                 this.convertOutliningSpan(span, document, originalRange, lineFoldingOnly)
             )
             .filter(isNotNullOrUndefined)
+            .concat(this.collectSvelteBlockFolding(document, tsDoc, lineFoldingOnly))
             .concat(this.getSvelteTagFoldingIfParserError(document, tsDoc))
-            .filter(
-                (r) => r.startLine < r.endLine && (!lineFoldingOnly || r.startLine !== r.endLine)
-            );
+            .filter((r) => (lineFoldingOnly ? r.startLine < r.endLine : r.startLine <= r.endLine));
 
         return result;
+    }
+
+    private mapToOriginalRange(
+        tsDoc: SvelteDocumentSnapshot,
+        textSpan: ts.TextSpan,
+        document: Document
+    ) {
+        const range = mapRangeToOriginal(tsDoc, convertRange(tsDoc, textSpan));
+        const startOffset = document.offsetAt(range.start);
+
+        if (range.start.line < 0 || range.end.line < 0 || range.start.line > range.end.line) {
+            return;
+        }
+
+        if (
+            isInTag(range.start, document.scriptInfo) ||
+            isInTag(range.start, document.moduleScriptInfo)
+        ) {
+            return range;
+        }
+
+        const endOffset = document.offsetAt(range.end);
+        const originalText = document.getText().slice(startOffset, endOffset);
+
+        if (originalText.length === 0) {
+            return;
+        }
+
+        const generatedText = tsDoc.getText(textSpan.start, textSpan.start + textSpan.length);
+        const oneToOne = originalText.trim() === generatedText.trim();
+
+        if (oneToOne) {
+            return range;
+        }
+    }
+
+    /**
+     * Doing this here with the svelte2tsx's svelte ast is slightly
+     * less prone to error and faster than
+     * using the svelte ast in the svelte plugins.
+     */
+    private collectSvelteBlockFolding(
+        document: Document,
+        tsDoc: SvelteDocumentSnapshot,
+        lineFoldingOnly: boolean
+    ) {
+        if (tsDoc.parserError) {
+            return [];
+        }
+
+        const ranges: FoldingRange[] = [];
+
+        const provider = this;
+        const enter: SvelteNodeWalker['enter'] = function (node, parent, key) {
+            if (key === 'attributes') {
+                this.skip();
+            }
+
+            // use sub-block for await block
+            if (!node.type.endsWith('Block') || node.type === 'AwaitBlock') {
+                return;
+            }
+
+            if (node.type === 'IfBlock') {
+                provider.getIfBlockFolding(node, document, ranges);
+                return;
+            }
+
+            if (isElseBlockWithElseIf(node)) {
+                return;
+            }
+
+            if ((node.type === 'CatchBlock' || node.type === 'ThenBlock') && isAwaitBlock(parent)) {
+                const expressionEnd =
+                    (node.type === 'CatchBlock' ? parent.error?.end : parent.value?.end) ??
+                    document.getText().indexOf('}', node.start);
+
+                const beforeBlockStartTagEnd = document.getText().indexOf('}', expressionEnd);
+                if (beforeBlockStartTagEnd == -1) {
+                    return;
+                }
+                ranges.push(
+                    provider.createFoldingRange(document, beforeBlockStartTagEnd + 1, node.end)
+                );
+
+                return;
+            }
+
+            if (isEachBlock(node)) {
+                const start = document.getText().indexOf('}', (node.key ?? node.expression).end);
+                const elseStart = node.else
+                    ? findElseBlockTagStart(document.getText(), node.else)
+                    : -1;
+
+                ranges.push(
+                    provider.createFoldingRange(
+                        document,
+                        start,
+                        elseStart === -1 ? node.end : elseStart
+                    )
+                );
+
+                return;
+            }
+
+            if ('expression' in node && node.expression && typeof node.expression === 'object') {
+                const start = provider.getStartForNodeWithExpression(
+                    node as SvelteNode & { expression: SvelteNode },
+                    document
+                );
+                const end = node.end;
+
+                ranges.push(provider.createFoldingRange(document, start, end));
+                return;
+            }
+
+            if (node.start != null && node.end != null) {
+                const start = node.start;
+                const end = node.end;
+
+                ranges.push(provider.createFoldingRange(document, start, end));
+            }
+        };
+
+        tsDoc.walkSvelteAst({
+            enter
+        });
+
+        if (lineFoldingOnly) {
+            return ranges.map((r) => ({
+                startLine: r.startLine,
+                endLine: this.previousLineOfEndLine(r.startLine, r.endLine)
+            }));
+        }
+
+        return ranges;
+    }
+
+    private getIfBlockFolding(node: SvelteNode, document: Document, ranges: FoldingRange[]) {
+        const typed = node as SvelteNode & {
+            else?: SvelteNode;
+            expression: SvelteNode;
+        };
+
+        const documentText = document.getText();
+        const start = this.getStartForNodeWithExpression(typed, document);
+        const end = hasElseBlock(typed)
+            ? findElseBlockTagStart(documentText, typed.else)
+            : findIfBlockEndTagStart(documentText, typed);
+
+        ranges.push(this.createFoldingRange(document, start, end));
+    }
+
+    private getStartForNodeWithExpression(
+        node: SvelteNode & { expression: SvelteNode },
+        document: Document
+    ) {
+        return document.getText().indexOf('}', node.expression.end) + 1;
+    }
+
+    private createFoldingRange(document: Document, start: number, end: number) {
+        const range = toRange(document.getText(), start, end);
+        return {
+            startLine: range.start.line,
+            startCharacter: range.start.character,
+            endLine: range.end.line,
+            endCharacter: range.end.character
+        };
     }
 
     private convertOutliningSpan(
         span: ts.OutliningSpan,
         document: Document,
-        originalRange: Range,
+        originalRange: Range | undefined,
         lineFoldingOnly: boolean
     ): FoldingRange | null {
-        const end = this.adjustFoldingEnd(originalRange, document, lineFoldingOnly);
-        return {
+        if (!originalRange) {
+            return null;
+        }
+
+        const end = lineFoldingOnly
+            ? this.adjustFoldingEndToNotHideEnd(originalRange, document)
+            : originalRange.end;
+
+        const result = {
             startLine: originalRange.start.line,
             endLine: end.line,
             kind: this.getFoldingRangeKind(span),
             startCharacter: lineFoldingOnly ? undefined : originalRange.start.character,
             endCharacter: lineFoldingOnly ? undefined : end.character
         };
+
+        return result;
     }
 
     private getFoldingRangeKind(span: ts.OutliningSpan): FoldingRangeKind | undefined {
@@ -94,13 +267,12 @@ export class FoldingRangeProviderImpl implements FoldingRangeProvider {
         }
     }
 
-    private adjustFoldingEnd(
+    private adjustFoldingEndToNotHideEnd(
         range: Range,
-        document: Document,
-        lineFoldingOnly: boolean
+        document: Document
     ): { line: number; character?: number } {
         // don't fold end bracket, brace...
-        if (range.end.character > 0 && lineFoldingOnly) {
+        if (range.end.character > 0) {
             const text = document.getText();
             const offsetBeforeEnd = document.offsetAt({
                 line: range.end.line,
@@ -110,34 +282,6 @@ export class FoldingRangeProviderImpl implements FoldingRangeProvider {
             if (this.foldEndPairCharacters.includes(foldEndCharacter)) {
                 return { line: this.previousLineOfEndLine(range.start.line, range.end.line) };
             }
-        }
-
-        let endOffset = document.offsetAt(range.end);
-        const elseKeyword = ':else';
-        const lastPossibleOffsetIfOverlap = endOffset - elseKeyword.length + 1;
-        const isMiddleOfElseBlock = document
-            .getText()
-            .slice(lastPossibleOffsetIfOverlap, endOffset + elseKeyword.length - 1)
-            .includes(elseKeyword);
-
-        if (isMiddleOfElseBlock) {
-            endOffset = document
-                .getText()
-                .lastIndexOf(
-                    '{',
-                    document.getText().indexOf(elseKeyword, lastPossibleOffsetIfOverlap)
-                );
-            range.end = document.positionAt(endOffset);
-        }
-
-        if (!lineFoldingOnly) {
-            return range.end;
-        }
-
-        const after = document.getText().slice(endOffset);
-
-        if (after.startsWith('{:') || after.startsWith('{/')) {
-            return { line: this.previousLineOfEndLine(range.start.line, range.end.line) };
         }
 
         return range.end;
@@ -153,11 +297,7 @@ export class FoldingRangeProviderImpl implements FoldingRangeProvider {
         return indentBasedFoldingRange({
             document,
             skipFold: (_, lineContent) => {
-                return (
-                    !lineContent.includes('{#') &&
-                    !lineContent.includes('{/') &&
-                    !lineContent.includes('{:')
-                );
+                return !/{\s*(#|\/|:)/.test(lineContent);
             },
             ranges: htmlTemplateRanges
         });

@@ -217,7 +217,7 @@ export class TypeScriptPlugin
             return [];
         }
 
-        const { lang, tsDoc } = await this.getLSAndTSDoc(document);
+        const { lang, tsDoc } = await this.lsAndTsDocResolver.getLsForSyntheticOperations(document);
 
         if (cancellationToken?.isCancellationRequested) {
             return [];
@@ -366,7 +366,7 @@ export class TypeScriptPlugin
     }
 
     async getDefinitions(document: Document, position: Position): Promise<DefinitionLink[]> {
-        const { lang, tsDoc } = await this.getLSAndTSDoc(document);
+        const { lang, tsDoc } = await this.lsAndTsDocResolver.getLSAndTSDoc(document);
 
         const defs = lang.getDefinitionAndBoundSpan(
             tsDoc.filePath,
@@ -642,10 +642,6 @@ export class TypeScriptPlugin
 
     async getFoldingRanges(document: Document): Promise<FoldingRange[]> {
         return this.foldingRangeProvider.getFoldingRanges(document);
-    }
-
-    private async getLSAndTSDoc(document: Document) {
-        return this.lsAndTsDocResolver.getLSAndTSDoc(document);
     }
 
     /**

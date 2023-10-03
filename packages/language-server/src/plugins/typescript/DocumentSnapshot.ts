@@ -1,6 +1,4 @@
 import { EncodedSourceMap, TraceMap, originalPositionFor } from '@jridgewell/trace-mapping';
-import path from 'path';
-import { walk } from 'svelte/compiler';
 import { TemplateNode } from 'svelte/types/compiler/interfaces';
 import { svelte2tsx, IExportedNames, internalHelpers } from 'svelte2tsx';
 import ts from 'typescript';
@@ -19,7 +17,7 @@ import {
 } from '../../lib/documents';
 import { pathToUrl, urlToPath } from '../../utils';
 import { ConsumerDocumentMapper } from './DocumentMapper';
-import { SvelteNode } from './svelte-ast-utils';
+import { SvelteNode, SvelteNodeWalker, walkSvelteAst } from './svelte-ast-utils';
 import {
     getScriptKindFromAttributes,
     getScriptKindFromFileName,
@@ -335,19 +333,19 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
                 : this.parent.offsetAt(positionOrOffset);
 
         let foundNode: SvelteNode | null = null;
-        walk(this.htmlAst as any, {
+        this.walkSvelteAst({
             enter(node) {
                 // In case the offset is at a point where a node ends and a new one begins,
                 // the node where the code ends is used. If this introduces problems, introduce
                 // an affinity parameter to prefer the node where it ends/starts.
-                if ((node as SvelteNode).start > offset || (node as SvelteNode).end < offset) {
+                if (node.start > offset || node.end < offset) {
                     this.skip();
                     return;
                 }
                 const parent = foundNode;
                 // Spread so the "parent" property isn't added to the original ast,
                 // causing an infinite loop
-                foundNode = { ...node } as SvelteNode;
+                foundNode = { ...node };
                 if (parent) {
                     foundNode.parent = parent;
                 }
@@ -355,6 +353,14 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
         });
 
         return foundNode;
+    }
+
+    walkSvelteAst(walker: SvelteNodeWalker) {
+        if (!this.htmlAst) {
+            return;
+        }
+
+        walkSvelteAst(this.htmlAst, walker);
     }
 
     getOriginalPosition(pos: Position): Position {

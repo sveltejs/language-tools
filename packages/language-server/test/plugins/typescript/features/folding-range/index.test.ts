@@ -113,7 +113,7 @@ async function executeTest(
 
 const executeTests = createSnapshotTester(executeTest);
 
-describe.only('FoldingRangeProvider', function () {
+describe('FoldingRangeProvider', function () {
     executeTests({
         dir: join(__dirname, 'fixtures'),
         workspaceDir: join(__dirname, 'fixtures'),
