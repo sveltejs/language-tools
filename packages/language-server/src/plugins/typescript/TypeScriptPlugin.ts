@@ -6,6 +6,7 @@ import {
     CancellationToken,
     CodeAction,
     CodeActionContext,
+    CodeLens,
     CompletionContext,
     CompletionList,
     DefinitionLink,
@@ -54,7 +55,8 @@ import {
     TypeDefinitionProvider,
     UpdateImportsProvider,
     UpdateTsOrJsFile,
-    CallHierarchyProvider
+    CallHierarchyProvider,
+    CodeLensProvider
 } from '../interfaces';
 import { CodeActionsProviderImpl } from './features/CodeActionsProvider';
 import {
@@ -91,6 +93,7 @@ import {
     symbolKindFromString
 } from './utils';
 import { CallHierarchyProviderImpl } from './features/CallHierarchyProvider';
+import { CodeLensProviderImpl } from './features/CodeLensProvider';
 
 export class TypeScriptPlugin
     implements
@@ -111,6 +114,7 @@ export class TypeScriptPlugin
         TypeDefinitionProvider,
         InlayHintProvider,
         CallHierarchyProvider,
+        CodeLensProvider,
         OnWatchFileChanges,
         CompletionsProvider<CompletionEntryWithIdentifier>,
         UpdateTsOrJsFile
@@ -135,6 +139,7 @@ export class TypeScriptPlugin
     private readonly typeDefinitionProvider: TypeDefinitionProviderImpl;
     private readonly inlayHintProvider: InlayHintProviderImpl;
     private readonly callHierarchyProvider: CallHierarchyProviderImpl;
+    private readonly codLensProvider: CodeLensProviderImpl;
 
     constructor(
         configManager: LSConfigManager,
@@ -178,6 +183,12 @@ export class TypeScriptPlugin
         this.callHierarchyProvider = new CallHierarchyProviderImpl(
             this.lsAndTsDocResolver,
             workspaceUris
+        );
+        this.codLensProvider = new CodeLensProviderImpl(
+            this.lsAndTsDocResolver,
+            this.findReferencesProvider,
+            this.implementationProvider,
+            this.configManager
         );
     }
 
@@ -585,8 +596,12 @@ export class TypeScriptPlugin
         );
     }
 
-    async getImplementation(document: Document, position: Position): Promise<Location[] | null> {
-        return this.implementationProvider.getImplementation(document, position);
+    async getImplementation(
+        document: Document,
+        position: Position,
+        cancellationToken?: CancellationToken
+    ): Promise<Location[] | null> {
+        return this.implementationProvider.getImplementation(document, position, cancellationToken);
     }
 
     async getTypeDefinition(document: Document, position: Position): Promise<Location[] | null> {
@@ -631,7 +646,15 @@ export class TypeScriptPlugin
         return this.callHierarchyProvider.getOutgoingCalls(item, cancellationToken);
     }
 
-    private async getLSAndTSDoc(document: Document) {
+    getCodeLens(document: Document): Promise<CodeLens[] | null> {
+        return this.codLensProvider.getCodeLens(document);
+    }
+
+    resolveCodeLens(document: Document, codeLensToResolve: CodeLens, cancellationToken?: CancellationToken): Promise<CodeLens> {
+        return this.codLensProvider.resolveCodeLens(document, codeLensToResolve, cancellationToken);
+    }
+
+    private getLSAndTSDoc(document: Document) {
         return this.lsAndTsDocResolver.getLSAndTSDoc(document);
     }
 

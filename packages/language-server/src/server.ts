@@ -292,7 +292,10 @@ export function startServer(options?: LSOptions) {
                 implementationProvider: true,
                 typeDefinitionProvider: true,
                 inlayHintProvider: true,
-                callHierarchyProvider: true
+                callHierarchyProvider: true,
+                codeLensProvider: {
+                    resolveProvider: true
+                }
             }
         };
     });
@@ -373,8 +376,8 @@ export function startServer(options?: LSOptions) {
         pluginHost.getDocumentSymbols(evt.textDocument, cancellationToken)
     );
     connection.onDefinition((evt) => pluginHost.getDefinitions(evt.textDocument, evt.position));
-    connection.onReferences((evt) =>
-        pluginHost.findReferences(evt.textDocument, evt.position, evt.context)
+    connection.onReferences((evt, cancellationToken) =>
+        pluginHost.findReferences(evt.textDocument, evt.position, evt.context, cancellationToken)
     );
 
     connection.onCodeAction((evt, cancellationToken) =>
@@ -419,13 +422,25 @@ export function startServer(options?: LSOptions) {
         pluginHost.getSelectionRanges(evt.textDocument, evt.positions)
     );
 
-    connection.onImplementation((evt) =>
-        pluginHost.getImplementation(evt.textDocument, evt.position)
+    connection.onImplementation((evt, cancellationToken) =>
+        pluginHost.getImplementation(evt.textDocument, evt.position, cancellationToken)
     );
 
     connection.onTypeDefinition((evt) =>
         pluginHost.getTypeDefinition(evt.textDocument, evt.position)
     );
+
+    connection.onCodeLens((evt) => pluginHost.getCodeLens(evt.textDocument));
+
+    connection.onCodeLensResolve((codeLens, token) => {
+        const data = codeLens.data as TextDocumentIdentifier;
+
+        if (!data) {
+            return codeLens;
+        }
+
+        return pluginHost.resolveCodeLens(data, codeLens, token);
+    });
 
     const diagnosticsManager = new DiagnosticsManager(
         connection.sendDiagnostics,
