@@ -1,3 +1,7 @@
+import { Node } from 'estree';
+import { walk } from 'svelte/compiler';
+import { TemplateNode } from 'svelte/types/compiler/interfaces';
+
 export interface SvelteNode {
     start: number;
     end: number;
@@ -6,6 +10,30 @@ export interface SvelteNode {
 }
 
 type HTMLLike = 'Element' | 'InlineComponent' | 'Body' | 'Window';
+
+export interface AwaitBlock extends SvelteNode {
+    type: 'AwaitBlock';
+    expression: SvelteNode & Node;
+    value: (SvelteNode & Node) | null;
+    error: (SvelteNode & Node) | null;
+    pending: AwaitSubBlock;
+    then: AwaitSubBlock;
+    catch: AwaitSubBlock;
+}
+
+export interface AwaitSubBlock extends SvelteNode {
+    skip: boolean;
+    children: SvelteNode[];
+}
+
+export interface EachBlock extends SvelteNode {
+    type: 'EachBlock';
+    expression: SvelteNode & Node;
+    context: SvelteNode & Node;
+    key?: SvelteNode & Node;
+    else?: SvelteNode;
+    children: SvelteNode[];
+}
 
 function matchesOnly(type: string | undefined, only?: 'Element' | 'InlineComponent'): boolean {
     return (
@@ -72,4 +100,71 @@ export function isEventHandler(
     only?: 'Element' | 'InlineComponent'
 ) {
     return !!node && node.type === 'EventHandler' && matchesOnly(node.parent?.type, only);
+}
+
+export function isElseBlockWithElseIf(node: SvelteNode | null | undefined) {
+    return (
+        !!node &&
+        node.type === 'ElseBlock' &&
+        'children' in node &&
+        Array.isArray(node.children) &&
+        node.children.length === 1 &&
+        node.children[0].type === 'IfBlock'
+    );
+}
+
+export function hasElseBlock(node: SvelteNode): node is SvelteNode & { else: SvelteNode } {
+    return 'else' in node && !!node.else;
+}
+
+export function findElseBlockTagStart(documentText: string, elseBlock: SvelteNode) {
+    return documentText.lastIndexOf('{', documentText.lastIndexOf(':else', elseBlock.start));
+}
+
+export function findIfBlockEndTagStart(documentText: string, ifBlock: SvelteNode) {
+    return documentText.lastIndexOf('{', documentText.lastIndexOf('/if', ifBlock.end));
+}
+
+export interface SvelteNodeWalker {
+    enter?: (
+        this: {
+            skip: () => void;
+            remove: () => void;
+            replace: (node: SvelteNode) => void;
+        },
+        node: SvelteNode,
+        parent: SvelteNode,
+        key: string,
+        index: number
+    ) => void;
+    leave?: (
+        this: {
+            skip: () => void;
+            remove: () => void;
+            replace: (node: SvelteNode) => void;
+        },
+        node: SvelteNode,
+        parent: SvelteNode,
+        key: string,
+        index: number
+    ) => void;
+}
+
+export function walkSvelteAst(htmlAst: TemplateNode, walker: SvelteNodeWalker) {
+    walk(htmlAst as any, {
+        enter(node, parent, key, index) {
+            walker.enter?.call(this, node as SvelteNode, parent as SvelteNode, key, index);
+        },
+        leave(node, parent, key, index) {
+            walker.leave?.call(this, node as SvelteNode, parent as SvelteNode, key, index);
+        }
+    });
+}
+
+export function isAwaitBlock(node: SvelteNode): node is AwaitBlock {
+    return node.type === 'AwaitBlock';
+}
+
+export function isEachBlock(node: SvelteNode): node is EachBlock {
+    return node.type === 'EachBlock';
 }

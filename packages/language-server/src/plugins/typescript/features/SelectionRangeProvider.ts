@@ -13,7 +13,7 @@ export class SelectionRangeProviderImpl implements SelectionRangeProvider {
         document: Document,
         position: Position
     ): Promise<SelectionRange | null> {
-        const { tsDoc, lang } = await this.lsAndTsDocResolver.getLSAndTSDoc(document);
+        const { tsDoc, lang } = await this.lsAndTsDocResolver.getLsForSyntheticOperations(document);
 
         const tsSelectionRange = lang.getSmartSelectionRange(
             tsDoc.filePath,

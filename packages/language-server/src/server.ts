@@ -292,7 +292,8 @@ export function startServer(options?: LSOptions) {
                 implementationProvider: true,
                 typeDefinitionProvider: true,
                 inlayHintProvider: true,
-                callHierarchyProvider: true
+                callHierarchyProvider: true,
+                foldingRangeProvider: true
             }
         };
     });
@@ -426,6 +427,8 @@ export function startServer(options?: LSOptions) {
     connection.onTypeDefinition((evt) =>
         pluginHost.getTypeDefinition(evt.textDocument, evt.position)
     );
+
+    connection.onFoldingRanges((evt) => pluginHost.getFoldingRanges(evt.textDocument));
 
     const diagnosticsManager = new DiagnosticsManager(
         connection.sendDiagnostics,

@@ -15,6 +15,7 @@ import {
     CompletionList,
     DefinitionLink,
     Diagnostic,
+    FoldingRange,
     FormattingOptions,
     Hover,
     LinkedEditingRanges,
@@ -593,6 +594,21 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
             ExecuteMode.FirstNonNull,
             'high'
         );
+    }
+
+    async getFoldingRanges(textDocument: TextDocumentIdentifier): Promise<FoldingRange[]> {
+        const document = this.getDocument(textDocument.uri);
+
+        const result = flatten(
+            await this.execute<FoldingRange[]>(
+                'getFoldingRanges',
+                [document],
+                ExecuteMode.Collect,
+                'high'
+            )
+        );
+
+        return result;
     }
 
     onWatchFileChanges(onWatchFileChangesParas: OnWatchFileChangesPara[]): void {

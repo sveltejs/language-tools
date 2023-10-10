@@ -20,6 +20,7 @@ import {
     CompletionList,
     DefinitionLink,
     Diagnostic,
+    FoldingRange,
     FormattingOptions,
     Hover,
     InlayHint,
@@ -223,6 +224,10 @@ export interface InlayHintProvider {
     ): Resolvable<InlayHint[] | null>;
 }
 
+export interface FoldingRangeProvider {
+    getFoldingRanges(document: Document): Resolvable<FoldingRange[]>;
+}
+
 export interface OnWatchFileChanges {
     onWatchFileChanges(onWatchFileChangesParas: OnWatchFileChangesPara[]): void;
 }
@@ -251,7 +256,8 @@ type ProviderBase = DiagnosticsProvider &
     ImplementationProvider &
     TypeDefinitionProvider &
     InlayHintProvider &
-    CallHierarchyProvider;
+    CallHierarchyProvider &
+    FoldingRangeProvider;
 
 export type LSProvider = ProviderBase & BackwardsCompatibleDefinitionsProvider;
 
