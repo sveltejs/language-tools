@@ -163,7 +163,7 @@ function blankPossiblyErrorOperatorOrPropertyAccess(htmlx: string) {
                 }
                 htmlx =
                     htmlx.substring(0, backwardIndex) + ' ' + htmlx.substring(backwardIndex + 1);
-            } else if (!/\s/.test(char)) {
+            } else if (!/\s/.test(char) && char !== ')' && char !== ']') {
                 break;
             }
             backwardIndex--;
