@@ -1,19 +1,31 @@
 [
     {
-        "label": ": MouseEvent",
-        "position": {
-            "line": 7,
-            "character": 22
-        },
+        "label": ": void",
+        "position": { "line": 5, "character": 30 },
         "kind": 1,
         "paddingLeft": true
     },
     {
-        "label": "message:",
-        "position": {
-            "line": 7,
-            "character": 38
-        },
+        "label": ": MouseEvent",
+        "position": { "line": 9, "character": 22 },
+        "kind": 1,
+        "paddingLeft": true
+    },
+    {
+        "label": [
+            {
+                "value": "message",
+                "location": {
+                    "range": {
+                        "start": { "line": 5, "character": 17 },
+                        "end": { "line": 5, "character": 24 }
+                    },
+                    "uri": "<workspaceUri>/component-handler/input.svelte"
+                }
+            },
+            { "value": ":" }
+        ],
+        "position": { "line": 9, "character": 30 },
         "kind": 2,
         "paddingRight": true
     }

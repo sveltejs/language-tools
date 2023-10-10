@@ -12,6 +12,7 @@ import {
     createSnapshotTester,
     updateSnapshotIfFailedOrEmpty
 } from '../../test-utils';
+import { InlayHint } from 'vscode-languageserver-types';
 
 function setup(workspaceDir: string, filePath: string) {
     const docManager = new DocumentManager(
@@ -24,7 +25,7 @@ function setup(workspaceDir: string, filePath: string) {
         parameterNames: { enabled: 'all', suppressWhenArgumentMatchesName: false },
         parameterTypes: { enabled: true },
         propertyDeclarationTypes: { enabled: true },
-        variableTypes: { enabled: true }
+        variableTypes: { enabled: true, suppressWhenTypeMatchesName: false }
     };
     configManager.updateTsJsUserPreferences({
         typescript: {
@@ -59,10 +60,13 @@ async function executeTest(
 ) {
     const expected = 'expectedv2.json';
     const { plugin, document } = setup(workspaceDir, inputFile);
-    const inlayHints = await plugin.getInlayHints(document, {
-        start: { line: 0, character: 0 },
-        end: document.positionAt(document.getTextLength())
-    });
+    const workspaceUri = pathToUrl(workspaceDir);
+    const inlayHints = sanitizeUri(
+        await plugin.getInlayHints(document, {
+            start: { line: 0, character: 0 },
+            end: document.positionAt(document.getTextLength())
+        })
+    );
 
     const expectedFile = join(dir, expected);
     if (process.argv.includes('--debug')) {
@@ -84,6 +88,26 @@ async function executeTest(
         },
         rootDir: __dirname
     });
+
+    function sanitizeUri(inlayHints: InlayHint[] | null) {
+        if (!inlayHints) {
+            return;
+        }
+
+        for (const inlayHint of inlayHints) {
+            if (!Array.isArray(inlayHint.label)) {
+                continue;
+            }
+
+            for (const label of inlayHint.label) {
+                if (label.location) {
+                    label.location.uri = label.location.uri.replace(workspaceUri, '<workspaceUri>');
+                }
+            }
+        }
+
+        return inlayHints;
+    }
 
     function appendInlayHintAsComment() {
         if (!inlayHints) {
