@@ -125,6 +125,10 @@ export function findIfBlockEndTagStart(documentText: string, ifBlock: SvelteNode
     return documentText.lastIndexOf('{', documentText.lastIndexOf('/if', ifBlock.end));
 }
 
+type ESTreeWaker = Parameters<typeof walk>[1];
+type ESTreeEnterFunc = NonNullable<ESTreeWaker['enter']>;
+type ESTreeLeaveFunc = NonNullable<ESTreeWaker['leave']>;
+
 export interface SvelteNodeWalker {
     enter?: (
         this: {
@@ -134,8 +138,8 @@ export interface SvelteNodeWalker {
         },
         node: SvelteNode,
         parent: SvelteNode,
-        key: string,
-        index: number
+        key: Parameters<ESTreeEnterFunc>[2],
+        index: Parameters<ESTreeEnterFunc>[3]
     ) => void;
     leave?: (
         this: {
@@ -145,18 +149,21 @@ export interface SvelteNodeWalker {
         },
         node: SvelteNode,
         parent: SvelteNode,
-        key: string,
-        index: number
+        key: Parameters<ESTreeLeaveFunc>[2],
+        index: Parameters<ESTreeLeaveFunc>[3]
     ) => void;
 }
 
+// wrap the estree-walker to make it svelte specific
+// the type casting is necessary because estree-walker is not designed for this
+// especially in v3 which svelte 4 uses
 export function walkSvelteAst(htmlAst: TemplateNode, walker: SvelteNodeWalker) {
     walk(htmlAst as any, {
         enter(node, parent, key, index) {
-            walker.enter?.call(this, node as SvelteNode, parent as SvelteNode, key, index);
+            walker.enter?.call(this as any, node as SvelteNode, parent as SvelteNode, key, index);
         },
         leave(node, parent, key, index) {
-            walker.leave?.call(this, node as SvelteNode, parent as SvelteNode, key, index);
+            walker.leave?.call(this as any, node as SvelteNode, parent as SvelteNode, key, index);
         }
     });
 }
