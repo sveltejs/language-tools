@@ -51,13 +51,22 @@ export class Generics {
                     'Invalid $$Generic declaration: $$Generic definitions are not allowed when the generics attribute is present on the script tag'
                 );
             }
-            if (node.type.typeArguments?.length > 1) {
-                throw new Error('Invalid $$Generic declaration: Only one type argument allowed');
+            if (node.type.typeArguments?.length > 2) {
+                throw new Error('Invalid $$Generic declaration: Only two type argument allowed');
             }
-            if (node.type.typeArguments?.length === 1) {
+            if (node.type.typeArguments?.length >= 1) {
                 const typeReference = node.type.typeArguments[0].getText();
+                const defaultType = node.type.typeArguments[1]?.getText();
+
                 this.typeReferences.push(typeReference);
-                this.definitions.push(`${node.name.text} extends ${typeReference}`);
+                
+                let generic = `${node.name.text} extends ${typeReference}`;
+                
+                if (defaultType) {
+                    generic += ` = ${defaultType}`
+                }
+                
+                this.definitions.push(generic);
             } else {
                 this.definitions.push(node.name.text);
             }
