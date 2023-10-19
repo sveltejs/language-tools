@@ -6,28 +6,41 @@ import { Element } from './Element';
 import { InlineComponent } from './InlineComponent';
 
 /**
- * List taken from `svelte-jsx.d.ts` by searching for all attributes of type number
+ * List taken from `elements.d.ts` in Svelte core by searching for all attributes of type `number | undefined | null`;
  */
 const numberOnlyAttributes = new Set([
-    'cols',
-    'colspan',
-    'currenttime',
-    'defaultplaybackrate',
-    'high',
-    'low',
+    'aria-colcount',
+    'aria-colindex',
+    'aria-colspan',
+    'aria-level',
+    'aria-posinset',
+    'aria-rowcount',
+    'aria-rowindex',
+    'aria-rowspan',
+    'aria-setsize',
+    'aria-valuemax',
+    'aria-valuemin',
+    'aria-valuenow',
+    'results',
+    'span',
     'marginheight',
     'marginwidth',
-    'minlength',
     'maxlength',
+    'minlength',
+    'currenttime',
+    'defaultplaybackrate',
+    'volume',
+    'high',
+    'low',
     'optimum',
-    'rows',
-    'rowspan',
-    'size',
-    'span',
     'start',
-    'tabindex',
-    'results',
-    'volume'
+    'size',
+    'border',
+    'cols',
+    'rows',
+    'colspan',
+    'rowspan',
+    'tabindex'
 ]);
 
 /**
