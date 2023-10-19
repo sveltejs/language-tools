@@ -14,7 +14,10 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
 
     function create(info: ts.server.PluginCreateInfo) {
         const logger = new Logger(info.project.projectService.logger);
-        if (!isSvelteProject(info.project.getCompilerOptions())) {
+        if (
+            !(info.config as Configuration)?.assumeIsSvelteProject &&
+            !isSvelteProject(info.project.getCompilerOptions())
+        ) {
             logger.log('Detected that this is not a Svelte project, abort patching TypeScript');
             return info.languageService;
         }
