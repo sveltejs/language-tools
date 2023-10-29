@@ -187,6 +187,7 @@ export function createSvelteModuleLoader(
     const failedLocationInvalidated = new FileSet();
 
     return {
+        svelteFileExists: svelteSys.svelteFileExists,
         fileExists: svelteSys.fileExists,
         readFile: svelteSys.readFile,
         readDirectory: svelteSys.readDirectory,
@@ -267,7 +268,7 @@ export function createSvelteModuleLoader(
         );
 
         const tsResolvedModule = tsResolvedModuleWithFailedLookup.resolvedModule;
-        if (tsResolvedModule && !isVirtualSvelteFilePath(tsResolvedModule.resolvedFileName)) {
+        if (tsResolvedModule) {
             return tsResolvedModuleWithFailedLookup;
         }
 

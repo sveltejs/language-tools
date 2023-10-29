@@ -1,5 +1,5 @@
 import * as assert from 'assert';
-import { readFileSync, existsSync, readdirSync } from 'fs';
+import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 import ts from 'typescript';
 import { Document, DocumentManager } from '../../../../../src/lib/documents';

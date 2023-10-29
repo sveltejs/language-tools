@@ -390,9 +390,9 @@ async function createLanguageService(
      * Otherwise, deleteUnresolvedResolutionsFromCache won't be called when the file is created again
      */
     function getSnapshotIfExists(fileName: string): DocumentSnapshot | undefined {
-        fileName = ensureRealSvelteFilePath(fileName);
+        const svelteFileName = ensureRealSvelteFilePath(fileName);
 
-        let doc = snapshotManager.get(fileName);
+        let doc = snapshotManager.get(fileName) ?? snapshotManager.get(svelteFileName);
         if (doc) {
             return doc;
         }
@@ -401,13 +401,16 @@ async function createLanguageService(
             return undefined;
         }
 
-        return createSnapshot(fileName, doc);
+        return createSnapshot(
+            svelteModuleLoader.svelteFileExists(fileName) ? svelteFileName : fileName,
+            doc
+        );
     }
 
     function getSnapshot(fileName: string): DocumentSnapshot {
-        fileName = ensureRealSvelteFilePath(fileName);
+        const svelteFileName = ensureRealSvelteFilePath(fileName);
 
-        let doc = snapshotManager.get(fileName);
+        let doc = snapshotManager.get(fileName) ?? snapshotManager.get(svelteFileName);
         if (doc) {
             return doc;
         }
