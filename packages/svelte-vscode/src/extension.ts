@@ -268,7 +268,7 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
         //    any of the following: `~!@$^&*()=+[{]}\|;:'",.<>/
         //
         wordPattern:
-            /(-?\d*\.\d\w*)|([^\`\~\!\@\$\#\^\&\*\(\)\=\+\[\{\]\}\\\|\;\:\'\"\,\.\<\>\/\s]+)/g,
+            /(-?\d*\.\d\w*)|([^\`\~\!\@\#\^\&\*\(\)\=\+\[\{\]\}\\\|\;\:\'\"\,\.\<\>\/\s]+)/g,
         onEnterRules: [
             {
                 // Matches an opening tag that:

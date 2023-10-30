@@ -1466,14 +1466,15 @@ describe('CompletionProviderImpl', function () {
             }
         );
 
-        const item = completions?.items.find((item) => item.label === 'store');
+        const item = completions?.items.find((item) => item.label === '$store');
 
+        assert.ok(item);
         assert.equal(item?.data?.source?.endsWith('completions/to-import'), true);
 
-        delete item?.data;
+        const { data, ...itemWithoutData } = item;
 
-        assert.deepStrictEqual(item, {
-            label: 'store',
+        assert.deepStrictEqual(itemWithoutData, {
+            label: '$store',
             kind: CompletionItemKind.Constant,
             sortText: '16',
             preselect: undefined,
@@ -1483,6 +1484,13 @@ describe('CompletionProviderImpl', function () {
             textEdit: undefined,
             labelDetails: undefined
         });
+
+        const { detail } = await completionProvider.resolveCompletion(document, item);
+
+        assert.deepStrictEqual(
+            detail,
+            'Add import from "./to-import"\n\nconst store: Writable<number>'
+        );
     });
 
     // Hacky, but it works. Needed due to testing both new and old transformation
