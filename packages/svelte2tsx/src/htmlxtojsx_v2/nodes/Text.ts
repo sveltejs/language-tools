@@ -1,4 +1,5 @@
 import MagicString from 'magic-string';
+// @ts-ignore
 import { Text } from 'svelte/types/compiler/interfaces';
 import { BaseNode } from '../../interfaces';
 

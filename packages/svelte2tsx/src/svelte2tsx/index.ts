@@ -21,6 +21,7 @@ import { ScopeStack } from './utils/Scope';
 import { Generics } from './nodes/Generics';
 import { addComponentExport } from './addComponentExport';
 import { createRenderFunction } from './createRenderFunction';
+// @ts-ignore
 import { TemplateNode } from 'svelte/types/compiler/interfaces';
 import path from 'path';
 

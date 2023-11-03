@@ -10,6 +10,7 @@ import {
 } from '../../utils/svelteAst';
 import TemplateScope from './TemplateScope';
 import { SvelteIdentifier, WithName } from '../../interfaces';
+// @ts-ignore
 import { Directive } from 'svelte/types/compiler/interfaces';
 import ts from 'typescript';
 import { isInterfaceOrTypeDeclaration } from '../utils/tsAst';

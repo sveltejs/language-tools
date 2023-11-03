@@ -87,10 +87,18 @@ export function transform(
             if (deletePos !== moves.length && removeStart > deleteDest) {
                 str.move(removeStart, transformation[0], end);
             }
-            // Use one space because of hover etc: This will make map deleted characters to the whitespace
-            str.overwrite(removeStart, transformation[0], ' ', { contentOnly: true });
+            if (transformation[0] < end) {
+                // Use one space because of hover etc: This will make map deleted characters to the whitespace
+                str.overwrite(removeStart, transformation[0], ' ', { contentOnly: true });
+            }
         }
         removeStart = transformation[1];
+    }
+
+    if (removeStart > end) {
+        // Reset the end to the last transformation before the end if there were transformations after the end
+        // so we still delete the correct range afterwards
+        removeStart = moves.find((m) => m[1] < end)?.[1] ?? end;
     }
 
     if (removeStart < end) {
