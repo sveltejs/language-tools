@@ -58,7 +58,7 @@ Snippets allow you to create reusable UI blocks you can render with the {@render
 They also function as slot props for components.
 `,
     render: `\`{@render ...}\`\\
-Render a snippet with the given parameters.
+Renders a snippet with the given parameters.
 `,
     html:
         `\`{@html ...}\`\\
@@ -87,9 +87,11 @@ It accepts a comma-separated list of variable names (not arbitrary expressions).
 https://svelte.dev/docs#template-syntax-debug
 `,
     const: `\`{@const ...}\`\\
-TODO
+Defines a local constant}\\
 #### Usage:
 \`{@const a = b + c}\`\\
+\\
+https://svelte.dev/docs/special-tags#const
 `
 };
 

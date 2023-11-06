@@ -18,5 +18,9 @@
     "key": {
         "body": ["{#key ${1:key}}", "\t$TM_SELECTED_TEXT$0", "{/key}"],
         "description": "key block"
+    },
+    "snippet": {
+        "body": ["{#snippet ${1:snippet}(${2:parameter})}", "\t$TM_SELECTED_TEXT$0", "{/snippet}"],
+        "description": "snippet block"
     }
 }
