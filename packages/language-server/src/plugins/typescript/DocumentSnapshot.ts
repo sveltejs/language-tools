@@ -1,4 +1,5 @@
 import { EncodedSourceMap, TraceMap, originalPositionFor } from '@jridgewell/trace-mapping';
+// @ts-ignore
 import { TemplateNode } from 'svelte/types/compiler/interfaces';
 import { svelte2tsx, IExportedNames, internalHelpers } from 'svelte2tsx';
 import ts from 'typescript';

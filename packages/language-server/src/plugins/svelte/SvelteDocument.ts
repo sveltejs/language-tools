@@ -1,6 +1,8 @@
 import { TraceMap } from '@jridgewell/trace-mapping';
 import type { compile } from 'svelte/compiler';
+// @ts-ignore
 import { CompileOptions } from 'svelte/types/compiler/interfaces';
+// @ts-ignore
 import { PreprocessorGroup, Processed } from 'svelte/types/compiler/preprocess';
 import { Position } from 'vscode-languageserver';
 import { getPackageInfo, importSvelte } from '../../importPackage';
@@ -367,7 +369,7 @@ export class SvelteFragmentMapper implements PositionMapper {
  */
 function wrapPreprocessors(preprocessors: PreprocessorGroup | PreprocessorGroup[] = []) {
     preprocessors = Array.isArray(preprocessors) ? preprocessors : [preprocessors];
-    return preprocessors.map((preprocessor) => {
+    return preprocessors.map((preprocessor: any) => {
         const wrappedPreprocessor: PreprocessorGroup = { markup: preprocessor.markup };
 
         if (preprocessor.script) {
@@ -404,7 +406,7 @@ async function transpile(
     const processedScripts: Processed[] = [];
     const processedStyles: Processed[] = [];
 
-    const wrappedPreprocessors = preprocessors.map((preprocessor) => {
+    const wrappedPreprocessors = preprocessors.map((preprocessor: any) => {
         const wrappedPreprocessor: PreprocessorGroup = { markup: preprocessor.markup };
 
         if (preprocessor.script) {
