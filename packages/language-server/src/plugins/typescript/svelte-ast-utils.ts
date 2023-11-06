@@ -1,5 +1,5 @@
 import { Node } from 'estree';
-import { walk } from 'svelte/compiler';
+import { walk } from 'estree-walker';
 import { TemplateNode } from 'svelte/types/compiler/interfaces';
 
 export interface SvelteNode {

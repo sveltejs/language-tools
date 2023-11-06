@@ -1,5 +1,5 @@
 import MagicString from 'magic-string';
-import { walk } from 'svelte/compiler';
+import { walk } from 'estree-walker';
 import { TemplateNode, Text } from 'svelte/types/compiler/interfaces';
 import { Attribute, BaseNode, BaseDirective, StyleDirective, ConstTag } from '../interfaces';
 import { parseHtmlx } from '../utils/htmlxparser';
