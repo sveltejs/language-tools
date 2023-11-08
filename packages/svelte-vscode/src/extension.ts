@@ -133,12 +133,12 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
         run: {
             module: serverModule,
             transport: TransportKind.ipc,
-            options: { execArgv: runExecArgv, cwd: rootPath }
+            options: { execArgv: runExecArgv }
         },
         debug: {
             module: serverModule,
             transport: TransportKind.ipc,
-            options: { execArgv: debugArgs, cwd: rootPath }
+            options: { execArgv: debugArgs }
         }
     };
 
