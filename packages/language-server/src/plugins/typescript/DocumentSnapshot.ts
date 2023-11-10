@@ -1,4 +1,5 @@
 import { EncodedSourceMap, TraceMap, originalPositionFor } from '@jridgewell/trace-mapping';
+// @ts-ignore
 import { TemplateNode } from 'svelte/types/compiler/interfaces';
 import { svelte2tsx, IExportedNames, internalHelpers } from 'svelte2tsx';
 import ts from 'typescript';
@@ -66,6 +67,7 @@ export interface DocumentSnapshot extends ts.IScriptSnapshot, DocumentMapper {
  * Options that apply to svelte files.
  */
 export interface SvelteSnapshotOptions {
+    parse: typeof import('svelte/compiler').parse | undefined;
     transformOnTemplateError: boolean;
     typingsNamespace: string;
 }
@@ -196,6 +198,7 @@ function preprocessSvelteFile(document: Document, options: SvelteSnapshotOptions
 
     try {
         const tsx = svelte2tsx(text, {
+            parse: options.parse,
             filename: document.getFilePath() ?? undefined,
             isTsFile: scriptKind === ts.ScriptKind.TS,
             mode: 'ts',

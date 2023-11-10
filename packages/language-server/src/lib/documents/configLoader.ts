@@ -1,5 +1,7 @@
 import { Logger } from '../../logger';
+// @ts-ignore
 import { CompileOptions } from 'svelte/types/compiler/interfaces';
+// @ts-ignore
 import { PreprocessorGroup } from 'svelte/types/compiler/preprocess';
 import { importSveltePreprocess } from '../../importPackage';
 import _glob from 'fast-glob';

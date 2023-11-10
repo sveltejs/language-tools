@@ -139,6 +139,7 @@ describe('createSvelteModuleLoader', () => {
         };
         const { resolveStub, svelteSys, moduleResolver, compilerOptions, getSvelteSnapshotStub } =
             setup(resolvedModule);
+        resolveStub.onFirstCall().returns({ resolvedModule: undefined });
         const result = moduleResolver.resolveModuleNames(
             ['./svelte.svelte'],
             'C:/somerepo/somefile.svelte',
@@ -173,6 +174,7 @@ describe('createSvelteModuleLoader', () => {
         };
         const { resolveStub, svelteSys, moduleResolver, compilerOptions, getSvelteSnapshotStub } =
             setup(resolvedModule);
+        resolveStub.onFirstCall().returns({ resolvedModule: undefined });
         const result = moduleResolver.resolveModuleNames(
             ['/@/svelte.svelte'],
             'C:/somerepo/somefile.svelte',

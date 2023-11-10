@@ -1,3 +1,4 @@
+// @ts-ignore
 import { Warning } from 'svelte/types/compiler/interfaces';
 import { Diagnostic, DiagnosticSeverity, Position, Range } from 'vscode-languageserver';
 import {

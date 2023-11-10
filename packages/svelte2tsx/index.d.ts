@@ -75,6 +75,10 @@ export function svelte2tsx(
          * see https://svelte.dev/docs#svelte_compile for more info
          */
         accessors?: boolean
+        /**
+         * The Svelte parser to use. Defaults to the one bundled with `svelte2tsx`.
+         */
+        parse?: typeof import('svelte/compiler').parse;
     }
 ): SvelteCompiledToTsx
 

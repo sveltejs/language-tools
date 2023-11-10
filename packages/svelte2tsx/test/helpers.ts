@@ -221,6 +221,8 @@ const enum TestError {
 
 export function test_samples(dir: string, transform: TransformSampleFn, js: 'js' | 'ts') {
     for (const sample of each_sample(dir)) {
+        if (sample.name.endsWith('.skip')) continue;
+
         const svelteFile = sample.find_file('*.svelte');
         const config = {
             filename: svelteFile,

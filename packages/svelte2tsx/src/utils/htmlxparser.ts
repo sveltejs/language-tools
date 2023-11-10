@@ -1,4 +1,3 @@
-import { parse } from 'svelte/compiler';
 import { Node } from 'estree-walker';
 
 function parseAttributes(str: string, start: number) {
@@ -106,14 +105,18 @@ function blankVerbatimContent(htmlx: string, verbatimElements: Node[]) {
     return output;
 }
 
-export function parseHtmlx(htmlx: string, options?: { emitOnTemplateError?: boolean }) {
+export function parseHtmlx(
+    htmlx: string,
+    parse: typeof import('svelte/compiler').parse,
+    options: { emitOnTemplateError?: boolean }
+) {
     //Svelte tries to parse style and script tags which doesn't play well with typescript, so we blank them out.
     //HTMLx spec says they should just be retained after processing as is, so this is fine
     const verbatimElements = findVerbatimElements(htmlx);
     const deconstructed = blankVerbatimContent(htmlx, verbatimElements);
 
     //extract the html content parsed as htmlx this excludes our script and style tags
-    const parsingCode = options?.emitOnTemplateError
+    const parsingCode = options.emitOnTemplateError
         ? blankPossiblyErrorOperatorOrPropertyAccess(deconstructed)
         : deconstructed;
     const htmlxAst = parse(parsingCode).html;

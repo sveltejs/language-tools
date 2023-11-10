@@ -4,6 +4,7 @@ import TemplateScope from './TemplateScope';
 import { SlotHandler } from './slot';
 import { isIdentifier, isDestructuringPatterns } from '../../utils/svelteAst';
 import { extract_identifiers as extractIdentifiers } from 'periscopic';
+// @ts-ignore
 import { Directive } from 'svelte/types/compiler/interfaces';
 
 export function handleScopeAndResolveForSlot({

@@ -21,9 +21,17 @@ interface ExportedName {
 
 export class ExportedNames {
     /**
-     * Uses the $$Props type
+     * Uses the `$$Props` type
      */
     public uses$$Props = false;
+    /**
+     * The `$props()` rune's type info as a string, if it exists.
+     * If using TS, this returns the generic string, if using JS, returns the `@type {..}` string.
+     */
+    private $props = {
+        comment: '',
+        generic: ''
+    };
     private exports = new Map<string, ExportedName>();
     private possibleExports = new Map<
         string,
@@ -72,6 +80,17 @@ export class ExportedNames {
                 node.declarationList,
                 this.addPossibleExport.bind(this)
             );
+            for (const declaration of node.declarationList.declarations) {
+                if (
+                    declaration.initializer !== undefined &&
+                    ts.isCallExpression(declaration.initializer) &&
+                    declaration.initializer.expression.getText() === '$props'
+                ) {
+                    // @ts-expect-error TS is too stupid to narrow this properly
+                    this.handle$propsRune(declaration);
+                    break;
+                }
+            }
         }
     }
 
@@ -102,6 +121,30 @@ export class ExportedNames {
             }
             //we can remove entire statement
             this.removeExport(node.getStart(), node.end);
+        }
+    }
+
+    private handle$propsRune(
+        node: ts.VariableDeclaration & { initializer: ts.CallExpression }
+    ): void {
+        if (node.initializer.typeArguments?.length > 0) {
+            this.$props.generic = node.initializer.typeArguments[0].getText();
+        } else {
+            const nodeText = node.getFullText();
+            let comments = ts
+                .getLeadingCommentRanges(nodeText, 0)
+                ?.map((c) => nodeText.substring(c.pos, c.end))
+                .find((c) => c.includes('@type'));
+            if (!comments) {
+                const parentText = node.parent.getFullText();
+                comments = ts
+                    .getLeadingCommentRanges(parentText, node.parent.pos)
+                    ?.map((c) => parentText.substring(c.pos, c.end))
+                    .find((c) => c.includes('@type'));
+            }
+
+            // We don't bother extracting the type, we just use the comment as-is
+            this.$props.comment = comments || '';
         }
     }
 
@@ -385,6 +428,23 @@ export class ExportedNames {
      */
     createPropsStr(isTsFile: boolean, uses$$propsOr$$restProps: boolean): string {
         const names = Array.from(this.exports.entries());
+
+        if (this.$props.generic) {
+            const others = names.filter(([, { isLet }]) => !isLet);
+            return (
+                '{} as any as ' +
+                this.$props.generic +
+                (others.length
+                    ? ' & { ' + this.createReturnElementsType(others).join(',') + ' }'
+                    : '')
+            );
+        }
+
+        if (this.$props.comment) {
+            // TODO: createReturnElements would need to be incorporated here, but don't bother for now.
+            // In the long run it's probably better to have them on a different object anyway.
+            return this.$props.comment + '({})';
+        }
 
         if (this.uses$$Props) {
             const lets = names.filter(([, { isLet }]) => isLet);

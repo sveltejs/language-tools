@@ -109,10 +109,13 @@ const tagPossibilities: Array<{ tag: SvelteTag | ':else'; values: string[] }> = 
     { tag: 'await' as const, values: ['#await', '/await', ':then', ':catch'] },
     // key
     { tag: 'key' as const, values: ['#key', '/key'] },
+    // snippet
+    { tag: 'snippet' as const, values: ['#snippet', '/snippet'] },
     // @
     { tag: 'html' as const, values: ['@html'] },
     { tag: 'debug' as const, values: ['@debug'] },
     { tag: 'const' as const, values: ['@const'] },
+    { tag: 'render' as const, values: ['@render'] },
     // this tag has multiple possibilities
     { tag: ':else' as const, values: [':else'] }
 ];
