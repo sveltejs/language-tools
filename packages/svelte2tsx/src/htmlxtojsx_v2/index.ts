@@ -236,13 +236,14 @@ export function convertHtmlxToJsx(
  */
 export function htmlx2jsx(
     htmlx: string,
+    parse: typeof import('svelte/compiler').parse,
     options?: {
         emitOnTemplateError?: boolean;
         preserveAttributeCase: boolean;
         typingsNamespace: string;
     }
 ) {
-    const ast = parseHtmlx(htmlx, { ...options }).htmlxAst;
+    const ast = parseHtmlx(htmlx, parse, { ...options }).htmlxAst;
     const str = new MagicString(htmlx);
 
     convertHtmlxToJsx(str, ast, null, null, options);

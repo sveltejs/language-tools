@@ -1,7 +1,7 @@
 import { basename, dirname, join, resolve } from 'path';
 import ts from 'typescript';
 import { TextDocumentContentChangeEvent } from 'vscode-languageserver-protocol';
-import { getPackageInfo } from '../../importPackage';
+import { getPackageInfo, importSvelte } from '../../importPackage';
 import { Document } from '../../lib/documents';
 import { configLoader } from '../../lib/documents/configLoader';
 import { FileMap, FileSet } from '../../lib/documents/fileCollection';
@@ -244,6 +244,12 @@ async function createLanguageService(
         svelteTsPath = __dirname;
     }
     const sveltePackageInfo = getPackageInfo('svelte', tsconfigPath || workspacePath);
+    // Svelte 5 has new features, but we don't want to add the new compiler into language-tools. In the future it's probably
+    // best to shift more and more of this into user's node_modules for better handling of multiple Svelte versions.
+    const svelteCompiler =
+        sveltePackageInfo.version.major >= 5
+            ? importSvelte(tsconfigPath || workspacePath)
+            : undefined;
 
     const isSvelte3 = sveltePackageInfo.version.major === 3;
     const svelteHtmlDeclaration = isSvelte3
@@ -291,6 +297,7 @@ async function createLanguageService(
 
     let languageService = ts.createLanguageService(host);
     const transformationConfig: SvelteSnapshotOptions = {
+        parse: svelteCompiler?.parse,
         transformOnTemplateError: docContext.transformOnTemplateError,
         typingsNamespace: raw?.svelteOptions?.namespace || 'svelteHTML'
     };
