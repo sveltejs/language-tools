@@ -45,7 +45,7 @@ async function tryGetDiagnostics(
 
     try {
         const res = await svelteDoc.getCompiled();
-        return (((res.stats as any).warnings || res.warnings || []) as Warning[])
+        return (((res.stats as any)?.warnings || res.warnings || []) as Warning[])
             .filter((warning) => settings[warning.code] !== 'ignore')
             .map((warning) => {
                 const start = warning.start || { line: 1, column: 0 };
