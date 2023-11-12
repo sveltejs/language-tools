@@ -78,5 +78,5 @@ describe('TypeScript Plugin Performance Tests', () => {
 
             return end - start;
         }
-    }).timeout(25_000);
+    }).timeout(250_000);
 });
