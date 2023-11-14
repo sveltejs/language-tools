@@ -111,14 +111,23 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
     // Add --experimental-modules flag for people using node 12 < version < 12.17
     // Remove this in mid 2022 and bump vs code minimum required version to 1.55
     const runExecArgv: string[] = ['--experimental-modules'];
-    let port = runtimeConfig.get<number>('port') ?? -1;
+
+    const runtimeArgs = runtimeConfig.get<string[]>('runtime-args');
+    if (runtimeArgs !== undefined) {
+        runExecArgv.push(...runtimeArgs);
+    }
+
+    const debugArgs = ['--nolazy'];
+
+    const port = runtimeConfig.get<number>('port') ?? -1;
     if (port < 0) {
-        port = 6009;
+        debugArgs.push('--inspect=6009');
     } else {
         console.log('setting port to', port);
         runExecArgv.push(`--inspect=${port}`);
     }
-    const debugOptions = { execArgv: ['--nolazy', '--experimental-modules', `--inspect=${port}`] };
+
+    debugArgs.push(...runExecArgv);
 
     const serverOptions: ServerOptions = {
         run: {
@@ -126,7 +135,11 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
             transport: TransportKind.ipc,
             options: { execArgv: runExecArgv }
         },
-        debug: { module: serverModule, transport: TransportKind.ipc, options: debugOptions }
+        debug: {
+            module: serverModule,
+            transport: TransportKind.ipc,
+            options: { execArgv: debugArgs }
+        }
     };
 
     const serverRuntime = runtimeConfig.get<string>('runtime');
