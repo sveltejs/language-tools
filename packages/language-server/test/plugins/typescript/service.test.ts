@@ -185,4 +185,33 @@ describe('service', () => {
             );
         }
     });
+
+    it('can open client file that do not exist in fs', async () => {
+        const dirPath = getRandomVirtualDirPath(testDir);
+        const { virtualSystem, lsDocumentContext, rootUris } = setup();
+
+        virtualSystem.writeFile(
+            path.join(dirPath, 'tsconfig.json'),
+            JSON.stringify({
+                compilerOptions: <ts.CompilerOptions>{
+                    checkJs: true,
+                    strict: true
+                }
+            })
+        );
+
+        const ls = await getService(
+            path.join(dirPath, 'random.svelte'),
+            rootUris,
+            lsDocumentContext
+        );
+
+        const document = new Document(pathToUrl(path.join(dirPath, 'random.ts')), '');
+        document.openedByClient = true;
+        ls.updateSnapshot(document);
+
+        assert.doesNotThrow(() => {
+            ls.getService().getSemanticDiagnostics(document.getFilePath()!);
+        });
+    });
 });
