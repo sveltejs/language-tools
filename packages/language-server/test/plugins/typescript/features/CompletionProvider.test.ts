@@ -783,7 +783,7 @@ describe('CompletionProviderImpl', function () {
     async function openFileToBeImported(
         docManager: DocumentManager,
         completionProvider: CompletionsProviderImpl,
-        name = 'imported-file.svelte'
+        name = '../imported-file.svelte'
     ) {
         const filePath = join(testFilesDir, name);
         const hoverinfoDoc = docManager.openClientDocument(<any>{
