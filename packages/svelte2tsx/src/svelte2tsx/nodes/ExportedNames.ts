@@ -42,7 +42,12 @@ export class ExportedNames {
     private doneDeclarationTransformation = new Set<ts.VariableDeclarationList>();
     private getters = new Set<string>();
 
-    constructor(private str: MagicString, private astOffset: number, private basename: string) {}
+    constructor(
+        private str: MagicString,
+        private astOffset: number,
+        private basename: string,
+        private isTsFile: boolean
+    ) {}
 
     handleVariableStatement(node: ts.VariableStatement, parent: ts.Node): void {
         const exportModifier = findExportKeyword(node);
@@ -125,26 +130,45 @@ export class ExportedNames {
     }
 
     private handle$propsRune(
-        node: ts.VariableDeclaration & { initializer: ts.CallExpression }
+        node: ts.VariableDeclaration & {
+            initializer: ts.CallExpression & { expression: ts.Identifier };
+        }
     ): void {
         if (node.initializer.typeArguments?.length > 0) {
             this.$props.generic = node.initializer.typeArguments[0].getText();
         } else {
-            const nodeText = node.getFullText();
+            const text = node.getSourceFile().getFullText();
             let comments = ts
-                .getLeadingCommentRanges(nodeText, 0)
-                ?.map((c) => nodeText.substring(c.pos, c.end))
+                .getLeadingCommentRanges(text, node.pos)
+                ?.map((c) => text.substring(c.pos, c.end))
                 .find((c) => c.includes('@type'));
             if (!comments) {
-                const parentText = node.parent.getFullText();
                 comments = ts
-                    .getLeadingCommentRanges(parentText, node.parent.pos)
-                    ?.map((c) => parentText.substring(c.pos, c.end))
+                    .getLeadingCommentRanges(text, node.parent.pos)
+                    ?.map((c) => text.substring(c.pos, c.end))
                     .find((c) => c.includes('@type'));
             }
 
             // We don't bother extracting the type, we just use the comment as-is
             this.$props.comment = comments || '';
+
+            if (!comments && internalHelpers.isKitRouteFile(this.basename)) {
+                const kitType = `{ data: import('./$types.js').${
+                    this.basename.includes('layout') ? 'LayoutData' : 'PageData'
+                }, form: import('./$types.js').ActionData }`;
+
+                if (this.isTsFile) {
+                    this.$props.generic = kitType;
+                    preprendStr(
+                        this.str,
+                        node.initializer.expression.end + this.astOffset,
+                        surroundWithIgnoreComments(`<${kitType}>`)
+                    );
+                } else {
+                    this.$props.comment = `/** @type {${kitType}} */`;
+                    preprendStr(this.str, node.pos + this.astOffset, this.$props.comment);
+                }
+            }
         }
     }
 
@@ -426,7 +450,7 @@ export class ExportedNames {
      * @param isTsFile Whether this is a TypeScript file or not.
      * @param uses$$propsOr$$restProps whether the file references the $$props or $$restProps variable
      */
-    createPropsStr(isTsFile: boolean, uses$$propsOr$$restProps: boolean): string {
+    createPropsStr(uses$$propsOr$$restProps: boolean): string {
         const names = Array.from(this.exports.entries());
 
         if (this.$props.generic) {
@@ -470,13 +494,13 @@ export class ExportedNames {
 
         if (names.length === 0 && !uses$$propsOr$$restProps) {
             // Necessary, because {} roughly equals to any
-            return isTsFile
+            return this.isTsFile
                 ? '{} as Record<string, never>'
                 : '/** @type {Record<string, never>} */ ({})';
         }
 
         const dontAddTypeDef =
-            !isTsFile || names.every(([_, value]) => !value.type && value.required);
+            !this.isTsFile || names.every(([_, value]) => !value.type && value.required);
         const returnElements = this.createReturnElements(names, dontAddTypeDef);
         if (dontAddTypeDef) {
             // Only `typeof` exports -> omit the `as {...}` completely.

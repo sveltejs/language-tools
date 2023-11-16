@@ -40,6 +40,7 @@ export function processInstanceScriptContent(
     implicitStoreValues: ImplicitStoreValues,
     mode: 'ts' | 'dts',
     hasModuleScript: boolean,
+    isTSFile: boolean,
     basename: string
 ): InstanceScriptProcessResult {
     const htmlx = str.original;
@@ -52,7 +53,7 @@ export function processInstanceScriptContent(
         ts.ScriptKind.TS
     );
     const astOffset = script.content.start;
-    const exportedNames = new ExportedNames(str, astOffset, basename);
+    const exportedNames = new ExportedNames(str, astOffset, basename, isTSFile);
     const generics = new Generics(str, astOffset, script);
     const interfacesAndTypes = new InterfacesAndTypes();
 

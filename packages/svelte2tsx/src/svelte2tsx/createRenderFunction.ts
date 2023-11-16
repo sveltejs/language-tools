@@ -10,7 +10,6 @@ export interface CreateRenderFunctionPara extends InstanceScriptProcessResult {
     scriptDestination: number;
     slots: Map<string, Map<string, string>>;
     events: ComponentEvents;
-    isTsFile: boolean;
     uses$$SlotsInterface: boolean;
     mode?: 'ts' | 'dts';
 }
@@ -22,7 +21,6 @@ export function createRenderFunction({
     slots,
     events,
     exportedNames,
-    isTsFile,
     uses$$props,
     uses$$restProps,
     uses$$slots,
@@ -115,10 +113,7 @@ export function createRenderFunction({
           '}';
 
     const returnString =
-        `\nreturn { props: ${exportedNames.createPropsStr(
-            isTsFile,
-            uses$$props || uses$$restProps
-        )}` +
+        `\nreturn { props: ${exportedNames.createPropsStr(uses$$props || uses$$restProps)}` +
         `, slots: ${slotsAsDef}` +
         `, events: ${events.toDefString()} }}`;
 
