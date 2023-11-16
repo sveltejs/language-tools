@@ -31,7 +31,11 @@ function parseAttributes(str: string, start: number) {
 }
 
 function extractTag(htmlx: string, tag: 'script' | 'style') {
-    const exp = new RegExp(`(<!--[^]*?-->)|(<${tag}([\\S\\s]*?)>)([\\S\\s]*?)<\\/${tag}>`, 'g');
+    const exp = new RegExp(
+        // Regex ensures that attributes with > characters in them still result in the content being matched correctly
+        `(<!--[^]*?-->)|(<${tag}((?:\\s+[^=>]+=(?:"[^"]*"|'[^']*'|[^>\\s]))*\\s*[^>]*?)>)([\\S\\s]*?)<\\/${tag}>`,
+        'g'
+    );
     const matches: Node[] = [];
 
     let match: RegExpExecArray | null = null;

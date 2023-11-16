@@ -160,6 +160,25 @@ describe('document/utils', () => {
             });
         });
 
+        it('extracts script tag with attribute with > in it', () => {
+            const text = `
+                <script lang="ts" generics="T extends Record<string, any>">content</script>
+                <p>bla</p>
+            `;
+            assert.deepStrictEqual(extractScriptTags(text)?.script, {
+                content: 'content',
+                attributes: {
+                    generics: 'T extends Record<string, any>',
+                    lang: 'ts'
+                },
+                start: 76,
+                end: 83,
+                startPos: Position.create(1, 75),
+                endPos: Position.create(1, 82),
+                container: { start: 17, end: 92 }
+            });
+        });
+
         it('extracts top level script tag only', () => {
             const text = `
                 {#if name}
