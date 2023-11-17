@@ -33,12 +33,12 @@ describe('TypeScript Plugin Performance Tests', () => {
         return { plugin, document, append, prepend };
     }
 
-    it('should be fast enough', async function() {
-        const { document, plugin, append, prepend } = setup('performance.svelte');
-
+    it('should be fast enough', async function () {
         // allow to set a higher timeout for slow machines from cli flag
         const performanceTimeout = Math.max(this.timeout(), 25_000);
         this.timeout(performanceTimeout);
+
+        const { document, plugin, append, prepend } = setup('performance.svelte');
 
         const benchmarkElapse = Math.ceil(await benchmark());
         // it usually takes around 5-6 times of the benchmark result
