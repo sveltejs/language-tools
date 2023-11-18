@@ -1,5 +1,5 @@
 import ts from 'typescript';
-import { flatten, isNotNullOrUndefined } from '../../utils';
+import { isNotNullOrUndefined } from '../../utils';
 import { findContainingNode } from './features/utils';
 
 export type ComponentPartInfo = Array<{ name: string; type: string; doc?: string }>;
@@ -8,7 +8,6 @@ export interface ComponentInfoProvider {
     getEvents(): ComponentPartInfo;
     getSlotLets(slot?: string): ComponentPartInfo;
     getProps(): ComponentPartInfo;
-    getProp(propName: string): ts.CompletionEntry[];
 }
 
 export class JsOrTsComponentInfoProvider implements ComponentInfoProvider {
@@ -52,61 +51,6 @@ export class JsOrTsComponentInfoProvider implements ComponentInfoProvider {
         }
 
         return this.mapPropertiesOfType(props);
-    }
-
-    getProp(propName: string): ts.CompletionEntry[] {
-        const props = this.getType('$$prop_def');
-        if (!props) {
-            return [];
-        }
-
-        const prop = props.getProperties().find((prop) => prop.name === propName);
-        if (!prop?.valueDeclaration) {
-            return [];
-        }
-
-        const propDef = this.typeChecker.getTypeOfSymbolAtLocation(prop, prop.valueDeclaration);
-
-        if (!propDef.isUnion()) {
-            return [];
-        }
-
-        const types = flatten(propDef.types.map((type) => this.getStringLiteralTypes(type)));
-
-        // adopted from https://github.com/microsoft/TypeScript/blob/0921eac6dc9eba0be6319dff10b85d60c90155ea/src/services/stringCompletions.ts#L61
-        return types.map((v) => ({
-            name: v.value,
-            kindModifiers: ts.ScriptElementKindModifier.none,
-            kind: ts.ScriptElementKind.string,
-            sortText: /**LocationPriority: */ '11'
-        }));
-    }
-
-    /**
-     * adopted from https://github.com/microsoft/TypeScript/blob/0921eac6dc9eba0be6319dff10b85d60c90155ea/src/services/stringCompletions.ts#L310
-     */
-    private getStringLiteralTypes(
-        type: ts.Type | undefined,
-        uniques = new Set<string>()
-    ): ts.StringLiteralType[] {
-        if (!type) {
-            return [];
-        }
-
-        type = type.isTypeParameter() ? type.getConstraint() || type : type;
-
-        if (type.isUnion()) {
-            return flatten(type.types.map((t) => this.getStringLiteralTypes(t, uniques)));
-        }
-
-        if (
-            type.isStringLiteral() &&
-            !(type.flags & ts.TypeFlags.EnumLiteral) &&
-            !uniques.has(type.value)
-        ) {
-            return [type];
-        }
-        return [];
     }
 
     private getType(classProperty: string) {

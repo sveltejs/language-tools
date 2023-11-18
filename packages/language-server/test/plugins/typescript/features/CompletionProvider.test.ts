@@ -1493,6 +1493,26 @@ describe('CompletionProviderImpl', function () {
         );
     });
 
+    it(`provide props completions for namespaced component`, async () => {
+        const namespacedComponentTestList: [Position, string][] = [
+            [Position.create(9, 26), 'namespace import after tag name'],
+            [Position.create(9, 35), 'namespace import before tag end'],
+            [Position.create(10, 27), 'object namespace after tag name'],
+            [Position.create(10, 36), 'object namespace before tag end']
+        ];
+
+        for (const [position, name] of namespacedComponentTestList) {
+            const { completionProvider, document } = setup('namespaced.svelte');
+
+            const completions = await completionProvider.getCompletions(document, position, {
+                triggerKind: CompletionTriggerKind.Invoked
+            });
+
+            const item = completions?.items.find((item) => item.label === 'hi2');
+            assert.ok(item, `expected to have completion for ${name}`);
+        }
+    });
+
     // Hacky, but it works. Needed due to testing both new and old transformation
     after(() => {
         __resetCache();
