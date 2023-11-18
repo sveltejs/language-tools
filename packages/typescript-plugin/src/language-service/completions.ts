@@ -131,6 +131,7 @@ export function decorateCompletions(
                 }
                 return {
                     ...entry,
+                    insertText: entry.insertText?.replace(componentPostfix, ''),
                     name: entry.name.slice(0, -componentPostfix.length)
                 };
             })
