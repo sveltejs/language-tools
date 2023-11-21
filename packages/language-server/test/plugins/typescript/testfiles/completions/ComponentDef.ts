@@ -33,3 +33,7 @@ export class ComponentDef2 extends SvelteComponentTyped<
       },
     {}
 > {}
+
+export class ComponentDef3 extends SvelteComponentTyped<
+    { hi: string, hi2: string }
+> {}

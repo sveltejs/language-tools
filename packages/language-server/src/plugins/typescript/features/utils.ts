@@ -44,11 +44,22 @@ export function getComponentAtPosition(
         return null;
     }
 
-    const generatedPosition = tsDoc.getGeneratedPosition(doc.positionAt(node.start + 1));
-    const def = lang.getDefinitionAtPosition(
-        tsDoc.filePath,
-        tsDoc.offsetAt(generatedPosition)
-    )?.[0];
+    const symbolPosWithinNode = node.tag?.includes('.') ? node.tag.lastIndexOf('.') + 1 : 0;
+
+    const generatedPosition = tsDoc.getGeneratedPosition(
+        doc.positionAt(node.start + symbolPosWithinNode + 1)
+    );
+
+    let def = lang.getDefinitionAtPosition(tsDoc.filePath, tsDoc.offsetAt(generatedPosition))?.[0];
+
+    while (def != null && def.kind !== ts.ScriptElementKind.classElement) {
+        const newDef = lang.getDefinitionAtPosition(tsDoc.filePath, def.textSpan.start)?.[0];
+        if (newDef?.fileName === def.fileName && newDef?.textSpan.start === def.textSpan.start) {
+            break;
+        }
+        def = newDef;
+    }
+
     if (!def) {
         return null;
     }

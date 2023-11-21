@@ -205,6 +205,32 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             return null;
         }
 
+        // one or two characters after start tag might be mapped to the component name
+        if (
+            svelteNode?.type === 'InlineComponent' &&
+            'name' in svelteNode &&
+            typeof svelteNode.name === 'string'
+        ) {
+            const name = svelteNode.name;
+            const nameEnd = svelteNode.start + 1 + name.length;
+            const isWhitespaceAfterStartTag =
+                document.getText().slice(nameEnd, originalOffset).trim() === '' &&
+                this.mightBeAtStartTagWhitespace(document, originalOffset);
+
+            if (isWhitespaceAfterStartTag) {
+                // We can be sure only to get completions for directives and props here
+                // so don't bother with the expensive global completions
+                return this.getCompletionListForDirectiveOrProps(
+                    attributeContext,
+                    componentInfo,
+                    document,
+                    wordRange,
+                    eventAndSlotLetCompletions,
+                    tsDoc
+                );
+            }
+        }
+
         const response = lang.getCompletionsAtPosition(
             filePath,
             offset,
@@ -236,28 +262,16 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         if (
             completions.length > 500 &&
             svelteNode?.type === 'InlineComponent' &&
-            ['  ', ' >', ' /'].includes(
-                document.getText().substring(originalOffset - 1, originalOffset + 1)
-            )
+            this.mightBeAtStartTagWhitespace(document, originalOffset)
         ) {
             // Very likely false global completions inside component start tag -> narrow
-            const props =
-                (!attributeContext?.inValue &&
-                    componentInfo
-                        ?.getProps()
-                        .map((entry) =>
-                            this.componentInfoToCompletionEntry(
-                                entry,
-                                '',
-                                CompletionItemKind.Field,
-                                document,
-                                wordRange
-                            )
-                        )) ||
-                [];
-            return CompletionList.create(
-                [...eventAndSlotLetCompletions, ...props],
-                !!tsDoc.parserError
+            return this.getCompletionListForDirectiveOrProps(
+                attributeContext,
+                componentInfo,
+                document,
+                wordRange,
+                eventAndSlotLetCompletions,
+                tsDoc
             );
         }
 
@@ -369,6 +383,12 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         return completionList;
     }
 
+    private mightBeAtStartTagWhitespace(document: Document, originalOffset: number) {
+        return ['  ', ' >', ' /'].includes(
+            document.getText().substring(originalOffset - 1, originalOffset + 1)
+        );
+    }
+
     private canReuseLastCompletion(
         lastCompletion: LastCompletion | undefined,
         triggerKind: number | undefined,
@@ -461,6 +481,34 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
                     ? TextEdit.replace(toRange(doc.getText(), start, end), name)
                     : undefined
         };
+    }
+
+    private getCompletionListForDirectiveOrProps(
+        attributeContext: AttributeContext | null,
+        componentInfo: ComponentInfoProvider | null,
+        document: Document,
+        wordRange: { start: number; end: number },
+        eventAndSlotLetCompletions: AppCompletionItem<CompletionEntryWithIdentifier>[],
+        tsDoc: SvelteDocumentSnapshot
+    ) {
+        const props =
+            (!attributeContext?.inValue &&
+                componentInfo
+                    ?.getProps()
+                    .map((entry) =>
+                        this.componentInfoToCompletionEntry(
+                            entry,
+                            '',
+                            CompletionItemKind.Field,
+                            document,
+                            wordRange
+                        )
+                    )) ||
+            [];
+        return CompletionList.create(
+            [...eventAndSlotLetCompletions, ...props],
+            !!tsDoc.parserError
+        );
     }
 
     private toCompletionItem(
