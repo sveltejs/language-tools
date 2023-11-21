@@ -109,7 +109,11 @@ export function handleAttribute(
      * lowercase the attribute name to make it adhere to our intrinsic elements definition
      */
     const transformAttributeCase = (name: string) => {
-        if (!preserveCase && !svgAttributes.find((x) => x == name)) {
+        if (
+            !preserveCase &&
+            !svgAttributes.find((x) => x == name) &&
+            !(element instanceof Element && element.tagName.includes('-'))
+        ) {
             return name.toLowerCase();
         } else {
             return name;
