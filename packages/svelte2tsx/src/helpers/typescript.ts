@@ -61,10 +61,10 @@ export function findExports(ts: _ts, source: ts.SourceFile, isTsFile: boolean) {
                     ? ((declaration.initializer.expression as ts.ParenthesizedExpression)
                           .expression as ts.FunctionExpression | ts.ArrowFunction)
                     : ts.isParenthesizedExpression(declaration.initializer)
-                    ? (declaration.initializer.expression as
-                          | ts.FunctionExpression
-                          | ts.ArrowFunction)
-                    : declaration.initializer;
+                      ? (declaration.initializer.expression as
+                            | ts.FunctionExpression
+                            | ts.ArrowFunction)
+                      : declaration.initializer;
                 exports.set(declaration.name.getText(), {
                     type: 'function',
                     node,

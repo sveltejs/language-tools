@@ -353,8 +353,8 @@ export function getFormatCodeBasis(formatCodeSetting: ts.FormatCodeSettings): Fo
     const baseIndent = convertTabsToSpaces
         ? ' '.repeat(baseIndentSize ?? 4)
         : baseIndentSize
-        ? '\t'
-        : '';
+          ? '\t'
+          : '';
     const indent = convertTabsToSpaces ? ' '.repeat(indentSize ?? 4) : baseIndentSize ? '\t' : '';
     const semi = formatCodeSetting.semicolons === 'remove' ? '' : ';';
     const newLine = formatCodeSetting.newLineCharacter ?? ts.sys.newLine;

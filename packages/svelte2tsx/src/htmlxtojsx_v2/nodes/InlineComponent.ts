@@ -51,7 +51,11 @@ export class InlineComponent {
         return this._name;
     }
 
-    constructor(private str: MagicString, private node: BaseNode, public parent?: any) {
+    constructor(
+        private str: MagicString,
+        private node: BaseNode,
+        public parent?: any
+    ) {
         if (parent) {
             parent.child = this;
         }

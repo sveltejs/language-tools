@@ -184,8 +184,8 @@ export function handleAttribute(
             const quote = !includesTemplateLiteralQuote
                 ? '`'
                 : ['"', "'"].includes(str.original[attrVal.start - 1])
-                ? str.original[attrVal.start - 1]
-                : '"';
+                  ? str.original[attrVal.start - 1]
+                  : '"';
 
             if (!needsNumberConversion) {
                 attributeValue.push(quote);

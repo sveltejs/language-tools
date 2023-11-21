@@ -704,9 +704,8 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         cancellationToken?: CancellationToken
     ): Promise<AppCompletionItem<CompletionEntryWithIdentifier>> {
         const { data: comp } = completionItem;
-        const { tsDoc, lang, userPreferences } = await this.lsAndTsDocResolver.getLSAndTSDoc(
-            document
-        );
+        const { tsDoc, lang, userPreferences } =
+            await this.lsAndTsDocResolver.getLSAndTSDoc(document);
 
         const filePath = tsDoc.filePath;
 
@@ -895,8 +894,8 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
                 start: isInTag(originalTriggerPosition, doc.scriptInfo)
                     ? snapshot.scriptInfo?.start || scriptTagInfo.start
                     : isInTag(originalTriggerPosition, doc.moduleScriptInfo)
-                    ? snapshot.moduleScriptInfo?.start || scriptTagInfo.start
-                    : scriptTagInfo.start,
+                      ? snapshot.moduleScriptInfo?.start || scriptTagInfo.start
+                      : scriptTagInfo.start,
                 length: span.length
             });
         }

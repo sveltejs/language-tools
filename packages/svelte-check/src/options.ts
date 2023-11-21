@@ -154,13 +154,16 @@ function getCompilerWarnings(opts: Record<string, any>) {
             .split(',')
             .map((s) => s.trim())
             .filter((s) => !!s)
-            .reduce((settings, setting) => {
-                const [name, val] = setting.split(':');
-                if (val === 'error' || val === 'ignore') {
-                    settings[name] = val;
-                }
-                return settings;
-            }, <Record<string, 'error' | 'ignore'>>{});
+            .reduce(
+                (settings, setting) => {
+                    const [name, val] = setting.split(':');
+                    if (val === 'error' || val === 'ignore') {
+                        settings[name] = val;
+                    }
+                    return settings;
+                },
+                <Record<string, 'error' | 'ignore'>>{}
+            );
     }
 }
 

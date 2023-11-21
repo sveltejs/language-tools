@@ -474,8 +474,8 @@ export class LSConfigManager {
                         p.startsWith('*')
                             ? '/' + slashNormalized
                             : isRelative
-                            ? p
-                            : '/**/' + slashNormalized
+                              ? p
+                              : '/**/' + slashNormalized
                     );
                 }
             );

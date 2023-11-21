@@ -3,7 +3,11 @@ import { Position } from 'vscode-languageserver';
 import { SourceMapDocumentMapper } from '../../lib/documents';
 
 export class ConsumerDocumentMapper extends SourceMapDocumentMapper {
-    constructor(traceMap: TraceMap, sourceUri: string, private nrPrependesLines: number) {
+    constructor(
+        traceMap: TraceMap,
+        sourceUri: string,
+        private nrPrependesLines: number
+    ) {
         super(traceMap, sourceUri);
     }
 

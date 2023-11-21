@@ -81,9 +81,7 @@ export class SvelteDocument {
             } else {
                 this.transpiledDoc = await FallbackTranspiledSvelteDocument.create(
                     this.parent,
-                    (
-                        await this.config
-                    )?.preprocess
+                    (await this.config)?.preprocess
                 );
             }
         }
@@ -142,7 +140,10 @@ export class TranspiledSvelteDocument implements ITranspiledSvelteDocument {
         );
     }
 
-    constructor(private code: string, private mapper?: SourceMapDocumentMapper) {}
+    constructor(
+        private code: string,
+        private mapper?: SourceMapDocumentMapper
+    ) {}
 
     getOriginalPosition(generatedPosition: Position): Position {
         return this.mapper?.getOriginalPosition(generatedPosition) || generatedPosition;

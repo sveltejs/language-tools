@@ -58,7 +58,10 @@ export interface DocumentMapper {
  * Does not map, returns positions as is.
  */
 export class IdentityMapper implements DocumentMapper {
-    constructor(private url: string, private parent?: DocumentMapper) {}
+    constructor(
+        private url: string,
+        private parent?: DocumentMapper
+    ) {}
 
     getOriginalPosition(generatedPosition: Position): Position {
         if (this.parent) {

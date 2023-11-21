@@ -53,7 +53,10 @@ export class Sample {
     private skipped = false;
     private on_error?: ErrorFn;
 
-    constructor(dir: string, readonly name: string) {
+    constructor(
+        dir: string,
+        readonly name: string
+    ) {
         this.directory = path.resolve(dir, 'samples', name);
         this.folder = fs.readdirSync(this.directory);
     }

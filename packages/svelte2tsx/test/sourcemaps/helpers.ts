@@ -80,7 +80,10 @@ export function span(length: number, [head, body, tail]: string = '#==') {
 }
 
 class Underline {
-    constructor(readonly start: number, readonly text: string) {}
+    constructor(
+        readonly start: number,
+        readonly text: string
+    ) {}
 
     toString() {
         return ' '.repeat(this.start) + this.text;

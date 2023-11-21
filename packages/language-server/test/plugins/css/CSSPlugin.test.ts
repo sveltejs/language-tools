@@ -133,33 +133,32 @@ describe('CSS Plugin', () => {
             const completions = await plugin.getCompletions(document, Position.create(0, 22), {
                 triggerKind: CompletionTriggerKind.Invoked
             } as CompletionContext);
-            assert.deepStrictEqual(
-                completions?.items.find((item) => item.label === 'none'),
-                <CompletionItem>{
-                    insertTextFormat: undefined,
-                    kind: 12,
-                    label: 'none',
-                    documentation: {
-                        kind: 'markdown',
-                        value: 'The element and its descendants generates no boxes\\.'
-                    },
-                    sortText: ' ',
-                    tags: [],
-                    textEdit: {
-                        newText: 'none',
-                        range: {
-                            start: {
-                                line: 0,
-                                character: 21
-                            },
-                            end: {
-                                line: 0,
-                                character: 22
-                            }
+            assert.deepStrictEqual(completions?.items.find((item) => item.label === 'none'), <
+                CompletionItem
+            >{
+                insertTextFormat: undefined,
+                kind: 12,
+                label: 'none',
+                documentation: {
+                    kind: 'markdown',
+                    value: 'The element and its descendants generates no boxes\\.'
+                },
+                sortText: ' ',
+                tags: [],
+                textEdit: {
+                    newText: 'none',
+                    range: {
+                        start: {
+                            line: 0,
+                            character: 21
+                        },
+                        end: {
+                            line: 0,
+                            character: 22
                         }
                     }
                 }
-            );
+            });
         });
 
         it('not for style attribute with interpolation', async () => {
@@ -184,26 +183,25 @@ describe('CSS Plugin', () => {
                 }
             });
             const completions = await plugin.getCompletions(document, Position.create(0, 16));
-            assert.deepStrictEqual(
-                completions?.items.find((item) => item.label === 'foo.css'),
-                <CompletionItem>{
-                    label: 'foo.css',
-                    kind: 17,
-                    textEdit: {
-                        newText: 'foo.css',
-                        range: {
-                            end: {
-                                character: 18,
-                                line: 0
-                            },
-                            start: {
-                                character: 16,
-                                line: 0
-                            }
+            assert.deepStrictEqual(completions?.items.find((item) => item.label === 'foo.css'), <
+                CompletionItem
+            >{
+                label: 'foo.css',
+                kind: 17,
+                textEdit: {
+                    newText: 'foo.css',
+                    range: {
+                        end: {
+                            character: 18,
+                            line: 0
+                        },
+                        start: {
+                            character: 16,
+                            line: 0
                         }
                     }
                 }
-            );
+            });
         });
     });
 

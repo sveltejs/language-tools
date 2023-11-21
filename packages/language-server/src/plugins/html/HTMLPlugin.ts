@@ -61,7 +61,10 @@ export class HTMLPlugin
 
     private htmlTriggerCharacters = ['.', ':', '<', '"', '=', '/'];
 
-    constructor(docManager: DocumentManager, private configManager: LSConfigManager) {
+    constructor(
+        docManager: DocumentManager,
+        private configManager: LSConfigManager
+    ) {
         configManager.onChange(() =>
             this.lang.setDataProviders(false, this.getCustomDataProviders())
         );

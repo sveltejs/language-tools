@@ -14,7 +14,10 @@ const reservedNames = new Set(['$$props', '$$restProps', '$$slots']);
 export class Stores {
     possibleStores: PossibleStore[] = [];
 
-    constructor(private scope: ScopeStack, private isDeclaration: { value: boolean }) {}
+    constructor(
+        private scope: ScopeStack,
+        private isDeclaration: { value: boolean }
+    ) {}
 
     handleDirective(node: Node, str: MagicString): void {
         if (this.notAStore(node.name) || this.isDeclaration.value) {

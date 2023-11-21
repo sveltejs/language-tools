@@ -31,9 +31,8 @@ export class InlayHintProviderImpl implements InlayHintProvider {
         cancellationToken?: CancellationToken
     ): Promise<InlayHint[] | null> {
         // Don't sync yet so we can skip TypeScript's synchronizeHostData if inlay hints are disabled
-        const { userPreferences } = await this.lsAndTsDocResolver.getLsForSyntheticOperations(
-            document
-        );
+        const { userPreferences } =
+            await this.lsAndTsDocResolver.getLsForSyntheticOperations(document);
 
         if (
             cancellationToken?.isCancellationRequested ||

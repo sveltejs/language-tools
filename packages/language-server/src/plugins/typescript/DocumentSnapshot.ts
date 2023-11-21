@@ -448,7 +448,11 @@ export class JSOrTSDocumentSnapshot extends IdentityMapper implements DocumentSn
         return this.openedByClient;
     }
 
-    constructor(public version: number, public readonly filePath: string, private text: string) {
+    constructor(
+        public version: number,
+        public readonly filePath: string,
+        private text: string
+    ) {
         super(pathToUrl(filePath));
         this.adjustText();
     }
@@ -620,7 +624,12 @@ export class DtsDocumentSnapshot extends JSOrTSDocumentSnapshot implements Docum
     private traceMap: TraceMap | undefined;
     private mapperInitialized = false;
 
-    constructor(version: number, filePath: string, text: string, private tsSys: ts.System) {
+    constructor(
+        version: number,
+        filePath: string,
+        text: string,
+        private tsSys: ts.System
+    ) {
         super(version, filePath, text);
     }
 
@@ -644,8 +653,8 @@ export class DtsDocumentSnapshot extends JSOrTSDocumentSnapshot implements Docum
         const originalFilePath = URI.isUri(mapped.source)
             ? urlToPath(mapped.source)
             : this.filePath
-            ? resolve(dirname(this.filePath), mapped.source).toString()
-            : undefined;
+              ? resolve(dirname(this.filePath), mapped.source).toString()
+              : undefined;
 
         // ex: library publish with declarationMap but npmignore the original files
         if (!originalFilePath || !this.tsSys.fileExists(originalFilePath)) {

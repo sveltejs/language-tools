@@ -206,8 +206,8 @@ export class ExportedNames {
                                   ? 'LayoutData'
                                   : 'PageData'
                               : name === 'form'
-                              ? 'ActionData'
-                              : 'Snapshot'
+                                ? 'ActionData'
+                                : 'Snapshot'
                       }`
                     : '';
             const nameEnd = identifier.end + this.astOffset;
