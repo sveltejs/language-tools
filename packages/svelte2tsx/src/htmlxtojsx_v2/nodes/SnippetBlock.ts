@@ -2,6 +2,7 @@ import MagicString from 'magic-string';
 import { BaseNode } from '../../interfaces';
 import { transform, TransformationArray } from '../utils/node-utils';
 import { InlineComponent } from './InlineComponent';
+import { surroundWithIgnoreComments } from '../../utils/ignore';
 
 /**
  * Transform #snippet into a function
@@ -59,7 +60,16 @@ export function handleSnippet(
             ' = ('
         ];
         if (snippetBlock.context) {
-            transforms.push([snippetBlock.context.start, snippetBlock.context.end]);
+            const colonIdx = str.original.indexOf(':', snippetBlock.context.end);
+            if (colonIdx > startEnd && colonIdx !== -1) {
+                transforms.push(
+                    [snippetBlock.context.start, snippetBlock.context.end],
+                    // slap any on to it to silence "implicit any" errors; JSDoc people can't add types to snippets
+                    surroundWithIgnoreComments(': any')
+                );
+            } else {
+                transforms.push([snippetBlock.context.start, snippetBlock.context.end]);
+            }
         }
         transforms.push(') => {');
 

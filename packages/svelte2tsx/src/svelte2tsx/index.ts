@@ -357,7 +357,7 @@ export function svelte2tsx(
         : instanceScriptTarget;
     const implicitStoreValues = new ImplicitStoreValues(resolvedStores, renderFunctionStart);
     //move the instance script and process the content
-    let exportedNames = new ExportedNames(str, 0, basename);
+    let exportedNames = new ExportedNames(str, 0, basename, options?.isTsFile);
     let generics = new Generics(str, 0, { attributes: [] } as any);
     let uses$$SlotsInterface = false;
     if (scriptTag) {
@@ -372,6 +372,7 @@ export function svelte2tsx(
             implicitStoreValues,
             options.mode,
             /**hasModuleScripts */ !!moduleScriptTag,
+            options?.isTsFile,
             basename
         );
         uses$$props = uses$$props || res.uses$$props;
@@ -389,7 +390,6 @@ export function svelte2tsx(
         slots,
         events,
         exportedNames,
-        isTsFile: options?.isTsFile,
         uses$$props,
         uses$$restProps,
         uses$$slots,
