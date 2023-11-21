@@ -37,6 +37,8 @@ type TemplateProcessResult = {
     slots: Map<string, Map<string, string>>;
     scriptTag: Node;
     moduleScriptTag: Node;
+    /** Start/end positions of snippets that should be moved to the instance script */
+    rootSnippets: Array<[number, number]>;
     /** To be added later as a comment on the default class export */
     componentDocumentation: ComponentDocumentation;
     events: ComponentEvents;
@@ -269,7 +271,7 @@ function processSvelteTemplate(
         }
     };
 
-    convertHtmlxToJsx(str, htmlxAst, onHtmlxWalk, onHtmlxLeave, {
+    const rootSnippets = convertHtmlxToJsx(str, htmlxAst, onHtmlxWalk, onHtmlxLeave, {
         preserveAttributeCase: options?.namespace == 'foreign',
         typingsNamespace: options.typingsNamespace
     });
@@ -287,6 +289,7 @@ function processSvelteTemplate(
         htmlAst: htmlxAst,
         moduleScriptTag,
         scriptTag,
+        rootSnippets,
         slots: slotHandler.getSlotDef(),
         events: new ComponentEvents(
             eventHandler,
@@ -325,6 +328,7 @@ export function svelte2tsx(
         htmlAst,
         moduleScriptTag,
         scriptTag,
+        rootSnippets,
         slots,
         uses$$props,
         uses$$slots,
@@ -387,6 +391,7 @@ export function svelte2tsx(
         str,
         scriptTag,
         scriptDestination: instanceScriptTarget,
+        rootSnippets,
         slots,
         events,
         exportedNames,

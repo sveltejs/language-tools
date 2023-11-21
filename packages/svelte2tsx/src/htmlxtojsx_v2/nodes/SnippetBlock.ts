@@ -55,7 +55,7 @@ export function handleSnippet(
         element.addProp([[snippetBlock.expression.start, snippetBlock.expression.end]], transforms);
     } else {
         const transforms: TransformationArray = [
-            'const ',
+            'var ',
             [snippetBlock.expression.start, snippetBlock.expression.end],
             ' = ('
         ];

@@ -49,13 +49,14 @@ export function convertHtmlxToJsx(
     onWalk: Walker = null,
     onLeave: Walker = null,
     options: { preserveAttributeCase?: boolean; typingsNamespace?: string } = {}
-): void {
+) {
     const htmlx = str.original;
     options = { preserveAttributeCase: false, ...options };
     options.typingsNamespace = options.typingsNamespace || 'svelteHTML';
     htmlx;
     stripDoctype(str);
 
+    const rootSnippets: Array<[number, number]> = [];
     let element: Element | InlineComponent | undefined;
 
     walk(ast as any, {
@@ -86,6 +87,10 @@ export function convertHtmlxToJsx(
                                 ? element
                                 : undefined
                         );
+                        if (!element) {
+                            // root snippet -> move to instance script
+                            rootSnippets.push([node.start, node.end]);
+                        }
                         break;
                     case 'MustacheTag':
                         handleMustacheTag(str, node, parent);
@@ -229,6 +234,8 @@ export function convertHtmlxToJsx(
             }
         }
     });
+
+    return rootSnippets;
 }
 
 /**

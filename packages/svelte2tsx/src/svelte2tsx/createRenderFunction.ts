@@ -8,6 +8,7 @@ export interface CreateRenderFunctionPara extends InstanceScriptProcessResult {
     str: MagicString;
     scriptTag: Node;
     scriptDestination: number;
+    rootSnippets: Array<[number, number]>;
     slots: Map<string, Map<string, string>>;
     events: ComponentEvents;
     uses$$SlotsInterface: boolean;
@@ -18,6 +19,7 @@ export function createRenderFunction({
     str,
     scriptTag,
     scriptDestination,
+    rootSnippets,
     slots,
     events,
     exportedNames,
@@ -84,6 +86,9 @@ export function createRenderFunction({
         }
 
         const scriptEndTagStart = htmlx.lastIndexOf('<', scriptTag.end - 1);
+        for (const rootSnippet of rootSnippets) {
+            str.move(rootSnippet[0], rootSnippet[1], scriptEndTagStart);
+        }
         // wrap template with callback
         str.overwrite(scriptEndTagStart, scriptTag.end, `${slotsDeclaration};\nasync () => {`, {
             contentOnly: true

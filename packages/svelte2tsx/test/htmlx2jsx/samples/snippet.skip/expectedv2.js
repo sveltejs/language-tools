@@ -1,4 +1,4 @@
- const foo = (x/*Ωignore_startΩ*/: any/*Ωignore_endΩ*/) => {
+ var foo = (x/*Ωignore_startΩ*/: any/*Ωignore_endΩ*/) => {
 	 { svelteHTML.createElement("div", {}); x; }
 }
 
