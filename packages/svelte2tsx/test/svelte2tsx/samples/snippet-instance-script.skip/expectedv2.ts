@@ -3,8 +3,8 @@
 
     let foo = true;
     bar;
-  var bar = () => { foo;
-};
+  var bar/*Ωignore_startΩ*/: import('svelte').Snippet<any>/*Ωignore_endΩ*/ = () => { foo;
+return __sveltets_2_any(0)};
 async () => {
 
 };

@@ -16,7 +16,7 @@ try { const $$_value = await (foo as Promise<void>);{ const result: any = $$_val
 
 item as string;  
 
- const foo = (bar: string/*Ωignore_startΩ*/: any/*Ωignore_endΩ*/) => { }
+ var foo/*Ωignore_startΩ*/: import('svelte').Snippet<string>/*Ωignore_endΩ*/ = (bar: string) => { return __sveltets_2_any(0)}
 
 ;foo(bar as string);
 

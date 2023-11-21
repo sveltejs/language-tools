@@ -31,7 +31,8 @@ export function handleSnippet(
     element?: InlineComponent
 ): void {
     const endSnippet = str.original.lastIndexOf('{', snippetBlock.end - 1);
-    str.overwrite(endSnippet, snippetBlock.end, '}', {
+    // Return something to silence the "snippet type not assignable to return type void" error
+    str.overwrite(endSnippet, snippetBlock.end, 'return __sveltets_2_any(0)}', {
         contentOnly: true
     });
 
@@ -54,22 +55,23 @@ export function handleSnippet(
         transforms.push([startEnd, snippetBlock.end]);
         element.addProp([[snippetBlock.expression.start, snippetBlock.expression.end]], transforms);
     } else {
+        // slap any on to it to silence "implicit any" errors; JSDoc people can't add types to snippets
+        let typeAnnotation = surroundWithIgnoreComments(`: import('svelte').Snippet<any>`);
+        if (snippetBlock.context?.typeAnnotation) {
+            typeAnnotation = surroundWithIgnoreComments(
+                `: import('svelte').Snippet<${str.original.slice(
+                    snippetBlock.context.typeAnnotation.start,
+                    snippetBlock.context.typeAnnotation.end
+                )}>`
+            );
+        }
         const transforms: TransformationArray = [
             'var ',
             [snippetBlock.expression.start, snippetBlock.expression.end],
-            ' = ('
+            typeAnnotation + ' = ('
         ];
         if (snippetBlock.context) {
-            const colonIdx = str.original.indexOf(':', snippetBlock.context.end);
-            if (colonIdx > startEnd && colonIdx !== -1) {
-                transforms.push(
-                    [snippetBlock.context.start, snippetBlock.context.end],
-                    // slap any on to it to silence "implicit any" errors; JSDoc people can't add types to snippets
-                    surroundWithIgnoreComments(': any')
-                );
-            } else {
-                transforms.push([snippetBlock.context.start, snippetBlock.context.end]);
-            }
+            transforms.push([snippetBlock.context.start, snippetBlock.context.end]);
         }
         transforms.push(') => {');
 
