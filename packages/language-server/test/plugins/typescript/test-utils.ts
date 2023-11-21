@@ -255,7 +255,9 @@ export async function createJsonSnapshotFormatter(dir: string) {
 export function serviceWarmup(suite: Mocha.Suite, testDir: string, rootUri = pathToUrl(testDir)) {
     const defaultTimeout = suite.timeout();
 
-    suite.timeout(5_000);
+    // allow to set a higher timeout for slow machines from cli flag
+    const warmupTimeout = Math.max(defaultTimeout, 5_000);
+    suite.timeout(warmupTimeout);
     before(async () => {
         const start = Date.now();
         console.log('Warming up language service...');
