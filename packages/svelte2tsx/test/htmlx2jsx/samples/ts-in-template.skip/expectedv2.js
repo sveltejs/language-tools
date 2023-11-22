@@ -18,7 +18,7 @@ item as string;
 
  var foo/*Ωignore_startΩ*/: import('svelte').Snippet<string>/*Ωignore_endΩ*/ = (bar: string) => { return __sveltets_2_any(0)}
 
-;foo(bar as string);
+;__sveltets_2_ensureSnippet(foo(bar as string));
 
  { svelteHTML.createElement("button", { "onclick":(e: Event) => {e as any},});  }
  { const $$_tnenopmoC0C = __sveltets_2_ensureComponent(Component); new $$_tnenopmoC0C({ target: __sveltets_2_any(), props: {  "attr":attr as boolean,}});}
