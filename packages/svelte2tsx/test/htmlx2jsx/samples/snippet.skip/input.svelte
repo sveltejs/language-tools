@@ -11,3 +11,9 @@
 		<div>asd{x}</div>
 	{/snippet}
 </Component>
+
+<List data={[1, 2, 3]}>
+	{#snippet row(item)}
+		{item}
+	{/snippet}
+</List>

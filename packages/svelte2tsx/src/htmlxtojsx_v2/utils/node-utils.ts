@@ -82,9 +82,14 @@ export function transform(
     }
 
     let removeStart = start;
-    for (const transformation of [...moves].sort((t1, t2) => t1[0] - t2[0])) {
+    const sortedMoves = [...moves].sort((t1, t2) => t1[0] - t2[0]);
+    for (const transformation of sortedMoves) {
         if (removeStart < transformation[0]) {
-            if (deletePos !== moves.length && removeStart > deleteDest) {
+            if (
+                deletePos !== moves.length &&
+                removeStart > deleteDest &&
+                !(removeStart < end && transformation[0] >= end)
+            ) {
                 str.move(removeStart, transformation[0], end);
             }
             if (transformation[0] < end) {
@@ -98,7 +103,8 @@ export function transform(
     if (removeStart > end) {
         // Reset the end to the last transformation before the end if there were transformations after the end
         // so we still delete the correct range afterwards
-        removeStart = moves.find((m) => m[1] < end)?.[1] ?? end;
+        let idx = sortedMoves.findIndex((m) => m[0] > end) - 1;
+        removeStart = sortedMoves[idx]?.[1] ?? end;
     }
 
     if (removeStart < end) {

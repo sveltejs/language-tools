@@ -11,3 +11,9 @@ return __sveltets_2_any(0)}
 	 { svelteHTML.createElement("div", {});asd; }
 	
  Component}
+
+ { const $$_tsiL0C = __sveltets_2_ensureComponent(List); new $$_tsiL0C({ target: __sveltets_2_any(), props: { "data":[1, 2, 3],row:(item) => {
+		item;
+	return __sveltets_2_any(0)},}});
+	
+ List}
