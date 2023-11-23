@@ -153,9 +153,9 @@ export class ExportedNames {
             this.$props.comment = comments || '';
 
             if (!comments && internalHelpers.isKitRouteFile(this.basename)) {
-                const kitType = `{ data: import('./$types.js').${
-                    this.basename.includes('layout') ? 'LayoutData' : 'PageData'
-                }, form: import('./$types.js').ActionData }`;
+                const kitType = this.basename.includes('layout')
+                    ? `{ data: import('./$types.js').LayoutData }, form: import('./$types.js').ActionData, children: import('svelte').Snippet }`
+                    : `{ data: import('./$types.js').PageData }, form: import('./$types.js').ActionData }`;
 
                 if (this.isTsFile) {
                     this.$props.generic = kitType;
