@@ -55,26 +55,27 @@ export function handleSnippet(
         transforms.push([startEnd, snippetBlock.end]);
         element.addProp([[snippetBlock.expression.start, snippetBlock.expression.end]], transforms);
     } else {
-        // slap any on to it to silence "implicit any" errors; JSDoc people can't add types to snippets
-        let typeAnnotation = surroundWithIgnoreComments(`: import('svelte').Snippet<any>`);
-        if (snippetBlock.context?.typeAnnotation) {
-            typeAnnotation = surroundWithIgnoreComments(
-                `: import('svelte').Snippet<${str.original.slice(
-                    snippetBlock.context.typeAnnotation.start,
-                    snippetBlock.context.typeAnnotation.end
-                )}>`
-            );
-        }
+        const generic = snippetBlock.context
+            ? snippetBlock.context.typeAnnotation
+                ? `<${str.original.slice(
+                      snippetBlock.context.typeAnnotation.start,
+                      snippetBlock.context.typeAnnotation.end
+                  )}>`
+                : // slap any on to it to silence "implicit any" errors; JSDoc people can't add types to snippets
+                  '<any>'
+            : '';
+        const typeAnnotation = surroundWithIgnoreComments(`: import('svelte').Snippet${generic}`);
         const transforms: TransformationArray = [
             'var ',
             [snippetBlock.expression.start, snippetBlock.expression.end],
             typeAnnotation + ' = ('
         ];
+
         if (snippetBlock.context) {
             transforms.push([snippetBlock.context.start, snippetBlock.context.end]);
         }
-        transforms.push(') => {');
 
+        transforms.push(') => {');
         transform(str, snippetBlock.start, startEnd, startEnd, transforms);
     }
 }
