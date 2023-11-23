@@ -238,7 +238,7 @@ describe('Svelte Plugin', () => {
             );
         });
 
-        it('should load the user prettier version (version 3)', async () => {
+        it('should load the user prettier version (version 2)', async () => {
             function stubPrettier(config: any) {
                 const formatStub = sinon.stub().returns(Promise.resolve('formatted'));
 
@@ -246,7 +246,7 @@ describe('Svelte Plugin', () => {
                     .stub(importPackage, 'importPrettier')
                     .onFirstCall()
                     .returns(<any>{
-                        version: '3.0.0',
+                        version: '2.0.0',
                         resolveConfig: () => Promise.resolve(config),
                         getFileInfo: () => ({ ignored: false }),
                         format: formatStub,
@@ -275,7 +275,7 @@ describe('Svelte Plugin', () => {
                     .stub(importPackage, 'importPrettier')
                     .onFirstCall()
                     .returns(<any>{
-                        version: '3.0.0',
+                        version: '2.8.0',
                         resolveConfig: () => Promise.resolve(config),
                         getFileInfo: () => ({ ignored: false }),
                         format: () => {
@@ -285,7 +285,7 @@ describe('Svelte Plugin', () => {
                     })
                     .onSecondCall()
                     .returns(<any>{
-                        version: '2.8.0',
+                        version: '3.1.0',
                         resolveConfig: () => Promise.resolve(config),
                         getFileInfo: () => ({ ignored: false }),
                         format: formatStub,
@@ -308,7 +308,7 @@ describe('Svelte Plugin', () => {
                     .stub(importPackage, 'importPrettier')
                     .onFirstCall()
                     .returns(<any>{
-                        version: '3.0.0',
+                        version: '2.8.0',
                         resolveConfig: () => Promise.resolve(config),
                         getFileInfo: () => ({ ignored: false }),
                         format: () => {
@@ -318,7 +318,7 @@ describe('Svelte Plugin', () => {
                     })
                     .onSecondCall()
                     .returns(<any>{
-                        version: '2.8.0',
+                        version: '3.0.0',
                         resolveConfig: () => Promise.resolve(config),
                         getFileInfo: () => ({ ignored: false }),
                         format: formatStub,

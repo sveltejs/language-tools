@@ -103,7 +103,7 @@ export class SveltePlugin
             const config1 = await getConfig(prettier1);
             const resolvedPlugins1 = resolvePlugins(config1.plugins);
             const pluginLoaded = await hasSveltePluginLoaded(prettier1, resolvedPlugins1);
-            if (Number(prettier1.version[0]) < 3 || pluginLoaded) {
+            if (Number(prettier1.version[0]) >= 3 || pluginLoaded) {
                 // plugin loaded, or referenced in user config as a plugin, or same version as our fallback version -> ok
                 return {
                     prettier: prettier1,
