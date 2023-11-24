@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       typescript:
-        specifier: ^5.2.2
-        version: 5.2.2
+        specifier: ^5.3.2
+        version: 5.3.2
     devDependencies:
       cross-env:
         specifier: ^7.0.2
@@ -20,7 +20,7 @@ importers:
         version: 3.1.0
       ts-node:
         specifier: ^10.0.0
-        version: 10.9.1(@types/node@16.18.32)(typescript@5.2.2)
+        version: 10.9.1(@types/node@16.18.32)(typescript@5.3.2)
 
   packages/language-server:
     dependencies:
@@ -28,8 +28,8 @@ importers:
         specifier: ^0.3.17
         version: 0.3.18
       '@vscode/emmet-helper':
-        specifier: 2.8.4
-        version: 2.8.4
+        specifier: 2.9.2
+        version: 2.9.2
       chokidar:
         specifier: ^3.4.1
         version: 3.5.3
@@ -53,19 +53,19 @@ importers:
         version: 3.57.0
       svelte-preprocess:
         specifier: ~5.1.0
-        version: 5.1.0(svelte@3.57.0)(typescript@5.2.2)
+        version: 5.1.0(svelte@3.57.0)(typescript@5.3.2)
       svelte2tsx:
         specifier: workspace:~
         version: link:../svelte2tsx
       typescript:
-        specifier: ^5.2.2
-        version: 5.2.2
+        specifier: ^5.3.2
+        version: 5.3.2
       vscode-css-languageservice:
-        specifier: ~6.2.0
-        version: 6.2.5
+        specifier: ~6.2.10
+        version: 6.2.10
       vscode-html-languageservice:
-        specifier: ~5.0.0
-        version: 5.0.5
+        specifier: ~5.1.1
+        version: 5.1.1
       vscode-languageserver:
         specifier: 8.0.2
         version: 8.0.2
@@ -77,7 +77,7 @@ importers:
         version: 3.17.2
       vscode-uri:
         specifier: ~3.0.0
-        version: 3.0.7
+        version: 3.0.8
     devDependencies:
       '@types/estree':
         specifier: ^0.0.42
@@ -108,7 +108,7 @@ importers:
         version: 11.1.2
       ts-node:
         specifier: ^10.0.0
-        version: 10.9.1(@types/node@16.18.32)(typescript@5.2.2)
+        version: 10.9.1(@types/node@16.18.32)(typescript@5.3.2)
 
   packages/svelte-check:
     dependencies:
@@ -135,10 +135,10 @@ importers:
         version: 3.57.0
       svelte-preprocess:
         specifier: ^5.1.0
-        version: 5.1.0(svelte@3.57.0)(typescript@5.2.2)
+        version: 5.1.0(svelte@3.57.0)(typescript@5.3.2)
       typescript:
         specifier: ^5.0.3
-        version: 5.2.2
+        version: 5.3.2
     devDependencies:
       '@rollup/plugin-commonjs':
         specifier: ^24.0.0
@@ -154,7 +154,7 @@ importers:
         version: 5.0.2(rollup@3.7.5)
       '@rollup/plugin-typescript':
         specifier: ^10.0.0
-        version: 10.0.1(rollup@3.7.5)(tslib@2.5.2)(typescript@5.2.2)
+        version: 10.0.1(rollup@3.7.5)(tslib@2.5.2)(typescript@5.3.2)
       '@types/sade':
         specifier: ^1.7.2
         version: 1.7.4
@@ -184,7 +184,7 @@ importers:
         version: 3.17.2
       vscode-uri:
         specifier: ~3.0.0
-        version: 3.0.7
+        version: 3.0.8
 
   packages/svelte-vscode:
     dependencies:
@@ -220,8 +220,8 @@ importers:
         specifier: ^2.4.0
         version: 2.5.2
       typescript:
-        specifier: ^5.2.2
-        version: 5.2.2
+        specifier: ^5.3.2
+        version: 5.3.2
       vscode-tmgrammar-test:
         specifier: ^0.0.11
         version: 0.0.11
@@ -252,7 +252,7 @@ importers:
         version: 15.0.2(rollup@3.7.5)
       '@rollup/plugin-typescript':
         specifier: ^10.0.0
-        version: 10.0.1(rollup@3.7.5)(tslib@2.5.2)(typescript@5.2.2)
+        version: 10.0.1(rollup@3.7.5)(tslib@2.5.2)(typescript@5.3.2)
       '@types/estree':
         specifier: ^0.0.42
         version: 0.0.42
@@ -302,8 +302,8 @@ importers:
         specifier: ^2.4.0
         version: 2.5.2
       typescript:
-        specifier: ^5.2.2
-        version: 5.2.2
+        specifier: ^5.3.2
+        version: 5.3.2
 
   packages/typescript-plugin:
     dependencies:
@@ -318,8 +318,8 @@ importers:
         specifier: ^16.0.0
         version: 16.18.32
       typescript:
-        specifier: ^5.2.2
-        version: 5.2.2
+        specifier: ^5.3.2
+        version: 5.3.2
 
 packages:
 
@@ -455,7 +455,7 @@ packages:
       rollup: 3.7.5
     dev: true
 
-  /@rollup/plugin-typescript@10.0.1(rollup@3.7.5)(tslib@2.5.2)(typescript@5.2.2):
+  /@rollup/plugin-typescript@10.0.1(rollup@3.7.5)(tslib@2.5.2)(typescript@5.3.2):
     resolution: {integrity: sha512-wBykxRLlX7EzL8BmUqMqk5zpx2onnmRMSw/l9M1sVfkJvdwfxogZQVNUM9gVMJbjRLDR5H6U0OMOrlDGmIV45A==}
     engines: {node: '>=14.0.0'}
     peerDependencies:
@@ -472,7 +472,7 @@ packages:
       resolve: 1.22.2
       rollup: 3.7.5
       tslib: 2.5.2
-      typescript: 5.2.2
+      typescript: 5.3.2
     dev: true
 
   /@rollup/pluginutils@5.0.2(rollup@3.7.5):
@@ -638,19 +638,18 @@ packages:
     resolution: {integrity: sha512-sL/cEvJWAnClXw0wHk85/2L0G6Sj8UB0Ctc1TEMbKSsmpRosqhwj9gWgFRZSrBr2f9tiXISwNhCPmlfqUqyb9Q==}
     dev: true
 
-  /@vscode/emmet-helper@2.8.4:
-    resolution: {integrity: sha512-lUki5QLS47bz/U8IlG9VQ+1lfxMtxMZENmU5nu4Z71eOD5j9FK0SmYGL5NiVJg9WBWeAU0VxRADMY2Qpq7BfVg==}
+  /@vscode/emmet-helper@2.9.2:
+    resolution: {integrity: sha512-MaGuyW+fa13q3aYsluKqclmh62Hgp0BpKIqS66fCxfOaBcVQ1OnMQxRRgQUYnCkxFISAQlkJ0qWWPyXjro1Qrg==}
     dependencies:
       emmet: 2.4.4
       jsonc-parser: 2.3.1
-      vscode-languageserver-textdocument: 1.0.8
+      vscode-languageserver-textdocument: 1.0.11
       vscode-languageserver-types: 3.17.2
-      vscode-nls: 5.2.0
       vscode-uri: 2.1.2
     dev: false
 
-  /@vscode/l10n@0.0.13:
-    resolution: {integrity: sha512-A3uY356uOU9nGa+TQIT/i3ziWUgJjVMUrGGXSrtRiTwklyCFjGVWIOHoEIHbJpiyhDkJd9kvIWUOfXK1IkK8XQ==}
+  /@vscode/l10n@0.0.16:
+    resolution: {integrity: sha512-JT5CvrIYYCrmB+dCana8sUqJEcGB1ZDXNLMQ2+42bW995WmNoenijWMUdZfwmuQUTQcEVVIa2OecZzTYWUW9Cg==}
     dev: false
 
   /acorn-walk@8.2.0:
@@ -1821,7 +1820,7 @@ packages:
     engines: {node: '>= 0.4'}
     dev: true
 
-  /svelte-preprocess@5.1.0(svelte@3.57.0)(typescript@5.2.2):
+  /svelte-preprocess@5.1.0(svelte@3.57.0)(typescript@5.3.2):
     resolution: {integrity: sha512-EkErPiDzHAc0k2MF5m6vBNmRUh338h2myhinUw/xaqsLs7/ZvsgREiLGj03VrSzbY/TB5ZXgBOsKraFee5yceA==}
     engines: {node: '>= 14.10.0'}
     requiresBuild: true
@@ -1865,7 +1864,7 @@ packages:
       sorcery: 0.11.0
       strip-indent: 3.0.0
       svelte: 3.57.0
-      typescript: 5.2.2
+      typescript: 5.3.2
     dev: false
 
   /svelte@3.57.0:
@@ -1885,7 +1884,7 @@ packages:
     dependencies:
       is-number: 7.0.0
 
-  /ts-node@10.9.1(@types/node@16.18.32)(typescript@5.2.2):
+  /ts-node@10.9.1(@types/node@16.18.32)(typescript@5.3.2):
     resolution: {integrity: sha512-NtVysVPkxxrwFGUUxGYhfux8k78pQB3JqYBXlLRZgdGUqTO5wU/UyHop5p70iEbGhB7q5KmiZiU0Y3KlJrScEw==}
     hasBin: true
     peerDependencies:
@@ -1911,7 +1910,7 @@ packages:
       create-require: 1.1.1
       diff: 4.0.2
       make-error: 1.3.6
-      typescript: 5.2.2
+      typescript: 5.3.2
       v8-compile-cache-lib: 3.0.1
       yn: 3.1.1
     dev: true
@@ -1924,8 +1923,8 @@ packages:
     engines: {node: '>=4'}
     dev: true
 
-  /typescript@5.2.2:
-    resolution: {integrity: sha512-mI4WrpHsbCIcwT9cF4FZvr80QUeKvsUsUvKDoR+X/7XHQH98xYD8YHZg7ANtz2GtZt/CBq2QJ0thkGJMHfqc1w==}
+  /typescript@5.3.2:
+    resolution: {integrity: sha512-6l+RyNy7oAHDfxC4FzSJcz9vnjTKxrLpDG5M2Vu4SHRVNg6xzqZp6LYSR9zjqQTu8DU/f5xwxUdADOkbrIX2gQ==}
     engines: {node: '>=14.17'}
     hasBin: true
 
@@ -1951,22 +1950,22 @@ packages:
       unist-util-stringify-position: 3.0.3
     dev: true
 
-  /vscode-css-languageservice@6.2.5:
-    resolution: {integrity: sha512-/1oyBZK3jfx6A0cA46FCUpy6OlqEsMT47LUIldCIP1YMKRYezJ9No+aNj9IM0AqhRZ92DxZ1DmU5lJ+biuiacA==}
+  /vscode-css-languageservice@6.2.10:
+    resolution: {integrity: sha512-sYUZPku4mQ06AWGCbMyjv2tdR6juBW6hTbVPFwbJvNVzdtEfBioQOgkdXg7yMJNWnXkvWSU1FL2kb4Vxu5Cdyw==}
     dependencies:
-      '@vscode/l10n': 0.0.13
-      vscode-languageserver-textdocument: 1.0.8
-      vscode-languageserver-types: 3.17.3
-      vscode-uri: 3.0.7
+      '@vscode/l10n': 0.0.16
+      vscode-languageserver-textdocument: 1.0.11
+      vscode-languageserver-types: 3.17.5
+      vscode-uri: 3.0.8
     dev: false
 
-  /vscode-html-languageservice@5.0.5:
-    resolution: {integrity: sha512-7788ZT+I7/UhFoI4+bzaAiGGZEW7X39kTeuytLtw6jJA6W7ez85bWKYoFDcwrPNmywj3n/IkU9Op9asaje44jg==}
+  /vscode-html-languageservice@5.1.1:
+    resolution: {integrity: sha512-JenrspIIG/Q+93R6G3L6HdK96itSisMynE0glURqHpQbL3dKAKzdm8L40lAHNkwJeBg+BBPpAshZKv/38onrTQ==}
     dependencies:
-      '@vscode/l10n': 0.0.13
-      vscode-languageserver-textdocument: 1.0.8
-      vscode-languageserver-types: 3.17.3
-      vscode-uri: 3.0.7
+      '@vscode/l10n': 0.0.16
+      vscode-languageserver-textdocument: 1.0.11
+      vscode-languageserver-types: 3.17.5
+      vscode-uri: 3.0.8
     dev: false
 
   /vscode-jsonrpc@8.0.2:
@@ -2000,8 +1999,8 @@ packages:
       vscode-languageserver-types: 3.17.3
     dev: false
 
-  /vscode-languageserver-textdocument@1.0.8:
-    resolution: {integrity: sha512-1bonkGqQs5/fxGT5UchTgjGVnfysL0O8v1AYMBjqTbWQTFn721zaPGDYFkOKtfDgFiSgXM3KwaG3FMGfW4Ed9Q==}
+  /vscode-languageserver-textdocument@1.0.11:
+    resolution: {integrity: sha512-X+8T3GoiwTVlJbicx/sIAF+yuJAqz8VvwJyoMVhwEMoEKE/fkDmrqUgDMyBECcM2A2frVZIUj5HI/ErRXCfOeA==}
     dev: false
 
   /vscode-languageserver-types@3.17.2:
@@ -2011,15 +2010,15 @@ packages:
     resolution: {integrity: sha512-SYU4z1dL0PyIMd4Vj8YOqFvHu7Hz/enbWtpfnVbJHU4Nd1YNYx8u0ennumc6h48GQNeOLxmwySmnADouT/AuZA==}
     dev: false
 
+  /vscode-languageserver-types@3.17.5:
+    resolution: {integrity: sha512-Ld1VelNuX9pdF39h2Hgaeb5hEZM2Z3jUrrMgWQAu82jMtZp7p3vJT3BzToKtZI7NgQssZje5o0zryOrhQvzQAg==}
+    dev: false
+
   /vscode-languageserver@8.0.2:
     resolution: {integrity: sha512-bpEt2ggPxKzsAOZlXmCJ50bV7VrxwCS5BI4+egUmure/oI/t4OlFzi/YNtVvY24A2UDOZAgwFGgnZPwqSJubkA==}
     hasBin: true
     dependencies:
       vscode-languageserver-protocol: 3.17.2
-
-  /vscode-nls@5.2.0:
-    resolution: {integrity: sha512-RAaHx7B14ZU04EU31pT+rKz2/zSl7xMsfIZuo8pd+KZO6PXtQmpevpq3vxvWNcrGbdmhM/rr5Uw5Mz+NBfhVng==}
-    dev: false
 
   /vscode-oniguruma@1.7.0:
     resolution: {integrity: sha512-L9WMGRfrjOhgHSdOYgCt/yRMsXzLDJSL7BPrOZt73gU0iWO4mpqzqQzOz5srxqTvMBaR0XZTSrVWo4j55Rc6cA==}
@@ -2045,8 +2044,9 @@ packages:
     resolution: {integrity: sha512-8TEXQxlldWAuIODdukIb+TR5s+9Ds40eSJrw+1iDDA9IFORPjMELarNQE3myz5XIkWWpdprmJjm1/SxMlWOC8A==}
     dev: false
 
-  /vscode-uri@3.0.7:
-    resolution: {integrity: sha512-eOpPHogvorZRobNqJGhapa0JdwaxpjVvyBp0QIUMRMSf8ZAlqOdEquKuRmw9Qwu0qXtJIWqFtMkmvJjUZmMjVA==}
+  /vscode-uri@3.0.8:
+    resolution: {integrity: sha512-AyFQ0EVmsOZOlAnxoFOGOq1SQDWAB7C6aqMGS23svWAllfOaxbuFvcT8D1i8z3Gyn8fraVeZNNmN6e9bxxXkKw==}
+    dev: false
 
   /which@2.0.2:
     resolution: {integrity: sha512-BLI3Tl1TW3Pvl70l3yq3Y64i+awpwXqsGBYWkkqMtnbXgrMD+yj7rhW0kuEDxzJaYXGjEW5ogapKNMEKNMjibA==}

@@ -1,12 +1,24 @@
 [
     {
-        "label": ": void",
+        "label": [{ "value": ": " }, { "value": "void" }],
         "position": { "line": 5, "character": 30 },
         "kind": 1,
         "paddingLeft": true
     },
     {
-        "label": ": MouseEvent",
+        "label": [
+            { "value": ": " },
+            {
+                "value": "MouseEvent",
+                "location": {
+                    "range": {
+                        "start": { "line": 15586, "character": 10 },
+                        "end": { "line": 15586, "character": 20 }
+                    },
+                    "uri": "<node_modules>/typescript/lib/lib.dom.d.ts"
+                }
+            }
+        ],
         "position": { "line": 9, "character": 22 },
         "kind": 1,
         "paddingLeft": true

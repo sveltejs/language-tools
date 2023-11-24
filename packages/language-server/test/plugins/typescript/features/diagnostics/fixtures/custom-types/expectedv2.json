@@ -17,8 +17,8 @@
         },
         "severity": 1,
         "source": "ts",
-        "message": "Argument of type '{ doesnexist: string; }' is not assignable to parameter of type '{ attribute?: string; }'.\n  Object literal may only specify known properties, and '\"doesnexist\"' does not exist in type '{ attribute?: string; }'.",
-        "code": 2345,
+        "message": "Object literal may only specify known properties, and '\"doesnexist\"' does not exist in type '{ attribute?: string; }'.",
+        "code": 2353,
         "tags": []
     },
     {
@@ -83,8 +83,8 @@
         },
         "severity": 1,
         "source": "ts",
-        "message": "Argument of type '{ doesnexist: string; }' is not assignable to parameter of type '{ attribute?: string; }'.\n  Object literal may only specify known properties, and '\"doesnexist\"' does not exist in type '{ attribute?: string; }'.",
-        "code": 2345,
+        "message": "Object literal may only specify known properties, and '\"doesnexist\"' does not exist in type '{ attribute?: string; }'.",
+        "code": 2353,
         "tags": []
     }
 ]

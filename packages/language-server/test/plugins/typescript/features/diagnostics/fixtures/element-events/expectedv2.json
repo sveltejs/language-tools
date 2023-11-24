@@ -6,8 +6,8 @@
         },
         "severity": 1,
         "source": "ts",
-        "message": "Argument of type '{ \"on:wat\": () => string; }' is not assignable to parameter of type 'HTMLProps<\"div\", HTMLAttributes<any>>'.\n  Object literal may only specify known properties, and '\"on:wat\"' does not exist in type 'HTMLProps<\"div\", HTMLAttributes<any>>'.",
-        "code": 2345,
+        "message": "Object literal may only specify known properties, and '\"on:wat\"' does not exist in type 'HTMLProps<\"div\", HTMLAttributes<any>>'.",
+        "code": 2353,
         "tags": []
     },
     {

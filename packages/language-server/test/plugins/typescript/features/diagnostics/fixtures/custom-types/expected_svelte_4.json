@@ -22,16 +22,16 @@
         "range": { "start": { "line": 3, "character": 5 }, "end": { "line": 3, "character": 19 } },
         "severity": 1,
         "source": "ts",
-        "message": "Argument of type '{ owntypefromold: string; }' is not assignable to parameter of type 'HTMLProps<\"div\", HTMLAttributes<any>>'.\n  Object literal may only specify known properties, and '\"owntypefromold\"' does not exist in type 'HTMLProps<\"div\", HTMLAttributes<any>>'.",
-        "code": 2345,
+        "message": "Object literal may only specify known properties, and '\"owntypefromold\"' does not exist in type 'HTMLProps<\"div\", HTMLAttributes<any>>'.",
+        "code": 2353,
         "tags": []
     },
     {
         "range": { "start": { "line": 4, "character": 8 }, "end": { "line": 4, "character": 23 } },
         "severity": 1,
         "source": "ts",
-        "message": "Argument of type '{ \"on:ownclickfromold\": (e: any) => any; }' is not assignable to parameter of type 'HTMLProps<\"div\", HTMLAttributes<any>>'.\n  Object literal may only specify known properties, and '\"on:ownclickfromold\"' does not exist in type 'HTMLProps<\"div\", HTMLAttributes<any>>'.",
-        "code": 2345,
+        "message": "Object literal may only specify known properties, and '\"on:ownclickfromold\"' does not exist in type 'HTMLProps<\"div\", HTMLAttributes<any>>'.",
+        "code": 2353,
         "tags": []
     },
     {
@@ -52,8 +52,8 @@
         },
         "severity": 1,
         "source": "ts",
-        "message": "Argument of type '{ doesnexist: string; }' is not assignable to parameter of type '{ attribute?: string; }'.\n  Object literal may only specify known properties, and '\"doesnexist\"' does not exist in type '{ attribute?: string; }'.",
-        "code": 2345,
+        "message": "Object literal may only specify known properties, and '\"doesnexist\"' does not exist in type '{ attribute?: string; }'.",
+        "code": 2353,
         "tags": []
     },
     {
@@ -74,8 +74,8 @@
         },
         "severity": 1,
         "source": "ts",
-        "message": "Argument of type '{ owntypefromold: boolean; }' is not assignable to parameter of type 'HTMLProps<\"div\", HTMLAttributes<any>>'.\n  Object literal may only specify known properties, and '\"owntypefromold\"' does not exist in type 'HTMLProps<\"div\", HTMLAttributes<any>>'.",
-        "code": 2345,
+        "message": "Object literal may only specify known properties, and '\"owntypefromold\"' does not exist in type 'HTMLProps<\"div\", HTMLAttributes<any>>'.",
+        "code": 2353,
         "tags": []
     },
     {
@@ -96,8 +96,8 @@
         },
         "severity": 1,
         "source": "ts",
-        "message": "Argument of type '{ \"on:ownclickfromold\": (e: any) => any; }' is not assignable to parameter of type 'HTMLProps<\"div\", HTMLAttributes<any>>'.\n  Object literal may only specify known properties, and '\"on:ownclickfromold\"' does not exist in type 'HTMLProps<\"div\", HTMLAttributes<any>>'.",
-        "code": 2345,
+        "message": "Object literal may only specify known properties, and '\"on:ownclickfromold\"' does not exist in type 'HTMLProps<\"div\", HTMLAttributes<any>>'.",
+        "code": 2353,
         "tags": []
     }
 ]

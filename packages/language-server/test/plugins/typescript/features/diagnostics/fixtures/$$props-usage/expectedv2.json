@@ -17,8 +17,8 @@
         },
         "severity": 1,
         "source": "ts",
-        "message": "Type '{ exported1: string; exported2: string; invalidProp: true; }' is not assignable to type '$$Props'.\n  Object literal may only specify known properties, and '\"invalidProp\"' does not exist in type '$$Props'.",
-        "code": 2322,
+        "message": "Object literal may only specify known properties, and '\"invalidProp\"' does not exist in type '$$Props'.",
+        "code": 2353,
         "tags": []
     },
     {
