@@ -217,6 +217,8 @@ export interface TsUserPreferencesConfig {
      * only in typescript config
      */
     includePackageJsonAutoImports?: ts.UserPreferences['includePackageJsonAutoImports'];
+
+    preferTypeOnlyAutoImports?: ts.UserPreferences['preferTypeOnlyAutoImports'];
 }
 
 /**
@@ -436,6 +438,8 @@ export class LSConfigManager {
                 config.suggest?.classMemberSnippets?.enabled ?? true,
             includeCompletionsWithObjectLiteralMethodSnippets:
                 config.suggest?.objectLiteralMethodSnippets?.enabled ?? true,
+            preferTypeOnlyAutoImports: config.preferences?.preferTypeOnlyAutoImports,
+
             includeInlayEnumMemberValueHints: inlayHints?.enumMemberValues?.enabled,
             includeInlayFunctionLikeReturnTypeHints: inlayHints?.functionLikeReturnTypes?.enabled,
             includeInlayParameterNameHints: inlayHints?.parameterNames?.enabled,
@@ -446,6 +450,7 @@ export class LSConfigManager {
             includeInlayPropertyDeclarationTypeHints: inlayHints?.propertyDeclarationTypes?.enabled,
             includeInlayVariableTypeHintsWhenTypeMatchesName:
                 inlayHints?.variableTypes?.suppressWhenTypeMatchesName === false,
+
             interactiveInlayHints: true
         };
     }

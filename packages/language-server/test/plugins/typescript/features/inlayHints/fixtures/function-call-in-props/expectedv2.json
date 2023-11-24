@@ -1,6 +1,6 @@
 [
     {
-        "label": ": void",
+        "label": [{ "value": ": " }, { "value": "void" }],
         "position": { "line": 4, "character": 29 },
         "kind": 1,
         "paddingLeft": true
