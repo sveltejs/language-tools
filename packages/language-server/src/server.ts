@@ -353,6 +353,7 @@ export function startServer(options?: LSOptions) {
 
     connection.onDidCloseTextDocument((evt) => docManager.closeDocument(evt.textDocument.uri));
     connection.onDidChangeTextDocument((evt) => {
+        diagnosticsManager.cancelStarted(evt.textDocument.uri);
         docManager.updateDocument(evt.textDocument, evt.contentChanges);
         pluginHost.didUpdateDocument();
     });
@@ -468,7 +469,7 @@ export function startServer(options?: LSOptions) {
         refreshCrossFilesSemanticFeatures();
     }
 
-    connection.onDidSaveTextDocument(diagnosticsManager.scheduleUpdateAll);
+    connection.onDidSaveTextDocument(diagnosticsManager.scheduleUpdateAll.bind(diagnosticsManager));
     connection.onNotification('$/onDidChangeTsOrJsFile', async (e: any) => {
         const path = urlToPath(e.uri);
         if (path) {

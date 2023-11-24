@@ -80,11 +80,23 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
             ];
         }
 
-        let diagnostics: ts.Diagnostic[] = [
-            ...lang.getSyntacticDiagnostics(tsDoc.filePath),
-            ...lang.getSuggestionDiagnostics(tsDoc.filePath),
-            ...lang.getSemanticDiagnostics(tsDoc.filePath)
-        ];
+        let diagnostics: ts.Diagnostic[] = lang.getSyntacticDiagnostics(tsDoc.filePath);
+        const checkers = [lang.getSuggestionDiagnostics, lang.getSemanticDiagnostics];
+
+        for (const checker of checkers) {
+            if (!cancellationToken) {
+                diagnostics.push(...checker.call(lang, tsDoc.filePath));
+                continue;
+            }
+
+            // wait a bit so the event loop can check for cancellation
+            // or let completion go first
+            await new Promise((resolve) => setTimeout(resolve, 10));
+            if (cancellationToken.isCancellationRequested) {
+                return [];
+            }
+            diagnostics.push(...checker.call(lang, tsDoc.filePath));
+        }
 
         const additionalStoreDiagnostics: ts.Diagnostic[] = [];
         const notGenerated = isNotGenerated(tsDoc.getFullText());

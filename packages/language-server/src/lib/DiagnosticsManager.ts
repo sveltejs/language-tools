@@ -1,9 +1,18 @@
-import { _Connection, TextDocumentIdentifier, Diagnostic } from 'vscode-languageserver';
+import {
+    Connection,
+    TextDocumentIdentifier,
+    Diagnostic,
+    CancellationTokenSource,
+    CancellationToken
+} from 'vscode-languageserver';
 import { DocumentManager, Document } from './documents';
 import { debounceThrottle } from '../utils';
 
-export type SendDiagnostics = _Connection['sendDiagnostics'];
-export type GetDiagnostics = (doc: TextDocumentIdentifier) => Thenable<Diagnostic[]>;
+export type SendDiagnostics = Connection['sendDiagnostics'];
+export type GetDiagnostics = (
+    doc: TextDocumentIdentifier,
+    cancellationToken?: CancellationToken
+) => Thenable<Diagnostic[]>;
 
 export class DiagnosticsManager {
     constructor(
@@ -13,6 +22,7 @@ export class DiagnosticsManager {
     ) {}
 
     private pendingUpdates = new Set<Document>();
+    private cancellationTokens = new Map<string, { cancel: () => void }>();
 
     private updateAll() {
         this.docManager.getAllOpenedByClient().forEach((doc) => {
@@ -21,14 +31,43 @@ export class DiagnosticsManager {
         this.pendingUpdates.clear();
     }
 
-    scheduleUpdateAll = debounceThrottle(() => this.updateAll(), 1000);
+    scheduleUpdateAll() {
+        this.cancellationTokens.forEach((token) => token.cancel());
+        this.cancellationTokens.clear();
+        this.pendingUpdates.clear();
+        this.debouncedUpdateAll();
+    }
+
+    private debouncedUpdateAll = debounceThrottle(() => this.updateAll(), 1000);
 
     private async update(document: Document) {
-        const diagnostics = await this.getDiagnostics({ uri: document.getURL() });
+        const uri = document.getURL();
+        this.cancelStarted(uri);
+
+        const tokenSource = new CancellationTokenSource();
+        this.cancellationTokens.set(uri, tokenSource);
+
+        const diagnostics = await this.getDiagnostics(
+            { uri: document.getURL() },
+            tokenSource.token
+        );
         this.sendDiagnostics({
             uri: document.getURL(),
             diagnostics
         });
+
+        tokenSource.dispose();
+
+        if (this.cancellationTokens.get(uri) === tokenSource) {
+            this.cancellationTokens.delete(uri);
+        }
+    }
+
+    cancelStarted(uri: string) {
+        const started = this.cancellationTokens.get(uri);
+        if (started) {
+            started.cancel();
+        }
     }
 
     removeDiagnostics(document: Document) {
@@ -44,6 +83,7 @@ export class DiagnosticsManager {
             return;
         }
 
+        this.cancelStarted(document.getURL());
         this.pendingUpdates.add(document);
         this.scheduleBatchUpdate();
     }
@@ -53,5 +93,5 @@ export class DiagnosticsManager {
             this.update(doc);
         });
         this.pendingUpdates.clear();
-    }, 750);
+    }, 700);
 }
