@@ -49,7 +49,10 @@ export class SveltePlugin
 
     constructor(private configManager: LSConfigManager) {}
 
-    async getDiagnostics(document: Document): Promise<Diagnostic[]> {
+    async getDiagnostics(
+        document: Document,
+        cancellationToken?: CancellationToken
+    ): Promise<Diagnostic[]> {
         if (!this.featureEnabled('diagnostics') || !this.configManager.getIsTrusted()) {
             return [];
         }
@@ -57,7 +60,8 @@ export class SveltePlugin
         return getDiagnostics(
             document,
             await this.getSvelteDoc(document),
-            this.configManager.getConfig().svelte.compilerWarnings
+            this.configManager.getConfig().svelte.compilerWarnings,
+            cancellationToken
         );
     }
 

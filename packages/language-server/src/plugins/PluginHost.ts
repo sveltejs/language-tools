@@ -76,7 +76,10 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         this.deferredRequests = {};
     }
 
-    async getDiagnostics(textDocument: TextDocumentIdentifier): Promise<Diagnostic[]> {
+    async getDiagnostics(
+        textDocument: TextDocumentIdentifier,
+        cancellationToken?: CancellationToken
+    ): Promise<Diagnostic[]> {
         const document = this.getDocument(textDocument.uri);
 
         if (
@@ -96,7 +99,7 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         return flatten(
             await this.execute<Diagnostic[]>(
                 'getDiagnostics',
-                [document],
+                [document, cancellationToken],
                 ExecuteMode.Collect,
                 'high'
             )
