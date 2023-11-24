@@ -10,5 +10,9 @@ export class Works2 extends SvelteComponentTyped<
         };
     }
 > {}
-export class Works3 extends SvelteComponentTyped<any, { [evt: string]: CustomEvent<any> }, never> {}
+export class Works3 extends SvelteComponentTyped<
+    any,
+    { [evt: string]: CustomEvent<any> },
+    Record<string, never>
+> {}
 export class DoesntWork {}
