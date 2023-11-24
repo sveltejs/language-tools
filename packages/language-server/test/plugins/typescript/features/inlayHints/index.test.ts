@@ -102,6 +102,13 @@ async function executeTest(
             for (const label of inlayHint.label) {
                 if (label.location) {
                     label.location.uri = label.location.uri.replace(workspaceUri, '<workspaceUri>');
+
+                    const indexOfNodeModules = label.location.uri.lastIndexOf('node_modules');
+                    if (indexOfNodeModules !== -1) {
+                        label.location.uri =
+                            '<node_modules>' +
+                            label.location.uri.slice(indexOfNodeModules + 'node_modules'.length);
+                    }
                 }
             }
         }

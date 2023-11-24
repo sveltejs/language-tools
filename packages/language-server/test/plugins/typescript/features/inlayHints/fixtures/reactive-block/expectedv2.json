@@ -1,6 +1,6 @@
 [
     {
-        "label": ": number",
+        "label": [{ "value": ": " }, { "value": "number" }],
         "position": { "line": 1, "character": 12 },
         "kind": 1,
         "paddingLeft": true
@@ -42,7 +42,7 @@
         "paddingRight": true
     },
     {
-        "label": ": any",
+        "label": [{ "value": ": " }, { "value": "any" }],
         "position": { "line": 10, "character": 24 },
         "kind": 1,
         "paddingLeft": true
