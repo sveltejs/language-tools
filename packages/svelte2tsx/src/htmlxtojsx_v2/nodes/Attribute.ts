@@ -171,10 +171,12 @@ export function handleAttribute(
                 return;
             }
 
+            const lastCharIndex = attrVal.end - 1;
             const hasBrackets =
-                str.original.lastIndexOf('}', attrVal.end) === attrVal.end - 1 ||
-                str.original.lastIndexOf('}"', attrVal.end) === attrVal.end - 1 ||
-                str.original.lastIndexOf("}'", attrVal.end) === attrVal.end - 1;
+                str.original[lastCharIndex] === '}' ||
+                ((str.original[lastCharIndex] === '"' || str.original[lastCharIndex] === "'") &&
+                    str.original[lastCharIndex - 1] === '}');
+
             const needsNumberConversion =
                 !hasBrackets &&
                 parent.type === 'Element' &&
