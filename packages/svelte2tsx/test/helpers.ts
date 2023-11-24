@@ -347,13 +347,6 @@ export function get_svelte2tsx_config(base: BaseConfig, sampleName: string): Sve
     };
 }
 
-// ts plugin: selbe "nutze user parser" logik, aber mit guard wegen workspace (wie?)
-// guard gegen workspace in language server
-// version hineingeben und
-// - constructor usage anpassen
-// - children setzen wenn <slot />
-// - als children passen wenn implicit
-
 export function* each_sample(dir: string) {
     for (const name of fs.readdirSync(`${dir}/samples`)) {
         yield new Sample(dir, name);
