@@ -38,7 +38,7 @@
     "scripts": {
         "build": "rollup -c && node ./dist/src/index.js --workspace ./test --tsconfig ./tsconfig.json",
         "prepublishOnly": "npm run build",
-        "test": "echo 'NOOP'"
+        "test": "npm run build"
     },
     "devDependencies": {
         "@rollup/plugin-commonjs": "^24.0.0",

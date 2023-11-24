@@ -47,7 +47,7 @@
     },
     "dependencies": {
         "@jridgewell/trace-mapping": "^0.3.17",
-        "@vscode/emmet-helper": "2.9.2",
+        "@vscode/emmet-helper": "2.8.4",
         "chokidar": "^3.4.1",
         "estree-walker": "^2.0.1",
         "fast-glob": "^3.2.7",
