@@ -52,7 +52,7 @@ describe('PluginHost', () => {
         await pluginHost.getDiagnostics(textDocument);
 
         sinon.assert.calledOnce(plugin.getDiagnostics);
-        sinon.assert.calledWithExactly(plugin.getDiagnostics, document);
+        sinon.assert.calledWithExactly(plugin.getDiagnostics, document, undefined);
     });
 
     it('executes doHover on plugins', async () => {
