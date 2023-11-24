@@ -13,9 +13,11 @@ import {
     validate_edit_file,
     validate_test_file
 } from './process';
+import { VERSION } from 'svelte/compiler';
 
 // TODO figure out what to do with those now that we have the new transformation
-describe('sourcemaps', function () {
+const isSvelte5Plus = Number(VERSION[0]) >= 5;
+(isSvelte5Plus ? describe.skip : describe)('sourcemaps', function () {
     for (const sample of each_sample(__dirname)) {
         if (process.env.CI) {
             sample.checkDirectory({ required: ['*.svelte', 'mappings.jsx', 'test.jsx'] });

@@ -147,6 +147,8 @@ declare function __sveltets_2_cssProp(prop: Record<string, any>): {};
 
 // @ts-ignore Svelte v3/v4 don't have this
 declare function __sveltets_2_ensureSnippet(val: ReturnType<import('svelte').Snippet>): any;
+// @ts-ignore Svelte v3/v4 don't have this
+declare const __sveltets_2_snippet: import('svelte').Snippet;
 
 /** @internal PRIVATE API, DO NOT USE */
 type __sveltets_2_SvelteAnimationReturnType = {

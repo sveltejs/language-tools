@@ -2,8 +2,12 @@
 	<div>asd{x}</div>
 {/snippet}
 
+{#snippet bar()}
+	<div>asd</div>
+{/snippet}
+
 {@render foo(1)}
-{@render foo()}
+{@render bar()}
 
 <Component>
 	<div>{asd}</div>
@@ -17,3 +21,9 @@
 		{item}
 	{/snippet}
 </List>
+
+<List>
+	implicit children
+</List>
+
+{@render children()}

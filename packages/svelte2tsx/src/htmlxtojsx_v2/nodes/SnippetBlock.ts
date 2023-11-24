@@ -28,7 +28,7 @@ import { surroundWithIgnoreComments } from '../../utils/ignore';
 export function handleSnippet(
     str: MagicString,
     snippetBlock: BaseNode,
-    element?: InlineComponent
+    component?: InlineComponent
 ): void {
     const endSnippet = str.original.lastIndexOf('{', snippetBlock.end - 1);
     // Return something to silence the "snippet type not assignable to return type void" error
@@ -39,7 +39,7 @@ export function handleSnippet(
     const startEnd =
         str.original.indexOf('}', snippetBlock.context?.end || snippetBlock.expression.end) + 1;
 
-    if (element !== undefined) {
+    if (component !== undefined) {
         str.overwrite(snippetBlock.start, snippetBlock.expression.start, '', { contentOnly: true });
         const transforms: TransformationArray = ['('];
         if (snippetBlock.context) {
@@ -53,7 +53,10 @@ export function handleSnippet(
         }
         transforms.push(') => {');
         transforms.push([startEnd, snippetBlock.end]);
-        element.addProp([[snippetBlock.expression.start, snippetBlock.expression.end]], transforms);
+        component.addProp(
+            [[snippetBlock.expression.start, snippetBlock.expression.end]],
+            transforms
+        );
     } else {
         const generic = snippetBlock.context
             ? snippetBlock.context.typeAnnotation
@@ -78,4 +81,46 @@ export function handleSnippet(
         transforms.push(') => {');
         transform(str, snippetBlock.start, startEnd, startEnd, transforms);
     }
+}
+
+export function handleImplicitChildren(componentNode: BaseNode, component: InlineComponent): void {
+    if (componentNode.children?.length === 0) {
+        return;
+    }
+
+    let hasSlot = false;
+
+    for (const child of componentNode.children) {
+        if (
+            child.type === 'SvelteSelf' ||
+            child.type === 'InlineComponent' ||
+            child.type === 'Element' ||
+            child.type === 'SlotTemplate'
+        ) {
+            if (
+                child.attributes.some(
+                    (a) =>
+                        a.type === 'Attribute' &&
+                        a.name === 'slot' &&
+                        a.value[0]?.data !== 'default'
+                )
+            ) {
+                continue;
+            }
+        }
+        if (child.type === 'Text' && child.data.trim() === '') {
+            continue;
+        }
+        if (child.type !== 'SnippetBlock') {
+            hasSlot = true;
+            break;
+        }
+    }
+
+    if (!hasSlot) {
+        return;
+    }
+
+    // it's enough to fake a children prop, we don't need to actually move the content inside (which would also reset control flow)
+    component.addProp(['children'], ['() => { return __sveltets_2_any(0); }']);
 }
