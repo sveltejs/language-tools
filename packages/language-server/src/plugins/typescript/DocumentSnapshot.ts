@@ -68,6 +68,7 @@ export interface DocumentSnapshot extends ts.IScriptSnapshot, DocumentMapper {
  */
 export interface SvelteSnapshotOptions {
     parse: typeof import('svelte/compiler').parse | undefined;
+    version: string | undefined;
     transformOnTemplateError: boolean;
     typingsNamespace: string;
 }
@@ -199,6 +200,7 @@ function preprocessSvelteFile(document: Document, options: SvelteSnapshotOptions
     try {
         const tsx = svelte2tsx(text, {
             parse: options.parse,
+            version: options.version,
             filename: document.getFilePath() ?? undefined,
             isTsFile: scriptKind === ts.ScriptKind.TS,
             mode: 'ts',

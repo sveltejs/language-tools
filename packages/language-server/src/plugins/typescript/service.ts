@@ -298,6 +298,7 @@ async function createLanguageService(
     let languageService = ts.createLanguageService(host);
     const transformationConfig: SvelteSnapshotOptions = {
         parse: svelteCompiler?.parse,
+        version: svelteCompiler?.VERSION,
         transformOnTemplateError: docContext.transformOnTemplateError,
         typingsNamespace: raw?.svelteOptions?.namespace || 'svelteHTML'
     };

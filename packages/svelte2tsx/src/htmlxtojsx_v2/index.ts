@@ -26,7 +26,7 @@ import { handleSpread } from './nodes/Spread';
 import { handleStyleDirective } from './nodes/StyleDirective';
 import { handleText } from './nodes/Text';
 import { handleTransitionDirective } from './nodes/Transition';
-import { handleSnippet } from './nodes/SnippetBlock';
+import { handleImplicitChildren, handleSnippet } from './nodes/SnippetBlock';
 import { handleRenderTag } from './nodes/RenderTag';
 
 type Walker = (node: TemplateNode, parent: BaseNode, prop: string, index: number) => void;
@@ -48,7 +48,11 @@ export function convertHtmlxToJsx(
     ast: TemplateNode,
     onWalk: Walker = null,
     onLeave: Walker = null,
-    options: { preserveAttributeCase?: boolean; typingsNamespace?: string } = {}
+    options: {
+        svelte5Plus: boolean;
+        preserveAttributeCase?: boolean;
+        typingsNamespace?: string;
+    } = { svelte5Plus: false }
 ) {
     const htmlx = str.original;
     options = { preserveAttributeCase: false, ...options };
@@ -113,6 +117,9 @@ export function convertHtmlxToJsx(
                             element = element.child;
                         } else {
                             element = new InlineComponent(str, node);
+                        }
+                        if (options.svelte5Plus) {
+                            handleImplicitChildren(node, element as InlineComponent);
                         }
                         break;
                     case 'Element':
@@ -248,6 +255,7 @@ export function htmlx2jsx(
         emitOnTemplateError?: boolean;
         preserveAttributeCase: boolean;
         typingsNamespace: string;
+        svelte5Plus: boolean;
     }
 ) {
     const ast = parseHtmlx(htmlx, parse, { ...options }).htmlxAst;

@@ -12,6 +12,7 @@ export interface CreateRenderFunctionPara extends InstanceScriptProcessResult {
     slots: Map<string, Map<string, string>>;
     events: ComponentEvents;
     uses$$SlotsInterface: boolean;
+    svelte5Plus: boolean;
     mode?: 'ts' | 'dts';
 }
 
@@ -28,6 +29,7 @@ export function createRenderFunction({
     uses$$slots,
     uses$$SlotsInterface,
     generics,
+    svelte5Plus,
     mode
 }: CreateRenderFunctionPara) {
     const htmlx = str.original;
@@ -105,19 +107,28 @@ export function createRenderFunction({
         : '{' +
           Array.from(slots.entries())
               .map(([name, attrs]) => {
-                  const attrsAsString = Array.from(attrs.entries())
-                      .map(([exportName, expr]) =>
-                          exportName.startsWith('__spread__')
-                              ? `...${expr}`
-                              : `${exportName}:${expr}`
-                      )
-                      .join(', ');
-                  return `'${name}': {${attrsAsString}}`;
+                  return `'${name}': {${slotAttributesToString(attrs)}}`;
               })
               .join(', ') +
           '}';
 
+    const needsImplicitChildrenProp =
+        svelte5Plus &&
+        !exportedNames.uses$propsRune() &&
+        slots.has('default') &&
+        !exportedNames.getExportsMap().has('default');
+    if (needsImplicitChildrenProp) {
+        exportedNames.addImplicitChildrenExport(slots.get('default')!.size > 0);
+    }
+
     const returnString =
+        `${
+            needsImplicitChildrenProp && slots.get('default')!.size > 0
+                ? `\nlet $$implicit_children = __sveltets_2_snippet({${slotAttributesToString(
+                      slots.get('default')!
+                  )}});`
+                : ''
+        }` +
         `\nreturn { props: ${exportedNames.createPropsStr(uses$$props || uses$$restProps)}` +
         `, slots: ${slotsAsDef}` +
         `, events: ${events.toDefString()} }}`;
@@ -126,4 +137,12 @@ export function createRenderFunction({
     str.append('};');
 
     str.append(returnString);
+}
+
+function slotAttributesToString(attrs: Map<string, string>) {
+    return Array.from(attrs.entries())
+        .map(([exportName, expr]) =>
+            exportName.startsWith('__spread__') ? `...${expr}` : `${exportName}:${expr}`
+        )
+        .join(', ');
 }

@@ -24,7 +24,7 @@ import { createRenderFunction } from './createRenderFunction';
 // @ts-ignore
 import { TemplateNode } from 'svelte/types/compiler/interfaces';
 import path from 'path';
-import { parse } from 'svelte/compiler';
+import { VERSION, parse } from 'svelte/compiler';
 
 type TemplateProcessResult = {
     /**
@@ -55,6 +55,7 @@ function processSvelteTemplate(
         accessors?: boolean;
         mode?: 'ts' | 'dts';
         typingsNamespace?: string;
+        svelte5Plus: boolean;
     }
 ): TemplateProcessResult {
     const { htmlxAst, tags } = parseHtmlx(str.original, parse, options);
@@ -273,7 +274,8 @@ function processSvelteTemplate(
 
     const rootSnippets = convertHtmlxToJsx(str, htmlxAst, onHtmlxWalk, onHtmlxLeave, {
         preserveAttributeCase: options?.namespace == 'foreign',
-        typingsNamespace: options.typingsNamespace
+        typingsNamespace: options.typingsNamespace,
+        svelte5Plus: options.svelte5Plus
     });
 
     // resolve scripts
@@ -309,6 +311,7 @@ export function svelte2tsx(
     svelte: string,
     options: {
         parse?: typeof import('svelte/compiler').parse;
+        version?: string;
         filename?: string;
         isTsFile?: boolean;
         emitOnTemplateError?: boolean;
@@ -320,9 +323,11 @@ export function svelte2tsx(
     } = { parse }
 ) {
     options.mode = options.mode || 'ts';
+    options.version = options.version || VERSION;
 
     const str = new MagicString(svelte);
     const basename = path.basename(options.filename || '');
+    const svelte5Plus = Number(options.version![0]) > 4;
     // process the htmlx as a svelte template
     let {
         htmlAst,
@@ -337,7 +342,10 @@ export function svelte2tsx(
         componentDocumentation,
         resolvedStores,
         usesAccessors
-    } = processSvelteTemplate(str, options.parse || parse, options);
+    } = processSvelteTemplate(str, options.parse || parse, {
+        ...options,
+        svelte5Plus
+    });
 
     /* Rearrange the script tags so that module is first, and instance second followed finally by the template
      * This is a bit convoluted due to some trouble I had with magic string. A simple str.move(start,end,0) for each script wasn't enough
@@ -400,6 +408,7 @@ export function svelte2tsx(
         uses$$slots,
         uses$$SlotsInterface,
         generics,
+        svelte5Plus,
         mode: options.mode
     });
 
