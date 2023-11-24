@@ -124,7 +124,9 @@ export function createRenderFunction({
     const returnString =
         `${
             needsImplicitChildrenProp && slots.get('default')!.size > 0
-                ? `\nlet $$implicit_children = {${slotAttributesToString(slots.get('default')!)}};`
+                ? `\nlet $$implicit_children = __sveltets_2_snippet({${slotAttributesToString(
+                      slots.get('default')!
+                  )}});`
                 : ''
         }` +
         `\nreturn { props: ${exportedNames.createPropsStr(uses$$props || uses$$restProps)}` +

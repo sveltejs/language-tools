@@ -592,9 +592,9 @@ export class ExportedNames {
     ): string[] {
         return names.map(([key, value]) => {
             if (value.implicitChildren) {
-                return `children: ${
+                return `children?: ${
                     value.implicitChildren === 'empty'
-                        ? '__sveltets_2_snippet'
+                        ? '__sveltets_2_snippet()'
                         : '$$implicit_children'
                 }`;
             }
@@ -608,7 +608,7 @@ export class ExportedNames {
     private createReturnElementsType(names: Array<[string, ExportedName]>) {
         return names.map(([key, value]) => {
             if (value.implicitChildren) {
-                return `children: ${
+                return `children?: ${
                     value.implicitChildren === 'empty'
                         ? `import('svelte').Snippet`
                         : 'typeof $$implicit_children'
