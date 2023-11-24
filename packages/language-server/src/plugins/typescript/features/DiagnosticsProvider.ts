@@ -42,7 +42,8 @@ export enum DiagnosticCode {
     MISSING_PROP = 2741, // "Property '..' is missing in type '..' but required in type '..'."
     NO_OVERLOAD_MATCHES_CALL = 2769, // "No overload matches this call"
     CANNOT_FIND_NAME = 2304, // "Cannot find name 'xxx'"
-    EXPECTED_N_ARGUMENTS = 2554 // Expected {0} arguments, but got {1}.
+    EXPECTED_N_ARGUMENTS = 2554, // Expected {0} arguments, but got {1}.
+    DEPRECATED_SIGNATURE = 6387 // The signature '..' of '..' is deprecated
 }
 
 export class DiagnosticsProviderImpl implements DiagnosticsProvider {
@@ -213,6 +214,8 @@ function hasNoNegativeLines(diagnostic: Diagnostic): boolean {
     return diagnostic.range.start.line >= 0 && diagnostic.range.end.line >= 0;
 }
 
+const generatedVarRegex = /'\$\$_\w+(\.\$on)?'/;
+
 function isNoFalsePositive(document: Document, tsDoc: SvelteDocumentSnapshot) {
     const text = document.getText();
     const usesPug = document.getLanguageAttribute('template') === 'pug';
@@ -227,6 +230,14 @@ function isNoFalsePositive(document: Document, tsDoc: SvelteDocumentSnapshot) {
             if (isAttributeName(node, 'Element') || isEventHandler(node, 'Element')) {
                 return false;
             }
+        }
+
+        if (
+            diagnostic.code === DiagnosticCode.DEPRECATED_SIGNATURE &&
+            generatedVarRegex.test(diagnostic.message)
+        ) {
+            // Svelte 5: $on and constructor is deprecated, but we don't want to show this warning for generated code
+            return false;
         }
 
         return (

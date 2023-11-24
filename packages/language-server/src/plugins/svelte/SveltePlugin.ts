@@ -64,6 +64,7 @@ export class SveltePlugin
     async getCompiledResult(document: Document): Promise<SvelteCompileResult | null> {
         try {
             const svelteDoc = await this.getSvelteDoc(document);
+            // @ts-ignore is 'client' in Svelte 5
             return svelteDoc.getCompiledWith({ generate: 'dom' });
         } catch (error) {
             return null;
