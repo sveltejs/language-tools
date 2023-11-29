@@ -22,8 +22,8 @@ async () => {
 
  { svelteHTML.createElement("button", { "on:click":undefined,});  }
  { __sveltets_createSlot("default", {bar,}); }};
-let $$implicit_children = {bar:bar};
-return { props: {bar: bar , foobar: foobar , children: $$implicit_children} as {bar: Bar, foobar?: typeof foobar, children: typeof $$implicit_children}, slots: {'default': {bar:bar}}, events: {...__sveltets_2_toEventTypings<{swipe: string}>(), 'click':__sveltets_2_mapElementEvent('click')} }}
+let $$implicit_children = __sveltets_2_snippet({bar:bar});
+return { props: {bar: bar , foobar: foobar , children: $$implicit_children} as {bar: Bar, foobar?: typeof foobar, children?: typeof $$implicit_children}, slots: {'default': {bar:bar}}, events: {...__sveltets_2_toEventTypings<{swipe: string}>(), 'click':__sveltets_2_mapElementEvent('click')} }}
 const __propDef = __sveltets_2_with_any_event(render());
 export type InputProps = typeof __propDef.props;
 export type InputEvents = typeof __propDef.events;

@@ -74,11 +74,7 @@ export function createRenderFunction({
             }
             str.overwrite(scriptTag.start + 1, start - 1, `function render`);
             str.overwrite(start - 1, start, `<`); // if the generics are unused, only this char is colored opaque
-            if (end < scriptTagEnd) {
-                str.overwrite(end, scriptTagEnd, `>() {${propsDecl}\n`);
-            } else {
-                str.prependRight(end, `>() {${propsDecl}\n`);
-            }
+            str.overwrite(end, scriptTagEnd, `>() {${propsDecl}\n`);
         } else {
             str.overwrite(
                 scriptTag.start + 1,
@@ -87,10 +83,11 @@ export function createRenderFunction({
             );
         }
 
-        const scriptEndTagStart = htmlx.lastIndexOf('<', scriptTag.end - 1);
         for (const rootSnippet of rootSnippets) {
-            str.move(rootSnippet[0], rootSnippet[1], scriptEndTagStart);
+            str.move(rootSnippet[0], rootSnippet[1], scriptTagEnd);
         }
+
+        const scriptEndTagStart = htmlx.lastIndexOf('<', scriptTag.end - 1);
         // wrap template with callback
         str.overwrite(scriptEndTagStart, scriptTag.end, `${slotsDeclaration};\nasync () => {`, {
             contentOnly: true

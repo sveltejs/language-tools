@@ -30,16 +30,22 @@ export function handleSnippet(
     snippetBlock: BaseNode,
     component?: InlineComponent
 ): void {
+    const isImplicitProp = component !== undefined;
     const endSnippet = str.original.lastIndexOf('{', snippetBlock.end - 1);
     // Return something to silence the "snippet type not assignable to return type void" error
-    str.overwrite(endSnippet, snippetBlock.end, 'return __sveltets_2_any(0)}', {
-        contentOnly: true
-    });
+    str.overwrite(
+        endSnippet,
+        snippetBlock.end,
+        `return __sveltets_2_any(0)}${isImplicitProp ? '' : ';'}`,
+        {
+            contentOnly: true
+        }
+    );
 
     const startEnd =
         str.original.indexOf('}', snippetBlock.context?.end || snippetBlock.expression.end) + 1;
 
-    if (component !== undefined) {
+    if (isImplicitProp) {
         str.overwrite(snippetBlock.start, snippetBlock.expression.start, '', { contentOnly: true });
         const transforms: TransformationArray = ['('];
         if (snippetBlock.context) {

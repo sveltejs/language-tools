@@ -12,7 +12,7 @@ async () => {
      { __sveltets_createSlot("test", {    "c":d,e,}); }
      { __sveltets_createSlot("abc-cde.113", { }); }
  }};
-let $$implicit_children = {a:b};
+let $$implicit_children = __sveltets_2_snippet({a:b});
 return { props: {children: $$implicit_children}, slots: {'default': {a:b}, 'test': {c:d, e:e}, 'abc-cde.113': {}}, events: {} }}
 
 export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial(['children'], __sveltets_2_with_any_event(render()))) {

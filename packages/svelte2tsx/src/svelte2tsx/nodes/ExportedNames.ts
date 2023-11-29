@@ -594,7 +594,7 @@ export class ExportedNames {
     ): string[] {
         return names.map(([key, value]) => {
             if (value.implicitChildren) {
-                return `children?: ${
+                return `children: ${
                     value.implicitChildren === 'empty'
                         ? '__sveltets_2_snippet()'
                         : '$$implicit_children'

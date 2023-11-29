@@ -23,8 +23,8 @@ function render/*Ωignore_startΩ*/<A,B extends keyof A,C extends boolean>/*Ωig
 async () => {
 
  { __sveltets_createSlot("default", { c,});}};
-let $$implicit_children = {c:c};
-return { props: {a: a , b: b , c: c , getA: getA , children: $$implicit_children} as {a: A, b: B, c: C, getA?: typeof getA, children: typeof $$implicit_children}, slots: {'default': {c:c}}, events: {...__sveltets_2_toEventTypings<{a: A}>()} }}
+let $$implicit_children = __sveltets_2_snippet({c:c});
+return { props: {a: a , b: b , c: c , getA: getA , children: $$implicit_children} as {a: A, b: B, c: C, getA?: typeof getA, children?: typeof $$implicit_children}, slots: {'default': {c:c}}, events: {...__sveltets_2_toEventTypings<{a: A}>()} }}
 class __sveltets_Render<A,B extends keyof A,C extends boolean> {
     props() {
         return render<A,B,C>().props;

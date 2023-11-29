@@ -22,7 +22,7 @@ async () => {
 
  { svelteHTML.createElement("button", { "on:click":undefined,});  }
  { __sveltets_createSlot("default", {bar,}); }};
-let $$implicit_children = {bar:bar};
+let $$implicit_children = __sveltets_2_snippet({bar:bar});
 return { props: {
 /** @type {boolean} */bar: bar , foobar: foobar , children: $$implicit_children}, slots: {'default': {bar:bar}}, events: {'click':__sveltets_2_mapElementEvent('click'), 'hi': __sveltets_2_customEvent} }}
 const __propDef = __sveltets_2_partial(['foobar','children'], __sveltets_2_with_any_event(render()));
