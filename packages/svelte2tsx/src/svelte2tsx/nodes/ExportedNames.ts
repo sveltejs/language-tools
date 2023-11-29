@@ -205,16 +205,18 @@ export class ExportedNames {
                             }
                         }
                     }
-                }
 
-                if (props.length > 0) {
-                    propsStr =
-                        `{ ${props.join(', ')} }` +
-                        (withUnknown ? ' & Record<string, unknown>' : '');
-                } else if (withUnknown) {
-                    propsStr = 'Record<string, unknown>';
+                    if (props.length > 0) {
+                        propsStr =
+                            `{ ${props.join(', ')} }` +
+                            (withUnknown ? ' & Record<string, unknown>' : '');
+                    } else if (withUnknown) {
+                        propsStr = 'Record<string, unknown>';
+                    } else {
+                        propsStr = 'Record<string, never>';
+                    }
                 } else {
-                    propsStr = 'Record<string, never>';
+                    propsStr = 'Record<string, unknown>';
                 }
 
                 if (this.isTsFile) {
