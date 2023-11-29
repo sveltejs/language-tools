@@ -14,6 +14,8 @@ import { decorateInlayHints } from './inlay-hints';
 import { decorateRename } from './rename';
 import { decorateUpdateImports } from './update-imports';
 import { decorateLanguageServiceHost } from './host';
+import { decorateNavigateToItems } from './navigate-to-items';
+import { decorateFileReferences } from './file-references';
 
 const patchedProject = new Set<string>();
 
@@ -60,6 +62,8 @@ function decorateLanguageServiceInner(
     decorateCallHierarchy(ls, snapshotManager, typescript);
     decorateHover(ls, info, typescript, logger);
     decorateInlayHints(ls, info, typescript, logger);
+    decorateNavigateToItems(ls, snapshotManager);
+    decorateFileReferences(ls, snapshotManager);
     decorateDispose(ls, info.project, onDispose);
     return ls;
 }

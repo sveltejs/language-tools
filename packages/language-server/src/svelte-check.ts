@@ -44,7 +44,10 @@ export class SvelteCheck {
     private pluginHost = new PluginHost(this.docManager);
     private lsAndTSDocResolver?: LSAndTSDocResolver;
 
-    constructor(workspacePath: string, private options: SvelteCheckOptions = {}) {
+    constructor(
+        workspacePath: string,
+        private options: SvelteCheckOptions = {}
+    ) {
         Logger.setLogErrorsOnly(true);
         this.initialize(workspacePath, options);
     }

@@ -12,6 +12,7 @@ import {
     DefinitionLink,
     Diagnostic,
     FileChangeType,
+    FoldingRange,
     Hover,
     InlayHint,
     Location,
@@ -30,19 +31,22 @@ import {
 } from 'vscode-languageserver';
 import { Document, getTextInRange, mapSymbolInformationToOriginal } from '../../lib/documents';
 import { LSConfigManager, LSTypescriptConfig } from '../../ls-config';
-import { isNotNullOrUndefined, isZeroLengthRange, pathToUrl } from '../../utils';
+import { isNotNullOrUndefined, isZeroLengthRange } from '../../utils';
 import {
     AppCompletionItem,
     AppCompletionList,
+    CallHierarchyProvider,
     CodeActionsProvider,
+    CodeLensProvider,
     CompletionsProvider,
     DefinitionsProvider,
     DiagnosticsProvider,
     DocumentSymbolsProvider,
-    FileRename,
-    FindReferencesProvider,
     FileReferencesProvider,
+    FileRename,
     FindComponentReferencesProvider,
+    FindReferencesProvider,
+    FoldingRangeProvider,
     HoverProvider,
     ImplementationProvider,
     InlayHintProvider,
@@ -54,20 +58,20 @@ import {
     SignatureHelpProvider,
     TypeDefinitionProvider,
     UpdateImportsProvider,
-    UpdateTsOrJsFile,
-    CallHierarchyProvider,
-    CodeLensProvider
+    UpdateTsOrJsFile
 } from '../interfaces';
+import { LSAndTSDocResolver } from './LSAndTSDocResolver';
+import { ignoredBuildDirectories } from './SnapshotManager';
 import { CodeActionsProviderImpl } from './features/CodeActionsProvider';
 import {
     CompletionEntryWithIdentifier,
     CompletionsProviderImpl
 } from './features/CompletionProvider';
 import { DiagnosticsProviderImpl } from './features/DiagnosticsProvider';
-import { FindFileReferencesProviderImpl } from './features/FindFileReferencesProvider';
 import { FindComponentReferencesProviderImpl } from './features/FindComponentReferencesProvider';
+import { FindFileReferencesProviderImpl } from './features/FindFileReferencesProvider';
 import { FindReferencesProviderImpl } from './features/FindReferencesProvider';
-import { getDirectiveCommentCompletions } from './features/getDirectiveCommentCompletions';
+import { FoldingRangeProviderImpl } from './features/FoldingRangeProvider';
 import { HoverProviderImpl } from './features/HoverProvider';
 import { ImplementationProviderImpl } from './features/ImplementationProvider';
 import { InlayHintProviderImpl } from './features/InlayHintProvider';
@@ -77,13 +81,12 @@ import { SemanticTokensProviderImpl } from './features/SemanticTokensProvider';
 import { SignatureHelpProviderImpl } from './features/SignatureHelpProvider';
 import { TypeDefinitionProviderImpl } from './features/TypeDefinitionProvider';
 import { UpdateImportsProviderImpl } from './features/UpdateImportsProvider';
+import { getDirectiveCommentCompletions } from './features/getDirectiveCommentCompletions';
 import {
+    SnapshotMap,
     is$storeVariableIn$storeDeclaration,
-    isTextSpanInGeneratedCode,
-    SnapshotMap
+    isTextSpanInGeneratedCode
 } from './features/utils';
-import { LSAndTSDocResolver } from './LSAndTSDocResolver';
-import { ignoredBuildDirectories } from './SnapshotManager';
 import { isAttributeName, isAttributeShorthand, isEventHandler } from './svelte-ast-utils';
 import {
     convertToLocationForReferenceOrDefinition,
@@ -114,6 +117,7 @@ export class TypeScriptPlugin
         TypeDefinitionProvider,
         InlayHintProvider,
         CallHierarchyProvider,
+        FoldingRangeProvider,
         CodeLensProvider,
         OnWatchFileChanges,
         CompletionsProvider<CompletionEntryWithIdentifier>,
@@ -138,6 +142,7 @@ export class TypeScriptPlugin
     private readonly implementationProvider: ImplementationProviderImpl;
     private readonly typeDefinitionProvider: TypeDefinitionProviderImpl;
     private readonly inlayHintProvider: InlayHintProviderImpl;
+    private readonly foldingRangeProvider: FoldingRangeProviderImpl;
     private readonly callHierarchyProvider: CallHierarchyProviderImpl;
     private readonly codLensProvider: CodeLensProviderImpl;
 
@@ -184,6 +189,10 @@ export class TypeScriptPlugin
             this.lsAndTsDocResolver,
             workspaceUris
         );
+        this.foldingRangeProvider = new FoldingRangeProviderImpl(
+            this.lsAndTsDocResolver,
+            configManager
+        );
         this.codLensProvider = new CodeLensProviderImpl(
             this.lsAndTsDocResolver,
             this.findReferencesProvider,
@@ -219,7 +228,7 @@ export class TypeScriptPlugin
             return [];
         }
 
-        const { lang, tsDoc } = await this.getLSAndTSDoc(document);
+        const { lang, tsDoc } = await this.lsAndTsDocResolver.getLsForSyntheticOperations(document);
 
         if (cancellationToken?.isCancellationRequested) {
             return [];
@@ -368,7 +377,7 @@ export class TypeScriptPlugin
     }
 
     async getDefinitions(document: Document, position: Position): Promise<DefinitionLink[]> {
-        const { lang, tsDoc } = await this.getLSAndTSDoc(document);
+        const { lang, tsDoc } = await this.lsAndTsDocResolver.getLSAndTSDoc(document);
 
         const defs = lang.getDefinitionAndBoundSpan(
             tsDoc.filePath,
@@ -646,16 +655,20 @@ export class TypeScriptPlugin
         return this.callHierarchyProvider.getOutgoingCalls(item, cancellationToken);
     }
 
+    async getFoldingRanges(document: Document): Promise<FoldingRange[]> {
+        return this.foldingRangeProvider.getFoldingRanges(document);
+    }
+
     getCodeLens(document: Document): Promise<CodeLens[] | null> {
         return this.codLensProvider.getCodeLens(document);
     }
 
-    resolveCodeLens(document: Document, codeLensToResolve: CodeLens, cancellationToken?: CancellationToken): Promise<CodeLens> {
+    resolveCodeLens(
+        document: Document,
+        codeLensToResolve: CodeLens,
+        cancellationToken?: CancellationToken
+    ): Promise<CodeLens> {
         return this.codLensProvider.resolveCodeLens(document, codeLensToResolve, cancellationToken);
-    }
-
-    private getLSAndTSDoc(document: Document) {
-        return this.lsAndTsDocResolver.getLSAndTSDoc(document);
     }
 
     /**

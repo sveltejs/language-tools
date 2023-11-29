@@ -108,9 +108,14 @@ export function handleBinding(
                       )}"`
                   ]
             : // Other typings - remove the bind: prefix
-            isShorthand
-            ? [[attr.expression.start, attr.expression.end]]
-            : [[attr.start + 'bind:'.length, str.original.lastIndexOf('=', attr.expression.start)]];
+              isShorthand
+              ? [[attr.expression.start, attr.expression.end]]
+              : [
+                    [
+                        attr.start + 'bind:'.length,
+                        str.original.lastIndexOf('=', attr.expression.start)
+                    ]
+                ];
     const value: TransformationArray | undefined = isShorthand
         ? preserveBind && element instanceof Element
             ? [rangeWithTrailingPropertyAccess(str.original, attr.expression)]

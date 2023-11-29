@@ -1,7 +1,13 @@
 import ts from 'typescript';
 import { CancellationToken } from 'vscode-languageserver';
-import { Position, Range, InlayHint, InlayHintKind } from 'vscode-languageserver-types';
-import { Document, isInTag } from '../../../lib/documents';
+import {
+    Position,
+    Range,
+    InlayHint,
+    InlayHintKind,
+    InlayHintLabelPart
+} from 'vscode-languageserver-types';
+import { Document, isInTag, mapLocationToOriginal } from '../../../lib/documents';
 import { getAttributeContextAtPosition } from '../../../lib/documents/parseHtml';
 import { InlayHintProvider } from '../../interfaces';
 import { DocumentSnapshot, SvelteDocumentSnapshot } from '../DocumentSnapshot';
@@ -11,8 +17,10 @@ import {
     isInGeneratedCode,
     findChildOfKind,
     findRenderFunction,
-    findClosestContainingNode
+    findClosestContainingNode,
+    SnapshotMap
 } from './utils';
+import { convertRange } from '../utils';
 
 export class InlayHintProviderImpl implements InlayHintProvider {
     constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
@@ -23,9 +31,8 @@ export class InlayHintProviderImpl implements InlayHintProvider {
         cancellationToken?: CancellationToken
     ): Promise<InlayHint[] | null> {
         // Don't sync yet so we can skip TypeScript's synchronizeHostData if inlay hints are disabled
-        const { userPreferences } = await this.lsAndTsDocResolver.getLsForSyntheticOperations(
-            document
-        );
+        const { userPreferences } =
+            await this.lsAndTsDocResolver.getLsForSyntheticOperations(document);
 
         if (
             cancellationToken?.isCancellationRequested ||
@@ -52,7 +59,10 @@ export class InlayHintProviderImpl implements InlayHintProvider {
         const renderFunctionReturnTypeLocation =
             renderFunction && this.getTypeAnnotationPosition(renderFunction);
 
-        const result = inlayHints
+        const snapshotMap = new SnapshotMap(this.lsAndTsDocResolver);
+        snapshotMap.set(tsDoc.filePath, tsDoc);
+
+        const convertPromises = inlayHints
             .filter(
                 (inlayHint) =>
                     !isInGeneratedCode(tsDoc.getFullText(), inlayHint.position) &&
@@ -61,21 +71,20 @@ export class InlayHintProviderImpl implements InlayHintProvider {
                     !this.isGeneratedVariableTypeHint(sourceFile, inlayHint) &&
                     !this.isGeneratedFunctionReturnType(sourceFile, inlayHint)
             )
-            .map((inlayHint) => ({
-                label: inlayHint.text,
+            .map(async (inlayHint) => ({
+                label: await this.convertInlayHintLabelParts(inlayHint, snapshotMap),
                 position: this.getOriginalPosition(document, tsDoc, inlayHint),
                 kind: this.convertInlayHintKind(inlayHint.kind),
                 paddingLeft: inlayHint.whitespaceBefore,
                 paddingRight: inlayHint.whitespaceAfter
-            }))
-            .filter(
-                (inlayHint) =>
-                    inlayHint.position.line >= 0 &&
-                    inlayHint.position.character >= 0 &&
-                    !this.checkGeneratedFunctionHintWithSource(inlayHint, document)
-            );
+            }));
 
-        return result;
+        return (await Promise.all(convertPromises)).filter(
+            (inlayHint) =>
+                inlayHint.position.line >= 0 &&
+                inlayHint.position.character >= 0 &&
+                !this.checkGeneratedFunctionHintWithSource(inlayHint, document)
+        );
     }
 
     private areInlayHintsEnabled(preferences: ts.UserPreferences) {
@@ -104,6 +113,43 @@ export class InlayHintProviderImpl implements InlayHintProvider {
             start,
             length: end - start
         };
+    }
+
+    private async convertInlayHintLabelParts(inlayHint: ts.InlayHint, snapshotMap: SnapshotMap) {
+        if (!inlayHint.displayParts) {
+            return inlayHint.text;
+        }
+
+        const convertPromises = inlayHint.displayParts.map(
+            async (part): Promise<InlayHintLabelPart> => {
+                if (!part.file || !part.span) {
+                    return {
+                        value: part.text
+                    };
+                }
+
+                const snapshot = await snapshotMap.retrieve(part.file);
+                if (!snapshot) {
+                    return {
+                        value: part.text
+                    };
+                }
+
+                const originalLocation = mapLocationToOriginal(
+                    snapshot,
+                    convertRange(snapshot, part.span)
+                );
+
+                return {
+                    value: part.text,
+                    location: originalLocation.range.start.line < 0 ? undefined : originalLocation
+                };
+            }
+        );
+
+        const parts = await Promise.all(convertPromises);
+
+        return parts;
     }
 
     private getOriginalPosition(

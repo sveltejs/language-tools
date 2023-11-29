@@ -16,6 +16,7 @@ import {
     CompletionList,
     DefinitionLink,
     Diagnostic,
+    FoldingRange,
     FormattingOptions,
     Hover,
     LinkedEditingRanges,
@@ -76,7 +77,10 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         this.deferredRequests = {};
     }
 
-    async getDiagnostics(textDocument: TextDocumentIdentifier): Promise<Diagnostic[]> {
+    async getDiagnostics(
+        textDocument: TextDocumentIdentifier,
+        cancellationToken?: CancellationToken
+    ): Promise<Diagnostic[]> {
         const document = this.getDocument(textDocument.uri);
 
         if (
@@ -96,7 +100,7 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         return flatten(
             await this.execute<Diagnostic[]>(
                 'getDiagnostics',
-                [document],
+                [document, cancellationToken],
                 ExecuteMode.Collect,
                 'high'
             )
@@ -610,6 +614,21 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
             ExecuteMode.FirstNonNull,
             'smart'
         );
+    }
+
+    async getFoldingRanges(textDocument: TextDocumentIdentifier): Promise<FoldingRange[]> {
+        const document = this.getDocument(textDocument.uri);
+
+        const result = flatten(
+            await this.execute<FoldingRange[]>(
+                'getFoldingRanges',
+                [document],
+                ExecuteMode.Collect,
+                'high'
+            )
+        );
+
+        return result;
     }
 
     async resolveCodeLens(

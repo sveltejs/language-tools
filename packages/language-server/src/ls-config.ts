@@ -219,6 +219,8 @@ export interface TsUserPreferencesConfig {
      * only in typescript config
      */
     includePackageJsonAutoImports?: ts.UserPreferences['includePackageJsonAutoImports'];
+
+    preferTypeOnlyAutoImports?: ts.UserPreferences['preferTypeOnlyAutoImports'];
 }
 
 /**
@@ -249,7 +251,7 @@ export interface TsInlayHintsConfig {
         | undefined;
     parameterTypes: { enabled: boolean } | undefined;
     propertyDeclarationTypes: { enabled: boolean } | undefined;
-    variableTypes: { enabled: boolean } | undefined;
+    variableTypes: { enabled: boolean; suppressWhenTypeMatchesName: boolean } | undefined;
 }
 
 export interface TsReferenceCodeLensConfig {
@@ -449,13 +451,20 @@ export class LSConfigManager {
                 config.suggest?.classMemberSnippets?.enabled ?? true,
             includeCompletionsWithObjectLiteralMethodSnippets:
                 config.suggest?.objectLiteralMethodSnippets?.enabled ?? true,
+            preferTypeOnlyAutoImports: config.preferences?.preferTypeOnlyAutoImports,
+
             includeInlayEnumMemberValueHints: inlayHints?.enumMemberValues?.enabled,
             includeInlayFunctionLikeReturnTypeHints: inlayHints?.functionLikeReturnTypes?.enabled,
             includeInlayParameterNameHints: inlayHints?.parameterNames?.enabled,
             includeInlayParameterNameHintsWhenArgumentMatchesName:
-                inlayHints?.parameterNames?.suppressWhenArgumentMatchesName,
+                inlayHints?.parameterNames?.suppressWhenArgumentMatchesName === false,
             includeInlayFunctionParameterTypeHints: inlayHints?.parameterTypes?.enabled,
-            includeInlayVariableTypeHints: inlayHints?.variableTypes?.enabled
+            includeInlayVariableTypeHints: inlayHints?.variableTypes?.enabled,
+            includeInlayPropertyDeclarationTypeHints: inlayHints?.propertyDeclarationTypes?.enabled,
+            includeInlayVariableTypeHintsWhenTypeMatchesName:
+                inlayHints?.variableTypes?.suppressWhenTypeMatchesName === false,
+
+            interactiveInlayHints: true
         };
     }
 
@@ -483,8 +492,8 @@ export class LSConfigManager {
                         p.startsWith('*')
                             ? '/' + slashNormalized
                             : isRelative
-                            ? p
-                            : '/**/' + slashNormalized
+                              ? p
+                              : '/**/' + slashNormalized
                     );
                 }
             );

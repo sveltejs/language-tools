@@ -293,6 +293,7 @@ export function startServer(options?: LSOptions) {
                 typeDefinitionProvider: true,
                 inlayHintProvider: true,
                 callHierarchyProvider: true,
+                foldingRangeProvider: true,
                 codeLensProvider: {
                     resolveProvider: true
                 }
@@ -355,6 +356,7 @@ export function startServer(options?: LSOptions) {
 
     connection.onDidCloseTextDocument((evt) => docManager.closeDocument(evt.textDocument.uri));
     connection.onDidChangeTextDocument((evt) => {
+        diagnosticsManager.cancelStarted(evt.textDocument.uri);
         docManager.updateDocument(evt.textDocument, evt.contentChanges);
         pluginHost.didUpdateDocument();
     });
@@ -430,8 +432,10 @@ export function startServer(options?: LSOptions) {
         pluginHost.getTypeDefinition(evt.textDocument, evt.position)
     );
 
+    
+    connection.onFoldingRanges((evt) => pluginHost.getFoldingRanges(evt.textDocument));
+    
     connection.onCodeLens((evt) => pluginHost.getCodeLens(evt.textDocument));
-
     connection.onCodeLensResolve((codeLens, token) => {
         const data = codeLens.data as TextDocumentIdentifier;
 
@@ -480,7 +484,7 @@ export function startServer(options?: LSOptions) {
         refreshCrossFilesSemanticFeatures();
     }
 
-    connection.onDidSaveTextDocument(diagnosticsManager.scheduleUpdateAll);
+    connection.onDidSaveTextDocument(diagnosticsManager.scheduleUpdateAll.bind(diagnosticsManager));
     connection.onNotification('$/onDidChangeTsOrJsFile', async (e: any) => {
         const path = urlToPath(e.uri);
         if (path) {

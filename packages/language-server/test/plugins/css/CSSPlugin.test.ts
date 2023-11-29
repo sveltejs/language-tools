@@ -8,7 +8,8 @@ import {
     TextEdit,
     CompletionContext,
     SelectionRange,
-    CompletionTriggerKind
+    CompletionTriggerKind,
+    FoldingRangeKind
 } from 'vscode-languageserver';
 import { DocumentManager, Document } from '../../../src/lib/documents';
 import { CSSPlugin } from '../../../src/plugins';
@@ -132,33 +133,32 @@ describe('CSS Plugin', () => {
             const completions = await plugin.getCompletions(document, Position.create(0, 22), {
                 triggerKind: CompletionTriggerKind.Invoked
             } as CompletionContext);
-            assert.deepStrictEqual(
-                completions?.items.find((item) => item.label === 'none'),
-                <CompletionItem>{
-                    insertTextFormat: undefined,
-                    kind: 12,
-                    label: 'none',
-                    documentation: {
-                        kind: 'markdown',
-                        value: 'The element and its descendants generates no boxes\\.'
-                    },
-                    sortText: ' ',
-                    tags: [],
-                    textEdit: {
-                        newText: 'none',
-                        range: {
-                            start: {
-                                line: 0,
-                                character: 21
-                            },
-                            end: {
-                                line: 0,
-                                character: 22
-                            }
+            assert.deepStrictEqual(completions?.items.find((item) => item.label === 'none'), <
+                CompletionItem
+            >{
+                insertTextFormat: undefined,
+                kind: 12,
+                label: 'none',
+                documentation: {
+                    kind: 'markdown',
+                    value: 'The element and its descendants generates no boxes\\.'
+                },
+                sortText: ' ',
+                tags: [],
+                textEdit: {
+                    newText: 'none',
+                    range: {
+                        start: {
+                            line: 0,
+                            character: 21
+                        },
+                        end: {
+                            line: 0,
+                            character: 22
                         }
                     }
                 }
-            );
+            });
         });
 
         it('not for style attribute with interpolation', async () => {
@@ -183,26 +183,25 @@ describe('CSS Plugin', () => {
                 }
             });
             const completions = await plugin.getCompletions(document, Position.create(0, 16));
-            assert.deepStrictEqual(
-                completions?.items.find((item) => item.label === 'foo.css'),
-                <CompletionItem>{
-                    label: 'foo.css',
-                    kind: 17,
-                    textEdit: {
-                        newText: 'foo.css',
-                        range: {
-                            end: {
-                                character: 18,
-                                line: 0
-                            },
-                            start: {
-                                character: 16,
-                                line: 0
-                            }
+            assert.deepStrictEqual(completions?.items.find((item) => item.label === 'foo.css'), <
+                CompletionItem
+            >{
+                label: 'foo.css',
+                kind: 17,
+                textEdit: {
+                    newText: 'foo.css',
+                    range: {
+                        end: {
+                            character: 18,
+                            line: 0
+                        },
+                        start: {
+                            character: 16,
+                            line: 0
                         }
                     }
                 }
-            );
+            });
         });
     });
 
@@ -474,5 +473,29 @@ describe('CSS Plugin', () => {
         const selectionRange = plugin.getSelectionRange(document, Position.create(0, 10));
 
         assert.equal(selectionRange, null);
+    });
+
+    describe('folding ranges', () => {
+        it('provides folding ranges', () => {
+            const { plugin, document } = setup('<style>\n.hi {\ndisplay:none;\n}\n</style>');
+
+            const foldingRanges = plugin.getFoldingRanges(document);
+
+            assert.deepStrictEqual(foldingRanges, [{ startLine: 1, endLine: 2, kind: undefined }]);
+        });
+
+        it('provides folding ranges for known indent style', () => {
+            const { plugin, document } = setup(
+                '<style lang="sass">\n/*#region*/\n.hi\n  display:none\n.hi2\n  display: none\n/*#endregion*/\n</style>'
+            );
+
+            const foldingRanges = plugin.getFoldingRanges(document);
+
+            assert.deepStrictEqual(foldingRanges, [
+                { startLine: 1, endLine: 6, kind: FoldingRangeKind.Region },
+                { startLine: 2, endLine: 3 },
+                { startLine: 4, endLine: 5 }
+            ]);
+        });
     });
 });

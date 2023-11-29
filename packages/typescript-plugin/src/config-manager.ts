@@ -4,12 +4,15 @@ const configurationEventName = 'configuration-changed';
 
 export interface Configuration {
     enable: boolean;
+    /** Skip the Svelte detection and assume this is a Svelte project */
+    assumeIsSvelteProject: boolean;
 }
 
 export class ConfigManager {
     private emitter = new EventEmitter();
     private config: Configuration = {
-        enable: true
+        enable: true,
+        assumeIsSvelteProject: false
     };
 
     onConfigurationChanged(listener: (config: Configuration) => void) {

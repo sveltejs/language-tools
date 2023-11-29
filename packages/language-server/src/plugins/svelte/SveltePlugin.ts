@@ -49,7 +49,10 @@ export class SveltePlugin
 
     constructor(private configManager: LSConfigManager) {}
 
-    async getDiagnostics(document: Document): Promise<Diagnostic[]> {
+    async getDiagnostics(
+        document: Document,
+        cancellationToken?: CancellationToken
+    ): Promise<Diagnostic[]> {
         if (!this.featureEnabled('diagnostics') || !this.configManager.getIsTrusted()) {
             return [];
         }
@@ -57,13 +60,15 @@ export class SveltePlugin
         return getDiagnostics(
             document,
             await this.getSvelteDoc(document),
-            this.configManager.getConfig().svelte.compilerWarnings
+            this.configManager.getConfig().svelte.compilerWarnings,
+            cancellationToken
         );
     }
 
     async getCompiledResult(document: Document): Promise<SvelteCompileResult | null> {
         try {
             const svelteDoc = await this.getSvelteDoc(document);
+            // @ts-ignore is 'client' in Svelte 5
             return svelteDoc.getCompiledWith({ generate: 'dom' });
         } catch (error) {
             return null;
@@ -103,7 +108,7 @@ export class SveltePlugin
             const config1 = await getConfig(prettier1);
             const resolvedPlugins1 = resolvePlugins(config1.plugins);
             const pluginLoaded = await hasSveltePluginLoaded(prettier1, resolvedPlugins1);
-            if (Number(prettier1.version[0]) < 3 || pluginLoaded) {
+            if (Number(prettier1.version[0]) >= 3 || pluginLoaded) {
                 // plugin loaded, or referenced in user config as a plugin, or same version as our fallback version -> ok
                 return {
                     prettier: prettier1,

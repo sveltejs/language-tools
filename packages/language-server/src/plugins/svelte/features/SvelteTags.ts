@@ -3,12 +3,12 @@ import { SvelteDocument } from '../SvelteDocument';
 /**
  * Special svelte syntax tags that do template logic.
  */
-export type SvelteLogicTag = 'each' | 'if' | 'await' | 'key';
+export type SvelteLogicTag = 'each' | 'if' | 'await' | 'key' | 'snippet';
 
 /**
  * Special svelte syntax tags.
  */
-export type SvelteTag = SvelteLogicTag | 'html' | 'debug' | 'const';
+export type SvelteTag = SvelteLogicTag | 'html' | 'debug' | 'const' | 'render';
 
 /**
  * For each tag, a documentation in markdown format.
@@ -53,6 +53,13 @@ When used around components, this will cause them to be reinstantiated and reini
 \\
 https://svelte.dev/docs#template-syntax-key
 `,
+    snippet: `\`{#snippet identifier(parameter)}...{/snippet}\`\\
+Snippets allow you to create reusable UI blocks you can render with the {@render ...} tag.
+They also function as slot props for components.
+`,
+    render: `\`{@render ...}\`\\
+Renders a snippet with the given parameters.
+`,
     html:
         `\`{@html ...}\`\\
 In a text expression, characters like < and > are escaped; however, ` +
@@ -80,9 +87,11 @@ It accepts a comma-separated list of variable names (not arbitrary expressions).
 https://svelte.dev/docs#template-syntax-debug
 `,
     const: `\`{@const ...}\`\\
-TODO
+Defines a local constant}\\
 #### Usage:
 \`{@const a = b + c}\`\\
+\\
+https://svelte.dev/docs/special-tags#const
 `
 };
 
@@ -102,7 +111,8 @@ export function getLatestOpeningTag(
         idxOfLastOpeningTag(content, 'each'),
         idxOfLastOpeningTag(content, 'if'),
         idxOfLastOpeningTag(content, 'await'),
-        idxOfLastOpeningTag(content, 'key')
+        idxOfLastOpeningTag(content, 'key'),
+        idxOfLastOpeningTag(content, 'snippet')
     ];
     const lastIdx = lastIdxs.sort((i1, i2) => i2.lastIdx - i1.lastIdx);
     return lastIdx[0].lastIdx === -1 ? null : lastIdx[0].tag;

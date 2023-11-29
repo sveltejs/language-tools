@@ -159,8 +159,8 @@ export class MachineFriendlyWriter implements Writer {
                 severity === DiagnosticSeverity.Error
                     ? 'ERROR'
                     : severity === DiagnosticSeverity.Warning
-                    ? 'WARNING'
-                    : null;
+                      ? 'WARNING'
+                      : null;
 
             if (type) {
                 const { start, end } = range;

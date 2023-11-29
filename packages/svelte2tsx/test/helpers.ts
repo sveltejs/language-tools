@@ -3,6 +3,7 @@ import assert, { AssertionError } from 'assert';
 import { TestFunction } from 'mocha';
 import { htmlx2jsx, svelte2tsx } from './build';
 import path from 'path';
+import { VERSION } from 'svelte/compiler';
 
 let update_count = 0;
 let all_tests_skipped = false;
@@ -53,7 +54,10 @@ export class Sample {
     private skipped = false;
     private on_error?: ErrorFn;
 
-    constructor(dir: string, readonly name: string) {
+    constructor(
+        dir: string,
+        readonly name: string
+    ) {
         this.directory = path.resolve(dir, 'samples', name);
         this.folder = fs.readdirSync(this.directory);
     }
@@ -219,9 +223,14 @@ const enum TestError {
     WrongExpected = 'Expected a different output'
 }
 
+const isSvelte5Plus = Number(VERSION[0]) >= 5;
+
 export function test_samples(dir: string, transform: TransformSampleFn, js: 'js' | 'ts') {
     for (const sample of each_sample(dir)) {
+        if (sample.name.endsWith('.v5') && !isSvelte5Plus) continue;
+
         const svelteFile = sample.find_file('*.svelte');
+        const expectedFile = isSvelte5Plus ? `expected-svelte5.${js}` : `expectedv2.${js}`;
         const config = {
             filename: svelteFile,
             sampleName: sample.name,
@@ -232,12 +241,17 @@ export function test_samples(dir: string, transform: TransformSampleFn, js: 'js'
         if (process.env.CI) {
             sample.checkDirectory({
                 required: ['*.svelte', `expectedv2.${js}`],
-                allowed: ['expected.js', 'expected.error.json']
+                allowed: ['expected.js', `expected-svelte5.${js}`, 'expected.error.json']
             });
         } else {
             sample.checkDirectory({
                 required: ['*.svelte'],
-                allowed: ['expected.js', `expectedv2.${js}`, 'expected.error.json']
+                allowed: [
+                    'expected.js',
+                    `expectedv2.${js}`,
+                    `expected-svelte5.${js}`,
+                    'expected.error.json'
+                ]
             });
 
             if (sample.hasOnly(svelteFile) || sample.hasOnly(svelteFile, 'expected.js')) {
@@ -249,7 +263,7 @@ export function test_samples(dir: string, transform: TransformSampleFn, js: 'js'
                         generate('expected.error.json', print_error(error));
                         config.emitOnTemplateError = true;
                     }
-                    generate(`expectedv2.${js}`, transform(input, config).code);
+                    generate(expectedFile, transform(input, config).code);
                 });
             }
 
@@ -258,7 +272,7 @@ export function test_samples(dir: string, transform: TransformSampleFn, js: 'js'
                 const { message, actual } = err;
                 switch (message) {
                     case TestError.WrongExpected: {
-                        generate(`expectedv2.${js}`, actual);
+                        generate(expectedFile, actual);
                         break;
                     }
                     case TestError.WrongError: {
@@ -278,11 +292,14 @@ export function test_samples(dir: string, transform: TransformSampleFn, js: 'js'
                     transform(input, config);
                 } catch (error) {
                     hadError = true;
-                    assert.deepEqual(
-                        JSON.parse(JSON.stringify(error)),
-                        JSON.parse(sample.get('expected.error.json')),
-                        TestError.WrongError
-                    );
+                    let actual = JSON.parse(JSON.stringify(error));
+                    let expected = JSON.parse(sample.get('expected.error.json'));
+                    if (isSvelte5Plus && actual && expected) {
+                        // Error output looks a bit different but we only care about the start and end really
+                        actual = { start: actual.start, end: actual.end };
+                        expected = { start: expected.start, end: expected.end };
+                    }
+                    assert.deepEqual(actual, expected, TestError.WrongError);
                     config.emitOnTemplateError = true;
                 }
                 assert(hadError, TestError.MissingError);
@@ -296,7 +313,15 @@ export function test_samples(dir: string, transform: TransformSampleFn, js: 'js'
 
             assert.strictEqual(
                 normalize(transform(input, config).code),
-                sample.get(`expectedv2.${js}`),
+                sample.get(
+                    // Check the expectedv2 file first even in Svelte 5 mode because many are identical between versions.
+                    // This way we don't need to duplicate a bunch of expected files.
+                    isSvelte5Plus
+                        ? sample.has(expectedFile)
+                            ? expectedFile
+                            : `expectedv2.${js}`
+                        : expectedFile
+                ),
                 TestError.WrongExpected
             );
         });
@@ -317,7 +342,8 @@ export function get_svelte2tsx_config(base: BaseConfig, sampleName: string): Sve
         namespace: sampleName.endsWith('-foreign-ns') ? 'foreign' : null,
         typingsNamespace: 'svelteHTML',
         mode: sampleName.endsWith('-dts') ? 'dts' : 'ts',
-        accessors: sampleName.startsWith('accessors-config')
+        accessors: sampleName.startsWith('accessors-config'),
+        version: VERSION
     };
 }
 

@@ -16,7 +16,10 @@ type LineContext = { index: number; start: number; length: number };
 export class SourceText<L extends Line = Line> {
     readonly lines: L[] = [];
 
-    constructor(readonly text: string, line?: (ctx: LineContext) => L) {
+    constructor(
+        readonly text: string,
+        line?: (ctx: LineContext) => L
+    ) {
         this.lines = Array.from(
             (function* (text: string): Generator<LineContext> {
                 const line = { index: 0, start: 0, length: 0 };
@@ -118,7 +121,10 @@ export class Line {
         return this.start + this.length - 1;
     }
 
-    constructor(readonly source: SourceText<any>, ctx: LineContext) {
+    constructor(
+        readonly source: SourceText<any>,
+        ctx: LineContext
+    ) {
         ({ index: this.index, start: this.start, length: this.length } = ctx);
     }
 

@@ -497,8 +497,8 @@ export function isKitRouteExportAllowedIn(
         (basename.includes('layout')
             ? allowedIn.includes('layout')
             : basename.includes('+server')
-            ? allowedIn.includes('api')
-            : allowedIn.includes('page')) &&
+              ? allowedIn.includes('api')
+              : allowedIn.includes('page')) &&
         (basename.includes('server')
             ? allowedIn.includes('server')
             : allowedIn.includes('universal'))

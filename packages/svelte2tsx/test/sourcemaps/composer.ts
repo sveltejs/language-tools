@@ -9,7 +9,10 @@ type Section = HorizontalRule | Comment | Line | string;
 class Comment {
     readonly content: [string, string][];
 
-    constructor(gen: Iterable<comment>, readonly options: CommentOptions = {}) {
+    constructor(
+        gen: Iterable<comment>,
+        readonly options: CommentOptions = {}
+    ) {
         this.content = Array.from(gen, ([cmap, message]): [string, string] => [
             typeof cmap === 'string' ? cmap : ' '.repeat(cmap.start) + cmap.text,
             message
@@ -28,7 +31,10 @@ class Comment {
 }
 
 class HorizontalRule {
-    constructor(readonly content?: string, readonly _fill: string = '-') {}
+    constructor(
+        readonly content?: string,
+        readonly _fill: string = '-'
+    ) {}
 
     fill(width: number) {
         return this.content

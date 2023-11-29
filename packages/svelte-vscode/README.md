@@ -64,6 +64,11 @@ This setting can only be changed in user settings for security reasons.
 You normally don't set this. Path to the language server executable. If you installed the `svelte-language-server` npm package, it's within there at `bin/server.js`. Path can be either relative to your workspace root or absolute. Set this only if you want to use a custom version of the language server. This will then also use the workspace version of TypeScript.
 This setting can only be changed in user settings for security reasons.
 
+#### `svelte.language-server.runtime-args`
+
+You normally don't set this. Additional arguments to pass to Node when spawning the language server.
+This is useful when you use something like Yarn PnP and need its loader arguments `["--loader", ".pnp.loader.mjs"]`.
+
 ##### `svelte.language-server.port`
 
 You normally don't set this. At which port to spawn the language server.
@@ -86,7 +91,7 @@ Settings to toggle specific features of the extension. The full list of all sett
 ### Usage with Yarn 2 PnP
 
 1. Run `yarn add -D svelte-language-server` to install svelte-language-server as a dev dependency
-2. Run `yarn dlx @yarnpkg/sdks vscode` to generate or update the VSCode/Yarn integration SDKs. This also sets the `svelte.language-server.ls-path` setting for the workspace, pointing it to the workspace-installed language server. Note that this requires workspace trust - else set the `svelte.language-server.ls-path` setting in your user configuration.
+2. Run `yarn dlx @yarnpkg/sdks vscode` to generate or update the VSCode/Yarn integration SDKs. This also sets the `svelte.language-server.ls-path` and `svelte.language-server.runtime-args` setting for the workspace, pointing it to the workspace-installed language server. Note that this requires workspace trust - else set the `svelte.language-server.ls-path` and `svelte.language-server.runtime-args` setting in your user configuration.
 3. Restart VSCode.
 4. Commit the changes to `.yarn/sdks`
 

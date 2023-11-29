@@ -8,10 +8,11 @@ export interface CreateRenderFunctionPara extends InstanceScriptProcessResult {
     str: MagicString;
     scriptTag: Node;
     scriptDestination: number;
+    rootSnippets: Array<[number, number]>;
     slots: Map<string, Map<string, string>>;
     events: ComponentEvents;
-    isTsFile: boolean;
     uses$$SlotsInterface: boolean;
+    svelte5Plus: boolean;
     mode?: 'ts' | 'dts';
 }
 
@@ -19,15 +20,16 @@ export function createRenderFunction({
     str,
     scriptTag,
     scriptDestination,
+    rootSnippets,
     slots,
     events,
     exportedNames,
-    isTsFile,
     uses$$props,
     uses$$restProps,
     uses$$slots,
     uses$$SlotsInterface,
     generics,
+    svelte5Plus,
     mode
 }: CreateRenderFunctionPara) {
     const htmlx = str.original;
@@ -72,17 +74,17 @@ export function createRenderFunction({
             }
             str.overwrite(scriptTag.start + 1, start - 1, `function render`);
             str.overwrite(start - 1, start, `<`); // if the generics are unused, only this char is colored opaque
-            if (end < scriptTagEnd) {
-                str.overwrite(end, scriptTagEnd, `>() {${propsDecl}\n`);
-            } else {
-                str.prependRight(end, `>() {${propsDecl}\n`);
-            }
+            str.overwrite(end, scriptTagEnd, `>() {${propsDecl}\n`);
         } else {
             str.overwrite(
                 scriptTag.start + 1,
                 scriptTagEnd,
                 `function render${generics.toDefinitionString(true)}() {${propsDecl}\n`
             );
+        }
+
+        for (const rootSnippet of rootSnippets) {
+            str.move(rootSnippet[0], rootSnippet[1], scriptTagEnd);
         }
 
         const scriptEndTagStart = htmlx.lastIndexOf('<', scriptTag.end - 1);
@@ -102,23 +104,29 @@ export function createRenderFunction({
         : '{' +
           Array.from(slots.entries())
               .map(([name, attrs]) => {
-                  const attrsAsString = Array.from(attrs.entries())
-                      .map(([exportName, expr]) =>
-                          exportName.startsWith('__spread__')
-                              ? `...${expr}`
-                              : `${exportName}:${expr}`
-                      )
-                      .join(', ');
-                  return `'${name}': {${attrsAsString}}`;
+                  return `'${name}': {${slotAttributesToString(attrs)}}`;
               })
               .join(', ') +
           '}';
 
+    const needsImplicitChildrenProp =
+        svelte5Plus &&
+        !exportedNames.uses$propsRune() &&
+        slots.has('default') &&
+        !exportedNames.getExportsMap().has('default');
+    if (needsImplicitChildrenProp) {
+        exportedNames.addImplicitChildrenExport(slots.get('default')!.size > 0);
+    }
+
     const returnString =
-        `\nreturn { props: ${exportedNames.createPropsStr(
-            isTsFile,
-            uses$$props || uses$$restProps
-        )}` +
+        `${
+            needsImplicitChildrenProp && slots.get('default')!.size > 0
+                ? `\nlet $$implicit_children = __sveltets_2_snippet({${slotAttributesToString(
+                      slots.get('default')!
+                  )}});`
+                : ''
+        }` +
+        `\nreturn { props: ${exportedNames.createPropsStr(uses$$props || uses$$restProps)}` +
         `, slots: ${slotsAsDef}` +
         `, events: ${events.toDefString()} }}`;
 
@@ -126,4 +134,12 @@ export function createRenderFunction({
     str.append('};');
 
     str.append(returnString);
+}
+
+function slotAttributesToString(attrs: Map<string, string>) {
+    return Array.from(attrs.entries())
+        .map(([exportName, expr]) =>
+            exportName.startsWith('__spread__') ? `...${expr}` : `${exportName}:${expr}`
+        )
+        .join(', ');
 }

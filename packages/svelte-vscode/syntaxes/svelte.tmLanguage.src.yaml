@@ -224,7 +224,9 @@ repository:
          { match: if|else\s+if|else, name: keyword.control.conditional.svelte },
          { match: each|key,          name: keyword.control.svelte             },
          { match: await|then|catch,  name: keyword.control.flow.svelte        },
+         { match: snippet,           name: keyword.control.svelte        },
          { match: html,              name: keyword.other.svelte               },
+         { match: render,            name: keyword.other.svelte               },
          { match: debug,             name: keyword.other.debugger.svelte      },
          { match: const,             name: storage.type.svelte                }]}
 
@@ -232,7 +234,7 @@ repository:
   special-tags-modes:
     patterns:
     # Expressions or simple values.
-    - begin: (?<=(if|key|then|catch|html).*?)\G
+    - begin: (?<=(if|key|then|catch|snippet|html|render).*?)\G
       end: (?=})
       name: meta.embedded.expression.svelte source.ts
       patterns: [ include: source.ts ]

@@ -50,7 +50,8 @@
             "supported": "limited",
             "restrictedConfigurations": [
                 "svelte.language-server.runtime",
-                "svelte.language-server.ls-path"
+                "svelte.language-server.ls-path",
+                "svelte.language-server.runtime-args"
             ],
             "description": "The extension requires workspace trust because it executes code specified by the workspace. Loading the user's node_modules and loading svelte config files is disabled when untrusted"
         }
@@ -87,6 +88,11 @@
                     "type": "string",
                     "title": "Language Server Path",
                     "description": "- You normally don't set this - Path to the language server executable. If you installed the \"svelte-language-server\" npm package, it's within there at \"bin/server.js\". Path can be either relative to your workspace root or absolute. Set this only if you want to use a custom version of the language server. This will then also use the workspace version of TypeScript. This setting can only be changed in user settings for security reasons."
+                },
+                "svelte.language-server.runtime-args": {
+                    "type": "array",
+                    "title": "Language Server Runtime Args",
+                    "description": "You normally don't set this. Additional arguments to pass to the node executable when spawning the language server. This is useful when you use something like Yarn PnP and need its loader arguments `[\"--loader\", \".pnp.loader.mjs\"]`."
                 },
                 "svelte.language-server.port": {
                     "type": "number",
@@ -713,7 +719,7 @@
         "@types/vscode": "^1.67",
         "js-yaml": "^3.14.0",
         "tslib": "^2.4.0",
-        "typescript": "^5.2.2",
+        "typescript": "^5.3.2",
         "vscode-tmgrammar-test": "^0.0.11"
     },
     "dependencies": {

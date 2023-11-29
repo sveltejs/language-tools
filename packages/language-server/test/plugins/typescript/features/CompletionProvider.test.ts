@@ -599,10 +599,7 @@ describe('CompletionProviderImpl', function () {
         );
 
         assert.deepStrictEqual(
-            sortBy(
-                completions?.items.map((item) => item.label),
-                (x) => x
-            ),
+            sortBy(completions?.items.map((item) => item.label), (x) => x),
             sortBy(testfiles, (x) => x)
         );
     });
@@ -783,7 +780,7 @@ describe('CompletionProviderImpl', function () {
     async function openFileToBeImported(
         docManager: DocumentManager,
         completionProvider: CompletionsProviderImpl,
-        name = 'imported-file.svelte'
+        name = '../imported-file.svelte'
     ) {
         const filePath = join(testFilesDir, name);
         const hoverinfoDoc = docManager.openClientDocument(<any>{
@@ -1041,7 +1038,7 @@ describe('CompletionProviderImpl', function () {
             const item = completions?.items?.[0];
             assert.strictEqual(item?.label, 'abc');
         }
-    }).timeout(4000);
+    }).timeout(this.timeout() * 2);
 
     it('provides default slot-let completion for components with type definition', async () => {
         const { completionProvider, document } = setup('component-events-completion-ts-def.svelte');
@@ -1336,10 +1333,7 @@ describe('CompletionProviderImpl', function () {
             document,
             Position.create(4, 14)
         );
-        assert.deepStrictEqual(
-            completions?.items.map((item) => item.label),
-            ['s', 'm', 'l']
-        );
+        assert.deepStrictEqual(completions?.items.map((item) => item.label), ['s', 'm', 'l']);
     });
 
     it('can auto import in workspace without tsconfig/jsconfig', async () => {
@@ -1466,14 +1460,15 @@ describe('CompletionProviderImpl', function () {
             }
         );
 
-        const item = completions?.items.find((item) => item.label === 'store');
+        const item = completions?.items.find((item) => item.label === '$store');
 
+        assert.ok(item);
         assert.equal(item?.data?.source?.endsWith('completions/to-import'), true);
 
-        delete item?.data;
+        const { data, ...itemWithoutData } = item;
 
-        assert.deepStrictEqual(item, {
-            label: 'store',
+        assert.deepStrictEqual(itemWithoutData, {
+            label: '$store',
             kind: CompletionItemKind.Constant,
             sortText: '16',
             preselect: undefined,
@@ -1483,6 +1478,33 @@ describe('CompletionProviderImpl', function () {
             textEdit: undefined,
             labelDetails: undefined
         });
+
+        const { detail } = await completionProvider.resolveCompletion(document, item);
+
+        assert.deepStrictEqual(
+            detail,
+            'Add import from "./to-import"\n\nconst store: Writable<number>'
+        );
+    });
+
+    it(`provide props completions for namespaced component`, async () => {
+        const namespacedComponentTestList: [Position, string][] = [
+            [Position.create(9, 26), 'namespace import after tag name'],
+            [Position.create(9, 35), 'namespace import before tag end'],
+            [Position.create(10, 27), 'object namespace after tag name'],
+            [Position.create(10, 36), 'object namespace before tag end']
+        ];
+
+        for (const [position, name] of namespacedComponentTestList) {
+            const { completionProvider, document } = setup('namespaced.svelte');
+
+            const completions = await completionProvider.getCompletions(document, position, {
+                triggerKind: CompletionTriggerKind.Invoked
+            });
+
+            const item = completions?.items.find((item) => item.label === 'hi2');
+            assert.ok(item, `expected to have completion for ${name}`);
+        }
     });
 
     // Hacky, but it works. Needed due to testing both new and old transformation

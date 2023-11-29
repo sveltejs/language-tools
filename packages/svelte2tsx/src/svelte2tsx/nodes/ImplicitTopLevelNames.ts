@@ -9,7 +9,10 @@ import { overwriteStr, preprendStr } from '../../utils/magic-string';
 export class ImplicitTopLevelNames {
     private map = new Set<ts.LabeledStatement>();
 
-    constructor(private str: MagicString, private astOffset: number) {}
+    constructor(
+        private str: MagicString,
+        private astOffset: number
+    ) {}
 
     add(node: ts.LabeledStatement) {
         this.map.add(node);

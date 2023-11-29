@@ -1,4 +1,3 @@
-import { parse } from 'svelte/compiler';
 import { Node } from 'estree-walker';
 
 function parseAttributes(str: string, start: number) {
@@ -31,8 +30,14 @@ function parseAttributes(str: string, start: number) {
     return attrs;
 }
 
+// Regex ensures that attributes with > characters in them still result in the content being matched correctly
+const scriptRegex =
+    /(<!--[^]*?-->)|(<script((?:\s+[^=>'"\/]+=(?:"[^"]*"|'[^']*'|[^>\s]+)|\s+[^=>'"\/]+)*\s*)>)([\S\s]*?)<\/script>/g;
+const styleRegex =
+    /(<!--[^]*?-->)|(<style((?:\s+[^=>'"\/]+=(?:"[^"]*"|'[^']*'|[^>\s]+)|\s+[^=>'"\/]+)*\s*)>)([\S\s]*?)<\/style>/g;
+
 function extractTag(htmlx: string, tag: 'script' | 'style') {
-    const exp = new RegExp(`(<!--[^]*?-->)|(<${tag}([\\S\\s]*?)>)([\\S\\s]*?)<\\/${tag}>`, 'g');
+    const exp = tag === 'script' ? scriptRegex : styleRegex;
     const matches: Node[] = [];
 
     let match: RegExpExecArray | null = null;
@@ -106,14 +111,18 @@ function blankVerbatimContent(htmlx: string, verbatimElements: Node[]) {
     return output;
 }
 
-export function parseHtmlx(htmlx: string, options?: { emitOnTemplateError?: boolean }) {
+export function parseHtmlx(
+    htmlx: string,
+    parse: typeof import('svelte/compiler').parse,
+    options: { emitOnTemplateError?: boolean }
+) {
     //Svelte tries to parse style and script tags which doesn't play well with typescript, so we blank them out.
     //HTMLx spec says they should just be retained after processing as is, so this is fine
     const verbatimElements = findVerbatimElements(htmlx);
     const deconstructed = blankVerbatimContent(htmlx, verbatimElements);
 
     //extract the html content parsed as htmlx this excludes our script and style tags
-    const parsingCode = options?.emitOnTemplateError
+    const parsingCode = options.emitOnTemplateError
         ? blankPossiblyErrorOperatorOrPropertyAccess(deconstructed)
         : deconstructed;
     const htmlxAst = parse(parsingCode).html;
@@ -163,7 +172,7 @@ function blankPossiblyErrorOperatorOrPropertyAccess(htmlx: string) {
                 }
                 htmlx =
                     htmlx.substring(0, backwardIndex) + ' ' + htmlx.substring(backwardIndex + 1);
-            } else if (!/\s/.test(char)) {
+            } else if (!/\s/.test(char) && char !== ')' && char !== ']') {
                 break;
             }
             backwardIndex--;

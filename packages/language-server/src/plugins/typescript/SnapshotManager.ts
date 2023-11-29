@@ -20,7 +20,10 @@ export class GlobalSnapshotsManager {
     private getCanonicalFileName: GetCanonicalFileName;
     private packageJsonCache: PackageJsonCache;
 
-    constructor(private readonly tsSystem: ts.System, watchPackageJson = false) {
+    constructor(
+        private readonly tsSystem: ts.System,
+        watchPackageJson = false
+    ) {
         this.documents = new FileMap(tsSystem.useCaseSensitiveFileNames);
         this.getCanonicalFileName = createGetCanonicalFileName(tsSystem.useCaseSensitiveFileNames);
         this.packageJsonCache = new PackageJsonCache(

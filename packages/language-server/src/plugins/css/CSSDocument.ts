@@ -15,7 +15,10 @@ export class CSSDocument extends ReadableDocument implements DocumentMapper {
     public stylesheet: Stylesheet;
     public languageId: string;
 
-    constructor(private parent: Document, languageServices: CSSLanguageServices) {
+    constructor(
+        private parent: Document,
+        languageServices: CSSLanguageServices
+    ) {
         super();
 
         if (this.parent.styleInfo) {

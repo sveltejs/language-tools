@@ -10,7 +10,11 @@ export class Generics {
     private references: string[] = [];
     genericsAttr: Node | undefined;
 
-    constructor(private str: MagicString, private astOffset: number, script: Node) {
+    constructor(
+        private str: MagicString,
+        private astOffset: number,
+        script: Node
+    ) {
         this.genericsAttr = script.attributes.find((attr) => attr.name === 'generics');
         const generics = this.genericsAttr?.value[0]?.raw as string | undefined;
         if (generics) {

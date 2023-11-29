@@ -1,6 +1,5 @@
 import { EncodedSourceMap, TraceMap, originalPositionFor } from '@jridgewell/trace-mapping';
-import path from 'path';
-import { walk } from 'svelte/compiler';
+// @ts-ignore
 import { TemplateNode } from 'svelte/types/compiler/interfaces';
 import { svelte2tsx, IExportedNames, internalHelpers } from 'svelte2tsx';
 import ts from 'typescript';
@@ -19,7 +18,7 @@ import {
 } from '../../lib/documents';
 import { pathToUrl, urlToPath } from '../../utils';
 import { ConsumerDocumentMapper } from './DocumentMapper';
-import { SvelteNode } from './svelte-ast-utils';
+import { SvelteNode, SvelteNodeWalker, walkSvelteAst } from './svelte-ast-utils';
 import {
     getScriptKindFromAttributes,
     getScriptKindFromFileName,
@@ -68,6 +67,8 @@ export interface DocumentSnapshot extends ts.IScriptSnapshot, DocumentMapper {
  * Options that apply to svelte files.
  */
 export interface SvelteSnapshotOptions {
+    parse: typeof import('svelte/compiler').parse | undefined;
+    version: string | undefined;
     transformOnTemplateError: boolean;
     typingsNamespace: string;
 }
@@ -198,6 +199,8 @@ function preprocessSvelteFile(document: Document, options: SvelteSnapshotOptions
 
     try {
         const tsx = svelte2tsx(text, {
+            parse: options.parse,
+            version: options.version,
             filename: document.getFilePath() ?? undefined,
             isTsFile: scriptKind === ts.ScriptKind.TS,
             mode: 'ts',
@@ -335,19 +338,19 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
                 : this.parent.offsetAt(positionOrOffset);
 
         let foundNode: SvelteNode | null = null;
-        walk(this.htmlAst as any, {
+        this.walkSvelteAst({
             enter(node) {
                 // In case the offset is at a point where a node ends and a new one begins,
                 // the node where the code ends is used. If this introduces problems, introduce
                 // an affinity parameter to prefer the node where it ends/starts.
-                if ((node as SvelteNode).start > offset || (node as SvelteNode).end < offset) {
+                if (node.start > offset || node.end < offset) {
                     this.skip();
                     return;
                 }
                 const parent = foundNode;
                 // Spread so the "parent" property isn't added to the original ast,
                 // causing an infinite loop
-                foundNode = { ...node } as SvelteNode;
+                foundNode = { ...node };
                 if (parent) {
                     foundNode.parent = parent;
                 }
@@ -355,6 +358,14 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
         });
 
         return foundNode;
+    }
+
+    walkSvelteAst(walker: SvelteNodeWalker) {
+        if (!this.htmlAst) {
+            return;
+        }
+
+        walkSvelteAst(this.htmlAst, walker);
     }
 
     getOriginalPosition(pos: Position): Position {
@@ -439,7 +450,11 @@ export class JSOrTSDocumentSnapshot extends IdentityMapper implements DocumentSn
         return this.openedByClient;
     }
 
-    constructor(public version: number, public readonly filePath: string, private text: string) {
+    constructor(
+        public version: number,
+        public readonly filePath: string,
+        private text: string
+    ) {
         super(pathToUrl(filePath));
         this.adjustText();
     }
@@ -611,7 +626,12 @@ export class DtsDocumentSnapshot extends JSOrTSDocumentSnapshot implements Docum
     private traceMap: TraceMap | undefined;
     private mapperInitialized = false;
 
-    constructor(version: number, filePath: string, text: string, private tsSys: ts.System) {
+    constructor(
+        version: number,
+        filePath: string,
+        text: string,
+        private tsSys: ts.System
+    ) {
         super(version, filePath, text);
     }
 
@@ -635,8 +655,8 @@ export class DtsDocumentSnapshot extends JSOrTSDocumentSnapshot implements Docum
         const originalFilePath = URI.isUri(mapped.source)
             ? urlToPath(mapped.source)
             : this.filePath
-            ? resolve(dirname(this.filePath), mapped.source).toString()
-            : undefined;
+              ? resolve(dirname(this.filePath), mapped.source).toString()
+              : undefined;
 
         // ex: library publish with declarationMap but npmignore the original files
         if (!originalFilePath || !this.tsSys.fileExists(originalFilePath)) {

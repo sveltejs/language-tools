@@ -1,5 +1,6 @@
 import { walk } from 'estree-walker';
 import { EOL } from 'os';
+// @ts-ignore
 import { TemplateNode } from 'svelte/types/compiler/interfaces';
 import {
     CodeAction,

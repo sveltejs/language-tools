@@ -40,6 +40,7 @@ export function processInstanceScriptContent(
     implicitStoreValues: ImplicitStoreValues,
     mode: 'ts' | 'dts',
     hasModuleScript: boolean,
+    isTSFile: boolean,
     basename: string
 ): InstanceScriptProcessResult {
     const htmlx = str.original;
@@ -52,7 +53,7 @@ export function processInstanceScriptContent(
         ts.ScriptKind.TS
     );
     const astOffset = script.content.start;
-    const exportedNames = new ExportedNames(str, astOffset, basename);
+    const exportedNames = new ExportedNames(str, astOffset, basename, isTSFile);
     const generics = new Generics(str, astOffset, script);
     const interfacesAndTypes = new InterfacesAndTypes();
 
@@ -119,8 +120,9 @@ export function processInstanceScriptContent(
                 }
             }
         } else {
+            const text = ident.text;
             //track potential store usage to be resolved
-            if (ident.text.startsWith('$')) {
+            if (text.startsWith('$')) {
                 if (
                     (!ts.isPropertyAccessExpression(parent) || parent.expression == ident) &&
                     (!ts.isPropertyAssignment(parent) || parent.initializer == ident) &&
@@ -130,7 +132,15 @@ export function processInstanceScriptContent(
                     !ts.isTypeAliasDeclaration(parent) &&
                     !ts.isInterfaceDeclaration(parent)
                 ) {
-                    pendingStoreResolutions.push({ node: ident, parent, scope });
+                    // Handle the const { ...props } = $props() case
+                    const is_rune =
+                        (text === '$props' || text === '$derived' || text === '$state') &&
+                        ts.isCallExpression(parent) &&
+                        ts.isVariableDeclaration(parent.parent) &&
+                        parent.parent.name.getText().includes(text.slice(1));
+                    if (!is_rune) {
+                        pendingStoreResolutions.push({ node: ident, parent, scope });
+                    }
                 }
             }
         }
