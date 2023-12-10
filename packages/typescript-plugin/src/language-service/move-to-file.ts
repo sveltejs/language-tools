@@ -1,8 +1,6 @@
 import type ts from 'typescript/lib/tsserverlibrary';
 
-export function decorateMoveToRefactoringFileSuggestions(
-    ls: ts.LanguageService
-): void {
+export function decorateMoveToRefactoringFileSuggestions(ls: ts.LanguageService): void {
     const getMoveToRefactoringFileSuggestions = ls.getMoveToRefactoringFileSuggestions;
 
     ls.getMoveToRefactoringFileSuggestions = (
