@@ -16,6 +16,7 @@ import { decorateUpdateImports } from './update-imports';
 import { decorateLanguageServiceHost } from './host';
 import { decorateNavigateToItems } from './navigate-to-items';
 import { decorateFileReferences } from './file-references';
+import { decorateMoveToRefactoringFileSuggestions } from './move-to-file';
 
 const patchedProject = new Set<string>();
 
@@ -64,6 +65,7 @@ function decorateLanguageServiceInner(
     decorateInlayHints(ls, info, typescript, logger);
     decorateNavigateToItems(ls, snapshotManager);
     decorateFileReferences(ls, snapshotManager);
+    decorateMoveToRefactoringFileSuggestions(ls);
     decorateDispose(ls, info.project, onDispose);
     return ls;
 }
