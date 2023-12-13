@@ -302,7 +302,7 @@ async function createLanguageService(
         tsSystem.useCaseSensitiveFileNames
     );
 
-    let languageService = ts.createLanguageService(host, documentRegistry);
+    const languageService = ts.createLanguageService(host, documentRegistry);
     const transformationConfig: SvelteSnapshotOptions = {
         parse: svelteCompiler?.parse,
         version: svelteCompiler?.VERSION,
@@ -373,11 +373,6 @@ async function createLanguageService(
         const newSnapshot = DocumentSnapshot.fromDocument(document, transformationConfig);
 
         snapshotManager.set(filePath, newSnapshot);
-        if (prevSnapshot && prevSnapshot.scriptKind !== newSnapshot.scriptKind) {
-            // Restart language service as it doesn't handle script kind changes.
-            languageService.dispose();
-            languageService = ts.createLanguageService(host, documentRegistry);
-        }
 
         return newSnapshot;
     }
