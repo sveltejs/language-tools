@@ -72,6 +72,53 @@ describe('service', () => {
         });
     });
 
+    it('patch release document so dispose do not throw', async () => {
+        // testing this because the patch rely on ts implementation details
+        // and we want to be aware of the changes
+
+        const dirPath = getRandomVirtualDirPath(testDir);
+        const { virtualSystem, lsDocumentContext, rootUris } = setup();
+
+        virtualSystem.writeFile(
+            path.join(dirPath, 'tsconfig.json'),
+            JSON.stringify({
+                compilerOptions: {
+                    module: 'NodeNext',
+                    moduleResolution: 'NodeNext'
+                }
+            })
+        );
+
+        const ls = await getService(
+            path.join(dirPath, 'random.svelte'),
+            rootUris,
+            lsDocumentContext
+        );
+
+        const document = new Document(pathToUrl(path.join(dirPath, 'random.svelte')), '');
+        document.openedByClient = true;
+        ls.updateSnapshot(document);
+
+        const document2 = new Document(
+            pathToUrl(path.join(dirPath, 'random2.svelte')),
+            '<script>import Random from "./random.svelte";</script>'
+        );
+        document.openedByClient = true;
+        ls.updateSnapshot(document2);
+
+        const lang = ls.getService();
+
+        lang.getProgram();
+
+        // ensure updated document also works
+        document2.update(' ', 0, 0);
+        lang.getProgram();
+
+        assert.doesNotThrow(() => {
+            lang.dispose();
+        });
+    });
+
     function createReloadTester(
         docContext: LanguageServiceDocumentContext,
         testAfterReload: () => Promise<void>

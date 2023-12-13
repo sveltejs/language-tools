@@ -18,7 +18,8 @@ import {
     ensureRealSvelteFilePath,
     findTsConfigPath,
     getNearestWorkspaceUri,
-    hasTsExtensions
+    hasTsExtensions,
+    isSvelteFilePath
 } from './utils';
 
 export interface LanguageServiceContainer {
@@ -84,6 +85,7 @@ const extendedConfigToTsConfigPath = new FileMap<FileSet>();
 const configFileModifiedTime = new FileMap<Date | undefined>();
 const configFileForOpenFiles = new FileMap<string>();
 const pendingReloads = new FileSet();
+const documentRegistries = new Map<string, ts.DocumentRegistry>();
 
 /**
  * For testing only: Reset the cache for services.
@@ -295,7 +297,12 @@ async function createLanguageService(
         hasInvalidatedResolutions: svelteModuleLoader.mightHaveInvalidatedResolutions
     };
 
-    let languageService = ts.createLanguageService(host);
+    const documentRegistry = getOrCreateDocumentRegistry(
+        host.getCurrentDirectory(),
+        tsSystem.useCaseSensitiveFileNames
+    );
+
+    const languageService = ts.createLanguageService(host, documentRegistry);
     const transformationConfig: SvelteSnapshotOptions = {
         parse: svelteCompiler?.parse,
         version: svelteCompiler?.VERSION,
@@ -366,11 +373,6 @@ async function createLanguageService(
         const newSnapshot = DocumentSnapshot.fromDocument(document, transformationConfig);
 
         snapshotManager.set(filePath, newSnapshot);
-        if (prevSnapshot && prevSnapshot.scriptKind !== newSnapshot.scriptKind) {
-            // Restart language service as it doesn't handle script kind changes.
-            languageService.dispose();
-            languageService = ts.createLanguageService(host);
-        }
 
         return newSnapshot;
     }
@@ -852,4 +854,54 @@ function scheduleReload(fileName: string) {
     // don't delete service from map yet as it could result in a race condition
     // where a file update is received before the service is reloaded, swallowing the update
     pendingReloads.add(fileName);
+}
+
+function getOrCreateDocumentRegistry(
+    currentDirectory: string,
+    useCaseSensitiveFileNames: boolean
+): ts.DocumentRegistry {
+    // unless it's a multi root workspace, there's only one registry
+    const key = [currentDirectory, useCaseSensitiveFileNames].join('|');
+
+    let registry = documentRegistries.get(key);
+    if (registry) {
+        return registry;
+    }
+
+    registry = ts.createDocumentRegistry(useCaseSensitiveFileNames, currentDirectory);
+
+    // impliedNodeFormat is always undefined when the svelte source file is created
+    // We might patched it later but the registry doesn't know about it
+    const releaseDocumentWithKey = registry.releaseDocumentWithKey;
+    registry.releaseDocumentWithKey = (
+        path: ts.Path,
+        key: ts.DocumentRegistryBucketKey,
+        scriptKind: ts.ScriptKind,
+        impliedNodeFormat?: ts.ResolutionMode
+    ) => {
+        if (isSvelteFilePath(path)) {
+            releaseDocumentWithKey(path, key, scriptKind, undefined);
+            return;
+        }
+
+        releaseDocumentWithKey(path, key, scriptKind, impliedNodeFormat);
+    };
+
+    registry.releaseDocument = (
+        fileName: string,
+        compilationSettings: ts.CompilerOptions,
+        scriptKind: ts.ScriptKind,
+        impliedNodeFormat?: ts.ResolutionMode
+    ) => {
+        if (isSvelteFilePath(fileName)) {
+            registry?.releaseDocument(fileName, compilationSettings, scriptKind, undefined);
+            return;
+        }
+
+        registry?.releaseDocument(fileName, compilationSettings, scriptKind, impliedNodeFormat);
+    };
+
+    documentRegistries.set(key, registry);
+
+    return registry;
 }
