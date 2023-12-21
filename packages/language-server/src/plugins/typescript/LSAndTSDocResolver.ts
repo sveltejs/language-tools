@@ -71,6 +71,10 @@ export class LSAndTSDocResolver {
         this.getCanonicalFileName = createGetCanonicalFileName(
             (options?.tsSystem ?? ts.sys).useCaseSensitiveFileNames
         );
+
+        configManager.onChange(() => {
+            this.configChanged = true;
+        });
     }
 
     /**
@@ -96,6 +100,8 @@ export class LSAndTSDocResolver {
     private extendedConfigCache = new Map<string, ts.ExtendedConfigCacheEntry>();
     private getCanonicalFileName: GetCanonicalFileName;
 
+    private configChanged = true;
+
     private get lsDocumentContext(): LanguageServiceDocumentContext {
         return {
             ambientTypesSource: this.options?.isSvelteCheck ? 'svelte-check' : 'svelte2tsx',
@@ -120,6 +126,11 @@ export class LSAndTSDocResolver {
         userPreferences: ts.UserPreferences;
     }> {
         const { tsDoc, lsContainer, userPreferences } = await this.getLSAndTSDocWorker(document);
+
+        if (this.configChanged) {
+            this.configChanged = false;
+            lsContainer.setUserPreferences(userPreferences);
+        }
 
         return { tsDoc, lang: lsContainer.getService(), userPreferences };
     }

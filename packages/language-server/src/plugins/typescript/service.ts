@@ -21,6 +21,7 @@ import {
     hasTsExtensions,
     isSvelteFilePath
 } from './utils';
+import { createLanguageService as createLanguageServiceWithCache } from 'typescript-auto-import-cache';
 
 export interface LanguageServiceContainer {
     readonly tsconfigPath: string;
@@ -46,6 +47,8 @@ export interface LanguageServiceContainer {
      * Only works for TS versions that have ScriptKind.Deferred
      */
     fileBelongsToProject(filePath: string, isNew: boolean): boolean;
+
+    setUserPreferences(preferences: ts.UserPreferences): void;
 
     dispose(): void;
 }
@@ -302,13 +305,20 @@ async function createLanguageService(
         tsSystem.useCaseSensitiveFileNames
     );
 
-    const languageService = ts.createLanguageService(host, documentRegistry);
     const transformationConfig: SvelteSnapshotOptions = {
         parse: svelteCompiler?.parse,
         version: svelteCompiler?.VERSION,
         transformOnTemplateError: docContext.transformOnTemplateError,
         typingsNamespace: raw?.svelteOptions?.namespace || 'svelteHTML'
     };
+
+    const serviceWithCache = createLanguageServiceWithCache(
+        ts as any,
+        tsSystemWithPackageJsonCache,
+        host,
+        () => ts.createLanguageService(host, documentRegistry)
+    );
+    const { languageService } = serviceWithCache;
 
     docContext.globalSnapshotsManager.onChange(scheduleUpdate);
 
@@ -329,6 +339,7 @@ async function createLanguageService(
         fileBelongsToProject,
         snapshotManager,
         invalidateModuleCache,
+        setUserPreferences,
         dispose
     };
 
@@ -368,6 +379,8 @@ async function createLanguageService(
 
         if (!prevSnapshot) {
             svelteModuleLoader.deleteUnresolvedResolutionsFromCache(filePath);
+            // @ts-expect-error
+            host?.getCachedExportInfoMap()?.clear();
         }
 
         const newSnapshot = DocumentSnapshot.fromDocument(document, transformationConfig);
@@ -443,15 +456,45 @@ async function createLanguageService(
     function updateProjectFiles(): void {
         projectVersion++;
         dirty = true;
-        const projectFileCountBefore = snapshotManager.getProjectFileNames().length;
+        const projectFileBefore = snapshotManager.getProjectFileNames();
+        const projectFileCountBefore = projectFileBefore.length;
         snapshotManager.updateProjectFiles();
-        const projectFileCountAfter = snapshotManager.getProjectFileNames().length;
+        const projectFileAfter = snapshotManager.getProjectFileNames();
+        const projectFileCountAfter = projectFileAfter.length;
+
+        const hasAddedOrRemoved =
+            projectFileCountAfter !== projectFileCountBefore ||
+            checkProjectFileUpdate(projectFileBefore, projectFileAfter);
+
+        if (hasAddedOrRemoved) {
+            // @ts-expect-error
+            host?.getCachedExportInfoMap()?.clear();
+        }
 
         if (projectFileCountAfter <= projectFileCountBefore) {
             return;
         }
 
         reduceLanguageServiceCapabilityIfFileSizeTooBig();
+    }
+
+    function checkProjectFileUpdate(oldFiles: string[], newFiles: string[]) {
+        const oldSet = new Set(oldFiles);
+        const newSet = new Set(newFiles);
+
+        for (const file of oldSet) {
+            if (!newSet.has(file)) {
+                return true;
+            }
+        }
+
+        for (const file of newSet) {
+            if (!oldSet.has(file)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     function getScriptFileNames() {
@@ -643,6 +686,10 @@ async function createLanguageService(
             languageServiceReducedMode = true;
             docContext.notifyExceedSizeLimit?.();
         }
+    }
+
+    function setUserPreferences(userPreferences: ts.UserPreferences) {
+        serviceWithCache.setPreferences?.(userPreferences);
     }
 
     function dispose() {
