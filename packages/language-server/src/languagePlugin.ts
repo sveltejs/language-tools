@@ -147,7 +147,7 @@ function getVirtualTsFile(fileName: string, text: string): VirtualFile | undefin
 									completion: true,
 									semantic: true,
 									navigation: true,
-									structure: true,
+									structure: false,
 									format: false,
 								},
 							});
