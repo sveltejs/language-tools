@@ -21,9 +21,6 @@
     ],
     "author": "The Svelte Community",
     "license": "MIT",
-    "devDependencies": {
-        "@types/node": "latest"
-    },
     "dependencies": {
         "@volar/typescript": "2.0.0-alpha.13",
         "svelte-language-server": "0.0.0"
