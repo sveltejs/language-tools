@@ -1,19 +1,34 @@
 {
     "name": "svelte-language-server",
     "version": "0.0.0",
+    "description": "A language server for Svelte",
     "main": "out/index.js",
-    "license": "MIT",
     "files": [
         "out/**/*.js",
         "out/**/*.d.ts"
     ],
     "bin": {
-        "svelte-language-server": "./bin/server.js"
+        "svelteserver": "./bin/server.js"
     },
     "repository": {
         "type": "git",
-        "url": "https://github.com/johnsoncodehk/volar.git",
-        "directory": "examples/svelte-language-server"
+        "url": "git+https://github.com/sveltejs/language-tools.git"
+    },
+    "keywords": [
+        "svelte",
+        "vscode",
+        "atom",
+        "editor",
+        "language-server"
+    ],
+    "author": "James Birtles <jameshbirtles@gmail.com> and the Svelte Language Tools contributors",
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/sveltejs/language-tools/issues"
+    },
+    "homepage": "https://github.com/sveltejs/language-tools#readme",
+    "engines": {
+        "node": ">= 16.0.0"
     },
     "dependencies": {
         "@jridgewell/sourcemap-codec": "^1.4.15",
