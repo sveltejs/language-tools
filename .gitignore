@@ -64,7 +64,12 @@ typings/
 .cache
 
 # tdsx
-dist
+out
+*.tsbuildinfo
 
 # VSCode history extension
 .history
+
+# syntaxes
+postcss.json
+svelte.tmLanguage.json

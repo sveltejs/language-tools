@@ -1,17 +1,18 @@
 {
-    "compilerOptions": {
-        "lib": ["es2021"],
-        "module": "CommonJS",
-        "target": "es2021",
-        "moduleResolution": "node",
-
-        "outDir": "dist",
-        "strict": true,
-        "esModuleInterop": true,
-        "skipLibCheck": true,
-        "forceConsistentCasingInFileNames": true,
-        "declaration": true,
-        "sourceMap": true,
-        "composite": true
-    }
+	"extends": "../../tsconfig.base.json",
+	"compilerOptions": {
+		"outDir": "out",
+		"rootDir": "src",
+	},
+	"include": [
+		"src",
+	],
+	"references": [
+		{
+			"path": "../language-server/tsconfig.json"
+		},
+		{
+			"path": "../typescript-plugin/tsconfig.json"
+		}
+	]
 }

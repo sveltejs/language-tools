@@ -1,14 +1,15 @@
 {
-    "compilerOptions": {
-        "lib": ["es2021"],
-        "module": "ES2022",
-        "target": "es2021",
-        "moduleResolution": "bundler",
-
-        "strict": true,
-        "esModuleInterop": true,
-        "skipLibCheck": true,
-        "forceConsistentCasingInFileNames": true
-    },
-    "include": ["src/**/*"]
+	"extends": "../../tsconfig.base.json",
+	"compilerOptions": {
+		"outDir": "out",
+		"rootDir": "src",
+	},
+	"include": [
+		"src",
+	],
+	"references": [
+		{
+			"path": "../language-server/tsconfig.json"
+		},
+	]
 }
