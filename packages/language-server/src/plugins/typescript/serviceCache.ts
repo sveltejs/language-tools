@@ -84,7 +84,7 @@ export function createProject(
         'useSourceOfProjectReferenceRedirect'
     ];
     proxyMethods.forEach((key) => ((host as any)[key] = project[key].bind(project)));
-    
+
     if (host.log) {
         project.log = host.log.bind(host);
     }

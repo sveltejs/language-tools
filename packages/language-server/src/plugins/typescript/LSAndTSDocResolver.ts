@@ -109,7 +109,7 @@ export class LSAndTSDocResolver {
             watchTsConfig: !!this.options?.watch,
             tsSystem: this.tsSystem,
             projectService: projectService
-        }
+        };
     }
 
     /**

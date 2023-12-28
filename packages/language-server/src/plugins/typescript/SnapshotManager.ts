@@ -18,9 +18,7 @@ export class GlobalSnapshotsManager {
     private documents: FileMap<DocumentSnapshot>;
     private getCanonicalFileName: GetCanonicalFileName;
 
-    constructor(
-        private readonly tsSystem: ts.System
-    ) {
+    constructor(private readonly tsSystem: ts.System) {
         this.documents = new FileMap(tsSystem.useCaseSensitiveFileNames);
         this.getCanonicalFileName = createGetCanonicalFileName(tsSystem.useCaseSensitiveFileNames);
     }

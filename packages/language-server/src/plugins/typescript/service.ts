@@ -219,12 +219,7 @@ async function createLanguageService(
     // by the time they need to be accessed synchronously by DocumentSnapshots.
     await configLoader.loadConfigs(workspacePath);
 
-    const svelteModuleLoader = createSvelteModuleLoader(
-        getSnapshot,
-        compilerOptions,
-        tsSystem,
-        ts
-    );
+    const svelteModuleLoader = createSvelteModuleLoader(getSnapshot, compilerOptions, tsSystem, ts);
 
     let svelteTsPath: string;
     try {
@@ -444,8 +439,7 @@ async function createLanguageService(
         const projectFileCountAfter = projectFileAfter.length;
 
         const hasAddedOrRemoved =
-            !!project &&
-            projectFileCountAfter !== projectFileCountBefore ||
+            (!!project && projectFileCountAfter !== projectFileCountBefore) ||
             checkProjectFileUpdate(projectFileBefore, projectFileAfter);
 
         if (hasAddedOrRemoved) {
@@ -796,7 +790,7 @@ async function createLanguageService(
 
         if (project.packageJsonsForAutoImport?.has(packageJsonPath)) {
             project.moduleSpecifierCache.clear();
-            
+
             if (project.autoImportProviderHost) {
                 project.autoImportProviderHost.markAsDirty();
             }
@@ -804,7 +798,9 @@ async function createLanguageService(
 
         if (packageJsonPath.includes('node_modules')) {
             const dir = dirname(packageJsonPath);
-            const inProgram = project.getCurrentProgram()?.getSourceFiles()
+            const inProgram = project
+                .getCurrentProgram()
+                ?.getSourceFiles()
                 .some((sf: ts.SourceFile) => sf.fileName.includes(dir));
 
             if (inProgram) {
