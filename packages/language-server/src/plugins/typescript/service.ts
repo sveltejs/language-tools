@@ -21,7 +21,7 @@ import {
     hasTsExtensions,
     isSvelteFilePath
 } from './utils';
-import { createLanguageService as createLanguageServiceWithCache } from 'typescript-auto-import-cache';
+import { createProject, ProjectService } from './serviceCache';
 
 export interface LanguageServiceContainer {
     readonly tsconfigPath: string;
@@ -47,8 +47,8 @@ export interface LanguageServiceContainer {
      * Only works for TS versions that have ScriptKind.Deferred
      */
     fileBelongsToProject(filePath: string, isNew: boolean): boolean;
-
-    setUserPreferences(preferences: ts.UserPreferences): void;
+    onAutoImportProviderSettingsChanged(): void;
+    onPackageJsonChange(packageJsonPath: string): void;
 
     dispose(): void;
 }
@@ -111,6 +111,7 @@ export interface LanguageServiceDocumentContext {
     onProjectReloaded: (() => void) | undefined;
     watchTsConfig: boolean;
     tsSystem: ts.System;
+    projectService: ProjectService | undefined;
 }
 
 export async function getService(
@@ -217,26 +218,11 @@ async function createLanguageService(
     // Load all configs within the tsconfig scope and the one above so that they are all loaded
     // by the time they need to be accessed synchronously by DocumentSnapshots.
     await configLoader.loadConfigs(workspacePath);
-    const tsSystemWithPackageJsonCache = {
-        ...tsSystem,
-        /**
-         * While TypeScript doesn't cache package.json in the tsserver, they do cache the
-         * information they get from it within other internal APIs. We'll somewhat do the same
-         * by caching the text of the package.json file here.
-         */
-        readFile: (path: string, encoding?: string | undefined) => {
-            if (basename(path) === 'package.json') {
-                return docContext.globalSnapshotsManager.getPackageJson(path)?.text;
-            }
-
-            return tsSystem.readFile(path, encoding);
-        }
-    };
 
     const svelteModuleLoader = createSvelteModuleLoader(
         getSnapshot,
         compilerOptions,
-        tsSystemWithPackageJsonCache,
+        tsSystem,
         ts
     );
 
@@ -312,13 +298,8 @@ async function createLanguageService(
         typingsNamespace: raw?.svelteOptions?.namespace || 'svelteHTML'
     };
 
-    const serviceWithCache = createLanguageServiceWithCache(
-        ts as any,
-        tsSystemWithPackageJsonCache,
-        host,
-        () => ts.createLanguageService(host, documentRegistry)
-    );
-    const { languageService } = serviceWithCache;
+    const project = initLsCacheProject();
+    const languageService = ts.createLanguageService(host, documentRegistry);
 
     docContext.globalSnapshotsManager.onChange(scheduleUpdate);
 
@@ -339,7 +320,8 @@ async function createLanguageService(
         fileBelongsToProject,
         snapshotManager,
         invalidateModuleCache,
-        setUserPreferences,
+        onAutoImportProviderSettingsChanged,
+        onPackageJsonChange,
         dispose
     };
 
@@ -379,8 +361,7 @@ async function createLanguageService(
 
         if (!prevSnapshot) {
             svelteModuleLoader.deleteUnresolvedResolutionsFromCache(filePath);
-            // @ts-expect-error
-            host?.getCachedExportInfoMap()?.clear();
+            host.getCachedExportInfoMap?.()?.clear();
         }
 
         const newSnapshot = DocumentSnapshot.fromDocument(document, transformationConfig);
@@ -463,12 +444,12 @@ async function createLanguageService(
         const projectFileCountAfter = projectFileAfter.length;
 
         const hasAddedOrRemoved =
+            !!project &&
             projectFileCountAfter !== projectFileCountBefore ||
             checkProjectFileUpdate(projectFileBefore, projectFileAfter);
 
         if (hasAddedOrRemoved) {
-            // @ts-expect-error
-            host?.getCachedExportInfoMap()?.clear();
+            host.getCachedExportInfoMap?.()?.clear();
         }
 
         if (projectFileCountAfter <= projectFileCountBefore) {
@@ -684,12 +665,11 @@ async function createLanguageService(
         ) {
             languageService.cleanupSemanticCache();
             languageServiceReducedMode = true;
+            if (project) {
+                project.languageServiceEnabled = false;
+            }
             docContext.notifyExceedSizeLimit?.();
         }
-    }
-
-    function setUserPreferences(userPreferences: ts.UserPreferences) {
-        serviceWithCache.setPreferences?.(userPreferences);
     }
 
     function dispose() {
@@ -770,8 +750,12 @@ async function createLanguageService(
             return;
         }
 
-        languageService.getProgram();
+        const program = languageService.getProgram();
         svelteModuleLoader.clearPendingInvalidations();
+
+        if (project) {
+            project.program = program;
+        }
 
         dirty = false;
     }
@@ -783,6 +767,50 @@ async function createLanguageService(
 
         projectVersion++;
         dirty = true;
+    }
+
+    function initLsCacheProject() {
+        const projectService = docContext.projectService;
+        if (!projectService) {
+            return;
+        }
+
+        const createLanguageService = (host: ts.LanguageServiceHost) =>
+            ts.createLanguageService(host, documentRegistry);
+
+        return createProject(host, createLanguageService, {
+            compilerOptions: compilerOptions,
+            projectService: projectService,
+            currentDirectory: workspacePath
+        });
+    }
+
+    function onAutoImportProviderSettingsChanged() {
+        project?.onAutoImportProviderSettingsChanged();
+    }
+
+    function onPackageJsonChange(packageJsonPath: string) {
+        if (!project) {
+            return;
+        }
+
+        if (project.packageJsonsForAutoImport?.has(packageJsonPath)) {
+            project.moduleSpecifierCache.clear();
+            
+            if (project.autoImportProviderHost) {
+                project.autoImportProviderHost.markAsDirty();
+            }
+        }
+
+        if (packageJsonPath.includes('node_modules')) {
+            const dir = dirname(packageJsonPath);
+            const inProgram = project.getCurrentProgram()?.getSourceFiles()
+                .some((sf: ts.SourceFile) => sf.fileName.includes(dir));
+
+            if (inProgram) {
+                host.getModuleSpecifierCache?.().clear();
+            }
+        }
     }
 }
 

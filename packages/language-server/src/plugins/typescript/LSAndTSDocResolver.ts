@@ -1,4 +1,4 @@
-import { dirname } from 'path';
+import { dirname, join } from 'path';
 import ts from 'typescript';
 import { TextDocumentContentChangeEvent } from 'vscode-languageserver';
 import { Document, DocumentManager } from '../../lib/documents';
@@ -19,8 +19,10 @@ import {
     LanguageServiceContainer,
     LanguageServiceDocumentContext
 } from './service';
+import { createProjectService } from './serviceCache';
 import { GlobalSnapshotsManager, SnapshotManager } from './SnapshotManager';
 import { isSubPath } from './utils';
+import { FileMap } from '../../lib/documents/fileCollection';
 
 interface LSAndTSDocResolverOptions {
     notifyExceedSizeLimit?: () => void;
@@ -72,9 +74,42 @@ export class LSAndTSDocResolver {
             (options?.tsSystem ?? ts.sys).useCaseSensitiveFileNames
         );
 
+        this.tsSystem = this.options?.tsSystem ?? ts.sys;
+        this.globalSnapshotsManager = new GlobalSnapshotsManager(this.tsSystem);
+        this.userPreferencesAccessor = { preferences: this.getTsUserPreferences() };
+        const projectService = createProjectService(
+            this.wrapWithPackageJsonMonitoring(this.tsSystem),
+            this.userPreferencesAccessor
+        );
+
         configManager.onChange(() => {
-            this.configChanged = true;
+            const newPreferences = this.getTsUserPreferences();
+            const autoImportConfigChanged =
+                newPreferences.includePackageJsonAutoImports !==
+                this.userPreferencesAccessor.preferences.includePackageJsonAutoImports;
+
+            this.userPreferencesAccessor.preferences = newPreferences;
+
+            if (autoImportConfigChanged) {
+                forAllServices((service) => {
+                    service.onAutoImportProviderSettingsChanged();
+                });
+            }
         });
+
+        this.watchers = new FileMap(this.tsSystem.useCaseSensitiveFileNames);
+        this.lsDocumentContext = {
+            ambientTypesSource: this.options?.isSvelteCheck ? 'svelte-check' : 'svelte2tsx',
+            createDocument: this.createDocument,
+            transformOnTemplateError: !this.options?.isSvelteCheck,
+            globalSnapshotsManager: this.globalSnapshotsManager,
+            notifyExceedSizeLimit: this.options?.notifyExceedSizeLimit,
+            extendedConfigCache: this.extendedConfigCache,
+            onProjectReloaded: this.options?.onProjectReloaded,
+            watchTsConfig: !!this.options?.watch,
+            tsSystem: this.tsSystem,
+            projectService: projectService
+        }
     }
 
     /**
@@ -93,28 +128,15 @@ export class LSAndTSDocResolver {
         return document;
     };
 
-    private globalSnapshotsManager = new GlobalSnapshotsManager(
-        this.lsDocumentContext.tsSystem,
-        /* watchPackageJson */ !!this.options?.watch
-    );
+    private tsSystem: ts.System;
+    private globalSnapshotsManager: GlobalSnapshotsManager;
     private extendedConfigCache = new Map<string, ts.ExtendedConfigCacheEntry>();
     private getCanonicalFileName: GetCanonicalFileName;
 
-    private configChanged = true;
+    private userPreferencesAccessor: { preferences: ts.UserPreferences };
+    private readonly watchers: FileMap<ts.FileWatcher>;
 
-    private get lsDocumentContext(): LanguageServiceDocumentContext {
-        return {
-            ambientTypesSource: this.options?.isSvelteCheck ? 'svelte-check' : 'svelte2tsx',
-            createDocument: this.createDocument,
-            transformOnTemplateError: !this.options?.isSvelteCheck,
-            globalSnapshotsManager: this.globalSnapshotsManager,
-            notifyExceedSizeLimit: this.options?.notifyExceedSizeLimit,
-            extendedConfigCache: this.extendedConfigCache,
-            onProjectReloaded: this.options?.onProjectReloaded,
-            watchTsConfig: !!this.options?.watch,
-            tsSystem: this.options?.tsSystem ?? ts.sys
-        };
-    }
+    private lsDocumentContext: LanguageServiceDocumentContext;
 
     async getLSForPath(path: string) {
         return (await this.getTSService(path)).getService();
@@ -126,11 +148,6 @@ export class LSAndTSDocResolver {
         userPreferences: ts.UserPreferences;
     }> {
         const { tsDoc, lsContainer, userPreferences } = await this.getLSAndTSDocWorker(document);
-
-        if (this.configChanged) {
-            this.configChanged = false;
-            lsContainer.setUserPreferences(userPreferences);
-        }
 
         return { tsDoc, lang: lsContainer.getService(), userPreferences };
     }
@@ -261,5 +278,74 @@ export class LSAndTSDocResolver {
             configLang,
             nearestWorkspaceUri ? urlToPath(nearestWorkspaceUri) : null
         );
+    }
+
+    private getTsUserPreferences() {
+        return this.configManager.getTsUserPreferences('typescript', null);
+    }
+
+    private wrapWithPackageJsonMonitoring(sys: ts.System): ts.System {
+        if (!sys.watchFile || !this.options?.watch) {
+            return sys;
+        }
+
+        const watchFile = sys.watchFile;
+        return {
+            ...sys,
+            readFile: (path, encoding) => {
+                if (path.endsWith('package.json') && !this.watchers.has(path)) {
+                    this.watchers.set(
+                        path,
+                        watchFile(path, this.onPackageJsonWatchChange.bind(this), 3_000)
+                    );
+                }
+
+                return sys.readFile(path, encoding);
+            }
+        };
+    }
+
+    private onPackageJsonWatchChange(path: string, onWatchChange: ts.FileWatcherEventKind) {
+        const dir = dirname(path);
+        const projectService = this.lsDocumentContext.projectService;
+        const packageJsonCache = projectService?.packageJsonCache;
+        const normalizedPath = projectService?.toPath(path);
+
+        if (onWatchChange === ts.FileWatcherEventKind.Deleted) {
+            this.watchers.get(path)?.close();
+            this.watchers.delete(path);
+            packageJsonCache?.delete(normalizedPath);
+        } else {
+            packageJsonCache?.addOrUpdate(normalizedPath);
+        }
+
+        forAllServices((service) => {
+            service.onPackageJsonChange(path);
+        });
+        if (!path.includes('node_modules')) {
+            return;
+        }
+
+        setTimeout(() => {
+            this.updateSnapshotsInDirectory(dir);
+            const realPath =
+                this.tsSystem.realpath &&
+                this.getCanonicalFileName(normalizePath(this.tsSystem.realpath?.(dir)));
+
+            // pnpm
+            if (realPath && realPath !== dir) {
+                this.updateSnapshotsInDirectory(realPath);
+                const realPkgPath = join(realPath, 'package.json');
+                forAllServices((service) => {
+                    service.onPackageJsonChange(realPkgPath);
+                });
+            }
+        }, 500);
+    }
+
+    private updateSnapshotsInDirectory(dir: string) {
+        this.globalSnapshotsManager.getByPrefix(dir).forEach((snapshot) => {
+            this.globalSnapshotsManager.updateTsOrJsFile(snapshot.filePath);
+        });
     }
 }
