@@ -1545,7 +1545,7 @@ describe('CompletionProviderImpl', function () {
         const item = completions?.items.find((item) => item.label === '$store');
 
         assert.ok(item);
-        assert.equal(item?.data?.source?.endsWith('completions/to-import'), true);
+        assert.equal(item?.data?.source?.endsWith('/to-import'), true);
 
         const { data, ...itemWithoutData } = item;
 
@@ -1558,7 +1558,9 @@ describe('CompletionProviderImpl', function () {
             insertTextFormat: undefined,
             commitCharacters: ['.', ',', ';', '('],
             textEdit: undefined,
-            labelDetails: undefined
+            labelDetails: {
+                description: './to-import'
+            }
         });
 
         const { detail } = await completionProvider.resolveCompletion(document, item);
