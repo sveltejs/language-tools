@@ -439,6 +439,7 @@ export class LSConfigManager {
             includeCompletionsWithObjectLiteralMethodSnippets:
                 config.suggest?.objectLiteralMethodSnippets?.enabled ?? true,
             preferTypeOnlyAutoImports: config.preferences?.preferTypeOnlyAutoImports,
+            allowIncompleteCompletions: true,
 
             includeInlayEnumMemberValueHints: inlayHints?.enumMemberValues?.enabled,
             includeInlayFunctionLikeReturnTypeHints: inlayHints?.functionLikeReturnTypes?.enabled,
