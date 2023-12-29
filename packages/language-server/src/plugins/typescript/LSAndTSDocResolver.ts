@@ -74,13 +74,10 @@ export class LSAndTSDocResolver {
             (options?.tsSystem ?? ts.sys).useCaseSensitiveFileNames
         );
 
-        this.tsSystem = this.options?.tsSystem ?? ts.sys;
+        this.tsSystem = this.wrapWithPackageJsonMonitoring(this.options?.tsSystem ?? ts.sys);
         this.globalSnapshotsManager = new GlobalSnapshotsManager(this.tsSystem);
         this.userPreferencesAccessor = { preferences: this.getTsUserPreferences() };
-        const projectService = createProjectService(
-            this.wrapWithPackageJsonMonitoring(this.tsSystem),
-            this.userPreferencesAccessor
-        );
+        const projectService = createProjectService(this.tsSystem, this.userPreferencesAccessor);
 
         configManager.onChange(() => {
             const newPreferences = this.getTsUserPreferences();
