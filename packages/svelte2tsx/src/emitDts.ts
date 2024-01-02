@@ -102,8 +102,17 @@ async function createTsCompilerHost(options: any, svelteMap: SvelteMap) {
     const svelteSys: ts.System = {
         ...ts.sys,
         fileExists(originalPath) {
+            let exists = ts.sys.fileExists(originalPath);
+            if (exists) {
+                return true;
+            }
+
             const path = ensureRealSvelteFilepath(originalPath);
-            const exists = ts.sys.fileExists(path);
+            if (path === originalPath) {
+                return false;
+            }
+
+            exists = ts.sys.fileExists(path);
             if (exists && isSvelteFilepath(path)) {
                 const isTsFile = svelteMap.add(path);
                 if (
@@ -116,9 +125,14 @@ async function createTsCompilerHost(options: any, svelteMap: SvelteMap) {
             return exists;
         },
         readFile(path, encoding = 'utf-8') {
-            if (isVirtualSvelteFilepath(path) || isSvelteFilepath(path)) {
-                path = ensureRealSvelteFilepath(path);
-                return svelteMap.get(path);
+            const sveltePath = ensureRealSvelteFilepath(path);
+            if (path !== sveltePath || isSvelteFilepath(path)) {
+                const result = svelteMap.get(sveltePath);
+                if (result === undefined) {
+                    return ts.sys.readFile(path, encoding);
+                } else {
+                    return result;
+                }
             } else {
                 return ts.sys.readFile(path, encoding);
             }
