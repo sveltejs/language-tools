@@ -281,7 +281,7 @@ async function createLanguageService(
         resolveTypeReferenceDirectiveReferences:
             svelteModuleLoader.resolveTypeReferenceDirectiveReferences,
         hasInvalidatedResolutions: svelteModuleLoader.mightHaveInvalidatedResolutions,
-        getModuleResolutionCache: svelteModuleLoader.getModuleResolutionCache,
+        getModuleResolutionCache: svelteModuleLoader.getModuleResolutionCache
     };
 
     const documentRegistry = getOrCreateDocumentRegistry(
