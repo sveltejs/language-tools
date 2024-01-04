@@ -804,7 +804,7 @@ async function createLanguageService(
             const inProgram = project
                 .getCurrentProgram()
                 ?.getSourceFiles()
-                .some((sf: ts.SourceFile) => sf.fileName.includes(dir));
+                .some((file) => file.fileName.includes(dir));
 
             if (inProgram) {
                 host.getModuleSpecifierCache?.().clear();

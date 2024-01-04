@@ -90,8 +90,4 @@ export function createProject(
     }
 
     return project;
-
-    function ensureTrailDirSeparator(path: string) {
-        return path.endsWith('/') ? path : path + '/';
-    }
 }
