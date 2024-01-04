@@ -61,6 +61,8 @@ declare module 'typescript' {
          * that might change the module resolution results
          */
         hasInvalidatedResolutions?: (sourceFile: string) => boolean;
+
+        getModuleResolutionCache?(): ts.ModuleResolutionCache;
     }
 
     interface ResolvedModuleWithFailedLookupLocations {
@@ -278,7 +280,8 @@ async function createLanguageService(
         getNewLine: () => tsSystem.newLine,
         resolveTypeReferenceDirectiveReferences:
             svelteModuleLoader.resolveTypeReferenceDirectiveReferences,
-        hasInvalidatedResolutions: svelteModuleLoader.mightHaveInvalidatedResolutions
+        hasInvalidatedResolutions: svelteModuleLoader.mightHaveInvalidatedResolutions,
+        getModuleResolutionCache: svelteModuleLoader.getModuleResolutionCache,
     };
 
     const documentRegistry = getOrCreateDocumentRegistry(

@@ -208,7 +208,8 @@ export function createSvelteModuleLoader(
         resolveModuleNames,
         resolveTypeReferenceDirectiveReferences,
         mightHaveInvalidatedResolutions,
-        clearPendingInvalidations
+        clearPendingInvalidations,
+        getModuleResolutionCache: () => tsModuleCache,
     };
 
     function resolveModuleNames(
