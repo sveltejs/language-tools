@@ -630,7 +630,7 @@ function getProxiedLanguageService(info: ts.server.PluginCreateInfo, ts: _ts, lo
                 {
                     clientHooksPath: this.clientHooksPath,
                     paramsPath: this.paramsPath,
-                    serverHooksPath: this.serverHooksPath
+                    serverHooksPath: this.serverHooksPath,
                     universalHooksPath: this.universalHooksPath
                 },
                 () => info.languageService.getProgram()?.getSourceFile(fileName)
