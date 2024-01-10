@@ -524,6 +524,7 @@ function getProxiedLanguageService(info: ts.server.PluginCreateInfo, ts: _ts, lo
         paramsPath = 'src/params';
         serverHooksPath = 'src/hooks.server';
         clientHooksPath = 'src/hooks.client';
+        universalHooksPath = 'src/hooks';
 
         constructor() {
             const configPath = info.project.getCurrentDirectory() + '/svelte.config.js';
@@ -537,6 +538,7 @@ function getProxiedLanguageService(info: ts.server.PluginCreateInfo, ts: _ts, lo
                         if (config.kit.files.hooks) {
                             this.serverHooksPath ||= config.kit.files.hooks.server;
                             this.clientHooksPath ||= config.kit.files.hooks.client;
+                            this.universalHooksPath ||= config.kit.files.hooks.universal;
                         }
                         // We could be more sophisticated with only removing the files that are actually
                         // wrong but this is good enough given how rare it is that this setting is used
@@ -629,6 +631,7 @@ function getProxiedLanguageService(info: ts.server.PluginCreateInfo, ts: _ts, lo
                     clientHooksPath: this.clientHooksPath,
                     paramsPath: this.paramsPath,
                     serverHooksPath: this.serverHooksPath
+                    universalHooksPath: this.universalHooksPath
                 },
                 () => info.languageService.getProgram()?.getSourceFile(fileName)
             );

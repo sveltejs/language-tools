@@ -135,16 +135,11 @@ export const internalHelpers: {
         options: InternalHelpers.KitFilesSettings
     ) => boolean;
     isKitRouteFile: (basename: string) => boolean,
-    isClientHooksFile: (
+    isHooksFile: (
         fileName: string,
         basename: string,
-        clientHooksPath: string
-    ) =>boolean,
-    isServerHooksFile: (
-        fileName: string,
-        basename: string,
-        serverHooksPath: string
-    )=> boolean,
+        hooksPath: string
+    ) => boolean,
     isParamsFile: (fileName: string, basename: string, paramsPath: string) =>boolean,
     upsertKitFile: (
         _ts: typeof ts,
@@ -185,6 +180,7 @@ export namespace InternalHelpers {
     export interface KitFilesSettings {
         serverHooksPath: string;
         clientHooksPath: string;
+        universalHooksPath: string;
         paramsPath: string;
     }
 }

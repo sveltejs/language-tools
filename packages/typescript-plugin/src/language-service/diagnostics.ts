@@ -183,7 +183,8 @@ function getKitDiagnostics<
                         messageText: `Invalid export '${exportName}' (valid exports are ${validExports.join(
                             ', '
                         )}, or anything with a '_' prefix)`,
-                        category: ts.DiagnosticCategory.Error,
+                        // make it a warning in case people are stuck on old versions and new exports are added to SvelteKit
+                        category: ts.DiagnosticCategory.Warning,
                         code: 71001 // arbitrary
                     });
                 }
