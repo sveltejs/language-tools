@@ -98,8 +98,8 @@ describe('TypeDefinitionProvider', function () {
         assert.deepStrictEqual(typeDefs, <Location[]>[
             {
                 range: {
-                    end: { line: 1, character: 18 },
-                    start: { line: 1, character: 16 }
+                    end: { line: 0, character: 18 },
+                    start: { line: 0, character: 16 }
                 },
                 uri: getUri('../declaration-map/declaration-map-project/index.ts')
             }
