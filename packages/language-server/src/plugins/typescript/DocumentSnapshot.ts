@@ -664,7 +664,7 @@ export class DtsDocumentSnapshot extends JSOrTSDocumentSnapshot implements Docum
         }
 
         return {
-            line: mapped.line,
+            line: mapped.line - 1,
             character: mapped.column,
             uri: pathToUrl(originalFilePath)
         };
