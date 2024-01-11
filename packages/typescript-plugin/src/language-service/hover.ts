@@ -26,10 +26,8 @@ export function decorateHover(
         const node = source && findNodeAtPosition(source, virtualPos);
         if (node && isTopLevelExport(ts, node, source) && ts.isIdentifier(node)) {
             const name = node.text;
-            if (name in kitExports) {
-                quickInfo.documentation = !quickInfo.documentation?.length
-                    ? kitExports[name].documentation
-                    : quickInfo.documentation;
+            if (name in kitExports && !quickInfo.documentation?.length) {
+                quickInfo.documentation = kitExports[name].documentation;
             }
         }
 

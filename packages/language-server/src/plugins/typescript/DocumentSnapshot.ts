@@ -443,6 +443,7 @@ export class JSOrTSDocumentSnapshot extends IdentityMapper implements DocumentSn
     private paramsPath = 'src/params';
     private serverHooksPath = 'src/hooks.server';
     private clientHooksPath = 'src/hooks.client';
+    private universalHooksPath = 'src/hooks';
 
     private openedByClient = false;
 
@@ -578,7 +579,8 @@ export class JSOrTSDocumentSnapshot extends IdentityMapper implements DocumentSn
             {
                 clientHooksPath: this.clientHooksPath,
                 paramsPath: this.paramsPath,
-                serverHooksPath: this.serverHooksPath
+                serverHooksPath: this.serverHooksPath,
+                universalHooksPath: this.universalHooksPath
             },
             () => this.createSource(),
             surroundWithIgnoreComments
@@ -596,6 +598,7 @@ export class JSOrTSDocumentSnapshot extends IdentityMapper implements DocumentSn
                 this.paramsPath ||= files.params;
                 this.serverHooksPath ||= files.hooks?.server;
                 this.clientHooksPath ||= files.hooks?.client;
+                this.universalHooksPath ||= files.hooks?.universal;
             }
         }
 
