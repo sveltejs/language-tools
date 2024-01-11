@@ -719,8 +719,13 @@ async function createLanguageService(
 
         dirty = false;
 
+        if (!oldProgram) {
+            changedFilesForExportCache.clear();
+            return;
+        }
+
         for (const fileName of changedFilesForExportCache) {
-            const oldFile = oldProgram?.getSourceFile(fileName);
+            const oldFile = oldProgram.getSourceFile(fileName);
             const newFile = program?.getSourceFile(fileName);
 
             // file for another tsconfig
