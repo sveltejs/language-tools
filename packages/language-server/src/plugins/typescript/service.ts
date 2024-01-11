@@ -772,10 +772,11 @@ async function createLanguageService(
             return;
         }
 
-        const createLanguageService = (host: ts.LanguageServiceHost) =>
+        // Used by typescript-auto-import-cache to create a lean language service for package.json auto-import.
+        const createLanguageServiceForAutoImportProvider = (host: ts.LanguageServiceHost) =>
             ts.createLanguageService(host, documentRegistry);
 
-        return createProject(host, createLanguageService, {
+        return createProject(host, createLanguageServiceForAutoImportProvider, {
             compilerOptions: compilerOptions,
             projectService: projectService,
             currentDirectory: workspacePath

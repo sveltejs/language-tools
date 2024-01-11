@@ -236,7 +236,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             offset,
             {
                 ...userPreferences,
-                triggerCharacter: validTriggerCharacter,
+                triggerCharacter: validTriggerCharacter
             },
             formatSettings
         );
