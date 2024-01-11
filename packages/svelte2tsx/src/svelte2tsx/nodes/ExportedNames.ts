@@ -136,23 +136,64 @@ export class ExportedNames {
         }
     ): void {
         if (node.initializer.typeArguments?.length > 0) {
-            this.$props.generic = node.initializer.typeArguments[0].getText();
+            const generic_arg = node.initializer.typeArguments[0];
+            const generic = generic_arg.getText();
+            if (!generic.includes('{')) {
+                this.$props.generic = generic;
+            } else {
+                // Create a virtual type alias for the unnamed generic and reuse it for the props return type
+                // so that rename, find references etc works seamlessly across components
+                this.$props.generic = '$$_sveltets_Props';
+                preprendStr(
+                    this.str,
+                    generic_arg.pos + this.astOffset,
+                    `;type ${this.$props.generic} = `
+                );
+                this.str.appendLeft(generic_arg.end + this.astOffset, ';');
+                this.str.move(
+                    generic_arg.pos + this.astOffset,
+                    generic_arg.end + this.astOffset,
+                    node.parent.pos + this.astOffset
+                );
+                this.str.appendRight(generic_arg.end + this.astOffset, this.$props.generic);
+            }
         } else {
             if (!this.isTsFile) {
                 const text = node.getSourceFile().getFullText();
-                let comments = ts
-                    .getLeadingCommentRanges(text, node.pos)
-                    ?.map((c) => text.substring(c.pos, c.end))
-                    .find((c) => c.includes('@type'));
-                if (!comments) {
-                    comments = ts
-                        .getLeadingCommentRanges(text, node.parent.pos)
-                        ?.map((c) => text.substring(c.pos, c.end))
-                        .find((c) => c.includes('@type'));
+                let start = -1;
+                let comment: string;
+                for (const c of ts.getLeadingCommentRanges(text, node.pos) || []) {
+                    const potential_match = text.substring(c.pos, c.end);
+                    if (potential_match.includes('@type')) {
+                        comment = potential_match;
+                        start = c.pos + this.astOffset;
+                        break;
+                    }
+                }
+                if (!comment) {
+                    for (const c of ts.getLeadingCommentRanges(text, node.parent.pos) || []) {
+                        const potential_match = text.substring(c.pos, c.end);
+                        if (potential_match.includes('@type')) {
+                            comment = potential_match;
+                            start = c.pos + this.astOffset;
+                            break;
+                        }
+                    }
                 }
 
-                // We don't bother extracting the type, we just use the comment as-is
-                this.$props.comment = comments || '';
+                if (comment && /\/\*\*[^@]*?@type\s*{\s*{.*}\s*}\s*\*\//.test(comment)) {
+                    // Create a virtual type alias for the unnamed generic and reuse it for the props return type
+                    // so that rename, find references etc works seamlessly across components
+                    this.$props.comment = '/** @type {$$_sveltets_Props} */';
+                    const type_start = this.str.original.indexOf('@type', start);
+                    this.str.overwrite(type_start, type_start + 5, '@typedef');
+                    const end = this.str.original.indexOf('*/', start);
+                    this.str.overwrite(end, end + 2, ' $$_sveltets_Props */' + this.$props.comment);
+                } else {
+                    // Complex comment or simple `@type {AType}` comment which we just use as-is.
+                    // For the former this means things like rename won't work properly across components.
+                    this.$props.comment = comment || '';
+                }
             }
 
             if (this.$props.comment) {
@@ -183,9 +224,16 @@ export class ExportedNames {
 
                 if (ts.isObjectBindingPattern(node.name)) {
                     for (const element of node.name.elements) {
-                        if (!ts.isIdentifier(element.name) || !!element.dotDotDotToken) {
+                        if (
+                            !ts.isIdentifier(element.name) ||
+                            (element.propertyName && !ts.isIdentifier(element.propertyName)) ||
+                            !!element.dotDotDotToken
+                        ) {
                             withUnknown = true;
                         } else {
+                            const name = element.propertyName
+                                ? (element.propertyName as ts.Identifier).text
+                                : element.name.text;
                             if (element.initializer) {
                                 const type = ts.isAsExpression(element.initializer)
                                     ? element.initializer.type.getText()
@@ -199,9 +247,9 @@ export class ExportedNames {
                                           : ts.isIdentifier(element.initializer)
                                             ? `typeof ${element.initializer.text}`
                                             : 'unknown';
-                                props.push(`${element.name.text}?: ${type}`);
+                                props.push(`${name}?: ${type}`);
                             } else {
-                                props.push(`${element.name.text}: unknown`);
+                                props.push(`${name}: unknown`);
                             }
                         }
                     }
@@ -219,19 +267,30 @@ export class ExportedNames {
                     propsStr = 'Record<string, unknown>';
                 }
 
+                // Create a virtual type alias for the unnamed generic and reuse it for the props return type
+                // so that rename, find references etc works seamlessly across components
                 if (this.isTsFile) {
-                    this.$props.generic = propsStr;
+                    this.$props.generic = '$$_sveltets_Props';
                     if (props.length > 0 || withUnknown) {
                         preprendStr(
                             this.str,
+                            node.parent.pos + this.astOffset,
+                            surroundWithIgnoreComments(`;type $$_sveltets_Props = ${propsStr};`)
+                        );
+                        preprendStr(
+                            this.str,
                             node.initializer.expression.end + this.astOffset,
-                            surroundWithIgnoreComments(`<${propsStr}>`)
+                            `<${this.$props.generic}>`
                         );
                     }
                 } else {
-                    this.$props.comment = `/** @type {${propsStr}} */`;
+                    this.$props.comment = '/** @type {$$_sveltets_Props} */';
                     if (props.length > 0 || withUnknown) {
-                        preprendStr(this.str, node.pos + this.astOffset, this.$props.comment);
+                        preprendStr(
+                            this.str,
+                            node.pos + this.astOffset,
+                            `/** @typedef {${propsStr}} $$_sveltets_Props */${this.$props.comment}`
+                        );
                     }
                 }
             }
