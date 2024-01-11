@@ -439,6 +439,10 @@ export class LSConfigManager {
             includeCompletionsWithObjectLiteralMethodSnippets:
                 config.suggest?.objectLiteralMethodSnippets?.enabled ?? true,
             preferTypeOnlyAutoImports: config.preferences?.preferTypeOnlyAutoImports,
+
+            // Although we don't support incompletion cache. 
+            // But this will make ts resolve the module specifier more aggressively
+            // Which also make the completion label detail show up in more cases
             allowIncompleteCompletions: true,
 
             includeInlayEnumMemberValueHints: inlayHints?.enumMemberValues?.enabled,

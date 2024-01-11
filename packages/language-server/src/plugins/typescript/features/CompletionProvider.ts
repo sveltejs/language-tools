@@ -237,8 +237,6 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             {
                 ...userPreferences,
                 triggerCharacter: validTriggerCharacter,
-                // Just in case, if there is a parser error. Force ts to not use the cache
-                triggerKind: tsDoc.parserError ? undefined : completionContext?.triggerKind
             },
             formatSettings
         );
