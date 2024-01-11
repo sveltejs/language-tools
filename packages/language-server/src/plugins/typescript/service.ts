@@ -248,6 +248,8 @@ async function createLanguageService(
             ? svelteHtmlDeclaration
             : './svelte-jsx-v4.d.ts';
 
+    const changedFilesForExportCache = new Set<string>();
+
     const svelteTsxFiles = (
         isSvelte3
             ? ['./svelte-shims.d.ts', './svelte-jsx.d.ts', './svelte-native-jsx.d.ts']
@@ -341,7 +343,7 @@ async function createLanguageService(
         svelteModuleLoader.deleteFromModuleCache(filePath);
         svelteModuleLoader.deleteUnresolvedResolutionsFromCache(filePath);
 
-        scheduleUpdate();
+        scheduleUpdate(filePath);
     }
 
     function updateSnapshot(documentOrFilePath: Document | string): DocumentSnapshot {
@@ -359,7 +361,6 @@ async function createLanguageService(
 
         if (!prevSnapshot) {
             svelteModuleLoader.deleteUnresolvedResolutionsFromCache(filePath);
-            host.getCachedExportInfoMap?.()?.clear();
         }
 
         const newSnapshot = DocumentSnapshot.fromDocument(document, transformationConfig);
@@ -375,15 +376,7 @@ async function createLanguageService(
             return prevSnapshot;
         }
 
-        svelteModuleLoader.deleteUnresolvedResolutionsFromCache(filePath);
-        const newSnapshot = DocumentSnapshot.fromFilePath(
-            filePath,
-            docContext.createDocument,
-            transformationConfig,
-            tsSystem
-        );
-        snapshotManager.set(filePath, newSnapshot);
-        return newSnapshot;
+        return createSnapshot(filePath);
     }
 
     /**
@@ -404,8 +397,7 @@ async function createLanguageService(
         }
 
         return createSnapshot(
-            svelteModuleLoader.svelteFileExists(fileName) ? svelteFileName : fileName,
-            doc
+            svelteModuleLoader.svelteFileExists(fileName) ? svelteFileName : fileName
         );
     }
 
@@ -417,12 +409,12 @@ async function createLanguageService(
             return doc;
         }
 
-        return createSnapshot(fileName, doc);
+        return createSnapshot(fileName);
     }
 
-    function createSnapshot(fileName: string, doc: DocumentSnapshot | undefined) {
+    function createSnapshot(fileName: string) {
         svelteModuleLoader.deleteUnresolvedResolutionsFromCache(fileName);
-        doc = DocumentSnapshot.fromFilePath(
+        const doc = DocumentSnapshot.fromFilePath(
             fileName,
             docContext.createDocument,
             transformationConfig,
@@ -433,46 +425,16 @@ async function createLanguageService(
     }
 
     function updateProjectFiles(): void {
-        projectVersion++;
-        dirty = true;
-        const projectFileBefore = snapshotManager.getProjectFileNames();
-        const projectFileCountBefore = projectFileBefore.length;
+        scheduleUpdate();
+        const projectFileCountBefore = snapshotManager.getProjectFileNames().length;
         snapshotManager.updateProjectFiles();
-        const projectFileAfter = snapshotManager.getProjectFileNames();
-        const projectFileCountAfter = projectFileAfter.length;
-
-        const hasAddedOrRemoved =
-            (!!project && projectFileCountAfter !== projectFileCountBefore) ||
-            checkProjectFileUpdate(projectFileBefore, projectFileAfter);
-
-        if (hasAddedOrRemoved) {
-            host.getCachedExportInfoMap?.()?.clear();
-        }
+        const projectFileCountAfter = snapshotManager.getProjectFileNames().length;
 
         if (projectFileCountAfter <= projectFileCountBefore) {
             return;
         }
 
         reduceLanguageServiceCapabilityIfFileSizeTooBig();
-    }
-
-    function checkProjectFileUpdate(oldFiles: string[], newFiles: string[]) {
-        const oldSet = new Set(oldFiles);
-        const newSet = new Set(newFiles);
-
-        for (const file of oldSet) {
-            if (!newSet.has(file)) {
-                return true;
-            }
-        }
-
-        for (const file of newSet) {
-            if (!oldSet.has(file)) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     function getScriptFileNames() {
@@ -747,6 +709,7 @@ async function createLanguageService(
             return;
         }
 
+        const oldProgram = project?.program;
         const program = languageService.getProgram();
         svelteModuleLoader.clearPendingInvalidations();
 
@@ -755,9 +718,30 @@ async function createLanguageService(
         }
 
         dirty = false;
+
+        for (const fileName of changedFilesForExportCache) {
+            const oldFile = oldProgram?.getSourceFile(fileName);
+            const newFile = program?.getSourceFile(fileName);
+
+            // file for another tsconfig
+            if (!oldFile && !newFile) {
+                continue;
+            }
+
+            if (oldFile && newFile) {
+                host.getCachedExportInfoMap?.().onFileChanged?.(oldFile, newFile, false);
+            } else {
+                // new file or deleted file
+                host.getCachedExportInfoMap?.().clear();
+            }
+        }
+        changedFilesForExportCache.clear();
     }
 
-    function scheduleUpdate() {
+    function scheduleUpdate(triggeredFile?: string) {
+        if (triggeredFile) {
+            changedFilesForExportCache.add(triggeredFile);
+        }
         if (dirty) {
             return;
         }

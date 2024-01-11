@@ -1460,6 +1460,43 @@ describe('CompletionProviderImpl', function () {
         assert.strictEqual(detail, 'Add import from "./Bar.svelte"\n\nclass Bar');
     });
 
+    it('can auto import new export', async () => {
+        const virtualTestDir = getRandomVirtualDirPath(testFilesDir);
+        const { document, lsAndTsDocResolver, lsConfigManager, virtualSystem } =
+            setupVirtualEnvironment({
+                filename: 'index.svelte',
+                fileContent: '<script>import {} from "./foo";f</script>',
+                testDir: virtualTestDir
+            });
+
+        const completionProvider = new CompletionsProviderImpl(lsAndTsDocResolver, lsConfigManager);
+        const tsFile = join(virtualTestDir, 'foo.ts');
+
+        virtualSystem.writeFile(tsFile, 'export {}');
+
+        const completions = await completionProvider.getCompletions(document, {
+            line: 0,
+            character: 31
+        });
+
+        const item = completions?.items.find((item) => item.label === 'foo');
+
+        assert.equal(item, undefined);
+
+        virtualSystem.writeFile(tsFile, 'export function foo() {}');
+        lsAndTsDocResolver.updateExistingTsOrJsFile(tsFile);
+
+        const completions2 = await completionProvider.getCompletions(document, {
+            line: 0,
+            character: 31
+        });
+
+        const item2 = completions2?.items.find((item) => item.label === 'foo');
+        const { detail } = await completionProvider.resolveCompletion(document, item2!);
+
+        assert.strictEqual(detail, 'Update import from "./foo"\n\nfunction foo(): void');
+    });
+
     it('provides completions for object literal member', async () => {
         const { completionProvider, document } = setup('object-member.svelte');
 
