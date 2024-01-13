@@ -187,6 +187,8 @@ export class CSSPlugin
         }
 
         const cssDocument = this.getCSSDoc(document);
+        cssDocument.adaptStyleInfo(position);
+
 
         if (cssDocument.isInGenerated(position)) {
             return this.getCompletionsInternal(document, position, cssDocument);

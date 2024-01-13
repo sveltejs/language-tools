@@ -125,7 +125,7 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
     ): Promise<CompletionList> {
         const document = this.getDocument(textDocument.uri);
 
-        const completions = await Promise.all(
+        let completions = await Promise.all(
             this.plugins.map(async (plugin) => {
                 const result = await this.tryExecutePlugin(
                     plugin,
@@ -168,6 +168,12 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
                 item.sortText = 'Z' + (item.sortText || '');
                 return true;
             });
+        }
+
+        const css = completions.find((completion) => completion.plugin === 'css');
+
+        if(css){
+            completions = completions.filter((completion) => completion.plugin !== 'ts')
         }
 
         let flattenedCompletions = flatten(

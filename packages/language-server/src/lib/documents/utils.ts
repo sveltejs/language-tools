@@ -59,7 +59,10 @@ function extractTags(
     html?: HTMLDocument
 ): TagInformation[] {
     const rootNodes = html?.roots || parseHtml(text).roots;
-    const matchedNodes = rootNodes
+    const headIdx = tag === 'style' ? rootNodes.findIndex((node) => node.tag === 'svelte:head') : -1;
+    const styleWithinHead = headIdx !== -1 ? rootNodes[headIdx]?.children?.find((node) => node.tag === 'style') : undefined;
+
+    const matchedNodes = [...rootNodes, ...(styleWithinHead ? [styleWithinHead] : [])]
         .filter((node) => node.tag === tag)
         .filter((tag) => {
             return isNotInsideControlFlowTag(tag) && isNotInsideHtmlTag(tag);
@@ -147,15 +150,18 @@ export function extractScriptTags(
     return { script, moduleScript };
 }
 
-export function extractStyleTag(source: string, html?: HTMLDocument): TagInformation | null {
+
+type ReturnType<T> = T extends true ? TagInformation[] | null : TagInformation | null
+
+export function extractStyleTag<T extends boolean = false>(source: string, html?: HTMLDocument, returnAll?: T): ReturnType<T> {
     const styles = extractTags(source, 'style', html);
     if (!styles.length) {
         return null;
     }
-
-    // There can only be one style tag
-    return styles[0];
+   
+    return (returnAll? styles : styles[0]) as ReturnType<T>;
 }
+
 
 export function extractTemplateTag(source: string, html?: HTMLDocument): TagInformation | null {
     const templates = extractTags(source, 'template', html);

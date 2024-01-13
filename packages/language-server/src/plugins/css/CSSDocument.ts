@@ -1,6 +1,6 @@
 import { Stylesheet, TextDocument } from 'vscode-css-languageservice';
 import { Position } from 'vscode-languageserver';
-import { Document, DocumentMapper, ReadableDocument, TagInformation } from '../../lib/documents';
+import { Document, DocumentMapper, ReadableDocument, TagInformation, extractStyleTag } from '../../lib/documents';
 import { CSSLanguageServices, getLanguageService } from './service';
 
 export interface CSSDocumentBase extends DocumentMapper, TextDocument {
@@ -63,6 +63,25 @@ export class CSSDocument extends ReadableDocument implements DocumentMapper {
         const offset = this.parent.offsetAt(pos);
         return offset >= this.styleInfo.start && offset <= this.styleInfo.end;
     }
+
+    /**
+     * Adapt the style info to the given position
+     * @param pos Position in parent
+     */
+    adaptStyleInfo(pos: Position): void {
+        const styleTags = extractStyleTag(this.parent.content, this.parent.html, true);
+        if (styleTags) {
+           const styleAtPos = styleTags.find(this.isInStyleTag.bind(this, pos))
+           if(styleAtPos) {
+            this.styleInfo = styleAtPos
+           }
+        }
+    }
+
+    isInStyleTag(pos: Position, tag:TagInformation): boolean { 
+        return tag.startPos.line <= pos.line && tag.endPos.line >= pos.line
+    }
+
 
     /**
      * Get the fragment text from the parent
