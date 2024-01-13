@@ -719,7 +719,10 @@ async function createLanguageService(
 
         dirty = false;
 
-        if (!oldProgram) {
+        // host.getCachedExportInfoMap will create the cache if it doesn't exist
+        // so we need to check the property instead
+        const cache = project?.exportMapCache;
+        if (!oldProgram || !cache || cache.isEmpty()) {
             changedFilesForExportCache.clear();
             return;
         }
@@ -734,10 +737,10 @@ async function createLanguageService(
             }
 
             if (oldFile && newFile) {
-                host.getCachedExportInfoMap?.().onFileChanged?.(oldFile, newFile, false);
+                cache.onFileChanged?.(oldFile, newFile, false);
             } else {
                 // new file or deleted file
-                host.getCachedExportInfoMap?.().clear();
+                cache.clear();
             }
         }
         changedFilesForExportCache.clear();
