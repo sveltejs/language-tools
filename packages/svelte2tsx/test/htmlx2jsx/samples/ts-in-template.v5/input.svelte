@@ -30,3 +30,4 @@
 
 <button onclick={(e: Event) => {e as any}}>click</button>
 <Component attr={attr as boolean} />
+<label id={ok!}></label>
