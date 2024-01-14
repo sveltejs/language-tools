@@ -719,14 +719,16 @@ async function createLanguageService(
 
         dirty = false;
 
+        // https://github.com/microsoft/TypeScript/blob/23faef92703556567ddbcb9afb893f4ba638fc20/src/server/project.ts#L1624
         // host.getCachedExportInfoMap will create the cache if it doesn't exist
         // so we need to check the property instead
-        const cache = project?.exportMapCache;
-        if (!oldProgram || !cache || cache.isEmpty()) {
+        const exportMapCache = project?.exportMapCache;
+        if (!oldProgram || !exportMapCache || exportMapCache.isEmpty()) {
             changedFilesForExportCache.clear();
             return;
         }
 
+        exportMapCache.releaseSymbols();
         for (const fileName of changedFilesForExportCache) {
             const oldFile = oldProgram.getSourceFile(fileName);
             const newFile = program?.getSourceFile(fileName);
@@ -737,10 +739,10 @@ async function createLanguageService(
             }
 
             if (oldFile && newFile) {
-                cache.onFileChanged?.(oldFile, newFile, false);
+                exportMapCache.onFileChanged?.(oldFile, newFile, false);
             } else {
                 // new file or deleted file
-                cache.clear();
+                exportMapCache.clear();
             }
         }
         changedFilesForExportCache.clear();
