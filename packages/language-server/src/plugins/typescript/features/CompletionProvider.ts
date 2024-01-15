@@ -197,6 +197,11 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             return CompletionList.create(eventAndSlotLetCompletions, !!tsDoc.parserError);
         }
 
+        const tagCompletions =
+            componentInfo || eventAndSlotLetCompletions.length > 0
+                ? []
+                : this.getCustomElementCompletions(lang, document, tsDoc, position);
+
         const formatSettings = await this.configManager.getFormatCodeSettingsForFile(
             document,
             tsDoc.scriptKind
@@ -246,7 +251,8 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             (!tsDoc.parserError || isInScript(position, tsDoc));
         let completions = response?.entries || [];
 
-        if (completions.length === 0 && eventAndSlotLetCompletions.length === 0) {
+        const customCompletions = eventAndSlotLetCompletions.concat(tagCompletions ?? []);
+        if (completions.length === 0 && customCompletions.length === 0) {
             return tsDoc.parserError ? CompletionList.create([], true) : null;
         }
 
@@ -282,7 +288,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         const fileUrl = pathToUrl(tsDoc.filePath);
         const isCompletionInTag = svelteIsInTag(svelteNode, originalOffset);
 
-        const completionItems: CompletionItem[] = eventAndSlotLetCompletions;
+        const completionItems: CompletionItem[] = customCompletions;
         const isValidCompletion = createIsValidCompletion(document, position, !!tsDoc.parserError);
         const addCompletion = (entry: ts.CompletionEntry, asStore: boolean) => {
             if (isValidCompletion(entry)) {
@@ -459,6 +465,58 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
                     )
                 )
         ];
+    }
+
+    private getCustomElementCompletions(
+        lang: ts.LanguageService,
+        document: Document,
+        tsDoc: SvelteDocumentSnapshot,
+        position: Position
+    ): CompletionItem[] | undefined {
+        const offset = document.offsetAt(position);
+        const tag = getNodeIfIsInHTMLStartTag(document.html, offset);
+
+        if (!tag) {
+            return;
+        }
+
+        const tagNameEnd = tag.start + 1 + (tag.tag?.length ?? 0);
+        if (offset > tagNameEnd) {
+            return;
+        }
+
+        const program = lang.getProgram();
+        const sourceFile = program?.getSourceFile(tsDoc.filePath);
+        const typeChecker = program?.getTypeChecker();
+        if (!typeChecker || !sourceFile) {
+            return;
+        }
+
+        const typingsNamespace = typeChecker
+            .getSymbolsInScope(sourceFile, ts.SymbolFlags.Namespace)
+            .find((symbol) => symbol.name === 'svelteHTML');
+
+        if (!typingsNamespace) {
+            return;
+        }
+
+        const elements = typeChecker
+            .getExportsOfModule(typingsNamespace)
+            .find((symbol) => symbol.name === 'IntrinsicElements');
+
+        if (!elements || !(elements.flags & ts.SymbolFlags.Interface)) {
+            return;
+        }
+
+        const existing = document.getText().substring(tag.start + 1, offset);
+        const replaceRange = toRange(document.getText(), tag.start + 1, offset);
+        return Array.from(elements.members?.values() ?? [])
+            .filter((name) => name.name.startsWith(existing))
+            .map((name) => ({
+                label: name.name,
+                kind: CompletionItemKind.Property,
+                textEdit: TextEdit.replace(replaceRange, name.name)
+            }));
     }
 
     private componentInfoToCompletionEntry(
