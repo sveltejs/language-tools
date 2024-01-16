@@ -17,7 +17,7 @@ import {
 } from 'vscode-languageserver';
 import {
     CompletionsProviderImpl,
-    CompletionEntryWithIdentifier
+    CompletionResolveInfo
 } from '../../../../src/plugins/typescript/features/CompletionProvider';
 import { LSAndTSDocResolver } from '../../../../src/plugins/typescript/LSAndTSDocResolver';
 import { sortBy } from 'lodash';
@@ -39,7 +39,7 @@ function harmonizeNewLines(input?: string) {
 }
 
 // describe('CompletionProviderImpl (old transformation)', test(false));
-describe('CompletionProviderImpl', function () {
+describe.only('CompletionProviderImpl', function () {
     serviceWarmup(this, testFilesDir, pathToUrl(testDir));
 
     function setup(filename: string) {
@@ -475,27 +475,14 @@ describe('CompletionProviderImpl', function () {
 
         assert.deepStrictEqual(data, {
             data: undefined,
-            hasAction: undefined,
-            filterText: undefined,
-            insertText: undefined,
-            isPackageJsonImport: undefined,
-            isImportStatementCompletion: undefined,
-            isRecommended: undefined,
-            isSnippet: undefined,
-            kind: 'method',
-            kindModifiers: '',
-            labelDetails: undefined,
             name: 'b',
             position: {
                 character: 49,
                 line: 0
             },
-            replacementSpan: undefined,
-            sortText: '11',
             source: undefined,
-            sourceDisplay: undefined,
             uri: fileNameToAbsoluteUri(filename)
-        } as CompletionEntryWithIdentifier);
+        } as CompletionResolveInfo);
     });
 
     it('resolve completion and provide documentation', async () => {
@@ -507,8 +494,6 @@ describe('CompletionProviderImpl', function () {
             commitCharacters: ['.', ',', ';', '('],
             data: {
                 name: 'foo',
-                kind: ts.ScriptElementKind.alias,
-                sortText: '0',
                 uri: '',
                 position: Position.create(3, 7)
             }

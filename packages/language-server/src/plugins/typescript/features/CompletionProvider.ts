@@ -56,7 +56,9 @@ import {
 } from './utils';
 import { isInTag as svelteIsInTag } from '../svelte-ast-utils';
 
-export interface CompletionEntryWithIdentifier extends ts.CompletionEntry, TextDocumentIdentifier {
+export interface CompletionResolveInfo
+    extends Pick<ts.CompletionEntry, 'data' | 'name' | 'source'>,
+        TextDocumentIdentifier {
     position: Position;
     __is_sveltekit$typeImport?: boolean;
 }
@@ -66,10 +68,10 @@ type validTriggerCharacter = '.' | '"' | "'" | '`' | '/' | '@' | '<' | '#';
 type LastCompletion = {
     key: string;
     position: Position;
-    completionList: AppCompletionList<CompletionEntryWithIdentifier> | null;
+    completionList: AppCompletionList<CompletionResolveInfo> | null;
 };
 
-export class CompletionsProviderImpl implements CompletionsProvider<CompletionEntryWithIdentifier> {
+export class CompletionsProviderImpl implements CompletionsProvider<CompletionResolveInfo> {
     constructor(
         private readonly lsAndTsDocResolver: LSAndTSDocResolver,
         private readonly configManager: LSConfigManager
@@ -98,7 +100,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         position: Position,
         completionContext?: CompletionContext,
         cancellationToken?: CancellationToken
-    ): Promise<AppCompletionList<CompletionEntryWithIdentifier> | null> {
+    ): Promise<AppCompletionList<CompletionResolveInfo> | null> {
         if (isInTag(position, document.styleInfo)) {
             return null;
         }
@@ -442,7 +444,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         componentInfo: ComponentInfoProvider | null,
         attributeContext: AttributeContext | null,
         defaultTextEditRange: Range | undefined
-    ): Array<AppCompletionItem<CompletionEntryWithIdentifier>> {
+    ): Array<AppCompletionItem<CompletionResolveInfo>> {
         if (componentInfo === null) {
             return [];
         }
@@ -538,7 +540,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         prefix: string,
         kind: CompletionItemKind | undefined,
         defaultTextEditRange: Range | undefined
-    ): AppCompletionItem<CompletionEntryWithIdentifier> {
+    ): AppCompletionItem<CompletionResolveInfo> {
         const name = prefix + info.name;
         return {
             label: name,
@@ -563,7 +565,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         attributeContext: AttributeContext | null,
         componentInfo: ComponentInfoProvider | null,
         defaultTextEditRange: Range | undefined,
-        eventAndSlotLetCompletions: AppCompletionItem<CompletionEntryWithIdentifier>[],
+        eventAndSlotLetCompletions: AppCompletionItem<CompletionResolveInfo>[],
         tsDoc: SvelteDocumentSnapshot
     ) {
         const props =
@@ -594,7 +596,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         addCommitCharacters: boolean,
         asStore: boolean,
         existingImports: Set<string>
-    ): AppCompletionItem<CompletionEntryWithIdentifier> | null {
+    ): AppCompletionItem<CompletionResolveInfo> | null {
         const completionLabelAndInsert = this.getCompletionLabelAndInsert(snapshot, comp);
         if (!completionLabelAndInsert) {
             return null;
@@ -646,7 +648,9 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             textEdit,
             // pass essential data for resolving completion
             data: {
-                ...comp,
+                name: comp.name,
+                source: comp.source,
+                data: comp.data,
                 uri,
                 position
             }
@@ -774,9 +778,9 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
 
     async resolveCompletion(
         document: Document,
-        completionItem: AppCompletionItem<CompletionEntryWithIdentifier>,
+        completionItem: AppCompletionItem<CompletionResolveInfo>,
         cancellationToken?: CancellationToken
-    ): Promise<AppCompletionItem<CompletionEntryWithIdentifier>> {
+    ): Promise<AppCompletionItem<CompletionResolveInfo>> {
         const { data: comp } = completionItem;
         const { tsDoc, lang, userPreferences } =
             await this.lsAndTsDocResolver.getLSAndTSDoc(document);
