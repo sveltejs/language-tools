@@ -39,7 +39,7 @@ function harmonizeNewLines(input?: string) {
 }
 
 // describe('CompletionProviderImpl (old transformation)', test(false));
-describe.only('CompletionProviderImpl', function () {
+describe('CompletionProviderImpl', function () {
     serviceWarmup(this, testFilesDir, pathToUrl(testDir));
 
     function setup(filename: string) {
@@ -218,7 +218,7 @@ describe.only('CompletionProviderImpl', function () {
         ]);
     });
 
-    it('provide event completions for element', async () => {
+    it('provide event completions for element from type definition', async () => {
         const { completionProvider, document } = setup('element-events-completion.svelte');
 
         const completions = await completionProvider.getCompletions(
@@ -246,6 +246,29 @@ describe.only('CompletionProviderImpl', function () {
             preselect: undefined,
             insertText: undefined,
             insertTextFormat: undefined
+        });
+    });
+
+    it('provide tag name completion from type definition', async () => {
+        const { completionProvider, document } = setup('custom-element-tag.svelte');
+
+        const completions = await completionProvider.getCompletions(
+            document,
+            Position.create(0, 2),
+            {
+                triggerKind: CompletionTriggerKind.Invoked
+            }
+        );
+
+        const item = completions!.items.find((item) => item.label === 'custom-element');
+
+        assert.deepStrictEqual(item, <CompletionItem>{
+            label: 'custom-element',
+            kind: CompletionItemKind.Property,
+            textEdit: {
+                range: { start: { line: 0, character: 1 }, end: { line: 0, character: 2 } },
+                newText: 'custom-element'
+            }
         });
     });
 

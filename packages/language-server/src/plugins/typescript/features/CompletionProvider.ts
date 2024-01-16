@@ -27,13 +27,7 @@ import {
 } from '../../../lib/documents';
 import { AttributeContext, getAttributeContextAtPosition } from '../../../lib/documents/parseHtml';
 import { LSConfigManager } from '../../../ls-config';
-import {
-    flatten,
-    getRegExpMatches,
-    isNotNullOrUndefined,
-    modifyLines,
-    pathToUrl
-} from '../../../utils';
+import { flatten, getRegExpMatches, modifyLines, pathToUrl } from '../../../utils';
 import { AppCompletionItem, AppCompletionList, CompletionsProvider } from '../../interfaces';
 import { ComponentInfoProvider, ComponentPartInfo } from '../ComponentInfoProvider';
 import { SvelteDocumentSnapshot } from '../DocumentSnapshot';
@@ -198,7 +192,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
         const tagCompletions =
             componentInfo || eventAndSlotLetCompletions.length > 0
                 ? []
-                : this.getCustomElementCompletions(lang, document, tsDoc, position);
+                : await this.getCustomElementCompletions(lang, document, tsDoc, position);
 
         const formatSettings = await this.configManager.getFormatCodeSettingsForFile(
             document,
@@ -480,12 +474,12 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
         ];
     }
 
-    private getCustomElementCompletions(
+    private async getCustomElementCompletions(
         lang: ts.LanguageService,
         document: Document,
         tsDoc: SvelteDocumentSnapshot,
         position: Position
-    ): CompletionItem[] | undefined {
+    ): Promise<CompletionItem[] | undefined> {
         const offset = document.offsetAt(position);
         const tag = getNodeIfIsInHTMLStartTag(document.html, offset);
 
@@ -505,25 +499,32 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
             return;
         }
 
-        const typingsNamespace = typeChecker
-            .getSymbolsInScope(sourceFile, ts.SymbolFlags.Namespace)
-            .find((symbol) => symbol.name === 'svelteHTML');
+        const typingsNamespace = (
+            await this.lsAndTsDocResolver.getTSService(tsDoc.filePath)
+        )?.getTsConfigSvelteOptions().namespace;
 
-        if (!typingsNamespace) {
+        const typingsNamespaceSymbol = this.findTypingsNamespaceSymbol(
+            typingsNamespace,
+            typeChecker,
+            sourceFile
+        );
+
+        if (!typingsNamespaceSymbol) {
             return;
         }
 
         const elements = typeChecker
-            .getExportsOfModule(typingsNamespace)
+            .getExportsOfModule(typingsNamespaceSymbol)
             .find((symbol) => symbol.name === 'IntrinsicElements');
 
         if (!elements || !(elements.flags & ts.SymbolFlags.Interface)) {
             return;
         }
 
-        let tagNames: string[] = Array.from(elements.members?.values() ?? []).map(
-            (symbol) => symbol.name
-        );
+        let tagNames: string[] = typeChecker
+            .getDeclaredTypeOfSymbol(elements)
+            .getProperties()
+            .map((p) => ts.symbolName(p));
 
         if (tagNames.length && tag.tag) {
             tagNames = tagNames.filter((name) => name.startsWith(tag.tag ?? ''));
@@ -536,6 +537,32 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
             kind: CompletionItemKind.Property,
             textEdit: TextEdit.replace(this.cloneRange(replacementRange), name)
         }));
+    }
+
+    private findTypingsNamespaceSymbol(
+        namespaceExpression: string,
+        typeChecker: ts.TypeChecker,
+        sourceFile: ts.SourceFile
+    ) {
+        if (!namespaceExpression || typeof namespaceExpression !== 'string') {
+            return;
+        }
+
+        const [first, ...rest] = namespaceExpression.split('.');
+
+        let symbol: ts.Symbol | undefined = typeChecker
+            .getSymbolsInScope(sourceFile, ts.SymbolFlags.Namespace)
+            .find((symbol) => symbol.name === first);
+
+        for (const part of rest) {
+            if (!symbol) {
+                return;
+            }
+
+            symbol = typeChecker.getExportsOfModule(symbol).find((symbol) => symbol.name === part);
+        }
+
+        return symbol;
     }
 
     private componentInfoToCompletionEntry(
