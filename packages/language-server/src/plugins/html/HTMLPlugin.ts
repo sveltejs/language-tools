@@ -407,10 +407,6 @@ export class HTMLPlugin
     }
 
     findDocumentHighlight(document: Document, position: Position): DocumentHighlight[] | null {
-        if (!this.featureEnabled('documentHighlight')) {
-            return null;
-        }
-
         const html = this.documents.get(document);
         if (!html) {
             return null;

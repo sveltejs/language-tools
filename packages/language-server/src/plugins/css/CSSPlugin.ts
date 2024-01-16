@@ -439,10 +439,6 @@ export class CSSPlugin
     }
 
     findDocumentHighlight(document: Document, position: Position): DocumentHighlight[] | null {
-        if (!this.featureEnabled('documentHighlight')) {
-            return null;
-        }
-
         if (!document.styleInfo) {
             return [];
         }

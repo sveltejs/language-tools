@@ -294,7 +294,9 @@ export function startServer(options?: LSOptions) {
                 inlayHintProvider: true,
                 callHierarchyProvider: true,
                 foldingRangeProvider: true,
-                documentHighlightProvider: true
+                documentHighlightProvider:
+                    !!evt.initializationOptions?.configuration?.svelte?.experimental
+                        ?.documentHighlight?.enable
             }
         };
     });

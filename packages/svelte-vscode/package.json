@@ -179,12 +179,6 @@
                     "title": "TypeScript: Semantic Tokens",
                     "description": "Enable semantic tokens (semantic highlight) for TypeScript."
                 },
-                "svelte.plugin.typescript.documentHighlight.enable": {
-                    "type": "boolean",
-                    "default": true,
-                    "title": "Typescript: Document Highlight",
-                    "description": "Enable document highlight for Typescript"
-                },
                 "svelte.plugin.css.enable": {
                     "type": "boolean",
                     "default": true,
@@ -245,12 +239,6 @@
                     "title": "CSS: SelectionRange",
                     "description": "Enable selection range for CSS"
                 },
-                "svelte.plugin.css.documentHighlight.enable": {
-                    "type": "boolean",
-                    "default": true,
-                    "title": "CSS: Document Highlight",
-                    "description": "Enable document highlight for CSS"
-                },
                 "svelte.plugin.html.enable": {
                     "type": "boolean",
                     "default": true,
@@ -292,12 +280,6 @@
                     "default": true,
                     "title": "HTML: Linked Editing",
                     "description": "Enable Linked Editing for HTML"
-                },
-                "svelte.plugin.html.documentHighlight.enable": {
-                    "type": "boolean",
-                    "default": true,
-                    "title": "HTML: Document Highlight",
-                    "description": "Enable document highlight for HTML"
                 },
                 "svelte.plugin.svelte.enable": {
                     "type": "boolean",
@@ -402,12 +384,6 @@
                     "title": "Svelte: Rename",
                     "description": "Enable rename/move Svelte files functionality"
                 },
-                "svelte.plugin.svelte.documentHighlight.enable": {
-                    "type": "boolean",
-                    "default": true,
-                    "title": "Svelte: Document Highlight",
-                    "description": "Enable document highlight for svelte tags or block"
-                },
                 "svelte.plugin.svelte.defaultScriptLanguage": {
                     "type": "string",
                     "default": "none",
@@ -417,6 +393,12 @@
                         "none",
                         "ts"
                     ]
+                },
+                "svelte.experimental.documentHighlight.enable": {
+                    "type": "boolean",
+                    "default": false,
+                    "title": "Experimental: Document Highlight",
+                    "description": "Enable document highlight for Svelte"
                 }
             }
         },

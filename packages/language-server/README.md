@@ -135,10 +135,6 @@ Enable signature help (parameter hints) for JS/TS. _Default_: `true`
 
 Enable semantic tokens (semantic highlight) for TypeScript. _Default_: `true`
 
-#### `svelte.plugin.typescript.documentHighlight.enable`
-
-Enable document highlight for Typescript. _Default_: `true`
-
 ##### `svelte.plugin.css.enable`
 
 Enable the CSS plugin. _Default_: `true`
@@ -180,10 +176,6 @@ Enable document symbols for CSS. _Default_: `true`
 
 Enable selection range for CSS. _Default_: `true`
 
-#### `svelte.plugin.css.documentHighlight.enable`
-
-Enable document highlight for CSS. _Default_: `true`
-
 ##### `svelte.plugin.html.enable`
 
 Enable the HTML plugin. _Default_: `true`
@@ -212,10 +204,6 @@ Enable document symbols for HTML. _Default_: `true`
 ##### `svelte.plugin.html.linkedEditing.enable`
 
 Enable Linked Editing for HTML. _Default_: `true`
-
-#### `svelte.plugin.html.documentHighlight.enable`
-
-Enable document highlight for HTML. _Default_: `true`
 
 ##### `svelte.plugin.svelte.enable`
 
@@ -293,13 +281,13 @@ Enable code actions for Svelte. _Default_: `true`
 
 Enable selection range for Svelte. _Default_: `true`
 
-#### `svelte.plugin.svelte.documentHighlight.enable`
-
-Enable document highlight for Svelte tags or block. _Default_: `true`
-
 ##### `svelte.plugin.svelte.defaultScriptLanguage`
 
 The default language to use when generating new script tags in Svelte. _Default_: `none`
+
+#### `svelte.experimental.documentHighlight.enable`
+
+Enable experimental document highlight support. Require restart. _Default_: `false`
 
 ## Credits
 
