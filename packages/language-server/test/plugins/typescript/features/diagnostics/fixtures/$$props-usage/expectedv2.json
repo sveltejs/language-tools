@@ -1,6 +1,9 @@
 [
     {
-        "range": { "start": { "line": 9, "character": 7 }, "end": { "line": 9, "character": 16 } },
+        "range": {
+            "start": { "line": 10, "character": 7 },
+            "end": { "line": 10, "character": 16 }
+        },
         "severity": 1,
         "source": "ts",
         "message": "Type 'boolean' is not assignable to type 'string'.",
@@ -9,21 +12,21 @@
     },
     {
         "range": {
-            "start": { "line": 10, "character": 43 },
-            "end": { "line": 10, "character": 61 }
+            "start": { "line": 11, "character": 43 },
+            "end": { "line": 11, "character": 54 }
         },
         "severity": 1,
         "source": "ts",
-        "message": "Type '{ exported1: string; exported2: string; invalidProp: true; }' is not assignable to type '{ exported1: string; exported2?: string | undefined; }'.\n  Object literal may only specify known properties, and '\"invalidProp\"' does not exist in type '{ exported1: string; exported2?: string | undefined; }'.",
-        "code": 2322,
+        "message": "Object literal may only specify known properties, and '\"invalidProp\"' does not exist in type '$$Props'.",
+        "code": 2353,
         "tags": []
     },
     {
-        "range": { "start": { "line": 11, "character": 1 }, "end": { "line": 11, "character": 6 } },
+        "range": { "start": { "line": 12, "character": 1 }, "end": { "line": 12, "character": 6 } },
         "severity": 1,
         "source": "ts",
-        "message": "Property 'exported1' is missing in type '{}' but required in type '{ exported1: string; exported2?: string | undefined; }'.",
-        "code": 2741,
+        "message": "Type '{}' is missing the following properties from type '$$Props': exported1, exported3",
+        "code": 2739,
         "tags": []
     }
 ]

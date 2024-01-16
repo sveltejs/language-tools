@@ -37,53 +37,96 @@ function preprocess(text: string) {
     let scanner = createScanner(text);
     let token = scanner.scan();
     let currentStartTagStart: number | null = null;
+    let moustacheCheckStart = 0;
+    let moustacheCheckEnd = 0;
+    let lastToken = token;
 
     while (token !== TokenType.EOS) {
         const offset = scanner.getTokenOffset();
+        let blanked = false;
 
-        if (token === TokenType.StartTagOpen) {
-            if (shouldBlankStartOrEndTagLike(offset)) {
-                blankStartOrEndTagLike(offset);
-            } else {
-                currentStartTagStart = offset;
-            }
-        }
+        switch (token) {
+            case TokenType.StartTagOpen:
+                if (shouldBlankStartOrEndTagLike(offset)) {
+                    blankStartOrEndTagLike(offset);
+                    blanked = true;
+                } else {
+                    currentStartTagStart = offset;
+                }
+                break;
 
-        if (token === TokenType.StartTagClose) {
-            if (shouldBlankStartOrEndTagLike(offset)) {
-                blankStartOrEndTagLike(offset);
-            } else {
+            case TokenType.StartTagClose:
+                if (shouldBlankStartOrEndTagLike(offset)) {
+                    blankStartOrEndTagLike(offset);
+                    blanked = true;
+                } else {
+                    currentStartTagStart = null;
+                }
+                break;
+
+            case TokenType.StartTagSelfClose:
                 currentStartTagStart = null;
+                break;
+
+            // <Foo checked={a < 1}>
+            // https://github.com/microsoft/vscode-html-languageservice/blob/71806ef57be07e1068ee40900ef8b0899c80e68a/src/parser/htmlScanner.ts#L327
+            case TokenType.Unknown:
+                if (
+                    scanner.getScannerState() === ScannerState.WithinTag &&
+                    scanner.getTokenText() === '<' &&
+                    shouldBlankStartOrEndTagLike(offset)
+                ) {
+                    blankStartOrEndTagLike(offset);
+                    blanked = true;
+                }
+                break;
+
+            case TokenType.Content: {
+                moustacheCheckEnd = scanner.getTokenEnd();
+                if (token !== lastToken) {
+                    moustacheCheckStart = offset;
+                }
+                break;
             }
         }
 
-        if (token === TokenType.StartTagSelfClose) {
-            currentStartTagStart = null;
+        // blanked, so the token type is invalid
+        if (!blanked) {
+            lastToken = token;
         }
-
-        // <Foo checked={a < 1}>
-        // https://github.com/microsoft/vscode-html-languageservice/blob/71806ef57be07e1068ee40900ef8b0899c80e68a/src/parser/htmlScanner.ts#L327
-        if (
-            token === TokenType.Unknown &&
-            scanner.getScannerState() === ScannerState.WithinTag &&
-            scanner.getTokenText() === '<' &&
-            shouldBlankStartOrEndTagLike(offset)
-        ) {
-            blankStartOrEndTagLike(offset);
-        }
-
         token = scanner.scan();
     }
 
     return text;
 
     function shouldBlankStartOrEndTagLike(offset: number) {
-        return isInsideMoustacheTag(text, currentStartTagStart, offset);
+        if (currentStartTagStart != null) {
+            return isInsideMoustacheTag(text, currentStartTagStart, offset);
+        }
+
+        const index = text
+            .substring(moustacheCheckStart, moustacheCheckEnd)
+            .lastIndexOf('{', offset);
+
+        const lastMustacheTagStart = index === -1 ? null : moustacheCheckStart + index;
+        if (lastMustacheTagStart == null) {
+            return false;
+        }
+
+        return isInsideMoustacheTag(
+            text.substring(lastMustacheTagStart),
+            null,
+            offset - lastMustacheTagStart
+        );
     }
 
     function blankStartOrEndTagLike(offset: number) {
         text = text.substring(0, offset) + ' ' + text.substring(offset + 1);
-        scanner = createScanner(text, offset, ScannerState.WithinTag);
+        scanner = createScanner(
+            text,
+            offset,
+            currentStartTagStart != null ? ScannerState.WithinTag : ScannerState.WithinContent
+        );
     }
 }
 

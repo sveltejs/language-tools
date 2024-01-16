@@ -1,4 +1,4 @@
-import { doComplete as doEmmetComplete } from 'vscode-emmet-helper';
+import { doComplete as doEmmetComplete } from '@vscode/emmet-helper';
 import {
     Color,
     ColorInformation,
@@ -14,7 +14,8 @@ import {
     CompletionItem,
     CompletionItemKind,
     SelectionRange,
-    DocumentHighlight
+    DocumentHighlight,
+    WorkspaceFolder
 } from 'vscode-languageserver';
 import {
     Document,
@@ -26,7 +27,9 @@ import {
     mapObjWithRangeToOriginal,
     mapHoverToParent,
     mapSelectionRangeToParent,
-    isInTag
+    isInTag,
+    mapRangeToOriginal,
+    TagInformation
 } from '../../lib/documents';
 import { LSConfigManager, LSCSSConfig } from '../../ls-config';
 import {
@@ -36,15 +39,19 @@ import {
     DocumentColorsProvider,
     DocumentHighlightProvider,
     DocumentSymbolsProvider,
+    FoldingRangeProvider,
     HoverProvider,
     SelectionRangeProvider
 } from '../interfaces';
 import { CSSDocument, CSSDocumentBase } from './CSSDocument';
-import { getLanguage, getLanguageService } from './service';
+import { CSSLanguageServices, getLanguage, getLanguageService } from './service';
 import { GlobalVars } from './global-vars';
 import { getIdClassCompletion } from './features/getIdClassCompletion';
 import { AttributeContext, getAttributeContextAtPosition } from '../../lib/documents/parseHtml';
 import { StyleAttributeDocument } from './StyleAttributeDocument';
+import { getDocumentContext } from '../documentContext';
+import { FoldingRange, FoldingRangeKind } from 'vscode-languageserver-types';
+import { indentBasedFoldingRangeForTag } from '../../lib/foldingRange/indentFolding';
 
 export class CSSPlugin
     implements
@@ -55,15 +62,25 @@ export class CSSPlugin
         ColorPresentationsProvider,
         DocumentSymbolsProvider,
         SelectionRangeProvider,
-        DocumentHighlightProvider
+        DocumentHighlightProvider,
+        FoldingRangeProvider
 {
     __name = 'css';
     private configManager: LSConfigManager;
     private cssDocuments = new WeakMap<Document, CSSDocument>();
+    private cssLanguageServices: CSSLanguageServices;
+    private workspaceFolders: WorkspaceFolder[];
     private triggerCharacters = ['.', ':', '-', '/'];
     private globalVars = new GlobalVars();
 
-    constructor(docManager: DocumentManager, configManager: LSConfigManager) {
+    constructor(
+        docManager: DocumentManager,
+        configManager: LSConfigManager,
+        workspaceFolders: WorkspaceFolder[],
+        cssLanguageServices: CSSLanguageServices
+    ) {
+        this.cssLanguageServices = cssLanguageServices;
+        this.workspaceFolders = workspaceFolders;
         this.configManager = configManager;
         this.updateConfigs();
 
@@ -74,7 +91,7 @@ export class CSSPlugin
         });
 
         docManager.on('documentChange', (document) =>
-            this.cssDocuments.set(document, new CSSDocument(document))
+            this.cssDocuments.set(document, new CSSDocument(document, this.cssLanguageServices))
         );
         docManager.on('documentClose', (document) => this.cssDocuments.delete(document));
     }
@@ -85,7 +102,7 @@ export class CSSPlugin
         }
 
         const cssDocument = this.getCSSDoc(document);
-        const [range] = getLanguageService(extractLanguage(cssDocument)).getSelectionRanges(
+        const [range] = this.getLanguageService(extractLanguage(cssDocument)).getSelectionRanges(
             cssDocument,
             [cssDocument.getGeneratedPosition(position)],
             cssDocument.stylesheet
@@ -110,7 +127,7 @@ export class CSSPlugin
             return [];
         }
 
-        return getLanguageService(kind)
+        return this.getLanguageService(kind)
             .doValidation(cssDocument, cssDocument.stylesheet)
             .map((diagnostic) => ({ ...diagnostic, source: getLanguage(kind) }))
             .map((diagnostic) => mapObjWithRangeToOriginal(cssDocument, diagnostic));
@@ -134,13 +151,16 @@ export class CSSPlugin
             this.inStyleAttributeWithoutInterpolation(attributeContext, document.getText())
         ) {
             const [start, end] = attributeContext.valueRange;
-            return this.doHoverInternal(new StyleAttributeDocument(document, start, end), position);
+            return this.doHoverInternal(
+                new StyleAttributeDocument(document, start, end, this.cssLanguageServices),
+                position
+            );
         }
 
         return null;
     }
     private doHoverInternal(cssDocument: CSSDocumentBase, position: Position) {
-        const hoverInfo = getLanguageService(extractLanguage(cssDocument)).doHover(
+        const hoverInfo = this.getLanguageService(extractLanguage(cssDocument)).doHover(
             cssDocument,
             cssDocument.getGeneratedPosition(position),
             cssDocument.stylesheet
@@ -148,11 +168,11 @@ export class CSSPlugin
         return hoverInfo ? mapHoverToParent(cssDocument, hoverInfo) : hoverInfo;
     }
 
-    getCompletions(
+    async getCompletions(
         document: Document,
         position: Position,
         completionContext?: CompletionContext
-    ): CompletionList | null {
+    ): Promise<CompletionList | null> {
         const triggerCharacter = completionContext?.triggerCharacter;
         const triggerKind = completionContext?.triggerKind;
         const isCustomTriggerCharacter = triggerKind === CompletionTriggerKind.TriggerCharacter;
@@ -185,7 +205,7 @@ export class CSSPlugin
             return this.getCompletionsInternal(
                 document,
                 position,
-                new StyleAttributeDocument(document, start, end)
+                new StyleAttributeDocument(document, start, end, this.cssLanguageServices)
             );
         } else {
             return getIdClassCompletion(cssDocument, attributeContext);
@@ -203,7 +223,7 @@ export class CSSPlugin
         );
     }
 
-    private getCompletionsInternal(
+    private async getCompletionsInternal(
         document: Document,
         position: Position,
         cssDocument: CSSDocumentBase
@@ -222,7 +242,7 @@ export class CSSPlugin
             return null;
         }
 
-        const lang = getLanguageService(type);
+        const lang = this.getLanguageService(type);
         let emmetResults: CompletionList = {
             isIncomplete: false,
             items: []
@@ -259,10 +279,11 @@ export class CSSPlugin
             ]);
         }
 
-        const results = lang.doComplete(
+        const results = await lang.doComplete2(
             cssDocument,
             cssDocument.getGeneratedPosition(position),
-            cssDocument.stylesheet
+            cssDocument.stylesheet,
+            getDocumentContext(cssDocument.uri, this.workspaceFolders)
         );
         return CompletionList.create(
             this.appendGlobalVars(
@@ -304,7 +325,7 @@ export class CSSPlugin
             return [];
         }
 
-        return getLanguageService(extractLanguage(cssDocument))
+        return this.getLanguageService(extractLanguage(cssDocument))
             .findDocumentColors(cssDocument, cssDocument.stylesheet)
             .map((colorInfo) => mapObjWithRangeToOriginal(cssDocument, colorInfo));
     }
@@ -322,7 +343,7 @@ export class CSSPlugin
             return [];
         }
 
-        return getLanguageService(extractLanguage(cssDocument))
+        return this.getLanguageService(extractLanguage(cssDocument))
             .getColorPresentations(
                 cssDocument,
                 cssDocument.stylesheet,
@@ -343,7 +364,7 @@ export class CSSPlugin
             return [];
         }
 
-        return getLanguageService(extractLanguage(cssDocument))
+        return this.getLanguageService(extractLanguage(cssDocument))
             .findDocumentSymbols(cssDocument, cssDocument.stylesheet)
             .map((symbol) => {
                 if (!symbol.containerName) {
@@ -359,13 +380,74 @@ export class CSSPlugin
             .map((symbol) => mapSymbolInformationToOriginal(cssDocument, symbol));
     }
 
+    getFoldingRanges(document: Document): FoldingRange[] {
+        if (!document.styleInfo) {
+            return [];
+        }
+
+        const cssDocument = this.getCSSDoc(document);
+        if (shouldUseIndentBasedFolding(cssDocument.languageId)) {
+            return this.nonSyntacticFolding(document, document.styleInfo);
+        }
+
+        return this.getLanguageService(extractLanguage(cssDocument))
+            .getFoldingRanges(cssDocument)
+            .map((range) => {
+                const originalRange = mapRangeToOriginal(cssDocument, {
+                    start: { line: range.startLine, character: range.startCharacter ?? 0 },
+                    end: { line: range.endLine, character: range.endCharacter ?? 0 }
+                });
+
+                return {
+                    startLine: originalRange.start.line,
+                    endLine: originalRange.end.line,
+                    kind: range.kind
+                };
+            });
+    }
+
+    private nonSyntacticFolding(document: Document, styleInfo: TagInformation): FoldingRange[] {
+        const ranges = indentBasedFoldingRangeForTag(document, styleInfo);
+        const startRegion = /^\s*(\/\/|\/\*\*?)\s*#?region\b/;
+        const endRegion = /^\s*(\/\/|\/\*\*?)\s*#?endregion\b/;
+
+        const lines = document
+            .getText()
+            .split(/\r?\n/)
+            .slice(styleInfo.startPos.line, styleInfo.endPos.line);
+
+        let start = -1;
+
+        for (let index = 0; index < lines.length; index++) {
+            const line = lines[index];
+
+            if (startRegion.test(line)) {
+                start = index;
+            } else if (endRegion.test(line)) {
+                if (start >= 0) {
+                    ranges.push({
+                        startLine: start + styleInfo.startPos.line,
+                        endLine: index + styleInfo.startPos.line,
+                        kind: FoldingRangeKind.Region
+                    });
+                }
+                start = -1;
+            }
+        }
+
+        return ranges.sort((a, b) => a.startLine - b.startLine);
+    }
+
     findDocumentHighlight(document: Document, position: Position): DocumentHighlight[] | null {
         if (!this.featureEnabled('documentHighlight')) {
             return null;
         }
 
-        const cssDocument = this.getCSSDoc(document);
+        if (!document.styleInfo) {
+            return [];
+        }
 
+        const cssDocument = this.getCSSDoc(document);
         if (cssDocument.isInGenerated(position)) {
             return this.findDocumentHighlightInternal(cssDocument, position);
         }
@@ -377,7 +459,7 @@ export class CSSPlugin
         ) {
             const [start, end] = attributeContext.valueRange;
             return this.findDocumentHighlightInternal(
-                new StyleAttributeDocument(document, start, end),
+                new StyleAttributeDocument(document, start, end, this.cssLanguageServices),
                 position
             );
         }
@@ -399,7 +481,7 @@ export class CSSPlugin
             return null;
         }
 
-        const result = getLanguageService(kind)
+        const result = getLanguageService(this.cssLanguageServices, kind)
             .findDocumentHighlights(
                 cssDocument,
                 cssDocument.getGeneratedPosition(position),
@@ -413,16 +495,16 @@ export class CSSPlugin
     private getCSSDoc(document: Document) {
         let cssDoc = this.cssDocuments.get(document);
         if (!cssDoc || cssDoc.version < document.version) {
-            cssDoc = new CSSDocument(document);
+            cssDoc = new CSSDocument(document, this.cssLanguageServices);
             this.cssDocuments.set(document, cssDoc);
         }
         return cssDoc;
     }
 
     private updateConfigs() {
-        getLanguageService('css')?.configure(this.configManager.getCssConfig());
-        getLanguageService('scss')?.configure(this.configManager.getScssConfig());
-        getLanguageService('less')?.configure(this.configManager.getLessConfig());
+        this.getLanguageService('css')?.configure(this.configManager.getCssConfig());
+        this.getLanguageService('scss')?.configure(this.configManager.getScssConfig());
+        this.getLanguageService('less')?.configure(this.configManager.getLessConfig());
     }
 
     private featureEnabled(feature: keyof LSCSSConfig) {
@@ -430,6 +512,10 @@ export class CSSPlugin
             this.configManager.enabled('css.enable') &&
             this.configManager.enabled(`css.${feature}.enable`)
         );
+    }
+
+    private getLanguageService(kind: string) {
+        return getLanguageService(this.cssLanguageServices, kind);
     }
 }
 
@@ -488,8 +574,21 @@ function shouldExcludeColor(document: CSSDocument) {
     }
 }
 
+function shouldUseIndentBasedFolding(kind?: string) {
+    switch (kind) {
+        case 'postcss':
+        case 'sass':
+        case 'stylus':
+        case 'styl':
+            return true;
+        default:
+            return false;
+    }
+}
+
 function shouldExcludeDocumentHighlights(document: CSSDocumentBase) {
     switch (extractLanguage(document)) {
+        case 'postcss':
         case 'sass':
         case 'stylus':
         case 'styl':

@@ -93,11 +93,11 @@ injections:
     patterns:
     # Matches the store accessor symbol.
     # i.e. the `$` in `$myStore`.
-    - match: (?<![_$[:alnum:]])\$(?=[_[:alpha:]][_$[:alnum:]]*)
+    - match: (?<![_$./'"[:alnum:]])\$(?=[_[:alpha:]][_$[:alnum:]]*)
       name: punctuation.definition.variable.svelte
     # Matches the built-in constants/keywords that Svelte supports.
     # e.g. `$$restProps`.
-    - match: (?<![_$[:alnum:]])(\$\$)(?=props|restProps|slots)
+    - match: (?<![_$./'"[:alnum:]])(\$\$)(?=props|restProps|slots)
       name: punctuation.definition.variable.svelte
 
   # - PUG -
@@ -178,6 +178,16 @@ repository:
     - { begin: '(?=\[)', end: '(?<=\])',
         name: meta.embedded.expression.svelte source.ts,
         patterns: [include: source.ts#array-binding-pattern] }
+  destructuring-const:
+    patterns:
+    # {...}
+    - { begin: '(?={)', end: '(?<=})',
+        name: meta.embedded.expression.svelte source.ts,
+        patterns: [include: source.ts#object-binding-pattern-const] }
+    # [...]
+    - { begin: '(?=\[)', end: '(?<=\])',
+        name: meta.embedded.expression.svelte source.ts,
+        patterns: [include: source.ts#array-binding-pattern-const] }
 
   # Plain old interpolation between `{...}` blocks.
   interpolation:
@@ -214,7 +224,9 @@ repository:
          { match: if|else\s+if|else, name: keyword.control.conditional.svelte },
          { match: each|key,          name: keyword.control.svelte             },
          { match: await|then|catch,  name: keyword.control.flow.svelte        },
+         { match: snippet,           name: keyword.control.svelte        },
          { match: html,              name: keyword.other.svelte               },
+         { match: render,            name: keyword.other.svelte               },
          { match: debug,             name: keyword.other.debugger.svelte      },
          { match: const,             name: storage.type.svelte                }]}
 
@@ -222,7 +234,7 @@ repository:
   special-tags-modes:
     patterns:
     # Expressions or simple values.
-    - begin: (?<=(if|key|then|catch|html).*?)\G
+    - begin: (?<=(if|key|then|catch|snippet|html|render).*?)\G
       end: (?=})
       name: meta.embedded.expression.svelte source.ts
       patterns: [ include: source.ts ]
@@ -231,14 +243,16 @@ repository:
     - begin: (?<=const.*?)\G
       end: (?=})
       patterns:
+      - include: '#destructuring-const'
       # Variable.
       - begin: \G\s*([_$[:alpha:]][_$[:alnum:]]+)\s*
         end: (?=\=)
         beginCaptures: { 1: { name: variable.other.constant.svelte } }
       # Expression (starting with "=").
       - begin: (?=\=)
+        name: meta.embedded.expression.svelte source.ts
         end: (?=})
-        patterns: [ include: source.ts#variable-initializer ]
+        patterns: [ include: source.ts ]
 
     # Each.
     - begin: (?<=each.*?)\G
@@ -452,6 +466,32 @@ repository:
       end: (?<=[^\s=])(?!\s*=)|(?=/?>)
       patterns: [include: '#attributes-value']
 
+  # Matches the generics attribute on script tags
+  attributes-generics:
+    begin: (generics)(=)(["'])
+    beginCaptures:
+      1: { name: entity.other.attribute-name.svelte }
+      2: { name: punctuation.separator.key-value.svelte }
+      3: { name: punctuation.definition.string.begin.svelte }
+    end: (\3)
+    endCaptures:
+      1: { name: punctuation.definition.string.end.svelte }
+    contentName: meta.embedded.expression.svelte source.ts
+    patterns: [ include: '#type-parameters' ]
+
+  # Copied over from https://github.com/microsoft/TypeScript-TmLanguage/blob/master/TypeScript.YAML-tmLanguage#L2308
+  # and removed the start/end matches which have the < and > included, which are not present in our case
+  type-parameters:
+    name: meta.type.parameters.ts
+    patterns:
+    - include: 'source.ts#comment'
+    - name: storage.modifier.ts
+      match: '(?<![_$[:alnum:]])(?:(?<=\.\.\.)|(?<!\.))(extends|in|out|const)(?![_$[:alnum:]])(?:(?=\.\.\.)|(?!\.))'
+    - include: 'source.ts#type'
+    - include: 'source.ts#punctuation-comma'
+    - name: keyword.operator.assignment.ts
+      match: (=)(?!>)
+
   # ------
   #  TAGS
 
@@ -497,7 +537,9 @@ repository:
     end: (?=/>)|>
     endCaptures: { 0: { name: punctuation.definition.tag.end.svelte } }
     name: meta.tag.start.svelte
-    patterns: [ include: '#attributes' ]
+    patterns:
+      - include: '#attributes-generics'
+      - include: '#attributes'
 
   # Matches the beginning (`<name`) section of a tag start node.
   tags-start-node:

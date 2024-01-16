@@ -1,4 +1,5 @@
 import { LanguageClient } from 'vscode-languageclient/node';
+import { debounce } from 'lodash';
 import {
     Uri,
     TextDocumentContentProvider,
@@ -7,91 +8,91 @@ import {
     window,
     Disposable
 } from 'vscode';
-import { atob, btoa } from './utils';
-import { debounce } from 'lodash';
 
-type CompiledCodeResp = {
+type CompiledCodeResponse = {
     js: { code: string; map: any };
     css: { code: string; map: any };
 };
 
-const SVELTE_URI_SCHEME = 'svelte-compiled';
-
-function toSvelteSchemeUri<B extends boolean = false>(
-    srcUri: string | Uri,
-    asString?: B
-): B extends true ? string : Uri {
-    srcUri = typeof srcUri == 'string' ? Uri.parse(srcUri) : srcUri;
-    const src = btoa(srcUri.toString());
-    const destUri = srcUri.with({
-        scheme: SVELTE_URI_SCHEME,
-        fragment: src,
-        path: srcUri.path + '.js'
-    });
-    return (asString ? destUri.toString() : destUri) as any;
-}
-
-function fromSvelteSchemeUri<B extends boolean = false>(
-    destUri: string | Uri,
-    asString?: B
-): B extends true ? string : Uri {
-    destUri = typeof destUri == 'string' ? Uri.parse(destUri) : destUri;
-    const src = atob(destUri.fragment);
-    return (asString ? src : Uri.parse(src)) as any;
-}
-
+// ContentProvider for "svelte-compiled://" files
 export default class CompiledCodeContentProvider implements TextDocumentContentProvider {
-    static scheme = SVELTE_URI_SCHEME;
-    static toSvelteSchemeUri = toSvelteSchemeUri;
-    static fromSvelteSchemeUri = fromSvelteSchemeUri;
+    static previewWindowUri = Uri.parse('svelte-compiled:///preview.js');
+    static scheme = 'svelte-compiled';
 
-    private disposed = false;
     private didChangeEmitter = new EventEmitter<Uri>();
+    private selectedSvelteFile: string | undefined;
     private subscriptions: Disposable[] = [];
-    private watchedSourceUri = new Set<string>();
+    private disposed = false;
 
     get onDidChange() {
         return this.didChangeEmitter.event;
     }
 
+    // This function triggers a refresh of the preview window's content
+    // by emitting an event to the didChangeEmitter. VSCode listens to
+    // this.onDidChange and will call provideTextDocumentContent
+    private refresh() {
+        this.didChangeEmitter.fire(CompiledCodeContentProvider.previewWindowUri);
+    }
+
     constructor(private getLanguageClient: () => LanguageClient) {
         this.subscriptions.push(
+            // This event triggers a refresh of the preview window's content
+            // whenever the selected svelte file's content changes
+            // (debounced to prevent too many recompilations)
             workspace.onDidChangeTextDocument(
-                debounce(async (changeEvent) => {
-                    if (changeEvent.document.languageId !== 'svelte') {
-                        return;
-                    }
-
-                    const srcUri = changeEvent.document.uri.toString();
-                    if (this.watchedSourceUri.has(srcUri)) {
-                        this.didChangeEmitter.fire(toSvelteSchemeUri(srcUri));
+                debounce(async (event) => {
+                    if (event.document.languageId == 'svelte' && this.selectedSvelteFile) {
+                        this.refresh();
                     }
                 }, 500)
             )
         );
 
-        window.onDidChangeVisibleTextEditors((editors) => {
-            const previewEditors = editors.filter(
-                (editor) => editor?.document?.uri?.scheme === SVELTE_URI_SCHEME
-            );
-            this.watchedSourceUri = new Set(
-                previewEditors.map((editor) => fromSvelteSchemeUri(editor.document.uri, true))
-            );
-        });
+        this.subscriptions.push(
+            // This event sets the selectedSvelteFile when there is a different svelte file selected
+            // and triggers a refresh of the preview window's content
+            window.onDidChangeActiveTextEditor((editor) => {
+                if (editor?.document?.languageId !== 'svelte') {
+                    return;
+                }
+
+                const newFile = editor.document.uri.toString();
+
+                if (newFile !== this.selectedSvelteFile) {
+                    this.selectedSvelteFile = newFile;
+                    this.refresh();
+                }
+            })
+        );
     }
 
-    async provideTextDocumentContent(uri: Uri): Promise<string | undefined> {
-        const srcUriStr = fromSvelteSchemeUri(uri, true);
-        this.watchedSourceUri.add(srcUriStr);
+    // This is called when VSCode needs to get the content of the preview window
+    // we can trigger this using the didChangeEmitter
+    async provideTextDocumentContent(): Promise<string | undefined> {
+        // If there is no selected svelte file, try to get it from the activeTextEditor
+        // This should only happen when the svelte.showCompiledCodeToSide command is called the first time
+        if (!this.selectedSvelteFile && window.activeTextEditor) {
+            this.selectedSvelteFile = window.activeTextEditor.document.uri.toString();
+        }
 
-        const resp = await this.getLanguageClient().sendRequest<CompiledCodeResp>(
+        // Should not be possible but handle it anyway
+        if (!this.selectedSvelteFile) {
+            window.setStatusBarMessage('Svelte: no svelte file selected');
+            return;
+        }
+
+        const response = await this.getLanguageClient().sendRequest<CompiledCodeResponse>(
             '$/getCompiledCode',
-            srcUriStr
+            this.selectedSvelteFile
         );
-        if (resp?.js?.code) {
-            return resp.js.code;
+
+        const path = this.selectedSvelteFile.replace('file://', '');
+
+        if (response?.js?.code) {
+            return `/* Compiled: ${path} */\n${response.js.code}`;
         } else {
-            window.setStatusBarMessage(`Svelte: fail to compile ${uri.path}`, 3000);
+            window.setStatusBarMessage(`Svelte: fail to compile ${path}`, 3000);
         }
     }
 
@@ -100,7 +101,6 @@ export default class CompiledCodeContentProvider implements TextDocumentContentP
             return;
         }
 
-        this.didChangeEmitter.dispose();
         this.subscriptions.forEach((d) => d.dispose());
         this.subscriptions.length = 0;
         this.disposed = true;

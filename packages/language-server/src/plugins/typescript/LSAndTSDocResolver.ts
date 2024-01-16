@@ -1,8 +1,16 @@
+import { dirname, join } from 'path';
 import ts from 'typescript';
 import { TextDocumentContentChangeEvent } from 'vscode-languageserver';
 import { Document, DocumentManager } from '../../lib/documents';
 import { LSConfigManager } from '../../ls-config';
-import { debounceSameArg, normalizePath, pathToUrl } from '../../utils';
+import {
+    createGetCanonicalFileName,
+    debounceSameArg,
+    GetCanonicalFileName,
+    normalizePath,
+    pathToUrl,
+    urlToPath
+} from '../../utils';
 import { DocumentSnapshot, SvelteDocumentSnapshot } from './DocumentSnapshot';
 import {
     getService,
@@ -11,25 +19,34 @@ import {
     LanguageServiceContainer,
     LanguageServiceDocumentContext
 } from './service';
+import { createProjectService } from './serviceCache';
 import { GlobalSnapshotsManager, SnapshotManager } from './SnapshotManager';
+import { isSubPath } from './utils';
+import { FileMap } from '../../lib/documents/fileCollection';
+
+interface LSAndTSDocResolverOptions {
+    notifyExceedSizeLimit?: () => void;
+    /**
+     * True, if used in the context of svelte-check
+     */
+    isSvelteCheck?: boolean;
+
+    /**
+     * This should only be set via svelte-check. Makes sure all documents are resolved to that tsconfig. Has to be absolute.
+     */
+    tsconfigPath?: string;
+
+    onProjectReloaded?: () => void;
+    watch?: boolean;
+    tsSystem?: ts.System;
+}
 
 export class LSAndTSDocResolver {
-    /**
-     *
-     * @param docManager
-     * @param workspaceUris
-     * @param configManager
-     * @param notifyExceedSizeLimit
-     * @param isSvelteCheck True, if used in the context of svelte-check
-     * @param tsconfigPath This should only be set via svelte-check. Makes sure all documents are resolved to that tsconfig. Has to be absolute.
-     */
     constructor(
         private readonly docManager: DocumentManager,
         private readonly workspaceUris: string[],
         private readonly configManager: LSConfigManager,
-        private readonly notifyExceedSizeLimit?: () => void,
-        private readonly isSvelteCheck = false,
-        private readonly tsconfigPath?: string
+        private readonly options?: LSAndTSDocResolverOptions
     ) {
         const handleDocumentChange = (document: Document) => {
             // This refreshes the document in the ts language service
@@ -48,7 +65,48 @@ export class LSAndTSDocResolver {
         // Open it immediately to reduce rebuilds in the startup
         // where multiple files and their dependencies
         // being loaded in a short period of times
-        docManager.on('documentOpen', handleDocumentChange);
+        docManager.on('documentOpen', (document) => {
+            handleDocumentChange(document);
+            docManager.lockDocument(document.uri);
+        });
+
+        this.getCanonicalFileName = createGetCanonicalFileName(
+            (options?.tsSystem ?? ts.sys).useCaseSensitiveFileNames
+        );
+
+        this.tsSystem = this.wrapWithPackageJsonMonitoring(this.options?.tsSystem ?? ts.sys);
+        this.globalSnapshotsManager = new GlobalSnapshotsManager(this.tsSystem);
+        this.userPreferencesAccessor = { preferences: this.getTsUserPreferences() };
+        const projectService = createProjectService(this.tsSystem, this.userPreferencesAccessor);
+
+        configManager.onChange(() => {
+            const newPreferences = this.getTsUserPreferences();
+            const autoImportConfigChanged =
+                newPreferences.includePackageJsonAutoImports !==
+                this.userPreferencesAccessor.preferences.includePackageJsonAutoImports;
+
+            this.userPreferencesAccessor.preferences = newPreferences;
+
+            if (autoImportConfigChanged) {
+                forAllServices((service) => {
+                    service.onAutoImportProviderSettingsChanged();
+                });
+            }
+        });
+
+        this.watchers = new FileMap(this.tsSystem.useCaseSensitiveFileNames);
+        this.lsDocumentContext = {
+            ambientTypesSource: this.options?.isSvelteCheck ? 'svelte-check' : 'svelte2tsx',
+            createDocument: this.createDocument,
+            transformOnTemplateError: !this.options?.isSvelteCheck,
+            globalSnapshotsManager: this.globalSnapshotsManager,
+            notifyExceedSizeLimit: this.options?.notifyExceedSizeLimit,
+            extendedConfigCache: this.extendedConfigCache,
+            onProjectReloaded: this.options?.onProjectReloaded,
+            watchTsConfig: !!this.options?.watch,
+            tsSystem: this.tsSystem,
+            projectService: projectService
+        };
     }
 
     /**
@@ -56,26 +114,26 @@ export class LSAndTSDocResolver {
      */
     private createDocument = (fileName: string, content: string) => {
         const uri = pathToUrl(fileName);
-        const document = this.docManager.openDocument({
-            text: content,
-            uri
-        });
+        const document = this.docManager.openDocument(
+            {
+                text: content,
+                uri
+            },
+            /* openedByClient */ false
+        );
         this.docManager.lockDocument(uri);
         return document;
     };
 
-    private globalSnapshotsManager = new GlobalSnapshotsManager();
+    private tsSystem: ts.System;
+    private globalSnapshotsManager: GlobalSnapshotsManager;
+    private extendedConfigCache = new Map<string, ts.ExtendedConfigCacheEntry>();
+    private getCanonicalFileName: GetCanonicalFileName;
 
-    private get lsDocumentContext(): LanguageServiceDocumentContext {
-        return {
-            ambientTypesSource: this.isSvelteCheck ? 'svelte-check' : 'svelte2tsx',
-            createDocument: this.createDocument,
-            useNewTransformation: this.configManager.getConfig().svelte.useNewTransformation,
-            transformOnTemplateError: !this.isSvelteCheck,
-            globalSnapshotsManager: this.globalSnapshotsManager,
-            notifyExceedSizeLimit: this.notifyExceedSizeLimit
-        };
-    }
+    private userPreferencesAccessor: { preferences: ts.UserPreferences };
+    private readonly watchers: FileMap<ts.FileWatcher>;
+
+    private lsDocumentContext: LanguageServiceDocumentContext;
 
     async getLSForPath(path: string) {
         return (await this.getTSService(path)).getService();
@@ -86,16 +144,36 @@ export class LSAndTSDocResolver {
         lang: ts.LanguageService;
         userPreferences: ts.UserPreferences;
     }> {
-        const lang = await this.getLSForPath(document.getFilePath() || '');
-        const tsDoc = await this.getSnapshot(document);
-        const userPreferences = this.getUserPreferences(tsDoc.scriptKind);
+        const { tsDoc, lsContainer, userPreferences } = await this.getLSAndTSDocWorker(document);
 
-        return { tsDoc, lang, userPreferences };
+        return { tsDoc, lang: lsContainer.getService(), userPreferences };
+    }
+
+    /**
+     * Retrieves the LS for operations that don't need cross-files information.
+     * can save some time by not synchronizing languageService program
+     */
+    async getLsForSyntheticOperations(document: Document): Promise<{
+        tsDoc: SvelteDocumentSnapshot;
+        lang: ts.LanguageService;
+        userPreferences: ts.UserPreferences;
+    }> {
+        const { tsDoc, lsContainer, userPreferences } = await this.getLSAndTSDocWorker(document);
+
+        return { tsDoc, userPreferences, lang: lsContainer.getService(/* skipSynchronize */ true) };
+    }
+
+    private async getLSAndTSDocWorker(document: Document) {
+        const lsContainer = await this.getTSService(document.getFilePath() || '');
+        const tsDoc = await this.getSnapshot(document);
+        const userPreferences = this.getUserPreferences(tsDoc);
+
+        return { tsDoc, lsContainer, userPreferences };
     }
 
     /**
      * Retrieves and updates the snapshot for the given document or path from
-     * the ts service it primarely belongs into.
+     * the ts service it primarily belongs into.
      * The update is mirrored in all other services, too.
      */
     async getSnapshot(document: Document): Promise<SvelteDocumentSnapshot>;
@@ -109,9 +187,12 @@ export class LSAndTSDocResolver {
     /**
      * Updates snapshot path in all existing ts services and retrieves snapshot
      */
-    async updateSnapshotPath(oldPath: string, newPath: string): Promise<DocumentSnapshot> {
-        await this.deleteSnapshot(oldPath);
-        return this.getSnapshot(newPath);
+    async updateSnapshotPath(oldPath: string, newPath: string): Promise<void> {
+        for (const snapshot of this.globalSnapshotsManager.getByPrefix(oldPath)) {
+            await this.deleteSnapshot(snapshot.filePath);
+        }
+        // This may not be a file but a directory, still try
+        await this.getSnapshot(newPath);
     }
 
     /**
@@ -119,7 +200,17 @@ export class LSAndTSDocResolver {
      */
     async deleteSnapshot(filePath: string) {
         await forAllServices((service) => service.deleteSnapshot(filePath));
-        this.docManager.releaseDocument(pathToUrl(filePath));
+        const uri = pathToUrl(filePath);
+        if (this.docManager.get(uri)) {
+            // Guard this call, due to race conditions it may already have been closed;
+            // also this may not be a Svelte file
+            this.docManager.closeDocument(uri);
+        }
+        this.docManager.releaseDocument(uri);
+    }
+
+    async invalidateModuleCache(filePath: string) {
+        await forAllServices((service) => service.invalidateModuleCache(filePath));
     }
 
     /**
@@ -157,8 +248,12 @@ export class LSAndTSDocResolver {
     }
 
     async getTSService(filePath?: string): Promise<LanguageServiceContainer> {
-        if (this.tsconfigPath) {
-            return getServiceForTsconfig(this.tsconfigPath, this.lsDocumentContext);
+        if (this.options?.tsconfigPath) {
+            return getServiceForTsconfig(
+                this.options?.tsconfigPath,
+                dirname(this.options.tsconfigPath),
+                this.lsDocumentContext
+            );
         }
         if (!filePath) {
             throw new Error('Cannot call getTSService without filePath and without tsconfigPath');
@@ -166,12 +261,88 @@ export class LSAndTSDocResolver {
         return getService(filePath, this.workspaceUris, this.lsDocumentContext);
     }
 
-    private getUserPreferences(scriptKind: ts.ScriptKind): ts.UserPreferences {
+    private getUserPreferences(tsDoc: DocumentSnapshot): ts.UserPreferences {
         const configLang =
-            scriptKind === ts.ScriptKind.TS || scriptKind === ts.ScriptKind.TSX
+            tsDoc.scriptKind === ts.ScriptKind.TS || tsDoc.scriptKind === ts.ScriptKind.TSX
                 ? 'typescript'
                 : 'javascript';
 
-        return this.configManager.getTsUserPreferences(configLang);
+        const nearestWorkspaceUri = this.workspaceUris.find((workspaceUri) =>
+            isSubPath(workspaceUri, tsDoc.filePath, this.getCanonicalFileName)
+        );
+
+        return this.configManager.getTsUserPreferences(
+            configLang,
+            nearestWorkspaceUri ? urlToPath(nearestWorkspaceUri) : null
+        );
+    }
+
+    private getTsUserPreferences() {
+        return this.configManager.getTsUserPreferences('typescript', null);
+    }
+
+    private wrapWithPackageJsonMonitoring(sys: ts.System): ts.System {
+        if (!sys.watchFile || !this.options?.watch) {
+            return sys;
+        }
+
+        const watchFile = sys.watchFile;
+        return {
+            ...sys,
+            readFile: (path, encoding) => {
+                if (path.endsWith('package.json') && !this.watchers.has(path)) {
+                    this.watchers.set(
+                        path,
+                        watchFile(path, this.onPackageJsonWatchChange.bind(this), 3_000)
+                    );
+                }
+
+                return sys.readFile(path, encoding);
+            }
+        };
+    }
+
+    private onPackageJsonWatchChange(path: string, onWatchChange: ts.FileWatcherEventKind) {
+        const dir = dirname(path);
+        const projectService = this.lsDocumentContext.projectService;
+        const packageJsonCache = projectService?.packageJsonCache;
+        const normalizedPath = projectService?.toPath(path);
+
+        if (onWatchChange === ts.FileWatcherEventKind.Deleted) {
+            this.watchers.get(path)?.close();
+            this.watchers.delete(path);
+            packageJsonCache?.delete(normalizedPath);
+        } else {
+            packageJsonCache?.addOrUpdate(normalizedPath);
+        }
+
+        forAllServices((service) => {
+            service.onPackageJsonChange(path);
+        });
+        if (!path.includes('node_modules')) {
+            return;
+        }
+
+        setTimeout(() => {
+            this.updateSnapshotsInDirectory(dir);
+            const realPath =
+                this.tsSystem.realpath &&
+                this.getCanonicalFileName(normalizePath(this.tsSystem.realpath?.(dir)));
+
+            // pnpm
+            if (realPath && realPath !== dir) {
+                this.updateSnapshotsInDirectory(realPath);
+                const realPkgPath = join(realPath, 'package.json');
+                forAllServices((service) => {
+                    service.onPackageJsonChange(realPkgPath);
+                });
+            }
+        }, 500);
+    }
+
+    private updateSnapshotsInDirectory(dir: string) {
+        this.globalSnapshotsManager.getByPrefix(dir).forEach((snapshot) => {
+            this.globalSnapshotsManager.updateTsOrJsFile(snapshot.filePath);
+        });
     }
 }

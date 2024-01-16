@@ -6,31 +6,42 @@ import { Element } from './Element';
 import { InlineComponent } from './InlineComponent';
 
 /**
- * List taken from `svelte-jsx.d.ts` by searching for all attributes of type number
+ * List taken from `elements.d.ts` in Svelte core by searching for all attributes of type `number | undefined | null`;
  */
 const numberOnlyAttributes = new Set([
-    'cols',
-    'colspan',
-    'currenttime',
-    'defaultplaybackrate',
-    'high',
-    'low',
+    'aria-colcount',
+    'aria-colindex',
+    'aria-colspan',
+    'aria-level',
+    'aria-posinset',
+    'aria-rowcount',
+    'aria-rowindex',
+    'aria-rowspan',
+    'aria-setsize',
+    'aria-valuemax',
+    'aria-valuemin',
+    'aria-valuenow',
+    'results',
+    'span',
     'marginheight',
     'marginwidth',
-    'minlength',
     'maxlength',
+    'minlength',
+    'currenttime',
+    'defaultplaybackrate',
+    'volume',
+    'high',
+    'low',
     'optimum',
-    'rows',
-    'rowspan',
-    'size',
-    'span',
     'start',
-    'tabindex',
-    'results',
-    'volume'
+    'size',
+    'border',
+    'cols',
+    'rows',
+    'colspan',
+    'rowspan',
+    'tabindex'
 ]);
-const sapperLinkActions = ['sapper:prefetch', 'sapper:noscroll'];
-const sveltekitLinkActions = ['sveltekit:prefetch', 'sveltekit:noscroll'];
 
 /**
  * Handle various kinds of attributes and make them conform to being valid in context of a object definition
@@ -70,7 +81,7 @@ export function handleAttribute(
     const addAttribute =
         element instanceof Element
             ? (name: TransformationArray, value?: TransformationArray) => {
-                  if (attr.name.startsWith('data-')) {
+                  if (attr.name.startsWith('data-') && !attr.name.startsWith('data-sveltekit-')) {
                       // any attribute prefixed with data- is valid, but we can't
                       // type that statically, so we need this workaround
                       name.unshift('...__sveltets_2_empty({');
@@ -98,7 +109,11 @@ export function handleAttribute(
      * lowercase the attribute name to make it adhere to our intrinsic elements definition
      */
     const transformAttributeCase = (name: string) => {
-        if (!preserveCase && !svgAttributes.find((x) => x == name)) {
+        if (
+            !preserveCase &&
+            !svgAttributes.find((x) => x == name) &&
+            !(element instanceof Element && element.tagName.includes('-'))
+        ) {
             return name.toLowerCase();
         } else {
             return name;
@@ -109,13 +124,7 @@ export function handleAttribute(
 
     const attributeName: TransformationArray = [];
 
-    if (sapperLinkActions.includes(attr.name) || sveltekitLinkActions.includes(attr.name)) {
-        //strip ":" from out attribute name and uppercase the next letter to convert to jsx attribute
-        const parts = attr.name.split(':');
-        const name = parts[0] + parts[1][0].toUpperCase() + parts[1].substring(1);
-        str.overwrite(attr.start, attr.start + attr.name.length, name);
-        attributeName.push([attr.start, attr.start + attr.name.length]);
-    } else if (attributeValueIsOfType(attr.value, 'AttributeShorthand')) {
+    if (attributeValueIsOfType(attr.value, 'AttributeShorthand')) {
         // For the attribute shorthand, the name will be the mapped part
         addAttribute([[attr.value[0].start, attr.value[0].end]]);
         return;
@@ -147,7 +156,7 @@ export function handleAttribute(
         return;
     }
     if (attr.value.length == 0) {
-        // attr=""
+        // shouldn't happen
         addAttribute(attributeName, ['""']);
         return;
     }
@@ -156,10 +165,18 @@ export function handleAttribute(
         const attrVal = attr.value[0];
 
         if (attrVal.type == 'Text') {
+            // Handle the attr="" special case with a transformation that allows mapping of the position
+            if (attrVal.start === attrVal.end) {
+                addAttribute(attributeName, [[attrVal.start - 1, attrVal.end + 1]]);
+                return;
+            }
+
+            const lastCharIndex = attrVal.end - 1;
             const hasBrackets =
-                str.original.lastIndexOf('}', attrVal.end) === attrVal.end - 1 ||
-                str.original.lastIndexOf('}"', attrVal.end) === attrVal.end - 1 ||
-                str.original.lastIndexOf("}'", attrVal.end) === attrVal.end - 1;
+                str.original[lastCharIndex] === '}' ||
+                ((str.original[lastCharIndex] === '"' || str.original[lastCharIndex] === "'") &&
+                    str.original[lastCharIndex - 1] === '}');
+
             const needsNumberConversion =
                 !hasBrackets &&
                 parent.type === 'Element' &&
@@ -169,8 +186,8 @@ export function handleAttribute(
             const quote = !includesTemplateLiteralQuote
                 ? '`'
                 : ['"', "'"].includes(str.original[attrVal.start - 1])
-                ? str.original[attrVal.start - 1]
-                : '"';
+                  ? str.original[attrVal.start - 1]
+                  : '"';
 
             if (!needsNumberConversion) {
                 attributeValue.push(quote);

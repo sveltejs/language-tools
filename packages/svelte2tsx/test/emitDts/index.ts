@@ -16,9 +16,9 @@ async function testEmitDts(sample: string) {
             : {};
         await emitDts({
             declarationDir: 'package',
-            svelteShimsPath: require.resolve(join(process.cwd(), 'svelte-shims.d.ts')),
+            svelteShimsPath: require.resolve(join(process.cwd(), 'svelte-shims.d.ts')), // TODO make it -v4 once we have Svelte 4 in the workspace
             ...config,
-            libRoot: config.libRoot ? join(cwd, config.libRoot) : cwd
+            libRoot: config.libRoot ? join(cwd, config.libRoot) : join(cwd, 'src')
         });
         const expectedFiles = fs.readdirSync(join(cwd, 'expected'));
         const actual_files = fs.readdirSync(join(cwd, 'package'));
@@ -59,6 +59,6 @@ describe('emitDts', async () => {
     let samplesToTest = samples.filter((s) => s.endsWith('.solo'));
     samplesToTest = samplesToTest.length ? samplesToTest : samples;
     for (const sample of samplesToTest) {
-        it(sample, async () => await testEmitDts(sample)).timeout(5000);
+        it(sample, async () => await testEmitDts(sample)).timeout(10000);
     }
 });

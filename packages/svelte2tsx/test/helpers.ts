@@ -3,6 +3,7 @@ import assert, { AssertionError } from 'assert';
 import { TestFunction } from 'mocha';
 import { htmlx2jsx, svelte2tsx } from './build';
 import path from 'path';
+import { VERSION } from 'svelte/compiler';
 
 let update_count = 0;
 let all_tests_skipped = false;
@@ -11,7 +12,7 @@ function can_auto_update() {
     if (!process.argv.includes('--auto') && !all_tests_skipped) {
         if (update_count++ === 0) {
             process.on('exit', () => {
-                const command = color.yellow('yarn run test --auto');
+                const command = color.yellow('pnpm run test -- --auto');
                 console.log(`  Run ${command} to update ${update_count} files\n`);
             });
         }
@@ -53,7 +54,10 @@ export class Sample {
     private skipped = false;
     private on_error?: ErrorFn;
 
-    constructor(dir: string, readonly name: string) {
+    constructor(
+        dir: string,
+        readonly name: string
+    ) {
         this.directory = path.resolve(dir, 'samples', name);
         this.folder = fs.readdirSync(this.directory);
     }
@@ -210,7 +214,6 @@ type TransformSampleFn = (
         sampleName: string;
         emitOnTemplateError: boolean;
         preserveAttributeCase: boolean;
-        useNewTransformation: boolean;
     }
 ) => ReturnType<typeof htmlx2jsx | typeof svelte2tsx>;
 
@@ -220,41 +223,38 @@ const enum TestError {
     WrongExpected = 'Expected a different output'
 }
 
-export function test_samples(dir: string, transform: TransformSampleFn, jsx: 'jsx' | 'tsx') {
-    const js = jsx.slice(0, 2);
+const isSvelte5Plus = Number(VERSION[0]) >= 5;
+
+export function test_samples(dir: string, transform: TransformSampleFn, js: 'js' | 'ts') {
     for (const sample of each_sample(dir)) {
+        if (sample.name.endsWith('.v5') && !isSvelte5Plus) continue;
+
         const svelteFile = sample.find_file('*.svelte');
+        const expectedFile = isSvelte5Plus ? `expected-svelte5.${js}` : `expectedv2.${js}`;
         const config = {
             filename: svelteFile,
             sampleName: sample.name,
             emitOnTemplateError: false,
-            preserveAttributeCase: sample.name.endsWith('-foreign-ns'),
-            useNewTransformation: false
+            preserveAttributeCase: sample.name.endsWith('-foreign-ns')
         };
-        let testingV2 = false;
 
         if (process.env.CI) {
             sample.checkDirectory({
-                required: ['*.svelte', `expected.${jsx}`, `expectedv2.${js}`],
-                allowed: ['expected.js', 'expected.error.json']
+                required: ['*.svelte', `expectedv2.${js}`],
+                allowed: ['expected.js', `expected-svelte5.${js}`, 'expected.error.json']
             });
         } else {
             sample.checkDirectory({
                 required: ['*.svelte'],
                 allowed: [
                     'expected.js',
-                    `expected.${jsx}`,
                     `expectedv2.${js}`,
+                    `expected-svelte5.${js}`,
                     'expected.error.json'
                 ]
             });
 
-            if (
-                sample.hasOnly(svelteFile) ||
-                sample.hasOnly(svelteFile, 'expected.js') ||
-                sample.hasOnly(svelteFile, 'expected.js', `expected.${jsx}`) ||
-                sample.hasOnly(svelteFile, `expected.${jsx}`)
-            ) {
+            if (sample.hasOnly(svelteFile) || sample.hasOnly(svelteFile, 'expected.js')) {
                 sample.generateDeps((generate) => {
                     const input = sample.get(svelteFile);
                     try {
@@ -263,11 +263,7 @@ export function test_samples(dir: string, transform: TransformSampleFn, jsx: 'js
                         generate('expected.error.json', print_error(error));
                         config.emitOnTemplateError = true;
                     }
-                    generate(`expected.${jsx}`, transform(input, config).code);
-                    generate(
-                        `expectedv2.${js}`,
-                        transform(input, { ...config, useNewTransformation: true }).code
-                    );
+                    generate(expectedFile, transform(input, config).code);
                 });
             }
 
@@ -276,7 +272,7 @@ export function test_samples(dir: string, transform: TransformSampleFn, jsx: 'js
                 const { message, actual } = err;
                 switch (message) {
                     case TestError.WrongExpected: {
-                        generate(testingV2 ? `expectedv2.${js}` : `expected.${jsx}`, actual);
+                        generate(expectedFile, actual);
                         break;
                     }
                     case TestError.WrongError: {
@@ -296,11 +292,14 @@ export function test_samples(dir: string, transform: TransformSampleFn, jsx: 'js
                     transform(input, config);
                 } catch (error) {
                     hadError = true;
-                    assert.deepEqual(
-                        JSON.parse(JSON.stringify(error)),
-                        JSON.parse(sample.get('expected.error.json')),
-                        TestError.WrongError
-                    );
+                    let actual = JSON.parse(JSON.stringify(error));
+                    let expected = JSON.parse(sample.get('expected.error.json'));
+                    if (isSvelte5Plus && actual && expected) {
+                        // Error output looks a bit different but we only care about the start and end really
+                        actual = { start: actual.start, end: actual.end };
+                        expected = { start: expected.start, end: expected.end };
+                    }
+                    assert.deepEqual(actual, expected, TestError.WrongError);
                     config.emitOnTemplateError = true;
                 }
                 assert(hadError, TestError.MissingError);
@@ -308,20 +307,21 @@ export function test_samples(dir: string, transform: TransformSampleFn, jsx: 'js
 
             const output = transform(input, config);
 
-            assert.strictEqual(
-                normalize(output.code),
-                sample.get(`expected.${jsx}`),
-                TestError.WrongExpected
-            );
-
             if (sample.has('expected.js')) {
                 sample.eval('expected.js', output);
             }
 
-            testingV2 = true;
             assert.strictEqual(
-                normalize(transform(input, { ...config, useNewTransformation: true }).code),
-                sample.get(`expectedv2.${js}`),
+                normalize(transform(input, config).code),
+                sample.get(
+                    // Check the expectedv2 file first even in Svelte 5 mode because many are identical between versions.
+                    // This way we don't need to duplicate a bunch of expected files.
+                    isSvelte5Plus
+                        ? sample.has(expectedFile)
+                            ? expectedFile
+                            : `expectedv2.${js}`
+                        : expectedFile
+                ),
                 TestError.WrongExpected
             );
         });
@@ -331,7 +331,6 @@ export function test_samples(dir: string, transform: TransformSampleFn, jsx: 'js
 type BaseConfig = {
     emitOnTemplateError?: boolean;
     filename?: string;
-    useNewTransformation?: boolean;
 };
 type Svelte2TsxConfig = Required<Parameters<typeof svelte2tsx>[1]>;
 
@@ -341,8 +340,10 @@ export function get_svelte2tsx_config(base: BaseConfig, sampleName: string): Sve
         emitOnTemplateError: base.emitOnTemplateError,
         isTsFile: sampleName.startsWith('ts-'),
         namespace: sampleName.endsWith('-foreign-ns') ? 'foreign' : null,
-        mode: sampleName.endsWith('-dts') ? 'dts' : base.useNewTransformation ? 'ts' : 'tsx',
-        accessors: sampleName.startsWith('accessors-config')
+        typingsNamespace: 'svelteHTML',
+        mode: sampleName.endsWith('-dts') ? 'dts' : 'ts',
+        accessors: sampleName.startsWith('accessors-config'),
+        version: VERSION
     };
 }
 
@@ -357,7 +358,7 @@ export const color = (function (colors, mods) {
     const fn = (c1: number, c2: number, str: string) => `\x1b[${c1}m${str}\x1b[${c2}m`;
     for (let i = 0; i < colors.length; i++) obj[colors[i]] = fn.bind(null, 30 + i, 39);
     for (const key in mods) obj[key] = fn.bind(null, mods[key][0], mods[key][1]);
-    return obj as { [K in typeof colors[any] | keyof typeof mods]: (str: string) => string };
+    return obj as { [K in (typeof colors)[any] | keyof typeof mods]: (str: string) => string };
 })(
     ['black', 'red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'white'] as const,
     { grey: [90, 39], bold: [1, 22], italic: [3, 23], underline: [4, 24], hidden: [8, 28] } as const

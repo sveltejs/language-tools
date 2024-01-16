@@ -1,9 +1,9 @@
 ///<reference types="svelte" />
 ;function render() {
-b.set((__sveltets_1_store_get(b), $b).concat(5));
+$b=$b.concat(5);
 async () => {
- { svelteHTML.createElement("h1", {  "onclick":() => b.set((__sveltets_1_store_get(b), $b).concat(5)),});(__sveltets_1_store_get(b), $b); }};
-return { props: {}, slots: {}, getters: {}, events: {} }}
+ { svelteHTML.createElement("h1", {  "on:click":() => $b=$b.concat(5),});$b; }};
+return { props: /** @type {Record<string, never>} */ ({}), slots: {}, events: {} }}
 
-export default class Input__SvelteComponent_ extends __sveltets_1_createSvelte2TsxComponent(__sveltets_1_partial(__sveltets_1_with_any_event(render()))) {
+export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial(__sveltets_2_with_any_event(render()))) {
 }

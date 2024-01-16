@@ -2,7 +2,7 @@ import ts from 'typescript';
 import { Position, Range, SelectionRange } from 'vscode-languageserver';
 import { Document, mapSelectionRangeToParent } from '../../../lib/documents';
 import { SelectionRangeProvider } from '../../interfaces';
-import { SvelteSnapshotFragment } from '../DocumentSnapshot';
+import { SvelteDocumentSnapshot } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { convertRange } from '../utils';
 
@@ -13,26 +13,25 @@ export class SelectionRangeProviderImpl implements SelectionRangeProvider {
         document: Document,
         position: Position
     ): Promise<SelectionRange | null> {
-        const { tsDoc, lang } = await this.lsAndTsDocResolver.getLSAndTSDoc(document);
-        const fragment = await tsDoc.getFragment();
+        const { tsDoc, lang } = await this.lsAndTsDocResolver.getLsForSyntheticOperations(document);
 
         const tsSelectionRange = lang.getSmartSelectionRange(
             tsDoc.filePath,
-            fragment.offsetAt(fragment.getGeneratedPosition(position))
+            tsDoc.offsetAt(tsDoc.getGeneratedPosition(position))
         );
-        const selectionRange = this.toSelectionRange(fragment, tsSelectionRange);
-        const mappedRange = mapSelectionRangeToParent(fragment, selectionRange);
+        const selectionRange = this.toSelectionRange(tsDoc, tsSelectionRange);
+        const mappedRange = mapSelectionRangeToParent(tsDoc, selectionRange);
 
         return this.filterOutUnmappedRange(mappedRange);
     }
 
     private toSelectionRange(
-        fragment: SvelteSnapshotFragment,
+        snapshot: SvelteDocumentSnapshot,
         { textSpan, parent }: ts.SelectionRange
     ): SelectionRange {
         return {
-            range: convertRange(fragment, textSpan),
-            parent: parent && this.toSelectionRange(fragment, parent)
+            range: convertRange(snapshot, textSpan),
+            parent: parent && this.toSelectionRange(snapshot, parent)
         };
     }
 

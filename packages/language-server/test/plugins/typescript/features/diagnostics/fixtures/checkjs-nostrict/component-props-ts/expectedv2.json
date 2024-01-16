@@ -8,11 +8,11 @@
         "tags": []
     },
     {
-        "range": { "start": { "line": 8, "character": 57 }, "end": { "line": 8, "character": 75 } },
+        "range": { "start": { "line": 8, "character": 57 }, "end": { "line": 8, "character": 68 } },
         "severity": 1,
         "source": "ts",
-        "message": "Type '{ required: string; optional1: string; optional2: string; doesntExist: true; }' is not assignable to type '{ required: string; optional1?: string; optional2?: string; }'.\n  Object literal may only specify known properties, and '\"doesntExist\"' does not exist in type '{ required: string; optional1?: string; optional2?: string; }'.",
-        "code": 2322,
+        "message": "Object literal may only specify known properties, and '\"doesntExist\"' does not exist in type '{ required: string; optional1?: string; optional2?: string; }'.",
+        "code": 2353,
         "tags": []
     },
     {

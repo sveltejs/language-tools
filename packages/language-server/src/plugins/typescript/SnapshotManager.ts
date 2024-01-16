@@ -2,8 +2,11 @@ import ts from 'typescript';
 import { DocumentSnapshot, JSOrTSDocumentSnapshot } from './DocumentSnapshot';
 import { Logger } from '../../logger';
 import { TextDocumentContentChangeEvent } from 'vscode-languageserver';
-import { normalizePath } from '../../utils';
+import { createGetCanonicalFileName, GetCanonicalFileName, normalizePath } from '../../utils';
 import { EventEmitter } from 'events';
+import { FileMap } from '../../lib/documents/fileCollection';
+
+type SnapshotChangeHandler = (fileName: string, newDocument: DocumentSnapshot | undefined) => void;
 
 /**
  * Every snapshot corresponds to a unique file on disk.
@@ -12,20 +15,28 @@ import { EventEmitter } from 'events';
  */
 export class GlobalSnapshotsManager {
     private emitter = new EventEmitter();
-    private documents = new Map<string, DocumentSnapshot>();
+    private documents: FileMap<DocumentSnapshot>;
+    private getCanonicalFileName: GetCanonicalFileName;
+
+    constructor(private readonly tsSystem: ts.System) {
+        this.documents = new FileMap(tsSystem.useCaseSensitiveFileNames);
+        this.getCanonicalFileName = createGetCanonicalFileName(tsSystem.useCaseSensitiveFileNames);
+    }
 
     get(fileName: string) {
         fileName = normalizePath(fileName);
         return this.documents.get(fileName);
     }
 
+    getByPrefix(path: string) {
+        path = this.getCanonicalFileName(normalizePath(path));
+        return Array.from(this.documents.entries())
+            .filter((doc) => doc[0].startsWith(path))
+            .map((doc) => doc[1]);
+    }
+
     set(fileName: string, document: DocumentSnapshot) {
         fileName = normalizePath(fileName);
-        const prev = this.get(fileName);
-        if (prev) {
-            prev.destroyFragment();
-        }
-
         this.documents.set(fileName, document);
         this.emitter.emit('change', fileName, document);
     }
@@ -51,7 +62,7 @@ export class GlobalSnapshotsManager {
             this.emitter.emit('change', fileName, previousSnapshot);
             return previousSnapshot;
         } else {
-            const newSnapshot = DocumentSnapshot.fromNonSvelteFilePath(fileName);
+            const newSnapshot = DocumentSnapshot.fromNonSvelteFilePath(fileName, this.tsSystem);
 
             if (previousSnapshot) {
                 newSnapshot.version = previousSnapshot.version + 1;
@@ -65,8 +76,12 @@ export class GlobalSnapshotsManager {
         }
     }
 
-    onChange(listener: (fileName: string, newDocument: DocumentSnapshot | undefined) => void) {
+    onChange(listener: SnapshotChangeHandler) {
         this.emitter.on('change', listener);
+    }
+
+    removeChangeListener(listener: SnapshotChangeHandler) {
+        this.emitter.off('change', listener);
     }
 }
 
@@ -79,8 +94,11 @@ export interface TsFilesSpec {
  * Should only be used by `service.ts`
  */
 export class SnapshotManager {
-    private documents = new Map<string, DocumentSnapshot>();
+    private readonly documents: FileMap<DocumentSnapshot>;
     private lastLogged = new Date(new Date().getTime() - 60_001);
+
+    private readonly projectFileToOriginalCasing: Map<string, string>;
+    private getCanonicalFileName: GetCanonicalFileName;
 
     private readonly watchExtensions = [
         ts.Extension.Dts,
@@ -93,22 +111,37 @@ export class SnapshotManager {
 
     constructor(
         private globalSnapshotsManager: GlobalSnapshotsManager,
-        private projectFiles: string[],
         private fileSpec: TsFilesSpec,
-        private workspaceRoot: string
+        private workspaceRoot: string,
+        projectFiles: string[],
+        useCaseSensitiveFileNames = ts.sys.useCaseSensitiveFileNames
     ) {
-        this.globalSnapshotsManager.onChange((fileName, document) => {
-            // Only delete/update snapshots, don't add new ones,
-            // as they could be from another TS service and this
-            // snapshot manager can't reach this file.
-            // For these, instead wait on a `get` method invocation
-            // and set them "manually" in the set/update methods.
-            if (!document) {
-                this.documents.delete(fileName);
-            } else if (this.documents.has(fileName)) {
-                this.documents.set(fileName, document);
-            }
-        });
+        this.onSnapshotChange = this.onSnapshotChange.bind(this);
+        this.globalSnapshotsManager.onChange(this.onSnapshotChange);
+        this.documents = new FileMap(useCaseSensitiveFileNames);
+        this.projectFileToOriginalCasing = new Map();
+        this.getCanonicalFileName = createGetCanonicalFileName(useCaseSensitiveFileNames);
+
+        projectFiles.forEach((originalCasing) =>
+            this.projectFileToOriginalCasing.set(
+                this.getCanonicalFileName(originalCasing),
+                originalCasing
+            )
+        );
+    }
+
+    private onSnapshotChange(fileName: string, document: DocumentSnapshot | undefined) {
+        // Only delete/update snapshots, don't add new ones,
+        // as they could be from another TS service and this
+        // snapshot manager can't reach this file.
+        // For these, instead wait on a `get` method invocation
+        // and set them "manually" in the set/update methods.
+        if (!document) {
+            this.documents.delete(fileName);
+            this.projectFileToOriginalCasing.delete(this.getCanonicalFileName(fileName));
+        } else if (this.documents.has(fileName)) {
+            this.documents.set(fileName, document);
+        }
     }
 
     updateProjectFiles(): void {
@@ -124,7 +157,12 @@ export class SnapshotManager {
             .readDirectory(this.workspaceRoot, this.watchExtensions, exclude, include)
             .map(normalizePath);
 
-        this.projectFiles = Array.from(new Set([...this.projectFiles, ...projectFiles]));
+        projectFiles.forEach((projectFile) =>
+            this.projectFileToOriginalCasing.set(
+                this.getCanonicalFileName(projectFile),
+                projectFile
+            )
+        );
     }
 
     updateTsOrJsFile(fileName: string, changes?: TextDocumentContentChangeEvent[]): void {
@@ -138,7 +176,10 @@ export class SnapshotManager {
 
     has(fileName: string): boolean {
         fileName = normalizePath(fileName);
-        return this.projectFiles.includes(fileName) || this.getFileNames().includes(fileName);
+        return (
+            this.projectFileToOriginalCasing.has(this.getCanonicalFileName(fileName)) ||
+            this.documents.has(fileName)
+        );
     }
 
     set(fileName: string, snapshot: DocumentSnapshot): void {
@@ -163,16 +204,17 @@ export class SnapshotManager {
 
     delete(fileName: string): void {
         fileName = normalizePath(fileName);
-        this.projectFiles = this.projectFiles.filter((s) => s !== fileName);
         this.globalSnapshotsManager.delete(fileName);
     }
 
-    getFileNames(): string[] {
-        return Array.from(this.documents.keys());
+    getClientFileNames(): string[] {
+        return Array.from(this.documents.values())
+            .filter((doc) => doc.isOpenedInClient())
+            .map((doc) => doc.filePath);
     }
 
     getProjectFileNames(): string[] {
-        return [...this.projectFiles];
+        return Array.from(this.projectFileToOriginalCasing.values());
     }
 
     private logStatistics() {
@@ -181,11 +223,12 @@ export class SnapshotManager {
         if (date.getTime() - this.lastLogged.getTime() > 60_000) {
             this.lastLogged = date;
 
-            const projectFiles = this.getProjectFileNames();
-            const allFiles = Array.from(new Set([...projectFiles, ...this.getFileNames()]));
+            const allFiles = Array.from(
+                new Set([...this.projectFileToOriginalCasing.keys(), ...this.documents.keys()])
+            );
             Logger.log(
                 'SnapshotManager File Statistics:\n' +
-                    `Project files: ${projectFiles.length}\n` +
+                    `Project files: ${this.projectFileToOriginalCasing.size}\n` +
                     `Svelte files: ${
                         allFiles.filter((name) => name.endsWith('.svelte')).length
                     }\n` +
@@ -195,6 +238,10 @@ export class SnapshotManager {
                     `Total: ${allFiles.length}`
             );
         }
+    }
+
+    dispose() {
+        this.globalSnapshotsManager.removeChangeListener(this.onSnapshotChange);
     }
 }
 

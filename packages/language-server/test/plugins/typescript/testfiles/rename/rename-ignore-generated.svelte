@@ -1,4 +1,4 @@
-<script lang="typescript">
+<script lang="ts">
     let a: string | boolean = null as any;
     let promise = Promise.resolve(true);
 </script>

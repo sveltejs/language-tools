@@ -1,4 +1,5 @@
 import { ArrayPattern, Identifier, ObjectPattern, Node } from 'estree';
+// @ts-ignore
 import { DirectiveType, TemplateNode } from 'svelte/types/compiler/interfaces';
 
 export interface NodeRange {
@@ -33,7 +34,7 @@ export interface BaseNode {
 
 export interface BaseDirective extends BaseNode {
     type: DirectiveType;
-    expression: null | Node;
+    expression: null | (Node & BaseNode);
     name: string;
     modifiers: string[];
 }

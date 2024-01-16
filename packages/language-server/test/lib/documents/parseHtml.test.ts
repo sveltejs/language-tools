@@ -37,6 +37,18 @@ describe('parseHtml', () => {
         );
     });
 
+    it('ignore binary operator inside @const', () => {
+        testRootElements(
+            parseHtml(
+                `{#if foo}
+                  {@const bar = 1 << 2}
+                  <Foo  />
+                {/if}
+                <style></style>`
+            )
+        );
+    });
+
     it('ignore less than operator inside control flow moustache', () => {
         testRootElements(
             parseHtml(

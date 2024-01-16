@@ -9,7 +9,10 @@ import { overwriteStr, preprendStr } from '../../utils/magic-string';
 export class ImplicitTopLevelNames {
     private map = new Set<ts.LabeledStatement>();
 
-    constructor(private str: MagicString, private astOffset: number) {}
+    constructor(
+        private str: MagicString,
+        private astOffset: number
+    ) {}
 
     add(node: ts.LabeledStatement) {
         this.map.add(node);
@@ -49,7 +52,7 @@ export class ImplicitTopLevelNames {
             this.str.appendRight(end, ')');
         }
 
-        this.str.prependLeft(start, '__sveltets_1_invalidate(() => ');
+        this.str.prependLeft(start, '__sveltets_2_invalidate(() => ');
         preprendStr(this.str, end, ')');
         // Not adding ';' at the end because right now this function is only invoked
         // in situations where there is a line break of ; guaranteed to be present (else the code is invalid)
@@ -114,12 +117,17 @@ export class ImplicitTopLevelNames {
             ts.isExpressionStatement(node.statement) &&
             isParenthesizedObjectOrArrayLiteralExpression(node.statement.expression)
         ) {
-            const start = node.statement.expression.getStart() + this.astOffset;
-            this.str.overwrite(start, start + 1, '', { contentOnly: true });
-            const end = node.statement.expression.getEnd() + this.astOffset - 1;
+            const parenthesizedExpression = node.statement.expression;
+
+            const parenthesisStart = parenthesizedExpression.getStart() + this.astOffset;
+            const expressionStart = parenthesizedExpression.expression.getStart() + this.astOffset;
+            this.str.overwrite(parenthesisStart, expressionStart, '', { contentOnly: true });
+
+            const parenthesisEnd = parenthesizedExpression.getEnd() + this.astOffset;
+            const expressionEnd = parenthesizedExpression.expression.getEnd() + this.astOffset;
             // We need to keep the `)` of the "wrap with invalidate" expression above.
             // We overwrite the same range so it's needed.
-            overwriteStr(this.str, end, end + 1, ')', true);
+            overwriteStr(this.str, expressionEnd, parenthesisEnd, ')', true);
         }
     }
 }

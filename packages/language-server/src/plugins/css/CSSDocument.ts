@@ -1,7 +1,7 @@
 import { Stylesheet, TextDocument } from 'vscode-css-languageservice';
 import { Position } from 'vscode-languageserver';
-import { getLanguageService } from './service';
 import { Document, DocumentMapper, ReadableDocument, TagInformation } from '../../lib/documents';
+import { CSSLanguageServices, getLanguageService } from './service';
 
 export interface CSSDocumentBase extends DocumentMapper, TextDocument {
     languageId: string;
@@ -15,7 +15,10 @@ export class CSSDocument extends ReadableDocument implements DocumentMapper {
     public stylesheet: Stylesheet;
     public languageId: string;
 
-    constructor(private parent: Document) {
+    constructor(
+        private parent: Document,
+        languageServices: CSSLanguageServices
+    ) {
         super();
 
         if (this.parent.styleInfo) {
@@ -29,7 +32,9 @@ export class CSSDocument extends ReadableDocument implements DocumentMapper {
         }
 
         this.languageId = this.language;
-        this.stylesheet = getLanguageService(this.language).parseStylesheet(this);
+        this.stylesheet = getLanguageService(languageServices, this.languageId).parseStylesheet(
+            this
+        );
     }
 
     /**

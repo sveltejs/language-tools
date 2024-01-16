@@ -1,13 +1,13 @@
-import { ComponentEvents } from 'svelte2tsx';
 import ts from 'typescript';
 import { isNotNullOrUndefined } from '../../utils';
 import { findContainingNode } from './features/utils';
 
-export type ComponentPartInfo = ReturnType<ComponentEvents['getAll']>;
+export type ComponentPartInfo = Array<{ name: string; type: string; doc?: string }>;
 
 export interface ComponentInfoProvider {
     getEvents(): ComponentPartInfo;
     getSlotLets(slot?: string): ComponentPartInfo;
+    getProps(): ComponentPartInfo;
 }
 
 export class JsOrTsComponentInfoProvider implements ComponentInfoProvider {
@@ -42,6 +42,15 @@ export class JsOrTsComponentInfoProvider implements ComponentInfoProvider {
         );
 
         return this.mapPropertiesOfType(slotLetsType);
+    }
+
+    getProps() {
+        const props = this.getType('$$prop_def');
+        if (!props) {
+            return [];
+        }
+
+        return this.mapPropertiesOfType(props);
     }
 
     private getType(classProperty: string) {

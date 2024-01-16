@@ -8,12 +8,12 @@ import {
     TextEdit
 } from 'vscode-languageserver';
 import { mapRangeToOriginal } from '../../../lib/documents';
-import { SvelteSnapshotFragment } from '../DocumentSnapshot';
+import { SvelteDocumentSnapshot } from '../DocumentSnapshot';
 
 const DEFAULT_SNIPPET = `/**${ts.sys.newLine} * $0${ts.sys.newLine} */`;
 
 export function getJsDocTemplateCompletion(
-    fragment: SvelteSnapshotFragment,
+    snapshot: SvelteDocumentSnapshot,
     lang: ts.LanguageService,
     filePath: string,
     offset: number
@@ -23,7 +23,7 @@ export function getJsDocTemplateCompletion(
     if (!template) {
         return null;
     }
-    const { text } = fragment;
+    const text = snapshot.getFullText();
     const lineStart = text.lastIndexOf('\n', offset);
     const lineEnd = text.indexOf('\n', offset);
     const isLastLine = lineEnd === -1;
@@ -34,10 +34,10 @@ export function getJsDocTemplateCompletion(
     const start = line.lastIndexOf('/**', character) + lineStart;
     const suffix = line.slice(character).match(/^\s*\**\//);
     const textEditRange = mapRangeToOriginal(
-        fragment,
+        snapshot,
         Range.create(
-            fragment.positionAt(start),
-            fragment.positionAt(offset + (suffix?.[0]?.length ?? 0))
+            snapshot.positionAt(start),
+            snapshot.positionAt(offset + (suffix?.[0]?.length ?? 0))
         )
     );
     const { newText } = template;

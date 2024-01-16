@@ -3,30 +3,39 @@ import {
     Document,
     mapRangeToOriginal,
     getLineAtPosition,
-    offsetAt,
     getNodeIfIsInStartTag,
-    isInHTMLTagRange
+    isInHTMLTagRange,
+    getNodeIfIsInHTMLStartTag
 } from '../../../lib/documents';
-import { filterAsync, isNotNullOrUndefined, pathToUrl } from '../../../utils';
-import { RenameProvider } from '../../interfaces';
 import {
-    SnapshotFragment,
-    SvelteSnapshotFragment,
-    SvelteDocumentSnapshot
-} from '../DocumentSnapshot';
+    createGetCanonicalFileName,
+    filterAsync,
+    isNotNullOrUndefined,
+    pathToUrl,
+    unique
+} from '../../../utils';
+import { RenameProvider } from '../../interfaces';
+import { DocumentSnapshot, SvelteDocumentSnapshot } from '../DocumentSnapshot';
 import { convertRange } from '../utils';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import ts from 'typescript';
-import { uniqWith, isEqual } from 'lodash';
 import {
     isComponentAtPosition,
     isAfterSvelte2TsxPropsReturn,
-    isNoTextSpanInGeneratedCode,
-    SnapshotFragmentMap,
-    findContainingNode
+    isTextSpanInGeneratedCode,
+    SnapshotMap,
+    isStoreVariableIn$storeDeclaration,
+    get$storeOffsetOf$storeDeclaration,
+    getStoreOffsetOf$storeDeclaration,
+    is$storeVariableIn$storeDeclaration
 } from './utils';
 import { LSConfigManager } from '../../../ls-config';
 import { isAttributeName, isEventHandler } from '../svelte-ast-utils';
+
+interface TsRenameLocation extends ts.RenameLocation {
+    range: Range;
+    newName?: string;
+}
 
 export class RenameProviderImpl implements RenameProvider {
     constructor(
@@ -38,15 +47,14 @@ export class RenameProviderImpl implements RenameProvider {
 
     async prepareRename(document: Document, position: Position): Promise<Range | null> {
         const { lang, tsDoc } = await this.getLSAndTSDoc(document);
-        const fragment = await tsDoc.getFragment();
 
-        const offset = fragment.offsetAt(fragment.getGeneratedPosition(position));
+        const offset = tsDoc.offsetAt(tsDoc.getGeneratedPosition(position));
         const renameInfo = this.getRenameInfo(lang, tsDoc, document, position, offset);
         if (!renameInfo) {
             return null;
         }
 
-        return this.mapRangeToOriginal(fragment, renameInfo.triggerSpan);
+        return this.mapRangeToOriginal(tsDoc, renameInfo.triggerSpan);
     }
 
     async rename(
@@ -55,11 +63,11 @@ export class RenameProviderImpl implements RenameProvider {
         newName: string
     ): Promise<WorkspaceEdit | null> {
         const { lang, tsDoc } = await this.getLSAndTSDoc(document);
-        const fragment = await tsDoc.getFragment();
 
-        const offset = fragment.offsetAt(fragment.getGeneratedPosition(position));
+        const offset = tsDoc.offsetAt(tsDoc.getGeneratedPosition(position));
 
-        if (!this.getRenameInfo(lang, tsDoc, document, position, offset)) {
+        const renameInfo = this.getRenameInfo(lang, tsDoc, document, position, offset);
+        if (!renameInfo) {
             return null;
         }
 
@@ -74,13 +82,18 @@ export class RenameProviderImpl implements RenameProvider {
             return null;
         }
 
-        const docs = new SnapshotFragmentMap(this.lsAndTsDocResolver);
-        docs.set(tsDoc.filePath, { fragment, snapshot: tsDoc });
-        let convertedRenameLocations: Array<
-            ts.RenameLocation & {
-                range: Range;
-            }
-        > = await this.mapAndFilterRenameLocations(renameLocations, docs);
+        const docs = new SnapshotMap(this.lsAndTsDocResolver);
+        docs.set(tsDoc.filePath, tsDoc);
+
+        let convertedRenameLocations: TsRenameLocation[] = await this.mapAndFilterRenameLocations(
+            renameLocations,
+            docs,
+            renameInfo.isStore ? `$${newName}` : undefined
+        );
+
+        convertedRenameLocations.push(
+            ...(await this.enhanceRenamesInCaseOf$Store(renameLocations, newName, docs, lang))
+        );
 
         convertedRenameLocations = this.checkShortHandBindingOrSlotLetLocation(
             lang,
@@ -92,11 +105,11 @@ export class RenameProviderImpl implements RenameProvider {
             await this.getAdditionLocationsForRenameOfPropInsideComponentWithProp(
                 document,
                 tsDoc,
-                fragment,
                 position,
                 convertedRenameLocations,
                 docs,
-                lang
+                lang,
+                newName
             );
         const additionalRenamesForPropRenameOutsideComponentWithProp =
             // This is an either-or-situation, don't do both
@@ -105,7 +118,8 @@ export class RenameProviderImpl implements RenameProvider {
                 : await this.getAdditionalLocationsForRenameOfPropInsideOtherComponent(
                       convertedRenameLocations,
                       docs,
-                      lang
+                      lang,
+                      tsDoc.filePath
                   );
         convertedRenameLocations = [
             ...convertedRenameLocations,
@@ -124,7 +138,8 @@ export class RenameProviderImpl implements RenameProvider {
                     acc.changes[uri] = [];
                 }
                 acc.changes[uri].push({
-                    newText: (loc.prefixText || '') + newName + (loc.suffixText || ''),
+                    newText:
+                        (loc.prefixText || '') + (loc.newName || newName) + (loc.suffixText || ''),
                     range: loc.range
                 });
                 return acc;
@@ -139,13 +154,11 @@ export class RenameProviderImpl implements RenameProvider {
         doc: Document,
         originalPosition: Position,
         generatedOffset: number
-    ): {
-        canRename: true;
-        kind: ts.ScriptElementKind;
-        displayName: string;
-        fullDisplayName: string;
-        triggerSpan: { start: number; length: number };
-    } | null {
+    ):
+        | (ts.RenameInfoSuccess & {
+              isStore?: boolean;
+          })
+        | null {
         // Don't allow renames in error-state, because then there is no generated svelte2tsx-code
         // and rename cannot work
         if (tsDoc.parserError) {
@@ -167,15 +180,80 @@ export class RenameProviderImpl implements RenameProvider {
 
         const svelteNode = tsDoc.svelteNodeAt(originalPosition);
         if (
-            this.configManager.getConfig().svelte.useNewTransformation &&
-            (isInHTMLTagRange(doc.html, doc.offsetAt(originalPosition)) ||
-                isAttributeName(svelteNode, 'Element') ||
-                isEventHandler(svelteNode, 'Element'))
+            isInHTMLTagRange(doc.html, doc.offsetAt(originalPosition)) ||
+            isAttributeName(svelteNode, 'Element') ||
+            isEventHandler(svelteNode, 'Element')
         ) {
             return null;
         }
 
+        // If $store is renamed, only allow rename for $|store|
+        if (tsDoc.getFullText().charAt(renameInfo.triggerSpan.start) === '$') {
+            const definition = lang.getDefinitionAndBoundSpan(tsDoc.filePath, generatedOffset)
+                ?.definitions?.[0];
+            if (definition && isTextSpanInGeneratedCode(tsDoc.getFullText(), definition.textSpan)) {
+                renameInfo.triggerSpan.start++;
+                renameInfo.triggerSpan.length--;
+                (renameInfo as any).isStore = true;
+            }
+        }
+
         return renameInfo;
+    }
+
+    /**
+     * If the user renames a store variable, we need to rename the corresponding $store variables
+     * and vice versa.
+     */
+    private async enhanceRenamesInCaseOf$Store(
+        renameLocations: readonly ts.RenameLocation[],
+        newName: string,
+        docs: SnapshotMap,
+        lang: ts.LanguageService
+    ): Promise<TsRenameLocation[]> {
+        for (const loc of renameLocations) {
+            const snapshot = await docs.retrieve(loc.fileName);
+            if (isTextSpanInGeneratedCode(snapshot.getFullText(), loc.textSpan)) {
+                if (
+                    isStoreVariableIn$storeDeclaration(snapshot.getFullText(), loc.textSpan.start)
+                ) {
+                    // User renamed store, also rename corresponding $store locations
+                    const storeRenameLocations = lang.findRenameLocations(
+                        snapshot.filePath,
+                        get$storeOffsetOf$storeDeclaration(
+                            snapshot.getFullText(),
+                            loc.textSpan.start
+                        ),
+                        false,
+                        false,
+                        true
+                    );
+                    return await this.mapAndFilterRenameLocations(
+                        storeRenameLocations!,
+                        docs,
+                        `$${newName}`
+                    );
+                } else if (
+                    is$storeVariableIn$storeDeclaration(snapshot.getFullText(), loc.textSpan.start)
+                ) {
+                    // User renamed $store, also rename corresponding store
+                    const storeRenameLocations = lang.findRenameLocations(
+                        snapshot.filePath,
+                        getStoreOffsetOf$storeDeclaration(
+                            snapshot.getFullText(),
+                            loc.textSpan.start
+                        ),
+                        false,
+                        false,
+                        true
+                    );
+                    return await this.mapAndFilterRenameLocations(storeRenameLocations!, docs);
+                    // TODO once we allow providePrefixAndSuffixTextForRename to be configurable,
+                    // we need to add one more step to update all other $store usages in other files
+                }
+            }
+        }
+        return [];
     }
 
     /**
@@ -188,21 +266,22 @@ export class RenameProviderImpl implements RenameProvider {
     private async getAdditionLocationsForRenameOfPropInsideComponentWithProp(
         document: Document,
         tsDoc: SvelteDocumentSnapshot,
-        fragment: SvelteSnapshotFragment,
         position: Position,
-        convertedRenameLocations: Array<ts.RenameLocation & { range: Range }>,
-        fragments: SnapshotFragmentMap,
-        lang: ts.LanguageService
+        convertedRenameLocations: TsRenameLocation[],
+        snapshots: SnapshotMap,
+        lang: ts.LanguageService,
+        newName: string
     ) {
         // First find out if it's really the "rename prop inside component with that prop" case
         // Use original document for that because only there the `export` is present.
+        // ':' for typescript's type operator (`export let bla: boolean`)
+        // '//' and '/*' for comments (`export let bla// comment` or `export let bla/* comment */`)
         const regex = new RegExp(
             `export\\s+let\\s+${this.getVariableAtPosition(
                 tsDoc,
-                fragment,
                 lang,
                 position
-            )}($|\\s|;|:)` // ':' for typescript's type operator (`export let bla: boolean`)
+            )}($|\\s|;|:|\/\*|\/\/)`
         );
         const isRenameInsideComponentWithProp = regex.test(
             getLineAtPosition(position, document.getText())
@@ -214,27 +293,107 @@ export class RenameProviderImpl implements RenameProvider {
         // prop rename further below in the document.
         const updatePropLocation = this.findLocationWhichWantsToUpdatePropName(
             convertedRenameLocations,
-            fragments
+            snapshots
         );
         if (!updatePropLocation) {
             return [];
         }
         // Typescript does a rename of `oldPropName: newPropName` -> find oldPropName and rename that, too.
-        const idxOfOldPropName = fragment.text.lastIndexOf(':', updatePropLocation.textSpan.start);
+        const idxOfOldPropName = tsDoc
+            .getFullText()
+            .lastIndexOf(':', updatePropLocation.textSpan.start);
         // This requires svelte2tsx to have the properties written down like `return props: {bla: bla}`.
         // It would not work for `return props: {bla}` because then typescript would do a rename of `{bla: renamed}`,
         // so other locations would not be affected.
         const replacementsForProp = (
-            lang.findRenameLocations(updatePropLocation.fileName, idxOfOldPropName, false, false) ||
-            []
+            lang.findRenameLocations(
+                updatePropLocation.fileName,
+                idxOfOldPropName,
+                false,
+                false,
+                true
+            ) || []
         ).filter(
             (rename) =>
                 // filter out all renames inside the component except the prop rename,
                 // because the others were done before and then would show up twice, making a wrong rename.
                 rename.fileName !== updatePropLocation.fileName ||
-                this.isInSvelte2TsxPropLine(fragment, rename)
+                this.isInSvelte2TsxPropLine(tsDoc, rename)
         );
-        return await this.mapAndFilterRenameLocations(replacementsForProp, fragments);
+
+        const renameLocations = await this.mapAndFilterRenameLocations(
+            replacementsForProp,
+            snapshots
+        );
+        const bind = 'bind:';
+
+        // Adjust shorthands
+        return renameLocations.map((location) => {
+            if (updatePropLocation.fileName === location.fileName) {
+                return location;
+            }
+
+            const sourceFile = lang.getProgram()?.getSourceFile(location.fileName);
+
+            if (
+                !sourceFile ||
+                location.fileName !== sourceFile.fileName ||
+                location.range.start.line < 0 ||
+                location.range.end.line < 0
+            ) {
+                return location;
+            }
+
+            const snapshot = snapshots.get(location.fileName);
+            if (!(snapshot instanceof SvelteDocumentSnapshot)) {
+                return location;
+            }
+
+            const { parent } = snapshot;
+
+            let rangeStart = parent.offsetAt(location.range.start);
+            let suffixText = location.suffixText?.trimStart();
+
+            // suffix is of the form `: oldVarName` -> hints at a shorthand
+            if (!suffixText?.startsWith(':') || !getNodeIfIsInStartTag(parent.html, rangeStart)) {
+                return location;
+            }
+
+            const original = parent.getText({
+                start: Position.create(
+                    location.range.start.line,
+                    location.range.start.character - bind.length
+                ),
+                end: location.range.end
+            });
+
+            if (original.startsWith(bind)) {
+                // bind:|foo| -> bind:|newName|={foo}
+                return {
+                    ...location,
+                    prefixText: '',
+                    suffixText: `={${original.slice(bind.length)}}`
+                };
+            }
+
+            if (snapshot.getOriginalText().charAt(rangeStart - 1) === '{') {
+                // {|foo|} -> |{foo|}
+                rangeStart--;
+                return {
+                    ...location,
+                    range: {
+                        start: parent.positionAt(rangeStart),
+                        end: location.range.end
+                    },
+                    // |{foo|} -> newName=|{foo|}
+                    newName: parent.getText(location.range),
+                    prefixText: `${newName}={`,
+                    suffixText: ''
+                };
+            }
+
+            return location;
+        });
     }
 
     /**
@@ -246,20 +405,28 @@ export class RenameProviderImpl implements RenameProvider {
      * This additional logic/propagation is done in this method.
      */
     private async getAdditionalLocationsForRenameOfPropInsideOtherComponent(
-        convertedRenameLocations: Array<ts.RenameLocation & { range: Range }>,
-        fragments: SnapshotFragmentMap,
-        lang: ts.LanguageService
+        convertedRenameLocations: TsRenameLocation[],
+        snapshots: SnapshotMap,
+        lang: ts.LanguageService,
+        requestedFileName: string
     ) {
         // Check if it's a prop rename
         const updatePropLocation = this.findLocationWhichWantsToUpdatePropName(
             convertedRenameLocations,
-            fragments
+            snapshots
         );
         if (!updatePropLocation) {
             return [];
         }
+        const getCanonicalFileName = createGetCanonicalFileName(ts.sys.useCaseSensitiveFileNames);
+        if (
+            getCanonicalFileName(updatePropLocation.fileName) ===
+            getCanonicalFileName(requestedFileName)
+        ) {
+            return [];
+        }
         // Find generated `export let`
-        const doc = <SvelteSnapshotFragment>fragments.getFragment(updatePropLocation.fileName);
+        const doc = <SvelteDocumentSnapshot>snapshots.get(updatePropLocation.fileName);
         const match = this.matchGeneratedExportLet(doc, updatePropLocation);
         if (!match) {
             return [];
@@ -271,30 +438,33 @@ export class RenameProviderImpl implements RenameProvider {
 
         return this.checkShortHandBindingOrSlotLetLocation(
             lang,
-            await this.mapAndFilterRenameLocations(replacementsForProp, fragments),
-            fragments
+            await this.mapAndFilterRenameLocations(replacementsForProp, snapshots),
+            snapshots
         );
     }
 
     // --------> svelte2tsx?
     private matchGeneratedExportLet(
-        fragment: SvelteSnapshotFragment,
+        snapshot: SvelteDocumentSnapshot,
         updatePropLocation: ts.RenameLocation
     ) {
         const regex = new RegExp(
             // no 'export let', only 'let', because that's what it's translated to in svelte2tsx
-            `\\s+let\\s+(${fragment.text.substr(
-                updatePropLocation.textSpan.start,
-                updatePropLocation.textSpan.length
-            )})($|\\s|;|:)`
+            // '//' and '/*' for comments (`let bla/*Ωignore_startΩ*/`)
+            `\\s+let\\s+(${snapshot
+                .getFullText()
+                .substring(
+                    updatePropLocation.textSpan.start,
+                    updatePropLocation.textSpan.start + updatePropLocation.textSpan.length
+                )})($|\\s|;|:|\/\*|\/\/)`
         );
-        const match = fragment.text.match(regex);
+        const match = snapshot.getFullText().match(regex);
         return match;
     }
 
     private findLocationWhichWantsToUpdatePropName(
-        convertedRenameLocations: Array<ts.RenameLocation & { range: Range }>,
-        fragments: SnapshotFragmentMap
+        convertedRenameLocations: TsRenameLocation[],
+        snapshots: SnapshotMap
     ) {
         return convertedRenameLocations.find((loc) => {
             // Props are not in mapped range
@@ -302,19 +472,19 @@ export class RenameProviderImpl implements RenameProvider {
                 return;
             }
 
-            const fragment = fragments.getFragment(loc.fileName);
+            const snapshot = snapshots.get(loc.fileName);
             // Props are in svelte snapshots only
-            if (!(fragment instanceof SvelteSnapshotFragment)) {
+            if (!(snapshot instanceof SvelteDocumentSnapshot)) {
                 return false;
             }
 
-            return this.isInSvelte2TsxPropLine(fragment, loc);
+            return this.isInSvelte2TsxPropLine(snapshot, loc);
         });
     }
 
     // --------> svelte2tsx?
-    private isInSvelte2TsxPropLine(fragment: SvelteSnapshotFragment, loc: ts.RenameLocation) {
-        return isAfterSvelte2TsxPropsReturn(fragment.text, loc.textSpan.start);
+    private isInSvelte2TsxPropLine(snapshot: SvelteDocumentSnapshot, loc: ts.RenameLocation) {
+        return isAfterSvelte2TsxPropsReturn(snapshot.getFullText(), loc.textSpan.start);
     }
 
     /**
@@ -325,16 +495,18 @@ export class RenameProviderImpl implements RenameProvider {
      */
     private async mapAndFilterRenameLocations(
         renameLocations: readonly ts.RenameLocation[],
-        fragments: SnapshotFragmentMap
-    ): Promise<Array<ts.RenameLocation & { range: Range }>> {
+        snapshots: SnapshotMap,
+        newName?: string
+    ): Promise<TsRenameLocation[]> {
         const mappedLocations = await Promise.all(
             renameLocations.map(async (loc) => {
-                const { fragment, snapshot } = await fragments.retrieve(loc.fileName);
+                const snapshot = await snapshots.retrieve(loc.fileName);
 
-                if (isNoTextSpanInGeneratedCode(snapshot.getFullText(), loc.textSpan)) {
+                if (!isTextSpanInGeneratedCode(snapshot.getFullText(), loc.textSpan)) {
                     return {
                         ...loc,
-                        range: this.mapRangeToOriginal(fragment, loc.textSpan)
+                        range: this.mapRangeToOriginal(snapshot, loc.textSpan),
+                        newName
                     };
                 }
             })
@@ -343,8 +515,8 @@ export class RenameProviderImpl implements RenameProvider {
     }
 
     private filterWrongRenameLocations(
-        mappedLocations: Array<ts.RenameLocation & { range: Range }>
-    ): Promise<Array<ts.RenameLocation & { range: Range }>> {
+        mappedLocations: TsRenameLocation[]
+    ): Promise<TsRenameLocation[]> {
         return filterAsync(mappedLocations, async (loc) => {
             const snapshot = await this.getSnapshot(loc.fileName);
             if (!(snapshot instanceof SvelteDocumentSnapshot)) {
@@ -353,13 +525,13 @@ export class RenameProviderImpl implements RenameProvider {
 
             const content = snapshot.getText(0, snapshot.getLength());
             // When the user renames a Svelte component, ts will also want to rename
-            // `__sveltets_1_instanceOf(TheComponentToRename)` or
+            // `__sveltets_2_instanceOf(TheComponentToRename)` or
             // `__sveltets_1_ensureType(TheComponentToRename,..`. Prevent that.
             // Additionally, we cannot rename the hidden variable containing the store value
             return (
-                notPrecededBy('__sveltets_1_instanceOf(') &&
+                notPrecededBy('__sveltets_2_instanceOf(') &&
                 notPrecededBy('__sveltets_1_ensureType(') && // no longer necessary for new transformation
-                notPrecededBy('= __sveltets_1_store_get(')
+                notPrecededBy('= __sveltets_2_store_get(')
             );
 
             function notPrecededBy(str: string) {
@@ -370,7 +542,7 @@ export class RenameProviderImpl implements RenameProvider {
         });
     }
 
-    private mapRangeToOriginal(doc: SnapshotFragment, textSpan: ts.TextSpan): Range {
+    private mapRangeToOriginal(snapshot: DocumentSnapshot, textSpan: ts.TextSpan): Range {
         // We need to work around a current svelte2tsx limitation: Replacements and
         // source mapping is done in such a way that sometimes the end of the range is unmapped
         // and the index of the last character is returned instead (which is one less).
@@ -380,7 +552,7 @@ export class RenameProviderImpl implements RenameProvider {
         // 1. we know renames can only ever occur in one line
         // 2. the generated svelte2tsx code will not modify variable names, so we know
         //    the original range should be the same length as the textSpan's length
-        const range = mapRangeToOriginal(doc, convertRange(doc, textSpan));
+        const range = mapRangeToOriginal(snapshot, convertRange(snapshot, textSpan));
         if (range.end.character - range.start.character < textSpan.length) {
             range.end.character++;
         }
@@ -389,11 +561,10 @@ export class RenameProviderImpl implements RenameProvider {
 
     private getVariableAtPosition(
         tsDoc: SvelteDocumentSnapshot,
-        fragment: SvelteSnapshotFragment,
         lang: ts.LanguageService,
         position: Position
     ) {
-        const offset = fragment.offsetAt(fragment.getGeneratedPosition(position));
+        const offset = tsDoc.offsetAt(tsDoc.getGeneratedPosition(position));
         const { start, length } = lang.getSmartSelectionRange(tsDoc.filePath, offset).textSpan;
         return tsDoc.getText(start, start + length);
     }
@@ -408,9 +579,9 @@ export class RenameProviderImpl implements RenameProvider {
 
     private checkShortHandBindingOrSlotLetLocation(
         lang: ts.LanguageService,
-        renameLocations: Array<ts.RenameLocation & { range: Range }>,
-        fragments: SnapshotFragmentMap
-    ): Array<ts.RenameLocation & { range: Range }> {
+        renameLocations: TsRenameLocation[],
+        snapshots: SnapshotMap
+    ): TsRenameLocation[] {
         const bind = 'bind:';
 
         return renameLocations.map((location) => {
@@ -425,156 +596,76 @@ export class RenameProviderImpl implements RenameProvider {
                 return location;
             }
 
-            const fragment = fragments.getFragment(location.fileName);
-            if (!(fragment instanceof SvelteSnapshotFragment)) {
+            const snapshot = snapshots.get(location.fileName);
+            if (!(snapshot instanceof SvelteDocumentSnapshot)) {
                 return location;
             }
 
-            const { originalText, parent } = fragment;
+            const { parent } = snapshot;
 
-            if (this.configManager.getConfig().svelte.useNewTransformation) {
-                let prefixText = location.prefixText?.trimRight();
-                if (!prefixText || prefixText.slice(-1) !== ':') {
-                    return location;
-                }
-                // prefix is of the form `oldVarName: ` -> hints at a shorthand
-                let rangeStart = parent.offsetAt(location.range.start);
-                // we need to make sure we only adjust shorthands on elements/components
+            let rangeStart = parent.offsetAt(location.range.start);
+            let prefixText = location.prefixText?.trimRight();
+
+            // rename needs to be prefixed in case of a bind shorthand on a HTML element
+            if (!prefixText) {
+                const original = parent.getText({
+                    start: Position.create(
+                        location.range.start.line,
+                        location.range.start.character - bind.length
+                    ),
+                    end: location.range.end
+                });
                 if (
-                    !getNodeIfIsInStartTag(parent.html, rangeStart) ||
-                    // shorthands: let:xx, bind:xx, {xx}
-                    (parent.getText().charAt(rangeStart - 1) !== ':' &&
-                        // not use:action={{foo}}
-                        !/[^{]\s+{$/.test(parent.getText().substring(0, rangeStart)))
+                    original.startsWith(bind) &&
+                    getNodeIfIsInHTMLStartTag(parent.html, rangeStart)
                 ) {
-                    return location;
-                }
-                prefixText = prefixText.slice(0, -1) + '={';
-                location = {
-                    ...location,
-                    prefixText,
-                    suffixText: '}'
-                };
-                // rename range needs to be adjusted in case of an attribute shortand
-                if (originalText.charAt(rangeStart - 1) === '{') {
-                    rangeStart--;
-                    const rangeEnd = parent.offsetAt(location.range.end) + 1;
-                    location.range = {
-                        start: parent.positionAt(rangeStart),
-                        end: parent.positionAt(rangeEnd)
+                    return {
+                        ...location,
+                        prefixText: original.slice(bind.length) + '={',
+                        suffixText: '}'
                     };
                 }
+            }
+
+            if (!prefixText || prefixText.slice(-1) !== ':') {
                 return location;
             }
 
-            const renamingInfo =
-                this.getShorthandPropInfo(sourceFile, location) ??
-                this.getSlotLetInfo(sourceFile, location);
-
-            if (!renamingInfo) {
-                return location;
-            }
-
-            const [renamingNode, identifierName] = renamingInfo;
-
-            const originalStart = offsetAt(location.range.start, originalText);
-
-            const isShortHandBinding =
-                originalText.substr(originalStart - bind.length, bind.length) === bind;
-
-            const directiveName = (isShortHandBinding ? bind : '') + identifierName;
-            const prefixText = directiveName + '={';
-
-            const newRange = mapRangeToOriginal(
-                fragment,
-                convertRange(fragment, {
-                    start: renamingNode.getStart(),
-                    length: renamingNode.getWidth()
-                })
-            );
-
-            // somehow the mapping is one character before
+            // prefix is of the form `oldVarName: ` -> hints at a shorthand
+            // we need to make sure we only adjust shorthands on elements/components
             if (
-                isShortHandBinding ||
-                originalText
-                    .substring(offsetAt(newRange.start, originalText), originalStart)
-                    .trimLeft() === '{'
+                !getNodeIfIsInStartTag(parent.html, rangeStart) ||
+                // shorthands: let:xx, bind:xx, {xx}
+                (parent.getText().charAt(rangeStart - 1) !== ':' &&
+                    // not use:action={{foo}}
+                    !/[^{]\s+{$/.test(
+                        parent.getText({
+                            start: Position.create(0, 0),
+                            end: location.range.start
+                        })
+                    ))
             ) {
-                newRange.start.character++;
+                return location;
             }
 
-            return {
+            prefixText = prefixText.slice(0, -1) + '={';
+            location = {
                 ...location,
                 prefixText,
-                suffixText: '}',
-                range: newRange
+                suffixText: '}'
             };
+
+            // rename range needs to be adjusted in case of an attribute shorthand
+            if (snapshot.getOriginalText().charAt(rangeStart - 1) === '{') {
+                rangeStart--;
+                const rangeEnd = parent.offsetAt(location.range.end) + 1;
+                location.range = {
+                    start: parent.positionAt(rangeStart),
+                    end: parent.positionAt(rangeEnd)
+                };
+            }
+
+            return location;
         });
     }
-
-    /**
-     * In case of using JSX, it's not possible to write shorthands like `{foo}`, they are transformed
-     * to `foo={foo}` and need extra handling for renaming.
-     *
-     * In case of `useNewTransformation` - do nothing, as the property is already written in shorthand.
-     */
-    private getShorthandPropInfo(
-        sourceFile: ts.SourceFile,
-        location: ts.RenameLocation
-    ): [ts.Node, string] | null {
-        const possibleJsxAttribute = findContainingNode(
-            sourceFile,
-            location.textSpan,
-            ts.isJsxAttribute
-        );
-        if (!possibleJsxAttribute) {
-            return null;
-        }
-
-        const attributeName = possibleJsxAttribute.name.getText();
-        const { initializer } = possibleJsxAttribute;
-
-        // not props={props}
-        if (
-            !initializer ||
-            !ts.isJsxExpression(initializer) ||
-            attributeName !== initializer.expression?.getText()
-        ) {
-            return null;
-        }
-
-        return [possibleJsxAttribute, attributeName];
-    }
-
-    private getSlotLetInfo(
-        sourceFile: ts.SourceFile,
-        location: ts.RenameLocation
-    ): [ts.Node, string] | null {
-        const possibleSlotLet = findContainingNode(
-            sourceFile,
-            location.textSpan,
-            ts.isVariableDeclaration
-        );
-        if (!possibleSlotLet || !ts.isObjectBindingPattern(possibleSlotLet.name)) {
-            return null;
-        }
-
-        const bindingElement = findContainingNode(
-            possibleSlotLet.name,
-            location.textSpan,
-            ts.isBindingElement
-        );
-
-        if (!bindingElement || bindingElement.propertyName) {
-            return null;
-        }
-
-        const identifierName = bindingElement.name.getText();
-
-        return [bindingElement, identifierName];
-    }
-}
-
-function unique<T>(array: T[]): T[] {
-    return uniqWith(array, isEqual);
 }

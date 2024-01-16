@@ -12,8 +12,7 @@ import { is$$PropsDeclaration } from './nodes/ExportedNames';
 export function processModuleScriptTag(
     str: MagicString,
     script: Node,
-    implicitStoreValues: ImplicitStoreValues,
-    useNewTransformation: boolean
+    implicitStoreValues: ImplicitStoreValues
 ) {
     const htmlx = str.original;
     const scriptContent = htmlx.substring(script.content.start, script.content.end);
@@ -26,7 +25,16 @@ export function processModuleScriptTag(
     );
     const astOffset = script.content.start;
 
-    const generics = new Generics(str, astOffset);
+    const generics = new Generics(str, astOffset, script);
+    if (generics.genericsAttr) {
+        const start = htmlx.indexOf('generics', script.start);
+        throwError(
+            start,
+            start + 8,
+            'The generics attribute is only allowed on the instance script',
+            str.original
+        );
+    }
 
     const walk = (node: ts.Node) => {
         resolveImplicitStoreValue(node, implicitStoreValues, str, astOffset);
@@ -48,10 +56,10 @@ export function processModuleScriptTag(
     const scriptStartTagEnd = htmlx.indexOf('>', script.start) + 1;
     const scriptEndTagStart = htmlx.lastIndexOf('<', script.end - 1);
 
-    str.overwrite(script.start, scriptStartTagEnd, useNewTransformation ? ';' : '</>;', {
+    str.overwrite(script.start, scriptStartTagEnd, ';', {
         contentOnly: true
     });
-    str.overwrite(scriptEndTagStart, script.end, useNewTransformation ? ';' : ';<>', {
+    str.overwrite(scriptEndTagStart, script.end, ';', {
         contentOnly: true
     });
 }

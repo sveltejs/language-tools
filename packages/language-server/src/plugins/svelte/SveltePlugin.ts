@@ -1,3 +1,4 @@
+import { isAbsolute } from 'path';
 import {
     CancellationToken,
     CodeAction,
@@ -14,10 +15,12 @@ import {
     TextEdit,
     WorkspaceEdit
 } from 'vscode-languageserver';
+import { Plugin } from 'prettier';
 import { getPackageInfo, importPrettier } from '../../importPackage';
 import { Document } from '../../lib/documents';
 import { Logger } from '../../logger';
 import { LSConfigManager, LSSvelteConfig } from '../../ls-config';
+import { isNotNullOrUndefined } from '../../utils';
 import {
     CodeActionsProvider,
     CompletionsProvider,
@@ -50,7 +53,10 @@ export class SveltePlugin
 
     constructor(private configManager: LSConfigManager) {}
 
-    async getDiagnostics(document: Document): Promise<Diagnostic[]> {
+    async getDiagnostics(
+        document: Document,
+        cancellationToken?: CancellationToken
+    ): Promise<Diagnostic[]> {
         if (!this.featureEnabled('diagnostics') || !this.configManager.getIsTrusted()) {
             return [];
         }
@@ -58,13 +64,15 @@ export class SveltePlugin
         return getDiagnostics(
             document,
             await this.getSvelteDoc(document),
-            this.configManager.getConfig().svelte.compilerWarnings
+            this.configManager.getConfig().svelte.compilerWarnings,
+            cancellationToken
         );
     }
 
     async getCompiledResult(document: Document): Promise<SvelteCompileResult | null> {
         try {
             const svelteDoc = await this.getSvelteDoc(document);
+            // @ts-ignore is 'client' in Svelte 5
             return svelteDoc.getCompiledWith({ generate: 'dom' });
         } catch (error) {
             return null;
@@ -77,16 +85,58 @@ export class SveltePlugin
         }
 
         const filePath = document.getFilePath()!;
-        const prettier = importPrettier(filePath);
-        // Try resolving the config through prettier and fall back to possible editor config
-        const config = this.configManager.getMergedPrettierConfig(
-            await prettier.resolveConfig(filePath, { editorconfig: true }),
-            // Be defensive here because IDEs other than VSCode might not have these settings
-            options && {
-                tabWidth: options.tabSize,
-                useTabs: !options.insertSpaces
+
+        /**
+         * Prettier v2 can't use v3 plugins and vice versa. Therefore, we need to check
+         * which version of prettier is used in the workspace and import the correct
+         * version of the Svelte plugin. If user uses Prettier >= 3 and has no Svelte plugin
+         * then fall back to our built-in versions which are both v2 and compatible with
+         * each other.
+         * TODO switch this around at some point to load Prettier v3 by default because it's
+         * more likely that users have that installed.
+         */
+        const importFittingPrettier = async () => {
+            const getConfig = async (p: any) => {
+                // Try resolving the config through prettier and fall back to possible editor config
+                return this.configManager.getMergedPrettierConfig(
+                    await p.resolveConfig(filePath, { editorconfig: true }),
+                    // Be defensive here because IDEs other than VSCode might not have these settings
+                    options && {
+                        tabWidth: options.tabSize,
+                        useTabs: !options.insertSpaces
+                    }
+                );
+            };
+
+            const prettier1 = importPrettier(filePath);
+            const config1 = await getConfig(prettier1);
+            const resolvedPlugins1 = resolvePlugins(config1.plugins);
+            const pluginLoaded = await hasSveltePluginLoaded(prettier1, resolvedPlugins1);
+            if (Number(prettier1.version[0]) >= 3 || pluginLoaded) {
+                // plugin loaded, or referenced in user config as a plugin, or same version as our fallback version -> ok
+                return {
+                    prettier: prettier1,
+                    config: config1,
+                    isFallback: false,
+                    resolvedPlugins: resolvedPlugins1
+                };
             }
-        );
+
+            // User either only has Plugin or incompatible Prettier major version installed or none
+            // -> load our fallback version
+            const prettier2 = importPrettier(__dirname);
+            const config2 = await getConfig(prettier2);
+            const resolvedPlugins2 = resolvePlugins(config2.plugins);
+            return {
+                prettier: prettier2,
+                config: config2,
+                isFallback: true,
+                resolvedPlugins: resolvedPlugins2
+            };
+        };
+
+        const { prettier, config, isFallback, resolvedPlugins } = await importFittingPrettier();
+
         // If user has prettier-plugin-svelte 1.x, then remove `options` from the sort
         // order or else it will throw a config error (`options` was not present back then).
         if (
@@ -97,6 +147,16 @@ export class SveltePlugin
                 .replace('-options', '')
                 .replace('options-', '');
         }
+        // If user has prettier-plugin-svelte 3.x, then add `options` from the sort
+        // order or else it will throw a config error (now required).
+        if (
+            config?.svelteSortOrder &&
+            !config.svelteSortOrder.includes('options') &&
+            config.svelteSortOrder !== 'none' &&
+            getPackageInfo('prettier-plugin-svelte', filePath)?.version.major >= 3
+        ) {
+            config.svelteSortOrder = 'options-' + config.svelteSortOrder;
+        }
         // Take .prettierignore into account
         const fileInfo = await prettier.getFileInfo(filePath, {
             ignorePath: this.configManager.getPrettierConfig()?.ignorePath ?? '.prettierignore',
@@ -104,13 +164,16 @@ export class SveltePlugin
             withNodeModules: true
         });
         if (fileInfo.ignored) {
-            Logger.log('File is ignored, formatting skipped');
+            Logger.debug('File is ignored, formatting skipped');
             return [];
         }
 
-        const formattedCode = prettier.format(document.getText(), {
+        // Prettier v3 format is async, v2 is not
+        const formattedCode = await prettier.format(document.getText(), {
             ...config,
-            plugins: getSveltePlugin(),
+            plugins: Array.from(
+                new Set([...resolvedPlugins, ...(await getSveltePlugin(resolvedPlugins))])
+            ),
             parser: 'svelte' as any
         });
 
@@ -126,16 +189,53 @@ export class SveltePlugin
                   )
               ];
 
-        function getSveltePlugin() {
+        async function getSveltePlugin(plugins: Array<string | Plugin> = []) {
             // Only provide our version of the svelte plugin if the user doesn't have one in
             // the workspace already. If we did it, Prettier would - for some reason - use
             // the workspace version for parsing and the extension version for printing,
             // which could crash if the contract of the parser output changed.
-            const hasPluginLoadedAlready = prettier
-                .getSupportInfo()
-                .languages.some((l) => l.name === 'svelte');
-            return hasPluginLoadedAlready ? [] : [require.resolve('prettier-plugin-svelte')];
+            return !isFallback && (await hasSveltePluginLoaded(prettier, plugins))
+                ? []
+                : [require.resolve('prettier-plugin-svelte')];
         }
+
+        async function hasSveltePluginLoaded(
+            p: typeof prettier,
+            plugins: Array<Plugin | string> = []
+        ) {
+            if (plugins.some(SveltePlugin.isPrettierPluginSvelte)) return true;
+            if (Number(p.version[0]) >= 3) return false; // Prettier version 3 has removed the "search plugins" feature
+            // Prettier v3 getSupportInfo is async, v2 is not
+            const info = await p.getSupportInfo();
+            return info.languages.some((l) => l.name === 'svelte');
+        }
+
+        function resolvePlugins(plugins: Array<string | Plugin> | undefined) {
+            return (plugins ?? []).map(resolvePlugin).filter(isNotNullOrUndefined);
+        }
+
+        function resolvePlugin(plugin: string | Plugin) {
+            // https://github.com/prettier/prettier-vscode/blob/160b0e92d88fa19003dce2745d5ab8c67e886a04/src/ModuleResolver.ts#L373
+            if (typeof plugin != 'string' || isAbsolute(plugin) || plugin.startsWith('.')) {
+                return plugin;
+            }
+
+            try {
+                return require.resolve(plugin, {
+                    paths: [filePath]
+                });
+            } catch (error) {
+                Logger.error(`failed to resolve plugin ${plugin} with error:\n`, error);
+            }
+        }
+    }
+
+    private static isPrettierPluginSvelte(plugin: string | Plugin): boolean {
+        if (typeof plugin === 'string') {
+            return plugin.includes('prettier-plugin-svelte');
+        }
+
+        return !!plugin?.languages?.find((l) => l.name === 'svelte');
     }
 
     async getCompletions(
@@ -240,7 +340,6 @@ export class SveltePlugin
     private async getSvelteDoc(document: Document) {
         let svelteDoc = this.docManager.get(document);
         if (!svelteDoc || svelteDoc.version !== document.version) {
-            svelteDoc?.destroyTranspiled();
             svelteDoc = new SvelteDocument(document);
             this.docManager.set(document, svelteDoc);
         }

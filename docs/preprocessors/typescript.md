@@ -73,7 +73,7 @@ export interface FooSlots {
 export default class Foo extends SvelteComponentTyped<FooProps, FooEvents, FooSlots> {}
 ```
 
-SvelteKit's `package` command will give you these capabilities - transpiling and creating type definitions - out of the box: https://kit.svelte.dev/docs#packaging
+SvelteKit's `package` command will give you these capabilities - transpiling and creating type definitions - out of the box: https://kit.svelte.dev/docs/packaging
 
 ## Typing component events
 
@@ -112,7 +112,7 @@ Make sure to follow the [setup instructions](/packages/svelte-vscode#setup)
 The following code may throw an error like `Variable 'show' implicitly has type 'any' in some locations where its type cannot be determined.`, if you have stricter type settings:
 
 ```html
-<script lang="typescript">
+<script lang="ts">
     export let data: { someKey: string | null };
 
     $: show = !!data.someKey; // <-- `show` has type `any`
@@ -150,16 +150,21 @@ You may need to set `baseUrl` in `tsconfig.json` at the project root to include 
 
 ### I'm using an attribute/event on a DOM element and it throws a type error
 
-If it's a non-experimental standard attribute/event, this may very well be a missing typing from our [JSX typings](https://github.com/sveltejs/language-tools/blob/master/packages/svelte2tsx/svelte-jsx.d.ts). In that case, you are welcome to open an issue and/or a PR fixing it.
+If it's a non-experimental standard attribute/event, this may very well be a missing typing from our [HTML typings](https://github.com/sveltejs/svelte/blob/master/packages/svelte/elements.d.ts). In that case, you are welcome to open an issue and/or a PR fixing it.
 
 In case this is a custom or experimental attribute/event, you can enhance the typings like this:
-Create a `additional-svelte-jsx.d.ts` file:
+Create a `additional-svelte-typings.d.ts` file:
 
 ```ts
-declare namespace svelte.JSX {
+declare namespace svelteHTML {
+    // enhance elements
+    interface IntrinsicElements {
+        'my-custom-element': { someattribute: string; 'on:event': (e: CustomEvent<any>) => void };
+    }
+    // enhance attributes
     interface HTMLAttributes<T> {
         // If you want to use on:beforeinstallprompt
-        onbeforeinstallprompt?: (event: any) => any;
+        'on:beforeinstallprompt'?: (event: any) => any;
         // If you want to use myCustomAttribute={..} (note: all lowercase)
         mycustomattribute?: any;
         // You can replace any with something more specific if you like
@@ -168,6 +173,80 @@ declare namespace svelte.JSX {
 ```
 
 Then make sure that `d.ts` file is referenced in your `tsconfig.json`. If it reads something like `"include": ["src/**/*"]` and your `d.ts` file is inside `src`, it should work. You may need to reload for the changes to take effect.
+
+> You need `svelte-check` version 3 / VS Code extension version 106 for this. Also see the next section.
+
+If the typings are related to special attributes/events related to an action that is applied on the same element, you can instead type the action in a way that is picked up by the tooling:
+
+```ts
+import type { ActionReturn } from 'svelte/action';
+
+interface Attributes {
+	newprop?: string;
+	'on:event': (e: CustomEvent<boolean>) => void;
+}
+
+export function myAction(node: HTMLElement, parameter: Parameter): ActionReturn<Parameter, Attributes> {
+  // ...
+  return {
+    update: (updatedParameter) => {...},
+    destroy: () => {...}
+  };
+}
+```
+
+### I'm getting deprecation warnings for svelte.JSX / I want to migrate to the new typings
+
+Since `svelte-check` version 3 and VS Code extension version 106, a different transformation is used to get intellisense for Svelte files. This also leads to the old way of enhancing HTML typings being deprecated. You should migrate all usages of `svelte.JSX` away to either `svelte/elements` or the new `svelteHTML` namespace.
+
+If you used `svelte.JSX` in your library to express that you have a component that wraps a HTML element, use `svelte/elements` (part of Svelte since version 3.55) instead:
+
+```diff
+import { SvelteComponentTyped } from 'svelte';
++import { HTMLButtonAttributes } from 'svelte/elements';
+
+export MyFancyButton extends SvelteComponentTyped<
+-  svelte.JSX.HTMLAttributes<HTMLElement>
++  HTMLButtonAttributes
+> {}
+```
+
+```diff
+<script lang="ts">
++  import { HTMLButtonAttributes } from 'svelte/elements';
+-  interface $$Props extends svelte.JSX.HTMLAttributes<HTMLElement> {
++  interface $$Props extends HTMLButtonAttributes {
+    foo: string;
+  }
+
+  export let foo: string;
+</script>
+
+<button {...$$props}>
+  <slot />
+</button>
+```
+
+If you used `svelte.JSX` in your project to enhance the HTML typings, use the `svelteHTML` namespace instead:
+
+```diff
+-declare namespace svelte.JSX {
++declare namespace svelteHTML {
+    // enhance elements
+    interface IntrinsicElements {
+        'my-custom-element': { someattribute: string };
+    }
+    // enhance attributes
+    interface HTMLAttributes<T> {
+        // If you want to use on:beforeinstallprompt
+-        onbeforeinstallprompt?: (event: any) => any;
++        'on:beforeinstallprompt'?: (event: any) => any;
+        // If you want to use myCustomAttribute={..} (note: all lowercase)
+        mycustomattribute?: any;
+        // You can replace any with something more specific if you like
+    }
+}
+```
 
 ### I'm unable to use installed types (for example through `@types/..`)
 

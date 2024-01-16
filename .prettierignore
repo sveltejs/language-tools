@@ -1,5 +1,7 @@
 packages/svelte2tsx/*.d.ts
 packages/svelte2tsx/repl/*
+packages/svelte2tsx/*.js
+packages/svelte2tsx/*.mjs
 packages/svelte2tsx/test/*/samples/**/*
 packages/svelte2tsx/test/sourcemaps/samples/*
 packages/svelte2tsx/test/emitDts/samples/*/expected/**
@@ -12,3 +14,4 @@ packages/typescript-plugin/src/**/*.d.ts
 **/dist
 .github/**
 .history/**
+pnpm-lock.yaml

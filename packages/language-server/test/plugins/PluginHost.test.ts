@@ -47,19 +47,19 @@ describe('PluginHost', () => {
         const { docManager, pluginHost, plugin } = setup({
             getDiagnostics: sinon.stub().returns([])
         });
-        const document = docManager.openDocument(textDocument);
+        const document = docManager.openClientDocument(textDocument);
 
         await pluginHost.getDiagnostics(textDocument);
 
         sinon.assert.calledOnce(plugin.getDiagnostics);
-        sinon.assert.calledWithExactly(plugin.getDiagnostics, document);
+        sinon.assert.calledWithExactly(plugin.getDiagnostics, document, undefined);
     });
 
     it('executes doHover on plugins', async () => {
         const { docManager, pluginHost, plugin } = setup({
             doHover: sinon.stub().returns(null)
         });
-        const document = docManager.openDocument(textDocument);
+        const document = docManager.openClientDocument(textDocument);
         const pos = Position.create(0, 0);
 
         await pluginHost.doHover(textDocument, pos);
@@ -72,7 +72,7 @@ describe('PluginHost', () => {
         const { docManager, pluginHost, plugin } = setup({
             getCompletions: sinon.stub().returns({ items: [] })
         });
-        const document = docManager.openDocument(textDocument);
+        const document = docManager.openClientDocument(textDocument);
         const pos = Position.create(0, 0);
 
         await pluginHost.getCompletions(textDocument, pos, {
@@ -104,7 +104,7 @@ describe('PluginHost', () => {
                 },
                 { definitionLinkSupport: true, filterIncompleteCompletions: filterServerSide }
             );
-            docManager.openDocument(textDocument);
+            docManager.openClientDocument(textDocument);
             return pluginHost;
         }
 
@@ -149,7 +149,7 @@ describe('PluginHost', () => {
                 },
                 { definitionLinkSupport: linkSupport, filterIncompleteCompletions: false }
             );
-            docManager.openDocument(textDocument);
+            docManager.openClientDocument(textDocument);
             return pluginHost;
         }
 

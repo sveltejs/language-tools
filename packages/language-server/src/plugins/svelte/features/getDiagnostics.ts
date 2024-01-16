@@ -1,5 +1,12 @@
+// @ts-ignore
 import { Warning } from 'svelte/types/compiler/interfaces';
-import { Diagnostic, DiagnosticSeverity, Position, Range } from 'vscode-languageserver';
+import {
+    CancellationToken,
+    Diagnostic,
+    DiagnosticSeverity,
+    Position,
+    Range
+} from 'vscode-languageserver';
 import {
     Document,
     isInTag,
@@ -18,15 +25,20 @@ import { SvelteDocument, TranspileErrorSource } from '../SvelteDocument';
 export async function getDiagnostics(
     document: Document,
     svelteDoc: SvelteDocument,
-    settings: CompilerWarningsSettings
+    settings: CompilerWarningsSettings,
+    cancellationToken?: CancellationToken
 ): Promise<Diagnostic[]> {
     const config = await svelteDoc.config;
     if (config?.loadConfigError) {
         return getConfigLoadErrorDiagnostics(config.loadConfigError);
     }
 
+    if (cancellationToken?.isCancellationRequested) {
+        return [];
+    }
+
     try {
-        return await tryGetDiagnostics(document, svelteDoc, settings);
+        return await tryGetDiagnostics(document, svelteDoc, settings, cancellationToken);
     } catch (error) {
         return getPreprocessErrorDiagnostics(document, error);
     }
@@ -38,13 +50,20 @@ export async function getDiagnostics(
 async function tryGetDiagnostics(
     document: Document,
     svelteDoc: SvelteDocument,
-    settings: CompilerWarningsSettings
+    settings: CompilerWarningsSettings,
+    cancellationToken: CancellationToken | undefined
 ): Promise<Diagnostic[]> {
     const transpiled = await svelteDoc.getTranspiled();
+    if (cancellationToken?.isCancellationRequested) {
+        return [];
+    }
 
     try {
         const res = await svelteDoc.getCompiled();
-        return (((res.stats as any).warnings || res.warnings || []) as Warning[])
+        if (cancellationToken?.isCancellationRequested) {
+            return [];
+        }
+        return (((res.stats as any)?.warnings || res.warnings || []) as Warning[])
             .filter((warning) => settings[warning.code] !== 'ignore')
             .map((warning) => {
                 const start = warning.start || { line: 1, column: 0 };
@@ -64,7 +83,7 @@ async function tryGetDiagnostics(
             .map((diag) => adjustMappings(diag, document))
             .filter((diag) => isNoFalsePositive(diag, document));
     } catch (err) {
-        return (await createParserErrorDiagnostic(err, document))
+        return createParserErrorDiagnostic(err, document)
             .map((diag) => mapObjWithRangeToOriginal(transpiled, diag))
             .map((diag) => adjustMappings(diag, document));
     }
@@ -73,7 +92,7 @@ async function tryGetDiagnostics(
 /**
  * Try to infer a nice diagnostic error message from the compilation error.
  */
-async function createParserErrorDiagnostic(error: any, document: Document) {
+function createParserErrorDiagnostic(error: any, document: Document) {
     const start = error.start || { line: 1, column: 0 };
     const end = error.end || start;
     const diagnostic: Diagnostic = {
@@ -90,6 +109,16 @@ async function createParserErrorDiagnostic(error: any, document: Document) {
             diagnostic.range.start,
             document.scriptInfo || document.moduleScriptInfo
         );
+
+        if (
+            (!document.config?.preprocess || document.config.isFallbackConfig) &&
+            document.hasLanguageAttribute()
+        ) {
+            Logger.error(
+                `Parsing ${document.getFilePath()} failed. No preprocess config found but lang tag exists. Skip showing error because they likely use other preprocessors.`
+            );
+            return [];
+        }
 
         if (isInStyle || isInScript) {
             diagnostic.message +=

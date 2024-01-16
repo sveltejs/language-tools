@@ -40,11 +40,14 @@ async function snapShotTest() {
         'source.svelte',
         '-t',
         './test/grammar/samples/**/*.svelte',
-        ...allGrammars.reduce((previous, path) => [...previous, '-g', path], []),
+        ...allGrammars.reduce(
+            (previous, path) => [...previous, '-g', path],
+            /** @type {string[]} */ ([])
+        ),
         ...extraArgs
     ];
 
-    const code = await promisifySpawn(process.platform === 'win32' ? 'yarn.cmd' : 'yarn', args, {
+    const code = await promisifySpawn(process.platform === 'win32' ? 'npx.cmd' : 'npx', args, {
         stdio: 'inherit'
     });
 

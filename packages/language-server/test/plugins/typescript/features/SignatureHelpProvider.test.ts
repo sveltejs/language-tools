@@ -12,22 +12,26 @@ import { SignatureHelpProviderImpl } from '../../../../src/plugins/typescript/fe
 import { LSAndTSDocResolver } from '../../../../src/plugins/typescript/LSAndTSDocResolver';
 import { pathToUrl } from '../../../../src/utils';
 import { LSConfigManager } from '../../../../src/ls-config';
+import { serviceWarmup } from '../test-utils';
 
 const testDir = path.join(__dirname, '..');
+const signatureHelpTestDir = path.join(testDir, 'testfiles', 'signature-help');
 
-describe('SignatureHelpProvider', () => {
+describe('SignatureHelpProvider', function () {
+    serviceWarmup(this, signatureHelpTestDir, pathToUrl(testDir));
+
     function setup() {
         const docManager = new DocumentManager(
             (textDocument) => new Document(textDocument.uri, textDocument.text)
         );
-        const filePath = path.join(testDir, 'testfiles', 'signature-help', 'signature-help.svelte');
+        const filePath = path.join(signatureHelpTestDir, 'signature-help.svelte');
         const lsAndTsDocResolver = new LSAndTSDocResolver(
             docManager,
             [pathToUrl(testDir)],
             new LSConfigManager()
         );
         const provider = new SignatureHelpProviderImpl(lsAndTsDocResolver);
-        const document = docManager.openDocument(<any>{
+        const document = docManager.openClientDocument(<any>{
             uri: pathToUrl(filePath),
             text: ts.sys.readFile(filePath)
         });

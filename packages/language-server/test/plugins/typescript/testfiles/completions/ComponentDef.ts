@@ -1,5 +1,7 @@
 /// <reference lib="dom" />
-import { SvelteComponentTyped } from 'svelte';
+import type { SvelteComponentTyped as tmp } from 'svelte';
+
+const SvelteComponentTyped: typeof tmp = null as any;
 
 export class ComponentDef extends SvelteComponentTyped<
     {},
@@ -30,4 +32,8 @@ export class ComponentDef2 extends SvelteComponentTyped<
           event1: CustomEvent<string>;
       },
     {}
+> {}
+
+export class ComponentDef3 extends SvelteComponentTyped<
+    { hi: string, hi2: string }
 > {}

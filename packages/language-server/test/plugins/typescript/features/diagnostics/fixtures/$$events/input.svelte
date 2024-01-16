@@ -11,7 +11,7 @@
     dispatch('foo', 'bar');
     // invalid
     dispatch('foo', true);
-    dispatch('click');
+    dispatch('click', '');
 </script>
 
 <button on:click>click</button>

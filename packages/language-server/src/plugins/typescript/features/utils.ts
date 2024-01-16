@@ -7,9 +7,11 @@ import {
     isInTag
 } from '../../../lib/documents';
 import { ComponentInfoProvider, JsOrTsComponentInfoProvider } from '../ComponentInfoProvider';
-import { DocumentSnapshot, SnapshotFragment, SvelteDocumentSnapshot } from '../DocumentSnapshot';
+import { DocumentSnapshot, SvelteDocumentSnapshot } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { or } from '../../../utils';
+import { FileMap } from '../../../lib/documents/fileCollection';
+import { LSConfig } from '../../../ls-config';
 
 type NodePredicate = (node: ts.Node) => boolean;
 
@@ -19,12 +21,12 @@ type NodeTypePredicate<T extends ts.Node> = (node: ts.Node) => node is T;
  * If the given original position is within a Svelte starting tag,
  * return the snapshot of that component.
  */
-export async function getComponentAtPosition(
+export function getComponentAtPosition(
     lang: ts.LanguageService,
     doc: Document,
     tsDoc: SvelteDocumentSnapshot,
     originalPosition: Position
-): Promise<ComponentInfoProvider | null> {
+): ComponentInfoProvider | null {
     if (tsDoc.parserError) {
         return null;
     }
@@ -42,12 +44,22 @@ export async function getComponentAtPosition(
         return null;
     }
 
-    const fragment = await tsDoc.getFragment();
-    const generatedPosition = fragment.getGeneratedPosition(doc.positionAt(node.start + 1));
-    const def = lang.getDefinitionAtPosition(
-        tsDoc.filePath,
-        fragment.offsetAt(generatedPosition)
-    )?.[0];
+    const symbolPosWithinNode = node.tag?.includes('.') ? node.tag.lastIndexOf('.') + 1 : 0;
+
+    const generatedPosition = tsDoc.getGeneratedPosition(
+        doc.positionAt(node.start + symbolPosWithinNode + 1)
+    );
+
+    let def = lang.getDefinitionAtPosition(tsDoc.filePath, tsDoc.offsetAt(generatedPosition))?.[0];
+
+    while (def != null && def.kind !== ts.ScriptElementKind.classElement) {
+        const newDef = lang.getDefinitionAtPosition(tsDoc.filePath, def.textSpan.start)?.[0];
+        if (newDef?.fileName === def.fileName && newDef?.textSpan.start === def.textSpan.start) {
+            break;
+        }
+        def = newDef;
+    }
+
     if (!def) {
         return null;
     }
@@ -75,25 +87,36 @@ export function isComponentAtPosition(
     return !!getNodeIfIsInComponentStartTag(doc.html, doc.offsetAt(originalPosition));
 }
 
+export const IGNORE_START_COMMENT = '/*Ωignore_startΩ*/';
+export const IGNORE_END_COMMENT = '/*Ωignore_endΩ*/';
+
+/**
+ * Surrounds given string with a start/end comment which marks it
+ * to be ignored by tooling.
+ */
+export function surroundWithIgnoreComments(str: string): string {
+    return IGNORE_START_COMMENT + str + IGNORE_END_COMMENT;
+}
+
 /**
  * Checks if this a section that should be completely ignored
  * because it's purely generated.
  */
 export function isInGeneratedCode(text: string, start: number, end: number = start) {
-    const lastStart = text.lastIndexOf('/*Ωignore_startΩ*/', start);
-    const lastEnd = text.lastIndexOf('/*Ωignore_endΩ*/', start);
-    const nextEnd = text.indexOf('/*Ωignore_endΩ*/', end);
+    const lastStart = text.lastIndexOf(IGNORE_START_COMMENT, start);
+    const lastEnd = text.lastIndexOf(IGNORE_END_COMMENT, start);
+    const nextEnd = text.indexOf(IGNORE_END_COMMENT, end);
     // if lastEnd === nextEnd, this means that the str was found at the index
     // up to which is searched for it
     return (lastStart > lastEnd || lastEnd === nextEnd) && lastStart < nextEnd;
 }
 
 /**
- * Checks that this isn't a text span that should be completely ignored
- * because it's purely generated.
+ * Checks if this is a text span that is inside svelte2tsx-generated code
+ * (has no mapping to the original)
  */
-export function isNoTextSpanInGeneratedCode(text: string, span: ts.TextSpan) {
-    return !isInGeneratedCode(text, span.start, span.start + span.length);
+export function isTextSpanInGeneratedCode(text: string, span: ts.TextSpan) {
+    return isInGeneratedCode(text, span.start, span.start + span.length);
 }
 
 export function isPartOfImportStatement(text: string, position: Position): boolean {
@@ -101,35 +124,45 @@ export function isPartOfImportStatement(text: string, position: Position): boole
     return /\s*from\s+["'][^"']*/.test(line.slice(0, position.character));
 }
 
-export class SnapshotFragmentMap {
-    private map = new Map<string, { fragment: SnapshotFragment; snapshot: DocumentSnapshot }>();
+export function isStoreVariableIn$storeDeclaration(text: string, varStart: number) {
+    return (
+        text.lastIndexOf('__sveltets_2_store_get(', varStart) ===
+        varStart - '__sveltets_2_store_get('.length
+    );
+}
+
+export function get$storeOffsetOf$storeDeclaration(text: string, storePosition: number) {
+    return text.lastIndexOf(' =', storePosition) - 1;
+}
+
+export function is$storeVariableIn$storeDeclaration(text: string, varStart: number) {
+    return /^\$\w+ = __sveltets_2_store_get/.test(text.substring(varStart));
+}
+
+export function getStoreOffsetOf$storeDeclaration(text: string, $storeVarStart: number) {
+    return text.indexOf(');', $storeVarStart) - 1;
+}
+
+export class SnapshotMap {
+    private map = new FileMap<DocumentSnapshot>();
     constructor(private resolver: LSAndTSDocResolver) {}
 
-    set(fileName: string, content: { fragment: SnapshotFragment; snapshot: DocumentSnapshot }) {
-        this.map.set(fileName, content);
+    set(fileName: string, snapshot: DocumentSnapshot) {
+        this.map.set(fileName, snapshot);
     }
 
     get(fileName: string) {
         return this.map.get(fileName);
     }
 
-    getFragment(fileName: string) {
-        return this.map.get(fileName)?.fragment;
-    }
-
     async retrieve(fileName: string) {
-        let snapshotFragment = this.get(fileName);
-        if (!snapshotFragment) {
-            const snapshot = await this.resolver.getSnapshot(fileName);
-            const fragment = await snapshot.getFragment();
-            snapshotFragment = { fragment, snapshot };
-            this.set(fileName, snapshotFragment);
+        let snapshot = this.get(fileName);
+        if (!snapshot) {
+            const snap = await this.resolver.getSnapshot(fileName);
+            this.set(fileName, snap);
+            snapshot = snap;
         }
-        return snapshotFragment;
-    }
-
-    async retrieveFragment(fileName: string) {
-        return (await this.retrieve(fileName)).fragment;
+        return snapshot;
     }
 }
 
@@ -163,6 +196,28 @@ export function findContainingNode<T extends ts.Node>(
             return foundInChildren;
         }
     }
+}
+
+export function findClosestContainingNode<T extends ts.Node>(
+    node: ts.Node,
+    textSpan: ts.TextSpan,
+    predicate: (node: ts.Node) => node is T
+): T | undefined {
+    let current = findContainingNode(node, textSpan, predicate);
+    if (!current) {
+        return;
+    }
+
+    let closest = current;
+
+    while (current) {
+        const foundInChildren: T | undefined = findContainingNode(current, textSpan, predicate);
+
+        closest = current;
+        current = foundInChildren;
+    }
+
+    return closest;
 }
 
 /**
@@ -246,7 +301,7 @@ export const isReactiveStatement = nodeAndParentsSatisfyRespectivePredicates<ts.
     (node) => ts.isLabeledStatement(node) && node.label.getText() === '$',
     or(
         // function render() {
-        //     $: x2 = __sveltets_1_invalidate(() => x * x)
+        //     $: x2 = __sveltets_2_invalidate(() => x * x)
         // }
         isRenderFunctionBody,
         // function render() {
@@ -261,11 +316,20 @@ export const isReactiveStatement = nodeAndParentsSatisfyRespectivePredicates<ts.
     )
 );
 
+export function findRenderFunction(sourceFile: ts.SourceFile) {
+    // only search top level
+    for (const child of sourceFile.statements) {
+        if (isRenderFunction(child)) {
+            return child;
+        }
+    }
+}
+
 export const isInReactiveStatement = (node: ts.Node) => isSomeAncestor(node, isReactiveStatement);
 
-function gatherDescendants<T extends ts.Node>(
+export function gatherDescendants<T extends ts.Node>(
     node: ts.Node,
-    predicate: NodePredicate | NodeTypePredicate<T>,
+    predicate: NodeTypePredicate<T>,
     dest: T[] = []
 ) {
     if (predicate(node)) {
@@ -279,3 +343,80 @@ function gatherDescendants<T extends ts.Node>(
 }
 
 export const gatherIdentifiers = (node: ts.Node) => gatherDescendants(node, ts.isIdentifier);
+
+export function isKitTypePath(path?: string): boolean {
+    return !!path?.includes('.svelte-kit/types');
+}
+
+export function getFormatCodeBasis(formatCodeSetting: ts.FormatCodeSettings): FormatCodeBasis {
+    const { baseIndentSize, indentSize, convertTabsToSpaces } = formatCodeSetting;
+    const baseIndent = convertTabsToSpaces
+        ? ' '.repeat(baseIndentSize ?? 4)
+        : baseIndentSize
+          ? '\t'
+          : '';
+    const indent = convertTabsToSpaces ? ' '.repeat(indentSize ?? 4) : baseIndentSize ? '\t' : '';
+    const semi = formatCodeSetting.semicolons === 'remove' ? '' : ';';
+    const newLine = formatCodeSetting.newLineCharacter ?? ts.sys.newLine;
+
+    return {
+        baseIndent,
+        indent,
+        semi,
+        newLine
+    };
+}
+
+export interface FormatCodeBasis {
+    baseIndent: string;
+    indent: string;
+    semi: string;
+    newLine: string;
+}
+
+/**
+ * https://github.com/microsoft/TypeScript/blob/00dc0b6674eef3fbb3abb86f9d71705b11134446/src/services/utilities.ts#L2452
+ */
+export function getQuotePreference(
+    sourceFile: ts.SourceFile,
+    preferences: ts.UserPreferences
+): '"' | "'" {
+    const single = "'";
+    const double = '"';
+    if (preferences.quotePreference && preferences.quotePreference !== 'auto') {
+        return preferences.quotePreference === 'single' ? single : double;
+    }
+
+    const firstModuleSpecifier = Array.from(sourceFile.statements).find(
+        (
+            statement
+        ): statement is Omit<ts.ImportDeclaration, 'moduleSpecifier'> & {
+            moduleSpecifier: ts.StringLiteral;
+        } => ts.isImportDeclaration(statement) && ts.isStringLiteral(statement.moduleSpecifier)
+    )?.moduleSpecifier;
+
+    return firstModuleSpecifier
+        ? sourceFile.getText()[firstModuleSpecifier.pos] === '"'
+            ? double
+            : single
+        : double;
+}
+export function findChildOfKind(node: ts.Node, kind: ts.SyntaxKind): ts.Node | undefined {
+    for (const child of node.getChildren()) {
+        if (child.kind === kind) {
+            return child;
+        }
+
+        const foundInChildren = findChildOfKind(child, kind);
+
+        if (foundInChildren) {
+            return foundInChildren;
+        }
+    }
+}
+
+export function getNewScriptStartTag(lsConfig: Readonly<LSConfig>) {
+    const lang = lsConfig.svelte.defaultScriptLanguage;
+    const scriptLang = lang === 'none' ? '' : ` lang="${lang}"`;
+    return `<script${scriptLang}>${ts.sys.newLine}`;
+}

@@ -20,6 +20,7 @@ export interface AddComponentExportPara {
     componentDocumentation: ComponentDocumentation;
     mode: 'ts' | 'dts' | 'tsx';
     generics: Generics;
+    noSvelteComponentTyped?: boolean;
 }
 
 /**
@@ -45,7 +46,8 @@ function addGenericsComponentExport({
     mode,
     usesAccessors,
     str,
-    generics
+    generics,
+    noSvelteComponentTyped
 }: AddComponentExportPara) {
     const genericsDef = generics.toDefinitionString();
     const genericsRef = generics.toReferencesString();
@@ -71,6 +73,10 @@ class __sveltets_Render${genericsDef} {
 }
 `;
 
+    const svelteComponentClass = noSvelteComponentTyped
+        ? 'SvelteComponent'
+        : 'SvelteComponentTyped';
+
     if (mode === 'dts') {
         statement +=
             `export type ${className}Props${genericsDef} = ${returnType('props')};\n` +
@@ -78,15 +84,16 @@ class __sveltets_Render${genericsDef} {
             `export type ${className}Slots${genericsDef} = ${returnType('slots')};\n` +
             `\n${doc}export default class${
                 className ? ` ${className}` : ''
-            }${genericsDef} extends SvelteComponentTyped<${className}Props${genericsRef}, ${className}Events${genericsRef}, ${className}Slots${genericsRef}> {` + // eslint-disable-line max-len
+            }${genericsDef} extends ${svelteComponentClass}<${className}Props${genericsRef}, ${className}Events${genericsRef}, ${className}Slots${genericsRef}> {` +
             exportedNames.createClassGetters() +
             (usesAccessors ? exportedNames.createClassAccessors() : '') +
             '\n}';
     } else {
         statement +=
-            `\n\n${doc}export default class${
+            `\n\nimport { ${svelteComponentClass} as __SvelteComponentTyped__ } from "svelte" \n` +
+            `${doc}export default class${
                 className ? ` ${className}` : ''
-            }${genericsDef} extends Svelte2TsxComponent<${returnType('props')}, ${returnType(
+            }${genericsDef} extends __SvelteComponentTyped__<${returnType('props')}, ${returnType(
                 'events'
             )}, ${returnType('slots')}> {` +
             exportedNames.createClassGetters() +
@@ -106,7 +113,8 @@ function addSimpleComponentExport({
     fileName,
     mode,
     usesAccessors,
-    str
+    str,
+    noSvelteComponentTyped
 }: AddComponentExportPara) {
     const propDef = props(
         isTsFile,
@@ -120,14 +128,32 @@ function addSimpleComponentExport({
 
     let statement: string;
     if (mode === 'dts' && isTsFile) {
+        const addTypeExport = (type: string) => {
+            const exportName = className + type;
+
+            if (!str.original.includes(exportName)) {
+                return `export type ${exportName} = typeof __propDef.${type.toLowerCase()};\n`;
+            }
+
+            let replacement = exportName + '_';
+            while (str.original.includes(replacement)) {
+                replacement += '_';
+            }
+            return `type ${replacement} = typeof __propDef.${type.toLowerCase()};\nexport { ${replacement} as ${exportName} };\n`;
+        };
+
+        const svelteComponentClass = noSvelteComponentTyped
+            ? 'SvelteComponent'
+            : 'SvelteComponentTyped';
+
         statement =
             `\nconst __propDef = ${propDef};\n` +
-            `export type ${className}Props = typeof __propDef.props;\n` +
-            `export type ${className}Events = typeof __propDef.events;\n` +
-            `export type ${className}Slots = typeof __propDef.slots;\n` +
+            addTypeExport('Props') +
+            addTypeExport('Events') +
+            addTypeExport('Slots') +
             `\n${doc}export default class${
                 className ? ` ${className}` : ''
-            } extends SvelteComponentTyped<${className}Props, ${className}Events, ${className}Slots> {` + // eslint-disable-line max-len
+            } extends ${svelteComponentClass}<${className}Props, ${className}Events, ${className}Slots> {` +
             exportedNames.createClassGetters() +
             (usesAccessors ? exportedNames.createClassAccessors() : '') +
             '\n}';
@@ -139,7 +165,7 @@ function addSimpleComponentExport({
             `/** @typedef {typeof __propDef.slots}  ${className}Slots */\n` +
             `\n${doc}export default class${
                 className ? ` ${className}` : ''
-            } extends __sveltets_1_createSvelteComponentTyped(${propDef}) {` +
+            } extends __sveltets_2_createSvelte2TsxComponent(${propDef}) {` +
             exportedNames.createClassGetters() +
             (usesAccessors ? exportedNames.createClassAccessors() : '') +
             '\n}';
@@ -147,7 +173,7 @@ function addSimpleComponentExport({
         statement =
             `\n\n${doc}export default class${
                 className ? ` ${className}` : ''
-            } extends __sveltets_1_createSvelte2TsxComponent(${propDef}) {` +
+            } extends __sveltets_2_createSvelte2TsxComponent(${propDef}) {` +
             exportedNames.createClassGetters() +
             (usesAccessors ? exportedNames.createClassAccessors() : '') +
             '\n}';
@@ -157,7 +183,7 @@ function addSimpleComponentExport({
 }
 
 function events(strictEvents: boolean, renderStr: string) {
-    return strictEvents ? renderStr : `__sveltets_1_with_any_event(${renderStr})`;
+    return strictEvents ? renderStr : `__sveltets_2_with_any_event(${renderStr})`;
 }
 
 function props(
@@ -167,10 +193,10 @@ function props(
     renderStr: string
 ) {
     if (isTsFile) {
-        return canHaveAnyProp ? `__sveltets_1_with_any(${renderStr})` : renderStr;
+        return canHaveAnyProp ? `__sveltets_2_with_any(${renderStr})` : renderStr;
     } else {
         const optionalProps = exportedNames.createOptionalPropsArray();
-        const partial = `__sveltets_1_partial${canHaveAnyProp ? '_with_any' : ''}`;
+        const partial = `__sveltets_2_partial${canHaveAnyProp ? '_with_any' : ''}`;
         return optionalProps.length > 0
             ? `${partial}([${optionalProps.join(',')}], ${renderStr})`
             : `${partial}(${renderStr})`;

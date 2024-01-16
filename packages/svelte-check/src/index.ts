@@ -6,7 +6,7 @@ import { watch } from 'chokidar';
 import * as fs from 'fs';
 import glob from 'fast-glob';
 import * as path from 'path';
-import { SvelteCheck } from 'svelte-language-server';
+import { SvelteCheck, SvelteCheckOptions } from 'svelte-language-server';
 import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver-protocol';
 import { URI } from 'vscode-uri';
 import { parseOptions, SvelteCheckCliOptions } from './options';
@@ -22,7 +22,7 @@ type Result = {
     fileCount: number;
     errorCount: number;
     warningCount: number;
-    hintCount: number;
+    fileCountWithProblems: number;
 };
 
 async function openAllDocuments(
@@ -62,7 +62,7 @@ async function getDiagnostics(
             fileCount: diagnostics.length,
             errorCount: 0,
             warningCount: 0,
-            hintCount: 0
+            fileCountWithProblems: 0
         };
 
         for (const diagnostic of diagnostics) {
@@ -73,22 +73,28 @@ async function getDiagnostics(
                 diagnostic.text
             );
 
+            let fileHasProblems = false;
+
             diagnostic.diagnostics.forEach((d: Diagnostic) => {
                 if (d.severity === DiagnosticSeverity.Error) {
                     result.errorCount += 1;
+                    fileHasProblems = true;
                 } else if (d.severity === DiagnosticSeverity.Warning) {
                     result.warningCount += 1;
-                } else if (d.severity === DiagnosticSeverity.Hint) {
-                    result.hintCount += 1;
+                    fileHasProblems = true;
                 }
             });
+
+            if (fileHasProblems) {
+                result.fileCountWithProblems += 1;
+            }
         }
 
         writer.completion(
             result.fileCount,
             result.errorCount,
             result.warningCount,
-            result.hintCount
+            result.fileCountWithProblems
         );
         return result;
     } catch (err: any) {
@@ -107,8 +113,8 @@ class DiagnosticsWatcher {
         filePathsToIgnore: string[],
         ignoreInitialAdd: boolean
     ) {
-        watch(`${workspaceUri.fsPath}/**/*.{svelte,d.ts,ts,js}`, {
-            ignored: ['node_modules']
+        watch(`${workspaceUri.fsPath}/**/*.{svelte,d.ts,ts,js,jsx,tsx,mjs,cjs,mts,cts}`, {
+            ignored: ['node_modules', 'vite.config.{js,ts}.timestamp-*']
                 .concat(filePathsToIgnore)
                 .map((ignore) => path.join(workspaceUri.fsPath, ignore)),
             ignoreInitial: ignoreInitialAdd
@@ -133,7 +139,7 @@ class DiagnosticsWatcher {
         this.scheduleDiagnostics();
     }
 
-    private scheduleDiagnostics() {
+    scheduleDiagnostics() {
         clearTimeout(this.updateDiagnostics);
         this.updateDiagnostics = setTimeout(
             () => getDiagnostics(this.workspaceUri, this.writer, this.svelteCheck),
@@ -163,10 +169,15 @@ function instantiateWriter(opts: SvelteCheckCliOptions): Writer {
             process.stdout,
             opts.outputFormat === 'human-verbose',
             opts.watch,
+            !opts.preserveWatchOutput,
             filter
         );
     } else {
-        return new MachineFriendlyWriter(process.stdout, filter);
+        return new MachineFriendlyWriter(
+            process.stdout,
+            opts.outputFormat === 'machine-verbose',
+            filter
+        );
     }
 }
 
@@ -174,22 +185,25 @@ parseOptions(async (opts) => {
     try {
         const writer = instantiateWriter(opts);
 
-        const svelteCheck = new SvelteCheck(opts.workspaceUri.fsPath, {
+        const svelteCheckOptions: SvelteCheckOptions = {
             compilerWarnings: opts.compilerWarnings,
             diagnosticSources: opts.diagnosticSources,
             tsconfig: opts.tsconfig,
-            useNewTransformation: opts.useNewTransformation
-        });
+            watch: opts.watch
+        };
 
         if (opts.watch) {
-            new DiagnosticsWatcher(
+            svelteCheckOptions.onProjectReload = () => watcher.scheduleDiagnostics();
+            const watcher = new DiagnosticsWatcher(
                 opts.workspaceUri,
-                svelteCheck,
+                new SvelteCheck(opts.workspaceUri.fsPath, svelteCheckOptions),
                 writer,
                 opts.filePathsToIgnore,
                 !!opts.tsconfig
             );
         } else {
+            const svelteCheck = new SvelteCheck(opts.workspaceUri.fsPath, svelteCheckOptions);
+
             if (!opts.tsconfig) {
                 await openAllDocuments(opts.workspaceUri, opts.filePathsToIgnore, svelteCheck);
             }
@@ -197,8 +211,7 @@ parseOptions(async (opts) => {
             if (
                 result &&
                 result.errorCount === 0 &&
-                (!opts.failOnWarnings || result.warningCount === 0) &&
-                (!opts.failOnHints || result.hintCount === 0)
+                (!opts.failOnWarnings || result.warningCount === 0)
             ) {
                 process.exit(0);
             } else {

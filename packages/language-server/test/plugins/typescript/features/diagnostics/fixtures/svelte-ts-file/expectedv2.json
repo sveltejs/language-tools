@@ -1,0 +1,19 @@
+[
+    {
+        "code": 2305,
+        "message": "Module '\"./foo.svelte\"' has no exported member 'bar'.",
+        "range": {
+            "end": {
+                "character": 14,
+                "line": 1
+            },
+            "start": {
+                "character": 11,
+                "line": 1
+            }
+        },
+        "severity": 1,
+        "source": "ts",
+        "tags": []
+    }
+]

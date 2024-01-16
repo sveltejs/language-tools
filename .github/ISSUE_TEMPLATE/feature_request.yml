@@ -1,0 +1,32 @@
+name: "Feature request"
+description: "Suggest an idea for this project"
+
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: "Is your feature request related to a problem? Please describe."
+      placeholder: "I'm always frustrated when..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed-solution
+    attributes:
+      label: Proposed solution
+      description: "Describe the solution you'd like"
+      placeholder: "A clear and concised description of what you want to happen."
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives
+      description: "Describe alternatives you've considered"
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Information, eg. Screenshots

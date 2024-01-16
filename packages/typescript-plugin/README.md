@@ -24,7 +24,10 @@ Then add it to your `tsconfig.json` or `jsconfig.json`:
     "compilerOptions": {
         ...
         "plugins": [{
-            "name": "typescript-svelte-plugin"
+            "name": "typescript-svelte-plugin",
+            // the following options can be set additionally; they are optional; their default values are listed here
+            "enabled": true, // enables this plugin
+            "assumeIsSvelteProject": false // if true, skip detection and always assume it's a Svelte project
         }]
     }
 }

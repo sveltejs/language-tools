@@ -4,29 +4,21 @@
     "author": "Svelte Contributors",
     "license": "MIT",
     "private": true,
-    "workspaces": [
-        "packages/*"
-    ],
     "scripts": {
-        "bootstrap": "yarn workspace svelte2tsx build && yarn workspace svelte-vscode build:grammar",
+        "bootstrap": "cd ./packages/svelte2tsx && pnpm build && cd ../svelte-vscode && pnpm build:grammar",
         "build": "tsc -b",
-        "test": "cross-env CI=true yarn workspaces run test",
+        "test": "cross-env CI=true pnpm test -r",
         "watch": "tsc -b -watch",
         "format": "prettier --write .",
-        "lint": "prettier --check . && eslint \"packages/**/*.{ts,js}\""
+        "lint": "prettier --check ."
     },
     "dependencies": {
-        "typescript": "^4.5.3"
+        "typescript": "^5.3.2"
     },
     "devDependencies": {
-        "@sveltejs/eslint-config": "github:sveltejs/eslint-config#v5.2.0",
-        "@typescript-eslint/eslint-plugin": "^4.3.0",
-        "@typescript-eslint/parser": "^4.3.0",
-        "eslint": "^7.7.0",
-        "eslint-plugin-import": "^2.22.1",
-        "eslint-plugin-svelte3": "^2.7.3",
-        "prettier": "2.3.2",
         "cross-env": "^7.0.2",
+        "prettier": "~3.1.0",
         "ts-node": "^10.0.0"
-    }
+    },
+    "packageManager": "pnpm@8.4.0"
 }

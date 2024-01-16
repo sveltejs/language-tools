@@ -1,24 +1,25 @@
 import { Position, Location } from 'vscode-languageserver-protocol';
-import { Document, mapRangeToOriginal } from '../../../lib/documents';
-import { pathToUrl, isNotNullOrUndefined } from '../../../utils';
+import { Document, mapLocationToOriginal } from '../../../lib/documents';
+import { isNotNullOrUndefined } from '../../../utils';
 import { ImplementationProvider } from '../../interfaces';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { convertRange } from '../utils';
-import { isNoTextSpanInGeneratedCode, SnapshotFragmentMap } from './utils';
+import {
+    is$storeVariableIn$storeDeclaration,
+    isTextSpanInGeneratedCode,
+    SnapshotMap
+} from './utils';
 
 export class ImplementationProviderImpl implements ImplementationProvider {
     constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
 
     async getImplementation(document: Document, position: Position): Promise<Location[] | null> {
         const { tsDoc, lang } = await this.lsAndTsDocResolver.getLSAndTSDoc(document);
-
-        const mainFragment = await tsDoc.getFragment();
-        const offset = mainFragment.offsetAt(mainFragment.getGeneratedPosition(position));
-
+        const offset = tsDoc.offsetAt(tsDoc.getGeneratedPosition(position));
         const implementations = lang.getImplementationAtPosition(tsDoc.filePath, offset);
 
-        const docs = new SnapshotFragmentMap(this.lsAndTsDocResolver);
-        docs.set(tsDoc.filePath, { fragment: mainFragment, snapshot: tsDoc });
+        const snapshots = new SnapshotMap(this.lsAndTsDocResolver);
+        snapshots.set(tsDoc.filePath, tsDoc);
 
         if (!implementations) {
             return null;
@@ -26,19 +27,33 @@ export class ImplementationProviderImpl implements ImplementationProvider {
 
         const result = await Promise.all(
             implementations.map(async (implementation) => {
-                const { fragment, snapshot } = await docs.retrieve(implementation.fileName);
+                let snapshot = await snapshots.retrieve(implementation.fileName);
 
-                if (!isNoTextSpanInGeneratedCode(snapshot.getFullText(), implementation.textSpan)) {
-                    return;
+                // Go from generated $store to store if user wants to find implementation for $store
+                if (isTextSpanInGeneratedCode(snapshot.getFullText(), implementation.textSpan)) {
+                    if (
+                        !is$storeVariableIn$storeDeclaration(
+                            snapshot.getFullText(),
+                            implementation.textSpan.start
+                        )
+                    ) {
+                        return;
+                    }
+                    // there will be exactly one definition, the store
+                    implementation = lang.getImplementationAtPosition(
+                        tsDoc.filePath,
+                        tsDoc.getFullText().indexOf(');', implementation.textSpan.start) - 1
+                    )![0];
+                    snapshot = await snapshots.retrieve(implementation.fileName);
                 }
 
-                const range = mapRangeToOriginal(
-                    fragment,
-                    convertRange(fragment, implementation.textSpan)
+                const location = mapLocationToOriginal(
+                    snapshot,
+                    convertRange(snapshot, implementation.textSpan)
                 );
 
-                if (range.start.line >= 0 && range.end.line >= 0) {
-                    return Location.create(pathToUrl(implementation.fileName), range);
+                if (location.range.start.line >= 0 && location.range.end.line >= 0) {
+                    return location;
                 }
             })
         );

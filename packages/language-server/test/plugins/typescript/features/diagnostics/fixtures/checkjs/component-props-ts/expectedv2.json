@@ -16,11 +16,11 @@
         "tags": []
     },
     {
-        "range": { "start": { "line": 8, "character": 57 }, "end": { "line": 8, "character": 75 } },
+        "range": { "start": { "line": 8, "character": 57 }, "end": { "line": 8, "character": 68 } },
         "severity": 1,
         "source": "ts",
-        "message": "Type '{ required: string; optional1: string; optional2: string; doesntExist: true; }' is not assignable to type '{ required: string; optional1?: string | undefined; optional2?: string | undefined; }'.\n  Object literal may only specify known properties, and '\"doesntExist\"' does not exist in type '{ required: string; optional1?: string | undefined; optional2?: string | undefined; }'.",
-        "code": 2322,
+        "message": "Object literal may only specify known properties, and '\"doesntExist\"' does not exist in type '{ required: string; optional1?: string | undefined; optional2?: string | undefined; }'.",
+        "code": 2353,
         "tags": []
     },
     {
@@ -35,7 +35,7 @@
         "range": { "start": { "line": 9, "character": 26 }, "end": { "line": 9, "character": 35 } },
         "severity": 1,
         "source": "ts",
-        "message": "Type 'true' is not assignable to type 'string | undefined'.",
+        "message": "Type 'boolean' is not assignable to type 'string'.",
         "code": 2322,
         "tags": []
     },
@@ -43,7 +43,7 @@
         "range": { "start": { "line": 9, "character": 43 }, "end": { "line": 9, "character": 52 } },
         "severity": 1,
         "source": "ts",
-        "message": "Type 'true' is not assignable to type 'string | undefined'.",
+        "message": "Type 'boolean' is not assignable to type 'string'.",
         "code": 2322,
         "tags": []
     },
@@ -84,7 +84,7 @@
         },
         "severity": 1,
         "source": "ts",
-        "message": "Type 'true' is not assignable to type 'string | undefined'.",
+        "message": "Type 'boolean' is not assignable to type 'string'.",
         "code": 2322,
         "tags": []
     },
@@ -95,7 +95,7 @@
         },
         "severity": 1,
         "source": "ts",
-        "message": "Type 'true' is not assignable to type 'string | undefined'.",
+        "message": "Type 'boolean' is not assignable to type 'string'.",
         "code": 2322,
         "tags": []
     }

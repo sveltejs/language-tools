@@ -26,7 +26,7 @@ describe('DocumentHighlightProvider', () => {
         );
         const provider = new DocumentHighlightProviderImpl(lsAndTsDocResolver);
         const filePath = getFullPath(filename);
-        const document = docManager.openDocument(<any>{
+        const document = docManager.openClientDocument(<any>{
             uri: pathToUrl(filePath),
             text: ts.sys.readFile(filePath) || ''
         });

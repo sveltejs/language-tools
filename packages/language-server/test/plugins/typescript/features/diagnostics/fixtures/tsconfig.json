@@ -7,5 +7,5 @@
         */
         "types": ["svelte"]
     },
-    "exclude": ["./svelte-native/**/*"]
+    "exclude": ["./svelte-native/**/*", "./node16/**/*"]
 }

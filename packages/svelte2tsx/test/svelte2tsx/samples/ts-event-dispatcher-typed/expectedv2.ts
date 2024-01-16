@@ -30,8 +30,8 @@ function render() {
 ;
 async () => {
 
- { svelteHTML.createElement("button", {  "onclick":() => dispatch('btn', ''),}); }};
-return { props: {}, slots: {}, getters: {}, events: {...__sveltets_1_toEventTypings<{
+ { svelteHTML.createElement("button", {  "on:click":() => dispatch('btn', ''),}); }};
+return { props: {} as Record<string, never>, slots: {}, events: {...__sveltets_2_toEventTypings<{
     /**
      * A DOC
      */
@@ -46,5 +46,5 @@ return { props: {}, slots: {}, getters: {}, events: {...__sveltets_1_toEventTypi
     // not this
     btn: string;}>()} }}
 
-export default class Input__SvelteComponent_ extends __sveltets_1_createSvelte2TsxComponent(__sveltets_1_with_any_event(render())) {
+export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_with_any_event(render())) {
 }

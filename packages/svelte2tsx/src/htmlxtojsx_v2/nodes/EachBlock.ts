@@ -27,21 +27,23 @@ export function handleEach(str: MagicString, eachBlock: BaseNode): void {
     const containsComma = str.original
         .substring(eachBlock.expression.start, eachBlock.expression.end)
         .includes(',');
+    const expressionEnd = getEnd(eachBlock.expression, str);
+    const contextEnd = getEnd(eachBlock.context, str);
     const arrayAndItemVarTheSame =
-        str.original.substring(eachBlock.expression.start, eachBlock.expression.end) ===
-        str.original.substring(eachBlock.context.start, eachBlock.context.end);
+        str.original.substring(eachBlock.expression.start, expressionEnd) ===
+        str.original.substring(eachBlock.context.start, contextEnd);
     if (arrayAndItemVarTheSame) {
         transforms = [
             `{ const $$_each = __sveltets_2_ensureArray(${containsComma ? '(' : ''}`,
             [eachBlock.expression.start, eachBlock.expression.end],
-            `${containsComma ? ')' : ''}); for(const `,
-            [eachBlock.context.start, eachBlock.context.end],
+            `${containsComma ? ')' : ''}); for(let `,
+            [eachBlock.context.start, contextEnd],
             ' of $$_each){'
         ];
     } else {
         transforms = [
-            'for(const ',
-            [eachBlock.context.start, eachBlock.context.end],
+            'for(let ',
+            [eachBlock.context.start, contextEnd],
             ` of __sveltets_2_ensureArray(${containsComma ? '(' : ''}`,
             [eachBlock.expression.start, eachBlock.expression.end],
             `${containsComma ? ')' : ''})){`
@@ -71,4 +73,13 @@ export function handleEach(str: MagicString, eachBlock: BaseNode): void {
             contentOnly: true
         });
     }
+}
+
+/**
+ * Get the end of the node, excluding the type annotation
+ */
+function getEnd(node: any, str: MagicString) {
+    return node.typeAnnotation
+        ? str.original.lastIndexOf(':', node.typeAnnotation.start)
+        : node.end;
 }

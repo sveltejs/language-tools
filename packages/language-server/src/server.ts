@@ -15,7 +15,14 @@ import {
     SemanticTokensRequest,
     SemanticTokensRangeRequest,
     DidChangeWatchedFilesParams,
-    LinkedEditingRangeRequest
+    LinkedEditingRangeRequest,
+    CallHierarchyPrepareRequest,
+    CallHierarchyIncomingCallsRequest,
+    CallHierarchyOutgoingCallsRequest,
+    InlayHintRequest,
+    SemanticTokensRefreshRequest,
+    InlayHintRefreshRequest,
+    DidChangeWatchedFilesNotification
 } from 'vscode-languageserver';
 import { IPCMessageReader, IPCMessageWriter, createConnection } from 'vscode-languageserver/node';
 import { DiagnosticsManager } from './lib/DiagnosticsManager';
@@ -37,6 +44,9 @@ import { debounceThrottle, isNotNullOrUndefined, normalizeUri, urlToPath } from 
 import { FallbackWatcher } from './lib/FallbackWatcher';
 import { configLoader } from './lib/documents/configLoader';
 import { setIsTrusted } from './importPackage';
+import { SORT_IMPORT_CODE_ACTION_KIND } from './plugins/typescript/features/CodeActionsProvider';
+import { createLanguageServices } from './plugins/css/service';
+import { FileSystemProvider } from './plugins/css/FileSystemProvider';
 
 namespace TagCloseRequest {
     export const type: RequestType<TextDocumentPositionParams, string | null, any> =
@@ -112,6 +122,10 @@ export function startServer(options?: LSOptions) {
             Logger.log('Workspace is not trusted, running with reduced capabilities.');
         }
 
+        Logger.setDebug(
+            (evt.initializationOptions?.configuration?.svelte ||
+                evt.initializationOptions?.config)?.['language-server']?.debug
+        );
         // Backwards-compatible way of setting initialization options (first `||` is the old style)
         configManager.update(
             evt.initializationOptions?.configuration?.svelte?.plugin ||
@@ -119,6 +133,11 @@ export function startServer(options?: LSOptions) {
                 {}
         );
         configManager.updateTsJsUserPreferences(
+            evt.initializationOptions?.configuration ||
+                evt.initializationOptions?.typescriptConfig ||
+                {}
+        );
+        configManager.updateTsJsFormateConfig(
             evt.initializationOptions?.configuration ||
                 evt.initializationOptions?.typescriptConfig ||
                 {}
@@ -137,28 +156,43 @@ export function startServer(options?: LSOptions) {
         configManager.updateCssConfig(evt.initializationOptions?.configuration?.css);
         configManager.updateScssConfig(evt.initializationOptions?.configuration?.scss);
         configManager.updateLessConfig(evt.initializationOptions?.configuration?.less);
+        configManager.updateHTMLConfig(evt.initializationOptions?.configuration?.html);
+        configManager.updateClientCapabilities(evt.capabilities);
 
         pluginHost.initialize({
             filterIncompleteCompletions:
                 !evt.initializationOptions?.dontFilterIncompleteCompletions,
             definitionLinkSupport: !!evt.capabilities.textDocument?.definition?.linkSupport
         });
+        // Order of plugin registration matters for FirstNonNull, which affects for example hover info
         pluginHost.register((sveltePlugin = new SveltePlugin(configManager)));
         pluginHost.register(new HTMLPlugin(docManager, configManager));
-        pluginHost.register(new CSSPlugin(docManager, configManager));
+
+        const cssLanguageServices = createLanguageServices({
+            clientCapabilities: evt.capabilities,
+            fileSystemProvider: new FileSystemProvider()
+        });
+        const workspaceFolders = evt.workspaceFolders ?? [{ name: '', uri: evt.rootUri ?? '' }];
+        pluginHost.register(
+            new CSSPlugin(docManager, configManager, workspaceFolders, cssLanguageServices)
+        );
+        const normalizedWorkspaceUris = workspaceUris.map(normalizeUri);
         pluginHost.register(
             new TypeScriptPlugin(
                 configManager,
-                new LSAndTSDocResolver(
-                    docManager,
-                    workspaceUris.map(normalizeUri),
-                    configManager,
-                    notifyTsServiceExceedSizeLimit
-                )
+                new LSAndTSDocResolver(docManager, normalizedWorkspaceUris, configManager, {
+                    notifyExceedSizeLimit: notifyTsServiceExceedSizeLimit,
+                    onProjectReloaded: refreshCrossFilesSemanticFeatures,
+                    watch: true
+                }),
+                normalizedWorkspaceUris
             )
         );
 
         const clientSupportApplyEditCommand = !!evt.capabilities.workspace?.applyEdit;
+        const clientCodeActionCapabilities = evt.capabilities.textDocument?.codeAction;
+        const clientSupportedCodeActionKinds =
+            clientCodeActionCapabilities?.codeActionLiteralSupport?.codeActionKind.valueSet;
 
         return {
             capabilities: {
@@ -199,20 +233,29 @@ export function startServer(options?: LSOptions) {
                         // Svelte
                         ':',
                         '|'
-                    ]
+                    ],
+                    completionItem: {
+                        labelDetailsSupport: true
+                    }
                 },
                 documentFormattingProvider: true,
                 colorProvider: true,
                 documentSymbolProvider: true,
                 definitionProvider: true,
-                codeActionProvider: evt.capabilities.textDocument?.codeAction
-                    ?.codeActionLiteralSupport
+                codeActionProvider: clientCodeActionCapabilities?.codeActionLiteralSupport
                     ? {
                           codeActionKinds: [
                               CodeActionKind.QuickFix,
                               CodeActionKind.SourceOrganizeImports,
+                              SORT_IMPORT_CODE_ACTION_KIND,
                               ...(clientSupportApplyEditCommand ? [CodeActionKind.Refactor] : [])
-                          ]
+                          ].filter(
+                              clientSupportedCodeActionKinds &&
+                                  evt.initializationOptions?.shouldFilterCodeActionKind
+                                  ? (kind) => clientSupportedCodeActionKinds.includes(kind)
+                                  : () => true
+                          ),
+                          resolveProvider: true
                       }
                     : true,
                 executeCommandProvider: clientSupportApplyEditCommand
@@ -248,16 +291,35 @@ export function startServer(options?: LSOptions) {
                 linkedEditingRangeProvider: true,
                 implementationProvider: true,
                 typeDefinitionProvider: true,
+                inlayHintProvider: true,
+                callHierarchyProvider: true,
+                foldingRangeProvider: true,
                 documentHighlightProvider: true
             }
         };
+    });
+
+    connection.onInitialized(() => {
+        if (
+            !watcher &&
+            configManager.getClientCapabilities()?.workspace?.didChangeWatchedFiles
+                ?.dynamicRegistration
+        ) {
+            connection?.client.register(DidChangeWatchedFilesNotification.type, {
+                watchers: [
+                    {
+                        globPattern: '**/*.{ts,js,mts,mjs,cjs,cts,json}'
+                    }
+                ]
+            });
+        }
     });
 
     function notifyTsServiceExceedSizeLimit() {
         connection?.sendNotification(ShowMessageNotification.type, {
             message:
                 'Svelte language server detected a large amount of JS/Svelte files. ' +
-                'To enable project-wide JavaScript/TypeScript language features for Svelte files,' +
+                'To enable project-wide JavaScript/TypeScript language features for Svelte files, ' +
                 'exclude large folders in the tsconfig.json or jsconfig.json with source files that you do not work on.',
             type: MessageType.Warning
         });
@@ -275,20 +337,24 @@ export function startServer(options?: LSOptions) {
     connection.onDidChangeConfiguration(({ settings }) => {
         configManager.update(settings.svelte?.plugin);
         configManager.updateTsJsUserPreferences(settings);
+        configManager.updateTsJsFormateConfig(settings);
         configManager.updateEmmetConfig(settings.emmet);
         configManager.updatePrettierConfig(settings.prettier);
         configManager.updateCssConfig(settings.css);
         configManager.updateScssConfig(settings.scss);
         configManager.updateLessConfig(settings.less);
+        configManager.updateHTMLConfig(settings.html);
+        Logger.setDebug(settings.svelte?.['language-server']?.debug);
     });
 
     connection.onDidOpenTextDocument((evt) => {
-        docManager.openDocument(evt.textDocument);
-        docManager.markAsOpenedInClient(evt.textDocument.uri);
+        const document = docManager.openClientDocument(evt.textDocument);
+        diagnosticsManager.scheduleUpdate(document);
     });
 
     connection.onDidCloseTextDocument((evt) => docManager.closeDocument(evt.textDocument.uri));
     connection.onDidChangeTextDocument((evt) => {
+        diagnosticsManager.cancelStarted(evt.textDocument.uri);
         docManager.updateDocument(evt.textDocument, evt.contentChanges);
         pluginHost.didUpdateDocument();
     });
@@ -333,6 +399,10 @@ export function startServer(options?: LSOptions) {
             });
         }
     });
+    connection.onCodeActionResolve((codeAction, cancellationToken) => {
+        const data = codeAction.data as TextDocumentIdentifier;
+        return pluginHost.resolveCodeAction(data, codeAction, cancellationToken);
+    });
 
     connection.onCompletionResolve((completionItem, cancellationToken) => {
         const data = (completionItem as AppCompletionItem).data as TextDocumentIdentifier;
@@ -360,6 +430,8 @@ export function startServer(options?: LSOptions) {
         pluginHost.getTypeDefinition(evt.textDocument, evt.position)
     );
 
+    connection.onFoldingRanges((evt) => pluginHost.getFoldingRanges(evt.textDocument));
+
     connection.onDocumentHighlight((evt) =>
         pluginHost.findDocumentHighlight(evt.textDocument, evt.position)
     );
@@ -370,7 +442,23 @@ export function startServer(options?: LSOptions) {
         pluginHost.getDiagnostics.bind(pluginHost)
     );
 
-    const updateAllDiagnostics = debounceThrottle(() => diagnosticsManager.updateAll(), 1000);
+    const refreshSemanticTokens = debounceThrottle(() => {
+        if (configManager?.getClientCapabilities()?.workspace?.semanticTokens?.refreshSupport) {
+            connection?.sendRequest(SemanticTokensRefreshRequest.method);
+        }
+    }, 1500);
+
+    const refreshInlayHints = debounceThrottle(() => {
+        if (configManager?.getClientCapabilities()?.workspace?.inlayHint?.refreshSupport) {
+            connection?.sendRequest(InlayHintRefreshRequest.method);
+        }
+    }, 1500);
+
+    const refreshCrossFilesSemanticFeatures = () => {
+        diagnosticsManager.scheduleUpdateAll();
+        refreshInlayHints();
+        refreshSemanticTokens();
+    };
 
     connection.onDidChangeWatchedFiles(onDidChangeWatchedFiles);
     function onDidChangeWatchedFiles(para: DidChangeWatchedFilesParams) {
@@ -383,16 +471,17 @@ export function startServer(options?: LSOptions) {
 
         pluginHost.onWatchFileChanges(onWatchFileChangesParas);
 
-        updateAllDiagnostics();
+        refreshCrossFilesSemanticFeatures();
     }
 
-    connection.onDidSaveTextDocument(updateAllDiagnostics);
+    connection.onDidSaveTextDocument(diagnosticsManager.scheduleUpdateAll.bind(diagnosticsManager));
     connection.onNotification('$/onDidChangeTsOrJsFile', async (e: any) => {
         const path = urlToPath(e.uri);
         if (path) {
             pluginHost.updateTsOrJsFile(path, e.changes);
         }
-        updateAllDiagnostics();
+
+        refreshCrossFilesSemanticFeatures();
     });
 
     connection.onRequest(SemanticTokensRequest.type, (evt, cancellationToken) =>
@@ -407,10 +496,27 @@ export function startServer(options?: LSOptions) {
         async (evt) => await pluginHost.getLinkedEditingRanges(evt.textDocument, evt.position)
     );
 
-    docManager.on(
-        'documentChange',
-        debounceThrottle(async (document: Document) => diagnosticsManager.update(document), 750)
+    connection.onRequest(InlayHintRequest.type, (evt, cancellationToken) =>
+        pluginHost.getInlayHints(evt.textDocument, evt.range, cancellationToken)
     );
+
+    connection.onRequest(
+        CallHierarchyPrepareRequest.type,
+        async (evt, token) =>
+            await pluginHost.prepareCallHierarchy(evt.textDocument, evt.position, token)
+    );
+
+    connection.onRequest(
+        CallHierarchyIncomingCallsRequest.type,
+        async (evt, token) => await pluginHost.getIncomingCalls(evt.item, token)
+    );
+
+    connection.onRequest(
+        CallHierarchyOutgoingCallsRequest.type,
+        async (evt, token) => await pluginHost.getOutgoingCalls(evt.item, token)
+    );
+
+    docManager.on('documentChange', diagnosticsManager.scheduleUpdate.bind(diagnosticsManager));
     docManager.on('documentClose', (document: Document) =>
         diagnosticsManager.removeDiagnostics(document)
     );
@@ -420,6 +526,14 @@ export function startServer(options?: LSOptions) {
     connection.onRequest('$/getEditsForFileRename', async (fileRename: RenameFile) =>
         pluginHost.updateImports(fileRename)
     );
+
+    connection.onRequest('$/getFileReferences', async (uri: string) => {
+        return pluginHost.fileReferences(uri);
+    });
+
+    connection.onRequest('$/getComponentReferences', async (uri: string) => {
+        return pluginHost.findComponentReferences(uri);
+    });
 
     connection.onRequest('$/getCompiledCode', async (uri: DocumentUri) => {
         const doc = docManager.get(uri);

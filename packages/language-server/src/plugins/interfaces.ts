@@ -8,6 +8,9 @@ import {
     TextDocumentContentChangeEvent
 } from 'vscode-languageserver';
 import {
+    CallHierarchyIncomingCall,
+    CallHierarchyItem,
+    CallHierarchyOutgoingCall,
     CodeAction,
     CodeActionContext,
     Color,
@@ -17,19 +20,21 @@ import {
     CompletionList,
     DefinitionLink,
     Diagnostic,
+    DocumentHighlight,
+    FoldingRange,
     FormattingOptions,
     Hover,
+    InlayHint,
     Location,
     Position,
     Range,
     ReferenceContext,
+    SelectionRange,
+    SignatureHelp,
     SymbolInformation,
     TextDocumentIdentifier,
     TextEdit,
-    WorkspaceEdit,
-    SelectionRange,
-    SignatureHelp,
-    DocumentHighlight
+    WorkspaceEdit
 } from 'vscode-languageserver-types';
 import { Document } from '../lib/documents';
 
@@ -116,6 +121,12 @@ export interface CodeActionsProvider {
         command: string,
         args?: any[]
     ): Resolvable<WorkspaceEdit | string | null>;
+
+    resolveCodeAction?(
+        document: Document,
+        codeAction: CodeAction,
+        cancellationToken?: CancellationToken
+    ): Resolvable<CodeAction>;
 }
 
 export interface FileRename {
@@ -142,6 +153,14 @@ export interface FindReferencesProvider {
         position: Position,
         context: ReferenceContext
     ): Promise<Location[] | null>;
+}
+
+export interface FileReferencesProvider {
+    fileReferences(uri: string): Promise<Location[] | null>;
+}
+
+export interface FindComponentReferencesProvider {
+    findComponentReferences(uri: string): Promise<Location[] | null>;
 }
 
 export interface SignatureHelpProvider {
@@ -176,16 +195,45 @@ export interface TypeDefinitionProvider {
     getTypeDefinition(document: Document, position: Position): Resolvable<Location[] | null>;
 }
 
-export interface DocumentHighlightProvider {
-    findDocumentHighlight(
+export interface CallHierarchyProvider {
+    prepareCallHierarchy(
         document: Document,
         position: Position
-    ): Resolvable<DocumentHighlight[] | null>;
+    ): Resolvable<CallHierarchyItem[] | null>;
+
+    getIncomingCalls(
+        item: CallHierarchyItem,
+        cancellationToken?: CancellationToken
+    ): Resolvable<CallHierarchyIncomingCall[] | null>;
+
+    getOutgoingCalls(
+        item: CallHierarchyItem,
+        cancellationToken?: CancellationToken
+    ): Resolvable<CallHierarchyOutgoingCall[] | null>;
 }
 
 export interface OnWatchFileChangesPara {
     fileName: string;
     changeType: FileChangeType;
+}
+
+export interface InlayHintProvider {
+    getInlayHints(
+        document: Document,
+        range: Range,
+        cancellationToken?: CancellationToken
+    ): Resolvable<InlayHint[] | null>;
+}
+
+export interface FoldingRangeProvider {
+    getFoldingRanges(document: Document): Resolvable<FoldingRange[]>;
+}
+
+export interface DocumentHighlightProvider {
+    findDocumentHighlight(
+        document: Document,
+        position: Position
+    ): Resolvable<DocumentHighlight[] | null>;
 }
 
 export interface OnWatchFileChanges {
@@ -207,12 +255,17 @@ type ProviderBase = DiagnosticsProvider &
     UpdateImportsProvider &
     CodeActionsProvider &
     FindReferencesProvider &
+    FileReferencesProvider &
+    FindComponentReferencesProvider &
     RenameProvider &
     SignatureHelpProvider &
     SemanticTokensProvider &
     LinkedEditingRangesProvider &
     ImplementationProvider &
     TypeDefinitionProvider &
+    InlayHintProvider &
+    CallHierarchyProvider &
+    FoldingRangeProvider &
     DocumentHighlightProvider;
 
 export type LSProvider = ProviderBase & BackwardsCompatibleDefinitionsProvider;

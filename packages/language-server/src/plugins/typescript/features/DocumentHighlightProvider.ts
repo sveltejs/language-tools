@@ -6,7 +6,7 @@ import { flatten, isSamePosition } from '../../../utils';
 import { DocumentHighlightProvider } from '../../interfaces';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { convertToLocationRange } from '../utils';
-import { isNoTextSpanInGeneratedCode } from './utils';
+import { isInGeneratedCode } from './utils';
 
 export class DocumentHighlightProviderImpl implements DocumentHighlightProvider {
     constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
@@ -15,9 +15,8 @@ export class DocumentHighlightProviderImpl implements DocumentHighlightProvider 
         position: Position
     ): Promise<DocumentHighlight[] | null> {
         const { lang, tsDoc } = await this.lsAndTsDocResolver.getLSAndTSDoc(document);
-        const fragment = await tsDoc.getFragment();
 
-        const offset = fragment.offsetAt(fragment.getGeneratedPosition(position));
+        const offset = tsDoc.offsetAt(tsDoc.getGeneratedPosition(position));
         const highlights = lang
             .getDocumentHighlights(tsDoc.filePath, offset, [tsDoc.filePath])
             ?.filter((highlight) => highlight.fileName === tsDoc.filePath);
@@ -30,7 +29,7 @@ export class DocumentHighlightProviderImpl implements DocumentHighlightProvider 
             .filter(notInGeneratedCode(tsDoc.getFullText()))
             .map((highlight) =>
                 DocumentHighlight.create(
-                    convertToLocationRange(fragment, highlight.textSpan),
+                    convertToLocationRange(tsDoc, highlight.textSpan),
                     this.convertHighlightKind(highlight)
                 )
             )
@@ -52,6 +51,10 @@ export class DocumentHighlightProviderImpl implements DocumentHighlightProvider 
 
 function notInGeneratedCode(text: string) {
     return (ref: ts.HighlightSpan) => {
-        return isNoTextSpanInGeneratedCode(text, ref.textSpan);
+        return !isInGeneratedCode(
+            text,
+            ref.textSpan.start,
+            ref.textSpan.start + ref.textSpan.length
+        );
     };
 }

@@ -1,28 +1,28 @@
 ///<reference types="svelte" />
 ;function render() {
 
-    const store = someStore()/*Ωignore_startΩ*/;let $store = __sveltets_1_store_get(store);/*Ωignore_endΩ*/;
-    ;(__sveltets_1_store_get(store), $store);
-    ;(__sveltets_1_store_get(store), $store).prop;
-    ;(__sveltets_1_store_get(store), $store)['prop'];
-    ;(__sveltets_1_store_get(store), $store).prop.anotherProp;
-    ;(__sveltets_1_store_get(store), $store)['prop'].anotherProp;
-    ;(__sveltets_1_store_get(store), $store).prop['anotherProp'];
-    ;(__sveltets_1_store_get(store), $store)['prop']['anotherProp'];
-    ;(__sveltets_1_store_get(store), $store)?.prop.anotherProp;
-    ;(__sveltets_1_store_get(store), $store)?.prop?.anotherProp;
+    const store = someStore()/*Ωignore_startΩ*/;let $store = __sveltets_2_store_get(store);/*Ωignore_endΩ*/;
+    $store;
+    $store.prop;
+    $store['prop'];
+    $store.prop.anotherProp;
+    $store['prop'].anotherProp;
+    $store.prop['anotherProp'];
+    $store['prop']['anotherProp'];
+    $store?.prop.anotherProp;
+    $store?.prop?.anotherProp;
 ;
 async () => {
- { svelteHTML.createElement("p", {});(__sveltets_1_store_get(store), $store); }
- { svelteHTML.createElement("p", {});(__sveltets_1_store_get(store), $store).prop; }
- { svelteHTML.createElement("p", {});(__sveltets_1_store_get(store), $store)['prop']; }
- { svelteHTML.createElement("p", {});(__sveltets_1_store_get(store), $store).prop.anotherProp; }
- { svelteHTML.createElement("p", {});(__sveltets_1_store_get(store), $store)['prop'].anotherProp; }
- { svelteHTML.createElement("p", {});(__sveltets_1_store_get(store), $store).prop['anotherProp']; }
- { svelteHTML.createElement("p", {});(__sveltets_1_store_get(store), $store)['prop']['anotherProp']; }
- { svelteHTML.createElement("p", {});(__sveltets_1_store_get(store), $store)?.prop.anotherProp; }
- { svelteHTML.createElement("p", {});(__sveltets_1_store_get(store), $store)?.prop?.anotherProp; }};
-return { props: {}, slots: {}, getters: {}, events: {} }}
+ { svelteHTML.createElement("p", {});$store; }
+ { svelteHTML.createElement("p", {});$store.prop; }
+ { svelteHTML.createElement("p", {});$store['prop']; }
+ { svelteHTML.createElement("p", {});$store.prop.anotherProp; }
+ { svelteHTML.createElement("p", {});$store['prop'].anotherProp; }
+ { svelteHTML.createElement("p", {});$store.prop['anotherProp']; }
+ { svelteHTML.createElement("p", {});$store['prop']['anotherProp']; }
+ { svelteHTML.createElement("p", {});$store?.prop.anotherProp; }
+ { svelteHTML.createElement("p", {});$store?.prop?.anotherProp; }};
+return { props: /** @type {Record<string, never>} */ ({}), slots: {}, events: {} }}
 
-export default class Input__SvelteComponent_ extends __sveltets_1_createSvelte2TsxComponent(__sveltets_1_partial(__sveltets_1_with_any_event(render()))) {
+export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial(__sveltets_2_with_any_event(render()))) {
 }

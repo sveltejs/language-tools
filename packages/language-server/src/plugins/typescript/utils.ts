@@ -6,11 +6,12 @@ import {
     DiagnosticTag,
     Position,
     Range,
-    SymbolKind
+    SymbolKind,
+    Location
 } from 'vscode-languageserver';
-import { Document, isInTag, mapRangeToOriginal } from '../../lib/documents';
-import { pathToUrl } from '../../utils';
-import { SnapshotFragment, SvelteSnapshotFragment } from './DocumentSnapshot';
+import { Document, isInTag, mapLocationToOriginal, mapRangeToOriginal } from '../../lib/documents';
+import { GetCanonicalFileName, pathToUrl } from '../../utils';
+import { DocumentSnapshot, SvelteDocumentSnapshot } from './DocumentSnapshot';
 
 export function getScriptKindFromFileName(fileName: string): ts.ScriptKind {
     const ext = fileName.substr(fileName.lastIndexOf('.'));
@@ -76,6 +77,10 @@ export function toRealSvelteFilePath(filePath: string) {
     return filePath.slice(0, -'.ts'.length);
 }
 
+export function toVirtualSvelteFilePath(filePath: string) {
+    return filePath.endsWith('.ts') ? filePath : filePath + '.ts';
+}
+
 export function ensureRealSvelteFilePath(filePath: string) {
     return isVirtualSvelteFilePath(filePath) ? toRealSvelteFilePath(filePath) : filePath;
 }
@@ -90,9 +95,27 @@ export function convertRange(
     );
 }
 
-export function convertToLocationRange(defDoc: SnapshotFragment, textSpan: ts.TextSpan): Range {
-    const range = mapRangeToOriginal(defDoc, convertRange(defDoc, textSpan));
-    // Some definition like the svelte component class definition don't exist in the original, so we map to 0,1
+export function convertToLocationRange(snapshot: DocumentSnapshot, textSpan: ts.TextSpan): Range {
+    const range = mapRangeToOriginal(snapshot, convertRange(snapshot, textSpan));
+
+    mapUnmappedToTheStartOfFile(range);
+
+    return range;
+}
+
+export function convertToLocationForReferenceOrDefinition(
+    snapshot: DocumentSnapshot,
+    textSpan: ts.TextSpan
+): Location {
+    const location = mapLocationToOriginal(snapshot, convertRange(snapshot, textSpan));
+
+    mapUnmappedToTheStartOfFile(location.range);
+
+    return location;
+}
+
+/**Some definition like the svelte component class definition don't exist in the original, so we map to 0,1*/
+function mapUnmappedToTheStartOfFile(range: Range) {
     if (range.start.line < 0) {
         range.start.line = 0;
         range.start.character = 1;
@@ -100,8 +123,6 @@ export function convertToLocationRange(defDoc: SnapshotFragment, textSpan: ts.Te
     if (range.end.line < 0) {
         range.end = range.start;
     }
-
-    return range;
 }
 
 export function hasNonZeroRange({ range }: { range?: Range }): boolean {
@@ -120,19 +141,48 @@ export function rangeToTextSpan(
     return { start, length: end - start };
 }
 
-export function findTsConfigPath(fileName: string, rootUris: string[]) {
+export function findTsConfigPath(
+    fileName: string,
+    rootUris: string[],
+    fileExists: (path: string) => boolean,
+    getCanonicalFileName: GetCanonicalFileName
+) {
     const searchDir = dirname(fileName);
 
-    const path =
-        ts.findConfigFile(searchDir, ts.sys.fileExists, 'tsconfig.json') ||
-        ts.findConfigFile(searchDir, ts.sys.fileExists, 'jsconfig.json') ||
-        '';
-    // Don't return config files that exceed the current workspace context.
-    return !!path && rootUris.some((rootUri) => isSubPath(rootUri, path)) ? path : '';
+    const tsconfig = ts.findConfigFile(searchDir, fileExists, 'tsconfig.json') || '';
+    const jsconfig = ts.findConfigFile(searchDir, fileExists, 'jsconfig.json') || '';
+    // Prefer closest config file
+    const config = tsconfig.length >= jsconfig.length ? tsconfig : jsconfig;
+
+    // Don't return config files that exceed the current workspace context or cross a node_modules folder
+    return !!config &&
+        rootUris.some((rootUri) => isSubPath(rootUri, config, getCanonicalFileName)) &&
+        !fileName
+            .substring(config.length - 13)
+            .split('/')
+            .includes('node_modules')
+        ? config
+        : '';
 }
 
-export function isSubPath(uri: string, possibleSubPath: string): boolean {
-    return pathToUrl(possibleSubPath).startsWith(uri);
+export function isSubPath(
+    uri: string,
+    possibleSubPath: string,
+    getCanonicalFileName: GetCanonicalFileName
+): boolean {
+    // URL escape codes are in upper-case
+    // so getCanonicalFileName should be called after converting to file url
+    return getCanonicalFileName(pathToUrl(possibleSubPath)).startsWith(getCanonicalFileName(uri));
+}
+
+export function getNearestWorkspaceUri(
+    workspaceUris: string[],
+    path: string,
+    getCanonicalFileName: GetCanonicalFileName
+) {
+    return Array.from(workspaceUris)
+        .sort((a, b) => b.length - a.length)
+        .find((workspaceUri) => isSubPath(workspaceUri, path, getCanonicalFileName));
 }
 
 export function symbolKindFromString(kind: string): SymbolKind {
@@ -230,39 +280,6 @@ export function scriptElementKindToCompletionItemKind(
     return CompletionItemKind.Property;
 }
 
-export function getCommitCharactersForScriptElement(
-    kind: ts.ScriptElementKind
-): string[] | undefined {
-    const commitCharacters: string[] = [];
-    switch (kind) {
-        case ts.ScriptElementKind.memberGetAccessorElement:
-        case ts.ScriptElementKind.memberSetAccessorElement:
-        case ts.ScriptElementKind.constructSignatureElement:
-        case ts.ScriptElementKind.callSignatureElement:
-        case ts.ScriptElementKind.indexSignatureElement:
-        case ts.ScriptElementKind.enumElement:
-        case ts.ScriptElementKind.interfaceElement:
-            commitCharacters.push('.');
-            break;
-
-        case ts.ScriptElementKind.moduleElement:
-        case ts.ScriptElementKind.alias:
-        case ts.ScriptElementKind.constElement:
-        case ts.ScriptElementKind.letElement:
-        case ts.ScriptElementKind.variableElement:
-        case ts.ScriptElementKind.localVariableElement:
-        case ts.ScriptElementKind.memberVariableElement:
-        case ts.ScriptElementKind.classElement:
-        case ts.ScriptElementKind.functionElement:
-        case ts.ScriptElementKind.memberFunctionElement:
-            commitCharacters.push('.', ',');
-            commitCharacters.push('(');
-            break;
-    }
-
-    return commitCharacters.length === 0 ? undefined : commitCharacters;
-}
-
 export function mapSeverity(category: ts.DiagnosticCategory): DiagnosticSeverity {
     switch (category) {
         case ts.DiagnosticCategory.Error:
@@ -286,7 +303,6 @@ const commentsRegex = /^(\s*\/\/.*\s*)*/;
 // - what's coming after @ts-(no)check is irrelevant as long there is any kind of whitespace or line break, so this would be picked up, too: // @ts-check asdasd
 // [ \t\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff]
 // is just \s (a.k.a any whitespace character) without linebreak and vertical tab
-// eslint-disable-next-line max-len
 const tsCheckRegex =
     /\/\/[ \t\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff]*(@ts-(no)?check)($|\s)/;
 
@@ -305,9 +321,9 @@ export function getTsCheckComment(str = ''): string | undefined {
     }
 }
 
-export function convertToTextSpan(range: Range, fragment: SnapshotFragment): ts.TextSpan {
-    const start = fragment.offsetAt(fragment.getGeneratedPosition(range.start));
-    const end = fragment.offsetAt(fragment.getGeneratedPosition(range.end));
+export function convertToTextSpan(range: Range, snapshot: DocumentSnapshot): ts.TextSpan {
+    const start = snapshot.offsetAt(snapshot.getGeneratedPosition(range.start));
+    const end = snapshot.offsetAt(snapshot.getGeneratedPosition(range.end));
 
     return {
         start,
@@ -315,8 +331,8 @@ export function convertToTextSpan(range: Range, fragment: SnapshotFragment): ts.
     };
 }
 
-export function isInScript(position: Position, fragment: SvelteSnapshotFragment | Document) {
-    return isInTag(position, fragment.scriptInfo) || isInTag(position, fragment.moduleScriptInfo);
+export function isInScript(position: Position, snapshot: SvelteDocumentSnapshot | Document) {
+    return isInTag(position, snapshot.scriptInfo) || isInTag(position, snapshot.moduleScriptInfo);
 }
 
 export function getDiagnosticTag(diagnostic: ts.Diagnostic): DiagnosticTag[] {
@@ -332,6 +348,20 @@ export function getDiagnosticTag(diagnostic: ts.Diagnostic): DiagnosticTag[] {
 
 export function changeSvelteComponentName(name: string) {
     return name.replace(/(\w+)__SvelteComponent_/, '$1');
+}
+
+const COMPONENT_SUFFIX = '__SvelteComponent_';
+
+export function isGeneratedSvelteComponentName(className: string) {
+    return className.endsWith(COMPONENT_SUFFIX);
+}
+
+export function offsetOfGeneratedComponentExport(snapshot: SvelteDocumentSnapshot) {
+    return snapshot.getFullText().lastIndexOf(COMPONENT_SUFFIX);
+}
+
+export function toGeneratedSvelteComponentName(className: string) {
+    return className + COMPONENT_SUFFIX;
 }
 
 export function hasTsExtensions(fileName: string) {

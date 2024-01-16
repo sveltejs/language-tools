@@ -1,3 +1,3 @@
- { svelteHTML.createElement("sveltehead", {});
+ { svelteHTML.createElement("svelte:head", {});
 	 { svelteHTML.createElement("title", {});  }
  }

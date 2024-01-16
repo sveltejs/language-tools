@@ -33,7 +33,6 @@ export function getPackageInfo(packageName: string, fromPath: string) {
     const packageJSONPath = require.resolve(`${packageName}/package.json`, {
         paths
     });
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { version } = dynamicRequire(packageJSONPath);
     const [major, minor, patch] = version.split('.');
 
@@ -51,20 +50,20 @@ export function getPackageInfo(packageName: string, fromPath: string) {
 export function importPrettier(fromPath: string): typeof prettier {
     const pkg = getPackageInfo('prettier', fromPath);
     const main = resolve(pkg.path);
-    Logger.log('Using Prettier v' + pkg.version.full, 'from', main);
+    Logger.debug('Using Prettier v' + pkg.version.full, 'from', main);
     return dynamicRequire(main);
 }
 
 export function importSvelte(fromPath: string): typeof svelte {
     const pkg = getPackageInfo('svelte', fromPath);
     const main = resolve(pkg.path, 'compiler');
-    Logger.log('Using Svelte v' + pkg.version.full, 'from', main);
-    return dynamicRequire(main);
+    Logger.debug('Using Svelte v' + pkg.version.full, 'from', main);
+    return dynamicRequire(main + (pkg.version.major >= 4 ? '.cjs' : ''));
 }
 
 export function importSveltePreprocess(fromPath: string): typeof sveltePreprocess {
     const pkg = getPackageInfo('svelte-preprocess', fromPath);
     const main = resolve(pkg.path);
-    Logger.log('Using svelte-preprocess v' + pkg.version.full, 'from', main);
+    Logger.debug('Using svelte-preprocess v' + pkg.version.full, 'from', main);
     return dynamicRequire(main);
 }

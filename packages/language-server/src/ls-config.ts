@@ -1,7 +1,12 @@
 import { get, merge } from 'lodash';
-import { UserPreferences } from 'typescript';
-import { VSCodeEmmetConfig } from 'vscode-emmet-helper';
+import ts from 'typescript';
+import { VSCodeEmmetConfig } from '@vscode/emmet-helper';
+import { importPrettier } from './importPackage';
+import { Document } from './lib/documents';
 import { returnObjectIfHasKeys } from './utils';
+import path from 'path';
+import { FileMap } from './lib/documents/fileCollection';
+import { ClientCapabilities } from 'vscode-languageserver-protocol';
 
 /**
  * Default config for the language server.
@@ -12,16 +17,11 @@ const defaultLSConfig: LSConfig = {
         diagnostics: { enable: true },
         hover: { enable: true },
         completions: { enable: true },
-        definitions: { enable: true },
-        findReferences: { enable: true },
         documentSymbols: { enable: true },
         codeActions: { enable: true },
-        rename: { enable: true },
         selectionRange: { enable: true },
         signatureHelp: { enable: true },
         semanticTokens: { enable: true },
-        implementation: { enable: true },
-        typeDefinition: { enable: true },
         documentHighlight: { enable: true }
     },
     css: {
@@ -42,13 +42,11 @@ const defaultLSConfig: LSConfig = {
         completions: { enable: true, emmet: true },
         tagComplete: { enable: true },
         documentSymbols: { enable: true },
-        renameTags: { enable: true },
         linkedEditing: { enable: true },
         documentHighlight: { enable: true }
     },
     svelte: {
         enable: true,
-        useNewTransformation: false,
         compilerWarnings: {},
         diagnostics: { enable: true },
         rename: { enable: true },
@@ -98,16 +96,7 @@ export interface LSTypescriptConfig {
     completions: {
         enable: boolean;
     };
-    findReferences: {
-        enable: boolean;
-    };
-    definitions: {
-        enable: boolean;
-    };
     codeActions: {
-        enable: boolean;
-    };
-    rename: {
         enable: boolean;
     };
     selectionRange: {
@@ -119,12 +108,7 @@ export interface LSTypescriptConfig {
     semanticTokens: {
         enable: boolean;
     };
-    implementation: {
-        enable: boolean;
-    };
-    typeDefinition: {
-        enable: boolean;
-    };
+
     documentHighlight: {
         enable: boolean;
     };
@@ -175,9 +159,6 @@ export interface LSHTMLConfig {
     documentSymbols: {
         enable: boolean;
     };
-    renameTags: {
-        enable: boolean;
-    };
     linkedEditing: {
         enable: boolean;
     };
@@ -190,7 +171,6 @@ export type CompilerWarningsSettings = Record<string, 'ignore' | 'error'>;
 
 export interface LSSvelteConfig {
     enable: boolean;
-    useNewTransformation: boolean;
     compilerWarnings: CompilerWarningsSettings;
     diagnostics: {
         enable: boolean;
@@ -236,6 +216,8 @@ export interface LSSvelteConfig {
 export interface TSUserConfig {
     preferences?: TsUserPreferencesConfig;
     suggest?: TSSuggestConfig;
+    format?: TsFormatConfig;
+    inlayHints?: TsInlayHintsConfig;
 }
 
 /**
@@ -243,13 +225,17 @@ export interface TSUserConfig {
  * are transformed to ts.UserPreferences.
  */
 export interface TsUserPreferencesConfig {
-    importModuleSpecifier: UserPreferences['importModuleSpecifierPreference'];
-    importModuleSpecifierEnding: UserPreferences['importModuleSpecifierEnding'];
-    quoteStyle: UserPreferences['quotePreference'];
+    importModuleSpecifier: ts.UserPreferences['importModuleSpecifierPreference'];
+    importModuleSpecifierEnding: ts.UserPreferences['importModuleSpecifierEnding'];
+    quoteStyle: ts.UserPreferences['quotePreference'];
+    autoImportFileExcludePatterns: ts.UserPreferences['autoImportFileExcludePatterns'];
+
     /**
      * only in typescript config
      */
-    includePackageJsonAutoImports?: UserPreferences['includePackageJsonAutoImports'];
+    includePackageJsonAutoImports?: ts.UserPreferences['includePackageJsonAutoImports'];
+
+    preferTypeOnlyAutoImports?: ts.UserPreferences['preferTypeOnlyAutoImports'];
 }
 
 /**
@@ -257,9 +243,30 @@ export interface TsUserPreferencesConfig {
  * are transformed to ts.UserPreferences.
  */
 export interface TSSuggestConfig {
-    autoImports: UserPreferences['includeCompletionsForModuleExports'];
+    autoImports: ts.UserPreferences['includeCompletionsForModuleExports'];
     includeAutomaticOptionalChainCompletions: boolean | undefined;
     includeCompletionsForImportStatements: boolean | undefined;
+    classMemberSnippets: { enabled: boolean } | undefined;
+    objectLiteralMethodSnippets: { enabled: boolean } | undefined;
+    includeCompletionsWithSnippetText: boolean | undefined;
+}
+
+export type TsFormatConfig = Omit<
+    ts.FormatCodeSettings,
+    'indentMultiLineObjectLiteralBeginningOnBlankLine' | keyof ts.EditorSettings
+>;
+export interface TsInlayHintsConfig {
+    enumMemberValues: { enabled: boolean } | undefined;
+    functionLikeReturnTypes: { enabled: boolean } | undefined;
+    parameterNames:
+        | {
+              enabled: ts.UserPreferences['includeInlayParameterNameHints'];
+              suppressWhenArgumentMatchesName: boolean;
+          }
+        | undefined;
+    parameterTypes: { enabled: boolean } | undefined;
+    propertyDeclarationTypes: { enabled: boolean } | undefined;
+    variableTypes: { enabled: boolean; suppressWhenTypeMatchesName: boolean } | undefined;
 }
 
 export type TsUserConfigLang = 'typescript' | 'javascript';
@@ -274,6 +281,13 @@ export interface CssConfig {
     hover?: any;
 }
 
+/**
+ * The config as the vscode-html-languageservice understands it
+ */
+export interface HTMLConfig {
+    customData?: string[];
+}
+
 type DeepPartial<T> = T extends CompilerWarningsSettings
     ? T
     : {
@@ -283,42 +297,45 @@ type DeepPartial<T> = T extends CompilerWarningsSettings
 export class LSConfigManager {
     private config: LSConfig = defaultLSConfig;
     private listeners: Array<(config: LSConfigManager) => void> = [];
-    private tsUserPreferences: Record<TsUserConfigLang, UserPreferences> = {
-        typescript: {
-            includeCompletionsForModuleExports: true,
-            includeCompletionsForImportStatements: true,
-            includeCompletionsWithInsertText: true,
-            includeAutomaticOptionalChainCompletions: true
-        },
-        javascript: {
-            includeCompletionsForModuleExports: true,
-            includeCompletionsForImportStatements: true,
-            includeCompletionsWithInsertText: true,
-            includeAutomaticOptionalChainCompletions: true
-        }
+    private tsUserPreferences: Record<TsUserConfigLang, ts.UserPreferences> = {
+        // populate default with _updateTsUserPreferences
+        typescript: {},
+        javascript: {}
+    };
+    private resolvedAutoImportExcludeCache = new FileMap<string[]>();
+    private tsFormatCodeOptions: Record<TsUserConfigLang, ts.FormatCodeSettings> = {
+        typescript: this.getDefaultFormatCodeOptions(),
+        javascript: this.getDefaultFormatCodeOptions()
     };
     private prettierConfig: any = {};
     private emmetConfig: VSCodeEmmetConfig = {};
     private cssConfig: CssConfig | undefined;
     private scssConfig: CssConfig | undefined;
     private lessConfig: CssConfig | undefined;
+    private htmlConfig: HTMLConfig | undefined;
     private isTrusted = true;
+    private clientCapabilities: ClientCapabilities | undefined;
+
+    constructor() {
+        this._updateTsUserPreferences('javascript', {});
+        this._updateTsUserPreferences('typescript', {});
+    }
 
     /**
      * Updates config.
      */
-    update(config: DeepPartial<LSConfig>): void {
+    update(config: DeepPartial<LSConfig> | undefined): void {
         // Ideally we shouldn't need the merge here because all updates should be valid and complete configs.
         // But since those configs come from the client they might be out of synch with the valid config:
         // We might at some point in the future forget to synch config settings in all packages after updating the config.
         this.config = merge({}, defaultLSConfig, this.config, config);
         // Merge will keep arrays/objects if the new one is empty/has less entries,
         // therefore we need some extra checks if there are new settings
-        if (config.svelte?.compilerWarnings) {
+        if (config?.svelte?.compilerWarnings) {
             this.config.svelte.compilerWarnings = config.svelte.compilerWarnings;
         }
 
-        this.listeners.forEach((listener) => listener(this));
+        this.notifyListeners();
     }
 
     /**
@@ -353,7 +370,7 @@ export class LSConfigManager {
 
     updateEmmetConfig(config: VSCodeEmmetConfig): void {
         this.emmetConfig = config || {};
-        this.listeners.forEach((listener) => listener(this));
+        this.notifyListeners();
     }
 
     getEmmetConfig(): VSCodeEmmetConfig {
@@ -362,7 +379,7 @@ export class LSConfigManager {
 
     updatePrettierConfig(config: any): void {
         this.prettierConfig = config || {};
-        this.listeners.forEach((listener) => listener(this));
+        this.notifyListeners();
     }
 
     getPrettierConfig(): any {
@@ -398,7 +415,8 @@ export class LSConfigManager {
                 this._updateTsUserPreferences(lang, config[lang]);
             }
         });
-        this.listeners.forEach((listener) => listener(this));
+        this.notifyListeners();
+        this.resolvedAutoImportExcludeCache.clear();
     }
 
     /**
@@ -411,10 +429,12 @@ export class LSConfigManager {
 
     updateIsTrusted(isTrusted: boolean): void {
         this.isTrusted = isTrusted;
-        this.listeners.forEach((listener) => listener(this));
+        this.notifyListeners();
     }
 
     private _updateTsUserPreferences(lang: TsUserConfigLang, config: TSUserConfig) {
+        const { inlayHints } = config;
+
         this.tsUserPreferences[lang] = {
             ...this.tsUserPreferences[lang],
             importModuleSpecifierPreference: config.preferences?.importModuleSpecifier,
@@ -426,17 +446,78 @@ export class LSConfigManager {
                 config.suggest?.includeCompletionsForImportStatements ?? true,
             includeAutomaticOptionalChainCompletions:
                 config.suggest?.includeAutomaticOptionalChainCompletions ?? true,
-            includeCompletionsWithInsertText: true
+            includeCompletionsWithInsertText: true,
+            autoImportFileExcludePatterns: config.preferences?.autoImportFileExcludePatterns,
+            useLabelDetailsInCompletionEntries: true,
+            includeCompletionsWithSnippetText:
+                config.suggest?.includeCompletionsWithSnippetText ?? true,
+            includeCompletionsWithClassMemberSnippets:
+                config.suggest?.classMemberSnippets?.enabled ?? true,
+            includeCompletionsWithObjectLiteralMethodSnippets:
+                config.suggest?.objectLiteralMethodSnippets?.enabled ?? true,
+            preferTypeOnlyAutoImports: config.preferences?.preferTypeOnlyAutoImports,
+
+            // Although we don't support incompletion cache.
+            // But this will make ts resolve the module specifier more aggressively
+            // Which also makes the completion label detail show up in more cases
+            allowIncompleteCompletions: true,
+
+            includeInlayEnumMemberValueHints: inlayHints?.enumMemberValues?.enabled,
+            includeInlayFunctionLikeReturnTypeHints: inlayHints?.functionLikeReturnTypes?.enabled,
+            includeInlayParameterNameHints: inlayHints?.parameterNames?.enabled,
+            includeInlayParameterNameHintsWhenArgumentMatchesName:
+                inlayHints?.parameterNames?.suppressWhenArgumentMatchesName === false,
+            includeInlayFunctionParameterTypeHints: inlayHints?.parameterTypes?.enabled,
+            includeInlayVariableTypeHints: inlayHints?.variableTypes?.enabled,
+            includeInlayPropertyDeclarationTypeHints: inlayHints?.propertyDeclarationTypes?.enabled,
+            includeInlayVariableTypeHintsWhenTypeMatchesName:
+                inlayHints?.variableTypes?.suppressWhenTypeMatchesName === false,
+
+            interactiveInlayHints: true
         };
     }
 
-    getTsUserPreferences(lang: TsUserConfigLang) {
-        return this.tsUserPreferences[lang];
+    getTsUserPreferences(lang: TsUserConfigLang, workspacePath: string | null): ts.UserPreferences {
+        const userPreferences = this.tsUserPreferences[lang];
+
+        if (!workspacePath || !userPreferences.autoImportFileExcludePatterns) {
+            return userPreferences;
+        }
+
+        let autoImportFileExcludePatterns = this.resolvedAutoImportExcludeCache.get(workspacePath);
+
+        if (!autoImportFileExcludePatterns) {
+            autoImportFileExcludePatterns = userPreferences.autoImportFileExcludePatterns.map(
+                (p) => {
+                    // Normalization rules: https://github.com/microsoft/TypeScript/pull/49578
+                    const slashNormalized = p.replace(/\\/g, '/');
+                    const isRelative = /^\.\.?($|\/)/.test(slashNormalized);
+                    if (path.isAbsolute(p)) {
+                        return p;
+                    }
+
+                    return path.join(
+                        workspacePath,
+                        p.startsWith('*')
+                            ? '/' + slashNormalized
+                            : isRelative
+                              ? p
+                              : '/**/' + slashNormalized
+                    );
+                }
+            );
+            this.resolvedAutoImportExcludeCache.set(workspacePath, autoImportFileExcludePatterns);
+        }
+
+        return {
+            ...userPreferences,
+            autoImportFileExcludePatterns
+        };
     }
 
     updateCssConfig(config: CssConfig | undefined): void {
         this.cssConfig = config;
-        this.listeners.forEach((listener) => listener(this));
+        this.notifyListeners();
     }
 
     getCssConfig(): CssConfig | undefined {
@@ -445,7 +526,7 @@ export class LSConfigManager {
 
     updateScssConfig(config: CssConfig | undefined): void {
         this.scssConfig = config;
-        this.listeners.forEach((listener) => listener(this));
+        this.notifyListeners();
     }
 
     getScssConfig(): CssConfig | undefined {
@@ -454,12 +535,127 @@ export class LSConfigManager {
 
     updateLessConfig(config: CssConfig | undefined): void {
         this.lessConfig = config;
-        this.listeners.forEach((listener) => listener(this));
+        this.notifyListeners();
     }
 
     getLessConfig(): CssConfig | undefined {
         return this.lessConfig;
     }
-}
 
-export const lsConfig = new LSConfigManager();
+    updateHTMLConfig(config: HTMLConfig | undefined): void {
+        this.htmlConfig = config;
+        this.notifyListeners();
+    }
+
+    getHTMLConfig(): HTMLConfig | undefined {
+        return this.htmlConfig;
+    }
+
+    updateTsJsFormateConfig(config: Record<TsUserConfigLang, TSUserConfig>): void {
+        (['typescript', 'javascript'] as const).forEach((lang) => {
+            if (config[lang]) {
+                this._updateTsFormatConfig(lang, config[lang]);
+            }
+        });
+        this.notifyListeners();
+    }
+
+    private getDefaultFormatCodeOptions(): ts.FormatCodeSettings {
+        // https://github.com/microsoft/TypeScript/blob/394f51aeed80788dca72c6f6a90d1d27886b6972/src/services/types.ts#L1014
+        return {
+            indentSize: 4,
+            tabSize: 4,
+            convertTabsToSpaces: true,
+            indentStyle: ts.IndentStyle.Smart,
+            insertSpaceAfterConstructor: false,
+            insertSpaceAfterCommaDelimiter: true,
+            insertSpaceAfterSemicolonInForStatements: true,
+            insertSpaceBeforeAndAfterBinaryOperators: true,
+            insertSpaceAfterKeywordsInControlFlowStatements: true,
+            insertSpaceAfterOpeningAndBeforeClosingNonemptyParenthesis: false,
+            insertSpaceAfterOpeningAndBeforeClosingNonemptyBrackets: false,
+            insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces: true,
+            insertSpaceAfterOpeningAndBeforeClosingTemplateStringBraces: false,
+            insertSpaceAfterOpeningAndBeforeClosingJsxExpressionBraces: false,
+            insertSpaceBeforeFunctionParenthesis: false,
+            placeOpenBraceOnNewLineForFunctions: false,
+            placeOpenBraceOnNewLineForControlBlocks: false,
+            trimTrailingWhitespace: true,
+            semicolons: ts.SemicolonPreference.Ignore,
+
+            // Override TypeScript's default because VSCode default to true
+            // Also this matches the style of prettier
+            insertSpaceAfterFunctionKeywordForAnonymousFunctions: true
+        };
+    }
+
+    private _updateTsFormatConfig(lang: TsUserConfigLang, config: TSUserConfig) {
+        this.tsFormatCodeOptions[lang] = {
+            ...this.tsFormatCodeOptions[lang],
+            ...(config.format ?? {})
+        };
+    }
+
+    async getFormatCodeSettingsForFile(
+        document: Document,
+        scriptKind: ts.ScriptKind
+    ): Promise<ts.FormatCodeSettings> {
+        const filePath = document.getFilePath();
+        const configLang =
+            scriptKind === ts.ScriptKind.TS || scriptKind === ts.ScriptKind.TSX
+                ? 'typescript'
+                : 'javascript';
+
+        const tsFormatCodeOptions = this.tsFormatCodeOptions[configLang];
+
+        if (!filePath) {
+            return tsFormatCodeOptions;
+        }
+
+        const prettierConfig = this.getMergedPrettierConfig(
+            await importPrettier(filePath).resolveConfig(filePath, {
+                editorconfig: true
+            })
+        );
+        const useSemicolons = prettierConfig.semi ?? true;
+        const documentUseLf =
+            document.getText().includes('\n') && !document.getText().includes('\r\n');
+
+        const indentSize =
+            (typeof prettierConfig.tabWidth === 'number' ? prettierConfig.tabWidth : null) ??
+            tsFormatCodeOptions.tabSize;
+
+        return {
+            ...tsFormatCodeOptions,
+
+            newLineCharacter: documentUseLf ? '\n' : ts.sys.newLine,
+            baseIndentSize: prettierConfig.svelteIndentScriptAndStyle === false ? 0 : indentSize,
+            indentSize,
+            convertTabsToSpaces: !prettierConfig.useTabs,
+            semicolons: useSemicolons
+                ? ts.SemicolonPreference.Insert
+                : ts.SemicolonPreference.Remove,
+            tabSize: indentSize
+        };
+    }
+
+    private scheduledUpdate: NodeJS.Timeout | undefined;
+    private notifyListeners() {
+        if (this.scheduledUpdate) {
+            clearTimeout(this.scheduledUpdate);
+        }
+        this.scheduledUpdate = setTimeout(() => {
+            this.scheduledUpdate = undefined;
+            this.listeners.forEach((listener) => listener(this));
+        });
+    }
+
+    updateClientCapabilities(clientCapabilities: ClientCapabilities) {
+        this.clientCapabilities = clientCapabilities;
+        this.notifyListeners();
+    }
+
+    getClientCapabilities() {
+        return this.clientCapabilities;
+    }
+}

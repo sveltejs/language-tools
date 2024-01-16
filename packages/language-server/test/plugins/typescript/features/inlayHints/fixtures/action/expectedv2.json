@@ -1,0 +1,20 @@
+[
+    {
+        "label": [{ "value": ": " }, { "value": "any" }],
+        "position": { "line": 1, "character": 23 },
+        "kind": 1,
+        "paddingLeft": true
+    },
+    {
+        "label": [{ "value": ": " }, { "value": "any" }],
+        "position": { "line": 1, "character": 26 },
+        "kind": 1,
+        "paddingLeft": true
+    },
+    {
+        "label": [{ "value": ": " }, { "value": "void" }],
+        "position": { "line": 1, "character": 27 },
+        "kind": 1,
+        "paddingLeft": true
+    }
+]

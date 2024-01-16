@@ -13,12 +13,12 @@
     {
         "range": {
             "start": { "line": 14, "character": 20 },
-            "end": { "line": 14, "character": 39 }
+            "end": { "line": 14, "character": 32 }
         },
         "severity": 1,
         "source": "ts",
-        "message": "Argument of type '{ valid1: true; invalidProp1: boolean; }' is not assignable to parameter of type '{ valid1: boolean; validPropWrongType1: string; }'.\n  Object literal may only specify known properties, and '\"invalidProp1\"' does not exist in type '{ valid1: boolean; validPropWrongType1: string; }'.",
-        "code": 2345,
+        "message": "Object literal may only specify known properties, and '\"invalidProp1\"' does not exist in type '{ valid1: boolean; validPropWrongType1: string; }'.",
+        "code": 2353,
         "tags": []
     },
     {
@@ -35,12 +35,12 @@
     {
         "range": {
             "start": { "line": 16, "character": 31 },
-            "end": { "line": 16, "character": 50 }
+            "end": { "line": 16, "character": 43 }
         },
         "severity": 1,
         "source": "ts",
-        "message": "Argument of type '{ valid2: true; invalidProp2: boolean; }' is not assignable to parameter of type '{ valid2: boolean; validPropWrongType2: string; }'.\n  Object literal may only specify known properties, and '\"invalidProp2\"' does not exist in type '{ valid2: boolean; validPropWrongType2: string; }'.",
-        "code": 2345,
+        "message": "Object literal may only specify known properties, and '\"invalidProp2\"' does not exist in type '{ valid2: boolean; validPropWrongType2: string; }'.",
+        "code": 2353,
         "tags": []
     },
     {

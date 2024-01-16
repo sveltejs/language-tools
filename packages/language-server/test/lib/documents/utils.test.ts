@@ -160,6 +160,25 @@ describe('document/utils', () => {
             });
         });
 
+        it('extracts script tag with attribute with > in it', () => {
+            const text = `
+                <script lang="ts" generics="T extends Record<string, any>">content</script>
+                <p>bla</p>
+            `;
+            assert.deepStrictEqual(extractScriptTags(text)?.script, {
+                content: 'content',
+                attributes: {
+                    generics: 'T extends Record<string, any>',
+                    lang: 'ts'
+                },
+                start: 76,
+                end: 83,
+                startPos: Position.create(1, 75),
+                endPos: Position.create(1, 82),
+                container: { start: 17, end: 92 }
+            });
+        });
+
         it('extracts top level script tag only', () => {
             const text = `
                 {#if name}
@@ -206,6 +225,23 @@ describe('document/utils', () => {
                 startPos: Position.create(34, 24),
                 endPos: Position.create(34, 40),
                 container: { start: 1235, end: 1268 }
+            });
+        });
+
+        it("extracts top level script when there're whitespace before block name", () => {
+            const text = `
+                <script>top level script</script>
+                {  #if myvar } {/if}
+            `;
+
+            assert.deepStrictEqual(extractScriptTags(text)?.script, {
+                content: 'top level script',
+                attributes: {},
+                start: 25,
+                end: 41,
+                startPos: Position.create(1, 24),
+                endPos: Position.create(1, 40),
+                container: { start: 17, end: 50 }
             });
         });
 

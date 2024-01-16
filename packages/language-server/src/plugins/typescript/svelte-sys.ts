@@ -1,43 +1,65 @@
-import { DocumentSnapshot } from './DocumentSnapshot';
 import ts from 'typescript';
 import { ensureRealSvelteFilePath, isVirtualSvelteFilePath, toRealSvelteFilePath } from './utils';
+import { FileMap } from '../../lib/documents/fileCollection';
 
 /**
  * This should only be accessed by TS svelte module resolution.
  */
-export function createSvelteSys(getSnapshot: (fileName: string) => DocumentSnapshot) {
-    const fileExistsCache = new Map<string, boolean>();
+export function createSvelteSys(tsSystem: ts.System) {
+    const fileExistsCache = new FileMap<boolean>();
 
-    const svelteSys: ts.System & { deleteFromCache: (path: string) => void } = {
-        ...ts.sys,
+    function svelteFileExists(path: string) {
+        if (isVirtualSvelteFilePath(path)) {
+            const sveltePath = toRealSvelteFilePath(path);
+            const sveltePathExists =
+                fileExistsCache.get(sveltePath) ?? tsSystem.fileExists(sveltePath);
+            fileExistsCache.set(sveltePath, sveltePathExists);
+            return sveltePathExists;
+        } else {
+            return false;
+        }
+    }
+
+    const svelteSys: ts.System & {
+        deleteFromCache: (path: string) => void;
+        svelteFileExists: (path: string) => boolean;
+    } = {
+        ...tsSystem,
+        svelteFileExists,
         fileExists(path: string) {
-            path = ensureRealSvelteFilePath(path);
-            const exists = fileExistsCache.get(path) ?? ts.sys.fileExists(path);
+            // We need to check both .svelte and .svelte.ts/js because that's how Svelte 5 will likely mark files with runes in them
+            const sveltePathExists = svelteFileExists(path);
+            const exists =
+                sveltePathExists || (fileExistsCache.get(path) ?? tsSystem.fileExists(path));
             fileExistsCache.set(path, exists);
             return exists;
         },
         readFile(path: string) {
-            const snapshot = getSnapshot(path);
-            return snapshot.getText(0, snapshot.getLength());
+            // No getSnapshot here, because TS will very rarely call this and only for files that are not in the project
+            return tsSystem.readFile(svelteFileExists(path) ? toRealSvelteFilePath(path) : path);
         },
         readDirectory(path, extensions, exclude, include, depth) {
-            const extensionsWithSvelte = (extensions ?? []).concat('.svelte');
+            const extensionsWithSvelte = extensions ? [...extensions, '.svelte'] : undefined;
 
-            return ts.sys.readDirectory(path, extensionsWithSvelte, exclude, include, depth);
+            return tsSystem.readDirectory(path, extensionsWithSvelte, exclude, include, depth);
         },
         deleteFile(path) {
+            // assumption: never a foo.svelte.ts file next to a foo.svelte file
             fileExistsCache.delete(ensureRealSvelteFilePath(path));
-            return ts.sys.deleteFile?.(path);
+            fileExistsCache.delete(path);
+            return tsSystem.deleteFile?.(path);
         },
         deleteFromCache(path) {
+            // assumption: never a foo.svelte.ts file next to a foo.svelte file
             fileExistsCache.delete(ensureRealSvelteFilePath(path));
+            fileExistsCache.delete(path);
         }
     };
 
-    if (ts.sys.realpath) {
-        const realpath = ts.sys.realpath;
+    if (tsSystem.realpath) {
+        const realpath = tsSystem.realpath;
         svelteSys.realpath = function (path) {
-            if (isVirtualSvelteFilePath(path)) {
+            if (svelteFileExists(path)) {
                 return realpath(toRealSvelteFilePath(path)) + '.ts';
             }
             return realpath(path);

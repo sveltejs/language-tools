@@ -14,23 +14,14 @@ export function handleStyleDirective(
     element: Element
 ): void {
     const htmlx = str.original;
+    const ensureType = '__sveltets_2_ensureType(String, Number, ';
     if (style.value === true || style.value.length === 0) {
         element.appendToStartEnd([
-            '__sveltets_2_ensureType(String, Number, ',
+            ensureType,
             [htmlx.indexOf(':', style.start) + 1, style.end],
             ');'
         ]);
         return;
-    }
-
-    let start = style.value[0].start;
-    if (style.value[0].type === 'MustacheTag') {
-        start++;
-    }
-    const last = style.value[style.value.length - 1];
-    let end = last.end;
-    if (last.type === 'MustacheTag') {
-        end--;
     }
 
     if (style.value.length > 1) {
@@ -41,8 +32,8 @@ export function handleStyleDirective(
             }
         }
         element.appendToStartEnd([
-            '__sveltets_2_ensureType(String, Number, `',
-            [start, end],
+            ensureType + '`',
+            [style.value[0].start, style.value[style.value.length - 1].end],
             '`);'
         ]);
         return;
@@ -54,12 +45,12 @@ export function handleStyleDirective(
             ? str.original[styleVal.start - 1]
             : '"';
         element.appendToStartEnd([
-            `__sveltets_2_ensureType(String, Number, ${quote}`,
-            [start, end],
+            `${ensureType}${quote}`,
+            [styleVal.start, styleVal.end],
             `${quote});`
         ]);
     } else {
         // MustacheTag
-        element.appendToStartEnd(['__sveltets_2_ensureType(String, Number, ', [start, end], ');']);
+        element.appendToStartEnd([ensureType, [styleVal.start + 1, styleVal.end - 1], ');']);
     }
 }

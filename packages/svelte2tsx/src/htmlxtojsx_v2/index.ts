@@ -1,5 +1,6 @@
 import MagicString from 'magic-string';
-import { walk } from 'svelte/compiler';
+import { walk } from 'estree-walker';
+// @ts-ignore
 import { TemplateNode, Text } from 'svelte/types/compiler/interfaces';
 import { Attribute, BaseNode, BaseDirective, StyleDirective, ConstTag } from '../interfaces';
 import { parseHtmlx } from '../utils/htmlxparser';
@@ -25,6 +26,8 @@ import { handleSpread } from './nodes/Spread';
 import { handleStyleDirective } from './nodes/StyleDirective';
 import { handleText } from './nodes/Text';
 import { handleTransitionDirective } from './nodes/Transition';
+import { handleImplicitChildren, handleSnippet } from './nodes/SnippetBlock';
+import { handleRenderTag } from './nodes/RenderTag';
 
 type Walker = (node: TemplateNode, parent: BaseNode, prop: string, index: number) => void;
 
@@ -45,18 +48,26 @@ export function convertHtmlxToJsx(
     ast: TemplateNode,
     onWalk: Walker = null,
     onLeave: Walker = null,
-    options: { preserveAttributeCase?: boolean; typingsNamespace?: string } = {}
-): void {
+    options: {
+        svelte5Plus: boolean;
+        preserveAttributeCase?: boolean;
+        typingsNamespace?: string;
+    } = { svelte5Plus: false }
+) {
     const htmlx = str.original;
     options = { preserveAttributeCase: false, ...options };
     options.typingsNamespace = options.typingsNamespace || 'svelteHTML';
     htmlx;
     stripDoctype(str);
 
+    const rootSnippets: Array<[number, number]> = [];
     let element: Element | InlineComponent | undefined;
 
-    walk(ast, {
-        enter: (node: TemplateNode, parent: BaseNode, prop: string, index: number) => {
+    walk(ast as any, {
+        enter: (estreeTypedNode, estreeTypedParent, prop: string, index: number) => {
+            const node = estreeTypedNode as TemplateNode;
+            const parent = estreeTypedParent as BaseNode;
+
             try {
                 switch (node.type) {
                     case 'IfBlock':
@@ -71,6 +82,20 @@ export function convertHtmlxToJsx(
                     case 'KeyBlock':
                         handleKey(str, node);
                         break;
+                    case 'SnippetBlock':
+                        handleSnippet(
+                            str,
+                            node,
+                            element instanceof InlineComponent &&
+                                estreeTypedParent.type === 'InlineComponent'
+                                ? element
+                                : undefined
+                        );
+                        if (!element) {
+                            // root snippet -> move to instance script
+                            rootSnippets.push([node.start, node.end]);
+                        }
+                        break;
                     case 'MustacheTag':
                         handleMustacheTag(str, node, parent);
                         break;
@@ -83,6 +108,9 @@ export function convertHtmlxToJsx(
                     case 'ConstTag':
                         handleConstTag(str, node as ConstTag);
                         break;
+                    case 'RenderTag':
+                        handleRenderTag(str, node);
+                        break;
                     case 'InlineComponent':
                         if (element) {
                             element.child = new InlineComponent(str, node, element);
@@ -90,12 +118,16 @@ export function convertHtmlxToJsx(
                         } else {
                             element = new InlineComponent(str, node);
                         }
+                        if (options.svelte5Plus) {
+                            handleImplicitChildren(node, element as InlineComponent);
+                        }
                         break;
                     case 'Element':
                     case 'Options':
                     case 'Window':
                     case 'Head':
                     case 'Title':
+                    case 'Document':
                     case 'Body':
                     case 'Slot':
                     case 'SlotTemplate':
@@ -117,7 +149,13 @@ export function convertHtmlxToJsx(
                         handleComment(str, node);
                         break;
                     case 'Binding':
-                        handleBinding(str, node as BaseDirective, parent, element);
+                        handleBinding(
+                            str,
+                            node as BaseDirective,
+                            parent,
+                            element,
+                            options.typingsNamespace === 'svelteHTML'
+                        );
                         break;
                     case 'Class':
                         handleClassDirective(str, node as BaseDirective, element as Element);
@@ -126,7 +164,7 @@ export function convertHtmlxToJsx(
                         handleStyleDirective(str, node as StyleDirective, element as Element);
                         break;
                     case 'Action':
-                        handleActionDirective(str, node as BaseDirective, element as Element);
+                        handleActionDirective(node as BaseDirective, element as Element);
                         break;
                     case 'Transition':
                         handleTransitionDirective(str, node as BaseDirective, element as Element);
@@ -165,7 +203,10 @@ export function convertHtmlxToJsx(
             }
         },
 
-        leave: (node: TemplateNode, parent: BaseNode, prop: string, index: number) => {
+        leave: (estreeTypedNode, estreeTypedParent, prop: string, index: number) => {
+            const node = estreeTypedNode as TemplateNode;
+            const parent = estreeTypedParent as BaseNode;
+
             try {
                 switch (node.type) {
                     case 'IfBlock':
@@ -182,6 +223,7 @@ export function convertHtmlxToJsx(
                     case 'Head':
                     case 'Title':
                     case 'Body':
+                    case 'Document':
                     case 'Slot':
                     case 'SlotTemplate':
                         if (node.name !== '!DOCTYPE') {
@@ -199,6 +241,8 @@ export function convertHtmlxToJsx(
             }
         }
     });
+
+    return rootSnippets;
 }
 
 /**
@@ -206,13 +250,15 @@ export function convertHtmlxToJsx(
  */
 export function htmlx2jsx(
     htmlx: string,
+    parse: typeof import('svelte/compiler').parse,
     options?: {
         emitOnTemplateError?: boolean;
         preserveAttributeCase: boolean;
         typingsNamespace: string;
+        svelte5Plus: boolean;
     }
 ) {
-    const ast = parseHtmlx(htmlx, { ...options, useNewTransformation: true }).htmlxAst;
+    const ast = parseHtmlx(htmlx, parse, { ...options }).htmlxAst;
     const str = new MagicString(htmlx);
 
     convertHtmlxToJsx(str, ast, null, null, options);

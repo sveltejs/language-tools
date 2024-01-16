@@ -11,11 +11,16 @@ import {
     CodeAction,
     SelectionRange,
     TextEdit,
-    InsertReplaceEdit
+    InsertReplaceEdit,
+    Location
 } from 'vscode-languageserver';
 import { TagInformation, offsetAt, positionAt, getLineOffsets } from './utils';
-import { SourceMapConsumer } from 'source-map';
 import { Logger } from '../../logger';
+import { generatedPositionFor, originalPositionFor, TraceMap } from '@jridgewell/trace-mapping';
+
+export interface FilePosition extends Position {
+    uri?: string;
+}
 
 export interface DocumentMapper {
     /**
@@ -23,6 +28,13 @@ export interface DocumentMapper {
      * @param generatedPosition Position in fragment
      */
     getOriginalPosition(generatedPosition: Position): Position;
+
+    /**
+     * Map the generated position to the original position.
+     * Differs from getOriginalPosition this might maps to different file
+     * @param generatedPosition Position in fragment
+     */
+    getOriginalFilePosition?(generatedPosition: Position): FilePosition;
 
     /**
      * Map the original position to the generated position
@@ -40,18 +52,16 @@ export interface DocumentMapper {
      * Get document URL
      */
     getURL(): string;
-
-    /**
-     * Implement this if you need teardown logic before this mapper gets cleaned up.
-     */
-    destroy?(): void;
 }
 
 /**
  * Does not map, returns positions as is.
  */
 export class IdentityMapper implements DocumentMapper {
-    constructor(private url: string, private parent?: DocumentMapper) {}
+    constructor(
+        private url: string,
+        private parent?: DocumentMapper
+    ) {}
 
     getOriginalPosition(generatedPosition: Position): Position {
         if (this.parent) {
@@ -79,10 +89,6 @@ export class IdentityMapper implements DocumentMapper {
 
     getURL(): string {
         return this.url;
-    }
-
-    destroy() {
-        this.parent?.destroy?.();
     }
 }
 
@@ -129,7 +135,7 @@ export class FragmentMapper implements DocumentMapper {
 
 export class SourceMapDocumentMapper implements DocumentMapper {
     constructor(
-        protected consumer: SourceMapConsumer,
+        protected traceMap: TraceMap,
         protected sourceUri: string,
         private parent?: DocumentMapper
     ) {}
@@ -143,7 +149,7 @@ export class SourceMapDocumentMapper implements DocumentMapper {
             return { line: -1, character: -1 };
         }
 
-        const mapped = this.consumer.originalPositionFor({
+        const mapped = originalPositionFor(this.traceMap, {
             line: generatedPosition.line + 1,
             column: generatedPosition.character
         });
@@ -153,7 +159,7 @@ export class SourceMapDocumentMapper implements DocumentMapper {
         }
 
         if (mapped.line === 0) {
-            Logger.log('Got 0 mapped line from', generatedPosition, 'col was', mapped.column);
+            Logger.debug('Got 0 mapped line from', generatedPosition, 'col was', mapped.column);
         }
 
         return {
@@ -167,7 +173,7 @@ export class SourceMapDocumentMapper implements DocumentMapper {
             originalPosition = this.parent.getGeneratedPosition(originalPosition);
         }
 
-        const mapped = this.consumer.generatedPositionFor({
+        const mapped = generatedPositionFor(this.traceMap, {
             line: originalPosition.line + 1,
             column: originalPosition.character,
             source: this.sourceUri
@@ -201,14 +207,6 @@ export class SourceMapDocumentMapper implements DocumentMapper {
     getURL(): string {
         return this.sourceUri;
     }
-
-    /**
-     * Needs to be called when source mapper is no longer needed in order to prevent memory leaks.
-     */
-    destroy() {
-        this.parent?.destroy?.();
-        this.consumer.destroy();
-    }
 }
 
 export function mapRangeToOriginal(
@@ -224,7 +222,13 @@ export function mapRangeToOriginal(
         end: fragment.getOriginalPosition(range.end)
     };
 
-    // Range may be mapped one character short - reverse that for "in the same line" cases
+    checkRangeLength(originalRange, range);
+
+    return originalRange;
+}
+
+/** Range may be mapped one character short - reverse that for "in the same line" cases*/
+function checkRangeLength(originalRange: { start: Position; end: Position }, range: Range) {
     if (
         originalRange.start.line === originalRange.end.line &&
         range.start.line === range.end.line &&
@@ -233,8 +237,31 @@ export function mapRangeToOriginal(
     ) {
         originalRange.end.character += 1;
     }
+}
 
-    return originalRange;
+export function mapLocationToOriginal(
+    fragment: Pick<DocumentMapper, 'getOriginalPosition' | 'getURL' | 'getOriginalFilePosition'>,
+    range: Range
+): Location {
+    const map = (
+        fragment.getOriginalFilePosition ??
+        (fragment.getOriginalPosition as (position: Position) => FilePosition)
+    ).bind(fragment);
+
+    const start = map(range.start);
+    const end = map(range.end);
+
+    const originalRange: Range = {
+        start: { line: start.line, character: start.character },
+        end: { line: end.line, character: end.character }
+    };
+
+    checkRangeLength(originalRange, range);
+
+    return {
+        range: originalRange,
+        uri: start.uri ? start.uri : fragment.getURL()
+    };
 }
 
 export function mapRangeToGenerated(fragment: DocumentMapper, range: Range): Range {
