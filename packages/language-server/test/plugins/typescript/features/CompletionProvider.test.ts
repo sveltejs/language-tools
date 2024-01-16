@@ -218,6 +218,37 @@ describe.only('CompletionProviderImpl', function () {
         ]);
     });
 
+    it('provide event completions for element', async () => {
+        const { completionProvider, document } = setup('element-events-completion.svelte');
+
+        const completions = await completionProvider.getCompletions(
+            document,
+            Position.create(0, 14),
+            {
+                triggerKind: CompletionTriggerKind.Invoked
+            }
+        );
+
+        const item = completions!.items.find((item) => item.label.startsWith('on:touchend'));
+
+        delete item!.data;
+
+        assert.deepStrictEqual(item, <CompletionItem>{
+            commitCharacters: ['.', ',', ';', '('],
+            label: 'on:touchend',
+            labelDetails: undefined,
+            sortText: '11',
+            kind: CompletionItemKind.Field,
+            textEdit: {
+                range: { start: { line: 0, character: 8 }, end: { line: 0, character: 14 } },
+                newText: 'on:touchend'
+            },
+            preselect: undefined,
+            insertText: undefined,
+            insertTextFormat: undefined
+        });
+    });
+
     it("doesn't provide event completions inside attribute value", async () => {
         const { completionProvider, document } = setup('component-events-completion.svelte');
 

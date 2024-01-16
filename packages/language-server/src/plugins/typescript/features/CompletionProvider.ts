@@ -281,6 +281,8 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
         const existingImports = this.getExistingImports(document);
         const fileUrl = pathToUrl(tsDoc.filePath);
         const isCompletionInTag = svelteIsInTag(svelteNode, originalOffset);
+        const isHandlerCompletion =
+            svelteNode?.type === 'EventHandler' && svelteNode.parent?.type === 'Element';
 
         const completionItems: CompletionItem[] = customCompletions;
         const isValidCompletion = createIsValidCompletion(document, position, !!tsDoc.parserError);
@@ -299,8 +301,9 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
                 if (completion) {
                     completionItems.push(
                         this.fixTextEditRange(
-                            wordInfo.range.start,
-                            mapCompletionItemToOriginal(tsDoc, completion)
+                            wordInfo.range,
+                            mapCompletionItemToOriginal(tsDoc, completion),
+                            isHandlerCompletion
                         )
                     );
                 }
@@ -713,12 +716,20 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
         return !!source && !!snapshot.getFullText().match(importStatement);
     }
 
-    /**
-     * If the textEdit is out of the word range of the triggered position
-     * vscode would refuse to show the completions
-     * split those edits into additionalTextEdit to fix it
-     */
-    private fixTextEditRange(wordRangePosition: Position, completionItem: CompletionItem) {
+    private fixTextEditRange(
+        wordRange: Range,
+        completionItem: CompletionItem,
+        isHandlerCompletion: boolean
+    ) {
+        if (isHandlerCompletion && completionItem.label.startsWith('on:')) {
+            completionItem.textEdit = TextEdit.replace(
+                this.cloneRange(wordRange),
+                completionItem.label
+            );
+
+            return completionItem;
+        }
+
         const { textEdit } = completionItem;
         if (!textEdit || !TextEdit.is(textEdit)) {
             return completionItem;
@@ -729,18 +740,18 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
             range: { start }
         } = textEdit;
 
-        const wordRangeStartCharacter = wordRangePosition.character;
-        if (
-            wordRangePosition.line !== wordRangePosition.line ||
-            start.character > wordRangePosition.character
-        ) {
+        //If the textEdit is out of the word range of the triggered position
+        // vscode would refuse to show the completions
+        // split those edits into additionalTextEdit to fix it
+
+        if (start.line !== wordRange.start.line || start.character > wordRange.start.character) {
             return completionItem;
         }
 
-        textEdit.newText = newText.substring(wordRangeStartCharacter - start.character);
+        textEdit.newText = newText.substring(wordRange.start.character - start.character);
         textEdit.range.start = {
             line: start.line,
-            character: wordRangeStartCharacter
+            character: wordRange.start.character
         };
         completionItem.additionalTextEdits = [
             TextEdit.replace(
@@ -748,10 +759,10 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
                     start,
                     end: {
                         line: start.line,
-                        character: wordRangeStartCharacter
+                        character: wordRange.start.character
                     }
                 },
-                newText.substring(0, wordRangeStartCharacter - start.character)
+                newText.substring(0, wordRange.start.character - start.character)
             )
         ];
 
