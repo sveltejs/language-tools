@@ -398,7 +398,7 @@
                     "type": "boolean",
                     "default": false,
                     "title": "Experimental: Document Highlight",
-                    "description": "Enable document highlight for Svelte"
+                    "description": "Enable experimental document highlight support. Require restart."
                 }
             }
         },
