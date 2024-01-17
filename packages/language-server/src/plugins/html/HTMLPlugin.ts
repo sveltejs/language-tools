@@ -43,6 +43,10 @@ import { importPrettier } from '../../importPackage';
 import path from 'path';
 import { Logger } from '../../logger';
 import { indentBasedFoldingRangeForTag } from '../../lib/foldingRange/indentFolding';
+import { wordHighlightForTag } from '../../lib/documentHighlight/wordHighlight';
+
+// https://github.com/microsoft/vscode/blob/c6f507deeb99925e713271b1048f21dbaab4bd54/extensions/html/language-configuration.json#L34
+const wordPattern = /(-?\d*\.\d\w*)|([^`~!@$^&*()=+[{\]}\|;:'",.<>\/\s]+)/g;
 
 export class HTMLPlugin
     implements
@@ -410,6 +414,17 @@ export class HTMLPlugin
         const html = this.documents.get(document);
         if (!html) {
             return null;
+        }
+
+        const templateResult = wordHighlightForTag(
+            document,
+            position,
+            document.templateInfo,
+            wordPattern
+        );
+
+        if (templateResult) {
+            return templateResult;
         }
 
         const node = html.findNodeAt(document.offsetAt(position));

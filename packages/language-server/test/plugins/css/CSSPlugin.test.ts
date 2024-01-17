@@ -558,5 +558,27 @@ describe('CSS Plugin', () => {
                 }
             ]);
         });
+
+        it('provide word highlight for unsupported languages', () => {
+            const { plugin, document } = setup('<style lang="postcss">.hi {}</style>');
+
+            const highlight = plugin.findDocumentHighlight(document, Position.create(0, 25));
+
+            assert.deepStrictEqual(highlight, <DocumentHighlight[]>[
+                {
+                    range: {
+                        start: {
+                            line: 0,
+                            character: 22
+                        },
+                        end: {
+                            line: 0,
+                            character: 25
+                        }
+                    },
+                    kind: DocumentHighlightKind.Text
+                }
+            ]);
+        });
     });
 });

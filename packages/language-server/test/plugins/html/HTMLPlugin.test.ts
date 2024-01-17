@@ -320,4 +320,26 @@ describe('HTML Plugin', () => {
             }
         ]);
     });
+
+    it('provide word highlight for unsupported languages', () => {
+        const { plugin, document } = setup('<template lang="pug">\n  div\n  p</template>');
+
+        const highlight = plugin.findDocumentHighlight(document, Position.create(1, 5));
+
+        assert.deepStrictEqual(highlight, <DocumentHighlight[]>[
+            {
+                range: {
+                    start: {
+                        line: 1,
+                        character: 2
+                    },
+                    end: {
+                        line: 1,
+                        character: 5
+                    }
+                },
+                kind: DocumentHighlightKind.Text
+            }
+        ]);
+    });
 });

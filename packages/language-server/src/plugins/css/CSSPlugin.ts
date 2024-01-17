@@ -52,6 +52,10 @@ import { StyleAttributeDocument } from './StyleAttributeDocument';
 import { getDocumentContext } from '../documentContext';
 import { FoldingRange, FoldingRangeKind } from 'vscode-languageserver-types';
 import { indentBasedFoldingRangeForTag } from '../../lib/foldingRange/indentFolding';
+import { wordHighlightForTag } from '../../lib/documentHighlight/wordHighlight';
+
+// https://github.com/microsoft/vscode/blob/c6f507deeb99925e713271b1048f21dbaab4bd54/extensions/css/language-configuration.json#L34
+const wordPattern = /(#?-?\d*\.\d\w*%?)|(::?[\w-]*(?=[^,{;]*[,{]))|(([@#.!])?[\w-?]+%?|[@#!.])/g;
 
 export class CSSPlugin
     implements
@@ -441,6 +445,10 @@ export class CSSPlugin
     findDocumentHighlight(document: Document, position: Position): DocumentHighlight[] | null {
         const cssDocument = this.getCSSDoc(document);
         if (cssDocument.isInGenerated(position)) {
+            if (shouldExcludeDocumentHighlights(cssDocument)) {
+                return wordHighlightForTag(document, position, document.styleInfo, wordPattern);
+            }
+
             return this.findDocumentHighlightInternal(cssDocument, position);
         }
 
@@ -463,15 +471,7 @@ export class CSSPlugin
         cssDocument: CSSDocumentBase,
         position: Position
     ): DocumentHighlight[] | null {
-        if (!cssDocument.isInGenerated(position)) {
-            return null;
-        }
-
         const kind = extractLanguage(cssDocument);
-
-        if (shouldExcludeDocumentHighlights(cssDocument)) {
-            return null;
-        }
 
         const result = getLanguageService(this.cssLanguageServices, kind)
             .findDocumentHighlights(
