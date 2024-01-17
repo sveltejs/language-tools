@@ -439,10 +439,6 @@ export class CSSPlugin
     }
 
     findDocumentHighlight(document: Document, position: Position): DocumentHighlight[] | null {
-        if (!document.styleInfo) {
-            return [];
-        }
-
         const cssDocument = this.getCSSDoc(document);
         if (cssDocument.isInGenerated(position)) {
             return this.findDocumentHighlightInternal(cssDocument, position);

@@ -21,7 +21,7 @@ const defaultLSConfig: LSConfig = {
         codeActions: { enable: true },
         selectionRange: { enable: true },
         signatureHelp: { enable: true },
-        semanticTokens: { enable: true },
+        semanticTokens: { enable: true }
     },
     css: {
         enable: true,
@@ -32,7 +32,7 @@ const defaultLSConfig: LSConfig = {
         documentColors: { enable: true },
         colorPresentations: { enable: true },
         documentSymbols: { enable: true },
-        selectionRange: { enable: true },
+        selectionRange: { enable: true }
     },
     html: {
         enable: true,
@@ -40,7 +40,7 @@ const defaultLSConfig: LSConfig = {
         completions: { enable: true, emmet: true },
         tagComplete: { enable: true },
         documentSymbols: { enable: true },
-        linkedEditing: { enable: true },
+        linkedEditing: { enable: true }
     },
     svelte: {
         enable: true,

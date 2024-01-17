@@ -412,6 +412,10 @@ export class HTMLPlugin
             return null;
         }
 
+        const node = html.findNodeAt(document.offsetAt(position));
+        if (possiblyComponent(node)) {
+            return null;
+        }
         const result = this.lang.findDocumentHighlights(document, position, html);
 
         if (!result.length) {

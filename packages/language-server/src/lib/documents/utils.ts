@@ -3,6 +3,7 @@ import { Position, Range } from 'vscode-languageserver';
 import { Node, HTMLDocument } from 'vscode-html-languageservice';
 import * as path from 'path';
 import { parseHtml } from './parseHtml';
+import { Document } from './Document';
 
 export interface TagInformation {
     content: string;
@@ -441,4 +442,12 @@ export function isInsideMoustacheTag(html: string, tagStart: number | null, posi
         const charactersInNode = html.substring(tagStart, position);
         return charactersInNode.lastIndexOf('{') > charactersInNode.lastIndexOf('}');
     }
+}
+
+export function inStyleOrScript(document: Document, position: Position) {
+    return (
+        isInTag(position, document.styleInfo) ||
+        isInTag(position, document.scriptInfo) ||
+        isInTag(position, document.moduleScriptInfo)
+    );
 }

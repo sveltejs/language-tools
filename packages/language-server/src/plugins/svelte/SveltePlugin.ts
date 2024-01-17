@@ -6,7 +6,6 @@ import {
     CompletionContext,
     CompletionList,
     Diagnostic,
-    DocumentHighlight,
     FormattingOptions,
     Hover,
     Position,
@@ -25,7 +24,6 @@ import {
     CodeActionsProvider,
     CompletionsProvider,
     DiagnosticsProvider,
-    DocumentHighlightProvider,
     FormattingProvider,
     HoverProvider,
     SelectionRangeProvider
@@ -36,7 +34,6 @@ import { getDiagnostics } from './features/getDiagnostics';
 import { getHoverInfo } from './features/getHoverInfo';
 import { getSelectionRange } from './features/getSelectionRanges';
 import { SvelteCompileResult, SvelteDocument } from './SvelteDocument';
-import { getDocumentHighlight } from './features/getDocumentHighlight';
 
 export class SveltePlugin
     implements
@@ -45,8 +42,7 @@ export class SveltePlugin
         CompletionsProvider,
         HoverProvider,
         CodeActionsProvider,
-        SelectionRangeProvider,
-        DocumentHighlightProvider
+        SelectionRangeProvider
 {
     __name = 'svelte';
     private docManager = new Map<Document, SvelteDocument>();
@@ -315,15 +311,6 @@ export class SveltePlugin
         const svelteDoc = await this.getSvelteDoc(document);
 
         return getSelectionRange(svelteDoc, position);
-    }
-
-    async findDocumentHighlight(
-        document: Document,
-        position: Position
-    ): Promise<DocumentHighlight[] | null> {
-        const svelteDoc = await this.getSvelteDoc(document);
-
-        return getDocumentHighlight(svelteDoc, position);
     }
 
     private featureEnabled(feature: keyof LSSvelteConfig) {
