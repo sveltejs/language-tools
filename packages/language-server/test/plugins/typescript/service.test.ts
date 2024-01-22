@@ -1,7 +1,7 @@
 import assert from 'assert';
 import path from 'path';
 import ts from 'typescript';
-import { Document } from '../../../src/lib/documents';
+import { Document, DocumentManager } from '../../../src/lib/documents';
 import {
     getService,
     LanguageServiceDocumentContext
@@ -9,9 +9,13 @@ import {
 import { GlobalSnapshotsManager } from '../../../src/plugins/typescript/SnapshotManager';
 import { pathToUrl } from '../../../src/utils';
 import { createVirtualTsSystem, getRandomVirtualDirPath } from './test-utils';
+import { createProjectService } from '../../../src/plugins/typescript/serviceCache';
+import { LSConfigManager } from '../../../src/ls-config';
+import { LSAndTSDocResolver } from '../../../src/plugins';
 
 describe('service', () => {
     const testDir = path.join(__dirname, 'testfiles');
+    const serviceTestDir = path.join(testDir, 'services');
 
     function setup() {
         const virtualSystem = createVirtualTsSystem(testDir);
@@ -262,4 +266,61 @@ describe('service', () => {
             ls.getService().getSemanticDiagnostics(document.getFilePath()!);
         });
     });
+
+    it('resolve module with the compilerOptions from project reference', async () => {
+        // Don't test this with module not found diagnostics
+        // because there is a case where is won't have an error but still not resolved the module
+
+        const { lsAndTsDocResolver, docManager } = setupRealFS();
+        const pathsProjectRefDir = path.join(serviceTestDir, 'project-reference', 'paths');
+
+        const importingFilePath = path.join(pathsProjectRefDir, 'importing.svelte');
+        const document = docManager.openClientDocument({
+            uri: pathToUrl(importingFilePath),
+            text: ts.sys.readFile(importingFilePath) || ''
+        });
+
+        const lsContainer = await lsAndTsDocResolver.getTSService(importingFilePath);
+        lsContainer.getService();
+        const snapshotManager = lsContainer.snapshotManager;
+
+        const importedFilePath = path.join(pathsProjectRefDir, 'imported.ts');
+        assert.equal(
+            snapshotManager.get(importedFilePath),
+            undefined,
+            'expected to load imported file through module resolution'
+        );
+
+        // uncomment the import
+        document.update(
+            '',
+            document.offsetAt({
+                line: 2,
+                character: 0
+            }),
+            document.offsetAt({
+                line: 2,
+                character: 2
+            })
+        );
+        lsContainer.updateSnapshot(document);
+        lsContainer.getService();
+
+        assert.ok(snapshotManager.get(importedFilePath));
+    });
+
+    function setupRealFS() {
+        const docManager = new DocumentManager(
+            (textDocument) => new Document(textDocument.uri, textDocument.text)
+        );
+        const lsConfigManager = new LSConfigManager();
+        const workspaceUris = [pathToUrl(serviceTestDir)];
+        const lsAndTsDocResolver = new LSAndTSDocResolver(
+            docManager,
+            workspaceUris,
+            lsConfigManager
+        );
+
+        return { lsAndTsDocResolver, docManager };
+    }
 });

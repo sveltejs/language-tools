@@ -216,7 +216,7 @@ export function createSvelteModuleLoader(
         moduleNames: string[],
         containingFile: string,
         _reusedNames: string[] | undefined,
-        _redirectedReference: ts.ResolvedProjectReference | undefined,
+        redirectedReference: ts.ResolvedProjectReference | undefined,
         _options: ts.CompilerOptions,
         containingSourceFile?: ts.SourceFile | undefined
     ): Array<ts.ResolvedModule | undefined> {
@@ -229,7 +229,8 @@ export function createSvelteModuleLoader(
                 moduleName,
                 containingFile,
                 containingSourceFile,
-                index
+                index,
+                redirectedReference
             );
 
             resolvedModule?.failedLookupLocations?.forEach((failedLocation) => {
@@ -247,7 +248,8 @@ export function createSvelteModuleLoader(
         name: string,
         containingFile: string,
         containingSourceFile: ts.SourceFile | undefined,
-        index: number
+        index: number,
+        redirectedReference: ts.ResolvedProjectReference | undefined
     ): ts.ResolvedModuleWithFailedLookupLocations {
         const mode = impliedNodeFormatResolver.resolve(
             name,
@@ -264,7 +266,7 @@ export function createSvelteModuleLoader(
             compilerOptions,
             ts.sys,
             tsModuleCache,
-            undefined,
+            redirectedReference,
             mode
         );
 
@@ -279,7 +281,7 @@ export function createSvelteModuleLoader(
             compilerOptions,
             svelteSys,
             undefined,
-            undefined,
+            redirectedReference,
             mode
         );
 

@@ -1,0 +1,11 @@
+{
+    "include": [],
+    "references": [
+        {
+            "path": "./paths/tsconfig_sub.json"
+        }
+    ],
+    "compilerOptions": {
+        "types": []
+    }
+}

@@ -205,6 +205,7 @@ async function createLanguageService(
         options: compilerOptions,
         errors: configErrors,
         fileNames: files,
+        projectReferences,
         raw,
         extendedConfigPaths
     } = getParsedConfig();
@@ -276,6 +277,7 @@ async function createLanguageService(
         resolveModuleNames: svelteModuleLoader.resolveModuleNames,
         readDirectory: svelteModuleLoader.readDirectory,
         getDirectories: tsSystem.getDirectories,
+        getProjectReferences: () => projectReferences,
         useCaseSensitiveFileNames: () => tsSystem.useCaseSensitiveFileNames,
         getScriptKind: (fileName: string) => getSnapshot(fileName).scriptKind,
         getProjectVersion: () => projectVersion.toString(),
@@ -283,7 +285,10 @@ async function createLanguageService(
         resolveTypeReferenceDirectiveReferences:
             svelteModuleLoader.resolveTypeReferenceDirectiveReferences,
         hasInvalidatedResolutions: svelteModuleLoader.mightHaveInvalidatedResolutions,
-        getModuleResolutionCache: svelteModuleLoader.getModuleResolutionCache
+        getModuleResolutionCache: svelteModuleLoader.getModuleResolutionCache,
+        useSourceOfProjectReferenceRedirect() {
+            return !languageServiceReducedMode;
+        },
     };
 
     const documentRegistry = getOrCreateDocumentRegistry(

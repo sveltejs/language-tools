@@ -81,7 +81,9 @@ export function createProject(
         'getPackageJsonsVisibleToFile',
         'getPackageJsonAutoImportProvider',
         'includePackageJsonAutoImports',
-        'useSourceOfProjectReferenceRedirect'
+        // Volar doesn't have the "languageServiceReducedMode" support but we do
+        // so don't proxy this method and use our own implementation
+        // 'useSourceOfProjectReferenceRedirect'
     ];
     proxyMethods.forEach((key) => ((host as any)[key] = project[key].bind(project)));
 
