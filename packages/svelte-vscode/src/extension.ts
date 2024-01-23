@@ -1,6 +1,6 @@
 import type { InitializationOptions } from '@volar/language-server';
 import * as protocol from '@volar/language-server/protocol';
-import { BaseLanguageClient, createLabsInfo, activateTsConfigStatusItem, activateTsVersionStatusItem } from '@volar/vscode';
+import { BaseLanguageClient, createLabsInfo } from '@volar/vscode';
 import * as lsp from '@volar/vscode/node';
 import * as path from 'path';
 import * as vscode from 'vscode';
@@ -8,6 +8,7 @@ import * as vscode from 'vscode';
 let client: BaseLanguageClient;
 
 export async function activate(context: vscode.ExtensionContext) {
+	vscode.extensions.getExtension('vscode.typescript-language-features')?.activate()
 
 	const documentSelector: lsp.DocumentSelector = [{ language: 'svelte' }];
 	const initializationOptions: InitializationOptions = {
@@ -45,9 +46,6 @@ export async function activate(context: vscode.ExtensionContext) {
 	);
 	await client.start();
 
-	activateTsConfigStatusItem('svelte', 'svelte.tsConfigStatus', client);
-	activateTsVersionStatusItem('svelte', 'svelte.tsVersionStatus', context, client, text => text);
-
 	const labsInfo = createLabsInfo(protocol);
 	labsInfo.addLanguageClient(client);
 
@@ -58,3 +56,28 @@ export async function activate(context: vscode.ExtensionContext) {
 export function deactivate(): Thenable<any> | undefined {
 	return client?.stop();
 }
+
+// Track https://github.com/microsoft/vscode/issues/200511
+try {
+	const tsExtension = vscode.extensions.getExtension('vscode.typescript-language-features');
+	if (tsExtension) {
+		const readFileSync = require('fs').readFileSync;
+		const extensionJsPath = require.resolve('./dist/extension.js', { paths: [tsExtension.extensionPath] });
+
+		// @ts-expect-error
+		require('fs').readFileSync = (...args) => {
+			if (args[0] === extensionJsPath) {
+				let text = readFileSync(...args) as string;
+
+				// patch jsTsLanguageModes
+				text = text.replace('t.$u=[t.$r,t.$s,t.$p,t.$q]', s => s + '.concat("svelte")');
+
+				// patch isSupportedLanguageMode
+				text = text.replace('s.languages.match([t.$p,t.$q,t.$r,t.$s]', s => s + '.concat("svelte")');
+
+				return text;
+			}
+			return readFileSync(...args);
+		};
+	}
+} catch { }

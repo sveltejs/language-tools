@@ -46,10 +46,46 @@
     "contributes": {
         "typescriptServerPlugins": [
             {
-                "name": "typescript-svelte-plugin",
-                "enableForWorkspaceTypeScriptVersions": true
+                "name": "typescript-svelte-plugin-bundled",
+                "enableForWorkspaceTypeScriptVersions": true,
+                "configNamespace": "typescript",
+                "languages": [
+                    "svelte"
+                ]
             }
         ],
+        "menus": {
+            "editor/context": [
+                {
+                    "command": "typescript.goToSourceDefinition",
+                    "when": "tsSupportsSourceDefinition && resourceLangId == svelte",
+                    "group": "navigation@9"
+                }
+            ],
+            "explorer/context": [
+                {
+                    "command": "typescript.findAllFileReferences",
+                    "when": "tsSupportsFileReferences && resourceLangId == svelte",
+                    "group": "4_search"
+                }
+            ],
+            "editor/title/context": [
+                {
+                    "command": "typescript.findAllFileReferences",
+                    "when": "tsSupportsFileReferences && resourceLangId == svelte"
+                }
+            ],
+            "commandPalette": [
+                {
+                    "command": "typescript.reloadProjects",
+                    "when": "editorLangId == svelte && typescript.isManagedFile"
+                },
+                {
+                    "command": "typescript.goToProjectConfig",
+                    "when": "editorLangId == svelte"
+                }
+            ]
+        },
         "languages": [
             {
                 "id": "svelte",
