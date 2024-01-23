@@ -38,3 +38,25 @@ require("esbuild").context({
 		console.log('finished.');
 	}
 });
+
+require("esbuild").build({
+	bundle: true,
+	entryPoints: ['./node_modules/typescript-svelte-plugin/out/index.js'],
+	outfile: './node_modules/typescript-svelte-plugin-bundled/index.js',
+	logLevel: 'info',
+	platform: 'node',
+	target: 'node16',
+	plugins: [
+		{
+			name: 'alias',
+			setup({ onResolve, resolve }) {
+				onResolve({ filter: /^(jsonc-parser)$/ }, ({ path, ...options }) =>
+					resolve(require.resolve(path).replace(/\/umd\//, '/esm/'), options)
+				)
+				onResolve({ filter: /\/umd\// }, ({ path, ...options }) =>
+					resolve(path.replace(/\/umd\//, '/esm/'), options)
+				)
+			}
+		}
+	]
+})

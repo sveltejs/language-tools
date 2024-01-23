@@ -1,6 +1,6 @@
 {
     "name": "svelte-vscode",
-    "version": "0.5.0",
+    "version": "0.0.0-volar-regular.1",
     "description": "Svelte language support for VS Code",
     "main": "dist/client.js",
     "scripts": {
