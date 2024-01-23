@@ -11,7 +11,8 @@ describe('Internal Helpers - upsertKitFile', () => {
             {
                 clientHooksPath: 'hooks.client',
                 paramsPath: 'params',
-                serverHooksPath: 'hooks.server'
+                serverHooksPath: 'hooks.server',
+                universalHooksPath: 'hooks'
             },
             () => sourceFile
         );

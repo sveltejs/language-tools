@@ -15,6 +15,7 @@ export interface AddedCode {
 export interface KitFilesSettings {
     serverHooksPath: string;
     clientHooksPath: string;
+    universalHooksPath: string;
     paramsPath: string;
 }
 
@@ -27,8 +28,9 @@ export function isKitFile(fileName: string, options: KitFilesSettings): boolean 
     const basename = path.basename(fileName);
     return (
         isKitRouteFile(basename) ||
-        isServerHooksFile(fileName, basename, options.serverHooksPath) ||
-        isClientHooksFile(fileName, basename, options.clientHooksPath) ||
+        isHooksFile(fileName, basename, options.serverHooksPath) ||
+        isHooksFile(fileName, basename, options.clientHooksPath) ||
+        isHooksFile(fileName, basename, options.universalHooksPath) ||
         isParamsFile(fileName, basename, options.paramsPath)
     );
 }
@@ -50,30 +52,11 @@ export function isKitRouteFile(basename: string): boolean {
 /**
  * Determines whether or not a given file is a SvelteKit-specific hooks file
  */
-export function isServerHooksFile(
-    fileName: string,
-    basename: string,
-    serverHooksPath: string
-): boolean {
+export function isHooksFile(fileName: string, basename: string, hooksPath: string): boolean {
     return (
         ((basename === 'index.ts' || basename === 'index.js') &&
-            fileName.slice(0, -basename.length - 1).endsWith(serverHooksPath)) ||
-        fileName.slice(0, -path.extname(basename).length).endsWith(serverHooksPath)
-    );
-}
-
-/**
- * Determines whether or not a given file is a SvelteKit-specific hooks file
- */
-export function isClientHooksFile(
-    fileName: string,
-    basename: string,
-    clientHooksPath: string
-): boolean {
-    return (
-        ((basename === 'index.ts' || basename === 'index.js') &&
-            fileName.slice(0, -basename.length - 1).endsWith(clientHooksPath)) ||
-        fileName.slice(0, -path.extname(basename).length).endsWith(clientHooksPath)
+            fileName.slice(0, -basename.length - 1).endsWith(hooksPath)) ||
+        fileName.slice(0, -path.extname(basename).length).endsWith(hooksPath)
     );
 }
 
@@ -97,8 +80,8 @@ export function upsertKitFile(
 ): { text: string; addedCode: AddedCode[] } {
     let basename = path.basename(fileName);
     const result =
-        upserKitRouteFile(ts, basename, getSource, surround) ??
-        upserKitServerHooksFile(
+        upsertKitRouteFile(ts, basename, getSource, surround) ??
+        upsertKitServerHooksFile(
             ts,
             fileName,
             basename,
@@ -106,7 +89,7 @@ export function upsertKitFile(
             getSource,
             surround
         ) ??
-        upserKitClientHooksFile(
+        upsertKitClientHooksFile(
             ts,
             fileName,
             basename,
@@ -114,7 +97,15 @@ export function upsertKitFile(
             getSource,
             surround
         ) ??
-        upserKitParamsFile(
+        upsertKitUniversalHooksFile(
+            ts,
+            fileName,
+            basename,
+            kitFilesSettings.universalHooksPath,
+            getSource,
+            surround
+        ) ??
+        upsertKitParamsFile(
             ts,
             fileName,
             basename,
@@ -139,7 +130,7 @@ export function upsertKitFile(
     return { text, addedCode };
 }
 
-function upserKitRouteFile(
+function upsertKitRouteFile(
     ts: _ts,
     basename: string,
     getSource: () => ts.SourceFile | undefined,
@@ -225,7 +216,7 @@ function upserKitRouteFile(
     return { addedCode, originalText: source.getFullText() };
 }
 
-function upserKitParamsFile(
+function upsertKitParamsFile(
     ts: _ts,
     fileName: string,
     basename: string,
@@ -253,7 +244,7 @@ function upserKitParamsFile(
     return { addedCode, originalText: source.getFullText() };
 }
 
-function upserKitClientHooksFile(
+function upsertKitClientHooksFile(
     ts: _ts,
     fileName: string,
     basename: string,
@@ -261,7 +252,7 @@ function upserKitClientHooksFile(
     getSource: () => ts.SourceFile | undefined,
     surround: (text: string) => string
 ) {
-    if (!isClientHooksFile(fileName, basename, clientHooksPath)) {
+    if (!isHooksFile(fileName, basename, clientHooksPath)) {
         return;
     }
 
@@ -288,7 +279,7 @@ function upserKitClientHooksFile(
     return { addedCode, originalText: source.getFullText() };
 }
 
-function upserKitServerHooksFile(
+function upsertKitServerHooksFile(
     ts: _ts,
     fileName: string,
     basename: string,
@@ -296,7 +287,7 @@ function upserKitServerHooksFile(
     getSource: () => ts.SourceFile | undefined,
     surround: (text: string) => string
 ) {
-    if (!isServerHooksFile(fileName, basename, serverHooksPath)) {
+    if (!isHooksFile(fileName, basename, serverHooksPath)) {
         return;
     }
 
@@ -318,6 +309,34 @@ function upserKitServerHooksFile(
     addType('handleError', `import('@sveltejs/kit').HandleServerError`);
     addType('handle', `import('@sveltejs/kit').Handle`);
     addType('handleFetch', `import('@sveltejs/kit').HandleFetch`);
+
+    return { addedCode, originalText: source.getFullText() };
+}
+
+function upsertKitUniversalHooksFile(
+    ts: _ts,
+    fileName: string,
+    basename: string,
+    universalHooksPath: string,
+    getSource: () => ts.SourceFile | undefined,
+    surround: (text: string) => string
+) {
+    if (!isHooksFile(fileName, basename, universalHooksPath)) {
+        return;
+    }
+
+    const source = getSource();
+    if (!source) return;
+
+    const addedCode: AddedCode[] = [];
+    const insert = (pos: number, inserted: string) => {
+        insertCode(addedCode, pos, inserted);
+    };
+
+    const isTsFile = basename.endsWith('.ts');
+    const exports = findExports(ts, source, isTsFile);
+
+    addTypeToFunction(ts, exports, surround, insert, 'reroute', `import('@sveltejs/kit').Reroute`);
 
     return { addedCode, originalText: source.getFullText() };
 }

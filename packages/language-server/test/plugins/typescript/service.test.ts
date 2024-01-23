@@ -27,7 +27,8 @@ describe('service', () => {
             tsSystem: virtualSystem,
             watchTsConfig: false,
             notifyExceedSizeLimit: undefined,
-            onProjectReloaded: undefined
+            onProjectReloaded: undefined,
+            projectService: undefined
         };
 
         const rootUris = [pathToUrl(testDir)];
