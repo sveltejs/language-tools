@@ -1,7 +1,9 @@
 **/tsconfig.json
-/src
-/scripts
-/.vscode
+src
+scripts
+.vscode
+out
+test
 
 node_modules/@types
 
