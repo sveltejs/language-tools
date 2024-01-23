@@ -46,7 +46,7 @@
     "contributes": {
         "typescriptServerPlugins": [
             {
-                "name": "typescript-svelte-plugin",
+                "name": "typescript-svelte-plugin-bundled",
                 "enableForWorkspaceTypeScriptVersions": true
             }
         ],
