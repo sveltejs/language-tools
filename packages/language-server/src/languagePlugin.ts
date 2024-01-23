@@ -1,32 +1,32 @@
 import { decode } from '@jridgewell/sourcemap-codec';
-import type { CodeMapping, LanguagePlugin, VirtualFile } from '@volar/language-core';
+import { forEachEmbeddedCode, type CodeMapping, type LanguagePlugin, type VirtualCode } from '@volar/language-core';
 import { svelte2tsx } from 'svelte2tsx';
 import type * as ts from 'typescript';
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { URI } from 'vscode-uri';
 
 export const svelteLanguagePlugin: LanguagePlugin = {
-	createVirtualFile(fileName, languageId, snapshot) {
+	createVirtualCode(_fileId, languageId, snapshot) {
 		if (languageId === 'svelte') {
 			return {
-				fileName,
+				id: 'root',
 				languageId,
 				snapshot,
-				embeddedFiles: [
-					...getVirtualCssFiles(fileName, snapshot.getText(0, snapshot.getLength())),
-					getVirtualTsFile(fileName, snapshot.getText(0, snapshot.getLength())),
-				].filter((v): v is VirtualFile => !!v),
+				embeddedCodes: [
+					...getVirtualCssFiles(snapshot.getText(0, snapshot.getLength())),
+					getVirtualTsFile(snapshot.getText(0, snapshot.getLength())),
+				].filter((v): v is VirtualCode => !!v),
 				mappings: [],
 				codegenStacks: []
 			};
 		}
 	},
-	updateVirtualFile(svelteFile, snapshot) {
-		svelteFile.snapshot = snapshot;
-		svelteFile.embeddedFiles = [
-			...getVirtualCssFiles(svelteFile.fileName, snapshot.getText(0, snapshot.getLength())),
-			getVirtualTsFile(svelteFile.fileName, snapshot.getText(0, snapshot.getLength())),
-		].filter((v): v is VirtualFile => !!v);
+	updateVirtualCode(_fileId, virtualCode, snapshot) {
+		virtualCode.snapshot = snapshot;
+		virtualCode.embeddedCodes = [
+			...getVirtualCssFiles(snapshot.getText(0, snapshot.getLength())),
+			getVirtualTsFile(snapshot.getText(0, snapshot.getLength())),
+		].filter((v): v is VirtualCode => !!v);
+		return virtualCode;
 	},
 	typescript: {
 		extraFileExtensions: [{
@@ -34,20 +34,21 @@ export const svelteLanguagePlugin: LanguagePlugin = {
 			isMixedContent: true,
 			scriptKind: 7 satisfies ts.ScriptKind.Deferred,
 		}],
-		resolveSourceFileName(tsFileName) {
-			if (tsFileName.endsWith('.svelte.ts')) {
-				return tsFileName.substring(0, tsFileName.length - '.ts'.length);
-			}
-		},
-		resolveModuleName(moduleName, impliedNodeFormat) {
-			if (impliedNodeFormat === 99 satisfies ts.ModuleKind.ESNext && moduleName.endsWith('.svelte')) {
-				return `${moduleName}.js`;
+		getScript(rootVirtualCode) {
+			for (const code of forEachEmbeddedCode(rootVirtualCode)) {
+				if (code.id === 'ts') {
+					return {
+						code,
+						scriptKind: 3,
+						extension: '.ts',
+					};
+				}
 			}
 		},
 	},
 };
 
-function* getVirtualCssFiles(fileName: string, content: string): Generator<VirtualFile> {
+function* getVirtualCssFiles(content: string): Generator<VirtualCode> {
 
 	const styleBlocks = [...content.matchAll(/\<style\b[\s\S]*?\>([\s\S]*?)\<\/style\>/g)];
 
@@ -56,7 +57,7 @@ function* getVirtualCssFiles(fileName: string, content: string): Generator<Virtu
 		if (styleBlock.index !== undefined) {
 			const matchText = styleBlock[1];
 			yield {
-				fileName: fileName + '.' + i + '.css',
+				id: 'css_' + i,
 				languageId: 'css',
 				snapshot: {
 					getText(start, end) {
@@ -84,24 +85,23 @@ function* getVirtualCssFiles(fileName: string, content: string): Generator<Virtu
 						},
 					}
 				],
-				embeddedFiles: [],
+				embeddedCodes: [],
 			}
 		}
 	}
 
 }
 
-function getVirtualTsFile(fileName: string, text: string): VirtualFile | undefined {
+function getVirtualTsFile(text: string): VirtualCode | undefined {
 
 	try {
 		const tsx = svelte2tsx(text, {
-			filename: fileName,
 			isTsFile: true,
 			mode: 'ts',
 		});
 		const v3Mappings = decode(tsx.map.mappings);
-		const document = TextDocument.create(URI.file(fileName).toString(), 'svelte', 0, text);
-		const generateDocument = TextDocument.create(URI.file(fileName + '.ts').toString(), 'typescript', 0, tsx.code);
+		const document = TextDocument.create('', 'svelte', 0, text);
+		const generateDocument = TextDocument.create('', 'typescript', 0, tsx.code);
 		const mappings: CodeMapping[] = [];
 
 		let current: {
@@ -166,11 +166,8 @@ function getVirtualTsFile(fileName: string, text: string): VirtualFile | undefin
 		}
 
 		return {
-			fileName: fileName + '.ts',
+			id: 'ts',
 			languageId: 'typescript',
-			typescript: {
-				scriptKind: 3,
-			},
 			snapshot: {
 				getText(start, end) {
 					return tsx.code.substring(start, end);
@@ -183,7 +180,7 @@ function getVirtualTsFile(fileName: string, text: string): VirtualFile | undefin
 				},
 			},
 			mappings: mappings,
-			embeddedFiles: [],
+			embeddedCodes: [],
 		};
 	} catch { }
 }

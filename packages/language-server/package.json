@@ -32,12 +32,12 @@
     },
     "dependencies": {
         "@jridgewell/sourcemap-codec": "^1.4.15",
-        "@volar/language-core": "2.0.0-alpha.13",
-        "@volar/language-server": "2.0.0-alpha.13",
+        "@volar/language-core": "~2.0.0",
+        "@volar/language-server": "~2.0.0",
         "svelte2tsx": "^0.6.27",
-        "volar-service-css": "0.0.25",
-        "volar-service-html": "0.0.25",
-        "volar-service-typescript": "0.0.25",
+        "volar-service-css": "volar-2.0",
+        "volar-service-html": "volar-2.0",
+        "volar-service-typescript": "volar-2.0",
         "vscode-languageserver-textdocument": "^1.0.11",
         "vscode-uri": "^3.0.8"
     }

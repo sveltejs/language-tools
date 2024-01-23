@@ -1,11 +1,11 @@
-import { createConnection, createNodeServer, createTypeScriptProjectProvider } from '@volar/language-server/node';
+import { createConnection, createServer, createTypeScriptProjectProvider } from '@volar/language-server/node';
 import { create as createCssScriptServicePlugin } from 'volar-service-css';
 import { create as createHtmlServicePlugin } from 'volar-service-html';
 import { create as createTypeScriptServicePlugin } from 'volar-service-typescript';
 import { svelteLanguagePlugin } from './languagePlugin';
 
 const connection = createConnection();
-const server = createNodeServer(connection);
+const server = createServer(connection);
 
 connection.listen();
 
