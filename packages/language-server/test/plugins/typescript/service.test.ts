@@ -9,7 +9,6 @@ import {
 import { GlobalSnapshotsManager } from '../../../src/plugins/typescript/SnapshotManager';
 import { pathToUrl } from '../../../src/utils';
 import { createVirtualTsSystem, getRandomVirtualDirPath } from './test-utils';
-import { createProjectService } from '../../../src/plugins/typescript/serviceCache';
 import { LSConfigManager } from '../../../src/ls-config';
 import { LSAndTSDocResolver } from '../../../src/plugins';
 
@@ -286,8 +285,8 @@ describe('service', () => {
 
         const importedFilePath = path.join(pathsProjectRefDir, 'imported.ts');
         assert.equal(
-            snapshotManager.get(importedFilePath),
-            undefined,
+            snapshotManager.has(importedFilePath),
+            false,
             'expected to load imported file through module resolution'
         );
 
@@ -306,7 +305,7 @@ describe('service', () => {
         lsContainer.updateSnapshot(document);
         lsContainer.getService();
 
-        assert.ok(snapshotManager.get(importedFilePath));
+        assert.ok(snapshotManager.has(importedFilePath));
     });
 
     function setupRealFS() {
