@@ -10,34 +10,35 @@ import { Element } from './Element';
 import { InlineComponent } from './InlineComponent';
 import { surroundWithIgnoreComments } from '../../utils/ignore';
 
+/**
+ * List of binding names that are transformed to sth like `binding = variable`.
+ */
 const oneWayBindingAttributes: Set<string> = new Set([
     'clientWidth',
     'clientHeight',
     'offsetWidth',
     'offsetHeight',
     'duration',
-    'buffered',
-    'seekable',
     'seeking',
-    'played',
     'ended',
     'readyState',
     'naturalWidth',
     'naturalHeight'
 ]);
 
+/**
+ * List of binding names that are transformed to sth like `binding = variable as GeneratedCode`.
+ */
 const oneWayBindingAttributesNotOnElement: Map<string, string> = new Map([
     ['contentRect', 'DOMRectReadOnly'],
     ['contentBoxSize', 'ResizeObserverSize[]'],
     ['borderBoxSize', 'ResizeObserverSize[]'],
-    ['devicePixelContentBoxSize', 'ResizeObserverSize[]']
+    ['devicePixelContentBoxSize', 'ResizeObserverSize[]'],
+    // available on the element, but with a different type
+    ['buffered', "import('svelte/elements').SvelteMediaTimeRange[]"],
+    ['played', "import('svelte/elements').SvelteMediaTimeRange[]"],
+    ['seekable', "import('svelte/elements').SvelteMediaTimeRange[]"]
 ]);
-
-/**
- * List of all binding names that are transformed to sth like `binding = variable`.
- * This applies to readonly bindings and the this binding.
- */
-export const assignmentBindings = new Set([...oneWayBindingAttributes.keys(), 'this']);
 
 const supportsBindThis = [
     'InlineComponent',
