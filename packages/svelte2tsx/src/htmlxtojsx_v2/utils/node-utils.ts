@@ -226,3 +226,18 @@ export function rangeWithTrailingPropertyAccess(
 ): [start: number, end: number] {
     return [node.start, withTrailingPropertyAccess(originalText, node.end)];
 }
+
+/**
+ * Get the end of the node, excluding the type annotation
+ */
+export function getEnd(node: any) {
+    return isTypescriptNode(node) ? node.expression.end : node.typeAnnotation?.start ?? node.end;
+}
+
+export function isTypescriptNode(node: any) {
+    return (
+        node.type === 'TSAsExpression' ||
+        node.type === 'TSSatisfiesExpression' ||
+        node.type === 'TSNonNullExpression'
+    );
+}

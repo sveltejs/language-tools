@@ -31,3 +31,5 @@
 <button onclick={(e: Event) => {e as any}}>click</button>
 <Component attr={attr as boolean} />
 <label id={ok!}></label>
+<Component bind:this={x as any} />
+<div bind:clientWidth={x as any} />
