@@ -1,4 +1,4 @@
- var foo/*Ωignore_startΩ*/: import('svelte').Snippet<any>/*Ωignore_endΩ*/ = (x) => {
+ var foo/*Ωignore_startΩ*/: import('svelte').Snippet<[any]>/*Ωignore_endΩ*/ = (x) => {
 	 { svelteHTML.createElement("div", {}); x; }
 return __sveltets_2_any(0)};
 

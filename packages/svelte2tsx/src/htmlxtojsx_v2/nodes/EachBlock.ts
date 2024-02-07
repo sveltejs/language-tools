@@ -27,8 +27,8 @@ export function handleEach(str: MagicString, eachBlock: BaseNode): void {
     const containsComma = str.original
         .substring(eachBlock.expression.start, eachBlock.expression.end)
         .includes(',');
-    const expressionEnd = getEnd(eachBlock.expression, str);
-    const contextEnd = getEnd(eachBlock.context, str);
+    const expressionEnd = getEnd(eachBlock.expression);
+    const contextEnd = getEnd(eachBlock.context);
     const arrayAndItemVarTheSame =
         str.original.substring(eachBlock.expression.start, expressionEnd) ===
         str.original.substring(eachBlock.context.start, contextEnd);
@@ -78,8 +78,6 @@ export function handleEach(str: MagicString, eachBlock: BaseNode): void {
 /**
  * Get the end of the node, excluding the type annotation
  */
-function getEnd(node: any, str: MagicString) {
-    return node.typeAnnotation
-        ? str.original.lastIndexOf(':', node.typeAnnotation.start)
-        : node.end;
+function getEnd(node: any) {
+    return node.typeAnnotation?.start ?? node.end;
 }

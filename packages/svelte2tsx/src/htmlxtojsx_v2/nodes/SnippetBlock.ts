@@ -43,17 +43,26 @@ export function handleSnippet(
     );
 
     const startEnd =
-        str.original.indexOf('}', snippetBlock.context?.end || snippetBlock.expression.end) + 1;
+        str.original.indexOf(
+            '}',
+            // context was the first iteration in a .next release, remove at some point
+            snippetBlock.context?.end ||
+                snippetBlock.parameters?.at(-1)?.end ||
+                snippetBlock.expression.end
+        ) + 1;
 
     if (isImplicitProp) {
         str.overwrite(snippetBlock.start, snippetBlock.expression.start, '', { contentOnly: true });
         const transforms: TransformationArray = ['('];
-        if (snippetBlock.context) {
-            transforms.push([snippetBlock.context.start, snippetBlock.context.end]);
-            str.overwrite(snippetBlock.expression.end, snippetBlock.context.start, '', {
+        if (snippetBlock.context || snippetBlock.parameters?.length) {
+            // context was the first iteration in a .next release, remove at some point
+            const start = snippetBlock.context?.start || snippetBlock.parameters?.[0].start;
+            const end = snippetBlock.context?.end || snippetBlock.parameters.at(-1).end;
+            transforms.push([start, end]);
+            str.overwrite(snippetBlock.expression.end, start, '', {
                 contentOnly: true
             });
-            str.overwrite(snippetBlock.context.end, startEnd, '', { contentOnly: true });
+            str.overwrite(end, startEnd, '', { contentOnly: true });
         } else {
             str.overwrite(snippetBlock.expression.end, startEnd, '', { contentOnly: true });
         }
@@ -64,15 +73,27 @@ export function handleSnippet(
             transforms
         );
     } else {
-        const generic = snippetBlock.context
-            ? snippetBlock.context.typeAnnotation
+        let generic = '';
+        // context was the first iteration in a .next release, remove at some point
+        if (snippetBlock.context) {
+            generic = snippetBlock.context.typeAnnotation
                 ? `<${str.original.slice(
-                      snippetBlock.context.typeAnnotation.start,
+                      snippetBlock.context.typeAnnotation.start + 1,
                       snippetBlock.context.typeAnnotation.end
                   )}>`
                 : // slap any on to it to silence "implicit any" errors; JSDoc people can't add types to snippets
-                  '<any>'
-            : '';
+                  '<any>';
+        } else if (snippetBlock.parameters?.length) {
+            generic = `<[${snippetBlock.parameters
+                .map((p) =>
+                    p.typeAnnotation
+                        ? str.original.slice(p.typeAnnotation.start + 1, p.typeAnnotation.end)
+                        : // slap any on to it to silence "implicit any" errors; JSDoc people can't add types to snippets
+                          'any'
+                )
+                .join(', ')}]>`;
+        }
+
         const typeAnnotation = surroundWithIgnoreComments(`: import('svelte').Snippet${generic}`);
         const transforms: TransformationArray = [
             'var ',
