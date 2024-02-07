@@ -101,8 +101,13 @@ export function handleSnippet(
             typeAnnotation + ' = ('
         ];
 
+        // context was the first iteration in a .next release, remove at some point
         if (snippetBlock.context) {
             transforms.push([snippetBlock.context.start, snippetBlock.context.end]);
+        } else if (snippetBlock.parameters?.length) {
+            const start = snippetBlock.parameters[0].start;
+            const end = snippetBlock.parameters.at(-1).end;
+            transforms.push([start, end]);
         }
 
         transforms.push(') => {');

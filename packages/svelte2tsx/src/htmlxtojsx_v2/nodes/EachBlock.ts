@@ -1,6 +1,6 @@
 import MagicString from 'magic-string';
 import { BaseNode } from '../../interfaces';
-import { transform, TransformationArray } from '../utils/node-utils';
+import { getEnd, transform, TransformationArray } from '../utils/node-utils';
 
 /**
  * Transform #each into a for-of loop
@@ -73,11 +73,4 @@ export function handleEach(str: MagicString, eachBlock: BaseNode): void {
             contentOnly: true
         });
     }
-}
-
-/**
- * Get the end of the node, excluding the type annotation
- */
-function getEnd(node: any) {
-    return node.typeAnnotation?.start ?? node.end;
 }
