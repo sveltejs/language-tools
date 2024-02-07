@@ -9,7 +9,8 @@
 async () => {
 
  { __sveltets_createSlot("default", {  x,y,});}};
-return { props: {} as any as $$_sveltets_Props, slots: {'default': {x:x, y:y}}, events: {} }}
+let $$implicit_children = __sveltets_2_snippet({x:x, y:y});
+return { props: {} as any as $$_sveltets_Props & { children?: typeof $$implicit_children }, slots: {'default': {x:x, y:y}}, events: {} }}
 class __sveltets_Render<T> {
     props() {
         return render<T>().props;
