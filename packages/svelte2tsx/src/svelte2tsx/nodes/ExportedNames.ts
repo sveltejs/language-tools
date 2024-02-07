@@ -17,7 +17,8 @@ interface ExportedName {
     identifierText?: string;
     required?: boolean;
     doc?: string;
-    implicitChildren?: 'empty' | 'attributes';
+    /** Set if this is the implicit children prop. `empty` == no parameters, else `has_params` */
+    implicitChildren?: 'empty' | 'has_params';
 }
 
 export class ExportedNames {
@@ -31,7 +32,8 @@ export class ExportedNames {
      */
     private $props = {
         comment: '',
-        generic: ''
+        generic: '',
+        mayHaveChildrenProp: false
     };
     private exports = new Map<string, ExportedName>();
     private possibleExports = new Map<
@@ -135,6 +137,29 @@ export class ExportedNames {
             initializer: ts.CallExpression & { expression: ts.Identifier };
         }
     ): void {
+        // Check if the $props() rune has a children prop
+        if (ts.isObjectBindingPattern(node.name)) {
+            for (const element of node.name.elements) {
+                if (
+                    !ts.isIdentifier(element.name) ||
+                    (element.propertyName && !ts.isIdentifier(element.propertyName)) ||
+                    !!element.dotDotDotToken
+                ) {
+                    // not statically analyzable, so we assume it may have children
+                    this.$props.mayHaveChildrenProp = true;
+                } else {
+                    const name = element.propertyName
+                        ? (element.propertyName as ts.Identifier).text
+                        : element.name.text;
+                    if (name === 'children') {
+                        this.$props.mayHaveChildrenProp = true;
+                    }
+                }
+            }
+        } else {
+            this.$props.mayHaveChildrenProp = true;
+        }
+
         if (node.initializer.typeArguments?.length > 0) {
             const generic_arg = node.initializer.typeArguments[0];
             const generic = generic_arg.getText();
@@ -201,7 +226,8 @@ export class ExportedNames {
             }
 
             if (internalHelpers.isKitRouteFile(this.basename)) {
-                const kitType = this.basename.includes('layout')
+                this.$props.mayHaveChildrenProp = this.basename.includes('layout');
+                const kitType = this.$props.mayHaveChildrenProp
                     ? `{ data: import('./$types.js').LayoutData, form: import('./$types.js').ActionData, children: import('svelte').Snippet }`
                     : `{ data: import('./$types.js').PageData, form: import('./$types.js').ActionData }`;
 
@@ -498,12 +524,12 @@ export class ExportedNames {
         }
     }
 
-    addImplicitChildrenExport(hasAttributes: boolean): void {
+    addImplicitChildrenExport(hasParams: boolean): void {
         if (this.exports.has('children')) return;
 
         this.exports.set('children', {
             isLet: true,
-            implicitChildren: hasAttributes ? 'attributes' : 'empty'
+            implicitChildren: hasParams ? 'has_params' : 'empty'
         });
     }
 
@@ -589,7 +615,9 @@ export class ExportedNames {
         const names = Array.from(this.exports.entries());
 
         if (this.$props.generic) {
-            const others = names.filter(([, { isLet }]) => !isLet);
+            const others = names.filter(
+                ([, { isLet, implicitChildren }]) => !isLet || !!implicitChildren
+            );
             return (
                 '{} as any as ' +
                 this.$props.generic +
@@ -600,8 +628,23 @@ export class ExportedNames {
         }
 
         if (this.$props.comment) {
-            // TODO: createReturnElements would need to be incorporated here, but don't bother for now.
-            // In the long run it's probably better to have them on a different object anyway.
+            // Try our best to incorporate createReturnElementsType here
+            const others = names.filter(
+                ([, { isLet, implicitChildren }]) => !isLet || !!implicitChildren
+            );
+            let idx = this.$props.comment.indexOf('@type');
+            if (idx !== -1 && /[\s{]/.test(this.$props.comment[idx + 5]) && others.length > 0) {
+                idx = this.$props.comment.indexOf('{', idx);
+                if (idx !== -1) {
+                    idx++;
+                    return (
+                        this.$props.comment.slice(0, idx) +
+                        `{${this.createReturnElementsType(others, false)}} & ` +
+                        this.$props.comment.slice(idx) +
+                        '({})'
+                    );
+                }
+            }
             return this.$props.comment + '({})';
         }
 
@@ -666,7 +709,7 @@ export class ExportedNames {
         });
     }
 
-    private createReturnElementsType(names: Array<[string, ExportedName]>) {
+    private createReturnElementsType(names: Array<[string, ExportedName]>, addDoc = true) {
         return names.map(([key, value]) => {
             if (value.implicitChildren) {
                 return `children?: ${
@@ -676,9 +719,9 @@ export class ExportedNames {
                 }`;
             }
 
-            const identifier = `${value.doc ? `\n${value.doc}` : ''}${value.identifierText || key}${
-                value.required ? '' : '?'
-            }`;
+            const identifier = `${value.doc && addDoc ? `\n${value.doc}` : ''}${
+                value.identifierText || key
+            }${value.required ? '' : '?'}`;
             if (!value.type) {
                 return `${identifier}: typeof ${key}`;
             }
@@ -697,7 +740,7 @@ export class ExportedNames {
         return this.exports;
     }
 
-    uses$propsRune() {
-        return !!this.$props.generic || !!this.$props.comment;
+    usesChildrenIn$propsRune() {
+        return this.$props.mayHaveChildrenProp;
     }
 }

@@ -7,7 +7,7 @@
      const snapshot = {};
 ;
 async () => {};
-return { props: /** @type {$$_sveltets_Props} */({}), slots: {}, events: {} }}
+return { props: /** @type {{snapshot?: typeof snapshot} & $$_sveltets_Props} */({}), slots: {}, events: {} }}
 
 export default class Page__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial(['snapshot'], __sveltets_2_with_any_event(render()))) {
     get snapshot() { return __sveltets_2_nonNullable(this.$$prop_def.snapshot) }

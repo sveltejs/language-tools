@@ -4,9 +4,13 @@
     let { a, b } = $props<$$_sveltets_Props>();
     let x = $state<T>(0);
     let y = $derived(x * 2);
-;
-async () => {};
-return { props: {} as any as $$_sveltets_Props, slots: {}, events: {} }}
+
+/*Ωignore_startΩ*/;const __sveltets_createSlot = __sveltets_2_createCreateSlot();/*Ωignore_endΩ*/;
+async () => {
+
+ { __sveltets_createSlot("default", {  x,y,});}};
+let $$implicit_children = __sveltets_2_snippet({x:x, y:y});
+return { props: {} as any as $$_sveltets_Props & { children?: typeof $$implicit_children }, slots: {'default': {x:x, y:y}}, events: {} }}
 class __sveltets_Render<T> {
     props() {
         return render<T>().props;
