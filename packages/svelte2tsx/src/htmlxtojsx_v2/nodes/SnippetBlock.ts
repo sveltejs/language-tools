@@ -140,7 +140,7 @@ export function handleImplicitChildren(componentNode: BaseNode, component: Inlin
                 continue;
             }
         }
-        if (child.type === 'Text' && child.data.trim() === '') {
+        if (child.type === 'Comment' || (child.type === 'Text' && child.data.trim() === '')) {
             continue;
         }
         if (child.type !== 'SnippetBlock') {
