@@ -1,225 +1,119 @@
-/**
- * This code's groundwork is taken from https://github.com/vuejs/vetur/tree/master/vti
- */
-
 import { watch } from 'chokidar';
-import * as fs from 'fs';
-import glob from 'fast-glob';
-import * as path from 'path';
-import { SvelteCheck, SvelteCheckOptions } from 'svelte-language-server';
-import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver-protocol';
-import { URI } from 'vscode-uri';
-import { parseOptions, SvelteCheckCliOptions } from './options';
-import {
-    DEFAULT_FILTER,
-    DiagnosticFilter,
-    HumanFriendlyWriter,
-    MachineFriendlyWriter,
-    Writer
-} from './writers';
+import { bold, dim, red, yellow } from 'kleur/colors';
+import { createRequire } from 'node:module';
+import * as path from 'node:path';
+import yargs from 'yargs';
+import { hideBin } from 'yargs/helpers';
+import { options } from './options.js';
+import { SvelteCheck } from './check.js';
 
-type Result = {
-    fileCount: number;
-    errorCount: number;
-    warningCount: number;
-    fileCountWithProblems: number;
-};
-
-async function openAllDocuments(
-    workspaceUri: URI,
-    filePathsToIgnore: string[],
-    svelteCheck: SvelteCheck
-) {
-    const files = await glob('**/*.svelte', {
-        cwd: workspaceUri.fsPath,
-        ignore: ['node_modules/**'].concat(filePathsToIgnore.map((ignore) => `${ignore}/**`))
-    });
-    const absFilePaths = files.map((f) => path.resolve(workspaceUri.fsPath, f));
-
-    for (const absFilePath of absFilePaths) {
-        const text = fs.readFileSync(absFilePath, 'utf-8');
-        svelteCheck.upsertDocument(
-            {
-                uri: URI.file(absFilePath).toString(),
-                text
-            },
-            true
-        );
-    }
+/**
+ * Given a list of arguments from the command line (such as `process.argv`), return parsed and processed options
+ */
+export function parseArgsAsCheckConfig(args: string[]) {
+	return yargs(hideBin(args)).options(options).parseSync();
 }
 
-async function getDiagnostics(
-    workspaceUri: URI,
-    writer: Writer,
-    svelteCheck: SvelteCheck
-): Promise<Result | null> {
-    writer.start(workspaceUri.fsPath);
+export type Flags = Pick<ReturnType<typeof parseArgsAsCheckConfig>, keyof typeof options>;
 
-    try {
-        const diagnostics = await svelteCheck.getDiagnostics();
+export async function check(flags: Partial<Flags> & { watch: true }): Promise<void>;
+export async function check(flags: Partial<Flags> & { watch: false }): Promise<boolean>;
+export async function check(flags: Partial<Flags>): Promise<boolean | void>;
+/**
+ * Print diagnostics according to the given flags, and return whether or not the program should exit with an error code.
+ */
+export async function check(flags: Partial<Flags>): Promise<boolean | void> {
+	const workspaceRoot = path.resolve(flags.root ?? process.cwd());
+	const require = createRequire(import.meta.url);
+	const checker = new SvelteCheck(
+		workspaceRoot,
+		require.resolve('typescript/lib/tsserverlibrary.js'),
+		flags.tsconfig
+	);
 
-        const result: Result = {
-            fileCount: diagnostics.length,
-            errorCount: 0,
-            warningCount: 0,
-            fileCountWithProblems: 0
-        };
+	let req = 0;
 
-        for (const diagnostic of diagnostics) {
-            writer.file(
-                diagnostic.diagnostics,
-                workspaceUri.fsPath,
-                path.relative(workspaceUri.fsPath, diagnostic.filePath),
-                diagnostic.text
-            );
+	if (flags.watch) {
+		function createWatcher(rootPath: string, extensions: string[]) {
+			return watch(`${rootPath}/**/*{${extensions.join(',')}}`, {
+				ignored: (ignoredPath) => ignoredPath.includes('node_modules'),
+				ignoreInitial: true,
+			});
+		}
 
-            let fileHasProblems = false;
+		// Dynamically get the list of extensions to watch from the files already included in the project
+		const checkedExtensions = Array.from(
+			new Set(
+				checker.linter.languageHost.getScriptFileNames().map((fileName) => path.extname(fileName))
+			)
+		);
+		createWatcher(workspaceRoot, checkedExtensions)
+			.on('add', (fileName) => {
+				checker.linter.fileCreated(fileName);
+				update();
+			})
+			.on('unlink', (fileName) => {
+				checker.linter.fileDeleted(fileName);
+				update();
+			})
+			.on('change', (fileName) => {
+				checker.linter.fileUpdated(fileName);
+				update();
+			});
+	}
 
-            diagnostic.diagnostics.forEach((d: Diagnostic) => {
-                if (d.severity === DiagnosticSeverity.Error) {
-                    result.errorCount += 1;
-                    fileHasProblems = true;
-                } else if (d.severity === DiagnosticSeverity.Warning) {
-                    result.warningCount += 1;
-                    fileHasProblems = true;
-                }
-            });
+	async function update() {
+		if (!flags.preserveWatchOutput) process.stdout.write('\x1Bc');
+		await lint();
+	}
 
-            if (fileHasProblems) {
-                result.fileCountWithProblems += 1;
-            }
-        }
+	async function lint() {
+		const currentReq = ++req;
+		await new Promise((resolve) => setTimeout(resolve, 100));
+		const isCanceled = () => currentReq !== req;
+		if (isCanceled()) return;
 
-        writer.completion(
-            result.fileCount,
-            result.errorCount,
-            result.warningCount,
-            result.fileCountWithProblems
-        );
-        return result;
-    } catch (err: any) {
-        writer.failure(err);
-        return null;
-    }
+		const minimumSeverity = flags.minimumSeverity || 'hint';
+		const result = await checker.lint({
+			logErrors: {
+				level: minimumSeverity,
+			},
+			cancel: isCanceled,
+		});
+		console.info(
+			[
+				bold(`Result (${result.fileChecked} file${result.fileChecked === 1 ? '' : 's'}): `),
+				['error', 'warning', 'hint'].includes(minimumSeverity)
+					? bold(red(`${result.errors} ${result.errors === 1 ? 'error' : 'errors'}`))
+					: undefined,
+				['warning', 'hint'].includes(minimumSeverity)
+					? bold(yellow(`${result.warnings} ${result.warnings === 1 ? 'warning' : 'warnings'}`))
+					: undefined,
+				['hint'].includes(minimumSeverity)
+					? dim(`${result.hints} ${result.hints === 1 ? 'hint' : 'hints'}\n`)
+					: undefined,
+			]
+				.filter(Boolean)
+				.join(`\n${dim('-')} `)
+		);
+
+		if (flags.watch) {
+			console.info('Watching for changes...');
+		} else {
+			switch (flags.minimumFailingSeverity) {
+				case 'error':
+					return result.errors > 0;
+				case 'warning':
+					return result.errors + result.warnings > 0;
+				case 'hint':
+					return result.errors + result.warnings + result.hints > 0;
+				default:
+					return result.errors > 0;
+			}
+		}
+	}
+
+	// Always lint on first run, even in watch mode.
+	const lintResult = await lint();
+	if (!flags.watch) return lintResult;
 }
-
-class DiagnosticsWatcher {
-    private updateDiagnostics: any;
-
-    constructor(
-        private workspaceUri: URI,
-        private svelteCheck: SvelteCheck,
-        private writer: Writer,
-        filePathsToIgnore: string[],
-        ignoreInitialAdd: boolean
-    ) {
-        watch(`${workspaceUri.fsPath}/**/*.{svelte,d.ts,ts,js,jsx,tsx,mjs,cjs,mts,cts}`, {
-            ignored: ['node_modules', 'vite.config.{js,ts}.timestamp-*']
-                .concat(filePathsToIgnore)
-                .map((ignore) => path.join(workspaceUri.fsPath, ignore)),
-            ignoreInitial: ignoreInitialAdd
-        })
-            .on('add', (path) => this.updateDocument(path, true))
-            .on('unlink', (path) => this.removeDocument(path))
-            .on('change', (path) => this.updateDocument(path, false));
-
-        if (ignoreInitialAdd) {
-            this.scheduleDiagnostics();
-        }
-    }
-
-    private async updateDocument(path: string, isNew: boolean) {
-        const text = fs.readFileSync(path, 'utf-8');
-        await this.svelteCheck.upsertDocument({ text, uri: URI.file(path).toString() }, isNew);
-        this.scheduleDiagnostics();
-    }
-
-    private async removeDocument(path: string) {
-        await this.svelteCheck.removeDocument(URI.file(path).toString());
-        this.scheduleDiagnostics();
-    }
-
-    scheduleDiagnostics() {
-        clearTimeout(this.updateDiagnostics);
-        this.updateDiagnostics = setTimeout(
-            () => getDiagnostics(this.workspaceUri, this.writer, this.svelteCheck),
-            1000
-        );
-    }
-}
-
-function createFilter(opts: SvelteCheckCliOptions): DiagnosticFilter {
-    switch (opts.threshold) {
-        case 'error':
-            return (d) => d.severity === DiagnosticSeverity.Error;
-        case 'warning':
-            return (d) =>
-                d.severity === DiagnosticSeverity.Error ||
-                d.severity === DiagnosticSeverity.Warning;
-        default:
-            return DEFAULT_FILTER;
-    }
-}
-
-function instantiateWriter(opts: SvelteCheckCliOptions): Writer {
-    const filter = createFilter(opts);
-
-    if (opts.outputFormat === 'human-verbose' || opts.outputFormat === 'human') {
-        return new HumanFriendlyWriter(
-            process.stdout,
-            opts.outputFormat === 'human-verbose',
-            opts.watch,
-            !opts.preserveWatchOutput,
-            filter
-        );
-    } else {
-        return new MachineFriendlyWriter(
-            process.stdout,
-            opts.outputFormat === 'machine-verbose',
-            filter
-        );
-    }
-}
-
-parseOptions(async (opts) => {
-    try {
-        const writer = instantiateWriter(opts);
-
-        const svelteCheckOptions: SvelteCheckOptions = {
-            compilerWarnings: opts.compilerWarnings,
-            diagnosticSources: opts.diagnosticSources,
-            tsconfig: opts.tsconfig,
-            watch: opts.watch
-        };
-
-        if (opts.watch) {
-            svelteCheckOptions.onProjectReload = () => watcher.scheduleDiagnostics();
-            const watcher = new DiagnosticsWatcher(
-                opts.workspaceUri,
-                new SvelteCheck(opts.workspaceUri.fsPath, svelteCheckOptions),
-                writer,
-                opts.filePathsToIgnore,
-                !!opts.tsconfig
-            );
-        } else {
-            const svelteCheck = new SvelteCheck(opts.workspaceUri.fsPath, svelteCheckOptions);
-
-            if (!opts.tsconfig) {
-                await openAllDocuments(opts.workspaceUri, opts.filePathsToIgnore, svelteCheck);
-            }
-            const result = await getDiagnostics(opts.workspaceUri, writer, svelteCheck);
-            if (
-                result &&
-                result.errorCount === 0 &&
-                (!opts.failOnWarnings || result.warningCount === 0)
-            ) {
-                process.exit(0);
-            } else {
-                process.exit(1);
-            }
-        }
-    } catch (_err) {
-        console.error(_err);
-        console.error('svelte-check failed');
-    }
-});
