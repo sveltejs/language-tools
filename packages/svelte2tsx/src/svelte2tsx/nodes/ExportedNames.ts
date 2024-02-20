@@ -187,18 +187,21 @@ export class ExportedNames {
                 const text = node.getSourceFile().getFullText();
                 let start = -1;
                 let comment: string;
-                for (const c of ts.getLeadingCommentRanges(text, node.pos) || []) {
+                // reverse because we want to look at the last comment before the node first
+                for (const c of [...(ts.getLeadingCommentRanges(text, node.pos) || [])].reverse()) {
                     const potential_match = text.substring(c.pos, c.end);
-                    if (potential_match.includes('@type')) {
+                    if (/@type\b/.test(potential_match)) {
                         comment = potential_match;
                         start = c.pos + this.astOffset;
                         break;
                     }
                 }
                 if (!comment) {
-                    for (const c of ts.getLeadingCommentRanges(text, node.parent.pos) || []) {
+                    for (const c of [
+                        ...(ts.getLeadingCommentRanges(text, node.parent.pos) || []).reverse()
+                    ]) {
                         const potential_match = text.substring(c.pos, c.end);
-                        if (potential_match.includes('@type')) {
+                        if (/@type\b/.test(potential_match)) {
                             comment = potential_match;
                             start = c.pos + this.astOffset;
                             break;
