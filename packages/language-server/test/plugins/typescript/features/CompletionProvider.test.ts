@@ -1499,6 +1499,55 @@ describe('CompletionProviderImpl', function () {
         assert.strictEqual(detail, 'Add import from "./Bar.svelte"\n\nclass Bar');
     });
 
+    it("doesn't use empty cache", async () => {
+        const virtualTestDir = getRandomVirtualDirPath(testFilesDir);
+        const { document, lsAndTsDocResolver, lsConfigManager, docManager } =
+            setupVirtualEnvironment({
+                filename: 'index.svelte',
+                fileContent: '<script>b</script>',
+                testDir: virtualTestDir
+            });
+
+        const completionProvider = new CompletionsProviderImpl(lsAndTsDocResolver, lsConfigManager);
+
+        await lsAndTsDocResolver.getLSAndTSDoc(document);
+
+        docManager.updateDocument(document, [
+            {
+                range: Range.create(
+                    Position.create(0, document.content.length),
+                    Position.create(0, document.content.length)
+                ),
+                text: ' '
+            }
+        ]);
+
+        docManager.openClientDocument({
+            text: '',
+            uri: pathToUrl(join(virtualTestDir, 'Bar.svelte'))
+        });
+
+        docManager.updateDocument(document, [
+            {
+                range: Range.create(
+                    Position.create(0, document.content.length),
+                    Position.create(0, document.content.length)
+                ),
+                text: ' '
+            }
+        ]);
+
+        const completions = await completionProvider.getCompletions(document, {
+            line: 0,
+            character: 9
+        });
+
+        const item2 = completions?.items.find((item) => item.label === 'Bar');
+        const { detail } = await completionProvider.resolveCompletion(document, item2!);
+
+        assert.strictEqual(detail, 'Add import from "./Bar.svelte"\n\nclass Bar');
+    });
+
     it('can auto import new export', async () => {
         const virtualTestDir = getRandomVirtualDirPath(testFilesDir);
         const { document, lsAndTsDocResolver, lsConfigManager, virtualSystem } =

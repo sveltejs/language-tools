@@ -76,15 +76,18 @@ class __sveltets_Render${genericsDef} {
     const svelteComponentClass = noSvelteComponentTyped
         ? 'SvelteComponent'
         : 'SvelteComponentTyped';
+    const [PropsName] = addTypeExport(str, className, 'Props');
+    const [EventsName] = addTypeExport(str, className, 'Events');
+    const [SlotsName] = addTypeExport(str, className, 'Slots');
 
     if (mode === 'dts') {
         statement +=
-            `export type ${className}Props${genericsDef} = ${returnType('props')};\n` +
-            `export type ${className}Events${genericsDef} = ${returnType('events')};\n` +
-            `export type ${className}Slots${genericsDef} = ${returnType('slots')};\n` +
+            `export type ${PropsName}${genericsDef} = ${returnType('props')};\n` +
+            `export type ${EventsName}${genericsDef} = ${returnType('events')};\n` +
+            `export type ${SlotsName}${genericsDef} = ${returnType('slots')};\n` +
             `\n${doc}export default class${
                 className ? ` ${className}` : ''
-            }${genericsDef} extends ${svelteComponentClass}<${className}Props${genericsRef}, ${className}Events${genericsRef}, ${className}Slots${genericsRef}> {` +
+            }${genericsDef} extends ${svelteComponentClass}<${PropsName}${genericsRef}, ${EventsName}${genericsRef}, ${SlotsName}${genericsRef}> {` +
             exportedNames.createClassGetters() +
             (usesAccessors ? exportedNames.createClassAccessors() : '') +
             '\n}';
@@ -128,32 +131,21 @@ function addSimpleComponentExport({
 
     let statement: string;
     if (mode === 'dts' && isTsFile) {
-        const addTypeExport = (type: string) => {
-            const exportName = className + type;
-
-            if (!str.original.includes(exportName)) {
-                return `export type ${exportName} = typeof __propDef.${type.toLowerCase()};\n`;
-            }
-
-            let replacement = exportName + '_';
-            while (str.original.includes(replacement)) {
-                replacement += '_';
-            }
-            return `type ${replacement} = typeof __propDef.${type.toLowerCase()};\nexport { ${replacement} as ${exportName} };\n`;
-        };
-
         const svelteComponentClass = noSvelteComponentTyped
             ? 'SvelteComponent'
             : 'SvelteComponentTyped';
+        const [PropsName, PropsExport] = addTypeExport(str, className, 'Props');
+        const [EventsName, EventsExport] = addTypeExport(str, className, 'Events');
+        const [SlotsName, SlotsExport] = addTypeExport(str, className, 'Slots');
 
         statement =
             `\nconst __propDef = ${propDef};\n` +
-            addTypeExport('Props') +
-            addTypeExport('Events') +
-            addTypeExport('Slots') +
+            PropsExport +
+            EventsExport +
+            SlotsExport +
             `\n${doc}export default class${
                 className ? ` ${className}` : ''
-            } extends ${svelteComponentClass}<${className}Props, ${className}Events, ${className}Slots> {` +
+            } extends ${svelteComponentClass}<${PropsName}, ${EventsName}, ${SlotsName}> {` +
             exportedNames.createClassGetters() +
             (usesAccessors ? exportedNames.createClassAccessors() : '') +
             '\n}';
@@ -180,6 +172,44 @@ function addSimpleComponentExport({
     }
 
     str.append(statement);
+}
+
+function addTypeExport(
+    str: MagicString,
+    className: string,
+    type: string
+): [name: string, exportstring: string] {
+    const exportName = className + type;
+
+    if (!new RegExp(`\\W${exportName}\\W`).test(str.original)) {
+        return [
+            exportName,
+            `export type ${exportName} = typeof __propDef.${type.toLowerCase()};\n`
+        ];
+    }
+
+    let replacement = exportName + '_';
+    while (str.original.includes(replacement)) {
+        replacement += '_';
+    }
+
+    if (
+        // Check if there's already an export with the same name
+        !new RegExp(
+            `export ((const|let|var|class|interface|type) ${exportName}\\W|{[^}]*?${exportName}(}|\\W.*?}))`
+        ).test(str.original)
+    ) {
+        return [
+            replacement,
+            `type ${replacement} = typeof __propDef.${type.toLowerCase()};\nexport { ${replacement} as ${exportName} };\n`
+        ];
+    } else {
+        return [
+            replacement,
+            // we assume that the author explicitly named the type the same and don't export the generated type (which has an unstable name)
+            `type ${replacement} = typeof __propDef.${type.toLowerCase()};\n`
+        ];
+    }
 }
 
 function events(strictEvents: boolean, renderStr: string) {

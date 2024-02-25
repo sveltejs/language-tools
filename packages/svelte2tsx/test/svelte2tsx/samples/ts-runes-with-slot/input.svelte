@@ -3,3 +3,5 @@
     let x = $state<T>(0);
     let y = $derived(x * 2);
 </script>
+
+<slot {x} {y} />

@@ -111,7 +111,7 @@ export function createRenderFunction({
 
     const needsImplicitChildrenProp =
         svelte5Plus &&
-        !exportedNames.uses$propsRune() &&
+        !exportedNames.usesChildrenIn$propsRune() &&
         slots.has('default') &&
         !exportedNames.getExportsMap().has('default');
     if (needsImplicitChildrenProp) {

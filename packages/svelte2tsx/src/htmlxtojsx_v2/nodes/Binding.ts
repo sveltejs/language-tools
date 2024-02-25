@@ -1,38 +1,44 @@
 import MagicString from 'magic-string';
-import { rangeWithTrailingPropertyAccess, TransformationArray } from '../utils/node-utils';
+import {
+    getEnd,
+    isTypescriptNode,
+    rangeWithTrailingPropertyAccess,
+    TransformationArray
+} from '../utils/node-utils';
 import { BaseDirective, BaseNode } from '../../interfaces';
 import { Element } from './Element';
 import { InlineComponent } from './InlineComponent';
 import { surroundWithIgnoreComments } from '../../utils/ignore';
 
+/**
+ * List of binding names that are transformed to sth like `binding = variable`.
+ */
 const oneWayBindingAttributes: Set<string> = new Set([
     'clientWidth',
     'clientHeight',
     'offsetWidth',
     'offsetHeight',
     'duration',
-    'buffered',
-    'seekable',
     'seeking',
-    'played',
     'ended',
     'readyState',
     'naturalWidth',
     'naturalHeight'
 ]);
 
+/**
+ * List of binding names that are transformed to sth like `binding = variable as GeneratedCode`.
+ */
 const oneWayBindingAttributesNotOnElement: Map<string, string> = new Map([
     ['contentRect', 'DOMRectReadOnly'],
     ['contentBoxSize', 'ResizeObserverSize[]'],
     ['borderBoxSize', 'ResizeObserverSize[]'],
-    ['devicePixelContentBoxSize', 'ResizeObserverSize[]']
+    ['devicePixelContentBoxSize', 'ResizeObserverSize[]'],
+    // available on the element, but with a different type
+    ['buffered', "import('svelte/elements').SvelteMediaTimeRange[]"],
+    ['played', "import('svelte/elements').SvelteMediaTimeRange[]"],
+    ['seekable', "import('svelte/elements').SvelteMediaTimeRange[]"]
 ]);
-
-/**
- * List of all binding names that are transformed to sth like `binding = variable`.
- * This applies to readonly bindings and the this binding.
- */
-export const assignmentBindings = new Set([...oneWayBindingAttributes.keys(), 'this']);
 
 const supportsBindThis = [
     'InlineComponent',
@@ -67,26 +73,20 @@ export function handleBinding(
         // Note: If the component unmounts (it's inside an if block, or svelte:component this={null},
         // the value becomes null, but we don't add it to the clause because it would introduce
         // worse DX for the 99% use case, and because null !== undefined which others might use to type the declaration.
-        element.appendToStartEnd([
-            [attr.expression.start, attr.expression.end],
-            ` = ${element.name};`
-        ]);
+        appendOneWayBinding(attr, ` = ${element.name}`, element);
         return;
     }
 
     // one way binding
     if (oneWayBindingAttributes.has(attr.name) && element instanceof Element) {
-        element.appendToStartEnd([
-            [attr.expression.start, attr.expression.end],
-            `= ${element.name}.${attr.name};`
-        ]);
+        appendOneWayBinding(attr, `= ${element.name}.${attr.name}`, element);
         return;
     }
 
     // one way binding whose property is not on the element
     if (oneWayBindingAttributesNotOnElement.has(attr.name) && element instanceof Element) {
         element.appendToStartEnd([
-            [attr.expression.start, attr.expression.end],
+            [attr.expression.start, getEnd(attr.expression)],
             `= ${surroundWithIgnoreComments(
                 `null as ${oneWayBindingAttributesNotOnElement.get(attr.name)}`
             )};`
@@ -126,4 +126,22 @@ export function handleBinding(
     } else {
         element.addProp(name, value);
     }
+}
+
+function appendOneWayBinding(
+    attr: BaseDirective,
+    assignment: string,
+    element: Element | InlineComponent
+) {
+    const expression = attr.expression;
+    const end = getEnd(expression);
+    const hasTypeAnnotation = expression.typeAnnotation || isTypescriptNode(expression);
+    const array: TransformationArray = [
+        [expression.start, end],
+        assignment + (hasTypeAnnotation ? '' : ';')
+    ];
+    if (hasTypeAnnotation) {
+        array.push([end, expression.end], ';');
+    }
+    element.appendToStartEnd(array);
 }
