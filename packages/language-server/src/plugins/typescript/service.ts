@@ -49,6 +49,7 @@ export interface LanguageServiceContainer {
     fileBelongsToProject(filePath: string, isNew: boolean): boolean;
     onAutoImportProviderSettingsChanged(): void;
     onPackageJsonChange(packageJsonPath: string): void;
+    getTsConfigSvelteOptions(): { namespace: string };
 
     dispose(): void;
 }
@@ -322,6 +323,7 @@ async function createLanguageService(
         invalidateModuleCache,
         onAutoImportProviderSettingsChanged,
         onPackageJsonChange,
+        getTsConfigSvelteOptions,
         dispose
     };
 
@@ -805,6 +807,13 @@ async function createLanguageService(
                 host.getModuleSpecifierCache?.().clear();
             }
         }
+    }
+
+    function getTsConfigSvelteOptions() {
+        // if there's more options in the future, get it from raw.svelteOptions and normalize it
+        return {
+            namespace: transformationConfig.typingsNamespace
+        };
     }
 }
 

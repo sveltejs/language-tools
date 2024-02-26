@@ -62,10 +62,7 @@ import { LSAndTSDocResolver } from './LSAndTSDocResolver';
 import { ignoredBuildDirectories } from './SnapshotManager';
 import { CallHierarchyProviderImpl } from './features/CallHierarchyProvider';
 import { CodeActionsProviderImpl } from './features/CodeActionsProvider';
-import {
-    CompletionEntryWithIdentifier,
-    CompletionsProviderImpl
-} from './features/CompletionProvider';
+import { CompletionResolveInfo, CompletionsProviderImpl } from './features/CompletionProvider';
 import { DiagnosticsProviderImpl } from './features/DiagnosticsProvider';
 import { FindComponentReferencesProviderImpl } from './features/FindComponentReferencesProvider';
 import { FindFileReferencesProviderImpl } from './features/FindFileReferencesProvider';
@@ -116,7 +113,7 @@ export class TypeScriptPlugin
         CallHierarchyProvider,
         FoldingRangeProvider,
         OnWatchFileChanges,
-        CompletionsProvider<CompletionEntryWithIdentifier>,
+        CompletionsProvider<CompletionResolveInfo>,
         UpdateTsOrJsFile
 {
     __name = 'ts';
@@ -325,7 +322,7 @@ export class TypeScriptPlugin
         position: Position,
         completionContext?: CompletionContext,
         cancellationToken?: CancellationToken
-    ): Promise<AppCompletionList<CompletionEntryWithIdentifier> | null> {
+    ): Promise<AppCompletionList<CompletionResolveInfo> | null> {
         if (!this.featureEnabled('completions')) {
             return null;
         }
@@ -355,9 +352,9 @@ export class TypeScriptPlugin
 
     async resolveCompletion(
         document: Document,
-        completionItem: AppCompletionItem<CompletionEntryWithIdentifier>,
+        completionItem: AppCompletionItem<CompletionResolveInfo>,
         cancellationToken?: CancellationToken
-    ): Promise<AppCompletionItem<CompletionEntryWithIdentifier>> {
+    ): Promise<AppCompletionItem<CompletionResolveInfo>> {
         return this.completionProvider.resolveCompletion(
             document,
             completionItem,
