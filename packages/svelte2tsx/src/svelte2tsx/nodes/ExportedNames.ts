@@ -160,8 +160,8 @@ export class ExportedNames {
             this.$props.mayHaveChildrenProp = true;
         }
 
-        if (node.initializer.typeArguments?.length > 0) {
-            const generic_arg = node.initializer.typeArguments[0];
+        if (node.initializer.typeArguments?.length > 0 || node.type) {
+            const generic_arg = node.initializer.typeArguments?.[0] || node.type;
             const generic = generic_arg.getText();
             if (!generic.includes('{')) {
                 this.$props.generic = generic;
