@@ -649,11 +649,8 @@ function getProxiedLanguageService(info: ts.server.PluginCreateInfo, ts: _ts, lo
         }
 
         upsertKitFile(fileName: string) {
-            const result = internalHelpers.upsertKitFile(
-                ts,
-                fileName,
-                kitFilesSettings,
-                () => info.languageService.getProgram()?.getSourceFile(fileName)
+            const result = internalHelpers.upsertKitFile(ts, fileName, kitFilesSettings, () =>
+                info.languageService.getProgram()?.getSourceFile(fileName)
             );
             if (!result) {
                 return;
