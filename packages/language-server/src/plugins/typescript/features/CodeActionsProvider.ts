@@ -637,11 +637,10 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             return [];
         }
 
-        const codeActionsNotFilteredOut = codeActions.filter(
-            ({ codeAction }) =>
-                codeAction.edit?.documentChanges?.every(
-                    (change) => (<TextDocumentEdit>change).edits.length > 0
-                )
+        const codeActionsNotFilteredOut = codeActions.filter(({ codeAction }) =>
+            codeAction.edit?.documentChanges?.every(
+                (change) => (<TextDocumentEdit>change).edits.length > 0
+            )
         );
 
         const fixAllActions = this.getFixAllActions(

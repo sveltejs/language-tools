@@ -638,7 +638,10 @@ describe('CompletionProviderImpl', function () {
         );
 
         assert.deepStrictEqual(
-            sortBy(completions?.items.map((item) => item.label), (x) => x),
+            sortBy(
+                completions?.items.map((item) => item.label),
+                (x) => x
+            ),
             sortBy(testfiles, (x) => x)
         );
     });
@@ -1372,7 +1375,10 @@ describe('CompletionProviderImpl', function () {
             document,
             Position.create(4, 14)
         );
-        assert.deepStrictEqual(completions?.items.map((item) => item.label), ['s', 'm', 'l']);
+        assert.deepStrictEqual(
+            completions?.items.map((item) => item.label),
+            ['s', 'm', 'l']
+        );
     });
 
     it('can auto import in workspace without tsconfig/jsconfig', async () => {
