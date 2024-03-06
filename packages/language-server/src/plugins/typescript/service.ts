@@ -1,4 +1,4 @@
-import { basename, dirname, join, resolve } from 'path';
+import { dirname, join, resolve } from 'path';
 import ts from 'typescript';
 import { TextDocumentContentChangeEvent } from 'vscode-languageserver-protocol';
 import { getPackageInfo, importSvelte } from '../../importPackage';
@@ -49,6 +49,7 @@ export interface LanguageServiceContainer {
     fileBelongsToProject(filePath: string, isNew: boolean): boolean;
     onAutoImportProviderSettingsChanged(): void;
     onPackageJsonChange(packageJsonPath: string): void;
+    scheduleUpdate(triggeredFile?: string): void;
 
     dispose(): void;
 }
@@ -62,7 +63,12 @@ declare module 'typescript' {
          */
         hasInvalidatedResolutions?: (sourceFile: string) => boolean;
 
+        /**
+         * @internal
+         */
         getModuleResolutionCache?(): ts.ModuleResolutionCache;
+        /** @internal */
+        setCompilerHost?(host: ts.CompilerHost): void;
     }
 
     interface ResolvedModuleWithFailedLookupLocations {
@@ -222,9 +228,16 @@ async function createLanguageService(
     // by the time they need to be accessed synchronously by DocumentSnapshots.
     await configLoader.loadConfigs(workspacePath);
 
-    const svelteModuleLoader = createSvelteModuleLoader(getSnapshot, compilerOptions, tsSystem, ts);
+    const svelteModuleLoader = createSvelteModuleLoader(
+        getSnapshot,
+        compilerOptions,
+        tsSystem,
+        ts,
+        () => host?.getCompilerHost?.()
+    );
 
     let svelteTsPath: string;
+    let compilerHost: ts.CompilerHost | undefined;
     try {
         // For when svelte2tsx/svelte-check is part of node_modules, for example VS Code extension
         svelteTsPath = dirname(require.resolve(docContext.ambientTypesSource));
@@ -276,6 +289,7 @@ async function createLanguageService(
         readFile: svelteModuleLoader.readFile,
         resolveModuleNames: svelteModuleLoader.resolveModuleNames,
         readDirectory: svelteModuleLoader.readDirectory,
+        realpath: tsSystem.realpath,
         getDirectories: tsSystem.getDirectories,
         getProjectReferences: () => projectReferences,
         useCaseSensitiveFileNames: () => tsSystem.useCaseSensitiveFileNames,
@@ -288,7 +302,9 @@ async function createLanguageService(
         getModuleResolutionCache: svelteModuleLoader.getModuleResolutionCache,
         useSourceOfProjectReferenceRedirect() {
             return !languageServiceReducedMode;
-        },
+        }
+        // setCompilerHost: (host) => (compilerHost = host),
+        // getCompilerHost: () => compilerHost,
     };
 
     const documentRegistry = getOrCreateDocumentRegistry(
@@ -327,6 +343,7 @@ async function createLanguageService(
         invalidateModuleCache,
         onAutoImportProviderSettingsChanged,
         onPackageJsonChange,
+        scheduleUpdate,
         dispose
     };
 
@@ -360,6 +377,9 @@ async function createLanguageService(
     function updateSnapshotFromDocument(document: Document): DocumentSnapshot {
         const filePath = document.getFilePath() || '';
         const prevSnapshot = snapshotManager.get(filePath);
+
+        console.log(filePath, prevSnapshot?.isOpenedInClient(), document.openedByClient)
+
         if (prevSnapshot?.version === document.version) {
             return prevSnapshot;
         }
@@ -723,6 +743,7 @@ async function createLanguageService(
         }
 
         dirty = false;
+        compilerHost = undefined;
 
         if (!oldProgram) {
             changedFilesForExportCache.clear();

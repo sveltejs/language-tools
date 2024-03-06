@@ -20,12 +20,18 @@ export function createSvelteSys(tsSystem: ts.System) {
         }
     }
 
+    function getRealSveltePathIfExists(path: string) {
+        return svelteFileExists(path) ? toRealSvelteFilePath(path) : path;
+    }
+
     const svelteSys: ts.System & {
         deleteFromCache: (path: string) => void;
         svelteFileExists: (path: string) => boolean;
+        getRealSveltePathIfExists: (path: string) => string;
     } = {
         ...tsSystem,
         svelteFileExists,
+        getRealSveltePathIfExists,
         fileExists(path: string) {
             // We need to check both .svelte and .svelte.ts/js because that's how Svelte 5 will likely mark files with runes in them
             const sveltePathExists = svelteFileExists(path);
@@ -36,7 +42,7 @@ export function createSvelteSys(tsSystem: ts.System) {
         },
         readFile(path: string) {
             // No getSnapshot here, because TS will very rarely call this and only for files that are not in the project
-            return tsSystem.readFile(svelteFileExists(path) ? toRealSvelteFilePath(path) : path);
+            return tsSystem.readFile(getRealSveltePathIfExists(path));
         },
         readDirectory(path, extensions, exclude, include, depth) {
             const extensionsWithSvelte = extensions ? [...extensions, '.svelte'] : undefined;

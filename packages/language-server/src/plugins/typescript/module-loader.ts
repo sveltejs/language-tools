@@ -161,7 +161,8 @@ export function createSvelteModuleLoader(
     getSnapshot: (fileName: string) => DocumentSnapshot,
     compilerOptions: ts.CompilerOptions,
     tsSystem: ts.System,
-    tsModule: typeof ts
+    tsModule: typeof ts,
+    getModuleResolutionHost: () => ts.ModuleResolutionHost | undefined
 ) {
     const getCanonicalFileName = createGetCanonicalFileName(tsSystem.useCaseSensitiveFileNames);
     const svelteSys = createSvelteSys(tsSystem);
@@ -201,9 +202,16 @@ export function createSvelteModuleLoader(
 
             const previousTriedButFailed = failedPathToContainingFile.get(path);
 
-            for (const containingFile of previousTriedButFailed ?? []) {
+            if (!previousTriedButFailed) {
+                return;
+            }
+
+            for (const containingFile of previousTriedButFailed) {
                 failedLocationInvalidated.add(containingFile);
             }
+
+            tsModuleCache.clear();
+            typeReferenceCache.clear();
         },
         resolveModuleNames,
         resolveTypeReferenceDirectiveReferences,
@@ -257,52 +265,39 @@ export function createSvelteModuleLoader(
             containingSourceFile,
             compilerOptions
         );
-        // Delegate to the TS resolver first.
-        // If that does not bring up anything, try the Svelte Module loader
-        // which is able to deal with .svelte files.
-        const tsResolvedModuleWithFailedLookup = tsModule.resolveModuleName(
+        const resolvedModuleWithFailedLookup = tsModule.resolveModuleName(
             name,
             containingFile,
             compilerOptions,
-            ts.sys,
+            getModuleResolutionHost() ?? svelteSys,
             tsModuleCache,
             redirectedReference,
             mode
         );
 
-        const tsResolvedModule = tsResolvedModuleWithFailedLookup.resolvedModule;
-        if (tsResolvedModule) {
-            return tsResolvedModuleWithFailedLookup;
+        const resolvedModule = resolvedModuleWithFailedLookup.resolvedModule;
+
+        if (!resolvedModule || !isVirtualSvelteFilePath(resolvedModule.resolvedFileName)) {
+            return resolvedModuleWithFailedLookup;
         }
 
-        const svelteResolvedModuleWithFailedLookup = tsModule.resolveModuleName(
-            name,
-            containingFile,
-            compilerOptions,
-            svelteSys,
-            undefined,
-            redirectedReference,
-            mode
+        const resolvedFileName = svelteSys.getRealSveltePathIfExists(
+            resolvedModule.resolvedFileName
         );
 
-        const svelteResolvedModule = svelteResolvedModuleWithFailedLookup.resolvedModule;
-        if (
-            !svelteResolvedModule ||
-            !isVirtualSvelteFilePath(svelteResolvedModule.resolvedFileName)
-        ) {
-            return svelteResolvedModuleWithFailedLookup;
+        if (!isSvelteFilePath(resolvedFileName)) {
+            return resolvedModuleWithFailedLookup;
         }
 
-        const resolvedFileName = ensureRealSvelteFilePath(svelteResolvedModule.resolvedFileName);
         const snapshot = getSnapshot(resolvedFileName);
 
         const resolvedSvelteModule: ts.ResolvedModuleFull = {
             extension: getExtensionFromScriptKind(snapshot && snapshot.scriptKind),
             resolvedFileName,
-            isExternalLibraryImport: svelteResolvedModule.isExternalLibraryImport
+            isExternalLibraryImport: resolvedModule.isExternalLibraryImport
         };
         return {
-            ...svelteResolvedModuleWithFailedLookup,
+            ...resolvedModuleWithFailedLookup,
             resolvedModule: resolvedSvelteModule
         };
     }
