@@ -1,5 +1,6 @@
 import type ts from 'typescript/lib/tsserverlibrary';
 import { SvelteSnapshot } from './svelte-snapshots';
+import { dirname, join } from 'path';
 type _ts = typeof ts;
 
 export function isSvelteFilePath(filePath: string) {
@@ -225,11 +226,20 @@ export function findIdentifier(ts: _ts, node: ts.Node): ts.Identifier | undefine
     }
 }
 
-export function hasNodeModule(compilerOptions: ts.CompilerOptions, module: string) {
+export function getProjectDirectory(project: ts.server.Project) {
+    const compilerOptions = project.getCompilerOptions();
+
+    if (typeof compilerOptions.configFilePath === 'string') {
+        return dirname(compilerOptions.configFilePath);
+    }
+
+    const packageJsonPath = join(project.getCurrentDirectory(), 'package.json');
+    return project.fileExists(packageJsonPath) ? project.getCurrentDirectory() : undefined;
+}
+
+export function hasNodeModule(startPath: string, module: string) {
     try {
-        const hasModule =
-            typeof compilerOptions.configFilePath !== 'string' ||
-            require.resolve(module, { paths: [compilerOptions.configFilePath] });
+        const hasModule = require.resolve(module, { paths: [startPath] });
         return hasModule;
     } catch (e) {
         // If require.resolve fails, we end up here, which can be either because the package is not found,

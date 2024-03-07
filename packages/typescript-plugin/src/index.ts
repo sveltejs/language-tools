@@ -6,7 +6,7 @@ import { SvelteSnapshotManager } from './svelte-snapshots';
 import type ts from 'typescript/lib/tsserverlibrary';
 import { ConfigManager, Configuration } from './config-manager';
 import { ProjectSvelteFilesManager } from './project-svelte-files';
-import { getConfigPathForProject, hasNodeModule } from './utils';
+import { getConfigPathForProject, getProjectDirectory, hasNodeModule } from './utils';
 
 function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
     const configManager = new ConfigManager();
@@ -16,7 +16,7 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
         const logger = new Logger(info.project.projectService.logger);
         if (
             !(info.config as Configuration)?.assumeIsSvelteProject &&
-            !isSvelteProject(info.project.getCompilerOptions())
+            !isSvelteProject(info.project)
         ) {
             logger.log('Detected that this is not a Svelte project, abort patching TypeScript');
             return info.languageService;
@@ -218,9 +218,14 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
         return svelteTsxFiles;
     }
 
-    function isSvelteProject(compilerOptions: ts.CompilerOptions) {
-        // Add more checks like "no Svelte file found" or "no config file found"?
-        return hasNodeModule(compilerOptions, 'svelte');
+    function isSvelteProject(project: ts.server.Project) {
+        const projectDirectory = getProjectDirectory(project);
+        if (projectDirectory) {
+            return hasNodeModule(projectDirectory, 'svelte');
+        }
+
+        // getScriptFileNames is for files open in the editor in inferred projects
+        return project.getScriptInfos().some((info) => info.fileName.endsWith('.svelte'));
     }
 
     function onConfigurationChanged(config: Configuration) {
