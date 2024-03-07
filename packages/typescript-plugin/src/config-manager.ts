@@ -3,6 +3,7 @@ import { EventEmitter } from 'events';
 const configurationEventName = 'configuration-changed';
 
 export interface Configuration {
+    global?: boolean;
     enable: boolean;
     /** Skip the Svelte detection and assume this is a Svelte project */
     assumeIsSvelteProject: boolean;
@@ -25,9 +26,12 @@ export class ConfigManager {
     }
 
     updateConfigFromPluginConfig(config: Configuration) {
+        const shouldWaitForConfigRequest = config.global == true;
+        const enable = config.enable ?? !shouldWaitForConfigRequest;
         this.config = {
             ...this.config,
-            ...config
+            ...config,
+            enable
         };
         this.emitter.emit(configurationEventName, config);
     }
