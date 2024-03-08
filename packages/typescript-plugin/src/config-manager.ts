@@ -20,6 +20,10 @@ export class ConfigManager {
         this.emitter.on(configurationEventName, listener);
     }
 
+    removeConfigurationChangeListener(listener: (config: Configuration) => void) {
+        this.emitter.off(configurationEventName, listener);
+    }
+
     isConfigChanged(config: Configuration) {
         // right now we only care about enable
         return config.enable !== this.config.enable;

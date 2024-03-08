@@ -126,7 +126,7 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
               )
             : undefined;
 
-        patchModuleLoader(
+        const moduleLoaderDisposable = patchModuleLoader(
             logger,
             snapshotManager,
             modules.typescript,
@@ -135,7 +135,7 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
             configManager
         );
 
-        configManager.onConfigurationChanged(() => {
+        const updateProjectWhenConfigChanges = () => {
             // enabling/disabling the plugin means TS has to recompute stuff
             // don't clear semantic cache here
             // typescript now expected the program updates to be completely in their control
@@ -147,7 +147,8 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
             if (projectSvelteFilesManager) {
                 info.project.updateGraph();
             }
-        });
+        };
+        configManager.onConfigurationChanged(updateProjectWhenConfigChanges);
 
         return decorateLanguageService(
             info.languageService,
@@ -156,12 +157,16 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
             configManager,
             info,
             modules.typescript,
-            () => projectSvelteFilesManager?.dispose()
+            () => {
+                projectSvelteFilesManager?.dispose();
+                configManager.removeConfigurationChangeListener(updateProjectWhenConfigChanges);
+                moduleLoaderDisposable.dispose();
+            }
         );
     }
 
     function getExternalFiles(project: ts.server.Project) {
-        if (!isSvelteProject(project.getCompilerOptions()) || !configManager.getConfig().enable) {
+        if (!isSvelteProject(project) || !configManager.getConfig().enable) {
             return [];
         }
 
@@ -224,8 +229,8 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
             return hasNodeModule(projectDirectory, 'svelte');
         }
 
-        // getScriptFileNames is for files open in the editor in inferred projects
-        return project.getScriptInfos().some((info) => info.fileName.endsWith('.svelte'));
+        // TODO: check for svelte files in the project
+        return false;
     }
 
     function onConfigurationChanged(config: Configuration) {
