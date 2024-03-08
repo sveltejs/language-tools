@@ -229,8 +229,16 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
             return hasNodeModule(projectDirectory, 'svelte');
         }
 
-        // TODO: check for svelte files in the project
-        return false;
+        return project.readDirectory(
+            project.getCurrentDirectory(),
+            ['.svelte'],
+            ['node_modules', 'dist'],
+            undefined,
+
+            // assuming structure like
+            // packages/app/src/lib
+            6
+        ).length > 0;
     }
 
     function onConfigurationChanged(config: Configuration) {
