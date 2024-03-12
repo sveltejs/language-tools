@@ -1,7 +1,8 @@
 ///<reference types="svelte" />
 ;function render<T>() {
-;type $$ComponentProps =  { a: T, b: string };
-    let { a, b }:$$ComponentProps = $props();
+
+    type Props = { a: T, b: string };
+    let { a, b }: Props = $props();
     let x = $state<T>(0);
     let y = $derived(x * 2);
 
@@ -10,7 +11,7 @@ async () => {
 
  { __sveltets_createSlot("default", {  x,y,});}};
 let $$implicit_children = __sveltets_2_snippet({x:x, y:y});
-return { props: {} as any as $$ComponentProps & { children?: typeof $$implicit_children }, slots: {'default': {x:x, y:y}}, events: {} }}
+return { props: {} as any as Props & { children?: typeof $$implicit_children }, slots: {'default': {x:x, y:y}}, events: {} }}
 class __sveltets_Render<T> {
     props() {
         return render<T>().props;
