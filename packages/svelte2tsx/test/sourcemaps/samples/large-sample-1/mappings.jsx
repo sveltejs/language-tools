@@ -328,12 +328,12 @@ s                                              ↲
                                                                                                                                                       {/**
 
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
-  { svelteHTML.createElement("svelte:window", { "bind:innerWidth":width,});}                                                                          {/**
-••{•svelteHTML.createElement("svelte:window",•{•"bind:innerWidth":width,});}↲    [generated] line 133                                                 
-<>                                             ib                 width}    ↲                                                                         
- #=============================================#                                 Order-breaking mappings                                              
-<              bi               width} >↲                                                                                                             
-<svelte:window•bind:innerWidth={width}/>↲                                        [original] line 269                                                  
+  { svelteHTML.createElement("svelte:window", { "bind:innerWidth":width,});/*Ωignore_startΩ*/() => width = __sveltets_2_any(null);/*Ωignore_endΩ*/}   {/**
+••{•svelteHTML.createElement("svelte:window",•{•"bind:innerWidth":width,});/*Ωignore_startΩ*/()•=>•width•=•__sveltets_2_any(null);/*Ωignore_endΩ*/}↲    [generated] line 133
+<>                                             ib                 width}                                                                           ↲    
+ #=============================================#                                                                                                        Order-breaking mappings
+<              bi               width} >↲                                                                                                               
+<svelte:window•bind:innerWidth={width}/>↲                                                                                                               [original] line 269 
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                                                                                                                                                       {/**
 
@@ -640,12 +640,12 @@ s                                              ↲
     {    mobile}↲                                                                                                                                     
    ╚{#if•mobile}↲    [original] line 316                                                                                                              
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
-          { const $$_elggoTneercS1C = __sveltets_2_ensureComponent(ScreenToggle); new $$_elggoTneercS1C({ target: __sveltets_2_any(), props: {  offset,"labels":['tutorial', 'input', 'output'],}});}{/**
-      ╚╚••{•const•$$_elggoTneercS1C•=•__sveltets_2_ensureComponent(ScreenToggle);•new•$$_elggoTneercS1C({•target:•__sveltets_2_any(),•props:•{••offset,"labels":['tutorial',•'input',•'output'],}});}↲    [generated] line 170
-      ╚╚<>                                                         ScreenToggle                                                               i{offset•l abels= ['tutorial',•'input',•'output']}     ↲    
-         #=========================================================                                                                            #                                                          Order-breaking mappings
-      ╚╚<ScreenToggle  i   offset•labels={['tutorial',•'input',•'output']} >↲                                                                                                                             
-      ╚╚<ScreenToggle•bind:offset•labels={['tutorial',•'input',•'output']}/>↲                                                                                                                             [original] line 317 
+          { const $$_elggoTneercS1C = __sveltets_2_ensureComponent(ScreenToggle); new $$_elggoTneercS1C({ target: __sveltets_2_any(), props: {  offset,"labels":['tutorial', 'input', 'output'],}});/*Ωignore_startΩ*/() => offset = __sveltets_2_any(null);/*Ωignore_endΩ*/}{/**
+      ╚╚••{•const•$$_elggoTneercS1C•=•__sveltets_2_ensureComponent(ScreenToggle);•new•$$_elggoTneercS1C({•target:•__sveltets_2_any(),•props:•{••offset,"labels":['tutorial',•'input',•'output'],}});/*Ωignore_startΩ*/()•=>•offset•=•__sveltets_2_any(null);/*Ωignore_endΩ*/}↲    [generated] line 170
+      ╚╚<>                                                         ScreenToggle                                                               i{offset•l abels= ['tutorial',•'input',•'output']}                                                                             ↲    
+         #=========================================================                                                                            #                                                                                                                                  Order-breaking mappings
+      ╚╚<ScreenToggle  i   offset•labels={['tutorial',•'input',•'output']} >↲                                                                                                                                                                                                     
+      ╚╚<ScreenToggle•bind:offset•labels={['tutorial',•'input',•'output']}/>↲                                                                                                                                                                                                     [original] line 317 
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
     }                                                                                                                                                 {/**
    ╚}↲        [generated] line 171                                                                                                                    

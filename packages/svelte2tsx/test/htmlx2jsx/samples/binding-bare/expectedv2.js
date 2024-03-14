@@ -1,2 +1,2 @@
- { svelteHTML.createElement("input", {  "type":`text`,"bind:value":value,});}
- { svelteHTML.createElement("input", {  "type":`checkbox`,"bind:checked":checked,});}
+ { svelteHTML.createElement("input", {  "type":`text`,"bind:value":value,});/*Ωignore_startΩ*/() => value = __sveltets_2_any(null);/*Ωignore_endΩ*/}
+ { svelteHTML.createElement("input", {  "type":`checkbox`,"bind:checked":checked,});/*Ωignore_startΩ*/() => checked = __sveltets_2_any(null);/*Ωignore_endΩ*/}

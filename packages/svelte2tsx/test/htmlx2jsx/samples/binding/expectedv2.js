@@ -1,3 +1,3 @@
-  { svelteHTML.createElement("input", {  "type":`text`,"bind:value":test,});}
- { svelteHTML.createElement("input", {   "type":`text`,"bind:value":test,});}
- { svelteHTML.createElement("input", {   "type":`text`,"bind:value":test,});}
+  { svelteHTML.createElement("input", {  "type":`text`,"bind:value":test,});/*Ωignore_startΩ*/() => test = __sveltets_2_any(null);/*Ωignore_endΩ*/}
+ { svelteHTML.createElement("input", {   "type":`text`,"bind:value":test,});/*Ωignore_startΩ*/() => test = __sveltets_2_any(null);/*Ωignore_endΩ*/}
+ { svelteHTML.createElement("input", {   "type":`text`,"bind:value":test,});/*Ωignore_startΩ*/() => test = __sveltets_2_any(null);/*Ωignore_endΩ*/}
