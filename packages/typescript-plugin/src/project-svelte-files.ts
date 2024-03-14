@@ -170,7 +170,7 @@ export class ProjectSvelteFilesManager {
             this.setupWatchers();
             this.updateProjectSvelteFiles();
         }
-    }
+    };
 
     private removeFileFromProject(file: string, exists = true) {
         const info = this.project.getScriptInfo(file);

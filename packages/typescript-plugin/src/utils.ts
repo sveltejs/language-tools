@@ -247,3 +247,35 @@ export function hasNodeModule(startPath: string, module: string) {
         return (e as any)?.code === 'ERR_PACKAGE_PATH_NOT_EXPORTED';
     }
 }
+
+export function isSvelteProject(project: ts.server.Project) {
+    const projectDirectory = getProjectDirectory(project);
+    if (projectDirectory) {
+        return hasNodeModule(projectDirectory, 'svelte');
+    }
+
+    const packageJsons = project
+        .readDirectory(
+            project.getCurrentDirectory(),
+            ['.json'],
+            ['node_modules', 'dist', 'build'],
+            ['**/package.json'],
+            // assuming structure like packages/projectName
+            3
+        )
+        // in case some other plugin patched readDirectory in a weird way
+        .filter((file) => file.endsWith('package.json') && !hasConfigInConjunction(file, project));
+
+    return packageJsons.some((packageJsonPath) =>
+        hasNodeModule(dirname(packageJsonPath), 'svelte')
+    );
+}
+
+function hasConfigInConjunction(packageJsonPath: string, project: ts.server.Project) {
+    const dir = dirname(packageJsonPath);
+
+    return (
+        project.fileExists(join(dir, 'tsconfig.json')) ||
+        project.fileExists(join(dir, 'jsconfig.json'))
+    );
+}

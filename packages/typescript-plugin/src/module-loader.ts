@@ -122,15 +122,15 @@ export function patchModuleLoader(
 
     const onConfigChanged = () => {
         moduleCache.clear();
-    }
+    };
     configManager.onConfigurationChanged(onConfigChanged);
 
     return {
         dispose() {
             configManager.removeConfigurationChangeListener(onConfigChanged);
             moduleCache.clear();
-        },
-    }
+        }
+    };
 
     function resolveModuleNames(
         moduleNames: string[],

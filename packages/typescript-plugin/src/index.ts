@@ -6,17 +6,18 @@ import { SvelteSnapshotManager } from './svelte-snapshots';
 import type ts from 'typescript/lib/tsserverlibrary';
 import { ConfigManager, Configuration } from './config-manager';
 import { ProjectSvelteFilesManager } from './project-svelte-files';
-import { getConfigPathForProject, getProjectDirectory, hasNodeModule } from './utils';
+import { getConfigPathForProject, isSvelteProject } from './utils';
 
 function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
     const configManager = new ConfigManager();
     let resolvedSvelteTsxFiles: string[] | undefined;
+    const isSvelteProjectCache = new Map<string, boolean>();
 
     function create(info: ts.server.PluginCreateInfo) {
         const logger = new Logger(info.project.projectService.logger);
         if (
             !(info.config as Configuration)?.assumeIsSvelteProject &&
-            !isSvelteProject(info.project)
+            !isSvelteProjectWithCache(info.project)
         ) {
             logger.log('Detected that this is not a Svelte project, abort patching TypeScript');
             return info.languageService;
@@ -166,7 +167,7 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
     }
 
     function getExternalFiles(project: ts.server.Project) {
-        if (!isSvelteProject(project) || !configManager.getConfig().enable) {
+        if (!isSvelteProjectWithCache(project) || !configManager.getConfig().enable) {
             return [];
         }
 
@@ -223,22 +224,15 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
         return svelteTsxFiles;
     }
 
-    function isSvelteProject(project: ts.server.Project) {
-        const projectDirectory = getProjectDirectory(project);
-        if (projectDirectory) {
-            return hasNodeModule(projectDirectory, 'svelte');
+    function isSvelteProjectWithCache(project: ts.server.Project) {
+        const cached = isSvelteProjectCache.get(project.getProjectName());
+        if (cached !== undefined) {
+            return cached;
         }
 
-        return project.readDirectory(
-            project.getCurrentDirectory(),
-            ['.svelte'],
-            ['node_modules', 'dist'],
-            undefined,
-
-            // assuming structure like
-            // packages/app/src/lib
-            6
-        ).length > 0;
+        const result = !!isSvelteProject(project);
+        isSvelteProjectCache.set(project.getProjectName(), result);
+        return result;
     }
 
     function onConfigurationChanged(config: Configuration) {
