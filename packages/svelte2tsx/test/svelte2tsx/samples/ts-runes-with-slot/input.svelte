@@ -1,5 +1,6 @@
 <script lang="ts" generics="T">
-    let { a, b } = $props<{ a: T, b: string }>();
+    type Props = { a: T, b: string };
+    let { a, b }: Props = $props();
     let x = $state<T>(0);
     let y = $derived(x * 2);
 </script>

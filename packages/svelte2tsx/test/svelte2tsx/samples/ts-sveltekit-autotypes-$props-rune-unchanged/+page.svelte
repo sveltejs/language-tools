@@ -1,4 +1,4 @@
 <script>
     export const snapshot: any = {};
-    let { form, data } = $props<{form: boolean, data: true }>();
+    let { form, data }: {form: boolean, data: true } = $props();
 </script>
