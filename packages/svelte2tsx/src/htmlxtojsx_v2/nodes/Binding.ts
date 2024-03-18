@@ -94,6 +94,7 @@ export function handleBinding(
         return;
     }
 
+    // add reassignment to force TS to widen the type of the declaration (in case it's never reassigned anywhere else)
     const expressionStr = str.original.substring(attr.expression.start, getEnd(attr.expression));
     element.appendToStartEnd([
         surroundWithIgnoreComments(`() => ${expressionStr} = __sveltets_2_any(null);`)
