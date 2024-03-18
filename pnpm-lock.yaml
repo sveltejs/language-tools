@@ -321,7 +321,7 @@ importers:
         specifier: ^16.0.0
         version: 16.18.32
       svelte:
-        specifier: '*'
+        specifier: ^3.57.0
         version: 3.57.0
       typescript:
         specifier: ^5.3.2

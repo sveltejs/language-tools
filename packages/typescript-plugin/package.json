@@ -20,7 +20,7 @@
     "devDependencies": {
         "@types/node": "^16.0.0",
         "typescript": "^5.3.2",
-        "svelte": "*"
+        "svelte": "^3.57.0"
     },
     "dependencies": {
         "@jridgewell/sourcemap-codec": "^1.4.14",
