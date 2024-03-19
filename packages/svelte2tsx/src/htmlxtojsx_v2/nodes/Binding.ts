@@ -94,6 +94,12 @@ export function handleBinding(
         return;
     }
 
+    // add reassignment to force TS to widen the type of the declaration (in case it's never reassigned anywhere else)
+    const expressionStr = str.original.substring(attr.expression.start, getEnd(attr.expression));
+    element.appendToStartEnd([
+        surroundWithIgnoreComments(`() => ${expressionStr} = __sveltets_2_any(null);`)
+    ]);
+
     // other bindings which are transformed to normal attributes/props
     const isShorthand = attr.expression.start === attr.start + 'bind:'.length;
     const name: TransformationArray =
