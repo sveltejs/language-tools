@@ -293,7 +293,10 @@ export function startServer(options?: LSOptions) {
                 typeDefinitionProvider: true,
                 inlayHintProvider: true,
                 callHierarchyProvider: true,
-                foldingRangeProvider: true
+                foldingRangeProvider: true,
+                documentHighlightProvider:
+                    !!evt.initializationOptions?.configuration?.svelte?.experimental
+                        ?.documentHighlight?.enable
             }
         };
     });
@@ -430,6 +433,10 @@ export function startServer(options?: LSOptions) {
     );
 
     connection.onFoldingRanges((evt) => pluginHost.getFoldingRanges(evt.textDocument));
+
+    connection.onDocumentHighlight((evt) =>
+        pluginHost.findDocumentHighlight(evt.textDocument, evt.position)
+    );
 
     const diagnosticsManager = new DiagnosticsManager(
         connection.sendDiagnostics,
