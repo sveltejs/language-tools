@@ -66,7 +66,13 @@ export class LSAndTSDocResolver {
         // where multiple files and their dependencies
         // being loaded in a short period of times
         docManager.on('documentOpen', (document) => {
+            const path = document.getFilePath();
+            const isNewFile = path && !this.globalSnapshotsManager.get(path);
             handleDocumentChange(document);
+            if (isNewFile && document.openedByClient) {
+                // check if is a file that belongs to other project as well
+                this.updateProjectFiles();
+            }
             docManager.lockDocument(document.uri);
         });
 

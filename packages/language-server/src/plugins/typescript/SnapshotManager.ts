@@ -102,25 +102,32 @@ export class SnapshotManager {
 
     private readonly watchExtensions = [
         ts.Extension.Dts,
+        ts.Extension.Dcts,
+        ts.Extension.Dmts,
         ts.Extension.Js,
+        ts.Extension.Cjs,
+        ts.Extension.Mjs,
         ts.Extension.Jsx,
         ts.Extension.Ts,
+        ts.Extension.Mts,
+        ts.Extension.Cts,
         ts.Extension.Tsx,
-        ts.Extension.Json
+        ts.Extension.Json,
+        '.svelte'
     ];
 
     constructor(
         private globalSnapshotsManager: GlobalSnapshotsManager,
         private fileSpec: TsFilesSpec,
         private workspaceRoot: string,
-        projectFiles: string[],
-        useCaseSensitiveFileNames = ts.sys.useCaseSensitiveFileNames
+        private tsSystem: ts.System,
+        projectFiles: string[]
     ) {
         this.onSnapshotChange = this.onSnapshotChange.bind(this);
         this.globalSnapshotsManager.onChange(this.onSnapshotChange);
-        this.documents = new FileMap(useCaseSensitiveFileNames);
+        this.documents = new FileMap(tsSystem.useCaseSensitiveFileNames);
         this.projectFileToOriginalCasing = new Map();
-        this.getCanonicalFileName = createGetCanonicalFileName(useCaseSensitiveFileNames);
+        this.getCanonicalFileName = createGetCanonicalFileName(tsSystem.useCaseSensitiveFileNames);
 
         projectFiles.forEach((originalCasing) =>
             this.projectFileToOriginalCasing.set(
@@ -153,7 +160,7 @@ export class SnapshotManager {
             return;
         }
 
-        const projectFiles = ts.sys
+        const projectFiles = this.tsSystem
             .readDirectory(this.workspaceRoot, this.watchExtensions, exclude, include)
             .map(normalizePath);
 

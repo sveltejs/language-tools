@@ -92,6 +92,7 @@ const configFileModifiedTime = new FileMap<Date | undefined>();
 const configFileForOpenFiles = new FileMap<string>();
 const pendingReloads = new FileSet();
 const documentRegistries = new Map<string, ts.DocumentRegistry>();
+const pendingForAllServices = new Set<Promise<void>>();
 
 /**
  * For testing only: Reset the cache for services.
@@ -158,6 +159,13 @@ export async function getService(
 export async function forAllServices(
     cb: (service: LanguageServiceContainer) => any
 ): Promise<void> {
+    const promise = forAllServicesWorker(cb);
+    pendingForAllServices.add(promise);
+    await promise;
+    pendingForAllServices.delete(promise);
+}
+
+async function forAllServicesWorker(cb: (service: LanguageServiceContainer) => any): Promise<void> {
     for (const service of services.values()) {
         cb(await service);
     }
@@ -192,6 +200,10 @@ export async function getServiceForTsconfig(
         service = await services.get(tsconfigPathOrWorkspacePath)!;
     }
 
+    if (pendingForAllServices.size > 0) {
+        await Promise.all(pendingForAllServices);
+    }
+
     return service;
 }
 
@@ -215,6 +227,7 @@ async function createLanguageService(
         docContext.globalSnapshotsManager,
         raw,
         workspacePath,
+        tsSystem,
         files
     );
 
