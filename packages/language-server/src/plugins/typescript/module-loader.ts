@@ -64,8 +64,11 @@ class ModuleResolutionCache {
         const fileNameWithoutEnding =
             getLastPartOfPath(this.getCanonicalFileName(path)).split('.').shift() || '';
         this.cache.forEach((val, key) => {
+            if (val) {
+                return;
+            }
             const [containingFile, moduleName = ''] = key.split(CACHE_KEY_SEPARATOR);
-            if (!val && moduleName.includes(fileNameWithoutEnding)) {
+            if (moduleName.includes(fileNameWithoutEnding)) {
                 this.cache.delete(key);
                 this.pendingInvalidations.add(containingFile);
             }
