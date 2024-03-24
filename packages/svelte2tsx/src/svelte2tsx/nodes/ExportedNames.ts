@@ -91,12 +91,14 @@ export class ExportedNames {
             for (const declaration of node.declarationList.declarations) {
                 if (
                     declaration.initializer !== undefined &&
-                    ts.isCallExpression(declaration.initializer) &&
-                    declaration.initializer.expression.getText() === '$props'
+                    ts.isCallExpression(declaration.initializer)
                 ) {
-                    // @ts-expect-error TS is too stupid to narrow this properly
-                    this.handle$propsRune(declaration);
-                    break;
+                    const text = declaration.initializer.expression.getText();
+                    if (text === '$props' || text === '$props.bindable') {
+                        // @ts-expect-error TS is too stupid to narrow this properly
+                        this.handle$propsRune(declaration, text === '$props.bindable');
+                        break;
+                    }
                 }
             }
         }
@@ -135,7 +137,8 @@ export class ExportedNames {
     private handle$propsRune(
         node: ts.VariableDeclaration & {
             initializer: ts.CallExpression & { expression: ts.Identifier };
-        }
+        },
+        bindable: boolean
     ): void {
         // Check if the $props() rune has a children prop
         if (ts.isObjectBindingPattern(node.name)) {
@@ -160,27 +163,50 @@ export class ExportedNames {
             this.$props.mayHaveChildrenProp = true;
         }
 
+        const generic_name = bindable ? '$$ComponentBindableProps' : '$$ComponentProps';
+        const construct_generic = (generic: string) => {
+            if (this.isTsFile) {
+                this.$props.generic =
+                    this.$props.generic === generic || !this.$props.generic
+                        ? generic
+                        : this.$props.generic + ' & ' + generic;
+            } else {
+                if (this.$props.comment) {
+                    if (generic !== this.$props.comment) {
+                        const pos =
+                            this.$props.comment.indexOf('{', this.$props.comment.indexOf('@type')) +
+                            1;
+                        const start = generic.indexOf('{', generic.indexOf('@type')) + 1;
+                        const end = generic.lastIndexOf('}');
+                        this.$props.comment =
+                            this.$props.comment.slice(0, pos) +
+                            generic.slice(start, end) +
+                            ' & ' +
+                            this.$props.comment.slice(pos);
+                    }
+                } else {
+                    this.$props.comment = generic;
+                }
+            }
+        };
+
         if (node.initializer.typeArguments?.length > 0 || node.type) {
             const generic_arg = node.initializer.typeArguments?.[0] || node.type;
             const generic = generic_arg.getText();
             if (!generic.includes('{')) {
-                this.$props.generic = generic;
+                construct_generic(generic);
             } else {
                 // Create a virtual type alias for the unnamed generic and reuse it for the props return type
                 // so that rename, find references etc works seamlessly across components
-                this.$props.generic = '$$ComponentProps';
-                preprendStr(
-                    this.str,
-                    generic_arg.pos + this.astOffset,
-                    `;type ${this.$props.generic} = `
-                );
+                construct_generic(generic_name);
+                preprendStr(this.str, generic_arg.pos + this.astOffset, `;type ${generic_name} = `);
                 this.str.appendLeft(generic_arg.end + this.astOffset, ';');
                 this.str.move(
                     generic_arg.pos + this.astOffset,
                     generic_arg.end + this.astOffset,
                     node.parent.pos + this.astOffset
                 );
-                this.str.appendRight(generic_arg.end + this.astOffset, this.$props.generic);
+                this.str.appendRight(generic_arg.end + this.astOffset, generic_name);
             }
         } else {
             if (!this.isTsFile) {
@@ -209,23 +235,26 @@ export class ExportedNames {
                     }
                 }
 
+                let jsdoc = '';
+
                 if (comment && /\/\*\*[^@]*?@type\s*{\s*{.*}\s*}\s*\*\//.test(comment)) {
                     // Create a virtual type alias for the unnamed generic and reuse it for the props return type
                     // so that rename, find references etc works seamlessly across components
-                    this.$props.comment = '/** @type {$$ComponentProps} */';
+                    jsdoc = `/** @type {${generic_name}} */`;
                     const type_start = this.str.original.indexOf('@type', start);
                     this.str.overwrite(type_start, type_start + 5, '@typedef');
                     const end = this.str.original.indexOf('*/', start);
-                    this.str.overwrite(end, end + 2, ' $$ComponentProps */' + this.$props.comment);
+                    this.str.overwrite(end, end + 2, ` ${generic_name} */` + jsdoc);
                 } else {
                     // Complex comment or simple `@type {AType}` comment which we just use as-is.
                     // For the former this means things like rename won't work properly across components.
-                    this.$props.comment = comment || '';
+                    jsdoc = comment || '';
                 }
-            }
 
-            if (this.$props.comment) {
-                return;
+                if (jsdoc) {
+                    construct_generic(jsdoc);
+                    return;
+                }
             }
 
             // Do a best-effort to extract the props from the object literal
@@ -302,26 +331,23 @@ export class ExportedNames {
             // Create a virtual type alias for the unnamed generic and reuse it for the props return type
             // so that rename, find references etc works seamlessly across components
             if (this.isTsFile) {
-                this.$props.generic = '$$ComponentProps';
+                construct_generic(generic_name);
                 if (props.length > 0 || withUnknown) {
                     preprendStr(
                         this.str,
                         node.parent.pos + this.astOffset,
-                        surroundWithIgnoreComments(`;type $$ComponentProps = ${propsStr};`)
+                        surroundWithIgnoreComments(`;type ${generic_name} = ${propsStr};`)
                     );
-                    preprendStr(
-                        this.str,
-                        node.name.end + this.astOffset,
-                        `: ${this.$props.generic}`
-                    );
+                    preprendStr(this.str, node.name.end + this.astOffset, `: ${generic_name}`);
                 }
             } else {
-                this.$props.comment = '/** @type {$$ComponentProps} */';
+                const jsdoc = `/** @type {${generic_name}} */`;
+                construct_generic(jsdoc);
                 if (props.length > 0 || withUnknown) {
                     preprendStr(
                         this.str,
                         node.pos + this.astOffset,
-                        `/** @typedef {${propsStr}} $$ComponentProps */${this.$props.comment}`
+                        `/** @typedef {${propsStr}} ${generic_name} */${jsdoc}`
                     );
                 }
             }
