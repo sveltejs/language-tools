@@ -101,7 +101,7 @@ export function patchModuleLoader(
     lsHost: ts.LanguageServiceHost,
     project: ts.server.Project,
     configManager: ConfigManager
-): void {
+): { dispose: () => void } {
     const svelteSys = createSvelteSys(typescript, logger);
     const moduleCache = new ModuleResolutionCache(project.projectService);
     const origResolveModuleNames = lsHost.resolveModuleNames?.bind(lsHost);
@@ -120,9 +120,17 @@ export function patchModuleLoader(
         return origRemoveFile(info, fileExists, detachFromProject);
     };
 
-    configManager.onConfigurationChanged(() => {
+    const onConfigChanged = () => {
         moduleCache.clear();
-    });
+    };
+    configManager.onConfigurationChanged(onConfigChanged);
+
+    return {
+        dispose() {
+            configManager.removeConfigurationChangeListener(onConfigChanged);
+            moduleCache.clear();
+        }
+    };
 
     function resolveModuleNames(
         moduleNames: string[],

@@ -1,6 +1,6 @@
 import type ts from 'typescript/lib/tsserverlibrary';
 import { Logger } from '../logger';
-import { hasNodeModule } from '../utils';
+import { getProjectDirectory, hasNodeModule } from '../utils';
 import { InternalHelpers, internalHelpers } from 'svelte2tsx';
 type _ts = typeof ts;
 
@@ -531,7 +531,8 @@ function getProxiedLanguageService(info: ts.server.PluginCreateInfo, ts: _ts, lo
         return cachedProxiedLanguageService ?? undefined;
     }
 
-    if (!hasNodeModule(info.project.getCompilerOptions(), '@sveltejs/kit')) {
+    const projectDirectory = getProjectDirectory(info.project);
+    if (projectDirectory && !hasNodeModule(projectDirectory, '@sveltejs/kit')) {
         // Not a SvelteKit project, do nothing
         cache.set(info, null);
         return;
