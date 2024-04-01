@@ -1,2 +1,2 @@
-  { svelteHTML.createElement("input", {   "type":`radio`,"value":`Plain`,});group;}
- { svelteHTML.createElement("input", {    "type":`radio`,"value":`Plain`,});group;}
+  { svelteHTML.createElement("input", {   "type":`radio`,"value":`Plain`,});/*Ωignore_startΩ*/() => group = __sveltets_2_any(null);/*Ωignore_endΩ*/}
+ { svelteHTML.createElement("input", {    "type":`radio`,"value":`Plain`,});/*Ωignore_startΩ*/() => group = __sveltets_2_any(null);/*Ωignore_endΩ*/}
