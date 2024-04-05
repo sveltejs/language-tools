@@ -401,8 +401,9 @@
                 "editor.defaultFormatter": "svelte.svelte-vscode"
             },
             "workbench.editor.customLabels.patterns": {
-                "**/+page.*": "${dirname}/${filename}.${extname}",
-                "**/+server.*": "${dirname}/${filename}.${extname}"
+                "src/routes/+[page|server]*": "/${filename}.${extname}",
+                "src/routes/*/+[page|server]*": "/${dirname}/${filename}.${extname}",
+                "src/routes/*/*/**/+[page|server]*": ".../${dirname}/${filename}.${extname}",
             }
         },
         "languages": [
