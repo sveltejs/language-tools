@@ -396,6 +396,15 @@
                 }
             }
         },
+        "configurationDefaults": {
+            "[svelte]": {
+                "editor.defaultFormatter": "svelte.svelte-vscode"
+            },
+            "workbench.editor.customLabels.patterns": {
+                "**/+page.*": "${dirname}/${filename}.${extname}",
+                "**/+server.*": "${dirname}/${filename}.${extname}"
+            }
+        },
         "languages": [
             {
                 "id": "svelte",
