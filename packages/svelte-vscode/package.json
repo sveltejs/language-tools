@@ -404,6 +404,7 @@
                 "src/routes/+[page|server]*": "/${filename}.${extname}",
                 "src/routes/*/+[page|server]*": "/${dirname}/${filename}.${extname}",
                 "src/routes/*/*/**/+[page|server]*": ".../${dirname}/${filename}.${extname}",
+                "**/+[page|server]*": "${dirname}/${filename}.${extname}"
             }
         },
         "languages": [
