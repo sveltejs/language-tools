@@ -401,10 +401,10 @@
                 "editor.defaultFormatter": "svelte.svelte-vscode"
             },
             "workbench.editor.customLabels.patterns": {
-                "src/routes/+[page|server]*": "/${filename}.${extname}",
-                "src/routes/*/+[page|server]*": "/${dirname}/${filename}.${extname}",
-                "src/routes/*/*/**/+[page|server]*": ".../${dirname}/${filename}.${extname}",
-                "**/+[page|server]*": "${dirname}/${filename}.${extname}"
+                "src/routes/+[layout|page|server]*": "/${filename}.${extname}",
+                "src/routes/*/+[layout|page|server]*": "/${dirname}/${filename}.${extname}",
+                "src/routes/*/*/**/+[layout|page|server]*": ".../${dirname}/${filename}.${extname}",
+                "**/+[layout|page|server]*": "${dirname}/${filename}.${extname}"
             }
         },
         "languages": [
