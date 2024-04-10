@@ -341,3 +341,45 @@ export function removeLineWithString(str: string, keyword: string) {
     const filteredLines = lines.filter((line) => !line.includes(keyword));
     return filteredLines.join('\n');
 }
+
+/**
+ * Traverses a string and returns the index of the end character, taking into account quotes, curlies and generic tags.
+ */
+export function traverseTypeString(str: string, start: number, endChar: string): number {
+    let singleQuoteOpen = false;
+    let doubleQuoteOpen = false;
+    let countCurlyBrace = 0;
+    let countAngleBracket = 0;
+
+    for (let i = start; i < str.length; i++) {
+        const char = str[i];
+
+        if (!doubleQuoteOpen && char === "'") {
+            singleQuoteOpen = !singleQuoteOpen;
+        } else if (!singleQuoteOpen && char === '"') {
+            doubleQuoteOpen = !doubleQuoteOpen;
+        } else if (!doubleQuoteOpen && !singleQuoteOpen) {
+            if (char === '{') {
+                countCurlyBrace++;
+            } else if (char === '}') {
+                countCurlyBrace--;
+            } else if (char === '<') {
+                countAngleBracket++;
+            } else if (char === '>') {
+                countAngleBracket--;
+            }
+        }
+
+        if (
+            !singleQuoteOpen &&
+            !doubleQuoteOpen &&
+            countCurlyBrace === 0 &&
+            countAngleBracket === 0 &&
+            char === endChar
+        ) {
+            return i;
+        }
+    }
+
+    return -1;
+}

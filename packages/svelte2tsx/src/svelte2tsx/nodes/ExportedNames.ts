@@ -32,7 +32,8 @@ export class ExportedNames {
      */
     private $props = {
         comment: '',
-        generic: '',
+        type: '',
+        bindings: [] as string[],
         mayHaveChildrenProp: false
     };
     private exports = new Map<string, ExportedName>();
@@ -137,7 +138,7 @@ export class ExportedNames {
             initializer: ts.CallExpression & { expression: ts.Identifier };
         }
     ): void {
-        // Check if the $props() rune has a children prop
+        // Check if the $props() rune has a children prop / uses $bindable()
         if (ts.isObjectBindingPattern(node.name)) {
             for (const element of node.name.elements) {
                 if (
@@ -154,6 +155,15 @@ export class ExportedNames {
                     if (name === 'children') {
                         this.$props.mayHaveChildrenProp = true;
                     }
+
+                    if (element.initializer) {
+                        const call = element.initializer;
+                        if (ts.isCallExpression(call) && ts.isIdentifier(call.expression)) {
+                            if (call.expression.text === '$bindable') {
+                                this.$props.bindings.push(name);
+                            }
+                        }
+                    }
                 }
             }
         } else {
@@ -164,15 +174,15 @@ export class ExportedNames {
             const generic_arg = node.initializer.typeArguments?.[0] || node.type;
             const generic = generic_arg.getText();
             if (!generic.includes('{')) {
-                this.$props.generic = generic;
+                this.$props.type = generic;
             } else {
                 // Create a virtual type alias for the unnamed generic and reuse it for the props return type
                 // so that rename, find references etc works seamlessly across components
-                this.$props.generic = '$$ComponentProps';
+                this.$props.type = '$$ComponentProps';
                 preprendStr(
                     this.str,
                     generic_arg.pos + this.astOffset,
-                    `;type ${this.$props.generic} = `
+                    `;type ${this.$props.type} = `
                 );
                 this.str.appendLeft(generic_arg.end + this.astOffset, ';');
                 this.str.move(
@@ -180,7 +190,7 @@ export class ExportedNames {
                     generic_arg.end + this.astOffset,
                     node.parent.pos + this.astOffset
                 );
-                this.str.appendRight(generic_arg.end + this.astOffset, this.$props.generic);
+                this.str.appendRight(generic_arg.end + this.astOffset, this.$props.type);
             }
         } else {
             if (!this.isTsFile) {
@@ -302,18 +312,14 @@ export class ExportedNames {
             // Create a virtual type alias for the unnamed generic and reuse it for the props return type
             // so that rename, find references etc works seamlessly across components
             if (this.isTsFile) {
-                this.$props.generic = '$$ComponentProps';
+                this.$props.type = '$$ComponentProps';
                 if (props.length > 0 || withUnknown) {
                     preprendStr(
                         this.str,
                         node.parent.pos + this.astOffset,
                         surroundWithIgnoreComments(`;type $$ComponentProps = ${propsStr};`)
                     );
-                    preprendStr(
-                        this.str,
-                        node.name.end + this.astOffset,
-                        `: ${this.$props.generic}`
-                    );
+                    preprendStr(this.str, node.name.end + this.astOffset, `: ${this.$props.type}`);
                 }
             } else {
                 this.$props.comment = '/** @type {$$ComponentProps} */';
@@ -619,13 +625,13 @@ export class ExportedNames {
     createPropsStr(uses$$propsOr$$restProps: boolean): string {
         const names = Array.from(this.exports.entries());
 
-        if (this.$props.generic) {
+        if (this.$props.type) {
             const others = names.filter(
                 ([, { isLet, implicitChildren }]) => !isLet || !!implicitChildren
             );
             return (
                 '{} as any as ' +
-                this.$props.generic +
+                `__sveltets_2_Bindings<${this.$props.type}, ${this.$props.bindings.map((b) => `"${b}"`).join('|')}>` +
                 (others.length
                     ? ' & { ' + this.createReturnElementsType(others).join(',') + ' }'
                     : '')

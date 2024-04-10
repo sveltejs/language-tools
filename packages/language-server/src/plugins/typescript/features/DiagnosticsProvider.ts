@@ -21,7 +21,14 @@ import {
     isStoreVariableIn$storeDeclaration,
     get$storeOffsetOf$storeDeclaration
 } from './utils';
-import { not, flatten, passMap, swapRangeStartEndIfNecessary, memoize } from '../../../utils';
+import {
+    not,
+    flatten,
+    passMap,
+    swapRangeStartEndIfNecessary,
+    memoize,
+    traverseTypeString
+} from '../../../utils';
 import { LSConfigManager } from '../../../ls-config';
 import { isAttributeName, isEventHandler } from '../svelte-ast-utils';
 
@@ -38,6 +45,7 @@ export enum DiagnosticCode {
     DUPLICATE_IDENTIFIER = 2300, // "Duplicate identifier 'xxx'"
     MULTIPLE_PROPS_SAME_NAME = 1117, // "An object literal cannot have multiple properties with the same name in strict mode."
     TYPE_X_NOT_ASSIGNABLE_TO_TYPE_Y = 2345, // "Argument of type '..' is not assignable to parameter of type '..'."
+    UNKNOWN_PROP = 2353, // "Object literal may only specify known properties, and '...' does not exist in type '...'"
     MISSING_PROPS = 2739, // "Type '...' is missing the following properties from type '..': ..."
     MISSING_PROP = 2741, // "Property '..' is missing in type '..' but required in type '..'."
     NO_OVERLOAD_MATCHES_CALL = 2769, // "No overload matches this call"
@@ -147,7 +155,7 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
             .map(mapRange(tsDoc, document, lang))
             .filter(hasNoNegativeLines)
             .filter(isNoFalsePositive(document, tsDoc))
-            .map(enhanceIfNecessary)
+            .map(adjustIfNecessary)
             .map(swapDiagRangeStartEndIfNecessary);
     }
 
@@ -286,9 +294,9 @@ function isNoUsedBeforeAssigned(
 }
 
 /**
- * Some diagnostics have JSX-specific nomenclature. Enhance them for more clarity.
+ * Some diagnostics have JSX-specific or confusing nomenclature. Enhance/adjust them for more clarity.
  */
-function enhanceIfNecessary(diagnostic: Diagnostic): Diagnostic {
+function adjustIfNecessary(diagnostic: Diagnostic): Diagnostic {
     if (
         diagnostic.code === DiagnosticCode.TYPE_X_NOT_ASSIGNABLE_TO_TYPE_Y &&
         diagnostic.message.includes('ConstructorOfATypedSvelteComponent')
@@ -312,6 +320,36 @@ function enhanceIfNecessary(diagnostic: Diagnostic): Diagnostic {
             message:
                 diagnostic.message +
                 '\nIf this is a declare statement, move it into <script context="module">..</script>'
+        };
+    }
+
+    if (diagnostic.code === DiagnosticCode.UNKNOWN_PROP) {
+        // Remove confusing type helper stuff from diagnostic message
+        let start = diagnostic.message.indexOf('__sveltets_2_Bindings<');
+        if (start !== -1) {
+            const startType = start + '__sveltets_2_Bindings<'.length;
+            const end = traverseTypeString(diagnostic.message, startType, ',');
+            diagnostic.message =
+                diagnostic.message.substring(0, start) +
+                diagnostic.message.substring(startType, end) +
+                "'.";
+        } else {
+            start = diagnostic.message.indexOf('PropsWithChildren<');
+            if (start !== -1) {
+                const startType = start + 'PropsWithChildren<'.length;
+                const end = traverseTypeString(diagnostic.message, startType, ',');
+                const explicitStr = ' & "_explicit_"';
+                let type = diagnostic.message.substring(startType, end);
+                if (type.endsWith(explicitStr)) {
+                    type = type.substring(0, type.length - explicitStr.length);
+                }
+                diagnostic.message = diagnostic.message.substring(0, start) + type + "'.";
+            }
+        }
+
+        return {
+            ...diagnostic,
+            message: diagnostic.message
         };
     }
 

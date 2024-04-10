@@ -12,6 +12,9 @@ import { SvelteConfig } from '../../../../src/lib/documents/configLoader';
 import { CompilerWarningsSettings, LSConfigManager } from '../../../../src/ls-config';
 import { pathToUrl } from '../../../../src/utils';
 import { SveltePlugin } from '../../../../src/plugins';
+import { VERSION } from 'svelte/compiler';
+
+const isSvelte5Plus = Number(VERSION.split('.')[0]) >= 5;
 
 describe('SveltePlugin#getDiagnostics', () => {
     async function expectDiagnosticsFor({
@@ -286,16 +289,14 @@ describe('SveltePlugin#getDiagnostics', () => {
                 }),
                 getCompiled: () =>
                     Promise.resolve({
-                        stats: {
-                            warnings: [
-                                {
-                                    start: { line: 1, column: 0 },
-                                    end: { line: 1, column: 0 },
-                                    message: 'warning',
-                                    code: 123
-                                }
-                            ]
-                        }
+                        warnings: [
+                            {
+                                start: { line: 1, column: 0 },
+                                end: { line: 1, column: 0 },
+                                message: 'warning',
+                                code: 123
+                            }
+                        ]
                     }),
                 config: {}
             })
@@ -415,16 +416,14 @@ describe('SveltePlugin#getDiagnostics', () => {
                 }),
                 getCompiled: () =>
                     Promise.resolve({
-                        stats: {
-                            warnings: [
-                                {
-                                    start: { line: 1, column: 0 },
-                                    end: { line: 1, column: 0 },
-                                    message: 'warning',
-                                    code: '123'
-                                }
-                            ]
-                        }
+                        warnings: [
+                            {
+                                start: { line: 1, column: 0 },
+                                end: { line: 1, column: 0 },
+                                message: 'warning',
+                                code: '123'
+                            }
+                        ]
                     }),
                 config: {},
                 settings: { 123: 'error' }
@@ -472,10 +471,14 @@ describe('SveltePlugin#getDiagnostics', () => {
         assert.deepStrictEqual(diagnostics, [
             {
                 range: { start: { line: 1, character: 4 }, end: { line: 1, character: 26 } },
-                message: '$: has no effect in a module script',
+                message: isSvelte5Plus
+                    ? 'Reactive declarations only exist at the top level of the instance script'
+                    : '$: has no effect in a module script',
                 severity: 2,
                 source: 'svelte',
-                code: 'module-script-reactive-declaration'
+                code: isSvelte5Plus
+                    ? 'no-reactive-declaration'
+                    : 'module-script-reactive-declaration'
             }
         ]);
     });
@@ -496,7 +499,7 @@ describe('SveltePlugin#getDiagnostics', () => {
                     },
                     end: {
                         line: 5,
-                        character: 27
+                        character: isSvelte5Plus ? 20 : 27
                     }
                 },
                 severity: 2,
@@ -513,7 +516,7 @@ describe('SveltePlugin#getDiagnostics', () => {
                     },
                     end: {
                         line: 6,
-                        character: 27
+                        character: isSvelte5Plus ? 20 : 27
                     }
                 },
                 severity: 2,

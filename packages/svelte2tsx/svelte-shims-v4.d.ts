@@ -5,8 +5,6 @@
 // If you change anything in this file, think about whether or not it should be backported to svelte-shims.d.ts
 
 type AConstructorTypeOf<T, U extends any[] = any[]> = new (...args: U) => T;
-/** @internal PRIVATE API, DO NOT USE */
-type SvelteComponentConstructor<T, U extends import('svelte').ComponentConstructorOptions<any>> = new (options: U) => T;
 
 /** @internal PRIVATE API, DO NOT USE */
 type SvelteActionReturnType = {
@@ -129,7 +127,7 @@ declare function __sveltets_2_unionType(...types: any[]): any;
 
 declare function __sveltets_2_createSvelte2TsxComponent<Props extends {}, Events extends {}, Slots extends {}>(
     render: {props: Props, events: Events, slots: Slots }
-): SvelteComponentConstructor<import("svelte").SvelteComponent<Props, Events, Slots>,import('svelte').ComponentConstructorOptions<Props>>;
+): typeof import("svelte").SvelteComponent<Props, Events, Slots>;
 
 declare function __sveltets_2_unwrapArr<T>(arr: ArrayLike<T>): T
 declare function __sveltets_2_unwrapPromiseLike<T>(promise: PromiseLike<T> | T): T
@@ -230,3 +228,13 @@ declare type ConstructorOfATypedSvelteComponent = new (args: {target: any, props
 declare function __sveltets_2_ensureComponent<T extends ConstructorOfATypedSvelteComponent | null | undefined>(type: T): NonNullable<T>;
 
 declare function __sveltets_2_ensureArray<T extends ArrayLike<unknown> | Iterable<unknown>>(array: T): T extends ArrayLike<infer U> ? U[] : T extends Iterable<infer U> ? Iterable<U> : any[];
+
+declare type __sveltets_2_Bindings<Props extends Record<string, any>, Bindings extends string> = {
+    [K in keyof Props]: K extends Bindings ?
+        // @ts-ignore not available in Svelte 4
+        import('svelte').Bindable<Props[K]> : 
+        Props[K]
+    } & '_explicit_';
+declare function __sveltets_2_binding<T>(prop: T): 
+    // @ts-ignore not available in Svelte 4    
+    import('svelte').Binding<T>;

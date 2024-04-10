@@ -12,6 +12,9 @@ import * as importPackage from '../../../src/importPackage';
 import sinon from 'sinon';
 import { join } from 'path';
 import { pathToUrl, urlToPath } from '../../../src/utils';
+import { VERSION } from 'svelte/compiler';
+
+const isSvelte5Plus = Number(VERSION.split('.')[0]) >= 5;
 
 describe('Svelte Plugin', () => {
     function setup(
@@ -50,9 +53,9 @@ describe('Svelte Plugin', () => {
         const diagnostics = await plugin.getDiagnostics(document);
         const diagnostic = Diagnostic.create(
             Range.create(0, 10, 0, 18),
-            'whatever is not declared',
+            isSvelte5Plus ? 'Can only bind to state or props' : 'whatever is not declared',
             DiagnosticSeverity.Error,
-            'binding-undeclared',
+            isSvelte5Plus ? 'invalid-binding-value' : 'binding-undeclared',
             'svelte'
         );
 

@@ -15,6 +15,7 @@ type OffsetRange = {
 export async function getSelectionRange(svelteDoc: SvelteDocument, position: Position) {
     const { script, style, moduleScript } = svelteDoc;
     const {
+        // @ts-ignore TODO Svelte 5 doesn't have this yet, but probably should
         ast: { html }
     } = await svelteDoc.getCompiled();
     const transpiled = await svelteDoc.getTranspiled();

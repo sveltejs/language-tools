@@ -37,6 +37,7 @@ export async function getQuickfixActions(
         null
     );
 
+    // @ts-ignore TODO Svelte 5 doesn't have this yet, but probably should
     const { ast } = await svelteDoc.getCompiled();
     const transpiled = await svelteDoc.getTranspiled();
     const content = transpiled.getText();
