@@ -91,6 +91,8 @@ class ModuleResolutionCache {
 class ImpliedNodeFormatResolver {
     private alreadyResolved = new FileMap<ReturnType<typeof ts.getModeForResolutionAtIndex>>();
 
+    constructor(private readonly tsSystem: ts.System) {}
+
     resolve(
         importPath: string,
         importIdxInFile: number,
@@ -120,7 +122,7 @@ class ImpliedNodeFormatResolver {
                 sourceFile.impliedNodeFormat = ts.getImpliedNodeFormatForFile(
                     toVirtualSvelteFilePath(sourceFile.fileName) as any,
                     undefined,
-                    ts.sys,
+                    this.tsSystem,
                     compilerOptions
                 );
                 this.alreadyResolved.set(sourceFile.fileName, sourceFile.impliedNodeFormat);
@@ -186,7 +188,7 @@ export function createSvelteModuleLoader(
         ts.ResolvedTypeReferenceDirectiveWithFailedLookupLocations
     >();
 
-    const impliedNodeFormatResolver = new ImpliedNodeFormatResolver();
+    const impliedNodeFormatResolver = new ImpliedNodeFormatResolver(tsSystem);
     const failedPathToContainingFile = new FileMap<FileSet>();
     const failedLocationInvalidated = new FileSet();
 
@@ -266,7 +268,7 @@ export function createSvelteModuleLoader(
             name,
             containingFile,
             compilerOptions,
-            ts.sys,
+            tsSystem,
             tsModuleCache,
             undefined,
             mode
