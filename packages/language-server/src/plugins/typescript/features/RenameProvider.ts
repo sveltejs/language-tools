@@ -371,18 +371,20 @@ export class RenameProviderImpl implements RenameProvider {
             let rangeStart = parent.offsetAt(location.range.start);
             let suffixText = location.suffixText?.trimStart();
 
-            // TODO only do for Svelte 5, can probably also used in Svelte 4?
-            const bindingShorthand = this.getBindingShorthand(snapshot, location.range.start);
-            if (bindingShorthand) {
-                // bind:|foo| -> bind:|newName|={foo}
-                const name = parent
-                    .getText()
-                    .substring(bindingShorthand.start, bindingShorthand.end);
-                return {
-                    ...location,
-                    prefixText: '',
-                    suffixText: `={${name}}`
-                };
+            // TODO can probably also used in Svelte 4?
+            if (snapshot.isSvelte5Plus) {
+                const bindingShorthand = this.getBindingShorthand(snapshot, location.range.start);
+                if (bindingShorthand) {
+                    // bind:|foo| -> bind:|newName|={foo}
+                    const name = parent
+                        .getText()
+                        .substring(bindingShorthand.start, bindingShorthand.end);
+                    return {
+                        ...location,
+                        prefixText: '',
+                        suffixText: `={${name}}`
+                    };
+                }
             }
 
             // suffix is of the form `: oldVarName` -> hints at a shorthand
@@ -655,32 +657,36 @@ export class RenameProviderImpl implements RenameProvider {
                     };
                 }
 
-                // TODO only do for Svelte 5
-                const bindingShorthand = this.getBindingShorthand(snapshot, location.range.start);
-                if (bindingShorthand) {
-                    const name = parent
-                        .getText()
-                        .substring(bindingShorthand.start, bindingShorthand.end);
-                    const start = {
-                        line: location.range.start.line,
-                        character: location.range.start.character - name.length
-                    };
-                    // If binding is followed by the closing tag, start is one character too soon,
-                    // else binding is ending one character too far
-                    if (parent.getText().charAt(parent.offsetAt(start)) === ':') {
-                        start.character++;
-                    } else {
-                        location.range.end.character--;
+                if (snapshot.isSvelte5Plus) {
+                    const bindingShorthand = this.getBindingShorthand(
+                        snapshot,
+                        location.range.start
+                    );
+                    if (bindingShorthand) {
+                        const name = parent
+                            .getText()
+                            .substring(bindingShorthand.start, bindingShorthand.end);
+                        const start = {
+                            line: location.range.start.line,
+                            character: location.range.start.character - name.length
+                        };
+                        // If binding is followed by the closing tag, start is one character too soon,
+                        // else binding is ending one character too far
+                        if (parent.getText().charAt(parent.offsetAt(start)) === ':') {
+                            start.character++;
+                        } else {
+                            location.range.end.character--;
+                        }
+                        return {
+                            ...location,
+                            range: {
+                                start: start,
+                                end: location.range.end
+                            },
+                            prefixText: name + '={',
+                            suffixText: '}'
+                        };
                     }
-                    return {
-                        ...location,
-                        range: {
-                            start: start,
-                            end: location.range.end
-                        },
-                        prefixText: name + '={',
-                        suffixText: '}'
-                    };
                 }
             }
 
