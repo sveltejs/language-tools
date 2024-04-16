@@ -129,13 +129,13 @@ export function handleBinding(
                 ];
 
     const value: TransformationArray | undefined = isShorthand
-        ? element instanceof Element || !isSvelte5Plus
-            ? preserveBind
-                ? [rangeWithTrailingPropertyAccess(str.original, attr.expression)]
-                : undefined
-            : [
-                  `__sveltets_2_binding(${str.original.substring(attr.expression.start, attr.expression.end)})`
-              ]
+        ? preserveBind && element instanceof Element
+            ? [rangeWithTrailingPropertyAccess(str.original, attr.expression)]
+            : isSvelte5Plus
+              ? [
+                    `__sveltets_2_binding(${str.original.substring(attr.expression.start, attr.expression.end)})`
+                ]
+              : undefined
         : element instanceof Element || !isSvelte5Plus
           ? [rangeWithTrailingPropertyAccess(str.original, attr.expression)]
           : [
