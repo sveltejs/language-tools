@@ -5,7 +5,7 @@ async () => { { __sveltets_createSlot("default", {}); { svelteHTML.createElement
  { __sveltets_createSlot("foo", {    bar,"baz":`boo`,});
      { svelteHTML.createElement("p", {});  }
  }};
-return { props: {children: __sveltets_2_snippet()}, slots: {'default': {}, 'foo': {bar:bar, baz:"boo"}}, events: {} }}
+return { props: /** @type {Record<string, never>} */ ({}), slots: {'default': {}, 'foo': {bar:bar, baz:"boo"}}, events: {} }}
 
-export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial(['children'], __sveltets_2_with_any_event(render()))) {
+export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial(__sveltets_2_with_any_event(render()))) {
 }

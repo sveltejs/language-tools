@@ -17,8 +17,6 @@ interface ExportedName {
     identifierText?: string;
     required?: boolean;
     doc?: string;
-    /** Set if this is the implicit children prop. `empty` == no parameters, else `has_params` */
-    implicitChildren?: 'empty' | 'has_params';
 }
 
 export class ExportedNames {
@@ -33,8 +31,7 @@ export class ExportedNames {
     private $props = {
         comment: '',
         type: '',
-        bindings: [] as string[],
-        mayHaveChildrenProp: false
+        bindings: [] as string[]
     };
     private exports = new Map<string, ExportedName>();
     private possibleExports = new Map<
@@ -138,23 +135,17 @@ export class ExportedNames {
             initializer: ts.CallExpression & { expression: ts.Identifier };
         }
     ): void {
-        // Check if the $props() rune has a children prop / uses $bindable()
+        // Check if the $props() rune uses $bindable()
         if (ts.isObjectBindingPattern(node.name)) {
             for (const element of node.name.elements) {
                 if (
-                    !ts.isIdentifier(element.name) ||
-                    (element.propertyName && !ts.isIdentifier(element.propertyName)) ||
-                    !!element.dotDotDotToken
+                    ts.isIdentifier(element.name) &&
+                    (!element.propertyName || ts.isIdentifier(element.propertyName)) &&
+                    !element.dotDotDotToken
                 ) {
-                    // not statically analyzable, so we assume it may have children
-                    this.$props.mayHaveChildrenProp = true;
-                } else {
                     const name = element.propertyName
                         ? (element.propertyName as ts.Identifier).text
                         : element.name.text;
-                    if (name === 'children') {
-                        this.$props.mayHaveChildrenProp = true;
-                    }
 
                     if (element.initializer) {
                         const call = element.initializer;
@@ -166,8 +157,6 @@ export class ExportedNames {
                     }
                 }
             }
-        } else {
-            this.$props.mayHaveChildrenProp = true;
         }
 
         if (node.initializer.typeArguments?.length > 0 || node.type) {
@@ -245,9 +234,6 @@ export class ExportedNames {
 
             const isKitRouteFile = internalHelpers.isKitRouteFile(this.basename);
             const isKitLayoutFile = isKitRouteFile && this.basename.includes('layout');
-            if (isKitRouteFile) {
-                this.$props.mayHaveChildrenProp = isKitLayoutFile;
-            }
 
             if (ts.isObjectBindingPattern(node.name)) {
                 for (const element of node.name.elements) {
@@ -535,15 +521,6 @@ export class ExportedNames {
         }
     }
 
-    addImplicitChildrenExport(hasParams: boolean): void {
-        if (this.exports.has('children')) return;
-
-        this.exports.set('children', {
-            isLet: true,
-            implicitChildren: hasParams ? 'has_params' : 'empty'
-        });
-    }
-
     /**
      * Adds export to map
      */
@@ -626,9 +603,7 @@ export class ExportedNames {
         const names = Array.from(this.exports.entries());
 
         if (this.$props.type) {
-            const others = names.filter(
-                ([, { isLet, implicitChildren }]) => !isLet || !!implicitChildren
-            );
+            const others = names.filter(([, { isLet }]) => !isLet);
             return (
                 '{} as any as ' +
                 (this.$props.bindings.length
@@ -647,9 +622,7 @@ export class ExportedNames {
                 idx = this.$props.comment.indexOf('{', idx);
                 const end = this.$props.comment.lastIndexOf('}');
                 if (idx !== -1 && end !== -1 && idx < end) {
-                    const others = names.filter(
-                        ([, { isLet, implicitChildren }]) => !isLet || !!implicitChildren
-                    );
+                    const others = names.filter(([, { isLet }]) => !isLet);
                     const has_bindings = this.$props.bindings.length;
 
                     if (others.length > 0 || has_bindings) {
@@ -720,13 +693,6 @@ export class ExportedNames {
         dontAddTypeDef: boolean
     ): string[] {
         return names.map(([key, value]) => {
-            if (value.implicitChildren) {
-                return `children: ${
-                    value.implicitChildren === 'empty'
-                        ? '__sveltets_2_snippet()'
-                        : '$$implicit_children'
-                }`;
-            }
             // Important to not use shorthand props for rename functionality
             return `${dontAddTypeDef && value.doc ? `\n${value.doc}` : ''}${
                 value.identifierText || key
@@ -736,14 +702,6 @@ export class ExportedNames {
 
     private createReturnElementsType(names: Array<[string, ExportedName]>, addDoc = true) {
         return names.map(([key, value]) => {
-            if (value.implicitChildren) {
-                return `children?: ${
-                    value.implicitChildren === 'empty'
-                        ? `import('svelte').Snippet`
-                        : 'typeof $$implicit_children'
-                }`;
-            }
-
             const identifier = `${value.doc && addDoc ? `\n${value.doc}` : ''}${
                 value.identifierText || key
             }${value.required ? '' : '?'}`;
@@ -763,9 +721,5 @@ export class ExportedNames {
 
     getExportsMap() {
         return this.exports;
-    }
-
-    usesChildrenIn$propsRune() {
-        return this.$props.mayHaveChildrenProp;
     }
 }
