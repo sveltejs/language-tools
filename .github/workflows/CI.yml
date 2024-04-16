@@ -34,6 +34,9 @@ jobs:
           node-version: "18.x"
           cache: pnpm
 
+      # Lets us use one-liner JSON manipulations the package.json files
+      - run: "npm install -g json"
+
       # Get projects set up
       - run: pnpm install
       - run: json -I -f package.json -e 'this.pnpm.overrides.svelte="^5.0.0-next.100"'
