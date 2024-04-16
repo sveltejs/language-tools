@@ -55,7 +55,8 @@ export function handleBinding(
     attr: BaseDirective,
     parent: BaseNode,
     element: Element | InlineComponent,
-    preserveBind: boolean
+    preserveBind: boolean,
+    isSvelte5Plus: boolean
 ): void {
     // bind group on input
     if (element instanceof Element && attr.name == 'group' && parent.name == 'input') {
@@ -126,15 +127,16 @@ export function handleBinding(
                         str.original.lastIndexOf('=', attr.expression.start)
                     ]
                 ];
+
     const value: TransformationArray | undefined = isShorthand
-        ? element instanceof Element
+        ? element instanceof Element || !isSvelte5Plus
             ? preserveBind
                 ? [rangeWithTrailingPropertyAccess(str.original, attr.expression)]
                 : undefined
             : [
                   `__sveltets_2_binding(${str.original.substring(attr.expression.start, attr.expression.end)})`
               ]
-        : element instanceof Element
+        : element instanceof Element || !isSvelte5Plus
           ? [rangeWithTrailingPropertyAccess(str.original, attr.expression)]
           : [
                 '__sveltets_2_binding(',
