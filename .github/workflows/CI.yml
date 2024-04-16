@@ -38,9 +38,8 @@ jobs:
       - run: "npm install -g json"
 
       # Get projects set up
-      - run: pnpm install
       - run: json -I -f package.json -e 'this.pnpm={"overrides":{"svelte":"^5.0.0-next.100"}}'
-      - run: pnpm install
+      - run: pnpm install --no-frozen-lockfile
       - run: pnpm bootstrap
       - run: pnpm build
 
