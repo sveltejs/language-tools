@@ -23,6 +23,29 @@ jobs:
         env:
           CI: true
 
+  test-svelte5:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: pnpm/action-setup@v2.2.4
+      - uses: actions/setup-node@v3
+        with:
+          node-version: "18.x"
+          cache: pnpm
+
+      # Get projects set up
+      - run: pnpm install
+      - run: json -I -f package.json -e 'this.pnpm.overrides.svelte="^5.0.0-next.100"'
+      - run: pnpm install
+      - run: pnpm bootstrap
+      - run: pnpm build
+
+      # Run any tests
+      - run: pnpm test
+        env:
+          CI: true
+
   lint:
     runs-on: ubuntu-latest
 
