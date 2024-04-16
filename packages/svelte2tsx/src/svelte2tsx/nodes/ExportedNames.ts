@@ -631,7 +631,9 @@ export class ExportedNames {
             );
             return (
                 '{} as any as ' +
-                `__sveltets_2_Bindings<${this.$props.type}, ${this.$props.bindings.map((b) => `"${b}"`).join('|')}>` +
+                (this.$props.bindings.length
+                    ? `__sveltets_2_Bindings<${this.$props.type}, ${this.$props.bindings.map((b) => `"${b}"`).join('|')}>`
+                    : this.$props.type) +
                 (others.length
                     ? ' & { ' + this.createReturnElementsType(others).join(',') + ' }'
                     : '')
@@ -639,21 +641,33 @@ export class ExportedNames {
         }
 
         if (this.$props.comment) {
-            // Try our best to incorporate createReturnElementsType here
-            const others = names.filter(
-                ([, { isLet, implicitChildren }]) => !isLet || !!implicitChildren
-            );
+            // Try our best to incorporate createReturnElementsType and __sveltets_2_Bindings here
             let idx = this.$props.comment.indexOf('@type');
-            if (idx !== -1 && /[\s{]/.test(this.$props.comment[idx + 5]) && others.length > 0) {
+            if (idx !== -1 && /[\s{]/.test(this.$props.comment[idx + 5])) {
                 idx = this.$props.comment.indexOf('{', idx);
-                if (idx !== -1) {
-                    idx++;
-                    return (
-                        this.$props.comment.slice(0, idx) +
-                        `{${this.createReturnElementsType(others, false)}} & ` +
-                        this.$props.comment.slice(idx) +
-                        '({})'
+                const end = this.$props.comment.lastIndexOf('}');
+                if (idx !== -1 && end !== -1 && idx < end) {
+                    const others = names.filter(
+                        ([, { isLet, implicitChildren }]) => !isLet || !!implicitChildren
                     );
+                    const has_bindings = this.$props.bindings.length;
+
+                    if (others.length > 0 || has_bindings) {
+                        idx++;
+                        return (
+                            this.$props.comment.slice(0, idx) +
+                            (others.length > 0
+                                ? `{${this.createReturnElementsType(others, false)}} & `
+                                : '') +
+                            (has_bindings ? '__sveltets_2_Bindings<' : '') +
+                            this.$props.comment.slice(idx, end) +
+                            (has_bindings
+                                ? `, ${this.$props.bindings.map((b) => `"${b}"`).join('|')}>`
+                                : '') +
+                            this.$props.comment.slice(end) +
+                            '({})'
+                        );
+                    }
                 }
             }
             return this.$props.comment + '({})';
