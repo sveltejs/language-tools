@@ -371,6 +371,20 @@ export class RenameProviderImpl implements RenameProvider {
             let rangeStart = parent.offsetAt(location.range.start);
             let suffixText = location.suffixText?.trimStart();
 
+            // TODO only do for Svelte 5, can probably also used in Svelte 4?
+            const bindingShorthand = this.getBindingShorthand(snapshot, location.range.start);
+            if (bindingShorthand) {
+                // bind:|foo| -> bind:|newName|={foo}
+                const name = parent
+                    .getText()
+                    .substring(bindingShorthand.start, bindingShorthand.end);
+                return {
+                    ...location,
+                    prefixText: '',
+                    suffixText: `={${name}}`
+                };
+            }
+
             // suffix is of the form `: oldVarName` -> hints at a shorthand
             if (!suffixText?.startsWith(':') || !getNodeIfIsInStartTag(parent.html, rangeStart)) {
                 return location;

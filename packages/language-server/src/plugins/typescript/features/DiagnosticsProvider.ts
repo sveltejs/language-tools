@@ -44,7 +44,9 @@ export enum DiagnosticCode {
     DUPLICATED_JSX_ATTRIBUTES = 17001, // "JSX elements cannot have multiple attributes with the same name."
     DUPLICATE_IDENTIFIER = 2300, // "Duplicate identifier 'xxx'"
     MULTIPLE_PROPS_SAME_NAME = 1117, // "An object literal cannot have multiple properties with the same name in strict mode."
-    TYPE_X_NOT_ASSIGNABLE_TO_TYPE_Y = 2345, // "Argument of type '..' is not assignable to parameter of type '..'."
+    ARG_TYPE_X_NOT_ASSIGNABLE_TO_TYPE_Y = 2345, // "Argument of type '..' is not assignable to parameter of type '..'."
+    TYPE_X_NOT_ASSIGNABLE_TO_TYPE_Y = 2322, // "Type '..' is not assignable to type '..'."
+    TYPE_X_NOT_ASSIGNABLE_TO_TYPE_Y_DID_YOU_MEAN = 2820, // "Type '..' is not assignable to type '..'. Did you mean '...'?"
     UNKNOWN_PROP = 2353, // "Object literal may only specify known properties, and '...' does not exist in type '...'"
     MISSING_PROPS = 2739, // "Type '...' is missing the following properties from type '..': ..."
     MISSING_PROP = 2741, // "Property '..' is missing in type '..' but required in type '..'."
@@ -109,7 +111,7 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
         for (const diagnostic of diagnostics) {
             if (
                 (diagnostic.code === DiagnosticCode.NO_OVERLOAD_MATCHES_CALL ||
-                    diagnostic.code === DiagnosticCode.TYPE_X_NOT_ASSIGNABLE_TO_TYPE_Y) &&
+                    diagnostic.code === DiagnosticCode.ARG_TYPE_X_NOT_ASSIGNABLE_TO_TYPE_Y) &&
                 !notGenerated(diagnostic)
             ) {
                 if (isStoreVariableIn$storeDeclaration(tsDoc.getFullText(), diagnostic.start!)) {
@@ -188,9 +190,11 @@ function mapRange(
         }
 
         if (
-            [DiagnosticCode.MISSING_PROP, DiagnosticCode.MISSING_PROPS].includes(
+            ([DiagnosticCode.MISSING_PROP, DiagnosticCode.MISSING_PROPS].includes(
                 diagnostic.code as number
-            ) &&
+            ) ||
+                (DiagnosticCode.TYPE_X_NOT_ASSIGNABLE_TO_TYPE_Y &&
+                    diagnostic.message.includes("'PropsWithChildren<"))) &&
             !hasNonZeroRange({ range })
         ) {
             const node = getNodeIfIsInStartTag(document.html, document.offsetAt(range.start));
@@ -298,7 +302,7 @@ function isNoUsedBeforeAssigned(
  */
 function adjustIfNecessary(diagnostic: Diagnostic): Diagnostic {
     if (
-        diagnostic.code === DiagnosticCode.TYPE_X_NOT_ASSIGNABLE_TO_TYPE_Y &&
+        diagnostic.code === DiagnosticCode.ARG_TYPE_X_NOT_ASSIGNABLE_TO_TYPE_Y &&
         diagnostic.message.includes('ConstructorOfATypedSvelteComponent')
     ) {
         return {
@@ -338,12 +342,40 @@ function adjustIfNecessary(diagnostic: Diagnostic): Diagnostic {
             if (start !== -1) {
                 const startType = start + 'PropsWithChildren<'.length;
                 const end = traverseTypeString(diagnostic.message, startType, ',');
-                const explicitStr = ' & "_explicit_"';
-                let type = diagnostic.message.substring(startType, end);
-                if (type.endsWith(explicitStr)) {
-                    type = type.substring(0, type.length - explicitStr.length);
-                }
+                const type = diagnostic.message.substring(startType, end);
                 diagnostic.message = diagnostic.message.substring(0, start) + type + "'.";
+                diagnostic.message = diagnostic.message.replaceAll(' & "_explicit_"', '');
+            }
+        }
+
+        return {
+            ...diagnostic,
+            message: diagnostic.message
+        };
+    }
+
+    if (
+        (diagnostic.code === DiagnosticCode.TYPE_X_NOT_ASSIGNABLE_TO_TYPE_Y ||
+            diagnostic.code === DiagnosticCode.TYPE_X_NOT_ASSIGNABLE_TO_TYPE_Y_DID_YOU_MEAN) &&
+        diagnostic.message.includes("'Bindable<")
+    ) {
+        const countBindable = (diagnostic.message.match(/'Bindable\</g) || []).length;
+        const countBinding = (diagnostic.message.match(/'Binding\</g) || []).length;
+        if (countBindable === 1 && countBinding === 0) {
+            // Remove distracting Bindable<...> from diagnostic message
+            const start = diagnostic.message.indexOf("'Bindable<");
+            const startType = start + "'Bindable".length;
+            const end = traverseTypeString(diagnostic.message, startType, '>');
+            diagnostic.message =
+                diagnostic.message.substring(0, start + 1) +
+                diagnostic.message.substring(startType + 1, end) +
+                diagnostic.message.substring(end + 1);
+        } else if (countBinding === 3 && countBindable === 1) {
+            // Only keep Type '...' is not assignable to type '...' in
+            // Type Bindings<...> is not assignable to type Bindable<...>, Type Binding<...> is not assignable to type Bindable<...>, Type '...' is not assignable to type '...'
+            const lines = diagnostic.message.split('\n');
+            if (lines.length === 3) {
+                diagnostic.message = lines[2].trimStart();
             }
         }
 
