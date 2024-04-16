@@ -87,6 +87,7 @@ export namespace DocumentSnapshot {
             document,
             parserError,
             scriptKind,
+            options.version,
             text,
             nrPrependedLines,
             exportedNames,
@@ -129,11 +130,11 @@ export namespace DocumentSnapshot {
         // If someone wants to get back the behavior they can add an ambient module definition
         // on their own.
         const normalizedPath = filePath.replace(/\\/g, '/');
-        if (!normalizedPath.endsWith('node_modules/svelte/types/runtime/ambient.d.ts')) {
+        if (!normalizedPath.endsWith('/svelte/types/runtime/ambient.d.ts')) {
             originalText = tsSystem.readFile(filePath) || '';
         }
 
-        if (normalizedPath.endsWith('node_modules/svelte/types/index.d.ts')) {
+        if (normalizedPath.endsWith('/svelte/types/index.d.ts')) {
             const startIdx = originalText.indexOf(`declare module '*.svelte' {`);
             const endIdx = originalText.indexOf(`}`, originalText.indexOf(';', startIdx)) + 1;
             originalText =
@@ -272,12 +273,17 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
         public readonly parent: Document,
         public readonly parserError: ParserError | null,
         public readonly scriptKind: ts.ScriptKind,
+        public readonly svelteVersion: string | undefined,
         private readonly text: string,
         private readonly nrPrependedLines: number,
         private readonly exportedNames: IExportedNames,
         private readonly tsxMap?: EncodedSourceMap,
         private readonly htmlAst?: TemplateNode
     ) {}
+
+    get isSvelte5Plus() {
+        return Number(this.svelteVersion?.split('.')[0]) >= 5;
+    }
 
     get filePath() {
         return this.parent.getFilePath() || '';
