@@ -107,7 +107,6 @@ class ImpliedNodeFormatResolver {
         let mode = undefined;
         if (sourceFile) {
             this.cacheImpliedNodeFormat(sourceFile, compilerOptions);
-            // @ts-expect-error remove when bumping to TS 5.4
             mode = ts.getModeForResolutionAtIndex(sourceFile, importIdxInFile, compilerOptions);
         }
         return mode;
