@@ -338,13 +338,23 @@ function adjustIfNecessary(diagnostic: Diagnostic): Diagnostic {
                 diagnostic.message.substring(startType, end) +
                 "'.";
         } else {
-            start = diagnostic.message.indexOf('PropsWithChildren<');
+            start = diagnostic.message.indexOf('WithBindings<__sveltets_2_Bindings<');
             if (start !== -1) {
-                const startType = start + 'PropsWithChildren<'.length;
+                const startType = start + 'WithBindings<__sveltets_2_Bindings<'.length;
                 const end = traverseTypeString(diagnostic.message, startType, ',');
-                const type = diagnostic.message.substring(startType, end);
-                diagnostic.message = diagnostic.message.substring(0, start) + type + "'.";
-                diagnostic.message = diagnostic.message.replaceAll(' & "_explicit_"', '');
+                diagnostic.message =
+                    diagnostic.message.substring(0, start) +
+                    diagnostic.message.substring(startType, end) +
+                    "'.";
+            } else {
+                start = diagnostic.message.indexOf('PropsWithChildren<');
+                if (start !== -1) {
+                    const startType = start + 'PropsWithChildren<'.length;
+                    const end = traverseTypeString(diagnostic.message, startType, ',');
+                    const type = diagnostic.message.substring(startType, end);
+                    diagnostic.message = diagnostic.message.substring(0, start) + type + "'.";
+                    diagnostic.message = diagnostic.message.replaceAll(' & "_explicit_"', '');
+                }
             }
         }
 
