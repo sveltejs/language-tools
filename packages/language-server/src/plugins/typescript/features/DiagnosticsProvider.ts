@@ -327,43 +327,6 @@ function adjustIfNecessary(diagnostic: Diagnostic): Diagnostic {
         };
     }
 
-    if (diagnostic.code === DiagnosticCode.UNKNOWN_PROP) {
-        // Remove confusing type helper stuff from diagnostic message
-        let start = diagnostic.message.indexOf('__sveltets_2_Bindings<');
-        if (start !== -1) {
-            const startType = start + '__sveltets_2_Bindings<'.length;
-            const end = traverseTypeString(diagnostic.message, startType, ',');
-            diagnostic.message =
-                diagnostic.message.substring(0, start) +
-                diagnostic.message.substring(startType, end) +
-                "'.";
-        } else {
-            start = diagnostic.message.indexOf('WithBindings<__sveltets_2_Bindings<');
-            if (start !== -1) {
-                const startType = start + 'WithBindings<__sveltets_2_Bindings<'.length;
-                const end = traverseTypeString(diagnostic.message, startType, ',');
-                diagnostic.message =
-                    diagnostic.message.substring(0, start) +
-                    diagnostic.message.substring(startType, end) +
-                    "'.";
-            } else {
-                start = diagnostic.message.indexOf('PropsWithChildren<');
-                if (start !== -1) {
-                    const startType = start + 'PropsWithChildren<'.length;
-                    const end = traverseTypeString(diagnostic.message, startType, ',');
-                    const type = diagnostic.message.substring(startType, end);
-                    diagnostic.message = diagnostic.message.substring(0, start) + type + "'.";
-                    diagnostic.message = diagnostic.message.replaceAll(' & "_explicit_"', '');
-                }
-            }
-        }
-
-        return {
-            ...diagnostic,
-            message: diagnostic.message
-        };
-    }
-
     if (
         (diagnostic.code === DiagnosticCode.TYPE_X_NOT_ASSIGNABLE_TO_TYPE_Y ||
             diagnostic.code === DiagnosticCode.TYPE_X_NOT_ASSIGNABLE_TO_TYPE_Y_DID_YOU_MEAN) &&

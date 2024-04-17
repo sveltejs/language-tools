@@ -722,4 +722,8 @@ export class ExportedNames {
     getExportsMap() {
         return this.exports;
     }
+
+    usesRunes() {
+        return this.$props.type || this.$props.comment;
+    }
 }

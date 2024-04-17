@@ -328,6 +328,7 @@ export function svelte2tsx(
     const str = new MagicString(svelte);
     const basename = path.basename(options.filename || '');
     const svelte5Plus = Number(options.version![0]) > 4;
+
     // process the htmlx as a svelte template
     let {
         htmlAst,

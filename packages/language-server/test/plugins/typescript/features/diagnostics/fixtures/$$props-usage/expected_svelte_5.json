@@ -17,7 +17,7 @@
         },
         "severity": 1,
         "source": "ts",
-        "message": "Object literal may only specify known properties, and '\"invalidProp\"' does not exist in type 'WithBindings<$$Props>'.",
+        "message": "Object literal may only specify known properties, and '\"invalidProp\"' does not exist in type 'WithBindings<{ exported1: string; exported2?: string | undefined; exported3: string; }>'.",
         "code": 2353,
         "tags": []
     },
@@ -25,7 +25,7 @@
         "range": { "start": { "line": 12, "character": 1 }, "end": { "line": 12, "character": 6 } },
         "severity": 1,
         "source": "ts",
-        "message": "Type '{}' is missing the following properties from type 'WithBindings<$$Props>': exported1, exported3",
+        "message": "Type '{}' is missing the following properties from type 'WithBindings<{ exported1: string; exported2?: string | undefined; exported3: string; }>': exported1, exported3",
         "code": 2739,
         "tags": []
     }

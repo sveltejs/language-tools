@@ -80,6 +80,11 @@ class __sveltets_Render${genericsDef} {
     const [EventsName] = addTypeExport(str, className, 'Events');
     const [SlotsName] = addTypeExport(str, className, 'Slots');
 
+    let customConstructor = '';
+    if (exportedNames.usesRunes()) {
+        customConstructor = `\n    constructor(options: import('svelte').ComponentConstructorOptions<__sveltets_2_PropsWithChildren<${returnType('props')}, ${returnType('slots')}>>) { super(options); }`;
+    }
+
     if (mode === 'dts') {
         statement +=
             `export type ${PropsName}${genericsDef} = ${returnType('props')};\n` +
@@ -88,6 +93,7 @@ class __sveltets_Render${genericsDef} {
             `\n${doc}export default class${
                 className ? ` ${className}` : ''
             }${genericsDef} extends ${svelteComponentClass}<${PropsName}${genericsRef}, ${EventsName}${genericsRef}, ${SlotsName}${genericsRef}> {` +
+            customConstructor +
             exportedNames.createClassGetters() +
             (usesAccessors ? exportedNames.createClassAccessors() : '') +
             '\n}';
@@ -99,6 +105,7 @@ class __sveltets_Render${genericsDef} {
             }${genericsDef} extends __SvelteComponentTyped__<${returnType('props')}, ${returnType(
                 'events'
             )}, ${returnType('slots')}> {` +
+            customConstructor +
             exportedNames.createClassGetters() +
             (usesAccessors ? exportedNames.createClassAccessors() : '') +
             '\n}';
@@ -129,6 +136,11 @@ function addSimpleComponentExport({
     const doc = componentDocumentation.getFormatted();
     const className = fileName && classNameFromFilename(fileName, mode !== 'dts');
 
+    let customConstructor = '';
+    if (exportedNames.usesRunes()) {
+        customConstructor = `\n    constructor(options = __sveltets_2_runes_constructor(${propDef})) { super(options); }`;
+    }
+
     let statement: string;
     if (mode === 'dts' && isTsFile) {
         const svelteComponentClass = noSvelteComponentTyped
@@ -146,6 +158,7 @@ function addSimpleComponentExport({
             `\n${doc}export default class${
                 className ? ` ${className}` : ''
             } extends ${svelteComponentClass}<${PropsName}, ${EventsName}, ${SlotsName}> {` +
+            customConstructor +
             exportedNames.createClassGetters() +
             (usesAccessors ? exportedNames.createClassAccessors() : '') +
             '\n}';
@@ -158,6 +171,7 @@ function addSimpleComponentExport({
             `\n${doc}export default class${
                 className ? ` ${className}` : ''
             } extends __sveltets_2_createSvelte2TsxComponent(${propDef}) {` +
+            customConstructor +
             exportedNames.createClassGetters() +
             (usesAccessors ? exportedNames.createClassAccessors() : '') +
             '\n}';
@@ -166,6 +180,7 @@ function addSimpleComponentExport({
             `\n\n${doc}export default class${
                 className ? ` ${className}` : ''
             } extends __sveltets_2_createSvelte2TsxComponent(${propDef}) {` +
+            customConstructor +
             exportedNames.createClassGetters() +
             (usesAccessors ? exportedNames.createClassAccessors() : '') +
             '\n}';
