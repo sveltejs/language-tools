@@ -4,4 +4,4 @@
  { svelteHTML.createElement("img", {   });__sveltets_2_ensureTransition(fade(svelteHTML.mapElementTag('img'),(params)));}
  { svelteHTML.createElement("img", {  });classthing;}
  { svelteHTML.createElement("img", {   });__sveltets_2_ensureAnimation(thing(svelteHTML.mapElementTag('img'),__sveltets_2_AnimationMove,(params)));}
- { svelteHTML.createElement("img", {  "bind:thing":binding,});}
+ { svelteHTML.createElement("img", {  "bind:thing":binding,});/*Ωignore_startΩ*/() => binding = __sveltets_2_any(null);/*Ωignore_endΩ*/}

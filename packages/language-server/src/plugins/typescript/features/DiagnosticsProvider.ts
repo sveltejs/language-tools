@@ -543,11 +543,17 @@ function expectedTransitionThirdArgument(
         return false;
     }
 
-    const callExpression = findNodeAtSpan(
-        node,
-        { start: node.getStart(), length: node.getWidth() },
-        ts.isCallExpression
-    );
+    // in TypeScript 5.4 the error is on the function name
+    // in earlier versions it's on the whole call expression
+    const callExpression =
+        ts.isIdentifier(node) && ts.isCallExpression(node.parent)
+            ? node.parent
+            : findNodeAtSpan(
+                  node,
+                  { start: node.getStart(), length: node.getWidth() },
+                  ts.isCallExpression
+              );
+
     const signature =
         callExpression && lang.getProgram()?.getTypeChecker().getResolvedSignature(callExpression);
 
