@@ -610,7 +610,12 @@ export class ExportedNames {
                     ? `__sveltets_2_Bindings<${this.$props.type}, ${this.$props.bindings.map((b) => `"${b}"`).join('|')}>`
                     : this.$props.type) +
                 (others.length
-                    ? ' & { ' + this.createReturnElementsType(others).join(',') + ' }'
+                    ? ' & { ' +
+                      this.createReturnElementsType(others, undefined, [
+                          'import("svelte").Binding<',
+                          '>'
+                      ]).join(',') +
+                      ' }'
                     : '')
             );
         }
@@ -630,7 +635,7 @@ export class ExportedNames {
                         return (
                             this.$props.comment.slice(0, idx) +
                             (others.length > 0
-                                ? `{${this.createReturnElementsType(others, false)}} & `
+                                ? `{${this.createReturnElementsType(others, false, ['import("svelte").Binding<', '>'])}} & `
                                 : '') +
                             (has_bindings ? '__sveltets_2_Bindings<' : '') +
                             this.$props.comment.slice(idx, end) +
@@ -700,16 +705,23 @@ export class ExportedNames {
         });
     }
 
-    private createReturnElementsType(names: Array<[string, ExportedName]>, addDoc = true) {
+    private createReturnElementsType(
+        names: Array<[string, ExportedName]>,
+        addDoc = true,
+        wrapWith?: [string, string]
+    ) {
+        const wrap = wrapWith
+            ? (str: string) => `${wrapWith[0]}${str}${wrapWith[1]}`
+            : (str: string) => str;
         return names.map(([key, value]) => {
             const identifier = `${value.doc && addDoc ? `\n${value.doc}` : ''}${
                 value.identifierText || key
             }${value.required ? '' : '?'}`;
             if (!value.type) {
-                return `${identifier}: typeof ${key}`;
+                return `${identifier}: ${wrap(`typeof ${key}`)}`;
             }
 
-            return `${identifier}: ${value.type}`;
+            return `${identifier}: ${wrap(value.type)}`;
         });
     }
 

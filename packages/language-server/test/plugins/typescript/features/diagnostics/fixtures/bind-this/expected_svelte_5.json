@@ -36,7 +36,7 @@
         },
         "severity": 1,
         "source": "ts",
-        "message": "Type 'Component' is not assignable to type 'OtherComponent'.\n  Types of property '$$prop_def' are incompatible.\n    Type 'StripBindable<PropsWithChildren<{ prop: boolean; }, any>>' is not assignable to type 'StripBindable<PropsWithChildren<{ prop: string; }, any>>'.\n      Type 'StripBindable<WithBindings<{ prop: boolean; }>>' is not assignable to type 'StripBindable<PropsWithChildren<{ prop: string; }, any>>'.",
+        "message": "Type 'Component' is not assignable to type 'OtherComponent'.\n  The types of '$$prop_def.prop' are incompatible between these types.\n    Type 'boolean' is not assignable to type 'string'.",
         "code": 2322,
         "tags": []
     },

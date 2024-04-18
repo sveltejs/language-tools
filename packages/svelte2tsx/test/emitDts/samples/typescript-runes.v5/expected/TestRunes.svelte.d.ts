@@ -3,7 +3,7 @@ declare const __propDef: {
     props: {
         foo: string;
         bar?: import("svelte").Bindable<number>;
-        baz?: () => void;
+        baz?: import("svelte").Binding<() => void>;
     };
     events: {
         [evt: string]: CustomEvent<any>;
@@ -17,7 +17,7 @@ export default class TestRunes extends SvelteComponent<TestRunesProps, TestRunes
     constructor(options?: import("svelte").ComponentConstructorOptions<{
         foo: string;
         bar?: import("svelte").Bindable<number>;
-        baz?: () => void;
+        baz?: import("svelte").Binding<() => void>;
     }>);
     get baz(): () => void;
 }

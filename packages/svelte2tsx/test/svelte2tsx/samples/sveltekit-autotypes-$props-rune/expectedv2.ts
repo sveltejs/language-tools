@@ -5,7 +5,7 @@
      const snapshot/*Ωignore_startΩ*/: import('./$types.js').Snapshot/*Ωignore_endΩ*/ = {};
 ;
 async () => {};
-return { props: /** @type {{snapshot?: typeof snapshot} & $$ComponentProps} */({}), slots: {}, events: {} }}
+return { props: /** @type {{snapshot?: import("svelte").Binding<typeof snapshot>} & $$ComponentProps} */({}), slots: {}, events: {} }}
 
 export default class Page__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial(['snapshot'], __sveltets_2_with_any_event(render()))) {
     constructor(options = __sveltets_2_runes_constructor(__sveltets_2_partial(['snapshot'], __sveltets_2_with_any_event(render())))) { super(options); }

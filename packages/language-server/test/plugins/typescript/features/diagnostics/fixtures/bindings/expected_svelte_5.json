@@ -1,0 +1,36 @@
+[
+    {
+        "code": 2322,
+        "message": "Type 'Binding<string>' is not assignable to type 'string'.",
+        "range": {
+            "end": {
+                "character": 20,
+                "line": 23
+            },
+            "start": {
+                "character": 12,
+                "line": 23
+            }
+        },
+        "severity": 1,
+        "source": "ts",
+        "tags": []
+    },
+    {
+        "code": 2322,
+        "message": "Type '() => boolean' is not assignable to type 'Binding<() => boolean>'.",
+        "range": {
+            "end": {
+                "character": 17,
+                "line": 24
+            },
+            "start": {
+                "character": 8,
+                "line": 24
+            }
+        },
+        "severity": 1,
+        "source": "ts",
+        "tags": []
+    }
+]
