@@ -23,6 +23,11 @@ const customDataProvider: ICSSDataProvider = {
                 name: 'print-color-adjust',
                 values: [{ name: 'economy' }, { name: 'exact' }],
                 status: 'experimental'
+            },
+            {
+                name: 'field-sizing',
+                values: [{ name: 'content' }, { name: 'fixed' }],
+                status: 'experimental'
             }
         ];
     },
