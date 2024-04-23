@@ -94,7 +94,7 @@ class __sveltets_Render${genericsDef} {
                 className ? ` ${className}` : ''
             }${genericsDef} extends ${svelteComponentClass}<${PropsName}${genericsRef}, ${EventsName}${genericsRef}, ${SlotsName}${genericsRef}> {` +
             customConstructor +
-            exportedNames.createClassGetters() +
+            exportedNames.createClassGetters(genericsRef) +
             (usesAccessors ? exportedNames.createClassAccessors() : '') +
             '\n}';
     } else {
@@ -106,7 +106,7 @@ class __sveltets_Render${genericsDef} {
                 'events'
             )}, ${returnType('slots')}> {` +
             customConstructor +
-            exportedNames.createClassGetters() +
+            exportedNames.createClassGetters(genericsRef) +
             (usesAccessors ? exportedNames.createClassAccessors() : '') +
             '\n}';
     }

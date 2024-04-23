@@ -8,6 +8,9 @@
     let only_bind: () => boolean;
     let can_bind = '';
     let readonly = ''
+
+    let instance: Runes;
+    instance!.only_bind() === true;
 </script>
 
 <!-- ok -->
@@ -18,8 +21,8 @@
 <Runes bind:can_bind />
 <Runes {can_bind} />
 <Runes {readonly} />
-<Runes bind:only_bind />
 
 <!-- error in Svelte 5 -->
 <Runes bind:readonly />
+<Runes bind:only_bind />
 <Runes {only_bind} />

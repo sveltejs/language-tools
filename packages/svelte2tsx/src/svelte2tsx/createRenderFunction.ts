@@ -110,6 +110,7 @@ export function createRenderFunction({
 
     const returnString =
         `\nreturn { props: ${exportedNames.createPropsStr(uses$$props || uses$$restProps)}` +
+        exportedNames.createExportsStr() +
         `, slots: ${slotsAsDef}` +
         `, events: ${events.toDefString()} }}`;
 

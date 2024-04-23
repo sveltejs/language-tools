@@ -5,11 +5,11 @@
         "range": {
             "end": {
                 "character": 20,
-                "line": 23
+                "line": 25
             },
             "start": {
                 "character": 12,
-                "line": 23
+                "line": 25
             }
         },
         "severity": 1,
@@ -17,16 +17,33 @@
         "tags": []
     },
     {
-        "code": 2322,
-        "message": "Type '() => boolean' is not assignable to type 'Binding<() => boolean>'.",
+        "code": 2353,
+        "message": "Object literal may only specify known properties, and 'only_bind' does not exist in type '{ readonly?: string | undefined; can_bind?: Bindable<string | undefined>; }'.",
+        "range": {
+            "end": {
+                "character": 21,
+                "line": 26
+            },
+            "start": {
+                "character": 12,
+                "line": 26
+            }
+        },
+        "severity": 1,
+        "source": "ts",
+        "tags": []
+    },
+    {
+        "code": 2353,
+        "message": "Object literal may only specify known properties, and 'only_bind' does not exist in type '{ readonly?: string | undefined; can_bind?: Bindable<string | undefined>; }'.",
         "range": {
             "end": {
                 "character": 17,
-                "line": 24
+                "line": 27
             },
             "start": {
                 "character": 8,
-                "line": 24
+                "line": 27
             }
         },
         "severity": 1,

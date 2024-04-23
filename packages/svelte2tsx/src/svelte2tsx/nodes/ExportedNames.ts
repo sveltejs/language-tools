@@ -457,16 +457,24 @@ export class ExportedNames {
         this.getters.add(node.text);
     }
 
-    createClassGetters(): string {
-        return Array.from(this.getters)
-            .map(
-                (name) =>
-                    // getters are const/classes/functions, which are always defined.
-                    // We have to remove the `| undefined` from the type here because it was necessary to
-                    // be added in a previous step so people are not expected to provide these as props.
-                    `\n    get ${name}() { return __sveltets_2_nonNullable(this.$$prop_def.${name}) }`
-            )
-            .join('');
+    createClassGetters(generics = ''): string {
+        if (this.$props.type || this.$props.comment) {
+            // In runes mode, exports are no longer part of props
+            // TODO runes mode can also be given if there's no $props() (but $state() etc)
+            return Array.from(this.getters)
+                .map((name) => `\n    get ${name}() { return render${generics}().exports.${name} }`)
+                .join('');
+        } else {
+            return Array.from(this.getters)
+                .map(
+                    (name) =>
+                        // getters are const/classes/functions, which are always defined.
+                        // We have to remove the `| undefined` from the type here because it was necessary to
+                        // be added in a previous step so people are not expected to provide these as props.
+                        `\n    get ${name}() { return __sveltets_2_nonNullable(this.$$prop_def.${name}) }`
+                )
+                .join('');
+        }
     }
 
     createClassAccessors(): string {
@@ -596,59 +604,47 @@ export class ExportedNames {
     /**
      * Creates a string from the collected props
      *
-     * @param isTsFile Whether this is a TypeScript file or not.
      * @param uses$$propsOr$$restProps whether the file references the $$props or $$restProps variable
      */
     createPropsStr(uses$$propsOr$$restProps: boolean): string {
         const names = Array.from(this.exports.entries());
 
         if (this.$props.type) {
-            const others = names.filter(([, { isLet }]) => !isLet);
             return (
                 '{} as any as ' +
                 (this.$props.bindings.length
                     ? `__sveltets_2_Bindings<${this.$props.type}, ${this.$props.bindings.map((b) => `"${b}"`).join('|')}>`
-                    : this.$props.type) +
-                (others.length
-                    ? ' & { ' +
-                      this.createReturnElementsType(others, undefined, [
-                          'import("svelte").Binding<',
-                          '>'
-                      ]).join(',') +
-                      ' }'
-                    : '')
+                    : this.$props.type)
             );
         }
 
         if (this.$props.comment) {
-            // Try our best to incorporate createReturnElementsType and __sveltets_2_Bindings here
+            let result = this.$props.comment + '({})';
+
+            // Try our best to incorporate __sveltets_2_Bindings here
             let idx = this.$props.comment.indexOf('@type');
             if (idx !== -1 && /[\s{]/.test(this.$props.comment[idx + 5])) {
                 idx = this.$props.comment.indexOf('{', idx);
                 const end = this.$props.comment.lastIndexOf('}');
                 if (idx !== -1 && end !== -1 && idx < end) {
-                    const others = names.filter(([, { isLet }]) => !isLet);
                     const has_bindings = this.$props.bindings.length;
 
-                    if (others.length > 0 || has_bindings) {
+                    if (has_bindings) {
                         idx++;
-                        return (
+                        result =
                             this.$props.comment.slice(0, idx) +
-                            (others.length > 0
-                                ? `{${this.createReturnElementsType(others, false, ['import("svelte").Binding<', '>'])}} & `
-                                : '') +
                             (has_bindings ? '__sveltets_2_Bindings<' : '') +
                             this.$props.comment.slice(idx, end) +
                             (has_bindings
                                 ? `, ${this.$props.bindings.map((b) => `"${b}"`).join('|')}>`
                                 : '') +
                             this.$props.comment.slice(end) +
-                            '({})'
-                        );
+                            '({})';
                     }
                 }
             }
-            return this.$props.comment + '({})';
+
+            return result;
         }
 
         if (this.uses$$Props) {
@@ -693,6 +689,30 @@ export class ExportedNames {
         return `{${returnElements.join(' , ')}} as {${returnElementsType.join(', ')}}`;
     }
 
+    /**
+     * In runes mode, exports are no longer part of props because you cannot `bind:` to them,
+     * which is why we need a separate return type for them.
+     */
+    createExportsStr(): string {
+        const names = Array.from(this.exports.entries());
+        const others = names.filter(([, { isLet }]) => !isLet);
+
+        // TODO runes mode can also be given if there's no $props() (but $state() etc)
+        if ((this.$props.type || this.$props.comment) && others.length > 0) {
+            if (this.isTsFile) {
+                return (
+                    ', exports: {} as any as { ' +
+                    this.createReturnElementsType(others, undefined, true).join(',') +
+                    ' }'
+                );
+            } else {
+                return `, exports: /** @type {${this.createReturnElementsType(others, false, true)}} */ ({})`;
+            }
+        }
+
+        return '';
+    }
+
     private createReturnElements(
         names: Array<[string, ExportedName]>,
         dontAddTypeDef: boolean
@@ -708,20 +728,17 @@ export class ExportedNames {
     private createReturnElementsType(
         names: Array<[string, ExportedName]>,
         addDoc = true,
-        wrapWith?: [string, string]
+        forceRequired = false
     ) {
-        const wrap = wrapWith
-            ? (str: string) => `${wrapWith[0]}${str}${wrapWith[1]}`
-            : (str: string) => str;
         return names.map(([key, value]) => {
             const identifier = `${value.doc && addDoc ? `\n${value.doc}` : ''}${
                 value.identifierText || key
-            }${value.required ? '' : '?'}`;
+            }${value.required || forceRequired ? '' : '?'}`;
             if (!value.type) {
-                return `${identifier}: ${wrap(`typeof ${key}`)}`;
+                return `${identifier}: typeof ${key}`;
             }
 
-            return `${identifier}: ${wrap(value.type)}`;
+            return `${identifier}: ${value.type}`;
         });
     }
 
