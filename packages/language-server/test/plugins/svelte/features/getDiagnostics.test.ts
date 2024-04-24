@@ -459,7 +459,7 @@ describe('SveltePlugin#getDiagnostics', () => {
                     "Component has unused export property 'name'. If it is for external reference only, please consider using `export const name`",
                 severity: 2,
                 source: 'svelte',
-                code: 'unused-export-let'
+                code: isSvelte5Plus ? 'unused_export_let' : 'unused-export-let'
             }
         ]);
     });
@@ -477,7 +477,7 @@ describe('SveltePlugin#getDiagnostics', () => {
                 severity: 2,
                 source: 'svelte',
                 code: isSvelte5Plus
-                    ? 'no-reactive-declaration'
+                    ? 'no_reactive_declaration'
                     : 'module-script-reactive-declaration'
             }
         ]);
@@ -489,7 +489,7 @@ describe('SveltePlugin#getDiagnostics', () => {
 
         assert.deepStrictEqual(diagnostics, [
             {
-                code: 'unused-export-let',
+                code: isSvelte5Plus ? 'unused_export_let' : 'unused-export-let',
                 message:
                     "Component has unused export property 'unused1'. If it is for external reference only, please consider using `export const unused1`",
                 range: {
@@ -506,7 +506,7 @@ describe('SveltePlugin#getDiagnostics', () => {
                 source: 'svelte'
             },
             {
-                code: 'unused-export-let',
+                code: isSvelte5Plus ? 'unused_export_let' : 'unused-export-let',
                 message:
                     "Component has unused export property 'unused2'. If it is for external reference only, please consider using `export const unused2`",
                 range: {
