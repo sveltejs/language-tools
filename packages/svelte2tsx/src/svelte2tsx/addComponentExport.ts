@@ -85,7 +85,7 @@ class __sveltets_Render${genericsDef} {
      * Remove this once Svelte typings no longer do that (Svelte 6 or 7)
      */
     let customConstructor = '';
-    if (exportedNames.usesRunes()) {
+    if (exportedNames.hasPropsRune()) {
         customConstructor = `\n    constructor(options: import('svelte').ComponentConstructorOptions<__sveltets_2_PropsWithChildren<${returnType('props')}, ${returnType('slots')}>>) { super(options); }`;
     }
 
@@ -145,7 +145,7 @@ function addSimpleComponentExport({
      * Remove this once Svelte typings no longer do that (Svelte 6 or 7)
      */
     let customConstructor = '';
-    if (exportedNames.usesRunes()) {
+    if (exportedNames.hasPropsRune()) {
         customConstructor = `\n    constructor(options = __sveltets_2_runes_constructor(${propDef})) { super(options); }`;
     }
 

@@ -395,6 +395,10 @@ export function svelte2tsx(
         ({ exportedNames, events, generics, uses$$SlotsInterface } = res);
     }
 
+    if (svelte5Plus) {
+        exportedNames.checkGlobalsForRunes(implicitStoreValues.getGlobals());
+    }
+
     //wrap the script tag and template content in a function returning the slot and exports
     createRenderFunction({
         str,

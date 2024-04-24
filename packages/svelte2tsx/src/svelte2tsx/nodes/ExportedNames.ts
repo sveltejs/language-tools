@@ -25,6 +25,10 @@ export class ExportedNames {
      */
     public uses$$Props = false;
     /**
+     * Component contains globals that have a rune name
+     */
+    private hasRunesGlobals = false;
+    /**
      * The `$props()` rune's type info as a string, if it exists.
      * If using TS, this returns the generic string, if using JS, returns the `@type {..}` string.
      */
@@ -33,6 +37,7 @@ export class ExportedNames {
         type: '',
         bindings: [] as string[]
     };
+    /** Map of all props and exports. Exposing it publicly is no longer necessary for runes mode */
     private exports = new Map<string, ExportedName>();
     private possibleExports = new Map<
         string,
@@ -646,6 +651,13 @@ export class ExportedNames {
             return result;
         }
 
+        if (this.usesRunes()) {
+            // Necessary, because {} roughly equals to any
+            return this.isTsFile
+                ? '{} as Record<string, never>'
+                : '/** @type {Record<string, never>} */ ({})';
+        }
+
         if (this.uses$$Props) {
             const lets = names.filter(([, { isLet }]) => isLet);
             const others = names.filter(([, { isLet }]) => !isLet);
@@ -741,17 +753,29 @@ export class ExportedNames {
     }
 
     createOptionalPropsArray(): string[] {
-        return Array.from(this.exports.entries())
-            .filter(([_, entry]) => !entry.required)
-            .map(([name, entry]) => `'${entry.identifierText || name}'`);
+        if (this.usesRunes()) {
+            return [];
+        } else {
+            return Array.from(this.exports.entries())
+                .filter(([_, entry]) => !entry.required)
+                .map(([name, entry]) => `'${entry.identifierText || name}'`);
+        }
     }
 
     getExportsMap() {
         return this.exports;
     }
 
-    usesRunes() {
-        // TODO runes mode can also be given if there's no $props() (but $state() etc)
+    hasPropsRune() {
         return this.$props.type || this.$props.comment;
+    }
+
+    checkGlobalsForRunes(globals: string[]) {
+        const runes = ['$state', '$derived', '$effect']; // no need to check for props, already handled through other means in here
+        this.hasRunesGlobals = globals.some((global) => runes.includes(global));
+    }
+
+    private usesRunes() {
+        return this.hasRunesGlobals || this.hasPropsRune();
     }
 }
