@@ -80,6 +80,10 @@ class __sveltets_Render${genericsDef} {
     const [EventsName] = addTypeExport(str, className, 'Events');
     const [SlotsName] = addTypeExport(str, className, 'Slots');
 
+    /**
+     * In Svelte 5 runes mode we add a custom constructor to override the default one which implicitly makes all properties bindable.
+     * Remove this once Svelte typings no longer do that (Svelte 6 or 7)
+     */
     let customConstructor = '';
     if (exportedNames.usesRunes()) {
         customConstructor = `\n    constructor(options: import('svelte').ComponentConstructorOptions<__sveltets_2_PropsWithChildren<${returnType('props')}, ${returnType('slots')}>>) { super(options); }`;
@@ -136,6 +140,10 @@ function addSimpleComponentExport({
     const doc = componentDocumentation.getFormatted();
     const className = fileName && classNameFromFilename(fileName, mode !== 'dts');
 
+    /**
+     * In Svelte 5 runes mode we add a custom constructor to override the default one which implicitly makes all properties bindable.
+     * Remove this once Svelte typings no longer do that (Svelte 6 or 7)
+     */
     let customConstructor = '';
     if (exportedNames.usesRunes()) {
         customConstructor = `\n    constructor(options = __sveltets_2_runes_constructor(${propDef})) { super(options); }`;

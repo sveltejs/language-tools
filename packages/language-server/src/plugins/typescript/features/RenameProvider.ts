@@ -368,45 +368,27 @@ export class RenameProviderImpl implements RenameProvider {
 
             const { parent } = snapshot;
 
-            let rangeStart = parent.offsetAt(location.range.start);
-            let suffixText = location.suffixText?.trimStart();
-
-            // TODO can probably also used in Svelte 4?
-            if (snapshot.isSvelte5Plus) {
-                const bindingShorthand = this.getBindingShorthand(snapshot, location.range.start);
-                if (bindingShorthand) {
-                    // bind:|foo| -> bind:|newName|={foo}
-                    const name = parent
-                        .getText()
-                        .substring(bindingShorthand.start, bindingShorthand.end);
-                    return {
-                        ...location,
-                        prefixText: '',
-                        suffixText: `={${name}}`
-                    };
-                }
-            }
-
-            // suffix is of the form `: oldVarName` -> hints at a shorthand
-            if (!suffixText?.startsWith(':') || !getNodeIfIsInStartTag(parent.html, rangeStart)) {
-                return location;
-            }
-
-            const original = parent.getText({
-                start: Position.create(
-                    location.range.start.line,
-                    location.range.start.character - bind.length
-                ),
-                end: location.range.end
-            });
-
-            if (original.startsWith(bind)) {
+            const bindingShorthand = this.getBindingShorthand(snapshot, location.range.start);
+            if (bindingShorthand) {
                 // bind:|foo| -> bind:|newName|={foo}
+                const name = parent
+                    .getText()
+                    .substring(bindingShorthand.start, bindingShorthand.end);
                 return {
                     ...location,
                     prefixText: '',
-                    suffixText: `={${original.slice(bind.length)}}`
+                    suffixText: `={${name}}`
                 };
+            }
+
+            let rangeStart = parent.offsetAt(location.range.start);
+
+            // suffix is of the form `: oldVarName` -> hints at a shorthand
+            if (
+                !location.suffixText?.trimStart()?.startsWith(':') ||
+                !getNodeIfIsInStartTag(parent.html, rangeStart)
+            ) {
+                return location;
             }
 
             if (snapshot.getOriginalText().charAt(rangeStart - 1) === '{') {
