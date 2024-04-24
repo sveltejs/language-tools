@@ -125,7 +125,7 @@ export function parseHtmlx(
     const parsingCode = options.emitOnTemplateError
         ? blankPossiblyErrorOperatorOrPropertyAccess(deconstructed)
         : deconstructed;
-    const htmlxAst = (parse(parsingCode) as any).html;
+    const htmlxAst = parse(parsingCode).html as any;
 
     //restore our script and style tags as nodes to maintain validity with HTMLx
     for (const s of verbatimElements) {

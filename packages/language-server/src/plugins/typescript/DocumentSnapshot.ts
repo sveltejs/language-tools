@@ -130,11 +130,11 @@ export namespace DocumentSnapshot {
         // If someone wants to get back the behavior they can add an ambient module definition
         // on their own.
         const normalizedPath = filePath.replace(/\\/g, '/');
-        if (!normalizedPath.endsWith('/svelte/types/runtime/ambient.d.ts')) {
+        if (!normalizedPath.endsWith('node_modules/svelte/types/runtime/ambient.d.ts')) {
             originalText = tsSystem.readFile(filePath) || '';
         }
 
-        if (normalizedPath.endsWith('/svelte/types/index.d.ts')) {
+        if (normalizedPath.endsWith('node_modules/svelte/types/index.d.ts')) {
             const startIdx = originalText.indexOf(`declare module '*.svelte' {`);
             const endIdx = originalText.indexOf(`}`, originalText.indexOf(';', startIdx)) + 1;
             originalText =

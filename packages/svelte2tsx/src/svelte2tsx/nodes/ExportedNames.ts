@@ -458,9 +458,8 @@ export class ExportedNames {
     }
 
     createClassGetters(generics = ''): string {
-        if (this.$props.type || this.$props.comment) {
+        if (this.usesRunes()) {
             // In runes mode, exports are no longer part of props
-            // TODO runes mode can also be given if there's no $props() (but $state() etc)
             return Array.from(this.getters)
                 .map((name) => `\n    get ${name}() { return render${generics}().exports.${name} }`)
                 .join('');
@@ -697,8 +696,7 @@ export class ExportedNames {
         const names = Array.from(this.exports.entries());
         const others = names.filter(([, { isLet }]) => !isLet);
 
-        // TODO runes mode can also be given if there's no $props() (but $state() etc)
-        if ((this.$props.type || this.$props.comment) && others.length > 0) {
+        if (this.usesRunes() && others.length > 0) {
             if (this.isTsFile) {
                 return (
                     ', exports: {} as any as { ' +
@@ -753,6 +751,7 @@ export class ExportedNames {
     }
 
     usesRunes() {
+        // TODO runes mode can also be given if there's no $props() (but $state() etc)
         return this.$props.type || this.$props.comment;
     }
 }

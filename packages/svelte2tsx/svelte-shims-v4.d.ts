@@ -246,7 +246,6 @@ type __sveltets_2_PropsWithChildren<Props, Slots> = Props &
         // signatures work (they will always take precedence and make an impossible-to-satisfy children type).
         ? Props extends Record<string, never>
         ? any
-        // @ts-ignore not available in Svelte 4    
-        : { children?: import('svelte').Snippet<[any]> }
+        : { children?: any }
         : {});
 declare function __sveltets_2_runes_constructor<Props extends {}, Events extends {}, Slots extends {}>(render: {props: Props, events: Events, slots: Slots }): import("svelte").ComponentConstructorOptions<__sveltets_2_PropsWithChildren<Props, Slots>>;
