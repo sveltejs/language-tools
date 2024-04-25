@@ -6,8 +6,13 @@
 	<div>asd</div>
 {/snippet}
 
+{#snippet await_inside()}
+	{#await foo then bar}{bar}{/await}
+{/snippet}
+
 {@render foo(1)}
 {@render bar()}
+{@render await_inside()}
 
 <Component>
 	<div>{asd}</div>
@@ -19,6 +24,9 @@
 <List data={[1, 2, 3]}>
 	{#snippet row(item)}
 		{item}
+	{/snippet}
+	{#snippet await_inside()}
+		{#await foo then bar}{bar}{/await}
 	{/snippet}
 </List>
 

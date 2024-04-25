@@ -1,7 +1,7 @@
 ///<reference types="svelte" />
 ;function render() {
-  var bar/*Ωignore_startΩ*/: import('svelte').Snippet/*Ωignore_endΩ*/ = () => { foo;
-return __sveltets_2_any(0)};
+  var bar/*Ωignore_startΩ*/: import('svelte').Snippet/*Ωignore_endΩ*/ = () => {async () => { foo;
+};return __sveltets_2_any(0)};
     let foo = true;
     bar;
 ;

@@ -36,7 +36,7 @@ export function handleSnippet(
     str.overwrite(
         endSnippet,
         snippetBlock.end,
-        `return __sveltets_2_any(0)}${isImplicitProp ? '' : ';'}`,
+        `};return __sveltets_2_any(0)}${isImplicitProp ? '' : ';'}`,
         {
             contentOnly: true
         }
@@ -46,18 +46,15 @@ export function handleSnippet(
         str.original.indexOf(
             '}',
             // context was the first iteration in a .next release, remove at some point
-            snippetBlock.context?.end ||
-                snippetBlock.parameters?.at(-1)?.end ||
-                snippetBlock.expression.end
+            snippetBlock.parameters?.at(-1)?.end || snippetBlock.expression.end
         ) + 1;
 
     if (isImplicitProp) {
         str.overwrite(snippetBlock.start, snippetBlock.expression.start, '', { contentOnly: true });
         const transforms: TransformationArray = ['('];
-        if (snippetBlock.context || snippetBlock.parameters?.length) {
-            // context was the first iteration in a .next release, remove at some point
-            const start = snippetBlock.context?.start || snippetBlock.parameters?.[0].start;
-            const end = snippetBlock.context?.end || snippetBlock.parameters.at(-1).end;
+        if (snippetBlock.parameters?.length) {
+            const start = snippetBlock.parameters?.[0].start;
+            const end = snippetBlock.parameters.at(-1).end;
             transforms.push([start, end]);
             str.overwrite(snippetBlock.expression.end, start, '', {
                 contentOnly: true
@@ -66,7 +63,7 @@ export function handleSnippet(
         } else {
             str.overwrite(snippetBlock.expression.end, startEnd, '', { contentOnly: true });
         }
-        transforms.push(') => {');
+        transforms.push(') => {async () => {'); // inner async function for potential #await blocks
         transforms.push([startEnd, snippetBlock.end]);
         component.addProp(
             [[snippetBlock.expression.start, snippetBlock.expression.end]],
@@ -74,16 +71,7 @@ export function handleSnippet(
         );
     } else {
         let generic = '';
-        // context was the first iteration in a .next release, remove at some point
-        if (snippetBlock.context) {
-            generic = snippetBlock.context.typeAnnotation
-                ? `<${str.original.slice(
-                      snippetBlock.context.typeAnnotation.start + 1,
-                      snippetBlock.context.typeAnnotation.end
-                  )}>`
-                : // slap any on to it to silence "implicit any" errors; JSDoc people can't add types to snippets
-                  '<any>';
-        } else if (snippetBlock.parameters?.length) {
+        if (snippetBlock.parameters?.length) {
             generic = `<[${snippetBlock.parameters
                 .map((p) =>
                     p.typeAnnotation
@@ -101,16 +89,13 @@ export function handleSnippet(
             typeAnnotation + ' = ('
         ];
 
-        // context was the first iteration in a .next release, remove at some point
-        if (snippetBlock.context) {
-            transforms.push([snippetBlock.context.start, snippetBlock.context.end]);
-        } else if (snippetBlock.parameters?.length) {
+        if (snippetBlock.parameters?.length) {
             const start = snippetBlock.parameters[0].start;
             const end = snippetBlock.parameters.at(-1).end;
             transforms.push([start, end]);
         }
 
-        transforms.push(') => {');
+        transforms.push(') => {async () => {'); // inner async function for potential #await blocks
         transform(str, snippetBlock.start, startEnd, startEnd, transforms);
     }
 }
