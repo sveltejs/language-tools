@@ -29,7 +29,6 @@ export function createRenderFunction({
     uses$$slots,
     uses$$SlotsInterface,
     generics,
-    svelte5Plus,
     mode
 }: CreateRenderFunctionPara) {
     const htmlx = str.original;
@@ -109,24 +108,9 @@ export function createRenderFunction({
               .join(', ') +
           '}';
 
-    const needsImplicitChildrenProp =
-        svelte5Plus &&
-        !exportedNames.usesChildrenIn$propsRune() &&
-        slots.has('default') &&
-        !exportedNames.getExportsMap().has('default');
-    if (needsImplicitChildrenProp) {
-        exportedNames.addImplicitChildrenExport(slots.get('default')!.size > 0);
-    }
-
     const returnString =
-        `${
-            needsImplicitChildrenProp && slots.get('default')!.size > 0
-                ? `\nlet $$implicit_children = __sveltets_2_snippet({${slotAttributesToString(
-                      slots.get('default')!
-                  )}});`
-                : ''
-        }` +
         `\nreturn { props: ${exportedNames.createPropsStr(uses$$props || uses$$restProps)}` +
+        exportedNames.createExportsStr() +
         `, slots: ${slotsAsDef}` +
         `, events: ${events.toDefString()} }}`;
 
