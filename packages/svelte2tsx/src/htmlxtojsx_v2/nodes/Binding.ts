@@ -55,13 +55,18 @@ export function handleBinding(
     attr: BaseDirective,
     parent: BaseNode,
     element: Element | InlineComponent,
-    preserveBind: boolean
+    preserveBind: boolean,
+    isSvelte5Plus: boolean
 ): void {
     // bind group on input
     if (element instanceof Element && attr.name == 'group' && parent.name == 'input') {
+        // add reassignment to force TS to widen the type of the declaration (in case it's never reassigned anywhere else)
+        const expressionStr = str.original.substring(
+            attr.expression.start,
+            getEnd(attr.expression)
+        );
         element.appendToStartEnd([
-            rangeWithTrailingPropertyAccess(str.original, attr.expression),
-            ';'
+            surroundWithIgnoreComments(`() => ${expressionStr} = __sveltets_2_any(null);`)
         ]);
         return;
     }
@@ -94,6 +99,12 @@ export function handleBinding(
         return;
     }
 
+    // add reassignment to force TS to widen the type of the declaration (in case it's never reassigned anywhere else)
+    const expressionStr = str.original.substring(attr.expression.start, getEnd(attr.expression));
+    element.appendToStartEnd([
+        surroundWithIgnoreComments(`() => ${expressionStr} = __sveltets_2_any(null);`)
+    ]);
+
     // other bindings which are transformed to normal attributes/props
     const isShorthand = attr.expression.start === attr.start + 'bind:'.length;
     const name: TransformationArray =
@@ -116,11 +127,22 @@ export function handleBinding(
                         str.original.lastIndexOf('=', attr.expression.start)
                     ]
                 ];
+
     const value: TransformationArray | undefined = isShorthand
         ? preserveBind && element instanceof Element
             ? [rangeWithTrailingPropertyAccess(str.original, attr.expression)]
-            : undefined
-        : [rangeWithTrailingPropertyAccess(str.original, attr.expression)];
+            : isSvelte5Plus
+              ? [
+                    `__sveltets_2_binding(${str.original.substring(attr.expression.start, attr.expression.end)})`
+                ]
+              : undefined
+        : element instanceof Element || !isSvelte5Plus
+          ? [rangeWithTrailingPropertyAccess(str.original, attr.expression)]
+          : [
+                '__sveltets_2_binding(',
+                rangeWithTrailingPropertyAccess(str.original, attr.expression),
+                ')'
+            ];
     if (element instanceof Element) {
         element.addAttribute(name, value);
     } else {

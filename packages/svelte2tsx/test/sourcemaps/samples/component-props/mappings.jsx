@@ -54,25 +54,25 @@ async•()•=>•{••{•const•$$_tnenopmoC0C•=•__sveltets_2_ensureCom
                                                                                                                                                       {/**
 
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
- { const $$_tnenopmoC0C = __sveltets_2_ensureComponent(Component); new $$_tnenopmoC0C({ target: __sveltets_2_any(), props: {   foo:bar,}});}          {/**
-•{•const•$$_tnenopmoC0C•=•__sveltets_2_ensureComponent(Component);•new•$$_tnenopmoC0C({•target:•__sveltets_2_any(),•props:•{•••foo:bar,}});}↲    [generated] line 11
-•{•const•$$_tnenopmoC0C•=•__sveltets_2_ensureComponent(Component);•new•$$_tnenopmoC0C({•target:•__sveltets_2_any(),•props:•{                     [generated] subset
-<                                                      Component                                                                                      
-<Component                                                                                                                                            
-<Component↲                                                                                                                                      [original] line 11 
-                                                                                                                                                      
-•{•const•$$_tnenopmoC0C•=•__sveltets_2_ensureComponent(Component);•new•$$_tnenopmoC0C({•target:•__sveltets_2_any(),•props:•{•••foo:bar,}});}↲    [generated] line 11
-                                                                                                                            •• foo:bar,}});}     [generated] subset
-                                                                                                                            b{ foo=bar}               
-                                                                                                                             #=                  Order-breaking mappings
- b    foo={bar}                                                                                                                                       
-╚bind:foo={bar}↲                                                                                                                                 [original] line 12 
-                                                                                                                                                      
-•{•const•$$_tnenopmoC0C•=•__sveltets_2_ensureComponent(Component);•new•$$_tnenopmoC0C({•target:•__sveltets_2_any(),•props:•{•••foo:bar,}});}↲    [generated] line 11
-                                                                                                                              •             ↲    [generated] subset
-                                                                                                                              /             ↲         
-/ ↲                                                                                                                                                   
-/>↲                                                                                                                                              [original] line 13 
+ { const $$_tnenopmoC0C = __sveltets_2_ensureComponent(Component); new $$_tnenopmoC0C({ target: __sveltets_2_any(), props: {   foo:bar,}});/*Ωignore_startΩ*/() => bar = __sveltets_2_any(null);/*Ωignore_endΩ*/}{/**
+•{•const•$$_tnenopmoC0C•=•__sveltets_2_ensureComponent(Component);•new•$$_tnenopmoC0C({•target:•__sveltets_2_any(),•props:•{•••foo:bar,}});/*Ωignore_startΩ*/()•=>•bar•=•__sveltets_2_any(null);/*Ωignore_endΩ*/}↲    [generated] line 11
+•{•const•$$_tnenopmoC0C•=•__sveltets_2_ensureComponent(Component);•new•$$_tnenopmoC0C({•target:•__sveltets_2_any(),•props:•{                                                                                          [generated] subset
+<                                                      Component                                                                                                                                                      
+<Component                                                                                                                                                                                                            
+<Component↲                                                                                                                                                                                                           [original] line 11 
+                                                                                                                                                                                                                      
+•{•const•$$_tnenopmoC0C•=•__sveltets_2_ensureComponent(Component);•new•$$_tnenopmoC0C({•target:•__sveltets_2_any(),•props:•{•••foo:bar,}});/*Ωignore_startΩ*/()•=>•bar•=•__sveltets_2_any(null);/*Ωignore_endΩ*/}↲    [generated] line 11
+                                                                                                                            •• foo:bar,}});/*Ωignore_startΩ*/()•=>•bar•=•__sveltets_2_any(null);/*Ωignore_endΩ*/}     [generated] subset
+                                                                                                                            b{ foo=bar}                                                                               
+                                                                                                                             #=                                                                                       Order-breaking mappings
+ b    foo={bar}                                                                                                                                                                                                       
+╚bind:foo={bar}↲                                                                                                                                                                                                      [original] line 12 
+                                                                                                                                                                                                                      
+•{•const•$$_tnenopmoC0C•=•__sveltets_2_ensureComponent(Component);•new•$$_tnenopmoC0C({•target:•__sveltets_2_any(),•props:•{•••foo:bar,}});/*Ωignore_startΩ*/()•=>•bar•=•__sveltets_2_any(null);/*Ωignore_endΩ*/}↲    [generated] line 11
+                                                                                                                              •                                                                                  ↲    [generated] subset
+                                                                                                                              /                                                                                  ↲    
+/ ↲                                                                                                                                                                                                                   
+/>↲                                                                                                                                                                                                                   [original] line 13 
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                                                                                                                                                       {/**
 

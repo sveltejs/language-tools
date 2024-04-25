@@ -154,7 +154,8 @@ export function convertHtmlxToJsx(
                             node as BaseDirective,
                             parent,
                             element,
-                            options.typingsNamespace === 'svelteHTML'
+                            options.typingsNamespace === 'svelteHTML',
+                            options.svelte5Plus
                         );
                         break;
                     case 'Class':
@@ -178,6 +179,7 @@ export function convertHtmlxToJsx(
                             node as Attribute,
                             parent,
                             options.preserveAttributeCase,
+                            options.svelte5Plus,
                             element
                         );
                         break;
@@ -188,7 +190,14 @@ export function convertHtmlxToJsx(
                         handleEventHandler(str, node as BaseDirective, element);
                         break;
                     case 'Let':
-                        handleLet(str, node, parent, options.preserveAttributeCase, element);
+                        handleLet(
+                            str,
+                            node,
+                            parent,
+                            options.preserveAttributeCase,
+                            options.svelte5Plus,
+                            element
+                        );
                         break;
                     case 'Text':
                         handleText(str, node as Text, parent);

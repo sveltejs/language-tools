@@ -17,7 +17,7 @@ import {
 } from 'vscode-languageserver';
 import {
     CompletionsProviderImpl,
-    CompletionEntryWithIdentifier
+    CompletionResolveInfo
 } from '../../../../src/plugins/typescript/features/CompletionProvider';
 import { LSAndTSDocResolver } from '../../../../src/plugins/typescript/LSAndTSDocResolver';
 import { sortBy } from 'lodash';
@@ -216,6 +216,60 @@ describe('CompletionProviderImpl', function () {
                 textEdit: undefined
             }
         ]);
+    });
+
+    it('provide event completions for element from type definition', async () => {
+        const { completionProvider, document } = setup('element-events-completion.svelte');
+
+        const completions = await completionProvider.getCompletions(
+            document,
+            Position.create(0, 14),
+            {
+                triggerKind: CompletionTriggerKind.Invoked
+            }
+        );
+
+        const item = completions!.items.find((item) => item.label.startsWith('on:touchend'));
+
+        delete item!.data;
+
+        assert.deepStrictEqual(item, <CompletionItem>{
+            commitCharacters: ['.', ',', ';', '('],
+            label: 'on:touchend',
+            labelDetails: undefined,
+            sortText: '11',
+            kind: CompletionItemKind.Field,
+            textEdit: {
+                range: { start: { line: 0, character: 8 }, end: { line: 0, character: 14 } },
+                newText: 'on:touchend'
+            },
+            preselect: undefined,
+            insertText: undefined,
+            insertTextFormat: undefined
+        });
+    });
+
+    it('provide tag name completion from type definition', async () => {
+        const { completionProvider, document } = setup('custom-element-tag.svelte');
+
+        const completions = await completionProvider.getCompletions(
+            document,
+            Position.create(0, 2),
+            {
+                triggerKind: CompletionTriggerKind.Invoked
+            }
+        );
+
+        const item = completions!.items.find((item) => item.label === 'custom-element');
+
+        assert.deepStrictEqual(item, <CompletionItem>{
+            label: 'custom-element',
+            kind: CompletionItemKind.Property,
+            textEdit: {
+                range: { start: { line: 0, character: 1 }, end: { line: 0, character: 2 } },
+                newText: 'custom-element'
+            }
+        });
     });
 
     it("doesn't provide event completions inside attribute value", async () => {
@@ -475,27 +529,14 @@ describe('CompletionProviderImpl', function () {
 
         assert.deepStrictEqual(data, {
             data: undefined,
-            hasAction: undefined,
-            filterText: undefined,
-            insertText: undefined,
-            isPackageJsonImport: undefined,
-            isImportStatementCompletion: undefined,
-            isRecommended: undefined,
-            isSnippet: undefined,
-            kind: 'method',
-            kindModifiers: '',
-            labelDetails: undefined,
             name: 'b',
             position: {
                 character: 49,
                 line: 0
             },
-            replacementSpan: undefined,
-            sortText: '11',
             source: undefined,
-            sourceDisplay: undefined,
             uri: fileNameToAbsoluteUri(filename)
-        } as CompletionEntryWithIdentifier);
+        } as CompletionResolveInfo);
     });
 
     it('resolve completion and provide documentation', async () => {
@@ -507,8 +548,6 @@ describe('CompletionProviderImpl', function () {
             commitCharacters: ['.', ',', ';', '('],
             data: {
                 name: 'foo',
-                kind: ts.ScriptElementKind.alias,
-                sortText: '0',
                 uri: '',
                 position: Position.create(3, 7)
             }
@@ -599,7 +638,10 @@ describe('CompletionProviderImpl', function () {
         );
 
         assert.deepStrictEqual(
-            sortBy(completions?.items.map((item) => item.label), (x) => x),
+            sortBy(
+                completions?.items.map((item) => item.label),
+                (x) => x
+            ),
             sortBy(testfiles, (x) => x)
         );
     });
@@ -1333,7 +1375,10 @@ describe('CompletionProviderImpl', function () {
             document,
             Position.create(4, 14)
         );
-        assert.deepStrictEqual(completions?.items.map((item) => item.label), ['s', 'm', 'l']);
+        assert.deepStrictEqual(
+            completions?.items.map((item) => item.label),
+            ['s', 'm', 'l']
+        );
     });
 
     it('can auto import in workspace without tsconfig/jsconfig', async () => {

@@ -58,7 +58,19 @@ export function importSvelte(fromPath: string): typeof svelte {
     const pkg = getPackageInfo('svelte', fromPath);
     const main = resolve(pkg.path, 'compiler');
     Logger.debug('Using Svelte v' + pkg.version.full, 'from', main);
-    return dynamicRequire(main + (pkg.version.major >= 4 ? '.cjs' : ''));
+    if (pkg.version.major === 4) {
+        return dynamicRequire(main + '.cjs');
+    } else if (pkg.version.major === 5) {
+        // TODO remove once Svelte 5 is released
+        // (we switched from compiler.cjs to compiler/index.js at some point)
+        try {
+            return dynamicRequire(main);
+        } catch (e) {
+            return dynamicRequire(main + '.cjs');
+        }
+    } else {
+        return dynamicRequire(main);
+    }
 }
 
 export function importSveltePreprocess(fromPath: string): typeof sveltePreprocess {

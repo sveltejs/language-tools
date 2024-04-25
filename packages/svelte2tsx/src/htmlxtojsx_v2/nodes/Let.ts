@@ -15,6 +15,7 @@ export function handleLet(
     node: BaseNode,
     parent: BaseNode,
     preserveCase: boolean,
+    svelte5Plus: boolean,
     element: Element | InlineComponent
 ): void {
     if (element instanceof InlineComponent) {
@@ -47,6 +48,7 @@ export function handleLet(
                 },
                 parent,
                 preserveCase,
+                svelte5Plus,
                 element
             );
         }

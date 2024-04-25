@@ -49,6 +49,7 @@ export interface LanguageServiceContainer {
     fileBelongsToProject(filePath: string, isNew: boolean): boolean;
     onAutoImportProviderSettingsChanged(): void;
     onPackageJsonChange(packageJsonPath: string): void;
+    getTsConfigSvelteOptions(): { namespace: string };
 
     dispose(): void;
 }
@@ -245,10 +246,11 @@ async function createLanguageService(
         svelteTsPath = __dirname;
     }
     const sveltePackageInfo = getPackageInfo('svelte', tsconfigPath || workspacePath);
+    // Svelte 4 has some fixes with regards to parsing the generics attribute.
     // Svelte 5 has new features, but we don't want to add the new compiler into language-tools. In the future it's probably
     // best to shift more and more of this into user's node_modules for better handling of multiple Svelte versions.
     const svelteCompiler =
-        sveltePackageInfo.version.major >= 5
+        sveltePackageInfo.version.major >= 4
             ? importSvelte(tsconfigPath || workspacePath)
             : undefined;
 
@@ -335,6 +337,7 @@ async function createLanguageService(
         invalidateModuleCache,
         onAutoImportProviderSettingsChanged,
         onPackageJsonChange,
+        getTsConfigSvelteOptions,
         dispose
     };
 
@@ -818,6 +821,13 @@ async function createLanguageService(
                 host.getModuleSpecifierCache?.().clear();
             }
         }
+    }
+
+    function getTsConfigSvelteOptions() {
+        // if there's more options in the future, get it from raw.svelteOptions and normalize it
+        return {
+            namespace: transformationConfig.typingsNamespace
+        };
     }
 }
 
