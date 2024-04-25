@@ -30,12 +30,13 @@ export class ConfigManager {
     }
 
     updateConfigFromPluginConfig(config: Configuration) {
-        const shouldWaitForConfigRequest = config.global == true;
-        const enable = config.enable ?? !shouldWaitForConfigRequest;
+        // TODO this doesn't work because TS will resolve/load files already before we get the config request,
+        // which leads to TS files that use Svelte files getting all kinds of type errors
+        // const shouldWaitForConfigRequest = config.global == true;
+        // const enable = config.enable ?? !shouldWaitForConfigRequest;
         this.config = {
             ...this.config,
-            ...config,
-            enable
+            ...config
         };
         this.emitter.emit(configurationEventName, config);
     }
