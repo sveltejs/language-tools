@@ -94,7 +94,7 @@ export function handleAttribute(
                   element.addAttribute(name, value);
               }
             : (name: TransformationArray, value?: TransformationArray) => {
-                  if (attr.name.startsWith('--') && attr.value !== true) {
+                  if (attr.name.startsWith('--')) {
                       // CSS custom properties are not part of the props
                       // definition, so wrap them to not get "--xx is invalid prop" errors
                       name.unshift('...__sveltets_2_cssProp({');
