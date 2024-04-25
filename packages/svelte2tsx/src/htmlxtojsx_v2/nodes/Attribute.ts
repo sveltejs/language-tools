@@ -55,6 +55,7 @@ export function handleAttribute(
     attr: Attribute,
     parent: BaseNode,
     preserveCase: boolean,
+    svelte5Plus: boolean,
     element: Element | InlineComponent
 ): void {
     if (
@@ -112,7 +113,8 @@ export function handleAttribute(
         if (
             !preserveCase &&
             !svgAttributes.find((x) => x == name) &&
-            !(element instanceof Element && element.tagName.includes('-'))
+            !(element instanceof Element && element.tagName.includes('-')) &&
+            !(svelte5Plus && name.startsWith('on'))
         ) {
             return name.toLowerCase();
         } else {
