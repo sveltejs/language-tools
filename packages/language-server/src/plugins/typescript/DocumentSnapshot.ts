@@ -87,6 +87,7 @@ export namespace DocumentSnapshot {
             document,
             parserError,
             scriptKind,
+            options.version,
             text,
             nrPrependedLines,
             exportedNames,
@@ -272,12 +273,17 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
         public readonly parent: Document,
         public readonly parserError: ParserError | null,
         public readonly scriptKind: ts.ScriptKind,
+        public readonly svelteVersion: string | undefined,
         private readonly text: string,
         private readonly nrPrependedLines: number,
         private readonly exportedNames: IExportedNames,
         private readonly tsxMap?: EncodedSourceMap,
         private readonly htmlAst?: TemplateNode
     ) {}
+
+    get isSvelte5Plus() {
+        return Number(this.svelteVersion?.split('.')[0]) >= 5;
+    }
 
     get filePath() {
         return this.parent.getFilePath() || '';

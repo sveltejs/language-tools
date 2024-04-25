@@ -80,6 +80,15 @@ class __sveltets_Render${genericsDef} {
     const [EventsName] = addTypeExport(str, className, 'Events');
     const [SlotsName] = addTypeExport(str, className, 'Slots');
 
+    /**
+     * In Svelte 5 runes mode we add a custom constructor to override the default one which implicitly makes all properties bindable.
+     * Remove this once Svelte typings no longer do that (Svelte 6 or 7)
+     */
+    let customConstructor = '';
+    if (exportedNames.hasPropsRune()) {
+        customConstructor = `\n    constructor(options: import('svelte').ComponentConstructorOptions<__sveltets_2_PropsWithChildren<${returnType('props')}, ${returnType('slots')}>>) { super(options); }`;
+    }
+
     if (mode === 'dts') {
         statement +=
             `export type ${PropsName}${genericsDef} = ${returnType('props')};\n` +
@@ -88,7 +97,8 @@ class __sveltets_Render${genericsDef} {
             `\n${doc}export default class${
                 className ? ` ${className}` : ''
             }${genericsDef} extends ${svelteComponentClass}<${PropsName}${genericsRef}, ${EventsName}${genericsRef}, ${SlotsName}${genericsRef}> {` +
-            exportedNames.createClassGetters() +
+            customConstructor +
+            exportedNames.createClassGetters(genericsRef) +
             (usesAccessors ? exportedNames.createClassAccessors() : '') +
             '\n}';
     } else {
@@ -99,7 +109,8 @@ class __sveltets_Render${genericsDef} {
             }${genericsDef} extends __SvelteComponentTyped__<${returnType('props')}, ${returnType(
                 'events'
             )}, ${returnType('slots')}> {` +
-            exportedNames.createClassGetters() +
+            customConstructor +
+            exportedNames.createClassGetters(genericsRef) +
             (usesAccessors ? exportedNames.createClassAccessors() : '') +
             '\n}';
     }
@@ -129,6 +140,15 @@ function addSimpleComponentExport({
     const doc = componentDocumentation.getFormatted();
     const className = fileName && classNameFromFilename(fileName, mode !== 'dts');
 
+    /**
+     * In Svelte 5 runes mode we add a custom constructor to override the default one which implicitly makes all properties bindable.
+     * Remove this once Svelte typings no longer do that (Svelte 6 or 7)
+     */
+    let customConstructor = '';
+    if (exportedNames.hasPropsRune()) {
+        customConstructor = `\n    constructor(options = __sveltets_2_runes_constructor(${propDef})) { super(options); }`;
+    }
+
     let statement: string;
     if (mode === 'dts' && isTsFile) {
         const svelteComponentClass = noSvelteComponentTyped
@@ -146,6 +166,7 @@ function addSimpleComponentExport({
             `\n${doc}export default class${
                 className ? ` ${className}` : ''
             } extends ${svelteComponentClass}<${PropsName}, ${EventsName}, ${SlotsName}> {` +
+            customConstructor +
             exportedNames.createClassGetters() +
             (usesAccessors ? exportedNames.createClassAccessors() : '') +
             '\n}';
@@ -158,6 +179,7 @@ function addSimpleComponentExport({
             `\n${doc}export default class${
                 className ? ` ${className}` : ''
             } extends __sveltets_2_createSvelte2TsxComponent(${propDef}) {` +
+            customConstructor +
             exportedNames.createClassGetters() +
             (usesAccessors ? exportedNames.createClassAccessors() : '') +
             '\n}';
@@ -166,6 +188,7 @@ function addSimpleComponentExport({
             `\n\n${doc}export default class${
                 className ? ` ${className}` : ''
             } extends __sveltets_2_createSvelte2TsxComponent(${propDef}) {` +
+            customConstructor +
             exportedNames.createClassGetters() +
             (usesAccessors ? exportedNames.createClassAccessors() : '') +
             '\n}';
