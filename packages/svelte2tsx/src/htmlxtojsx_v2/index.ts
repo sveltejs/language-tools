@@ -154,7 +154,8 @@ export function convertHtmlxToJsx(
                             node as BaseDirective,
                             parent,
                             element,
-                            options.typingsNamespace === 'svelteHTML'
+                            options.typingsNamespace === 'svelteHTML',
+                            options.svelte5Plus
                         );
                         break;
                     case 'Class':

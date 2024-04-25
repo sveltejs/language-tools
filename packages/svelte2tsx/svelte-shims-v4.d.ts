@@ -5,8 +5,6 @@
 // If you change anything in this file, think about whether or not it should be backported to svelte-shims.d.ts
 
 type AConstructorTypeOf<T, U extends any[] = any[]> = new (...args: U) => T;
-/** @internal PRIVATE API, DO NOT USE */
-type SvelteComponentConstructor<T, U extends import('svelte').ComponentConstructorOptions<any>> = new (options: U) => T;
 
 /** @internal PRIVATE API, DO NOT USE */
 type SvelteActionReturnType = {
@@ -95,7 +93,7 @@ declare function __sveltets_2_with_any<Props = {}, Events = {}, Slots = {}>(
 
 declare function __sveltets_2_with_any_event<Props = {}, Events = {}, Slots = {}>(
     render: {props: Props, events: Events, slots: Slots }
-): {props: Props, events: Events & {[evt: string]: CustomEvent<any>;}, slots: Slots }
+): {props: Expand<Props>, events: Events & {[evt: string]: CustomEvent<any>;}, slots: Slots }
 
 declare function __sveltets_2_store_get<T = any>(store: SvelteStore<T>): T
 declare function __sveltets_2_store_get<Store extends SvelteStore<any> | undefined | null>(store: Store): Store extends SvelteStore<infer T> ? T : Store;
@@ -129,7 +127,7 @@ declare function __sveltets_2_unionType(...types: any[]): any;
 
 declare function __sveltets_2_createSvelte2TsxComponent<Props extends {}, Events extends {}, Slots extends {}>(
     render: {props: Props, events: Events, slots: Slots }
-): SvelteComponentConstructor<import("svelte").SvelteComponent<Props, Events, Slots>,import('svelte').ComponentConstructorOptions<Props>>;
+): typeof import("svelte").SvelteComponent<Props, Events, Slots>;
 
 declare function __sveltets_2_unwrapArr<T>(arr: ArrayLike<T>): T
 declare function __sveltets_2_unwrapPromiseLike<T>(promise: PromiseLike<T> | T): T
@@ -230,3 +228,24 @@ declare type ConstructorOfATypedSvelteComponent = new (args: {target: any, props
 declare function __sveltets_2_ensureComponent<T extends ConstructorOfATypedSvelteComponent | null | undefined>(type: T): NonNullable<T>;
 
 declare function __sveltets_2_ensureArray<T extends ArrayLike<unknown> | Iterable<unknown>>(array: T): T extends ArrayLike<infer U> ? U[] : T extends Iterable<infer U> ? Iterable<U> : any[];
+
+declare type __sveltets_2_Bindings<Props extends Record<string, any>, Bindings extends string> = {
+    [K in keyof Props]: K extends Bindings ?
+        // @ts-ignore not available in Svelte 4
+        import('svelte').Bindable<Props[K]> : 
+        Props[K]
+    };
+declare function __sveltets_2_binding<T>(prop: T): 
+    // @ts-ignore not available in Svelte 4    
+    import('svelte').Binding<T>;
+
+type __sveltets_2_PropsWithChildren<Props, Slots> = Props &
+    (Slots extends { default: any }
+        // This is unfortunate because it means "accepts no props" turns into "accepts any prop"
+        // but the alternative is non-fixable type errors because of the way TypeScript index
+        // signatures work (they will always take precedence and make an impossible-to-satisfy children type).
+        ? Props extends Record<string, never>
+        ? any
+        : { children?: any }
+        : {});
+declare function __sveltets_2_runes_constructor<Props extends {}, Events extends {}, Slots extends {}>(render: {props: Props, events: Events, slots: Slots }): import("svelte").ComponentConstructorOptions<__sveltets_2_PropsWithChildren<Props, Slots>>;

@@ -1,0 +1,9 @@
+[
+    {
+        "range": { "start": { "line": 1, "character": 0 }, "end": { "line": 1, "character": 0 } },
+        "severity": 1,
+        "source": "js",
+        "message": "A component can have a single top-level `<style>` element",
+        "code": -1
+    }
+]

@@ -37,6 +37,9 @@ interface TsRenameLocation extends ts.RenameLocation {
     newName?: string;
 }
 
+const bind = 'bind:';
+const bindShortHandGeneratedLength = ':__sveltets_2_binding('.length;
+
 export class RenameProviderImpl implements RenameProvider {
     constructor(
         private readonly lsAndTsDocResolver: LSAndTSDocResolver,
@@ -73,7 +76,7 @@ export class RenameProviderImpl implements RenameProvider {
 
         const renameLocations = lang.findRenameLocations(
             tsDoc.filePath,
-            offset,
+            offset + (renameInfo.bindShorthand || 0),
             false,
             false,
             true
@@ -157,12 +160,22 @@ export class RenameProviderImpl implements RenameProvider {
     ):
         | (ts.RenameInfoSuccess & {
               isStore?: boolean;
+              bindShorthand?: number;
           })
         | null {
         // Don't allow renames in error-state, because then there is no generated svelte2tsx-code
         // and rename cannot work
         if (tsDoc.parserError) {
             return null;
+        }
+
+        const svelteNode = tsDoc.svelteNodeAt(originalPosition);
+
+        let bindOffset = 0;
+        const bindingShorthand = this.getBindingShorthand(tsDoc, originalPosition, svelteNode);
+        if (bindingShorthand) {
+            bindOffset = bindingShorthand.end - bindingShorthand.start;
+            generatedOffset += bindShortHandGeneratedLength + bindOffset;
         }
 
         const renameInfo = lang.getRenameInfo(tsDoc.filePath, generatedOffset, {
@@ -178,7 +191,6 @@ export class RenameProviderImpl implements RenameProvider {
             return null;
         }
 
-        const svelteNode = tsDoc.svelteNodeAt(originalPosition);
         if (
             isInHTMLTagRange(doc.html, doc.offsetAt(originalPosition)) ||
             isAttributeName(svelteNode, 'Element') ||
@@ -188,14 +200,20 @@ export class RenameProviderImpl implements RenameProvider {
         }
 
         // If $store is renamed, only allow rename for $|store|
-        if (tsDoc.getFullText().charAt(renameInfo.triggerSpan.start) === '$') {
+        const text = tsDoc.getFullText();
+        if (text.charAt(renameInfo.triggerSpan.start) === '$') {
             const definition = lang.getDefinitionAndBoundSpan(tsDoc.filePath, generatedOffset)
                 ?.definitions?.[0];
-            if (definition && isTextSpanInGeneratedCode(tsDoc.getFullText(), definition.textSpan)) {
+            if (definition && isTextSpanInGeneratedCode(text, definition.textSpan)) {
                 renameInfo.triggerSpan.start++;
                 renameInfo.triggerSpan.length--;
                 (renameInfo as any).isStore = true;
             }
+        }
+
+        if (bindOffset) {
+            renameInfo.triggerSpan.start -= bindShortHandGeneratedLength + bindOffset;
+            (renameInfo as any).bindShorthand = bindShortHandGeneratedLength + bindOffset;
         }
 
         return renameInfo;
@@ -325,7 +343,6 @@ export class RenameProviderImpl implements RenameProvider {
             replacementsForProp,
             snapshots
         );
-        const bind = 'bind:';
 
         // Adjust shorthands
         return renameLocations.map((location) => {
@@ -351,29 +368,27 @@ export class RenameProviderImpl implements RenameProvider {
 
             const { parent } = snapshot;
 
-            let rangeStart = parent.offsetAt(location.range.start);
-            let suffixText = location.suffixText?.trimStart();
-
-            // suffix is of the form `: oldVarName` -> hints at a shorthand
-            if (!suffixText?.startsWith(':') || !getNodeIfIsInStartTag(parent.html, rangeStart)) {
-                return location;
-            }
-
-            const original = parent.getText({
-                start: Position.create(
-                    location.range.start.line,
-                    location.range.start.character - bind.length
-                ),
-                end: location.range.end
-            });
-
-            if (original.startsWith(bind)) {
+            const bindingShorthand = this.getBindingShorthand(snapshot, location.range.start);
+            if (bindingShorthand) {
                 // bind:|foo| -> bind:|newName|={foo}
+                const name = parent
+                    .getText()
+                    .substring(bindingShorthand.start, bindingShorthand.end);
                 return {
                     ...location,
                     prefixText: '',
-                    suffixText: `={${original.slice(bind.length)}}`
+                    suffixText: `={${name}}`
                 };
+            }
+
+            let rangeStart = parent.offsetAt(location.range.start);
+
+            // suffix is of the form `: oldVarName` -> hints at a shorthand
+            if (
+                !location.suffixText?.trimStart()?.startsWith(':') ||
+                !getNodeIfIsInStartTag(parent.html, rangeStart)
+            ) {
+                return location;
             }
 
             if (snapshot.getOriginalText().charAt(rangeStart - 1) === '{') {
@@ -582,8 +597,6 @@ export class RenameProviderImpl implements RenameProvider {
         renameLocations: TsRenameLocation[],
         snapshots: SnapshotMap
     ): TsRenameLocation[] {
-        const bind = 'bind:';
-
         return renameLocations.map((location) => {
             const sourceFile = lang.getProgram()?.getSourceFile(location.fileName);
 
@@ -624,6 +637,38 @@ export class RenameProviderImpl implements RenameProvider {
                         prefixText: original.slice(bind.length) + '={',
                         suffixText: '}'
                     };
+                }
+
+                if (snapshot.isSvelte5Plus) {
+                    const bindingShorthand = this.getBindingShorthand(
+                        snapshot,
+                        location.range.start
+                    );
+                    if (bindingShorthand) {
+                        const name = parent
+                            .getText()
+                            .substring(bindingShorthand.start, bindingShorthand.end);
+                        const start = {
+                            line: location.range.start.line,
+                            character: location.range.start.character - name.length
+                        };
+                        // If binding is followed by the closing tag, start is one character too soon,
+                        // else binding is ending one character too far
+                        if (parent.getText().charAt(parent.offsetAt(start)) === ':') {
+                            start.character++;
+                        } else {
+                            location.range.end.character--;
+                        }
+                        return {
+                            ...location,
+                            range: {
+                                start: start,
+                                end: location.range.end
+                            },
+                            prefixText: name + '={',
+                            suffixText: '}'
+                        };
+                    }
                 }
             }
 
@@ -667,5 +712,18 @@ export class RenameProviderImpl implements RenameProvider {
 
             return location;
         });
+    }
+
+    private getBindingShorthand(
+        snapshot: SvelteDocumentSnapshot,
+        position: Position,
+        svelteNode = snapshot.svelteNodeAt(position)
+    ) {
+        if (
+            svelteNode?.parent?.type === 'Binding' &&
+            svelteNode.parent.expression.end === svelteNode.parent.end
+        ) {
+            return svelteNode.parent.expression;
+        }
     }
 }

@@ -63,7 +63,7 @@ async function tryGetDiagnostics(
         if (cancellationToken?.isCancellationRequested) {
             return [];
         }
-        return (((res.stats as any)?.warnings || res.warnings || []) as Warning[])
+        return (res.warnings || [])
             .filter((warning) => settings[warning.code] !== 'ignore')
             .map((warning) => {
                 const start = warning.start || { line: 1, column: 0 };
