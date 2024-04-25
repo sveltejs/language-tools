@@ -320,6 +320,9 @@ importers:
       '@types/node':
         specifier: ^16.0.0
         version: 16.18.32
+      svelte:
+        specifier: ^3.57.0
+        version: 3.57.0
       typescript:
         specifier: ^5.4.5
         version: 5.4.5

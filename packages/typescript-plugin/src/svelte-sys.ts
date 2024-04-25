@@ -1,4 +1,4 @@
-import type ts from 'typescript';
+import type ts from 'typescript/lib/tsserverlibrary';
 import { Logger } from './logger';
 import { ensureRealSvelteFilePath, isVirtualSvelteFilePath, toRealSvelteFilePath } from './utils';
 
