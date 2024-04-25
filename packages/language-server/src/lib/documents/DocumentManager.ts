@@ -48,14 +48,13 @@ export class DocumentManager {
         if (this.documents.has(textDocument.uri)) {
             document = this.documents.get(textDocument.uri)!;
             document.setText(textDocument.text);
-            document.openedByClient = openedByClient;
         } else {
             document = this.createDocument(textDocument);
             this.documents.set(textDocument.uri, document);
-            document.openedByClient = openedByClient;
             this.notify('documentOpen', document);
         }
 
+        document.openedByClient = openedByClient;
         this.notify('documentChange', document);
 
         return document;
