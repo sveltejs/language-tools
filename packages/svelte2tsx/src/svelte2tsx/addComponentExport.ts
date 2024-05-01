@@ -20,6 +20,7 @@ export interface AddComponentExportPara {
     componentDocumentation: ComponentDocumentation;
     mode: 'ts' | 'dts' | 'tsx';
     generics: Generics;
+    usesSlots: boolean;
     noSvelteComponentTyped?: boolean;
 }
 
@@ -47,6 +48,7 @@ function addGenericsComponentExport({
     usesAccessors,
     str,
     generics,
+    usesSlots,
     noSvelteComponentTyped
 }: AddComponentExportPara) {
     const genericsDef = generics.toDefinitionString();
@@ -86,7 +88,10 @@ class __sveltets_Render${genericsDef} {
      */
     let customConstructor = '';
     if (exportedNames.hasPropsRune()) {
-        customConstructor = `\n    constructor(options: import('svelte').ComponentConstructorOptions<__sveltets_2_PropsWithChildren<${returnType('props')}, ${returnType('slots')}>>) { super(options); }`;
+        if (!usesSlots) {
+            customConstructor = `\n    constructor(options: import('svelte').ComponentConstructorOptions<${returnType('props')}>) { super(options); }`;
+        }
+        customConstructor += exportedNames.createBindingsStr();
     }
 
     if (mode === 'dts') {
@@ -128,6 +133,7 @@ function addSimpleComponentExport({
     mode,
     usesAccessors,
     str,
+    usesSlots,
     noSvelteComponentTyped
 }: AddComponentExportPara) {
     const propDef = props(
@@ -146,7 +152,10 @@ function addSimpleComponentExport({
      */
     let customConstructor = '';
     if (exportedNames.hasPropsRune()) {
-        customConstructor = `\n    constructor(options = __sveltets_2_runes_constructor(${propDef})) { super(options); }`;
+        if (!usesSlots) {
+            customConstructor = `\n    constructor(options = __sveltets_2_runes_constructor(${propDef})) { super(options); }`;
+        }
+        customConstructor += exportedNames.createBindingsStr();
     }
 
     let statement: string;

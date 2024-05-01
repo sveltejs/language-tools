@@ -36,7 +36,7 @@
         },
         "severity": 1,
         "source": "ts",
-        "message": "Type 'Component' is not assignable to type 'OtherComponent'.\n  The types of '$$prop_def.prop' are incompatible between these types.\n    Type 'boolean' is not assignable to type 'string'.",
+        "message": "Type 'Component' is not assignable to type 'OtherComponent'.\n  Types of property '$$prop_def' are incompatible.\n    Type '{ prop: boolean; }' is not assignable to type '{ prop: string; }'.",
         "code": 2322,
         "tags": []
     },
@@ -58,7 +58,7 @@
         },
         "severity": 1,
         "source": "ts",
-        "message": "Type '{}' is not assignable to type 'PropsWithChildren<{ prop: boolean; }, any> | undefined'.",
+        "message": "Type '{}' is not assignable to type 'Properties<{ prop: boolean; }, any> | undefined'.",
         "code": 2322,
         "tags": []
     },
@@ -91,7 +91,7 @@
         },
         "severity": 1,
         "source": "ts",
-        "message": "Type '{}' is not assignable to type 'PropsWithChildren<{ prop: boolean; }, any> | undefined'.",
+        "message": "Type '{}' is not assignable to type 'Properties<{ prop: boolean; }, any> | undefined'.",
         "code": 2322,
         "tags": []
     }

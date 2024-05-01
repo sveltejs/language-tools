@@ -638,38 +638,6 @@ export class RenameProviderImpl implements RenameProvider {
                         suffixText: '}'
                     };
                 }
-
-                if (snapshot.isSvelte5Plus) {
-                    const bindingShorthand = this.getBindingShorthand(
-                        snapshot,
-                        location.range.start
-                    );
-                    if (bindingShorthand) {
-                        const name = parent
-                            .getText()
-                            .substring(bindingShorthand.start, bindingShorthand.end);
-                        const start = {
-                            line: location.range.start.line,
-                            character: location.range.start.character - name.length
-                        };
-                        // If binding is followed by the closing tag, start is one character too soon,
-                        // else binding is ending one character too far
-                        if (parent.getText().charAt(parent.offsetAt(start)) === ':') {
-                            start.character++;
-                        } else {
-                            location.range.end.character--;
-                        }
-                        return {
-                            ...location,
-                            range: {
-                                start: start,
-                                end: location.range.end
-                            },
-                            prefixText: name + '={',
-                            suffixText: '}'
-                        };
-                    }
-                }
             }
 
             if (!prefixText || prefixText.slice(-1) !== ':') {
