@@ -145,20 +145,33 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
 
         diagnostics = resolveNoopsInReactiveStatements(lang, diagnostics);
 
-        return diagnostics
-            .map<Diagnostic>((diagnostic) => ({
-                range: convertRange(tsDoc, diagnostic),
-                severity: mapSeverity(diagnostic.category),
+        const mapRange = rangeMapper(tsDoc, document, lang);
+        const noFalsePositive = isNoFalsePositive(document, tsDoc);
+        const converted: Diagnostic[] = [];
+
+        for (const tsDiag of diagnostics) {
+            let diagnostic: Diagnostic = {
+                range: convertRange(tsDoc, tsDiag),
+                severity: mapSeverity(tsDiag.category),
                 source: isTypescript ? 'ts' : 'js',
-                message: ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n'),
-                code: diagnostic.code,
-                tags: getDiagnosticTag(diagnostic)
-            }))
-            .map(mapRange(tsDoc, document, lang))
-            .filter(hasNoNegativeLines)
-            .filter(isNoFalsePositive(document, tsDoc))
-            .map(adjustIfNecessary)
-            .map(swapDiagRangeStartEndIfNecessary);
+                message: ts.flattenDiagnosticMessageText(tsDiag.messageText, '\n'),
+                code: tsDiag.code,
+                tags: getDiagnosticTag(tsDiag)
+            };
+            diagnostic = mapRange(diagnostic);
+
+            moveBindingErrorMessage(tsDiag, tsDoc, diagnostic, document);
+
+            if (!hasNoNegativeLines(diagnostic) || !noFalsePositive(diagnostic)) {
+                continue;
+            }
+
+            diagnostic = adjustIfNecessary(diagnostic);
+            diagnostic = swapDiagRangeStartEndIfNecessary(diagnostic);
+            converted.push(diagnostic);
+        }
+
+        return converted;
     }
 
     private async getLSAndTSDoc(document: Document) {
@@ -166,7 +179,43 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
     }
 }
 
-function mapRange(
+function moveBindingErrorMessage(
+    tsDiag: ts.Diagnostic,
+    tsDoc: SvelteDocumentSnapshot,
+    diagnostic: Diagnostic,
+    document: Document
+) {
+    if (
+        tsDiag.code === DiagnosticCode.TYPE_X_NOT_ASSIGNABLE_TO_TYPE_Y &&
+        tsDiag.start &&
+        tsDoc.getText(tsDiag.start, tsDiag.start + tsDiag.length!).endsWith('.$$bindings')
+    ) {
+        let node = tsDoc.svelteNodeAt(diagnostic.range.start);
+        while (node && node.type !== 'InlineComponent') {
+            node = node.parent!;
+        }
+        if (node) {
+            let name = tsDoc.getText(
+                tsDiag.start + tsDiag.length!,
+                tsDiag.start + tsDiag.length! + 100
+            );
+            const quoteIdx = name.indexOf("'");
+            name = name.substring(quoteIdx + 1, name.indexOf("'", quoteIdx + 1));
+            const binding: any = node.attributes.find(
+                (attr: any) => attr.type === 'Binding' && attr.name === name
+            );
+            if (binding) {
+                diagnostic.message = 'Cannot bind: to this property\n\n' + diagnostic.message;
+                diagnostic.range = {
+                    start: document.positionAt(binding.start),
+                    end: document.positionAt(binding.end)
+                };
+            }
+        }
+    }
+}
+
+function rangeMapper(
     snapshot: SvelteDocumentSnapshot,
     document: Document,
     lang: ts.LanguageService
@@ -194,7 +243,7 @@ function mapRange(
                 diagnostic.code as number
             ) ||
                 (DiagnosticCode.TYPE_X_NOT_ASSIGNABLE_TO_TYPE_Y &&
-                    diagnostic.message.includes("'PropsWithChildren<"))) &&
+                    diagnostic.message.includes("'Properties<"))) &&
             !hasNonZeroRange({ range })
         ) {
             const node = getNodeIfIsInStartTag(document.html, document.offsetAt(range.start));
@@ -324,37 +373,6 @@ function adjustIfNecessary(diagnostic: Diagnostic): Diagnostic {
             message:
                 diagnostic.message +
                 '\nIf this is a declare statement, move it into <script context="module">..</script>'
-        };
-    }
-
-    if (
-        (diagnostic.code === DiagnosticCode.TYPE_X_NOT_ASSIGNABLE_TO_TYPE_Y ||
-            diagnostic.code === DiagnosticCode.TYPE_X_NOT_ASSIGNABLE_TO_TYPE_Y_DID_YOU_MEAN) &&
-        diagnostic.message.includes("'Bindable<")
-    ) {
-        const countBindable = (diagnostic.message.match(/'Bindable\</g) || []).length;
-        const countBinding = (diagnostic.message.match(/'Binding\</g) || []).length;
-        if (countBindable === 1 && countBinding === 0) {
-            // Remove distracting Bindable<...> from diagnostic message
-            const start = diagnostic.message.indexOf("'Bindable<");
-            const startType = start + "'Bindable".length;
-            const end = traverseTypeString(diagnostic.message, startType, '>');
-            diagnostic.message =
-                diagnostic.message.substring(0, start + 1) +
-                diagnostic.message.substring(startType + 1, end) +
-                diagnostic.message.substring(end + 1);
-        } else if (countBinding === 3 && countBindable === 1) {
-            // Only keep Type '...' is not assignable to type '...' in
-            // Type Bindings<...> is not assignable to type Bindable<...>, Type Binding<...> is not assignable to type Bindable<...>, Type '...' is not assignable to type '...'
-            const lines = diagnostic.message.split('\n');
-            if (lines.length === 3) {
-                diagnostic.message = lines[2].trimStart();
-            }
-        }
-
-        return {
-            ...diagnostic,
-            message: diagnostic.message
         };
     }
 

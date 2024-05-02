@@ -1,14 +1,14 @@
 [
     {
         "code": 2322,
-        "message": "Type 'Binding<string>' is not assignable to type 'string'.",
+        "message": "Cannot bind: to this property\n\nType '\"readonly\"' is not assignable to type '\"can_bind\"'.",
         "range": {
             "end": {
                 "character": 20,
                 "line": 25
             },
             "start": {
-                "character": 12,
+                "character": 7,
                 "line": 25
             }
         },
@@ -18,7 +18,7 @@
     },
     {
         "code": 2353,
-        "message": "Object literal may only specify known properties, and 'only_bind' does not exist in type '{ readonly?: string | undefined; can_bind?: Bindable<string | undefined>; }'.",
+        "message": "Object literal may only specify known properties, and 'only_bind' does not exist in type '$$ComponentProps'.",
         "range": {
             "end": {
                 "character": 21,
@@ -34,8 +34,25 @@
         "tags": []
     },
     {
+        "code": 2322,
+        "message": "Cannot bind: to this property\n\nType '\"only_bind\"' is not assignable to type '\"can_bind\"'.",
+        "range": {
+            "end": {
+                "character": 21,
+                "line": 26
+            },
+            "start": {
+                "character": 7,
+                "line": 26
+            }
+        },
+        "severity": 1,
+        "source": "ts",
+        "tags": []
+    },
+    {
         "code": 2353,
-        "message": "Object literal may only specify known properties, and 'only_bind' does not exist in type '{ readonly?: string | undefined; can_bind?: Bindable<string | undefined>; }'.",
+        "message": "Object literal may only specify known properties, and 'only_bind' does not exist in type '$$ComponentProps'.",
         "range": {
             "end": {
                 "character": 17,

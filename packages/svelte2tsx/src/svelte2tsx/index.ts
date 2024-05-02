@@ -437,6 +437,7 @@ export function svelte2tsx(
         isTsFile: options?.isTsFile,
         exportedNames,
         usesAccessors,
+        usesSlots: slots.size > 0,
         fileName: options?.filename,
         componentDocumentation,
         mode: options.mode,

@@ -614,41 +614,11 @@ export class ExportedNames {
         const names = Array.from(this.exports.entries());
 
         if (this.$props.type) {
-            return (
-                '{} as any as ' +
-                (this.$props.bindings.length
-                    ? `__sveltets_2_Bindings<${this.$props.type}, ${this.$props.bindings.map((b) => `"${b}"`).join('|')}>`
-                    : this.$props.type)
-            );
+            return '{} as any as ' + this.$props.type;
         }
 
         if (this.$props.comment) {
-            let result = this.$props.comment + '({})';
-
-            // Try our best to incorporate __sveltets_2_Bindings here
-            let idx = this.$props.comment.indexOf('@type');
-            if (idx !== -1 && /[\s{]/.test(this.$props.comment[idx + 5])) {
-                idx = this.$props.comment.indexOf('{', idx);
-                const end = this.$props.comment.lastIndexOf('}');
-                if (idx !== -1 && end !== -1 && idx < end) {
-                    const has_bindings = this.$props.bindings.length;
-
-                    if (has_bindings) {
-                        idx++;
-                        result =
-                            this.$props.comment.slice(0, idx) +
-                            (has_bindings ? '__sveltets_2_Bindings<' : '') +
-                            this.$props.comment.slice(idx, end) +
-                            (has_bindings
-                                ? `, ${this.$props.bindings.map((b) => `"${b}"`).join('|')}>`
-                                : '') +
-                            this.$props.comment.slice(end) +
-                            '({})';
-                    }
-                }
-            }
-
-            return result;
+            return this.$props.comment + '({})';
         }
 
         if (this.usesRunes()) {
@@ -698,6 +668,11 @@ export class ExportedNames {
 
         const returnElementsType = this.createReturnElementsType(names);
         return `{${returnElements.join(' , ')}} as {${returnElementsType.join(', ')}}`;
+    }
+
+    createBindingsStr(): string {
+        // will be just the empty strings for zero bindings, which is impossible to create a binding for, so it works out fine
+        return `\n    $$bindings = __sveltets_$$bindings('${this.$props.bindings.join("', '")}');`;
     }
 
     /**

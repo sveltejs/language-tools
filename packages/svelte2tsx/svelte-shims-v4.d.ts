@@ -93,7 +93,7 @@ declare function __sveltets_2_with_any<Props = {}, Events = {}, Slots = {}>(
 
 declare function __sveltets_2_with_any_event<Props = {}, Events = {}, Slots = {}>(
     render: {props: Props, events: Events, slots: Slots }
-): {props: Expand<Props>, events: Events & {[evt: string]: CustomEvent<any>;}, slots: Slots }
+): {props: Props, events: Events & {[evt: string]: CustomEvent<any>;}, slots: Slots }
 
 declare function __sveltets_2_store_get<T = any>(store: SvelteStore<T>): T
 declare function __sveltets_2_store_get<Store extends SvelteStore<any> | undefined | null>(store: Store): Store extends SvelteStore<infer T> ? T : Store;
@@ -229,16 +229,6 @@ declare function __sveltets_2_ensureComponent<T extends ConstructorOfATypedSvelt
 
 declare function __sveltets_2_ensureArray<T extends ArrayLike<unknown> | Iterable<unknown>>(array: T): T extends ArrayLike<infer U> ? U[] : T extends Iterable<infer U> ? Iterable<U> : any[];
 
-declare type __sveltets_2_Bindings<Props extends Record<string, any>, Bindings extends string> = {
-    [K in keyof Props]: K extends Bindings ?
-        // @ts-ignore not available in Svelte 4
-        import('svelte').Bindable<Props[K]> : 
-        Props[K]
-    };
-declare function __sveltets_2_binding<T>(prop: T): 
-    // @ts-ignore not available in Svelte 4    
-    import('svelte').Binding<T>;
-
 type __sveltets_2_PropsWithChildren<Props, Slots> = Props &
     (Slots extends { default: any }
         // This is unfortunate because it means "accepts no props" turns into "accepts any prop"
@@ -248,4 +238,6 @@ type __sveltets_2_PropsWithChildren<Props, Slots> = Props &
         ? any
         : { children?: any }
         : {});
-declare function __sveltets_2_runes_constructor<Props extends {}, Events extends {}, Slots extends {}>(render: {props: Props, events: Events, slots: Slots }): import("svelte").ComponentConstructorOptions<__sveltets_2_PropsWithChildren<Props, Slots>>;
+declare function __sveltets_2_runes_constructor<Props extends {}>(render: {props: Props }): import("svelte").ComponentConstructorOptions<Props>;
+
+declare function __sveltets_$$bindings<Bindings extends string[]>(...bindings: Bindings): Bindings[number];
