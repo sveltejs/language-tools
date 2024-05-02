@@ -2,6 +2,7 @@ import * as assert from 'assert';
 import * as path from 'path';
 import ts from 'typescript';
 import { Position } from 'vscode-languageserver';
+import { VERSION } from 'svelte/compiler';
 import { Document, DocumentManager } from '../../../../src/lib/documents';
 import { LSConfigManager } from '../../../../src/ls-config';
 import { RenameProviderImpl } from '../../../../src/plugins/typescript/features/RenameProvider';
@@ -12,6 +13,7 @@ import { serviceWarmup } from '../test-utils';
 
 const testDir = path.join(__dirname, '..');
 const renameTestDir = path.join(testDir, 'testfiles', 'rename');
+const isSvelte5Plus = +VERSION.split('.')[0] >= 5;
 
 describe('RenameProvider', function () {
     serviceWarmup(this, renameTestDir, pathToUrl(testDir));
@@ -871,6 +873,14 @@ describe('RenameProvider', function () {
         });
     });
 
+    after(() => {
+        // Hacky, but it works. Needed due to testing both new and old transformation
+        __resetCache();
+    });
+
+    // -------------------- put tests that only run in Svelte 5 below this line and everything else above --------------------
+    if (!isSvelte5Plus) return;
+
     it('renames $props() prop from inside component', async () => {
         const { provider, renameRunes } = await setup();
 
@@ -1091,10 +1101,5 @@ describe('RenameProvider', function () {
                 ]
             }
         });
-    });
-
-    after(() => {
-        // Hacky, but it works. Needed due to testing both new and old transformation
-        __resetCache();
     });
 });
