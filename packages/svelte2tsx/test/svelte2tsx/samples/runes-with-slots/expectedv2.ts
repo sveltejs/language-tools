@@ -13,4 +13,5 @@ async () => {
 return { props: /** @type {SomeType} */({}), slots: {'default': {x:x, y:y}}, events: {} }}
 
 export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial(__sveltets_2_with_any_event(render()))) {
+    $$bindings = __sveltets_$$bindings('');
 }

@@ -671,10 +671,8 @@ export class ExportedNames {
     }
 
     createBindingsStr(): string {
-        if (this.$props.bindings.length > 0) {
-            return `\n    $$bindings = __sveltets_$$bindings('${this.$props.bindings.join("', '")}')`;
-        }
-        return '';
+        // will be just the empty strings for zero bindings, which is impossible to create a binding for, so it works out fine
+        return `\n    $$bindings = __sveltets_$$bindings('${this.$props.bindings.join("', '")}');`;
     }
 
     /**

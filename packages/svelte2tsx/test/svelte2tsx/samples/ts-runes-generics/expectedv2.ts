@@ -23,4 +23,5 @@ class __sveltets_Render<T> {
 import { SvelteComponentTyped as __SvelteComponentTyped__ } from "svelte" 
 export default class Input__SvelteComponent_<T> extends __SvelteComponentTyped__<ReturnType<__sveltets_Render<T>['props']>, ReturnType<__sveltets_Render<T>['events']>, ReturnType<__sveltets_Render<T>['slots']>> {
     constructor(options: import('svelte').ComponentConstructorOptions<ReturnType<__sveltets_Render<T>['props']>>) { super(options); }
+    $$bindings = __sveltets_$$bindings('');
 }
