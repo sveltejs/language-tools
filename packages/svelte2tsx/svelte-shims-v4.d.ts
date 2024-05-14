@@ -5,8 +5,6 @@
 // If you change anything in this file, think about whether or not it should be backported to svelte-shims.d.ts
 
 type AConstructorTypeOf<T, U extends any[] = any[]> = new (...args: U) => T;
-/** @internal PRIVATE API, DO NOT USE */
-type SvelteComponentConstructor<T, U extends import('svelte').ComponentConstructorOptions<any>> = new (options: U) => T;
 
 /** @internal PRIVATE API, DO NOT USE */
 type SvelteActionReturnType = {
@@ -129,7 +127,7 @@ declare function __sveltets_2_unionType(...types: any[]): any;
 
 declare function __sveltets_2_createSvelte2TsxComponent<Props extends {}, Events extends {}, Slots extends {}>(
     render: {props: Props, events: Events, slots: Slots }
-): SvelteComponentConstructor<import("svelte").SvelteComponent<Props, Events, Slots>,import('svelte').ComponentConstructorOptions<Props>>;
+): typeof import("svelte").SvelteComponent<Props, Events, Slots>;
 
 declare function __sveltets_2_unwrapArr<T>(arr: ArrayLike<T>): T
 declare function __sveltets_2_unwrapPromiseLike<T>(promise: PromiseLike<T> | T): T
@@ -146,10 +144,11 @@ declare function __sveltets_2_nonNullable<T>(type: T): NonNullable<T>;
 declare function __sveltets_2_cssProp(prop: Record<string, any>): {};
 
 // @ts-ignore Svelte v3/v4 don't have this
-declare function __sveltets_2_ensureSnippet(val: ReturnType<import('svelte').Snippet>): any;
+declare function __sveltets_2_ensureSnippet(val: ReturnType<import('svelte').Snippet> | undefined | null): any;
 // @ts-ignore Svelte v3/v4 don't have this
-declare function __sveltets_2_snippet(): import('svelte').Snippet<void>;
-declare function __sveltets_2_snippet<T>(t: T): import('svelte').Snippet<T>;
+declare function __sveltets_2_snippet(): import('svelte').Snippet;
+// @ts-ignore Svelte v3/v4 don't have this
+declare function __sveltets_2_snippet<T>(t: T): import('svelte').Snippet<[T]>;
 
 /** @internal PRIVATE API, DO NOT USE */
 type __sveltets_2_SvelteAnimationReturnType = {
@@ -229,3 +228,16 @@ declare type ConstructorOfATypedSvelteComponent = new (args: {target: any, props
 declare function __sveltets_2_ensureComponent<T extends ConstructorOfATypedSvelteComponent | null | undefined>(type: T): NonNullable<T>;
 
 declare function __sveltets_2_ensureArray<T extends ArrayLike<unknown> | Iterable<unknown>>(array: T): T extends ArrayLike<infer U> ? U[] : T extends Iterable<infer U> ? Iterable<U> : any[];
+
+type __sveltets_2_PropsWithChildren<Props, Slots> = Props &
+    (Slots extends { default: any }
+        // This is unfortunate because it means "accepts no props" turns into "accepts any prop"
+        // but the alternative is non-fixable type errors because of the way TypeScript index
+        // signatures work (they will always take precedence and make an impossible-to-satisfy children type).
+        ? Props extends Record<string, never>
+        ? any
+        : { children?: any }
+        : {});
+declare function __sveltets_2_runes_constructor<Props extends {}>(render: {props: Props }): import("svelte").ComponentConstructorOptions<Props>;
+
+declare function __sveltets_$$bindings<Bindings extends string[]>(...bindings: Bindings): Bindings[number];

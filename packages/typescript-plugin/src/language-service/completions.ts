@@ -40,6 +40,13 @@ export function decorateCompletions(
                     }
                     return c;
                 });
+
+                if (completions.optionalReplacementSpan) {
+                    completions.optionalReplacementSpan = {
+                        ...completions.optionalReplacementSpan,
+                        start: toOriginalPos(completions.optionalReplacementSpan.start).pos
+                    };
+                }
             }
         }
 

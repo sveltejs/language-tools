@@ -1,5 +1,6 @@
 import type ts from 'typescript/lib/tsserverlibrary';
 import { SvelteSnapshot } from './svelte-snapshots';
+import { dirname, join } from 'path';
 type _ts = typeof ts;
 
 export function isSvelteFilePath(filePath: string) {
@@ -225,15 +226,76 @@ export function findIdentifier(ts: _ts, node: ts.Node): ts.Identifier | undefine
     }
 }
 
-export function hasNodeModule(compilerOptions: ts.CompilerOptions, module: string) {
+export function getProjectDirectory(project: ts.server.Project) {
+    const compilerOptions = project.getCompilerOptions();
+
+    if (typeof compilerOptions.configFilePath === 'string') {
+        return dirname(compilerOptions.configFilePath);
+    }
+
+    const packageJsonPath = join(project.getCurrentDirectory(), 'package.json');
+    return project.fileExists(packageJsonPath) ? project.getCurrentDirectory() : undefined;
+}
+
+export function hasNodeModule(startPath: string, module: string) {
     try {
-        const hasModule =
-            typeof compilerOptions.configFilePath !== 'string' ||
-            require.resolve(module, { paths: [compilerOptions.configFilePath] });
+        const hasModule = require.resolve(module, { paths: [startPath] });
         return hasModule;
     } catch (e) {
         // If require.resolve fails, we end up here, which can be either because the package is not found,
         // or (in case of things like SvelteKit) the package is found but the package.json is not exported.
         return (e as any)?.code === 'ERR_PACKAGE_PATH_NOT_EXPORTED';
+    }
+}
+
+export function isSvelteProject(project: ts.server.Project) {
+    const projectDirectory = getProjectDirectory(project);
+    if (projectDirectory) {
+        return hasNodeModule(projectDirectory, 'svelte');
+    }
+
+    const packageJsons = project
+        .readDirectory(
+            project.getCurrentDirectory(),
+            ['.json'],
+            ['node_modules', 'dist', 'build'],
+            ['**/package.json'],
+            // assuming structure like packages/projectName
+            3
+        )
+        // in case some other plugin patched readDirectory in a weird way
+        .filter((file) => file.endsWith('package.json') && !hasConfigInConjunction(file, project));
+
+    return packageJsons.some((packageJsonPath) =>
+        hasNodeModule(dirname(packageJsonPath), 'svelte')
+    );
+}
+
+function hasConfigInConjunction(packageJsonPath: string, project: ts.server.Project) {
+    const dir = dirname(packageJsonPath);
+
+    return (
+        project.fileExists(join(dir, 'tsconfig.json')) ||
+        project.fileExists(join(dir, 'jsconfig.json'))
+    );
+}
+
+export function importSvelteCompiler(
+    fromPath: string | undefined
+): typeof import('svelte/compiler') | undefined {
+    if (!fromPath) return undefined;
+
+    try {
+        const sveltePath = require.resolve('svelte/compiler', { paths: [fromPath] });
+        const compiler = require(sveltePath);
+
+        if (compiler.VERSION.split('.')[0] === '3') {
+            // use built-in version for Svelte 3
+            return undefined;
+        }
+
+        return compiler;
+    } catch (e) {
+        // ignore
     }
 }

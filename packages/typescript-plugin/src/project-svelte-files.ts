@@ -26,14 +26,14 @@ export class ProjectSvelteFilesManager {
         private readonly snapshotManager: SvelteSnapshotManager,
         private readonly logger: Logger,
         private parsedCommandLine: ts.ParsedCommandLine,
-        configManager: ConfigManager
+        private readonly configManager: ConfigManager
     ) {
         if (configManager.getConfig().enable) {
             this.setupWatchers();
             this.updateProjectSvelteFiles();
         }
 
-        configManager.onConfigurationChanged(this.onConfigChanged.bind(this));
+        configManager.onConfigurationChanged(this.onConfigChanged);
         ProjectSvelteFilesManager.instances.set(project.getProjectName(), this);
     }
 
@@ -162,7 +162,7 @@ export class ProjectSvelteFilesManager {
             .map(this.typescript.server.toNormalizedPath);
     }
 
-    private onConfigChanged(config: Configuration) {
+    private onConfigChanged = (config: Configuration) => {
         this.disposeWatchers();
         this.clearProjectFile();
 
@@ -170,7 +170,7 @@ export class ProjectSvelteFilesManager {
             this.setupWatchers();
             this.updateProjectSvelteFiles();
         }
-    }
+    };
 
     private removeFileFromProject(file: string, exists = true) {
         const info = this.project.getScriptInfo(file);
@@ -197,6 +197,8 @@ export class ProjectSvelteFilesManager {
         // because TypeScript already does that when the project is closed
         // - and because the project is closed, `project.removeFile` will result in an error
         this.projectFileToOriginalCasing.clear();
+
+        this.configManager.removeConfigurationChangeListener(this.onConfigChanged);
 
         ProjectSvelteFilesManager.instances.delete(this.project.getProjectName());
     }

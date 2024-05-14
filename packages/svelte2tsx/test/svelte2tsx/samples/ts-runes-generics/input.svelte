@@ -1,7 +1,5 @@
-<script lang="ts">
-    let { a, b } = $props<{ a: number, b: string }>();
-    let x = $state(0);
+<script lang="ts" generics="T">
+    let { a, b }: { a: T, b: string } = $props();
+    let x = $state<T>(0);
     let y = $derived(x * 2);
 </script>
-
-<slot {x} {y} />

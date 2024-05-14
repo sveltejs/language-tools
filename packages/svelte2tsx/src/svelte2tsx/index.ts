@@ -328,6 +328,7 @@ export function svelte2tsx(
     const str = new MagicString(svelte);
     const basename = path.basename(options.filename || '');
     const svelte5Plus = Number(options.version![0]) > 4;
+
     // process the htmlx as a svelte template
     let {
         htmlAst,
@@ -394,6 +395,10 @@ export function svelte2tsx(
         ({ exportedNames, events, generics, uses$$SlotsInterface } = res);
     }
 
+    if (svelte5Plus) {
+        exportedNames.checkGlobalsForRunes(implicitStoreValues.getGlobals());
+    }
+
     //wrap the script tag and template content in a function returning the slot and exports
     createRenderFunction({
         str,
@@ -432,6 +437,7 @@ export function svelte2tsx(
         isTsFile: options?.isTsFile,
         exportedNames,
         usesAccessors,
+        usesSlots: slots.size > 0,
         fileName: options?.filename,
         componentDocumentation,
         mode: options.mode,

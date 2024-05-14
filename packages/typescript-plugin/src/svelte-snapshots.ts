@@ -276,7 +276,9 @@ export class SvelteSnapshotManager {
         private projectService: ts.server.ProjectService,
         private svelteOptions: { namespace: string },
         private logger: Logger,
-        private configManager: ConfigManager
+        private configManager: ConfigManager,
+        /** undefined if no node_modules with Svelte next to tsconfig.json */
+        private svelteCompiler: typeof import('svelte/compiler') | undefined
     ) {
         this.patchProjectServiceReadFile();
     }
@@ -373,7 +375,10 @@ export class SvelteSnapshotManager {
                             filename: path.split('/').pop(),
                             isTsFile,
                             mode: 'ts',
-                            typingsNamespace: this.svelteOptions.namespace
+                            typingsNamespace: this.svelteOptions.namespace,
+                            // Don't search for compiler from current path - could be a different one from which we have loaded the svelte2tsx globals
+                            parse: this.svelteCompiler?.parse,
+                            version: this.svelteCompiler?.VERSION
                         });
                         code = result.code;
                         mapper = new SourceMapper(result.map.mappings);

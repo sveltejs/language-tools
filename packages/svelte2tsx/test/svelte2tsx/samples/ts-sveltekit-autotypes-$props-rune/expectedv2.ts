@@ -1,14 +1,14 @@
 ///<reference types="svelte" />
 ;function render() {
 
-    let { form, data } = $props/*Ωignore_startΩ*/<{ data: import('./$types.js').PageData, form: import('./$types.js').ActionData }>/*Ωignore_endΩ*/();
-     const snapshot/*Ωignore_startΩ*/: import('./$types.js').Snapshot/*Ωignore_endΩ*/ = {};
-
-    let { form, data } = $props<{form: boolean, data: true }>();
+     const snapshot/*Ωignore_startΩ*/: import('./$types.js').Snapshot/*Ωignore_endΩ*/ = {};/*Ωignore_startΩ*/;type $$ComponentProps = { form: import('./$types.js').ActionData, data: import('./$types.js').PageData };/*Ωignore_endΩ*/
+    let { form, data }: $$ComponentProps = $props();
 ;
 async () => {};
-return { props: {} as any as {form: boolean, data: true } & { snapshot?: typeof snapshot }, slots: {}, events: {} }}
+return { props: {} as any as $$ComponentProps, exports: {} as any as { snapshot: typeof snapshot }, slots: {}, events: {} }}
 
 export default class Page__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_with_any_event(render())) {
-    get snapshot() { return __sveltets_2_nonNullable(this.$$prop_def.snapshot) }
+    constructor(options = __sveltets_2_runes_constructor(__sveltets_2_with_any_event(render()))) { super(options); }
+    $$bindings = __sveltets_$$bindings('');
+    get snapshot() { return render().exports.snapshot }
 }

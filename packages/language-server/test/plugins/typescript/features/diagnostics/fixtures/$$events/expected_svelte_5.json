@@ -1,0 +1,58 @@
+[
+    {
+        "code": 6385,
+        "message": "'createEventDispatcher' is deprecated.",
+        "range": {
+            "end": {
+                "character": 34,
+                "line": 1
+            },
+            "start": {
+                "character": 13,
+                "line": 1
+            }
+        },
+        "severity": 4,
+        "source": "ts",
+        "tags": [2]
+    },
+    {
+        "code": 6387,
+        "message": "The signature '(): EventDispatcher<__sveltets_2_CustomEvents<$$Events>>' of 'createEventDispatcher' is deprecated.",
+        "range": {
+            "end": {
+                "character": 42,
+                "line": 8
+            },
+            "start": {
+                "character": 21,
+                "line": 8
+            }
+        },
+        "severity": 4,
+        "source": "ts",
+        "tags": [2]
+    },
+    {
+        "range": {
+            "start": { "line": 12, "character": 20 },
+            "end": { "line": 12, "character": 24 }
+        },
+        "severity": 1,
+        "source": "ts",
+        "message": "Argument of type 'boolean' is not assignable to parameter of type 'string'.",
+        "code": 2345,
+        "tags": []
+    },
+    {
+        "range": {
+            "start": { "line": 13, "character": 13 },
+            "end": { "line": 13, "character": 20 }
+        },
+        "severity": 1,
+        "source": "ts",
+        "message": "Argument of type '\"click\"' is not assignable to parameter of type '\"foo\"'.",
+        "code": 2345,
+        "tags": []
+    }
+]

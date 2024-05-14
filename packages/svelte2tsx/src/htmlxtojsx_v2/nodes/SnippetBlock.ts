@@ -36,43 +36,55 @@ export function handleSnippet(
     str.overwrite(
         endSnippet,
         snippetBlock.end,
-        `return __sveltets_2_any(0)}${isImplicitProp ? '' : ';'}`,
+        `};return __sveltets_2_any(0)}${isImplicitProp ? '' : ';'}`,
         {
             contentOnly: true
         }
     );
 
     const startEnd =
-        str.original.indexOf('}', snippetBlock.context?.end || snippetBlock.expression.end) + 1;
+        str.original.indexOf(
+            '}',
+            // context was the first iteration in a .next release, remove at some point
+            snippetBlock.parameters?.at(-1)?.end || snippetBlock.expression.end
+        ) + 1;
 
     if (isImplicitProp) {
         str.overwrite(snippetBlock.start, snippetBlock.expression.start, '', { contentOnly: true });
         const transforms: TransformationArray = ['('];
-        if (snippetBlock.context) {
-            transforms.push([snippetBlock.context.start, snippetBlock.context.end]);
-            str.overwrite(snippetBlock.expression.end, snippetBlock.context.start, '', {
+        if (snippetBlock.parameters?.length) {
+            const start = snippetBlock.parameters?.[0].start;
+            const end = snippetBlock.parameters.at(-1).end;
+            transforms.push([start, end]);
+            str.overwrite(snippetBlock.expression.end, start, '', {
                 contentOnly: true
             });
-            str.overwrite(snippetBlock.context.end, startEnd, '', { contentOnly: true });
+            str.overwrite(end, startEnd, '', { contentOnly: true });
         } else {
             str.overwrite(snippetBlock.expression.end, startEnd, '', { contentOnly: true });
         }
-        transforms.push(') => {');
+        transforms.push(') => {async () => {'); // inner async function for potential #await blocks
         transforms.push([startEnd, snippetBlock.end]);
         component.addProp(
             [[snippetBlock.expression.start, snippetBlock.expression.end]],
             transforms
         );
     } else {
-        const generic = snippetBlock.context
-            ? snippetBlock.context.typeAnnotation
-                ? `<${str.original.slice(
-                      snippetBlock.context.typeAnnotation.start,
-                      snippetBlock.context.typeAnnotation.end
-                  )}>`
-                : // slap any on to it to silence "implicit any" errors; JSDoc people can't add types to snippets
-                  '<any>'
-            : '';
+        let generic = '';
+        if (snippetBlock.parameters?.length) {
+            generic = `<[${snippetBlock.parameters
+                .map((p) =>
+                    p.typeAnnotation?.typeAnnotation
+                        ? str.original.slice(
+                              p.typeAnnotation.typeAnnotation.start,
+                              p.typeAnnotation.typeAnnotation.end
+                          )
+                        : // slap any on to it to silence "implicit any" errors; JSDoc people can't add types to snippets
+                          'any'
+                )
+                .join(', ')}]>`;
+        }
+
         const typeAnnotation = surroundWithIgnoreComments(`: import('svelte').Snippet${generic}`);
         const transforms: TransformationArray = [
             'var ',
@@ -80,11 +92,13 @@ export function handleSnippet(
             typeAnnotation + ' = ('
         ];
 
-        if (snippetBlock.context) {
-            transforms.push([snippetBlock.context.start, snippetBlock.context.end]);
+        if (snippetBlock.parameters?.length) {
+            const start = snippetBlock.parameters[0].start;
+            const end = snippetBlock.parameters.at(-1).end;
+            transforms.push([start, end]);
         }
 
-        transforms.push(') => {');
+        transforms.push(') => {async () => {'); // inner async function for potential #await blocks
         transform(str, snippetBlock.start, startEnd, startEnd, transforms);
     }
 }
@@ -114,7 +128,7 @@ export function handleImplicitChildren(componentNode: BaseNode, component: Inlin
                 continue;
             }
         }
-        if (child.type === 'Text' && child.data.trim() === '') {
+        if (child.type === 'Comment' || (child.type === 'Text' && child.data.trim() === '')) {
             continue;
         }
         if (child.type !== 'SnippetBlock') {

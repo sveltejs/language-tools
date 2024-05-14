@@ -21,7 +21,14 @@ import {
     isStoreVariableIn$storeDeclaration,
     get$storeOffsetOf$storeDeclaration
 } from './utils';
-import { not, flatten, passMap, swapRangeStartEndIfNecessary, memoize } from '../../../utils';
+import {
+    not,
+    flatten,
+    passMap,
+    swapRangeStartEndIfNecessary,
+    memoize,
+    traverseTypeString
+} from '../../../utils';
 import { LSConfigManager } from '../../../ls-config';
 import { isAttributeName, isEventHandler } from '../svelte-ast-utils';
 
@@ -37,7 +44,10 @@ export enum DiagnosticCode {
     DUPLICATED_JSX_ATTRIBUTES = 17001, // "JSX elements cannot have multiple attributes with the same name."
     DUPLICATE_IDENTIFIER = 2300, // "Duplicate identifier 'xxx'"
     MULTIPLE_PROPS_SAME_NAME = 1117, // "An object literal cannot have multiple properties with the same name in strict mode."
-    TYPE_X_NOT_ASSIGNABLE_TO_TYPE_Y = 2345, // "Argument of type '..' is not assignable to parameter of type '..'."
+    ARG_TYPE_X_NOT_ASSIGNABLE_TO_TYPE_Y = 2345, // "Argument of type '..' is not assignable to parameter of type '..'."
+    TYPE_X_NOT_ASSIGNABLE_TO_TYPE_Y = 2322, // "Type '..' is not assignable to type '..'."
+    TYPE_X_NOT_ASSIGNABLE_TO_TYPE_Y_DID_YOU_MEAN = 2820, // "Type '..' is not assignable to type '..'. Did you mean '...'?"
+    UNKNOWN_PROP = 2353, // "Object literal may only specify known properties, and '...' does not exist in type '...'"
     MISSING_PROPS = 2739, // "Type '...' is missing the following properties from type '..': ..."
     MISSING_PROP = 2741, // "Property '..' is missing in type '..' but required in type '..'."
     NO_OVERLOAD_MATCHES_CALL = 2769, // "No overload matches this call"
@@ -101,7 +111,7 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
         for (const diagnostic of diagnostics) {
             if (
                 (diagnostic.code === DiagnosticCode.NO_OVERLOAD_MATCHES_CALL ||
-                    diagnostic.code === DiagnosticCode.TYPE_X_NOT_ASSIGNABLE_TO_TYPE_Y) &&
+                    diagnostic.code === DiagnosticCode.ARG_TYPE_X_NOT_ASSIGNABLE_TO_TYPE_Y) &&
                 !notGenerated(diagnostic)
             ) {
                 if (isStoreVariableIn$storeDeclaration(tsDoc.getFullText(), diagnostic.start!)) {
@@ -135,20 +145,33 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
 
         diagnostics = resolveNoopsInReactiveStatements(lang, diagnostics);
 
-        return diagnostics
-            .map<Diagnostic>((diagnostic) => ({
-                range: convertRange(tsDoc, diagnostic),
-                severity: mapSeverity(diagnostic.category),
+        const mapRange = rangeMapper(tsDoc, document, lang);
+        const noFalsePositive = isNoFalsePositive(document, tsDoc);
+        const converted: Diagnostic[] = [];
+
+        for (const tsDiag of diagnostics) {
+            let diagnostic: Diagnostic = {
+                range: convertRange(tsDoc, tsDiag),
+                severity: mapSeverity(tsDiag.category),
                 source: isTypescript ? 'ts' : 'js',
-                message: ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n'),
-                code: diagnostic.code,
-                tags: getDiagnosticTag(diagnostic)
-            }))
-            .map(mapRange(tsDoc, document, lang))
-            .filter(hasNoNegativeLines)
-            .filter(isNoFalsePositive(document, tsDoc))
-            .map(enhanceIfNecessary)
-            .map(swapDiagRangeStartEndIfNecessary);
+                message: ts.flattenDiagnosticMessageText(tsDiag.messageText, '\n'),
+                code: tsDiag.code,
+                tags: getDiagnosticTag(tsDiag)
+            };
+            diagnostic = mapRange(diagnostic);
+
+            moveBindingErrorMessage(tsDiag, tsDoc, diagnostic, document);
+
+            if (!hasNoNegativeLines(diagnostic) || !noFalsePositive(diagnostic)) {
+                continue;
+            }
+
+            diagnostic = adjustIfNecessary(diagnostic);
+            diagnostic = swapDiagRangeStartEndIfNecessary(diagnostic);
+            converted.push(diagnostic);
+        }
+
+        return converted;
     }
 
     private async getLSAndTSDoc(document: Document) {
@@ -156,7 +179,43 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
     }
 }
 
-function mapRange(
+function moveBindingErrorMessage(
+    tsDiag: ts.Diagnostic,
+    tsDoc: SvelteDocumentSnapshot,
+    diagnostic: Diagnostic,
+    document: Document
+) {
+    if (
+        tsDiag.code === DiagnosticCode.TYPE_X_NOT_ASSIGNABLE_TO_TYPE_Y &&
+        tsDiag.start &&
+        tsDoc.getText(tsDiag.start, tsDiag.start + tsDiag.length!).endsWith('.$$bindings')
+    ) {
+        let node = tsDoc.svelteNodeAt(diagnostic.range.start);
+        while (node && node.type !== 'InlineComponent') {
+            node = node.parent!;
+        }
+        if (node) {
+            let name = tsDoc.getText(
+                tsDiag.start + tsDiag.length!,
+                tsDiag.start + tsDiag.length! + 100
+            );
+            const quoteIdx = name.indexOf("'");
+            name = name.substring(quoteIdx + 1, name.indexOf("'", quoteIdx + 1));
+            const binding: any = node.attributes.find(
+                (attr: any) => attr.type === 'Binding' && attr.name === name
+            );
+            if (binding) {
+                diagnostic.message = 'Cannot bind: to this property\n\n' + diagnostic.message;
+                diagnostic.range = {
+                    start: document.positionAt(binding.start),
+                    end: document.positionAt(binding.end)
+                };
+            }
+        }
+    }
+}
+
+function rangeMapper(
     snapshot: SvelteDocumentSnapshot,
     document: Document,
     lang: ts.LanguageService
@@ -180,9 +239,11 @@ function mapRange(
         }
 
         if (
-            [DiagnosticCode.MISSING_PROP, DiagnosticCode.MISSING_PROPS].includes(
+            ([DiagnosticCode.MISSING_PROP, DiagnosticCode.MISSING_PROPS].includes(
                 diagnostic.code as number
-            ) &&
+            ) ||
+                (DiagnosticCode.TYPE_X_NOT_ASSIGNABLE_TO_TYPE_Y &&
+                    diagnostic.message.includes("'Properties<"))) &&
             !hasNonZeroRange({ range })
         ) {
             const node = getNodeIfIsInStartTag(document.html, document.offsetAt(range.start));
@@ -286,11 +347,11 @@ function isNoUsedBeforeAssigned(
 }
 
 /**
- * Some diagnostics have JSX-specific nomenclature. Enhance them for more clarity.
+ * Some diagnostics have JSX-specific or confusing nomenclature. Enhance/adjust them for more clarity.
  */
-function enhanceIfNecessary(diagnostic: Diagnostic): Diagnostic {
+function adjustIfNecessary(diagnostic: Diagnostic): Diagnostic {
     if (
-        diagnostic.code === DiagnosticCode.TYPE_X_NOT_ASSIGNABLE_TO_TYPE_Y &&
+        diagnostic.code === DiagnosticCode.ARG_TYPE_X_NOT_ASSIGNABLE_TO_TYPE_Y &&
         diagnostic.message.includes('ConstructorOfATypedSvelteComponent')
     ) {
         return {
@@ -543,11 +604,17 @@ function expectedTransitionThirdArgument(
         return false;
     }
 
-    const callExpression = findNodeAtSpan(
-        node,
-        { start: node.getStart(), length: node.getWidth() },
-        ts.isCallExpression
-    );
+    // in TypeScript 5.4 the error is on the function name
+    // in earlier versions it's on the whole call expression
+    const callExpression =
+        ts.isIdentifier(node) && ts.isCallExpression(node.parent)
+            ? node.parent
+            : findNodeAtSpan(
+                  node,
+                  { start: node.getStart(), length: node.getWidth() },
+                  ts.isCallExpression
+              );
+
     const signature =
         callExpression && lang.getProgram()?.getTypeChecker().getResolvedSignature(callExpression);
 

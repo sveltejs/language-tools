@@ -569,12 +569,12 @@ describe('TypescriptPlugin', function () {
         assert.deepStrictEqual(definition, [
             <LocationLink>{
                 targetRange: {
-                    end: { line: 1, character: 18 },
-                    start: { line: 1, character: 16 }
+                    end: { line: 0, character: 18 },
+                    start: { line: 0, character: 16 }
                 },
                 targetSelectionRange: {
-                    start: { line: 1, character: 16 },
-                    end: { line: 1, character: 18 }
+                    start: { line: 0, character: 16 },
+                    end: { line: 0, character: 18 }
                 },
                 originSelectionRange: {
                     start: { line: 1, character: 13 },
@@ -592,12 +592,12 @@ describe('TypescriptPlugin', function () {
         assert.deepStrictEqual(definition, [
             <LocationLink>{
                 targetRange: {
-                    end: { line: 1, character: 18 },
-                    start: { line: 1, character: 16 }
+                    end: { line: 0, character: 18 },
+                    start: { line: 0, character: 16 }
                 },
                 targetSelectionRange: {
-                    start: { line: 1, character: 16 },
-                    end: { line: 1, character: 18 }
+                    start: { line: 0, character: 16 },
+                    end: { line: 0, character: 18 }
                 },
                 originSelectionRange: {
                     start: { line: 1, character: 13 },

@@ -219,7 +219,7 @@ export class FoldingRangeProviderImpl implements FoldingRangeProvider {
     }
 
     private createFoldingRange(document: Document, start: number, end: number) {
-        const range = toRange(document.getText(), start, end);
+        const range = toRange(document, start, end);
         return {
             startLine: range.start.line,
             startCharacter: range.start.character,

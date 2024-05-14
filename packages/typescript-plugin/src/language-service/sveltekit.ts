@@ -1,6 +1,6 @@
 import type ts from 'typescript/lib/tsserverlibrary';
 import { Logger } from '../logger';
-import { hasNodeModule } from '../utils';
+import { getProjectDirectory, hasNodeModule } from '../utils';
 import { InternalHelpers, internalHelpers } from 'svelte2tsx';
 type _ts = typeof ts;
 
@@ -479,6 +479,19 @@ export const kitExports: Record<
                 kind: 'text'
             }
         ]
+    },
+    reroute: {
+        allowedIn: [],
+        displayParts: [],
+        documentation: [
+            {
+                text:
+                    `This function allows you to change how URLs are translated into routes. ` +
+                    `The returned pathname (which defaults to url.pathname) is used to select the route and its parameters. ` +
+                    `More info: https://kit.svelte.dev/docs/hooks#universal-hooks-reroute`,
+                kind: 'text'
+            }
+        ]
     }
 };
 
@@ -505,13 +518,21 @@ export function isKitRouteExportAllowedIn(
     );
 }
 
+const kitFilesSettings: InternalHelpers.KitFilesSettings = {
+    paramsPath: 'src/params',
+    clientHooksPath: 'src/hooks.client',
+    serverHooksPath: 'src/hooks.server',
+    universalHooksPath: 'src/hooks'
+};
+
 function getProxiedLanguageService(info: ts.server.PluginCreateInfo, ts: _ts, logger?: Logger) {
     const cachedProxiedLanguageService = cache.get(info);
     if (cachedProxiedLanguageService !== undefined) {
         return cachedProxiedLanguageService ?? undefined;
     }
 
-    if (!hasNodeModule(info.project.getCompilerOptions(), '@sveltejs/kit')) {
+    const projectDirectory = getProjectDirectory(info.project);
+    if (projectDirectory && !hasNodeModule(projectDirectory, '@sveltejs/kit')) {
         // Not a SvelteKit project, do nothing
         cache.set(info, null);
         return;
@@ -521,35 +542,42 @@ function getProxiedLanguageService(info: ts.server.PluginCreateInfo, ts: _ts, lo
 
     class ProxiedLanguageServiceHost implements ts.LanguageServiceHost {
         private files: Record<string, KitSnapshot> = {};
-        paramsPath = 'src/params';
-        serverHooksPath = 'src/hooks.server';
-        clientHooksPath = 'src/hooks.client';
 
         constructor() {
-            const configPath = info.project.getCurrentDirectory() + '/svelte.config.js';
-            import(configPath)
-                .then((module) => {
-                    const config = module.default;
-                    if (config.kit && config.kit.files) {
-                        if (config.kit.files.params) {
-                            this.paramsPath = config.kit.files.params;
-                        }
-                        if (config.kit.files.hooks) {
-                            this.serverHooksPath ||= config.kit.files.hooks.server;
-                            this.clientHooksPath ||= config.kit.files.hooks.client;
-                        }
-                        // We could be more sophisticated with only removing the files that are actually
-                        // wrong but this is good enough given how rare it is that this setting is used
-                        Object.keys(this.files)
-                            .filter((name) => {
-                                return !name.includes('src/hooks') && !name.includes('src/params');
-                            })
-                            .forEach((name) => {
-                                delete this.files[name];
-                            });
-                    }
-                })
-                .catch(() => {});
+            // This never worked due to configPath being the wrong format and due to https://github.com/microsoft/TypeScript/issues/43329 .
+            // Noone has complained about this not working, so this is commented out for now, revisit if it ever comes up.
+            // const configPath = info.project.getCurrentDirectory() + '/svelte.config.js';
+            // (import(configPath)) as Promise<any>)
+            //     .then((module) => {
+            //         const config = module.default;
+            //         if (config.kit && config.kit.files) {
+            //             if (config.kit.files.params) {
+            //                 this.paramsPath = config.kit.files.params;
+            //             }
+            //             if (config.kit.files.hooks) {
+            //                 this.serverHooksPath ||= config.kit.files.hooks.server;
+            //                 this.clientHooksPath ||= config.kit.files.hooks.client;
+            //                 this.universalHooksPath ||= config.kit.files.hooks.universal;
+            //             }
+            //             logger?.log(
+            //                 `Using SvelteKit files config: ${JSON.stringify(
+            //                     config.kit.files.hooks
+            //                 )}`
+            //             );
+            //             // We could be more sophisticated with only removing the files that are actually
+            //             // wrong but this is good enough given how rare it is that this setting is used
+            //             Object.keys(this.files)
+            //                 .filter((name) => {
+            //                     return !name.includes('src/hooks') && !name.includes('src/params');
+            //                 })
+            //                 .forEach((name) => {
+            //                     delete this.files[name];
+            //                 });
+            //         }
+            //     })
+            //     .catch((e) => {
+            //         logger?.log('error loading SvelteKit file', e);
+            //     });
         }
 
         log() {}
@@ -622,15 +650,8 @@ function getProxiedLanguageService(info: ts.server.PluginCreateInfo, ts: _ts, lo
         }
 
         upsertKitFile(fileName: string) {
-            const result = internalHelpers.upsertKitFile(
-                ts,
-                fileName,
-                {
-                    clientHooksPath: this.clientHooksPath,
-                    paramsPath: this.paramsPath,
-                    serverHooksPath: this.serverHooksPath
-                },
-                () => info.languageService.getProgram()?.getSourceFile(fileName)
+            const result = internalHelpers.upsertKitFile(ts, fileName, kitFilesSettings, () =>
+                info.languageService.getProgram()?.getSourceFile(fileName)
             );
             if (!result) {
                 return;
@@ -705,7 +726,7 @@ function getProxiedLanguageService(info: ts.server.PluginCreateInfo, ts: _ts, lo
     const languageServiceHost = new ProxiedLanguageServiceHost();
     const languageService = ts.createLanguageService(
         languageServiceHost,
-        createProxyRegistry(ts, originalLanguageServiceHost, languageServiceHost)
+        createProxyRegistry(ts, originalLanguageServiceHost, kitFilesSettings)
     );
     cache.set(info, { languageService, languageServiceHost });
     return {

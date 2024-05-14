@@ -1,15 +1,27 @@
 ///<reference types="svelte" />
-;function render() {
-
-    let { a, b } = $props<{ a: number, b: string }>();
-    let x = $state(0);
+;function render<T>() {
+;type $$ComponentProps =  { a: T, b: string };
+    let { a, b }:$$ComponentProps = $props();
+    let x = $state<T>(0);
     let y = $derived(x * 2);
+;
+async () => {};
+return { props: {} as any as $$ComponentProps, slots: {}, events: {} }}
+class __sveltets_Render<T> {
+    props() {
+        return render<T>().props;
+    }
+    events() {
+        return __sveltets_2_with_any_event(render<T>()).events;
+    }
+    slots() {
+        return render<T>().slots;
+    }
+}
 
-/*Ωignore_startΩ*/;const __sveltets_createSlot = __sveltets_2_createCreateSlot();/*Ωignore_endΩ*/;
-async () => {
 
- { __sveltets_createSlot("default", {  x,y,});}};
-return { props: {} as any as { a: number, b: string }, slots: {'default': {x:x, y:y}}, events: {} }}
-
-export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_with_any_event(render())) {
+import { SvelteComponentTyped as __SvelteComponentTyped__ } from "svelte" 
+export default class Input__SvelteComponent_<T> extends __SvelteComponentTyped__<ReturnType<__sveltets_Render<T>['props']>, ReturnType<__sveltets_Render<T>['events']>, ReturnType<__sveltets_Render<T>['slots']>> {
+    constructor(options: import('svelte').ComponentConstructorOptions<ReturnType<__sveltets_Render<T>['props']>>) { super(options); }
+    $$bindings = __sveltets_$$bindings('');
 }

@@ -125,7 +125,7 @@ export function parseHtmlx(
     const parsingCode = options.emitOnTemplateError
         ? blankPossiblyErrorOperatorOrPropertyAccess(deconstructed)
         : deconstructed;
-    const htmlxAst = parse(parsingCode).html;
+    const htmlxAst = parse(parsingCode).html as any;
 
     //restore our script and style tags as nodes to maintain validity with HTMLx
     for (const s of verbatimElements) {
@@ -152,6 +152,8 @@ const possibleOperatorOrPropertyAccess = new Set([
     '-'
 ]);
 
+const id_char = /[\w$]/;
+
 function blankPossiblyErrorOperatorOrPropertyAccess(htmlx: string) {
     let index = htmlx.indexOf('}');
     let lastIndex = 0;
@@ -162,6 +164,16 @@ function blankPossiblyErrorOperatorOrPropertyAccess(htmlx: string) {
         while (backwardIndex > lastIndex) {
             const char = htmlx.charAt(backwardIndex);
             if (possibleOperatorOrPropertyAccess.has(char)) {
+                if (char === '!') {
+                    // remove ! if it's at the beginning but not if it's used as the TS non-null assertion operator
+                    let prev = backwardIndex - 1;
+                    while (prev > lastIndex && htmlx.charAt(prev) === ' ') {
+                        prev--;
+                    }
+                    if (id_char.test(htmlx.charAt(prev))) {
+                        break;
+                    }
+                }
                 const isPlusOrMinus = char === '+' || char === '-';
                 const isIncrementOrDecrement =
                     isPlusOrMinus && htmlx.charAt(backwardIndex - 1) === char;

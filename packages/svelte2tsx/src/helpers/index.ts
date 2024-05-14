@@ -1,9 +1,8 @@
 import {
-    isClientHooksFile,
+    isHooksFile,
     isKitFile,
     isKitRouteFile,
     isParamsFile,
-    isServerHooksFile,
     toOriginalPos,
     toVirtualPos,
     upsertKitFile
@@ -19,8 +18,7 @@ import { findExports } from './typescript';
 export const internalHelpers = {
     isKitFile,
     isKitRouteFile,
-    isClientHooksFile,
-    isServerHooksFile,
+    isHooksFile,
     isParamsFile,
     upsertKitFile,
     toVirtualPos,

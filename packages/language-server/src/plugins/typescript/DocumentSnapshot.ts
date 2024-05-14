@@ -87,6 +87,7 @@ export namespace DocumentSnapshot {
             document,
             parserError,
             scriptKind,
+            options.version,
             text,
             nrPrependedLines,
             exportedNames,
@@ -272,12 +273,17 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
         public readonly parent: Document,
         public readonly parserError: ParserError | null,
         public readonly scriptKind: ts.ScriptKind,
+        public readonly svelteVersion: string | undefined,
         private readonly text: string,
         private readonly nrPrependedLines: number,
         private readonly exportedNames: IExportedNames,
         private readonly tsxMap?: EncodedSourceMap,
         private readonly htmlAst?: TemplateNode
     ) {}
+
+    get isSvelte5Plus() {
+        return Number(this.svelteVersion?.split('.')[0]) >= 5;
+    }
 
     get filePath() {
         return this.parent.getFilePath() || '';
@@ -443,6 +449,7 @@ export class JSOrTSDocumentSnapshot extends IdentityMapper implements DocumentSn
     private paramsPath = 'src/params';
     private serverHooksPath = 'src/hooks.server';
     private clientHooksPath = 'src/hooks.client';
+    private universalHooksPath = 'src/hooks';
 
     private openedByClient = false;
 
@@ -578,7 +585,8 @@ export class JSOrTSDocumentSnapshot extends IdentityMapper implements DocumentSn
             {
                 clientHooksPath: this.clientHooksPath,
                 paramsPath: this.paramsPath,
-                serverHooksPath: this.serverHooksPath
+                serverHooksPath: this.serverHooksPath,
+                universalHooksPath: this.universalHooksPath
             },
             () => this.createSource(),
             surroundWithIgnoreComments
@@ -596,6 +604,7 @@ export class JSOrTSDocumentSnapshot extends IdentityMapper implements DocumentSn
                 this.paramsPath ||= files.params;
                 this.serverHooksPath ||= files.hooks?.server;
                 this.clientHooksPath ||= files.hooks?.client;
+                this.universalHooksPath ||= files.hooks?.universal;
             }
         }
 
@@ -664,7 +673,7 @@ export class DtsDocumentSnapshot extends JSOrTSDocumentSnapshot implements Docum
         }
 
         return {
-            line: mapped.line,
+            line: mapped.line - 1,
             character: mapped.column,
             uri: pathToUrl(originalFilePath)
         };

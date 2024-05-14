@@ -55,6 +55,7 @@ export function handleAttribute(
     attr: Attribute,
     parent: BaseNode,
     preserveCase: boolean,
+    svelte5Plus: boolean,
     element: Element | InlineComponent
 ): void {
     if (
@@ -93,7 +94,7 @@ export function handleAttribute(
                   element.addAttribute(name, value);
               }
             : (name: TransformationArray, value?: TransformationArray) => {
-                  if (attr.name.startsWith('--') && attr.value !== true) {
+                  if (attr.name.startsWith('--')) {
                       // CSS custom properties are not part of the props
                       // definition, so wrap them to not get "--xx is invalid prop" errors
                       name.unshift('...__sveltets_2_cssProp({');
@@ -112,7 +113,8 @@ export function handleAttribute(
         if (
             !preserveCase &&
             !svgAttributes.find((x) => x == name) &&
-            !(element instanceof Element && element.tagName.includes('-'))
+            !(element instanceof Element && element.tagName.includes('-')) &&
+            !(svelte5Plus && name.startsWith('on'))
         ) {
             return name.toLowerCase();
         } else {

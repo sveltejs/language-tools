@@ -6,17 +6,23 @@ import { SvelteSnapshotManager } from './svelte-snapshots';
 import type ts from 'typescript/lib/tsserverlibrary';
 import { ConfigManager, Configuration } from './config-manager';
 import { ProjectSvelteFilesManager } from './project-svelte-files';
-import { getConfigPathForProject, hasNodeModule } from './utils';
+import {
+    getConfigPathForProject,
+    getProjectDirectory,
+    importSvelteCompiler,
+    isSvelteProject
+} from './utils';
 
 function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
     const configManager = new ConfigManager();
     let resolvedSvelteTsxFiles: string[] | undefined;
+    const isSvelteProjectCache = new Map<string, boolean>();
 
     function create(info: ts.server.PluginCreateInfo) {
         const logger = new Logger(info.project.projectService.logger);
         if (
             !(info.config as Configuration)?.assumeIsSvelteProject &&
-            !isSvelteProject(info.project.getCompilerOptions())
+            !isSvelteProjectWithCache(info.project)
         ) {
             logger.log('Detected that this is not a Svelte project, abort patching TypeScript');
             return info.languageService;
@@ -111,7 +117,8 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
             info.project.projectService,
             svelteOptions,
             logger,
-            configManager
+            configManager,
+            importSvelteCompiler(getProjectDirectory(info.project))
         );
 
         const projectSvelteFilesManager = parsedCommandLine
@@ -126,7 +133,7 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
               )
             : undefined;
 
-        patchModuleLoader(
+        const moduleLoaderDisposable = patchModuleLoader(
             logger,
             snapshotManager,
             modules.typescript,
@@ -135,7 +142,7 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
             configManager
         );
 
-        configManager.onConfigurationChanged(() => {
+        const updateProjectWhenConfigChanges = () => {
             // enabling/disabling the plugin means TS has to recompute stuff
             // don't clear semantic cache here
             // typescript now expected the program updates to be completely in their control
@@ -147,7 +154,8 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
             if (projectSvelteFilesManager) {
                 info.project.updateGraph();
             }
-        });
+        };
+        configManager.onConfigurationChanged(updateProjectWhenConfigChanges);
 
         return decorateLanguageService(
             info.languageService,
@@ -156,21 +164,23 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
             configManager,
             info,
             modules.typescript,
-            () => projectSvelteFilesManager?.dispose()
+            () => {
+                projectSvelteFilesManager?.dispose();
+                configManager.removeConfigurationChangeListener(updateProjectWhenConfigChanges);
+                moduleLoaderDisposable.dispose();
+            }
         );
     }
 
     function getExternalFiles(project: ts.server.Project) {
-        if (!isSvelteProject(project.getCompilerOptions()) || !configManager.getConfig().enable) {
+        if (!isSvelteProjectWithCache(project) || !configManager.getConfig().enable) {
             return [];
         }
 
-        const configFilePath = project.getCompilerOptions().configFilePath;
+        const configFilePath = getProjectDirectory(project);
 
         // Needed so the ambient definitions are known inside the tsx files
-        const svelteTsxFiles = resolveSvelteTsxFiles(
-            typeof configFilePath === 'string' ? configFilePath : undefined
-        );
+        const svelteTsxFiles = resolveSvelteTsxFiles(configFilePath);
 
         if (!configFilePath) {
             svelteTsxFiles.forEach((file) => {
@@ -218,9 +228,15 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
         return svelteTsxFiles;
     }
 
-    function isSvelteProject(compilerOptions: ts.CompilerOptions) {
-        // Add more checks like "no Svelte file found" or "no config file found"?
-        return hasNodeModule(compilerOptions, 'svelte');
+    function isSvelteProjectWithCache(project: ts.server.Project) {
+        const cached = isSvelteProjectCache.get(project.getProjectName());
+        if (cached !== undefined) {
+            return cached;
+        }
+
+        const result = !!isSvelteProject(project);
+        isSvelteProjectCache.set(project.getProjectName(), result);
+        return result;
     }
 
     function onConfigurationChanged(config: Configuration) {
