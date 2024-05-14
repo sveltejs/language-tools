@@ -511,7 +511,7 @@ export class LSConfigManager {
         };
     }
 
-    getRawTsUserConfig(lang: TsUserConfigLang): TSUserConfig {
+    getVSCodeTsUserConfig(lang: TsUserConfigLang): TSUserConfig {
         return this.rawTsUserConfig[lang];
     }
 

@@ -27,14 +27,17 @@ export class CodeLensProviderImpl implements CodeLensProvider {
     ) {}
 
     async getCodeLens(document: Document): Promise<CodeLens[] | null> {
+        if (!this.anyCodeLensEnabled('typescript') && !this.anyCodeLensEnabled('javascript')) {
+            return null;
+        }
+
         const { lang, tsDoc } = await this.lsAndTsDocResolver.getLsForSyntheticOperations(document);
 
         const results: [CodeLensType, Range][] = [];
-        const navigationTree = lang.getNavigationTree(tsDoc.filePath);
 
         const collectors: CodeLensCollector[] = [];
 
-        const vscodeTsConfig = this.configManager.getRawTsUserConfig(
+        const vscodeTsConfig = this.configManager.getVSCodeTsUserConfig(
             tsDoc.scriptKind === ts.ScriptKind.TS ? 'typescript' : 'javascript'
         );
 
@@ -60,6 +63,7 @@ export class CodeLensProviderImpl implements CodeLensProvider {
             return null;
         }
 
+        const navigationTree = lang.getNavigationTree(tsDoc.filePath);
         const renderFunction = navigationTree?.childItems?.find((item) => item.text === 'render');
         if (renderFunction) {
             // pretty rare that there is anything to show in the template, so we skip it
@@ -73,6 +77,14 @@ export class CodeLensProviderImpl implements CodeLensProvider {
 
         const uri = document.uri;
         return results.map(([type, range]) => CodeLens.create(range, { type, uri }));
+    }
+
+    private anyCodeLensEnabled(lang: 'typescript' | 'javascript') {
+        const vscodeTsConfig = this.configManager.getVSCodeTsUserConfig(lang);
+        return (
+            vscodeTsConfig.referencesCodeLens?.enabled ||
+            vscodeTsConfig.implementationCodeLens?.enabled
+        );
     }
 
     /**
