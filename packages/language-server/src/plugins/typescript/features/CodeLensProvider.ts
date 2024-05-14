@@ -55,7 +55,8 @@ export class CodeLensProviderImpl implements CodeLensProvider {
         ) {
             collectors.push({
                 type: 'implementation',
-                collect: (tsDoc, item) => this.extractImplementationLocation(tsDoc, item)
+                collect: (tsDoc, item, parent) =>
+                    this.extractImplementationLocation(tsDoc, item, vscodeTsConfig, parent)
             });
         }
 
@@ -165,8 +166,18 @@ export class CodeLensProviderImpl implements CodeLensProvider {
      */
     private extractImplementationLocation(
         tsDoc: SvelteDocumentSnapshot,
-        item: ts.NavigationTree
+        item: ts.NavigationTree,
+        config: TSUserConfig,
+        parent?: ts.NavigationTree
     ): Range | undefined {
+        if (
+            item.kind === ts.ScriptElementKind.memberFunctionElement &&
+            parent &&
+            parent.kind === ts.ScriptElementKind.interfaceElement &&
+            config.implementationCodeLens?.showOnInterfaceMethods === true
+        ) {
+            return this.getSymbolRange(tsDoc, item);
+        }
         switch (item.kind) {
             case ts.ScriptElementKind.interfaceElement:
                 return this.getSymbolRange(tsDoc, item);

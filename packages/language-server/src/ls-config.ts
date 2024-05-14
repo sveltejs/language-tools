@@ -202,7 +202,7 @@ export interface TSUserConfig {
     format?: TsFormatConfig;
     inlayHints?: TsInlayHintsConfig;
     referencesCodeLens?: TsReferenceCodeLensConfig;
-    implementationCodeLens?: { enabled: boolean };
+    implementationCodeLens?: TsImplementationCodeLensConfig;
 }
 
 /**
@@ -257,6 +257,11 @@ export interface TsInlayHintsConfig {
 export interface TsReferenceCodeLensConfig {
     showOnAllFunctions?: boolean | undefined;
     enabled: boolean;
+}
+
+export interface TsImplementationCodeLensConfig {
+    enabled: boolean;
+    showOnInterfaceMethods?: boolean | undefined;
 }
 
 export type TsUserConfigLang = 'typescript' | 'javascript';
