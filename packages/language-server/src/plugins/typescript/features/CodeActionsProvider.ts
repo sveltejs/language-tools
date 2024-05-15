@@ -559,7 +559,9 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         const end = tsDoc.offsetAt(tsDoc.getGeneratedPosition(range.end));
         const errorCodes: number[] = context.diagnostics.map((diag) => Number(diag.code));
         const cannotFindNameDiagnostic = context.diagnostics.filter(
-            (diagnostic) => diagnostic.code === DiagnosticCode.CANNOT_FIND_NAME
+            (diagnostic) =>
+                diagnostic.code === DiagnosticCode.CANNOT_FIND_NAME ||
+                diagnostic.code === DiagnosticCode.CANNOT_FIND_NAME_X_DID_YOU_MEAN_Y
         );
 
         const formatCodeSettings = await this.configManager.getFormatCodeSettingsForFile(
@@ -579,9 +581,14 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                       formatCodeSettings
                   )
                 : undefined;
-        codeFixes =
-            // either-or situation
-            codeFixes || [
+
+        // either-or situation when it's not a typo quick fix
+        if (
+            codeFixes === undefined ||
+            errorCodes.includes(DiagnosticCode.CANNOT_FIND_NAME_X_DID_YOU_MEAN_Y)
+        ) {
+            codeFixes ??= [];
+            codeFixes = codeFixes.concat(
                 ...lang.getCodeFixesAtPosition(
                     tsDoc.filePath,
                     start,
@@ -599,7 +606,8 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                     userPreferences,
                     formatCodeSettings
                 )
-            ];
+            );
+        }
 
         const snapshots = new SnapshotMap(this.lsAndTsDocResolver);
         snapshots.set(tsDoc.filePath, tsDoc);

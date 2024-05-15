@@ -661,6 +661,81 @@ describe('CodeActionsProvider', function () {
         ]);
     });
 
+    it('provides quickfix for component import with typo diagnostics', async () => {
+        const { provider, document } = setup('codeaction-component-import.svelte');
+
+        const codeActions = await provider.getCodeActions(
+            document,
+            Range.create(Position.create(4, 1), Position.create(4, 6)),
+            {
+                diagnostics: [
+                    {
+                        code: 2552,
+                        message: "Cannot find name 'Empty'. Did you mean 'EMpty'?",
+                        range: Range.create(Position.create(4, 1), Position.create(4, 6)),
+                        source: 'ts'
+                    }
+                ],
+                only: [CodeActionKind.QuickFix]
+            }
+        );
+
+        (<TextDocumentEdit>codeActions[0]?.edit?.documentChanges?.[0])?.edits.forEach(
+            (edit) => (edit.newText = harmonizeNewLines(edit.newText))
+        );
+
+        assert.deepStrictEqual(codeActions, <CodeAction[]>[
+            {
+                edit: {
+                    documentChanges: [
+                        {
+                            edits: [
+                                {
+                                    newText: harmonizeNewLines(
+                                        `\n${indent}import Empty from "../empty.svelte";\n`
+                                    ),
+                                    range: {
+                                        end: Position.create(0, 18),
+                                        start: Position.create(0, 18)
+                                    }
+                                }
+                            ],
+                            textDocument: {
+                                uri: getUri('codeaction-component-import.svelte'),
+                                version: null
+                            }
+                        }
+                    ]
+                },
+                kind: 'quickfix',
+                title: 'Add import from "../empty.svelte"'
+            },
+            {
+                edit: {
+                    documentChanges: [
+                        {
+                            edits: [
+                                {
+                                    newText: 'EMpty',
+                                    range: {
+                                        end: Position.create(4, 6),
+                                        start: Position.create(4, 1)
+                                    }
+                                }
+                            ],
+                            textDocument: {
+                                uri: getUri('codeaction-component-import.svelte'),
+                                version: null
+                            }
+                        }
+                    ]
+                },
+                kind: 'quickfix',
+                title: "Change spelling to 'EMpty'"
+            }
+        ]);
+    });
+
     it('remove import inline with script tag', async () => {
         const { provider, document } = setup('remove-imports-inline.svelte');
 
