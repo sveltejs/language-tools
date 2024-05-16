@@ -313,10 +313,13 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         const virtualDoc = new Document(virtualUri, newText);
         virtualDoc.openedByClient = true;
         // let typescript know about the virtual document
-        await this.lsAndTsDocResolver.getSnapshot(virtualDoc);
+        // getLSAndTSDoc instead of getSnapshot so that project dirty state is correctly tracked by us
+        // otherwise, sometime the applied code fix might not be picked up by the language service 
+        // because we think the project is still dirty and doesn't update the project version
+        await this.lsAndTsDocResolver.getLSAndTSDoc(virtualDoc);
 
         return {
-            virtualDoc: new Document(virtualUri, newText),
+            virtualDoc,
             insertedNames: names
         };
     }

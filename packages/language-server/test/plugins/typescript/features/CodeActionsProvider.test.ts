@@ -20,6 +20,7 @@ import { LSAndTSDocResolver } from '../../../../src/plugins/typescript/LSAndTSDo
 import { __resetCache } from '../../../../src/plugins/typescript/service';
 import { pathToUrl } from '../../../../src/utils';
 import { recursiveServiceWarmup } from '../test-utils';
+import { DiagnosticCode } from '../../../../src/plugins/typescript/features/DiagnosticsProvider';
 
 const testDir = path.join(__dirname, '..');
 const indent = ' '.repeat(4);
@@ -64,7 +65,7 @@ describe('CodeActionsProvider', function () {
             uri: pathToUrl(filePath),
             text: harmonizeNewLines(ts.sys.readFile(filePath) || '')
         });
-        return { provider, document, docManager };
+        return { provider, document, docManager, lsAndTsDocResolver };
     }
 
     it('provides quickfix', async () => {
@@ -937,14 +938,16 @@ describe('CodeActionsProvider', function () {
         });
     });
 
-    it('provide quick fix to fix all missing import component', async () => {
-        const { provider, document } = setup('codeaction-custom-fix-all-component.svelte');
+    it.only('provide quick fix to fix all missing import component', async () => {
+        const { provider, document, docManager, lsAndTsDocResolver } = setup(
+            'codeaction-custom-fix-all-component.svelte'
+        );
 
         const range = Range.create(Position.create(4, 1), Position.create(4, 15));
         const codeActions = await provider.getCodeActions(document, range, {
             diagnostics: [
                 {
-                    code: 2304,
+                    code: DiagnosticCode.CANNOT_FIND_NAME,
                     message: "Cannot find name 'FixAllImported'.",
                     range: range,
                     source: 'ts'
@@ -987,6 +990,21 @@ describe('CodeActionsProvider', function () {
                 }
             ]
         });
+
+        // fix-all has some "creative" workaround. Testing if it won't affect the document synchronization after applying the fix
+        docManager.updateDocument(
+            document,
+            resolvedFixAll.edit.documentChanges[0].edits.map((edit) => ({
+                range: edit.range,
+                text: edit.newText
+            }))
+        );
+
+        const { lang, tsDoc } = await lsAndTsDocResolver.getLSAndTSDoc(document);
+        const cannotFindNameDiagnostics = lang
+            .getSemanticDiagnostics(tsDoc.filePath)
+            .filter((diagnostic) => diagnostic.code === DiagnosticCode.CANNOT_FIND_NAME);
+        assert.strictEqual(cannotFindNameDiagnostics.length, 0);
     });
 
     it('provide quick fix to fix all missing import component without duplicate (script)', async () => {
