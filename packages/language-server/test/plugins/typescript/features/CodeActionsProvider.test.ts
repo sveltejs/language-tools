@@ -938,7 +938,7 @@ describe('CodeActionsProvider', function () {
         });
     });
 
-    it.only('provide quick fix to fix all missing import component', async () => {
+    it('provide quick fix to fix all missing import component', async () => {
         const { provider, document, docManager, lsAndTsDocResolver } = setup(
             'codeaction-custom-fix-all-component.svelte'
         );
@@ -1005,6 +1005,58 @@ describe('CodeActionsProvider', function () {
             .getSemanticDiagnostics(tsDoc.filePath)
             .filter((diagnostic) => diagnostic.code === DiagnosticCode.CANNOT_FIND_NAME);
         assert.strictEqual(cannotFindNameDiagnostics.length, 0);
+    });
+
+    it('provide quick fix to fix all missing import component with typo diagnostics', async () => {
+        const { provider, document } = setup('codeaction-custom-fix-all-component4.svelte');
+
+        const range = Range.create(Position.create(4, 1), Position.create(4, 15));
+        const codeActions = await provider.getCodeActions(document, range, {
+            diagnostics: [
+                {
+                    code: DiagnosticCode.CANNOT_FIND_NAME_X_DID_YOU_MEAN_Y,
+                    message: "Cannot find name 'FixAllImported'. Did you mean 'FixAllImported3'?",
+                    range: range,
+                    source: 'ts'
+                }
+            ],
+            only: [CodeActionKind.QuickFix]
+        });
+
+        const fixAll = codeActions.find((action) => action.data);
+        const resolvedFixAll = await provider.resolveCodeAction(document, fixAll!);
+
+        (<TextDocumentEdit>resolvedFixAll?.edit?.documentChanges?.[0])?.edits.forEach(
+            (edit) => (edit.newText = harmonizeNewLines(edit.newText))
+        );
+
+        assert.deepStrictEqual(resolvedFixAll.edit, {
+            documentChanges: [
+                {
+                    edits: [
+                        {
+                            newText:
+                                `\n${indent}import FixAllImported from \"./importing/FixAllImported.svelte\";\n` +
+                                `${indent}import FixAllImported2 from \"./importing/FixAllImported2.svelte\";\n`,
+                            range: {
+                                start: {
+                                    character: 18,
+                                    line: 0
+                                },
+                                end: {
+                                    character: 18,
+                                    line: 0
+                                }
+                            }
+                        }
+                    ],
+                    textDocument: {
+                        uri: getUri('codeaction-custom-fix-all-component4.svelte'),
+                        version: null
+                    }
+                }
+            ]
+        });
     });
 
     it('provide quick fix to fix all missing import component without duplicate (script)', async () => {

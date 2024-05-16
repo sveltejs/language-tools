@@ -276,7 +276,8 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             if (
                 diagnostic.range.start.line < 0 ||
                 diagnostic.range.end.line < 0 ||
-                diagnostic.code !== DiagnosticCode.CANNOT_FIND_NAME
+                (diagnostic.code !== DiagnosticCode.CANNOT_FIND_NAME &&
+                    diagnostic.code !== DiagnosticCode.CANNOT_FIND_NAME_X_DID_YOU_MEAN_Y)
             ) {
                 continue;
             }
@@ -314,7 +315,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         virtualDoc.openedByClient = true;
         // let typescript know about the virtual document
         // getLSAndTSDoc instead of getSnapshot so that project dirty state is correctly tracked by us
-        // otherwise, sometime the applied code fix might not be picked up by the language service 
+        // otherwise, sometime the applied code fix might not be picked up by the language service
         // because we think the project is still dirty and doesn't update the project version
         await this.lsAndTsDocResolver.getLSAndTSDoc(virtualDoc);
 
@@ -858,7 +859,11 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             if (codeFix.fixName === FIX_IMPORT_FIX_NAME) {
                 const allCannotFindNameDiagnostics = lang
                     .getSemanticDiagnostics(fileName)
-                    .filter((diagnostic) => diagnostic.code === DiagnosticCode.CANNOT_FIND_NAME);
+                    .filter(
+                        (diagnostic) =>
+                            diagnostic.code === DiagnosticCode.CANNOT_FIND_NAME ||
+                            diagnostic.code === DiagnosticCode.CANNOT_FIND_NAME_X_DID_YOU_MEAN_Y
+                    );
 
                 if (allCannotFindNameDiagnostics.length < 2) {
                     checkedFixIds.add(codeFix.fixId);
