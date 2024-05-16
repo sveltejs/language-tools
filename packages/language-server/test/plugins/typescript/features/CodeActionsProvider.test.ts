@@ -662,7 +662,7 @@ describe('CodeActionsProvider', function () {
         ]);
     });
 
-    it('provides quickfix for component import with typo diagnostics', async () => {
+    it('provides quickfix for component import with "did you mean" diagnostics', async () => {
         const { provider, document } = setup('codeaction-component-import.svelte');
 
         const codeActions = await provider.getCodeActions(
@@ -1007,7 +1007,7 @@ describe('CodeActionsProvider', function () {
         assert.strictEqual(cannotFindNameDiagnostics.length, 0);
     });
 
-    it('provide quick fix to fix all missing import component with typo diagnostics', async () => {
+    it('provide quick fix to fix all missing import component with "did you mean" diagnostics', async () => {
         const { provider, document } = setup('codeaction-custom-fix-all-component4.svelte');
 
         const range = Range.create(Position.create(4, 1), Position.create(4, 15));

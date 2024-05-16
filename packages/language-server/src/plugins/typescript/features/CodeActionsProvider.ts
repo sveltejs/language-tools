@@ -586,7 +586,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                   )
                 : undefined;
 
-        // either-or situation when it's not a typo quick fix
+        // either-or situation when it's not a "did you mean" fix
         if (
             codeFixes === undefined ||
             errorCodes.includes(DiagnosticCode.CANNOT_FIND_NAME_X_DID_YOU_MEAN_Y)
