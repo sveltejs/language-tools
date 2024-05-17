@@ -52,6 +52,7 @@ export enum DiagnosticCode {
     MISSING_PROP = 2741, // "Property '..' is missing in type '..' but required in type '..'."
     NO_OVERLOAD_MATCHES_CALL = 2769, // "No overload matches this call"
     CANNOT_FIND_NAME = 2304, // "Cannot find name 'xxx'"
+    CANNOT_FIND_NAME_X_DID_YOU_MEAN_Y = 2552, // "Cannot find name '...' Did you mean '...'?"
     EXPECTED_N_ARGUMENTS = 2554, // Expected {0} arguments, but got {1}.
     DEPRECATED_SIGNATURE = 6387 // The signature '..' of '..' is deprecated
 }
