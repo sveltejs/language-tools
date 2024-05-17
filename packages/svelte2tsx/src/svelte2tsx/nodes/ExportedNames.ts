@@ -153,7 +153,12 @@ export class ExportedNames {
                         : element.name.text;
 
                     if (element.initializer) {
-                        const call = element.initializer;
+                        let call = element.initializer;
+                        // if it's an as expression we need to check wether the as
+                        // expression expression is a call
+                        if (ts.isAsExpression(call)) {
+                            call = call.expression;
+                        }
                         if (ts.isCallExpression(call) && ts.isIdentifier(call.expression)) {
                             if (call.expression.text === '$bindable') {
                                 this.$props.bindings.push(name);
