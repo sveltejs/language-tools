@@ -682,8 +682,12 @@ export class ExportedNames {
     }
 
     createBindingsStr2(): string {
-        // will be just the empty strings for zero bindings, which is impossible to create a binding for, so it works out fine
-        return `__sveltets_$$bindings('${this.$props.bindings.join("', '")}')`;
+        if (this.usesRunes()) {
+            // will be just the empty strings for zero bindings, which is impossible to create a binding for, so it works out fine
+            return `__sveltets_$$bindings('${this.$props.bindings.join("', '")}')`;
+        } else {
+            return '""';
+        }
     }
 
     /**
@@ -760,6 +764,11 @@ export class ExportedNames {
 
     getExportsMap() {
         return this.exports;
+    }
+
+    hasExports(): boolean {
+        const names = Array.from(this.exports.entries());
+        return names.some(([, { isLet }]) => !isLet);
     }
 
     hasPropsRune() {

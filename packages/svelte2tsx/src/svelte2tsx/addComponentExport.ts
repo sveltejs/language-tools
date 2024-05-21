@@ -51,6 +51,7 @@ function addGenericsComponentExport({
     str,
     generics,
     usesSlots,
+    isSvelte5,
     noSvelteComponentTyped
 }: AddComponentExportPara) {
     const genericsDef = generics.toDefinitionString();
@@ -74,6 +75,12 @@ class __sveltets_Render${genericsDef} {
     slots() {
         return render${genericsRef}().slots;
     }
+${
+    isSvelte5
+        ? `    bindings() { return ${exportedNames.createBindingsStr2()}; }
+    exports() { return ${exportedNames.hasExports() ? `render${genericsRef}().exports` : '{}'}; }
+}`
+        : '}'
 }
 `;
 
@@ -109,17 +116,30 @@ class __sveltets_Render${genericsDef} {
             (usesAccessors ? exportedNames.createClassAccessors() : '') +
             '\n}';
     } else {
-        statement +=
-            `\n\nimport { ${svelteComponentClass} as __SvelteComponentTyped__ } from "svelte" \n` +
-            `${doc}export default class${
-                className ? ` ${className}` : ''
-            }${genericsDef} extends __SvelteComponentTyped__<${returnType('props')}, ${returnType(
-                'events'
-            )}, ${returnType('slots')}> {` +
-            customConstructor +
-            exportedNames.createClassGetters(genericsRef) +
-            (usesAccessors ? exportedNames.createClassAccessors() : '') +
-            '\n}';
+        if (isSvelte5) {
+            statement +=
+                `interface $$IsomorphicComponent {` +
+                `    new ${genericsDef}(options: import('svelte').ComponentConstructorOptions<${returnType('props')}>): import('svelte').SvelteComponent<${returnType('props')}, ${returnType('events')}, ${returnType('slots')}> & { $$bindings?: ${returnType('bindings')} } & ${returnType('exports')};\n` +
+                `    ${genericsDef}(internal: unknown, props: ${returnType('props')} & {'$$events'?: ${returnType('events')}, '$$slots'?: ${returnType('slots')}}): import('svelte').SvelteComponent<${returnType('props')}, ${returnType('events')}, ${returnType('slots')}> & { $$bindings?: ${returnType('bindings')} } & ${returnType('exports')};\n` +
+                `}\n` +
+                `const ${className || '$$Component'}: $$IsomorphicComponent = null as any;\n` +
+                surroundWithIgnoreComments(
+                    `type ${className || '$$Component'} = InstanceType<typeof ${className || '$$Component'}>;\n`
+                ) +
+                `export default ${className || '$$Component'};`;
+        } else {
+            statement +=
+                `\n\nimport { ${svelteComponentClass} as __SvelteComponentTyped__ } from "svelte" \n` +
+                `${doc}export default class${
+                    className ? ` ${className}` : ''
+                }${genericsDef} extends __SvelteComponentTyped__<${returnType('props')}, ${returnType(
+                    'events'
+                )}, ${returnType('slots')}> {` +
+                customConstructor +
+                exportedNames.createClassGetters(genericsRef) +
+                (usesAccessors ? exportedNames.createClassAccessors() : '') +
+                '\n}';
+        }
     }
 
     str.append(statement);
