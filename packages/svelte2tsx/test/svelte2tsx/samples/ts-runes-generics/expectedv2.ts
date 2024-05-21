@@ -1,7 +1,7 @@
 ///<reference types="svelte" />
 ;function render<T>() {
 ;type $$ComponentProps =  { a: T, b: string };
-    let { a, b }:$$ComponentProps = $props();
+    let { a, b }:/*Ωignore_startΩ*/$$ComponentProps/*Ωignore_endΩ*/ = $props();
     let x = $state<T>(0);
     let y = $derived(x * 2);
 ;
