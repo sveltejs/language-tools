@@ -186,6 +186,7 @@ export class ExportedNames {
                 );
                 this.str.appendRight(
                     generic_arg.end + this.astOffset,
+                    // so that semantic tokens ignore it, preventing an overlap of tokens
                     surroundWithIgnoreComments(this.$props.type)
                 );
             }
