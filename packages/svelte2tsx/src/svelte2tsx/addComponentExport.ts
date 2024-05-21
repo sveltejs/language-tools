@@ -190,31 +190,88 @@ function addSimpleComponentExport({
         const [EventsName, EventsExport] = addTypeExport(str, className, 'Events');
         const [SlotsName, SlotsExport] = addTypeExport(str, className, 'Slots');
 
-        statement =
-            `\nconst __propDef = ${propDef};\n` +
-            PropsExport +
-            EventsExport +
-            SlotsExport +
-            `\n${doc}export default class${
-                className ? ` ${className}` : ''
-            } extends ${svelteComponentClass}<${PropsName}, ${EventsName}, ${SlotsName}> {` +
-            customConstructor +
-            exportedNames.createClassGetters() +
-            (usesAccessors ? exportedNames.createClassAccessors() : '') +
-            '\n}';
+        if (isSvelte5) {
+            // Inline definitions from Svelte shims; else dts files will reference the globals which will be unresolved
+            statement =
+                `interface $$__sveltets_2_IsomorphicComponent<Props extends Record<string, any> = any, Events extends Record<string, any> = any, Slots extends Record<string, any> = any, Exports = {}, Bindings = string> {
+                new (options: import('svelte').ComponentConstructorOptions<Props>): import('svelte').SvelteComponent<Props, Events, Slots> & { $$bindings?: Bindings } & Exports;
+                (internal: unknown, props: Props & {$$events?: Events, $$slots?: Slots}): import('svelte').SvelteComponent<Props, Events, Slots> & { $$bindings?: Bindings } & Exports;
+            }\n` +
+                (usesSlots
+                    ? `type $$__sveltets_2_PropsWithChildren<Props, Slots> = Props &
+                    (Slots extends { default: any }
+                        ? Props extends Record<string, never>
+                        ? any
+                        : { children?: any }
+                        : {});
+                        declare function $$__sveltets_2_isomorphic_component_slots<
+                            Props extends Record<string, any>, Events extends Record<string, any>, Slots extends Record<string, any>, Exports extends Record<string, any>, Bindings extends string
+                        >(klass: {props: Props, events: Events, slots: Slots, exports?: Exports, bindings?: Bindings }): $$__sveltets_2_IsomorphicComponent<$$__sveltets_2_PropsWithChildren<Props, Slots>, Events, Slots, Exports, Bindings>;\n`
+                    : `
+            declare function $$__sveltets_2_isomorphic_component2<
+                Props extends Record<string, any>, Events extends Record<string, any>, Slots extends Record<string, any>, Exports extends Record<string, any>, Bindings extends string
+            >(klass: {props: Props, events: Events, slots: Slots, exports?: Exports, bindings?: Bindings }): $$__sveltets_2_IsomorphicComponent<Props, Events, Slots, Exports, Bindings>;\n`) +
+                `const ${className || '$$Component'} = $$__sveltets_2_isomorphic_component${usesSlots ? '_slots' : '2'}(${propDef});\n` +
+                surroundWithIgnoreComments(
+                    `type ${className || '$$Component'} = InstanceType<typeof ${className || '$$Component'}>;\n`
+                ) +
+                `export default ${className || '$$Component'};`;
+        } else {
+            statement =
+                `\nconst __propDef = ${propDef};\n` +
+                PropsExport +
+                EventsExport +
+                SlotsExport +
+                `\n${doc}export default class${
+                    className ? ` ${className}` : ''
+                } extends ${svelteComponentClass}<${PropsName}, ${EventsName}, ${SlotsName}> {` +
+                customConstructor +
+                exportedNames.createClassGetters() +
+                (usesAccessors ? exportedNames.createClassAccessors() : '') +
+                '\n}';
+        }
     } else if (mode === 'dts' && !isTsFile) {
-        statement =
-            `\nconst __propDef = ${propDef};\n` +
-            `/** @typedef {typeof __propDef.props}  ${className}Props */\n` +
-            `/** @typedef {typeof __propDef.events}  ${className}Events */\n` +
-            `/** @typedef {typeof __propDef.slots}  ${className}Slots */\n` +
-            `\n${doc}export default class${
-                className ? ` ${className}` : ''
-            } extends __sveltets_2_createSvelte2TsxComponent(${propDef}) {` +
-            customConstructor +
-            exportedNames.createClassGetters() +
-            (usesAccessors ? exportedNames.createClassAccessors() : '') +
-            '\n}';
+        if (isSvelte5) {
+            // Inline definitions from Svelte shims; else dts files will reference the globals which will be unresolved
+            // It's fine to reference TS stuff in here, it's a syntax error but TS handles it gracefully
+            statement =
+                `interface $$__sveltets_2_IsomorphicComponent<Props extends Record<string, any> = any, Events extends Record<string, any> = any, Slots extends Record<string, any> = any, Exports = {}, Bindings = string> {
+                new (options: import('svelte').ComponentConstructorOptions<Props>): import('svelte').SvelteComponent<Props, Events, Slots> & { $$bindings?: Bindings } & Exports;
+                (internal: unknown, props: Props & {$$events?: Events, $$slots?: Slots}): import('svelte').SvelteComponent<Props, Events, Slots> & { $$bindings?: Bindings } & Exports;
+            }\n` +
+                (usesSlots
+                    ? `type $$__sveltets_2_PropsWithChildren<Props, Slots> = Props &
+                    (Slots extends { default: any }
+                        ? Props extends Record<string, never>
+                        ? any
+                        : { children?: any }
+                        : {});
+                        declare function $$__sveltets_2_isomorphic_component_slots<
+                            Props extends Record<string, any>, Events extends Record<string, any>, Slots extends Record<string, any>, Exports extends Record<string, any>, Bindings extends string
+                        >(klass: {props: Props, events: Events, slots: Slots, exports?: Exports, bindings?: Bindings }): $$__sveltets_2_IsomorphicComponent<$$__sveltets_2_PropsWithChildren<Props, Slots>, Events, Slots, Exports, Bindings>;\n`
+                    : `
+            declare function $$__sveltets_2_isomorphic_component2<
+                Props extends Record<string, any>, Events extends Record<string, any>, Slots extends Record<string, any>, Exports extends Record<string, any>, Bindings extends string
+            >(klass: {props: Props, events: Events, slots: Slots, exports?: Exports, bindings?: Bindings }): $$__sveltets_2_IsomorphicComponent<Props, Events, Slots, Exports, Bindings>;\n`) +
+                `const ${className || '$$Component'} = $$__sveltets_2_isomorphic_component${usesSlots ? '_slots' : '2'}(${propDef});\n` +
+                surroundWithIgnoreComments(
+                    `type ${className || '$$Component'} = InstanceType<typeof ${className || '$$Component'}>;\n`
+                ) +
+                `export default ${className || '$$Component'};`;
+        } else {
+            statement =
+                `\nconst __propDef = ${propDef};\n` +
+                `/** @typedef {typeof __propDef.props}  ${className}Props */\n` +
+                `/** @typedef {typeof __propDef.events}  ${className}Events */\n` +
+                `/** @typedef {typeof __propDef.slots}  ${className}Slots */\n` +
+                `\n${doc}export default class${
+                    className ? ` ${className}` : ''
+                } extends __sveltets_2_createSvelte2TsxComponent(${propDef}) {` +
+                customConstructor +
+                exportedNames.createClassGetters() +
+                (usesAccessors ? exportedNames.createClassAccessors() : '') +
+                '\n}';
+        }
     } else {
         if (isSvelte5) {
             statement =
