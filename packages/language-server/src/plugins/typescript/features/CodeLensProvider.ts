@@ -52,7 +52,7 @@ export class CodeLensProviderImpl implements CodeLensProvider {
 
         if (
             tsDoc.scriptKind === ts.ScriptKind.TS &&
-            clientTsConfig.implementationCodeLens?.enabled
+            clientTsConfig.implementationsCodeLens?.enabled
         ) {
             collectors.push({
                 type: 'implementation',
@@ -85,7 +85,7 @@ export class CodeLensProviderImpl implements CodeLensProvider {
         const vscodeTsConfig = this.configManager.getClientTsUserConfig(lang);
         return (
             vscodeTsConfig.referencesCodeLens?.enabled ||
-            vscodeTsConfig.implementationCodeLens?.enabled
+            vscodeTsConfig.implementationsCodeLens?.enabled
         );
     }
 
@@ -175,7 +175,7 @@ export class CodeLensProviderImpl implements CodeLensProvider {
             item.kind === ts.ScriptElementKind.memberFunctionElement &&
             parent &&
             parent.kind === ts.ScriptElementKind.interfaceElement &&
-            config.implementationCodeLens?.showOnInterfaceMethods === true
+            config.implementationsCodeLens?.showOnInterfaceMethods === true
         ) {
             return this.getSymbolRange(tsDoc, item);
         }

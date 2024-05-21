@@ -202,7 +202,7 @@ export interface TSUserConfig {
     format?: TsFormatConfig;
     inlayHints?: TsInlayHintsConfig;
     referencesCodeLens?: TsReferenceCodeLensConfig;
-    implementationCodeLens?: TsImplementationCodeLensConfig;
+    implementationsCodeLens?: TsImplementationCodeLensConfig;
 }
 
 /**

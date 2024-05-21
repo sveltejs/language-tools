@@ -159,7 +159,7 @@ describe('CodeLensProvider', function () {
         const { provider, document, lsConfigManager } = setup('references.svelte');
 
         lsConfigManager.updateTsJsUserPreferences({
-            typescript: { implementationCodeLens: { enabled: true } },
+            typescript: { implementationsCodeLens: { enabled: true } },
             javascript: {}
         });
 
