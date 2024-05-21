@@ -6,6 +6,7 @@ import { CodeLensProvider, FindReferencesProvider, ImplementationProvider } from
 import { SvelteDocumentSnapshot } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { convertRange, isGeneratedSvelteComponentName } from '../utils';
+import { isTextSpanInGeneratedCode } from './utils';
 
 type CodeLensType = 'reference' | 'implementation';
 
@@ -37,26 +38,26 @@ export class CodeLensProviderImpl implements CodeLensProvider {
 
         const collectors: CodeLensCollector[] = [];
 
-        const vscodeTsConfig = this.configManager.getVSCodeTsUserConfig(
+        const clientTsConfig = this.configManager.getClientTsUserConfig(
             tsDoc.scriptKind === ts.ScriptKind.TS ? 'typescript' : 'javascript'
         );
 
-        if (vscodeTsConfig.referencesCodeLens?.enabled) {
+        if (clientTsConfig.referencesCodeLens?.enabled) {
             collectors.push({
                 type: 'reference',
                 collect: (tsDoc, item, parent) =>
-                    this.extractReferenceLocation(tsDoc, item, parent, vscodeTsConfig)
+                    this.extractReferenceLocation(tsDoc, item, parent, clientTsConfig)
             });
         }
 
         if (
             tsDoc.scriptKind === ts.ScriptKind.TS &&
-            vscodeTsConfig.implementationCodeLens?.enabled
+            clientTsConfig.implementationCodeLens?.enabled
         ) {
             collectors.push({
                 type: 'implementation',
                 collect: (tsDoc, item, parent) =>
-                    this.extractImplementationLocation(tsDoc, item, vscodeTsConfig, parent)
+                    this.extractImplementationLocation(tsDoc, item, clientTsConfig, parent)
             });
         }
 
@@ -81,7 +82,7 @@ export class CodeLensProviderImpl implements CodeLensProvider {
     }
 
     private anyCodeLensEnabled(lang: 'typescript' | 'javascript') {
-        const vscodeTsConfig = this.configManager.getVSCodeTsUserConfig(lang);
+        const vscodeTsConfig = this.configManager.getClientTsUserConfig(lang);
         return (
             vscodeTsConfig.referencesCodeLens?.enabled ||
             vscodeTsConfig.implementationCodeLens?.enabled
@@ -199,21 +200,22 @@ export class CodeLensProviderImpl implements CodeLensProvider {
         tsDoc: SvelteDocumentSnapshot,
         item: ts.NavigationTree
     ): Range | undefined {
-        if (!item.nameSpan) {
+        if (!item.nameSpan || isTextSpanInGeneratedCode(tsDoc.getFullText(), item.nameSpan)) {
             return;
         }
 
-        const range = mapRangeToOriginal(tsDoc, convertRange(tsDoc, item.spans[0]));
+        const range = mapRangeToOriginal(tsDoc, convertRange(tsDoc, item.nameSpan));
 
         if (range.start.line >= 0 && range.end.line >= 0) {
-            return range;
+            return this.isEmptyRange(range) ? undefined : range;
         }
 
-        // only map to the start of file if it's a generated component
+        // unlike references, only map to the start of file if it's a generated component
         if (isGeneratedSvelteComponentName(item.text)) {
             return {
                 start: { line: 0, character: 0 },
-                end: { line: 0, character: 0 }
+                // some client refused to resolve the code lens if the start is the same as the end
+                end: { line: 0, character: 1 }
             };
         }
     }
@@ -257,6 +259,10 @@ export class CodeLensProviderImpl implements CodeLensProvider {
         }
 
         return codeLensToResolve;
+    }
+
+    private isEmptyRange(range: Range): boolean {
+        return range.start.line === range.end.line && range.start.character === range.end.character;
     }
 
     private async resolveReferenceCodeLens(

@@ -432,9 +432,8 @@ export function startServer(options?: LSOptions) {
         pluginHost.getTypeDefinition(evt.textDocument, evt.position)
     );
 
-    
     connection.onFoldingRanges((evt) => pluginHost.getFoldingRanges(evt.textDocument));
-    
+
     connection.onCodeLens((evt) => pluginHost.getCodeLens(evt.textDocument));
     connection.onCodeLensResolve((codeLens, token) => {
         const data = codeLens.data as TextDocumentIdentifier;

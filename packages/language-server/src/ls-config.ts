@@ -300,8 +300,8 @@ export class LSConfigManager {
     private rawTsUserConfig: Record<TsUserConfigLang, TSUserConfig> = {
         typescript: {},
         javascript: {}
-    }
-    
+    };
+
     private resolvedAutoImportExcludeCache = new FileMap<string[]>();
     private tsFormatCodeOptions: Record<TsUserConfigLang, ts.FormatCodeSettings> = {
         typescript: this.getDefaultFormatCodeOptions(),
@@ -516,7 +516,7 @@ export class LSConfigManager {
         };
     }
 
-    getVSCodeTsUserConfig(lang: TsUserConfigLang): TSUserConfig {
+    getClientTsUserConfig(lang: TsUserConfigLang): TSUserConfig {
         return this.rawTsUserConfig[lang];
     }
 

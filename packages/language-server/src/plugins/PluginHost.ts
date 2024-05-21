@@ -646,7 +646,7 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
                 'resolveCodeLens',
                 [document, codeLens, cancellationToken],
                 ExecuteMode.FirstNonNull,
-                'high'
+                'smart'
             )) ?? codeLens
         );
     }
