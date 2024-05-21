@@ -70,30 +70,30 @@ declare function __sveltets_2_slotsType<Slots, Key extends keyof Slots>(slots: S
 // An empty array of optionalProps makes OptionalProps type any, which means we lose the prop typing.
 // optionalProps need to be first or its type cannot be infered correctly.
 
-declare function __sveltets_2_partial<Props = {}, Events = {}, Slots = {}, Exports = {}>(
-    render: {props: Props, events: Events, slots: Slots, exports?: Exports }
-): {props: Expand<SveltePropsAnyFallback<Props>>, events: Events, slots: Expand<SvelteSlotsAnyFallback<Slots>>, exports?: Exports }
-declare function __sveltets_2_partial<Props = {}, Events = {}, Slots = {}, Exports = {}, OptionalProps extends keyof Props = any>(
+declare function __sveltets_2_partial<Props = {}, Events = {}, Slots = {}, Exports = {}, Bindings = string>(
+    render: {props: Props, events: Events, slots: Slots, exports?: Exports, bindings?: Bindings }
+): {props: Expand<SveltePropsAnyFallback<Props>>, events: Events, slots: Expand<SvelteSlotsAnyFallback<Slots>>, exports?: Exports, bindings?: Bindings }
+declare function __sveltets_2_partial<Props = {}, Events = {}, Slots = {}, Exports = {}, Bindings = string, OptionalProps extends keyof Props = any>(
     optionalProps: OptionalProps[],
-    render: {props: Props, events: Events, slots: Slots, exports?: Exports }
-): {props: Expand<SvelteWithOptionalProps<SveltePropsAnyFallback<Props>, OptionalProps>>, events: Events, slots: Expand<SvelteSlotsAnyFallback<Slots>>, exports?: Exports }
+    render: {props: Props, events: Events, slots: Slots, exports?: Exports, bindings?: Bindings }
+): {props: Expand<SvelteWithOptionalProps<SveltePropsAnyFallback<Props>, OptionalProps>>, events: Events, slots: Expand<SvelteSlotsAnyFallback<Slots>>, exports?: Exports, bindings?: Bindings }
 
-declare function __sveltets_2_partial_with_any<Props = {}, Events = {}, Slots = {}, Exports = {}>(
-    render: {props: Props, events: Events, slots: Slots, exports?: Exports }
-): {props: Expand<SveltePropsAnyFallback<Props> & SvelteAllProps>, events: Events, slots: Expand<SvelteSlotsAnyFallback<Slots>>, exports?: Exports }
-declare function __sveltets_2_partial_with_any<Props = {}, Events = {}, Slots = {}, Exports = {}, OptionalProps extends keyof Props = any>(
+declare function __sveltets_2_partial_with_any<Props = {}, Events = {}, Slots = {}, Exports = {}, Bindings = string>(
+    render: {props: Props, events: Events, slots: Slots, exports?: Exports, bindings?: Bindings }
+): {props: Expand<SveltePropsAnyFallback<Props> & SvelteAllProps>, events: Events, slots: Expand<SvelteSlotsAnyFallback<Slots>>, exports?: Exports, bindings?: Bindings }
+declare function __sveltets_2_partial_with_any<Props = {}, Events = {}, Slots = {}, Exports = {}, Bindings = string, OptionalProps extends keyof Props = any>(
     optionalProps: OptionalProps[],
-    render: {props: Props, events: Events, slots: Slots, exports?: Exports }
-): {props: Expand<SvelteWithOptionalProps<SveltePropsAnyFallback<Props>, OptionalProps> & SvelteAllProps>, events: Events, slots: Expand<SvelteSlotsAnyFallback<Slots>>, exports?: Exports }
+    render: {props: Props, events: Events, slots: Slots, exports?: Exports, bindings?: Bindings }
+): {props: Expand<SvelteWithOptionalProps<SveltePropsAnyFallback<Props>, OptionalProps> & SvelteAllProps>, events: Events, slots: Expand<SvelteSlotsAnyFallback<Slots>>, exports?: Exports, bindings?: Bindings }
 
 
-declare function __sveltets_2_with_any<Props = {}, Events = {}, Slots = {}, Exports = {}>(
-    render: {props: Props, events: Events, slots: Slots, exports?: Exports }
-): {props: Expand<Props & SvelteAllProps>, events: Events, slots: Slots, exports?: Exports }
+declare function __sveltets_2_with_any<Props = {}, Events = {}, Slots = {}, Exports = {}, Bindings = string>(
+    render: {props: Props, events: Events, slots: Slots, exports?: Exports, bindings?: Bindings }
+): {props: Expand<Props & SvelteAllProps>, events: Events, slots: Slots, exports?: Exports, bindings?: Bindings }
 
-declare function __sveltets_2_with_any_event<Props = {}, Events = {}, Slots = {}, Exports = {}>(
-    render: {props: Props, events: Events, slots: Slots, exports?: Exports }
-): {props: Props, events: Events & {[evt: string]: CustomEvent<any>;}, slots: Slots, exports?: Exports }
+declare function __sveltets_2_with_any_event<Props = {}, Events = {}, Slots = {}, Exports = {}, Bindings = string>(
+    render: {props: Props, events: Events, slots: Slots, exports?: Exports, bindings?: Bindings }
+): {props: Props, events: Events & {[evt: string]: CustomEvent<any>;}, slots: Slots, exports?: Exports, bindings?: Bindings }
 
 declare function __sveltets_2_store_get<T = any>(store: SvelteStore<T>): T
 declare function __sveltets_2_store_get<Store extends SvelteStore<any> | undefined | null>(store: Store): Store extends SvelteStore<infer T> ? T : Store;
@@ -255,8 +255,8 @@ declare function __sveltets_2_isomorphic_component<
 
 declare function __sveltets_2_isomorphic_component2<
     Props extends Record<string, any>, Events extends Record<string, any>, Slots extends Record<string, any>, Exports extends Record<string, any>, Bindings extends string
->(klass: {props: Props, events: Events, slots: Slots, exports?: Exports }): __sveltets_2_IsomorphicComponent<Props, Events, Slots, Exports, Bindings>;
+>(klass: {props: Props, events: Events, slots: Slots, exports?: Exports, bindings?: Bindings }): __sveltets_2_IsomorphicComponent<Props, Events, Slots, Exports, Bindings>;
 
 declare function __sveltets_2_isomorphic_component_slots<
     Props extends Record<string, any>, Events extends Record<string, any>, Slots extends Record<string, any>, Exports extends Record<string, any>, Bindings extends string
->(klass: {props: Props, events: Events, slots: Slots, exports?: Exports }): __sveltets_2_IsomorphicComponent<__sveltets_2_PropsWithChildren<Props, Slots>, Events, Slots, Exports, Bindings>;
+>(klass: {props: Props, events: Events, slots: Slots, exports?: Exports, bindings?: Bindings }): __sveltets_2_IsomorphicComponent<__sveltets_2_PropsWithChildren<Props, Slots>, Events, Slots, Exports, Bindings>;

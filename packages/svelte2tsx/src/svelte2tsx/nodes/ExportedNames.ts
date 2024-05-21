@@ -695,16 +695,25 @@ export class ExportedNames {
         const names = Array.from(this.exports.entries());
         const others = names.filter(([, { isLet }]) => !isLet);
 
-        if (this.isSvelte5Plus && others.length > 0) {
-            if (this.isTsFile) {
-                return (
-                    ', exports: {} as any as { ' +
-                    this.createReturnElementsType(others, undefined, true).join(',') +
-                    ' }'
-                );
-            } else {
-                return `, exports: /** @type {{${this.createReturnElementsType(others, false, true)}}} */ ({})`;
+        if (this.isSvelte5Plus && (others.length > 0 || this.usesRunes())) {
+            let str = '';
+
+            if (others.length > 0) {
+                if (this.isTsFile) {
+                    str +=
+                        ', exports: {} as any as { ' +
+                        this.createReturnElementsType(others, undefined, true).join(',') +
+                        ' }';
+                } else {
+                    str += `, exports: /** @type {{${this.createReturnElementsType(others, false, true)}}} */ ({})`;
+                }
             }
+
+            if (this.usesRunes()) {
+                str += `, bindings: ${this.createBindingsStr2()}`;
+            }
+
+            return str;
         }
 
         return '';
