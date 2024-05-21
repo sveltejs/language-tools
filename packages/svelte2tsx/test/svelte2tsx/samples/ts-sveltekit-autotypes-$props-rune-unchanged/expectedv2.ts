@@ -2,7 +2,7 @@
 ;function render() {
 
      const snapshot: any = {};;type $$ComponentProps =  {form: boolean, data: true };
-    let { form, data }:$$ComponentProps = $props();
+    let { form, data }:/*Ωignore_startΩ*/$$ComponentProps/*Ωignore_endΩ*/ = $props();
 ;
 async () => {};
 return { props: {} as any as $$ComponentProps, exports: {} as any as { snapshot: any }, slots: {}, events: {} }}
