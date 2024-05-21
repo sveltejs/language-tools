@@ -189,7 +189,11 @@ export class ExportedNames {
                     generic_arg.end + this.astOffset,
                     node.parent.pos + this.astOffset
                 );
-                this.str.appendRight(generic_arg.end + this.astOffset, this.$props.type);
+                this.str.appendRight(
+                    generic_arg.end + this.astOffset,
+                    // so that semantic tokens ignore it, preventing an overlap of tokens
+                    surroundWithIgnoreComments(this.$props.type)
+                );
             }
         } else {
             if (!this.isTsFile) {
