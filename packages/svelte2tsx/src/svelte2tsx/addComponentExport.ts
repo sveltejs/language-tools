@@ -206,7 +206,7 @@ function addSimpleComponentExport({
                 // `const ${className || '$$Component'} = __sveltets_2_isomorphic_component($$Component_, ${exportedNames.createBindingsStr2()});\n` +
                 `const ${className || '$$Component'} = __sveltets_2_isomorphic_component${usesSlots ? '_slots' : '2'}(${propDef});\n` +
                 surroundWithIgnoreComments(
-                    `type ${className || '$$Component'} = typeof ${className || '$$Component'};\n`
+                    `type ${className || '$$Component'} = InstanceType<typeof ${className || '$$Component'}>;\n`
                 ) +
                 `export default ${className || '$$Component'};`;
         } else {

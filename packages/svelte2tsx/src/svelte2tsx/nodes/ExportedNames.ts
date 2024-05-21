@@ -695,7 +695,7 @@ export class ExportedNames {
         const names = Array.from(this.exports.entries());
         const others = names.filter(([, { isLet }]) => !isLet);
 
-        if (this.usesRunes() && others.length > 0) {
+        if (this.isSvelte5Plus && others.length > 0) {
             if (this.isTsFile) {
                 return (
                     ', exports: {} as any as { ' +
@@ -703,7 +703,7 @@ export class ExportedNames {
                     ' }'
                 );
             } else {
-                return `, exports: /** @type {${this.createReturnElementsType(others, false, true)}} */ ({})`;
+                return `, exports: /** @type {{${this.createReturnElementsType(others, false, true)}}} */ ({})`;
             }
         }
 
