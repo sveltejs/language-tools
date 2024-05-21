@@ -52,7 +52,8 @@ export class ExportedNames {
         private str: MagicString,
         private astOffset: number,
         private basename: string,
-        private isTsFile: boolean
+        private isTsFile: boolean,
+        private isSvelte5Plus: boolean
     ) {}
 
     handleVariableStatement(node: ts.VariableStatement, parent: ts.Node): void {
@@ -680,9 +681,15 @@ export class ExportedNames {
         return `\n    $$bindings = __sveltets_$$bindings('${this.$props.bindings.join("', '")}');`;
     }
 
+    createBindingsStr2(): string {
+        // will be just the empty strings for zero bindings, which is impossible to create a binding for, so it works out fine
+        return `__sveltets_$$bindings('${this.$props.bindings.join("', '")}')`;
+    }
+
     /**
      * In runes mode, exports are no longer part of props because you cannot `bind:` to them,
-     * which is why we need a separate return type for them.
+     * which is why we need a separate return type for them. In Svelte 5, the isomorphic component
+     * needs them separate, too.
      */
     createExportsStr(): string {
         const names = Array.from(this.exports.entries());
@@ -755,7 +762,7 @@ export class ExportedNames {
         this.hasRunesGlobals = globals.some((global) => runes.includes(global));
     }
 
-    private usesRunes() {
+    usesRunes() {
         return this.hasRunesGlobals || this.hasPropsRune();
     }
 }

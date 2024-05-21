@@ -225,7 +225,10 @@ declare type ATypedSvelteComponent = {
  * ```
  */
 declare type ConstructorOfATypedSvelteComponent = new (args: {target: any, props?: any}) => ATypedSvelteComponent
-declare function __sveltets_2_ensureComponent<T extends ConstructorOfATypedSvelteComponent | null | undefined>(type: T): NonNullable<T>;
+declare function __sveltets_2_ensureComponent<
+    // TODO svelte.Component doesn't exist in Svelte 4 and thus this will be any which likely messes up the type constraint
+    T extends ConstructorOfATypedSvelteComponent | import('svelte').Component | null | undefined
+>(type: T): NonNullable<T extends import('svelte').Component<infer Props> ? typeof import('svelte').SvelteComponent<Props, Props['$$events'], Props['$$slots']> : T>;
 
 declare function __sveltets_2_ensureArray<T extends ArrayLike<unknown> | Iterable<unknown>>(array: T): T extends ArrayLike<infer U> ? U[] : T extends Iterable<infer U> ? Iterable<U> : any[];
 
@@ -241,3 +244,19 @@ type __sveltets_2_PropsWithChildren<Props, Slots> = Props &
 declare function __sveltets_2_runes_constructor<Props extends {}>(render: {props: Props }): import("svelte").ComponentConstructorOptions<Props>;
 
 declare function __sveltets_$$bindings<Bindings extends string[]>(...bindings: Bindings): Bindings[number];
+
+interface __sveltets_2_IsomorphicComponent<Props = any, Events = any, Slots = any, Bindings = string> {
+    new (options: import('svelte').ComponentConstructorOptions<Props>): import('svelte').SvelteComponent<Props, Events, Slots> & { $$bindings?: Bindings };
+    (internal: unknown, props: Props & {'$$events'?: Events, '$$slots'?: Slots}): import('svelte').SvelteComponent<Props, Events, Slots> & { $$bindings?: Bindings };
+}
+declare function __sveltets_2_isomorphic_component<
+    Props extends Record<string, any>, Events extends Record<string, any>, Slots extends Record<string, any>, Bindings extends string
+>(klass: typeof import('svelte').SvelteComponent<Props, Events, Slots>, bindings: Bindings): __sveltets_2_IsomorphicComponent<Props, Events, Slots, Bindings>;
+
+declare function __sveltets_2_isomorphic_component2<
+    Props extends Record<string, any>, Events extends Record<string, any>, Slots extends Record<string, any>, Bindings extends string
+>(klass: {props: Props, events: Events, slots: Slots }): __sveltets_2_IsomorphicComponent<Props, Events, Slots, Bindings>;
+
+declare function __sveltets_2_isomorphic_component_slots<
+    Props extends Record<string, any>, Events extends Record<string, any>, Slots extends Record<string, any>, Bindings extends string
+>(klass: {props: Props, events: Events, slots: Slots }): __sveltets_2_IsomorphicComponent<__sveltets_2_PropsWithChildren<Props, Slots>, Events, Slots, Bindings>;

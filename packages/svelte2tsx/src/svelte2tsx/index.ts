@@ -370,7 +370,7 @@ export function svelte2tsx(
         : instanceScriptTarget;
     const implicitStoreValues = new ImplicitStoreValues(resolvedStores, renderFunctionStart);
     //move the instance script and process the content
-    let exportedNames = new ExportedNames(str, 0, basename, options?.isTsFile);
+    let exportedNames = new ExportedNames(str, 0, basename, options?.isTsFile, svelte5Plus);
     let generics = new Generics(str, 0, { attributes: [] } as any);
     let uses$$SlotsInterface = false;
     if (scriptTag) {
@@ -386,7 +386,8 @@ export function svelte2tsx(
             options.mode,
             /**hasModuleScripts */ !!moduleScriptTag,
             options?.isTsFile,
-            basename
+            basename,
+            svelte5Plus
         );
         uses$$props = uses$$props || res.uses$$props;
         uses$$restProps = uses$$restProps || res.uses$$restProps;
@@ -442,6 +443,7 @@ export function svelte2tsx(
         componentDocumentation,
         mode: options.mode,
         generics,
+        isSvelte5: svelte5Plus,
         noSvelteComponentTyped: options.noSvelteComponentTyped
     });
 

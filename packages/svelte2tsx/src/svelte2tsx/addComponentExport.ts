@@ -4,6 +4,7 @@ import MagicString from 'magic-string';
 import { ExportedNames } from './nodes/ExportedNames';
 import { ComponentDocumentation } from './nodes/ComponentDocumentation';
 import { Generics } from './nodes/Generics';
+import { surroundWithIgnoreComments } from '../utils/ignore';
 
 export interface AddComponentExportPara {
     str: MagicString;
@@ -21,6 +22,7 @@ export interface AddComponentExportPara {
     mode: 'ts' | 'dts' | 'tsx';
     generics: Generics;
     usesSlots: boolean;
+    isSvelte5: boolean;
     noSvelteComponentTyped?: boolean;
 }
 
@@ -134,7 +136,8 @@ function addSimpleComponentExport({
     usesAccessors,
     str,
     usesSlots,
-    noSvelteComponentTyped
+    noSvelteComponentTyped,
+    isSvelte5
 }: AddComponentExportPara) {
     const propDef = props(
         isTsFile,
@@ -193,14 +196,29 @@ function addSimpleComponentExport({
             (usesAccessors ? exportedNames.createClassAccessors() : '') +
             '\n}';
     } else {
-        statement =
-            `\n\n${doc}export default class${
-                className ? ` ${className}` : ''
-            } extends __sveltets_2_createSvelte2TsxComponent(${propDef}) {` +
-            customConstructor +
-            exportedNames.createClassGetters() +
-            (usesAccessors ? exportedNames.createClassAccessors() : '') +
-            '\n}';
+        if (isSvelte5) {
+            statement =
+                // `\n\n${doc}class $$Component_ extends __sveltets_2_createSvelte2TsxComponent(${propDef}) {` +
+                // customConstructor +
+                // exportedNames.createClassGetters() +
+                // (usesAccessors ? exportedNames.createClassAccessors() : '') +
+                // '\n}\n' +
+                // `const ${className || '$$Component'} = __sveltets_2_isomorphic_component($$Component_, ${exportedNames.createBindingsStr2()});\n` +
+                `const ${className || '$$Component'} = __sveltets_2_isomorphic_component${usesSlots ? '_slots' : '2'}(${propDef});\n` +
+                surroundWithIgnoreComments(
+                    `type ${className || '$$Component'} = typeof ${className || '$$Component'};\n`
+                ) +
+                `export default ${className || '$$Component'};`;
+        } else {
+            statement =
+                `\n\n${doc}export default class${
+                    className ? ` ${className}` : ''
+                } extends __sveltets_2_createSvelte2TsxComponent(${propDef}) {` +
+                customConstructor +
+                exportedNames.createClassGetters() +
+                (usesAccessors ? exportedNames.createClassAccessors() : '') +
+                '\n}';
+        }
     }
 
     str.append(statement);
