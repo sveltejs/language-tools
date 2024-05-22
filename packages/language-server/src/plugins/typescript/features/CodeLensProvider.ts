@@ -7,6 +7,7 @@ import { SvelteDocumentSnapshot } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { convertRange, isGeneratedSvelteComponentName } from '../utils';
 import { isTextSpanInGeneratedCode } from './utils';
+import { isZeroLengthRange } from '../../../utils';
 
 type CodeLensType = 'reference' | 'implementation';
 
@@ -207,7 +208,7 @@ export class CodeLensProviderImpl implements CodeLensProvider {
         const range = mapRangeToOriginal(tsDoc, convertRange(tsDoc, item.nameSpan));
 
         if (range.start.line >= 0 && range.end.line >= 0) {
-            return this.isEmptyRange(range) ? undefined : range;
+            return isZeroLengthRange(range) ? undefined : range;
         }
 
         // unlike references, only map to the start of file if it's a generated component
@@ -259,10 +260,6 @@ export class CodeLensProviderImpl implements CodeLensProvider {
         }
 
         return codeLensToResolve;
-    }
-
-    private isEmptyRange(range: Range): boolean {
-        return range.start.line === range.end.line && range.start.character === range.end.character;
     }
 
     private async resolveReferenceCodeLens(
