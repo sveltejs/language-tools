@@ -268,6 +268,7 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
     private url = pathToUrl(this.filePath);
 
     version = this.parent.version;
+    isSvelte5Plus = Number(this.svelteVersion?.split('.')[0]) >= 5;
 
     constructor(
         public readonly parent: Document,
@@ -280,10 +281,6 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
         private readonly tsxMap?: EncodedSourceMap,
         private readonly htmlAst?: TemplateNode
     ) {}
-
-    get isSvelte5Plus() {
-        return Number(this.svelteVersion?.split('.')[0]) >= 5;
-    }
 
     get filePath() {
         return this.parent.getFilePath() || '';
