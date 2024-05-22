@@ -396,6 +396,7 @@ export function svelte2tsx(
         ({ exportedNames, events, generics, uses$$SlotsInterface } = res);
     }
 
+    exportedNames.usesAccessors = usesAccessors;
     if (svelte5Plus) {
         exportedNames.checkGlobalsForRunes(implicitStoreValues.getGlobals());
     }

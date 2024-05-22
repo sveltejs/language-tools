@@ -20,6 +20,7 @@ interface ExportedName {
 }
 
 export class ExportedNames {
+    public usesAccessors = false;
     /**
      * Uses the `$$Props` type
      */
@@ -702,18 +703,23 @@ export class ExportedNames {
     createExportsStr(): string {
         const names = Array.from(this.exports.entries());
         const others = names.filter(([, { isLet }]) => !isLet);
+        const needsAccessors = this.usesAccessors && names.length > 0 && !this.usesRunes(); // runes mode doesn't support accessors
 
-        if (this.isSvelte5Plus && (others.length > 0 || this.usesRunes())) {
+        if (this.isSvelte5Plus && (others.length > 0 || this.usesRunes() || needsAccessors)) {
             let str = '';
 
-            if (others.length > 0) {
+            if (others.length > 0 || needsAccessors) {
                 if (this.isTsFile) {
                     str +=
                         ', exports: {} as any as { ' +
-                        this.createReturnElementsType(others, undefined, true).join(',') +
+                        this.createReturnElementsType(
+                            needsAccessors ? names : others,
+                            undefined,
+                            true
+                        ).join(',') +
                         ' }';
                 } else {
-                    str += `, exports: /** @type {{${this.createReturnElementsType(others, false, true)}}} */ ({})`;
+                    str += `, exports: /** @type {{${this.createReturnElementsType(needsAccessors ? names : others, false, true)}}} */ ({})`;
                 }
             }
 
@@ -772,7 +778,7 @@ export class ExportedNames {
 
     hasExports(): boolean {
         const names = Array.from(this.exports.entries());
-        return names.some(([, { isLet }]) => !isLet);
+        return this.usesAccessors ? names.length > 0 : names.some(([, { isLet }]) => !isLet);
     }
 
     hasPropsRune() {

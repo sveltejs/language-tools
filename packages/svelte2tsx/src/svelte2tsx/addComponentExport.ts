@@ -106,7 +106,7 @@ ${
     if (mode === 'dts') {
         if (isSvelte5) {
             statement +=
-                `interface $$IsomorphicComponent {` +
+                `interface $$IsomorphicComponent {\n` +
                 `    new ${genericsDef}(options: import('svelte').ComponentConstructorOptions<${returnType('props')}>): import('svelte').SvelteComponent<${returnType('props')}, ${returnType('events')}, ${returnType('slots')}> & { $$bindings?: ${returnType('bindings')} } & ${returnType('exports')};\n` +
                 `    ${genericsDef}(internal: unknown, props: ${returnType('props')} & {$$events?: ${returnType('events')}, $$slots?: ${returnType('slots')}}): import('svelte').SvelteComponent<${returnType('props')}, ${returnType('events')}, ${returnType('slots')}> & { $$bindings?: ${returnType('bindings')} } & ${returnType('exports')};\n` +
                 `}\n` +
@@ -131,7 +131,7 @@ ${
     } else {
         if (isSvelte5) {
             statement +=
-                `\ninterface $$IsomorphicComponent {` +
+                `\ninterface $$IsomorphicComponent {\n` +
                 `    new ${genericsDef}(options: import('svelte').ComponentConstructorOptions<${returnType('props')}>): import('svelte').SvelteComponent<${returnType('props')}, ${returnType('events')}, ${returnType('slots')}> & { $$bindings?: ${returnType('bindings')} } & ${returnType('exports')};\n` +
                 `    ${genericsDef}(internal: unknown, props: ${returnType('props')} & {$$events?: ${returnType('events')}, $$slots?: ${returnType('slots')}}): import('svelte').SvelteComponent<${returnType('props')}, ${returnType('events')}, ${returnType('slots')}> & { $$bindings?: ${returnType('bindings')} } & ${returnType('exports')};\n` +
                 `}\n` +
