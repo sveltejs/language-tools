@@ -21,7 +21,7 @@ class __sveltets_Render<const T extends readonly string[]> {
 
 interface $$IsomorphicComponent {
     new <const T extends readonly string[]>(options: import('svelte').ComponentConstructorOptions<ReturnType<__sveltets_Render<T>['props']>>): import('svelte').SvelteComponent<ReturnType<__sveltets_Render<T>['props']>, ReturnType<__sveltets_Render<T>['events']>, ReturnType<__sveltets_Render<T>['slots']>> & { $$bindings?: ReturnType<__sveltets_Render<T>['bindings']> } & ReturnType<__sveltets_Render<T>['exports']>;
-    <const T extends readonly string[]>(internal: unknown, props: ReturnType<__sveltets_Render<T>['props']> & {$$events?: ReturnType<__sveltets_Render<T>['events']>, $$slots?: ReturnType<__sveltets_Render<T>['slots']>}): import('svelte').SvelteComponent<ReturnType<__sveltets_Render<T>['props']>, ReturnType<__sveltets_Render<T>['events']>, ReturnType<__sveltets_Render<T>['slots']>> & { $$bindings?: ReturnType<__sveltets_Render<T>['bindings']> } & ReturnType<__sveltets_Render<T>['exports']>;
+    <const T extends readonly string[]>(internal: unknown, props: ReturnType<__sveltets_Render<T>['props']> & {$$events?: ReturnType<__sveltets_Render<T>['events']>}): import('svelte').SvelteComponent<ReturnType<__sveltets_Render<T>['props']>, ReturnType<__sveltets_Render<T>['events']>, ReturnType<__sveltets_Render<T>['slots']>> & { $$bindings?: ReturnType<__sveltets_Render<T>['bindings']> } & ReturnType<__sveltets_Render<T>['exports']>;
 }
 const Input__SvelteComponent_: $$IsomorphicComponent = null as any;
 /*Ωignore_startΩ*/type Input__SvelteComponent_<const T extends readonly string[]> = InstanceType<typeof Input__SvelteComponent_<T>>;
