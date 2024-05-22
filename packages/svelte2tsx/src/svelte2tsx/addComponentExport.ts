@@ -104,27 +104,40 @@ ${
     }
 
     if (mode === 'dts') {
-        statement +=
-            `export type ${PropsName}${genericsDef} = ${returnType('props')};\n` +
-            `export type ${EventsName}${genericsDef} = ${returnType('events')};\n` +
-            `export type ${SlotsName}${genericsDef} = ${returnType('slots')};\n` +
-            `\n${doc}export default class${
-                className ? ` ${className}` : ''
-            }${genericsDef} extends ${svelteComponentClass}<${PropsName}${genericsRef}, ${EventsName}${genericsRef}, ${SlotsName}${genericsRef}> {` +
-            customConstructor +
-            exportedNames.createClassGetters(genericsRef) +
-            (usesAccessors ? exportedNames.createClassAccessors() : '') +
-            '\n}';
+        if (isSvelte5) {
+            statement +=
+                `interface $$IsomorphicComponent {` +
+                `    new ${genericsDef}(options: import('svelte').ComponentConstructorOptions<${returnType('props')}>): import('svelte').SvelteComponent<${returnType('props')}, ${returnType('events')}, ${returnType('slots')}> & { $$bindings?: ${returnType('bindings')} } & ${returnType('exports')};\n` +
+                `    ${genericsDef}(internal: unknown, props: ${returnType('props')} & {$$events?: ${returnType('events')}, $$slots?: ${returnType('slots')}}): import('svelte').SvelteComponent<${returnType('props')}, ${returnType('events')}, ${returnType('slots')}> & { $$bindings?: ${returnType('bindings')} } & ${returnType('exports')};\n` +
+                `}\n` +
+                `const ${className || '$$Component'}: $$IsomorphicComponent = null as any;\n` +
+                surroundWithIgnoreComments(
+                    `type ${className || '$$Component'}${genericsDef} = InstanceType<typeof ${className || '$$Component'}${genericsRef}>;\n`
+                ) +
+                `export default ${className || '$$Component'};`;
+        } else {
+            statement +=
+                `export type ${PropsName}${genericsDef} = ${returnType('props')};\n` +
+                `export type ${EventsName}${genericsDef} = ${returnType('events')};\n` +
+                `export type ${SlotsName}${genericsDef} = ${returnType('slots')};\n` +
+                `\n${doc}export default class${
+                    className ? ` ${className}` : ''
+                }${genericsDef} extends ${svelteComponentClass}<${PropsName}${genericsRef}, ${EventsName}${genericsRef}, ${SlotsName}${genericsRef}> {` +
+                customConstructor +
+                exportedNames.createClassGetters(genericsRef) +
+                (usesAccessors ? exportedNames.createClassAccessors() : '') +
+                '\n}';
+        }
     } else {
         if (isSvelte5) {
             statement +=
                 `interface $$IsomorphicComponent {` +
                 `    new ${genericsDef}(options: import('svelte').ComponentConstructorOptions<${returnType('props')}>): import('svelte').SvelteComponent<${returnType('props')}, ${returnType('events')}, ${returnType('slots')}> & { $$bindings?: ${returnType('bindings')} } & ${returnType('exports')};\n` +
-                `    ${genericsDef}(internal: unknown, props: ${returnType('props')} & {'$$events'?: ${returnType('events')}, '$$slots'?: ${returnType('slots')}}): import('svelte').SvelteComponent<${returnType('props')}, ${returnType('events')}, ${returnType('slots')}> & { $$bindings?: ${returnType('bindings')} } & ${returnType('exports')};\n` +
+                `    ${genericsDef}(internal: unknown, props: ${returnType('props')} & {$$events?: ${returnType('events')}, $$slots?: ${returnType('slots')}}): import('svelte').SvelteComponent<${returnType('props')}, ${returnType('events')}, ${returnType('slots')}> & { $$bindings?: ${returnType('bindings')} } & ${returnType('exports')};\n` +
                 `}\n` +
                 `const ${className || '$$Component'}: $$IsomorphicComponent = null as any;\n` +
                 surroundWithIgnoreComments(
-                    `type ${className || '$$Component'} = InstanceType<typeof ${className || '$$Component'}>;\n`
+                    `type ${className || '$$Component'}${genericsDef} = InstanceType<typeof ${className || '$$Component'}${genericsRef}>;\n`
                 ) +
                 `export default ${className || '$$Component'};`;
         } else {
