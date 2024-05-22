@@ -356,7 +356,9 @@ function props(
     exportedNames: ExportedNames,
     renderStr: string
 ) {
-    if (isTsFile) {
+    if (exportedNames.usesRunes()) {
+        return renderStr;
+    } else if (isTsFile) {
         return canHaveAnyProp ? `__sveltets_2_with_any(${renderStr})` : renderStr;
     } else {
         const optionalProps = exportedNames.createOptionalPropsArray();
