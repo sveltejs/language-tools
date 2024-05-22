@@ -110,7 +110,7 @@ ${
                 `    new ${genericsDef}(options: import('svelte').ComponentConstructorOptions<${returnType('props')}>): import('svelte').SvelteComponent<${returnType('props')}, ${returnType('events')}, ${returnType('slots')}> & { $$bindings?: ${returnType('bindings')} } & ${returnType('exports')};\n` +
                 `    ${genericsDef}(internal: unknown, props: ${returnType('props')} & {$$events?: ${returnType('events')}, $$slots?: ${returnType('slots')}}): import('svelte').SvelteComponent<${returnType('props')}, ${returnType('events')}, ${returnType('slots')}> & { $$bindings?: ${returnType('bindings')} } & ${returnType('exports')};\n` +
                 `}\n` +
-                `const ${className || '$$Component'}: $$IsomorphicComponent = null as any;\n` +
+                `${doc}const ${className || '$$Component'}: $$IsomorphicComponent = null as any;\n` +
                 surroundWithIgnoreComments(
                     `type ${className || '$$Component'}${genericsDef} = InstanceType<typeof ${className || '$$Component'}${genericsRef}>;\n`
                 ) +
@@ -131,11 +131,11 @@ ${
     } else {
         if (isSvelte5) {
             statement +=
-                `interface $$IsomorphicComponent {` +
+                `\ninterface $$IsomorphicComponent {` +
                 `    new ${genericsDef}(options: import('svelte').ComponentConstructorOptions<${returnType('props')}>): import('svelte').SvelteComponent<${returnType('props')}, ${returnType('events')}, ${returnType('slots')}> & { $$bindings?: ${returnType('bindings')} } & ${returnType('exports')};\n` +
                 `    ${genericsDef}(internal: unknown, props: ${returnType('props')} & {$$events?: ${returnType('events')}, $$slots?: ${returnType('slots')}}): import('svelte').SvelteComponent<${returnType('props')}, ${returnType('events')}, ${returnType('slots')}> & { $$bindings?: ${returnType('bindings')} } & ${returnType('exports')};\n` +
                 `}\n` +
-                `const ${className || '$$Component'}: $$IsomorphicComponent = null as any;\n` +
+                `${doc}const ${className || '$$Component'}: $$IsomorphicComponent = null as any;\n` +
                 surroundWithIgnoreComments(
                     `type ${className || '$$Component'}${genericsDef} = InstanceType<typeof ${className || '$$Component'}${genericsRef}>;\n`
                 ) +
@@ -206,25 +206,25 @@ function addSimpleComponentExport({
         if (isSvelte5) {
             // Inline definitions from Svelte shims; else dts files will reference the globals which will be unresolved
             statement =
-                `interface $$__sveltets_2_IsomorphicComponent<Props extends Record<string, any> = any, Events extends Record<string, any> = any, Slots extends Record<string, any> = any, Exports = {}, Bindings = string> {
-                new (options: import('svelte').ComponentConstructorOptions<Props>): import('svelte').SvelteComponent<Props, Events, Slots> & { $$bindings?: Bindings } & Exports;
-                (internal: unknown, props: Props extends Record<string, never> ? {$$events?: Events, $$slots?: Slots} : Props & {$$events?: Events, $$slots?: Slots}): import('svelte').SvelteComponent<Props, Events, Slots> & { $$bindings?: Bindings } & Exports;
-            }\n` +
+                `\ninterface $$__sveltets_2_IsomorphicComponent<Props extends Record<string, any> = any, Events extends Record<string, any> = any, Slots extends Record<string, any> = any, Exports = {}, Bindings = string> {
+    new (options: import('svelte').ComponentConstructorOptions<Props>): import('svelte').SvelteComponent<Props, Events, Slots> & { $$bindings?: Bindings } & Exports;
+    (internal: unknown, props: Props extends Record<string, never> ? {$$events?: Events, $$slots?: Slots} : Props & {$$events?: Events, $$slots?: Slots}): import('svelte').SvelteComponent<Props, Events, Slots> & { $$bindings?: Bindings } & Exports;
+}\n` +
                 (usesSlots
                     ? `type $$__sveltets_2_PropsWithChildren<Props, Slots> = Props &
-                    (Slots extends { default: any }
-                        ? Props extends Record<string, never>
-                        ? any
-                        : { children?: any }
-                        : {});
-                        declare function $$__sveltets_2_isomorphic_component_slots<
-                            Props extends Record<string, any>, Events extends Record<string, any>, Slots extends Record<string, any>, Exports extends Record<string, any>, Bindings extends string
-                        >(klass: {props: Props, events: Events, slots: Slots, exports?: Exports, bindings?: Bindings }): $$__sveltets_2_IsomorphicComponent<$$__sveltets_2_PropsWithChildren<Props, Slots>, Events, Slots, Exports, Bindings>;\n`
+    (Slots extends { default: any }
+        ? Props extends Record<string, never>
+        ? any
+        : { children?: any }
+        : {});
+        declare function $$__sveltets_2_isomorphic_component_slots<
+            Props extends Record<string, any>, Events extends Record<string, any>, Slots extends Record<string, any>, Exports extends Record<string, any>, Bindings extends string
+        >(klass: {props: Props, events: Events, slots: Slots, exports?: Exports, bindings?: Bindings }): $$__sveltets_2_IsomorphicComponent<$$__sveltets_2_PropsWithChildren<Props, Slots>, Events, Slots, Exports, Bindings>;\n`
                     : `
-            declare function $$__sveltets_2_isomorphic_component<
-                Props extends Record<string, any>, Events extends Record<string, any>, Slots extends Record<string, any>, Exports extends Record<string, any>, Bindings extends string
-            >(klass: {props: Props, events: Events, slots: Slots, exports?: Exports, bindings?: Bindings }): $$__sveltets_2_IsomorphicComponent<Props, Events, Slots, Exports, Bindings>;\n`) +
-                `const ${className || '$$Component'} = $$__sveltets_2_isomorphic_component${usesSlots ? '_slots' : '2'}(${propDef});\n` +
+declare function $$__sveltets_2_isomorphic_component<
+    Props extends Record<string, any>, Events extends Record<string, any>, Slots extends Record<string, any>, Exports extends Record<string, any>, Bindings extends string
+>(klass: {props: Props, events: Events, slots: Slots, exports?: Exports, bindings?: Bindings }): $$__sveltets_2_IsomorphicComponent<Props, Events, Slots, Exports, Bindings>;\n`) +
+                `${doc}const ${className || '$$Component'} = $$__sveltets_2_isomorphic_component${usesSlots ? '_slots' : ''}(${propDef});\n` +
                 surroundWithIgnoreComments(
                     `type ${className || '$$Component'} = InstanceType<typeof ${className || '$$Component'}>;\n`
                 ) +
@@ -248,25 +248,25 @@ function addSimpleComponentExport({
             // Inline definitions from Svelte shims; else dts files will reference the globals which will be unresolved
             // It's fine to reference TS stuff in here, it's a syntax error but TS handles it gracefully
             statement =
-                `interface $$__sveltets_2_IsomorphicComponent<Props extends Record<string, any> = any, Events extends Record<string, any> = any, Slots extends Record<string, any> = any, Exports = {}, Bindings = string> {
-                new (options: import('svelte').ComponentConstructorOptions<Props>): import('svelte').SvelteComponent<Props, Events, Slots> & { $$bindings?: Bindings } & Exports;
-                (internal: unknown, props: Props extends Record<string, never> ? {$$events?: Events, $$slots?: Slots} : Props & {$$events?: Events, $$slots?: Slots}): import('svelte').SvelteComponent<Props, Events, Slots> & { $$bindings?: Bindings } & Exports;
-            }\n` +
+                `\ninterface $$__sveltets_2_IsomorphicComponent<Props extends Record<string, any> = any, Events extends Record<string, any> = any, Slots extends Record<string, any> = any, Exports = {}, Bindings = string> {
+    new (options: import('svelte').ComponentConstructorOptions<Props>): import('svelte').SvelteComponent<Props, Events, Slots> & { $$bindings?: Bindings } & Exports;
+    (internal: unknown, props: Props extends Record<string, never> ? {$$events?: Events, $$slots?: Slots} : Props & {$$events?: Events, $$slots?: Slots}): import('svelte').SvelteComponent<Props, Events, Slots> & { $$bindings?: Bindings } & Exports;
+}\n` +
                 (usesSlots
                     ? `type $$__sveltets_2_PropsWithChildren<Props, Slots> = Props &
-                    (Slots extends { default: any }
-                        ? Props extends Record<string, never>
-                        ? any
-                        : { children?: any }
-                        : {});
-                        declare function $$__sveltets_2_isomorphic_component_slots<
-                            Props extends Record<string, any>, Events extends Record<string, any>, Slots extends Record<string, any>, Exports extends Record<string, any>, Bindings extends string
-                        >(klass: {props: Props, events: Events, slots: Slots, exports?: Exports, bindings?: Bindings }): $$__sveltets_2_IsomorphicComponent<$$__sveltets_2_PropsWithChildren<Props, Slots>, Events, Slots, Exports, Bindings>;\n`
+    (Slots extends { default: any }
+        ? Props extends Record<string, never>
+        ? any
+        : { children?: any }
+        : {});
+        declare function $$__sveltets_2_isomorphic_component_slots<
+            Props extends Record<string, any>, Events extends Record<string, any>, Slots extends Record<string, any>, Exports extends Record<string, any>, Bindings extends string
+        >(klass: {props: Props, events: Events, slots: Slots, exports?: Exports, bindings?: Bindings }): $$__sveltets_2_IsomorphicComponent<$$__sveltets_2_PropsWithChildren<Props, Slots>, Events, Slots, Exports, Bindings>;\n`
                     : `
-            declare function $$__sveltets_2_isomorphic_component<
-                Props extends Record<string, any>, Events extends Record<string, any>, Slots extends Record<string, any>, Exports extends Record<string, any>, Bindings extends string
-            >(klass: {props: Props, events: Events, slots: Slots, exports?: Exports, bindings?: Bindings }): $$__sveltets_2_IsomorphicComponent<Props, Events, Slots, Exports, Bindings>;\n`) +
-                `const ${className || '$$Component'} = $$__sveltets_2_isomorphic_component${usesSlots ? '_slots' : '2'}(${propDef});\n` +
+declare function $$__sveltets_2_isomorphic_component<
+    Props extends Record<string, any>, Events extends Record<string, any>, Slots extends Record<string, any>, Exports extends Record<string, any>, Bindings extends string
+>(klass: {props: Props, events: Events, slots: Slots, exports?: Exports, bindings?: Bindings }): $$__sveltets_2_IsomorphicComponent<Props, Events, Slots, Exports, Bindings>;\n`) +
+                `${doc}const ${className || '$$Component'} = $$__sveltets_2_isomorphic_component${usesSlots ? '_slots' : ''}(${propDef});\n` +
                 surroundWithIgnoreComments(
                     `type ${className || '$$Component'} = InstanceType<typeof ${className || '$$Component'}>;\n`
                 ) +
@@ -288,7 +288,7 @@ function addSimpleComponentExport({
     } else {
         if (isSvelte5) {
             statement =
-                `\nconst ${className || '$$Component'} = __sveltets_2_isomorphic_component${usesSlots ? '_slots' : '2'}(${propDef});\n` +
+                `\n${doc}const ${className || '$$Component'} = __sveltets_2_isomorphic_component${usesSlots ? '_slots' : ''}(${propDef});\n` +
                 surroundWithIgnoreComments(
                     `type ${className || '$$Component'} = InstanceType<typeof ${className || '$$Component'}>;\n`
                 ) +
