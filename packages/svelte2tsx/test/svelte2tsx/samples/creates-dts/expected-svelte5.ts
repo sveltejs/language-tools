@@ -24,10 +24,19 @@ async () => {
  { __sveltets_createSlot("default", {bar,}); }};
 return { props: {
 /** @type {boolean} */bar: bar , foobar: foobar}, slots: {'default': {bar:bar}}, events: {'click':__sveltets_2_mapElementEvent('click'), 'hi': __sveltets_2_customEvent} }}
-const __propDef = __sveltets_2_partial(['foobar'], __sveltets_2_with_any_event(render()));
-/** @typedef {typeof __propDef.props}  InputProps */
-/** @typedef {typeof __propDef.events}  InputEvents */
-/** @typedef {typeof __propDef.slots}  InputSlots */
-
-export default class Input extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial(['foobar'], __sveltets_2_with_any_event(render()))) {
+interface $$__sveltets_2_IsomorphicComponent<Props extends Record<string, any> = any, Events extends Record<string, any> = any, Slots extends Record<string, any> = any, Exports = {}, Bindings = string> {
+    new (options: import('svelte').ComponentConstructorOptions<Props>): import('svelte').SvelteComponent<Props, Events, Slots> & { $$bindings?: Bindings } & Exports;
+    (internal: unknown, props: Props extends Record<string, never> ? {$$events?: Events, $$slots?: Slots} : Props & {$$events?: Events, $$slots?: Slots}): import('svelte').SvelteComponent<Props, Events, Slots> & { $$bindings?: Bindings } & Exports;
 }
+type $$__sveltets_2_PropsWithChildren<Props, Slots> = Props &
+    (Slots extends { default: any }
+        ? Props extends Record<string, never>
+        ? any
+        : { children?: any }
+        : {});
+        declare function $$__sveltets_2_isomorphic_component_slots<
+            Props extends Record<string, any>, Events extends Record<string, any>, Slots extends Record<string, any>, Exports extends Record<string, any>, Bindings extends string
+        >(klass: {props: Props, events: Events, slots: Slots, exports?: Exports, bindings?: Bindings }): $$__sveltets_2_IsomorphicComponent<$$__sveltets_2_PropsWithChildren<Props, Slots>, Events, Slots, Exports, Bindings>;
+const Input = $$__sveltets_2_isomorphic_component_slots(__sveltets_2_partial(['foobar'], __sveltets_2_with_any_event(render())));
+/*Ωignore_startΩ*/type Input = InstanceType<typeof Input>;
+/*Ωignore_endΩ*/export default Input;
