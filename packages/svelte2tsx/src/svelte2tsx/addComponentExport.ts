@@ -208,7 +208,7 @@ function addSimpleComponentExport({
             statement =
                 `interface $$__sveltets_2_IsomorphicComponent<Props extends Record<string, any> = any, Events extends Record<string, any> = any, Slots extends Record<string, any> = any, Exports = {}, Bindings = string> {
                 new (options: import('svelte').ComponentConstructorOptions<Props>): import('svelte').SvelteComponent<Props, Events, Slots> & { $$bindings?: Bindings } & Exports;
-                (internal: unknown, props: Props & {$$events?: Events, $$slots?: Slots}): import('svelte').SvelteComponent<Props, Events, Slots> & { $$bindings?: Bindings } & Exports;
+                (internal: unknown, props: Props extends Record<string, never> ? {$$events?: Events, $$slots?: Slots} : Props & {$$events?: Events, $$slots?: Slots}): import('svelte').SvelteComponent<Props, Events, Slots> & { $$bindings?: Bindings } & Exports;
             }\n` +
                 (usesSlots
                     ? `type $$__sveltets_2_PropsWithChildren<Props, Slots> = Props &
@@ -221,7 +221,7 @@ function addSimpleComponentExport({
                             Props extends Record<string, any>, Events extends Record<string, any>, Slots extends Record<string, any>, Exports extends Record<string, any>, Bindings extends string
                         >(klass: {props: Props, events: Events, slots: Slots, exports?: Exports, bindings?: Bindings }): $$__sveltets_2_IsomorphicComponent<$$__sveltets_2_PropsWithChildren<Props, Slots>, Events, Slots, Exports, Bindings>;\n`
                     : `
-            declare function $$__sveltets_2_isomorphic_component2<
+            declare function $$__sveltets_2_isomorphic_component<
                 Props extends Record<string, any>, Events extends Record<string, any>, Slots extends Record<string, any>, Exports extends Record<string, any>, Bindings extends string
             >(klass: {props: Props, events: Events, slots: Slots, exports?: Exports, bindings?: Bindings }): $$__sveltets_2_IsomorphicComponent<Props, Events, Slots, Exports, Bindings>;\n`) +
                 `const ${className || '$$Component'} = $$__sveltets_2_isomorphic_component${usesSlots ? '_slots' : '2'}(${propDef});\n` +
@@ -250,7 +250,7 @@ function addSimpleComponentExport({
             statement =
                 `interface $$__sveltets_2_IsomorphicComponent<Props extends Record<string, any> = any, Events extends Record<string, any> = any, Slots extends Record<string, any> = any, Exports = {}, Bindings = string> {
                 new (options: import('svelte').ComponentConstructorOptions<Props>): import('svelte').SvelteComponent<Props, Events, Slots> & { $$bindings?: Bindings } & Exports;
-                (internal: unknown, props: Props & {$$events?: Events, $$slots?: Slots}): import('svelte').SvelteComponent<Props, Events, Slots> & { $$bindings?: Bindings } & Exports;
+                (internal: unknown, props: Props extends Record<string, never> ? {$$events?: Events, $$slots?: Slots} : Props & {$$events?: Events, $$slots?: Slots}): import('svelte').SvelteComponent<Props, Events, Slots> & { $$bindings?: Bindings } & Exports;
             }\n` +
                 (usesSlots
                     ? `type $$__sveltets_2_PropsWithChildren<Props, Slots> = Props &
@@ -263,7 +263,7 @@ function addSimpleComponentExport({
                             Props extends Record<string, any>, Events extends Record<string, any>, Slots extends Record<string, any>, Exports extends Record<string, any>, Bindings extends string
                         >(klass: {props: Props, events: Events, slots: Slots, exports?: Exports, bindings?: Bindings }): $$__sveltets_2_IsomorphicComponent<$$__sveltets_2_PropsWithChildren<Props, Slots>, Events, Slots, Exports, Bindings>;\n`
                     : `
-            declare function $$__sveltets_2_isomorphic_component2<
+            declare function $$__sveltets_2_isomorphic_component<
                 Props extends Record<string, any>, Events extends Record<string, any>, Slots extends Record<string, any>, Exports extends Record<string, any>, Bindings extends string
             >(klass: {props: Props, events: Events, slots: Slots, exports?: Exports, bindings?: Bindings }): $$__sveltets_2_IsomorphicComponent<Props, Events, Slots, Exports, Bindings>;\n`) +
                 `const ${className || '$$Component'} = $$__sveltets_2_isomorphic_component${usesSlots ? '_slots' : '2'}(${propDef});\n` +
@@ -288,13 +288,7 @@ function addSimpleComponentExport({
     } else {
         if (isSvelte5) {
             statement =
-                // `\n\n${doc}class $$Component_ extends __sveltets_2_createSvelte2TsxComponent(${propDef}) {` +
-                // customConstructor +
-                // exportedNames.createClassGetters() +
-                // (usesAccessors ? exportedNames.createClassAccessors() : '') +
-                // '\n}\n' +
-                // `const ${className || '$$Component'} = __sveltets_2_isomorphic_component($$Component_, ${exportedNames.createBindingsStr2()});\n` +
-                `const ${className || '$$Component'} = __sveltets_2_isomorphic_component${usesSlots ? '_slots' : '2'}(${propDef});\n` +
+                `\nconst ${className || '$$Component'} = __sveltets_2_isomorphic_component${usesSlots ? '_slots' : '2'}(${propDef});\n` +
                 surroundWithIgnoreComments(
                     `type ${className || '$$Component'} = InstanceType<typeof ${className || '$$Component'}>;\n`
                 ) +
