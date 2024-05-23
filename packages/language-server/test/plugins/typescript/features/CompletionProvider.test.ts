@@ -24,11 +24,13 @@ import { sortBy } from 'lodash';
 import { LSConfigManager } from '../../../../src/ls-config';
 import { __resetCache } from '../../../../src/plugins/typescript/service';
 import { getRandomVirtualDirPath, serviceWarmup, setupVirtualEnvironment } from '../test-utils';
+import { VERSION } from 'svelte/compiler';
 
 const testDir = join(__dirname, '..');
 const testFilesDir = join(testDir, 'testfiles', 'completions');
 const newLine = ts.sys.newLine;
 const indent = ' '.repeat(4);
+const isSvelte5Plus = +VERSION.split('.')[0] >= 5;
 
 const fileNameToAbsoluteUri = (file: string) => {
     return pathToUrl(join(testFilesDir, file));
@@ -855,7 +857,7 @@ describe('CompletionProviderImpl', function () {
 
         assert.strictEqual(
             detail,
-            'Add import from "../imported-file.svelte"\n\nclass ImportedFile'
+            `Add import from "../imported-file.svelte"${isSvelte5Plus ? '' : '\n\nclass ImportedFile'}`
         );
 
         assert.strictEqual(
@@ -893,7 +895,7 @@ describe('CompletionProviderImpl', function () {
 
         assert.strictEqual(
             detail,
-            'Add import from "../imported-file.svelte"\n\nclass ImportedFile'
+            `Add import from "../imported-file.svelte"${isSvelte5Plus ? '' : '\n\nclass ImportedFile'}`
         );
 
         assert.strictEqual(
@@ -1502,7 +1504,10 @@ describe('CompletionProviderImpl', function () {
         const item2 = completions2?.items.find((item) => item.label === 'Bar');
         const { detail } = await completionProvider.resolveCompletion(document, item2!);
 
-        assert.strictEqual(detail, 'Add import from "./Bar.svelte"\n\nclass Bar');
+        assert.strictEqual(
+            detail,
+            `Add import from "./Bar.svelte"${isSvelte5Plus ? '' : '\n\nclass Bar'}`
+        );
     });
 
     it("doesn't use empty cache", async () => {
@@ -1551,7 +1556,10 @@ describe('CompletionProviderImpl', function () {
         const item2 = completions?.items.find((item) => item.label === 'Bar');
         const { detail } = await completionProvider.resolveCompletion(document, item2!);
 
-        assert.strictEqual(detail, 'Add import from "./Bar.svelte"\n\nclass Bar');
+        assert.strictEqual(
+            detail,
+            `Add import from "./Bar.svelte"${isSvelte5Plus ? '' : '\n\nclass Bar'}`
+        );
     });
 
     it('can auto import new export', async () => {

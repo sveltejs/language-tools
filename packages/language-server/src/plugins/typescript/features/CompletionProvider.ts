@@ -851,7 +851,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
 
         if (detail) {
             const { detail: itemDetail, documentation: itemDocumentation } =
-                this.getCompletionDocument(detail, is$typeImport);
+                this.getCompletionDocument(tsDoc, detail, is$typeImport);
 
             // VSCode + tsserver won't have this pop-in effect
             // because tsserver has internal APIs for caching
@@ -897,7 +897,11 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
         return completionItem;
     }
 
-    private getCompletionDocument(compDetail: ts.CompletionEntryDetails, is$typeImport: boolean) {
+    private getCompletionDocument(
+        tsDoc: SvelteDocumentSnapshot,
+        compDetail: ts.CompletionEntryDetails,
+        is$typeImport: boolean
+    ) {
         const { sourceDisplay, documentation: tsDocumentation, displayParts, tags } = compDetail;
         let parts = compDetail.codeActions?.map((codeAction) => codeAction.description) ?? [];
 
@@ -910,7 +914,16 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
             );
         }
 
-        parts.push(changeSvelteComponentName(ts.displayPartsToString(displayParts)));
+        let text = changeSvelteComponentName(ts.displayPartsToString(displayParts));
+        if (
+            tsDoc.isSvelte5Plus &&
+            text.includes('(alias)') &&
+            text.includes('__SvelteComponent_')
+        ) {
+            // The info contains both the const and type export along with a bunch of gibberish we want to hide
+            text = text.substring(0, text.indexOf('(alias)') - 1);
+        }
+        parts.push(text);
 
         const markdownDoc = getMarkdownDocumentation(tsDocumentation, tags);
         const documentation: MarkupContent | undefined = markdownDoc
