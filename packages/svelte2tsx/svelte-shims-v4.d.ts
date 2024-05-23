@@ -226,9 +226,10 @@ declare type ATypedSvelteComponent = {
  */
 declare type ConstructorOfATypedSvelteComponent = new (args: {target: any, props?: any}) => ATypedSvelteComponent
 declare function __sveltets_2_ensureComponent<
-    // TODO svelte.Component doesn't exist in Svelte 4 and thus this will be any which likely messes up the type constraint
-    T extends ConstructorOfATypedSvelteComponent | import('svelte').Component | null | undefined
->(type: T): NonNullable<T extends import('svelte').Component<infer Props> ? typeof import('svelte').SvelteComponent<Props, Props['$$events'], Props['$$slots']> : T>;
+    // @ts-ignore svelte.Component doesn't exist in Svelte 4
+    T extends ConstructorOfATypedSvelteComponent | (typeof import('svelte') extends { Component: any } ? import('svelte').Component : never) | null | undefined
+    // @ts-ignore svelte.Component doesn't exist in Svelte 4
+>(type: T): NonNullable<typeof import('svelte') extends { Component: any } ? T extends import('svelte').Component<infer Props> ? typeof import('svelte').SvelteComponent<Props, Props['$$events'], Props['$$slots']> : T : T>;
 
 declare function __sveltets_2_ensureArray<T extends ArrayLike<unknown> | Iterable<unknown>>(array: T): T extends ArrayLike<infer U> ? U[] : T extends Iterable<infer U> ? Iterable<U> : any[];
 
