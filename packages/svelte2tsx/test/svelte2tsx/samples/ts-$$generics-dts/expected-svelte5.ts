@@ -37,6 +37,7 @@ class __sveltets_Render<A,B extends keyof A,C extends boolean> {
     bindings() { return ""; }
     exports() { return render<A,B,C>().exports; }
 }
+
 interface $$IsomorphicComponent {
     new <A,B extends keyof A,C extends boolean>(options: import('svelte').ComponentConstructorOptions<ReturnType<__sveltets_Render<A,B,C>['props']>& {children?: any}>): import('svelte').SvelteComponent<ReturnType<__sveltets_Render<A,B,C>['props']>, ReturnType<__sveltets_Render<A,B,C>['events']>, ReturnType<__sveltets_Render<A,B,C>['slots']>> & { $$bindings?: ReturnType<__sveltets_Render<A,B,C>['bindings']> } & ReturnType<__sveltets_Render<A,B,C>['exports']>;
     <A,B extends keyof A,C extends boolean>(internal: unknown, props: ReturnType<__sveltets_Render<A,B,C>['props']> & {$$events?: ReturnType<__sveltets_Render<A,B,C>['events']>, $$slots?: ReturnType<__sveltets_Render<A,B,C>['slots']>, children?: any}): import('svelte').SvelteComponent<ReturnType<__sveltets_Render<A,B,C>['props']>, ReturnType<__sveltets_Render<A,B,C>['events']>, ReturnType<__sveltets_Render<A,B,C>['slots']>> & { $$bindings?: ReturnType<__sveltets_Render<A,B,C>['bindings']> } & ReturnType<__sveltets_Render<A,B,C>['exports']>;
