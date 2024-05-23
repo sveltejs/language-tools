@@ -492,7 +492,8 @@
                 "scopeName": "markdown.svelte.codeblock",
                 "path": "./syntaxes/markdown-svelte.json",
                 "injectTo": [
-                    "text.html.markdown"
+                    "text.html.markdown",
+                    "source.mdx"
                 ],
                 "embeddedLanguages": {
                     "meta.embedded.block.svelte": "svelte"
@@ -502,14 +503,16 @@
                 "scopeName": "markdown.svelte.codeblock.script",
                 "path": "./syntaxes/markdown-svelte-js.json",
                 "injectTo": [
-                    "text.html.markdown"
+                    "text.html.markdown",
+                    "source.mdx"
                 ]
             },
             {
                 "scopeName": "markdown.svelte.codeblock.style",
                 "path": "./syntaxes/markdown-svelte-css.json",
                 "injectTo": [
-                    "text.html.markdown"
+                    "text.html.markdown",
+                    "source.mdx"
                 ]
             },
             {
