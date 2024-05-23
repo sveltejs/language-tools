@@ -94,10 +94,14 @@ ${
     if (isSvelte5) {
         // Don't add props/events/slots type exports in dts mode for now, maybe someone asks for it to be back,
         // but it's safer to not do it for now to have more flexibility in the future.
+        const propsType =
+            !canHaveAnyProp && exportedNames.hasNoProps()
+                ? `{$$events?: ${returnType('events')}${usesSlots ? `, $$slots?: ${returnType('slots')}, children?: any` : ''}}`
+                : `${returnType('props')} & {$$events?: ${returnType('events')}${usesSlots ? `, $$slots?: ${returnType('slots')}, children?: any` : ''}}`;
         statement +=
             `\ninterface $$IsomorphicComponent {\n` +
             `    new ${genericsDef}(options: import('svelte').ComponentConstructorOptions<${returnType('props') + (usesSlots ? '& {children?: any}' : '')}>): import('svelte').SvelteComponent<${returnType('props')}, ${returnType('events')}, ${returnType('slots')}> & { $$bindings?: ${returnType('bindings')} } & ${returnType('exports')};\n` +
-            `    ${genericsDef}(internal: unknown, props: ${returnType('props')} & {$$events?: ${returnType('events')}${usesSlots ? `, $$slots?: ${returnType('slots')}, children?: any` : ''}}): import('svelte').SvelteComponent<${returnType('props')}, ${returnType('events')}, ${returnType('slots')}> & { $$bindings?: ${returnType('bindings')} } & ${returnType('exports')};\n` +
+            `    ${genericsDef}(internal: unknown, props: ${propsType}): import('svelte').SvelteComponent<${returnType('props')}, ${returnType('events')}, ${returnType('slots')}> & { $$bindings?: ${returnType('bindings')} } & ${returnType('exports')};\n` +
             `}\n` +
             `${doc}const ${className || '$$Component'}: $$IsomorphicComponent = null as any;\n` +
             surroundWithIgnoreComments(
@@ -162,7 +166,7 @@ function addSimpleComponentExport({
             statement =
                 `\ninterface $$__sveltets_2_IsomorphicComponent<Props extends Record<string, any> = any, Events extends Record<string, any> = any, Slots extends Record<string, any> = any, Exports = {}, Bindings = string> {
     new (options: import('svelte').ComponentConstructorOptions<Props>): import('svelte').SvelteComponent<Props, Events, Slots> & { $$bindings?: Bindings } & Exports;
-    (internal: unknown, props: Props extends Record<string, never> ? {$$events?: Events, $$slots?: Slots} : Props & {$$events?: Events, $$slots?: Slots}): import('svelte').SvelteComponent<Props, Events, Slots> & { $$bindings?: Bindings } & Exports;
+    (internal: unknown, props: ${!canHaveAnyProp && exportedNames.hasNoProps() ? '{$$events?: Events, $$slots?: Slots}' : 'Props & {$$events?: Events, $$slots?: Slots}'}): import('svelte').SvelteComponent<Props, Events, Slots> & { $$bindings?: Bindings } & Exports;
 }\n` +
                 (usesSlots
                     ? `type $$__sveltets_2_PropsWithChildren<Props, Slots> = Props &

@@ -19,7 +19,6 @@ interface $$IsomorphicComponent {
     } & ReturnType<__sveltets_Render<T, K>['exports']>;
     <T extends Record<string, any>, K extends keyof T>(internal: unknown, props: ReturnType<__sveltets_Render<T, K>['props']> & {
         $$events?: ReturnType<__sveltets_Render<T, K>['events']>;
-        $$slots?: ReturnType<__sveltets_Render<T, K>['slots']>;
     }): import('svelte').SvelteComponent<ReturnType<__sveltets_Render<T, K>['props']>, ReturnType<__sveltets_Render<T, K>['events']>, ReturnType<__sveltets_Render<T, K>['slots']>> & {
         $$bindings?: ReturnType<__sveltets_Render<T, K>['bindings']>;
     } & ReturnType<__sveltets_Render<T, K>['exports']>;

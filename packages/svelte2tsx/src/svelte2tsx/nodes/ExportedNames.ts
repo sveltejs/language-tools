@@ -681,6 +681,15 @@ export class ExportedNames {
         return `{${returnElements.join(' , ')}} as {${returnElementsType.join(', ')}}`;
     }
 
+    hasNoProps() {
+        if (this.usesRunes()) {
+            return !this.$props.type && !this.$props.comment;
+        }
+
+        const names = Array.from(this.exports.entries());
+        return names.length === 0;
+    }
+
     createBindingsStr(): string {
         // will be just the empty strings for zero bindings, which is impossible to create a binding for, so it works out fine
         return `\n    $$bindings = __sveltets_$$bindings('${this.$props.bindings.join("', '")}');`;
