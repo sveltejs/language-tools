@@ -77,7 +77,7 @@ class __sveltets_Render${genericsDef} {
     }
 ${
     isSvelte5
-        ? `    bindings() { return ${exportedNames.createBindingsStr2()}; }
+        ? `    bindings() { return ${exportedNames.createBindingsStr()}; }
     exports() { return ${exportedNames.hasExports() ? `render${genericsRef}().exports` : '{}'}; }
 }`
         : '}'

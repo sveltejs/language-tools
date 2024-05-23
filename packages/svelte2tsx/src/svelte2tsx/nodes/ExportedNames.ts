@@ -624,15 +624,15 @@ export class ExportedNames {
     createPropsStr(uses$$propsOr$$restProps: boolean): string {
         const names = Array.from(this.exports.entries());
 
-        if (this.$props.type) {
-            return '{} as any as ' + this.$props.type;
-        }
-
-        if (this.$props.comment) {
-            return this.$props.comment + '({})';
-        }
-
         if (this.usesRunes()) {
+            if (this.$props.type) {
+                return '{} as any as ' + this.$props.type;
+            }
+
+            if (this.$props.comment) {
+                return this.$props.comment + '({})';
+            }
+
             // Necessary, because {} roughly equals to any
             return this.isTsFile
                 ? '{} as Record<string, never>'
@@ -691,11 +691,6 @@ export class ExportedNames {
     }
 
     createBindingsStr(): string {
-        // will be just the empty strings for zero bindings, which is impossible to create a binding for, so it works out fine
-        return `\n    $$bindings = __sveltets_$$bindings('${this.$props.bindings.join("', '")}');`;
-    }
-
-    createBindingsStr2(): string {
         if (this.usesRunes()) {
             // will be just the empty strings for zero bindings, which is impossible to create a binding for, so it works out fine
             return `__sveltets_$$bindings('${this.$props.bindings.join("', '")}')`;
@@ -733,7 +728,7 @@ export class ExportedNames {
             }
 
             if (this.usesRunes()) {
-                str += `, bindings: ${this.createBindingsStr2()}`;
+                str += `, bindings: ${this.createBindingsStr()}`;
             }
 
             return str;
@@ -791,12 +786,13 @@ export class ExportedNames {
     }
 
     hasPropsRune() {
-        return this.$props.type || this.$props.comment;
+        return this.isSvelte5Plus && (this.$props.type || this.$props.comment);
     }
 
     checkGlobalsForRunes(globals: string[]) {
         const runes = ['$state', '$derived', '$effect']; // no need to check for props, already handled through other means in here
-        this.hasRunesGlobals = globals.some((global) => runes.includes(global));
+        this.hasRunesGlobals =
+            this.isSvelte5Plus && globals.some((global) => runes.includes(global));
     }
 
     usesRunes() {
