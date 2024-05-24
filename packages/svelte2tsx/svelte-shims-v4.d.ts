@@ -227,10 +227,9 @@ declare type ATypedSvelteComponent = {
 declare type ConstructorOfATypedSvelteComponent = new (args: {target: any, props?: any}) => ATypedSvelteComponent
 declare function __sveltets_2_ensureComponent<
     // @ts-ignore svelte.Component doesn't exist in Svelte 4
-    T extends ConstructorOfATypedSvelteComponent | (typeof import('svelte') extends { Component: any } ? import('svelte').Component : never) | null | undefined
+    T extends ConstructorOfATypedSvelteComponent | (0 extends (1 & import('svelte').Component) ? never : import('svelte').Component<any, any, any>) | null | undefined
     // @ts-ignore svelte.Component doesn't exist in Svelte 4
->(type: T): NonNullable<typeof import('svelte') extends { Component: any } ? T extends import('svelte').Component<infer Props> ? typeof import('svelte').SvelteComponent<Props, Props['$$events'], Props['$$slots']> : T : T>;
-
+>(type: T): NonNullable<T extends ConstructorOfATypedSvelteComponent ? T : 0 extends (1 & import('svelte').Component) ? T : T extends import('svelte').Component<infer Props> ? typeof import('svelte').SvelteComponent<Props, Props['$$events'], Props['$$slots']> : T>;
 declare function __sveltets_2_ensureArray<T extends ArrayLike<unknown> | Iterable<unknown>>(array: T): T extends ArrayLike<infer U> ? U[] : T extends Iterable<infer U> ? Iterable<U> : any[];
 
 type __sveltets_2_PropsWithChildren<Props, Slots> = Props &
@@ -248,7 +247,7 @@ declare function __sveltets_$$bindings<Bindings extends string[]>(...bindings: B
 
 interface __sveltets_2_IsomorphicComponent<Props extends Record<string, any> = any, Events extends Record<string, any> = any, Slots extends Record<string, any> = any, Exports = {}, Bindings = string> {
     new (options: import('svelte').ComponentConstructorOptions<Props>): import('svelte').SvelteComponent<Props, Events, Slots> & { $$bindings?: Bindings } & Exports;
-    (internal: unknown, props: Props extends Record<string, never> ? {$$events?: Events, $$slots?: Slots} : Props & {$$events?: Events, $$slots?: Slots}): import('svelte').SvelteComponent<Props, Events, Slots> & { $$bindings?: Bindings } & Exports;
+    (internal: unknown, props: Props extends Record<string, never> ? {$$events?: Events, $$slots?: Slots} : Props & {$$events?: Events, $$slots?: Slots}): Exports;
 }
 
 declare function __sveltets_2_isomorphic_component<
