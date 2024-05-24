@@ -37,7 +37,7 @@ class __sveltets_Render<A,B extends ReferencedByGeneric> {
 
 interface $$IsomorphicComponent {
     new <A,B extends ReferencedByGeneric>(options: import('svelte').ComponentConstructorOptions<ReturnType<__sveltets_Render<A,B>['props']>>): import('svelte').SvelteComponent<ReturnType<__sveltets_Render<A,B>['props']>, ReturnType<__sveltets_Render<A,B>['events']>, ReturnType<__sveltets_Render<A,B>['slots']>> & { $$bindings?: ReturnType<__sveltets_Render<A,B>['bindings']> } & ReturnType<__sveltets_Render<A,B>['exports']>;
-    <A,B extends ReferencedByGeneric>(internal: unknown, props: ReturnType<__sveltets_Render<A,B>['props']> & {$$events?: ReturnType<__sveltets_Render<A,B>['events']>}): import('svelte').SvelteComponent<ReturnType<__sveltets_Render<A,B>['props']>, ReturnType<__sveltets_Render<A,B>['events']>, ReturnType<__sveltets_Render<A,B>['slots']>> & { $$bindings?: ReturnType<__sveltets_Render<A,B>['bindings']> } & ReturnType<__sveltets_Render<A,B>['exports']>;
+    <A,B extends ReferencedByGeneric>(internal: unknown, props: ReturnType<__sveltets_Render<A,B>['props']> & {$$events?: ReturnType<__sveltets_Render<A,B>['events']>}): ReturnType<__sveltets_Render<A,B>['exports']>;
 }
 const Input__SvelteComponent_: $$IsomorphicComponent = null as any;
 /*Ωignore_startΩ*/type Input__SvelteComponent_<A,B extends ReferencedByGeneric> = InstanceType<typeof Input__SvelteComponent_<A,B>>;

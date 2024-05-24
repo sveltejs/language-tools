@@ -25,7 +25,7 @@ class __sveltets_Render<A> {
 
 interface $$IsomorphicComponent {
     new <A>(options: import('svelte').ComponentConstructorOptions<ReturnType<__sveltets_Render<A>['props']>>): import('svelte').SvelteComponent<ReturnType<__sveltets_Render<A>['props']>, ReturnType<__sveltets_Render<A>['events']>, ReturnType<__sveltets_Render<A>['slots']>> & { $$bindings?: ReturnType<__sveltets_Render<A>['bindings']> } & ReturnType<__sveltets_Render<A>['exports']>;
-    <A>(internal: unknown, props: ReturnType<__sveltets_Render<A>['props']> & {$$events?: ReturnType<__sveltets_Render<A>['events']>}): import('svelte').SvelteComponent<ReturnType<__sveltets_Render<A>['props']>, ReturnType<__sveltets_Render<A>['events']>, ReturnType<__sveltets_Render<A>['slots']>> & { $$bindings?: ReturnType<__sveltets_Render<A>['bindings']> } & ReturnType<__sveltets_Render<A>['exports']>;
+    <A>(internal: unknown, props: ReturnType<__sveltets_Render<A>['props']> & {$$events?: ReturnType<__sveltets_Render<A>['events']>}): ReturnType<__sveltets_Render<A>['exports']>;
 }
 const Input__SvelteComponent_: $$IsomorphicComponent = null as any;
 /*Ωignore_startΩ*/type Input__SvelteComponent_<A> = InstanceType<typeof Input__SvelteComponent_<A>>;

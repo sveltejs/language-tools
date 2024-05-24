@@ -6,9 +6,7 @@ interface $$__sveltets_2_IsomorphicComponent<Props extends Record<string, any> =
     (internal: unknown, props: Props & {
         $$events?: Events;
         $$slots?: Slots;
-    }): import('svelte').SvelteComponent<Props, Events, Slots> & {
-        $$bindings?: Bindings;
-    } & Exports;
+    }): Exports;
 }
 declare const TestRunes: $$__sveltets_2_IsomorphicComponent<{
     foo: string;
