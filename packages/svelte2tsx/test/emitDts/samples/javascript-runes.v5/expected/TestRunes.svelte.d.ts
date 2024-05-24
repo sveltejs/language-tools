@@ -7,6 +7,7 @@ interface $$__sveltets_2_IsomorphicComponent<Props extends Record<string, any> =
         $$events?: Events;
         $$slots?: Slots;
     }): Exports;
+    z_$$bindings?: Bindings;
 }
 declare const TestRunes: $$__sveltets_2_IsomorphicComponent<{
     foo: string;

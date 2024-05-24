@@ -20,6 +20,7 @@ interface $$IsomorphicComponent {
     <T extends Record<string, any>, K extends keyof T>(internal: unknown, props: ReturnType<__sveltets_Render<T, K>['props']> & {
         $$events?: ReturnType<__sveltets_Render<T, K>['events']>;
     }): ReturnType<__sveltets_Render<T, K>['exports']>;
+    z_$$bindings?: ReturnType<__sveltets_Render<any, any>['bindings']>;
 }
 declare const TestRunes: $$IsomorphicComponent;
 type TestRunes<T extends Record<string, any>, K extends keyof T> = InstanceType<typeof TestRunes<T, K>>;
