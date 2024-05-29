@@ -50,21 +50,42 @@ export function getComponentAtPosition(
         doc.positionAt(node.start + symbolPosWithinNode + 1)
     );
 
-    let def = lang.getDefinitionAtPosition(tsDoc.filePath, tsDoc.offsetAt(generatedPosition))?.[0];
+    let defs = lang.getDefinitionAtPosition(tsDoc.filePath, tsDoc.offsetAt(generatedPosition));
+    // Svelte 5 uses a const and a type alias instead of a class, and we want the latter.
+    // We still gotta check for a class in Svelte 5 because of d.ts files generated for Svelte 4 containing classes.
+    let def1 = defs?.[0];
+    let def2 = tsDoc.isSvelte5Plus ? defs?.[1] : undefined;
 
-    while (def != null && def.kind !== ts.ScriptElementKind.classElement) {
-        const newDef = lang.getDefinitionAtPosition(tsDoc.filePath, def.textSpan.start)?.[0];
-        if (newDef?.fileName === def.fileName && newDef?.textSpan.start === def.textSpan.start) {
+    while (
+        def1 != null &&
+        def1.kind !== ts.ScriptElementKind.classElement &&
+        (def2 == null ||
+            def2.kind !== ts.ScriptElementKind.constElement ||
+            !def2.name.endsWith('__SvelteComponent_'))
+    ) {
+        const newDefs = lang.getDefinitionAtPosition(tsDoc.filePath, def1.textSpan.start);
+        const newDef = newDefs?.[0];
+        if (newDef?.fileName === def1.fileName && newDef?.textSpan.start === def1.textSpan.start) {
             break;
         }
-        def = newDef;
+        defs = newDefs;
+        def1 = newDef;
+        def2 = tsDoc.isSvelte5Plus ? newDefs?.[1] : undefined;
     }
 
-    if (!def) {
+    if (!def1 && !def2) {
         return null;
     }
 
-    return JsOrTsComponentInfoProvider.create(lang, def);
+    if (
+        def2 != null &&
+        def2.kind === ts.ScriptElementKind.constElement &&
+        def2.name.endsWith('__SvelteComponent_')
+    ) {
+        def1 = undefined;
+    }
+
+    return JsOrTsComponentInfoProvider.create(lang, def1! || def2!);
 }
 
 export function isComponentAtPosition(

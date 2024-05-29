@@ -18,7 +18,7 @@
 <Legacy bind:value />
 <Legacy {value} />
 <Legacy {bind_and_prop} />
-<Runes bind:can_bind />
+<Runes bind:can_bind /> <!-- these error in Svelte 4 because props are not a thing there -->
 <Runes {can_bind} />
 <Runes {readonly} />
 

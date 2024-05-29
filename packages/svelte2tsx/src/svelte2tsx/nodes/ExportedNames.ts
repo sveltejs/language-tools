@@ -20,6 +20,7 @@ interface ExportedName {
 }
 
 export class ExportedNames {
+    public usesAccessors = false;
     /**
      * Uses the `$$Props` type
      */
@@ -52,7 +53,8 @@ export class ExportedNames {
         private str: MagicString,
         private astOffset: number,
         private basename: string,
-        private isTsFile: boolean
+        private isTsFile: boolean,
+        private isSvelte5Plus: boolean
     ) {}
 
     handleVariableStatement(node: ts.VariableStatement, parent: ts.Node): void {
@@ -622,15 +624,15 @@ export class ExportedNames {
     createPropsStr(uses$$propsOr$$restProps: boolean): string {
         const names = Array.from(this.exports.entries());
 
-        if (this.$props.type) {
-            return '{} as any as ' + this.$props.type;
-        }
-
-        if (this.$props.comment) {
-            return this.$props.comment + '({})';
-        }
-
         if (this.usesRunes()) {
+            if (this.$props.type) {
+                return '{} as any as ' + this.$props.type;
+            }
+
+            if (this.$props.comment) {
+                return this.$props.comment + '({})';
+            }
+
             // Necessary, because {} roughly equals to any
             return this.isTsFile
                 ? '{} as Record<string, never>'
@@ -679,29 +681,57 @@ export class ExportedNames {
         return `{${returnElements.join(' , ')}} as {${returnElementsType.join(', ')}}`;
     }
 
+    hasNoProps() {
+        if (this.usesRunes()) {
+            return !this.$props.type && !this.$props.comment;
+        }
+
+        const names = Array.from(this.exports.entries());
+        return names.length === 0;
+    }
+
     createBindingsStr(): string {
-        // will be just the empty strings for zero bindings, which is impossible to create a binding for, so it works out fine
-        return `\n    $$bindings = __sveltets_$$bindings('${this.$props.bindings.join("', '")}');`;
+        if (this.usesRunes()) {
+            // will be just the empty strings for zero bindings, which is impossible to create a binding for, so it works out fine
+            return `__sveltets_$$bindings('${this.$props.bindings.join("', '")}')`;
+        } else {
+            return '""';
+        }
     }
 
     /**
      * In runes mode, exports are no longer part of props because you cannot `bind:` to them,
-     * which is why we need a separate return type for them.
+     * which is why we need a separate return type for them. In Svelte 5, the isomorphic component
+     * needs them separate, too.
      */
     createExportsStr(): string {
         const names = Array.from(this.exports.entries());
         const others = names.filter(([, { isLet }]) => !isLet);
+        const needsAccessors = this.usesAccessors && names.length > 0 && !this.usesRunes(); // runes mode doesn't support accessors
 
-        if (this.usesRunes() && others.length > 0) {
-            if (this.isTsFile) {
-                return (
-                    ', exports: {} as any as { ' +
-                    this.createReturnElementsType(others, undefined, true).join(',') +
-                    ' }'
-                );
-            } else {
-                return `, exports: /** @type {${this.createReturnElementsType(others, false, true)}} */ ({})`;
+        if (this.isSvelte5Plus && (others.length > 0 || this.usesRunes() || needsAccessors)) {
+            let str = '';
+
+            if (others.length > 0 || needsAccessors) {
+                if (this.isTsFile) {
+                    str +=
+                        ', exports: {} as any as { ' +
+                        this.createReturnElementsType(
+                            needsAccessors ? names : others,
+                            undefined,
+                            true
+                        ).join(',') +
+                        ' }';
+                } else {
+                    str += `, exports: /** @type {{${this.createReturnElementsType(needsAccessors ? names : others, false, true)}}} */ ({})`;
+                }
             }
+
+            if (this.usesRunes()) {
+                str += `, bindings: ${this.createBindingsStr()}`;
+            }
+
+            return str;
         }
 
         return '';
@@ -750,16 +780,22 @@ export class ExportedNames {
         return this.exports;
     }
 
+    hasExports(): boolean {
+        const names = Array.from(this.exports.entries());
+        return this.usesAccessors ? names.length > 0 : names.some(([, { isLet }]) => !isLet);
+    }
+
     hasPropsRune() {
-        return this.$props.type || this.$props.comment;
+        return this.isSvelte5Plus && (this.$props.type || this.$props.comment);
     }
 
     checkGlobalsForRunes(globals: string[]) {
         const runes = ['$state', '$derived', '$effect']; // no need to check for props, already handled through other means in here
-        this.hasRunesGlobals = globals.some((global) => runes.includes(global));
+        this.hasRunesGlobals =
+            this.isSvelte5Plus && globals.some((global) => runes.includes(global));
     }
 
-    private usesRunes() {
+    usesRunes() {
         return this.hasRunesGlobals || this.hasPropsRune();
     }
 }

@@ -167,7 +167,7 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
                 continue;
             }
 
-            diagnostic = adjustIfNecessary(diagnostic);
+            diagnostic = adjustIfNecessary(diagnostic, tsDoc.isSvelte5Plus);
             diagnostic = swapDiagRangeStartEndIfNecessary(diagnostic);
             converted.push(diagnostic);
         }
@@ -350,7 +350,7 @@ function isNoUsedBeforeAssigned(
 /**
  * Some diagnostics have JSX-specific or confusing nomenclature. Enhance/adjust them for more clarity.
  */
-function adjustIfNecessary(diagnostic: Diagnostic): Diagnostic {
+function adjustIfNecessary(diagnostic: Diagnostic, isSvelte5Plus: boolean): Diagnostic {
     if (
         diagnostic.code === DiagnosticCode.ARG_TYPE_X_NOT_ASSIGNABLE_TO_TYPE_Y &&
         diagnostic.message.includes('ConstructorOfATypedSvelteComponent')
@@ -362,9 +362,11 @@ function adjustIfNecessary(diagnostic: Diagnostic): Diagnostic {
                 '\n\nPossible causes:\n' +
                 '- You use the instance type of a component where you should use the constructor type\n' +
                 '- Type definitions are missing for this Svelte Component. ' +
-                'If you are using Svelte 3.31+, use SvelteComponentTyped to add a definition:\n' +
-                '  import type { SvelteComponentTyped } from "svelte";\n' +
-                '  class ComponentName extends SvelteComponentTyped<{propertyName: string;}> {}'
+                (isSvelte5Plus
+                    ? ''
+                    : 'If you are using Svelte 3.31+, use SvelteComponentTyped to add a definition:\n' +
+                      '  import type { SvelteComponentTyped } from "svelte";\n' +
+                      '  class ComponentName extends SvelteComponentTyped<{propertyName: string;}> {}')
         };
     }
 

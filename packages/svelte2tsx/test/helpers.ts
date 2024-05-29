@@ -311,19 +311,40 @@ export function test_samples(dir: string, transform: TransformSampleFn, js: 'js'
                 sample.eval('expected.js', output);
             }
 
-            assert.strictEqual(
-                normalize(transform(input, config).code),
-                sample.get(
-                    // Check the expectedv2 file first even in Svelte 5 mode because many are identical between versions.
-                    // This way we don't need to duplicate a bunch of expected files.
-                    isSvelte5Plus
-                        ? sample.has(expectedFile)
-                            ? expectedFile
-                            : `expectedv2.${js}`
-                        : expectedFile
-                ),
-                TestError.WrongExpected
-            );
+            if (isSvelte5Plus) {
+                const actual = normalize(transform(input, config).code);
+                if (sample.has(expectedFile)) {
+                    assert.strictEqual(actual, sample.get(expectedFile), TestError.WrongExpected);
+                } else {
+                    const expected = sample.get(`expectedv2.${js}`);
+                    try {
+                        assert.strictEqual(actual, expected, TestError.WrongExpected);
+                    } catch (e) {
+                        // retry with the last part (the returned default export) stripped because it's always differing between old and new,
+                        // and if that fails then we're going to rethrow the original error
+                        const expectedModified = expected.substring(
+                            0,
+                            expected.lastIndexOf('\n\nexport default class')
+                        );
+                        const actualModified = actual.substring(0, actual.lastIndexOf('\nconst '));
+                        try {
+                            assert.strictEqual(
+                                actualModified,
+                                expectedModified,
+                                TestError.WrongExpected
+                            );
+                        } catch (_) {
+                            throw e;
+                        }
+                    }
+                }
+            } else {
+                assert.strictEqual(
+                    normalize(transform(input, config).code),
+                    sample.get(expectedFile),
+                    TestError.WrongExpected
+                );
+            }
         });
     }
 }
