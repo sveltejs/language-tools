@@ -915,13 +915,15 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
         }
 
         let text = changeSvelteComponentName(ts.displayPartsToString(displayParts));
-        if (
-            tsDoc.isSvelte5Plus &&
-            text.includes('(alias)') &&
-            text.includes('__SvelteComponent_')
-        ) {
+        if (tsDoc.isSvelte5Plus && text.includes('(alias)')) {
             // The info contains both the const and type export along with a bunch of gibberish we want to hide
-            text = text.substring(0, text.indexOf('(alias)') - 1);
+            if (text.includes('__SvelteComponent_')) {
+                // import - remove completely
+                text = '';
+            } else if (text.includes('__sveltets_2_IsomorphicComponent')) {
+                // already imported - only keep the last part
+                text = text.substring(text.lastIndexOf('import'));
+            }
         }
         parts.push(text);
 
