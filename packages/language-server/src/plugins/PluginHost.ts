@@ -279,12 +279,18 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
     ): Promise<SymbolInformation[]> {
         const document = this.getDocument(textDocument.uri);
 
+        // VSCode requested document symbols twice for the outline view and the sticky scroll
+        // Manually delay here and don't use low priority as one of them will return no symbols
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        if (cancellationToken.isCancellationRequested) {
+            return [];
+        }
         return flatten(
             await this.execute<SymbolInformation[]>(
                 'getDocumentSymbols',
                 [document, cancellationToken],
                 ExecuteMode.Collect,
-                'low'
+                'high'
             )
         );
     }
