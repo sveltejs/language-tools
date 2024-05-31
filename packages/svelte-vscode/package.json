@@ -199,8 +199,8 @@
     },
     "devDependencies": {
         "@types/vscode": "^1.82.0",
-        "@volar/language-server": "~2.0.0",
-        "@volar/vscode": "~2.0.0",
+        "@volar/language-server": "~2.3.0-alpha.4",
+        "@volar/vscode": "~2.3.0-alpha.4",
         "esbuild": "latest",
         "js-yaml": "^3.14.0",
         "svelte-language-server": "0.0.0",

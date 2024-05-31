@@ -1,7 +1,7 @@
-import { createConnection, createServer, createTypeScriptProjectProvider } from '@volar/language-server/node';
+import { createConnection, createServer, createTypeScriptProject, loadTsdkByPath } from '@volar/language-server/node';
 import { create as createCssScriptServicePlugin } from 'volar-service-css';
 import { create as createHtmlServicePlugin } from 'volar-service-html';
-import { create as createTypeScriptServicePlugin } from 'volar-service-typescript';
+import { create as createTypeScriptServicePlugins } from 'volar-service-typescript';
 import { svelteLanguagePlugin } from './languagePlugin';
 
 const connection = createConnection();
@@ -10,25 +10,23 @@ const server = createServer(connection);
 connection.listen();
 
 connection.onInitialize(params => {
-	return server.initialize(params, createTypeScriptProjectProvider, {
-		watchFileExtensions: ['js', 'cjs', 'mjs', 'ts', 'cts', 'mts', 'jsx', 'tsx', 'json', 'svelte'],
-		getServicePlugins() {
-			return [
-				createCssScriptServicePlugin(),
-				createHtmlServicePlugin(),
-				createTypeScriptServicePlugin(server.modules.typescript!),
-			]
-		},
-		getLanguagePlugins() {
-			return [svelteLanguagePlugin];
-		},
-	});
+    const tsdk = loadTsdkByPath(params.initializationOptions.typescript.tsdk, params.locale);
+    return server.initialize(
+        params,
+        [
+            createCssScriptServicePlugin(),
+            createHtmlServicePlugin(),
+            ...createTypeScriptServicePlugins(tsdk.typescript, tsdk.diagnosticMessages),
+        ],
+        createTypeScriptProject(tsdk.typescript, undefined, () => [svelteLanguagePlugin])
+    );
 });
 
 connection.onInitialized(() => {
-	server.initialized();
+    server.initialized();
+    server.watchFiles(['**/*.{js,cjs,mjs,ts,cts,mts,jsx,tsx,json,svelte}'])
 });
 
 connection.onShutdown(() => {
-	server.shutdown();
+    server.shutdown();
 });

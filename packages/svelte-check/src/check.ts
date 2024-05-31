@@ -4,7 +4,7 @@ import * as fg from 'fast-glob';
 import { existsSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import { svelteLanguagePlugin } from 'svelte-language-server/out/languagePlugin.js';
-import { create as createTypeScriptServicePlugin } from 'volar-service-typescript';
+import { create as createTypeScriptServicePlugins } from 'volar-service-typescript';
 
 // Export those for downstream consumers
 export { Diagnostic, DiagnosticSeverity };
@@ -55,7 +55,7 @@ export class SvelteCheck {
 		| undefined;
 	}): Promise<CheckResult> {
 		const files =
-			fileNames !== undefined ? fileNames : this.linter.languageHost.getScriptFileNames();
+			fileNames !== undefined ? fileNames : this.linter.projectHost.getScriptFileNames();
 
 		const result: CheckResult = {
 			status: undefined,
@@ -92,7 +92,7 @@ export class SvelteCheck {
 					console.info(errorText);
 				}
 
-				const fileSnapshot = this.linter.languageHost.getScriptSnapshot(file);
+				const fileSnapshot = this.linter.projectHost.getScriptSnapshot(file);
 				const fileContent = fileSnapshot?.getText(0, fileSnapshot.getLength());
 
 				result.fileResult.push({
@@ -124,13 +124,13 @@ export class SvelteCheck {
 		this.ts = this.typescriptPath ? require(this.typescriptPath) : require('typescript');
 		const tsconfigPath = this.getTsconfig();
 
-		const languages = [svelteLanguagePlugin];
-		const services = [createTypeScriptServicePlugin(this.ts)];
+		const languagePlugins = [svelteLanguagePlugin];
+		const languageServicePlugins = createTypeScriptServicePlugins(this.ts);
 
 		if (tsconfigPath) {
-			this.linter = kit.createTypeScriptChecker(languages, services, tsconfigPath);
+			this.linter = kit.createTypeScriptChecker(languagePlugins, languageServicePlugins, tsconfigPath);
 		} else {
-			this.linter = kit.createTypeScriptInferredChecker(languages, services, () => {
+			this.linter = kit.createTypeScriptInferredChecker(languagePlugins, languageServicePlugins, () => {
 				return fg.sync('**/*.svelte', {
 					cwd: this.workspacePath,
 					ignore: ['node_modules'],
