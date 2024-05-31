@@ -34,7 +34,7 @@
         "@jridgewell/sourcemap-codec": "^1.4.15",
         "@volar/language-core": "~2.0.0",
         "@volar/language-server": "~2.0.0",
-        "svelte2tsx": "^0.6.27",
+        "svelte2tsx": "workspace:~",
         "volar-service-css": "volar-2.0",
         "volar-service-html": "volar-2.0",
         "volar-service-typescript": "volar-2.0",

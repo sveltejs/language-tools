@@ -12,8 +12,7 @@ async () => {  for(let item of __sveltets_2_ensureArray(items)){
     d;
 }}
  { __sveltets_createSlot("third", {   d,c,}); }};
-let $$implicit_children = __sveltets_2_snippet({a:(({ a }) => a)(__sveltets_2_unwrapArr(__sveltets_2_unwrapArr(items)))});
-return { props: {children: $$implicit_children}, slots: {'default': {a:(({ a }) => a)(__sveltets_2_unwrapArr(__sveltets_2_unwrapArr(items)))}, 'second': {a:a}, 'third': {d:d, c:c}}, events: {} }}
-
-export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial(['children'], __sveltets_2_with_any_event(render()))) {
-}
+return { props: /** @type {Record<string, never>} */ ({}), slots: {'default': {a:(({ a }) => a)(__sveltets_2_unwrapArr(__sveltets_2_unwrapArr(items)))}, 'second': {a:a}, 'third': {d:d, c:c}}, events: {} }}
+const Input__SvelteComponent_ = __sveltets_2_isomorphic_component_slots(__sveltets_2_partial(__sveltets_2_with_any_event(render())));
+/*Ωignore_startΩ*/type Input__SvelteComponent_ = InstanceType<typeof Input__SvelteComponent_>;
+/*Ωignore_endΩ*/export default Input__SvelteComponent_;

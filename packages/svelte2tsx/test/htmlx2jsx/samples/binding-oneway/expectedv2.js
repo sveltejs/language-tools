@@ -1,3 +1,3 @@
  { const $$_div0 = svelteHTML.createElement("div", {      "type":`text`,});width= $$_div0.clientWidth;height= $$_div0.clientHeight;offsetWidth= $$_div0.offsetWidth;offsetHeight= $$_div0.offsetHeight;}
 
- { const $$_video0 = svelteHTML.createElement("video", {        "src":clip,});duration= $$_video0.duration;buffered= $$_video0.buffered;seekable= $$_video0.seekable;seeking= $$_video0.seeking;played= $$_video0.played;ended= $$_video0.ended; }
+ { const $$_video0 = svelteHTML.createElement("video", {        "src":clip,});duration= $$_video0.duration;buffered= /*Ωignore_startΩ*/null as import('svelte/elements').SvelteMediaTimeRange[]/*Ωignore_endΩ*/;seekable= /*Ωignore_startΩ*/null as import('svelte/elements').SvelteMediaTimeRange[]/*Ωignore_endΩ*/;seeking= $$_video0.seeking;played= /*Ωignore_startΩ*/null as import('svelte/elements').SvelteMediaTimeRange[]/*Ωignore_endΩ*/;ended= $$_video0.ended; }

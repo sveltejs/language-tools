@@ -26,8 +26,22 @@
     snippet
 {/snippet}
 
+{#snippet foo2(bar : string)}
+    snippet
+{/snippet}
+
+{#snippet foo3(bar    : string | number)}
+    snippet
+{/snippet}
+
+{#snippet foo3(bar    : string | number, baz     : (str: string)=>void)}
+    snippet
+{/snippet}
+
 {@render foo(bar as string)}
 
 <button onclick={(e: Event) => {e as any}}>click</button>
 <Component attr={attr as boolean} />
 <label id={ok!}></label>
+<Component bind:this={x as any} />
+<div bind:clientWidth={x as any} />
