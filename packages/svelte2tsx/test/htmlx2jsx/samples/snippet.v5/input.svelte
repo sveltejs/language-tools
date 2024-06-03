@@ -10,6 +10,10 @@
 	{#await foo then bar}{bar}{/await}
 {/snippet}
 
+{#snippet default_parameter(a = '')}
+	{a}
+{/snippet}
+
 {@render foo(1)}
 {@render bar()}
 {@render await_inside()}

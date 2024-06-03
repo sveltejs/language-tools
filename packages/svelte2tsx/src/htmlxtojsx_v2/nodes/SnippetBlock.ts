@@ -93,8 +93,11 @@ export function handleSnippet(
         ];
 
         if (snippetBlock.parameters?.length) {
-            const start = snippetBlock.parameters[0].start;
-            const end = snippetBlock.parameters.at(-1).end;
+            const first = snippetBlock.parameters[0];
+            const last = snippetBlock.parameters.at(-1);
+
+            const start = first.type === 'AssignmentPattern' ? first.left.start : first.start;
+            const end = last.type === 'AssignmentPattern' ? last.right.end : last.end;
             transforms.push([start, end]);
         }
 
