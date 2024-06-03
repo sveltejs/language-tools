@@ -19,8 +19,8 @@ export const svelteLanguagePlugin: LanguagePlugin<string | URI> = {
                 languageId,
                 snapshot,
                 embeddedCodes: [
-                    ...getVirtualCssFiles(snapshot.getText(0, snapshot.getLength())),
-                    getVirtualTsFile(snapshot.getText(0, snapshot.getLength())),
+                    ...getEmbeddedCssCodes(snapshot.getText(0, snapshot.getLength())),
+                    getEmbeddedTsCode(snapshot.getText(0, snapshot.getLength())),
                 ].filter((v): v is VirtualCode => !!v),
                 mappings: [],
                 codegenStacks: []
@@ -30,8 +30,8 @@ export const svelteLanguagePlugin: LanguagePlugin<string | URI> = {
     updateVirtualCode(_uri, virtualCode, snapshot) {
         virtualCode.snapshot = snapshot;
         virtualCode.embeddedCodes = [
-            ...getVirtualCssFiles(snapshot.getText(0, snapshot.getLength())),
-            getVirtualTsFile(snapshot.getText(0, snapshot.getLength())),
+            ...getEmbeddedCssCodes(snapshot.getText(0, snapshot.getLength())),
+            getEmbeddedTsCode(snapshot.getText(0, snapshot.getLength())),
         ].filter((v): v is VirtualCode => !!v);
         return virtualCode;
     },
@@ -55,7 +55,7 @@ export const svelteLanguagePlugin: LanguagePlugin<string | URI> = {
     },
 };
 
-function* getVirtualCssFiles(content: string): Generator<VirtualCode> {
+function* getEmbeddedCssCodes(content: string): Generator<VirtualCode> {
 
     const styleBlocks = [...content.matchAll(/\<style\b[\s\S]*?\>([\s\S]*?)\<\/style\>/g)];
 
@@ -99,7 +99,7 @@ function* getVirtualCssFiles(content: string): Generator<VirtualCode> {
 
 }
 
-function getVirtualTsFile(text: string): VirtualCode | undefined {
+function getEmbeddedTsCode(text: string): VirtualCode | undefined {
 
     try {
         const tsx = svelte2tsx(text, {
