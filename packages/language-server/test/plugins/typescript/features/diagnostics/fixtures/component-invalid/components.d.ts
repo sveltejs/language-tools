@@ -15,4 +15,6 @@ export class Works3 extends SvelteComponentTyped<
     { [evt: string]: CustomEvent<any> },
     Record<string, never>
 > {}
+// @ts-ignore doesn't exist in Svelte 4
+export declare const Works4: import('svelte').Component<{ foo: string }>;
 export class DoesntWork {}

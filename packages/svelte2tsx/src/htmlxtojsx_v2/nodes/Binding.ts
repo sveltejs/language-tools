@@ -61,13 +61,7 @@ export function handleBinding(
     // bind group on input
     if (element instanceof Element && attr.name == 'group' && parent.name == 'input') {
         // add reassignment to force TS to widen the type of the declaration (in case it's never reassigned anywhere else)
-        const expressionStr = str.original.substring(
-            attr.expression.start,
-            getEnd(attr.expression)
-        );
-        element.appendToStartEnd([
-            surroundWithIgnoreComments(`() => ${expressionStr} = __sveltets_2_any(null);`)
-        ]);
+        appendOneWayBinding(attr, ' = __sveltets_2_any(null)', element);
         return;
     }
 
@@ -131,18 +125,14 @@ export function handleBinding(
     const value: TransformationArray | undefined = isShorthand
         ? preserveBind && element instanceof Element
             ? [rangeWithTrailingPropertyAccess(str.original, attr.expression)]
-            : isSvelte5Plus
-              ? [
-                    `__sveltets_2_binding(${str.original.substring(attr.expression.start, attr.expression.end)})`
-                ]
-              : undefined
-        : element instanceof Element || !isSvelte5Plus
-          ? [rangeWithTrailingPropertyAccess(str.original, attr.expression)]
-          : [
-                '__sveltets_2_binding(',
-                rangeWithTrailingPropertyAccess(str.original, attr.expression),
-                ')'
-            ];
+            : undefined
+        : [rangeWithTrailingPropertyAccess(str.original, attr.expression)];
+
+    if (isSvelte5Plus && element instanceof InlineComponent) {
+        // To check if property is actually bindable
+        element.appendToStartEnd([`${element.name}.$$bindings = '${attr.name}';`]);
+    }
+
     if (element instanceof Element) {
         element.addAttribute(name, value);
     } else {

@@ -279,3 +279,23 @@ function hasConfigInConjunction(packageJsonPath: string, project: ts.server.Proj
         project.fileExists(join(dir, 'jsconfig.json'))
     );
 }
+
+export function importSvelteCompiler(
+    fromPath: string | undefined
+): typeof import('svelte/compiler') | undefined {
+    if (!fromPath) return undefined;
+
+    try {
+        const sveltePath = require.resolve('svelte/compiler', { paths: [fromPath] });
+        const compiler = require(sveltePath);
+
+        if (compiler.VERSION.split('.')[0] === '3') {
+            // use built-in version for Svelte 3
+            return undefined;
+        }
+
+        return compiler;
+    } catch (e) {
+        // ignore
+    }
+}

@@ -6,7 +6,12 @@ import { SvelteSnapshotManager } from './svelte-snapshots';
 import type ts from 'typescript/lib/tsserverlibrary';
 import { ConfigManager, Configuration } from './config-manager';
 import { ProjectSvelteFilesManager } from './project-svelte-files';
-import { getConfigPathForProject, isSvelteProject } from './utils';
+import {
+    getConfigPathForProject,
+    getProjectDirectory,
+    importSvelteCompiler,
+    isSvelteProject
+} from './utils';
 
 function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
     const configManager = new ConfigManager();
@@ -112,7 +117,8 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
             info.project.projectService,
             svelteOptions,
             logger,
-            configManager
+            configManager,
+            importSvelteCompiler(getProjectDirectory(info.project))
         );
 
         const projectSvelteFilesManager = parsedCommandLine
@@ -171,12 +177,10 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
             return [];
         }
 
-        const configFilePath = project.getCompilerOptions().configFilePath;
+        const configFilePath = getProjectDirectory(project);
 
         // Needed so the ambient definitions are known inside the tsx files
-        const svelteTsxFiles = resolveSvelteTsxFiles(
-            typeof configFilePath === 'string' ? configFilePath : undefined
-        );
+        const svelteTsxFiles = resolveSvelteTsxFiles(configFilePath);
 
         if (!configFilePath) {
             svelteTsxFiles.forEach((file) => {

@@ -39,7 +39,7 @@ describe('Svelte Plugin', () => {
         const diagnostic = Diagnostic.create(
             Range.create(1, 0, 1, 21),
             isSvelte5Plus
-                ? '<img> element should have an alt attribute'
+                ? '`<img>` element should have an alt attribute'
                 : 'A11y: <img> element should have an alt attribute',
             DiagnosticSeverity.Warning,
             isSvelte5Plus ? 'a11y_missing_attribute' : 'a11y-missing-attribute',
@@ -57,7 +57,7 @@ describe('Svelte Plugin', () => {
             Range.create(0, 10, 0, 18),
             isSvelte5Plus ? 'Can only bind to state or props' : 'whatever is not declared',
             DiagnosticSeverity.Error,
-            isSvelte5Plus ? 'invalid_binding_value' : 'binding-undeclared',
+            isSvelte5Plus ? 'bind_invalid_value' : 'binding-undeclared',
             'svelte'
         );
 

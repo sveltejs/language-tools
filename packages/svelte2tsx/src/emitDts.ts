@@ -243,6 +243,12 @@ interface SvelteMap {
 async function createSvelteMap(config: EmitDtsConfig): Promise<SvelteMap> {
     const svelteFiles = new Map();
 
+    // TODO detect Svelte version in here and set shimsPath accordingly if not given from above
+    const noSvelteComponentTyped = config.svelteShimsPath
+        .replace(/\\/g, '/')
+        .endsWith('svelte2tsx/svelte-shims-v4.d.ts');
+    const version = noSvelteComponentTyped ? undefined : '3.42.0';
+
     function add(path: string): boolean {
         const code = ts.sys.readFile(path, 'utf-8');
         const isTsFile = /<script\s+[^>]*?lang=('|")(ts|typescript)('|")/.test(code);
@@ -250,9 +256,8 @@ async function createSvelteMap(config: EmitDtsConfig): Promise<SvelteMap> {
             filename: path,
             isTsFile,
             mode: 'dts',
-            noSvelteComponentTyped: config.svelteShimsPath
-                .replace(/\\/g, '/')
-                .endsWith('svelte2tsx/svelte-shims-v4.d.ts')
+            version,
+            noSvelteComponentTyped: noSvelteComponentTyped
         }).code;
         svelteFiles.set(path, transformed);
         return isTsFile;

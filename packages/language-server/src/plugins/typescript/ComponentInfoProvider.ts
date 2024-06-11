@@ -95,7 +95,12 @@ export class JsOrTsComponentInfoProvider implements ComponentInfoProvider {
             return null;
         }
 
-        const defClass = findContainingNode(sourceFile, def.textSpan, ts.isClassDeclaration);
+        const defClass = findContainingNode(
+            sourceFile,
+            def.textSpan,
+            (node): node is ts.ClassDeclaration | ts.VariableDeclaration =>
+                ts.isClassDeclaration(node) || ts.isTypeAliasDeclaration(node)
+        );
 
         if (!defClass) {
             return null;

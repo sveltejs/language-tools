@@ -276,7 +276,8 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             if (
                 diagnostic.range.start.line < 0 ||
                 diagnostic.range.end.line < 0 ||
-                diagnostic.code !== DiagnosticCode.CANNOT_FIND_NAME
+                (diagnostic.code !== DiagnosticCode.CANNOT_FIND_NAME &&
+                    diagnostic.code !== DiagnosticCode.CANNOT_FIND_NAME_X_DID_YOU_MEAN_Y)
             ) {
                 continue;
             }
@@ -313,10 +314,13 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         const virtualDoc = new Document(virtualUri, newText);
         virtualDoc.openedByClient = true;
         // let typescript know about the virtual document
-        await this.lsAndTsDocResolver.getSnapshot(virtualDoc);
+        // getLSAndTSDoc instead of getSnapshot so that project dirty state is correctly tracked by us
+        // otherwise, sometime the applied code fix might not be picked up by the language service
+        // because we think the project is still dirty and doesn't update the project version
+        await this.lsAndTsDocResolver.getLSAndTSDoc(virtualDoc);
 
         return {
-            virtualDoc: new Document(virtualUri, newText),
+            virtualDoc,
             insertedNames: names
         };
     }
@@ -559,7 +563,9 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         const end = tsDoc.offsetAt(tsDoc.getGeneratedPosition(range.end));
         const errorCodes: number[] = context.diagnostics.map((diag) => Number(diag.code));
         const cannotFindNameDiagnostic = context.diagnostics.filter(
-            (diagnostic) => diagnostic.code === DiagnosticCode.CANNOT_FIND_NAME
+            (diagnostic) =>
+                diagnostic.code === DiagnosticCode.CANNOT_FIND_NAME ||
+                diagnostic.code === DiagnosticCode.CANNOT_FIND_NAME_X_DID_YOU_MEAN_Y
         );
 
         const formatCodeSettings = await this.configManager.getFormatCodeSettingsForFile(
@@ -579,9 +585,14 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                       formatCodeSettings
                   )
                 : undefined;
-        codeFixes =
-            // either-or situation
-            codeFixes || [
+
+        // either-or situation when it's not a "did you mean" fix
+        if (
+            codeFixes === undefined ||
+            errorCodes.includes(DiagnosticCode.CANNOT_FIND_NAME_X_DID_YOU_MEAN_Y)
+        ) {
+            codeFixes ??= [];
+            codeFixes = codeFixes.concat(
                 ...lang.getCodeFixesAtPosition(
                     tsDoc.filePath,
                     start,
@@ -599,7 +610,8 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                     userPreferences,
                     formatCodeSettings
                 )
-            ];
+            );
+        }
 
         const snapshots = new SnapshotMap(this.lsAndTsDocResolver);
         snapshots.set(tsDoc.filePath, tsDoc);
@@ -847,7 +859,11 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             if (codeFix.fixName === FIX_IMPORT_FIX_NAME) {
                 const allCannotFindNameDiagnostics = lang
                     .getSemanticDiagnostics(fileName)
-                    .filter((diagnostic) => diagnostic.code === DiagnosticCode.CANNOT_FIND_NAME);
+                    .filter(
+                        (diagnostic) =>
+                            diagnostic.code === DiagnosticCode.CANNOT_FIND_NAME ||
+                            diagnostic.code === DiagnosticCode.CANNOT_FIND_NAME_X_DID_YOU_MEAN_Y
+                    );
 
                 if (allCannotFindNameDiagnostics.length < 2) {
                     checkedFixIds.add(codeFix.fixId);
