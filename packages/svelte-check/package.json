@@ -27,8 +27,8 @@
         "@types/yargs": "^17.0.32"
     },
     "dependencies": {
-        "@volar/kit": "~2.3.0-alpha.5",
-        "volar-service-typescript": "0.0.50",
+        "@volar/kit": "~2.3.0",
+        "volar-service-typescript": "0.0.51",
         "svelte-language-server": "0.0.0",
         "chokidar": "^3.4.1",
         "kleur": "^4.1.5",

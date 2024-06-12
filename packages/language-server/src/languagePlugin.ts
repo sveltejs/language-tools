@@ -12,7 +12,7 @@ export const svelteLanguagePlugin: LanguagePlugin<string | URI> = {
             return 'svelte';
         }
     },
-    createVirtualCode(_uri, languageId, snapshot) {
+    createVirtualCode(_fileNameOrUri, languageId, snapshot) {
         if (languageId === 'svelte') {
             return {
                 id: 'root',
@@ -27,7 +27,7 @@ export const svelteLanguagePlugin: LanguagePlugin<string | URI> = {
             };
         }
     },
-    updateVirtualCode(_uri, virtualCode, snapshot) {
+    updateVirtualCode(_fileNameOrUri, virtualCode, snapshot) {
         virtualCode.snapshot = snapshot;
         virtualCode.embeddedCodes = [
             ...getEmbeddedCssCodes(snapshot.getText(0, snapshot.getLength())),

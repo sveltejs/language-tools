@@ -13,12 +13,12 @@ connection.onInitialize(params => {
     const tsdk = loadTsdkByPath(params.initializationOptions.typescript.tsdk, params.locale);
     return server.initialize(
         params,
+        createTypeScriptProject(tsdk.typescript, undefined, () => [svelteLanguagePlugin]),
         [
             createCssScriptServicePlugin(),
             createHtmlServicePlugin(),
             ...createTypeScriptServicePlugins(tsdk.typescript, tsdk.diagnosticMessages),
-        ],
-        createTypeScriptProject(tsdk.typescript, undefined, () => [svelteLanguagePlugin])
+        ]
     );
 });
 
