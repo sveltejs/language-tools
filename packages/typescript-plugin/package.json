@@ -1,8 +1,12 @@
 {
     "name": "typescript-svelte-plugin",
-    "version": "0.2.0",
+    "version": "0.0.0",
     "description": "A TypeScript Plugin providing Svelte intellisense",
-    "main": "dist/src/index.js",
+    "main": "out/index.js",
+    "files": [
+        "out/**.js",
+        "out/**.d.ts"
+    ],
     "scripts": {
         "build": "tsc -p ./",
         "watch": "tsc -w -p ./",
@@ -17,13 +21,8 @@
     ],
     "author": "The Svelte Community",
     "license": "MIT",
-    "devDependencies": {
-        "@types/node": "^16.0.0",
-        "typescript": "^5.4.5",
-        "svelte": "^3.57.0"
-    },
     "dependencies": {
-        "@jridgewell/sourcemap-codec": "^1.4.14",
-        "svelte2tsx": "workspace:~"
+        "@volar/typescript": "~2.3.0",
+        "svelte-language-server": "0.0.0"
     }
 }
