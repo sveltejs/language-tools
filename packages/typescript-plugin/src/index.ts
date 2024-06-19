@@ -67,8 +67,7 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
                 if (snapshot) {
                     const originalText = snapshot.getText(0, snapshot.getLength());
                     const startIdx = originalText.indexOf(`declare module '*.svelte' {`);
-                    const endIdx =
-                        originalText.indexOf(`}`, originalText.indexOf(';', startIdx)) + 1;
+                    const endIdx = originalText.indexOf(`\n}`, startIdx + 1) + 2;
                     return modules.typescript.ScriptSnapshot.fromString(
                         originalText.substring(0, startIdx) +
                             ' '.repeat(endIdx - startIdx) +
