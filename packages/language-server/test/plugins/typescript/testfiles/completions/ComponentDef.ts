@@ -1,5 +1,7 @@
 /// <reference lib="dom" />
-import type { Component, SvelteComponentTyped as tmp } from 'svelte';
+import type { SvelteComponentTyped as tmp } from 'svelte';
+// @ts-ignore only exists in svelte 5+
+import { Component } from 'svelte';
 
 const SvelteComponentTyped: typeof tmp = null as any;
 
