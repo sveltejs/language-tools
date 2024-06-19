@@ -50,7 +50,10 @@ export function getComponentAtPosition(
         doc.positionAt(node.start + symbolPosWithinNode + 1)
     );
 
-    const def = lang.getDefinitionAtPosition(tsDoc.filePath, tsDoc.offsetAt(generatedPosition))?.[0];
+    const def = lang.getDefinitionAtPosition(
+        tsDoc.filePath,
+        tsDoc.offsetAt(generatedPosition)
+    )?.[0];
     if (!def) {
         return null;
     }
