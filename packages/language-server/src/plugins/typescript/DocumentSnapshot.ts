@@ -136,7 +136,7 @@ export namespace DocumentSnapshot {
 
         if (normalizedPath.endsWith('node_modules/svelte/types/index.d.ts')) {
             const startIdx = originalText.indexOf(`declare module '*.svelte' {`);
-            const endIdx = originalText.indexOf(`}`, originalText.indexOf(';', startIdx)) + 1;
+            const endIdx = originalText.indexOf(`\n}`, startIdx + 1) + 2;
             originalText =
                 originalText.substring(0, startIdx) +
                 ' '.repeat(endIdx - startIdx) +
