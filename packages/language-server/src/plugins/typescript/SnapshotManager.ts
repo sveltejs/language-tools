@@ -160,7 +160,7 @@ export class SnapshotManager {
         }
     }
 
-    filesAreIgnoredFromWatch(watcherNewFiles: string[]): boolean {
+    areIgnoredFromNewFileWatch(watcherNewFiles: string[]): boolean {
         const { include } = this.fileSpec;
 
         // Since we default to not include anything,
@@ -169,7 +169,6 @@ export class SnapshotManager {
             return true;
         }
 
-        let shouldCheck = false;
         for (const newFile of watcherNewFiles) {
             const path = this.getCanonicalFileName(normalizePath(newFile));
             if (this.projectFileToOriginalCasing.has(path)) {
@@ -184,13 +183,12 @@ export class SnapshotManager {
                             continue;
                         }
                     }
-                    shouldCheck = true;
-                    break;
+                    return false;
                 }
             }
         }
 
-        return !shouldCheck;
+        return true;
     }
 
     updateProjectFiles(): void {

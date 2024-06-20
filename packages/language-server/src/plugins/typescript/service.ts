@@ -477,7 +477,7 @@ async function createLanguageService(
     }
 
     function scheduleProjectFileUpdate(watcherNewFiles: string[]): void {
-        if (snapshotManager.filesAreIgnoredFromWatch(watcherNewFiles)) {
+        if (snapshotManager.areIgnoredFromNewFileWatch(watcherNewFiles)) {
             return;
         }
 

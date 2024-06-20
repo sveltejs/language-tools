@@ -19,12 +19,9 @@ export class FallbackWatcher {
     private readonly callbacks: DidChangeHandler[] = [];
 
     private undeliveredFileEvents: FileEvent[] = [];
-    private readonly nonRecursivePatterns: string;
 
-    constructor(nonRecursivePatterns: string, workspacePaths: string[]) {
-        this.nonRecursivePatterns = nonRecursivePatterns;
+    constructor(recursivePatterns: string, workspacePaths: string[]) {
         const gitOrNodeModules = /\.git|node_modules/;
-        const recursivePatterns = '**/' + nonRecursivePatterns;
         this.watcher = watch(
             workspacePaths.map((workspacePath) => join(workspacePath, recursivePatterns)),
             {

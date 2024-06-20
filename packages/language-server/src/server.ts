@@ -105,6 +105,7 @@ export function startServer(options?: LSOptions) {
     };
 
     const nonRecursiveWatchPattern = '*.{ts,js,mts,mjs,cjs,cts,json,svelte}';
+    const recursiveWatchPattern = '**/' + nonRecursiveWatchPattern;
 
     connection.onInitialize((evt) => {
         const workspaceUris = evt.workspaceFolders?.map((folder) => folder.uri.toString()) ?? [
@@ -117,7 +118,7 @@ export function startServer(options?: LSOptions) {
 
         if (!evt.capabilities.workspace?.didChangeWatchedFiles) {
             const workspacePaths = workspaceUris.map(urlToPath).filter(isNotNullOrUndefined);
-            watcher = new FallbackWatcher(nonRecursiveWatchPattern, workspacePaths);
+            watcher = new FallbackWatcher(recursiveWatchPattern, workspacePaths);
             watcher.onDidChangeWatchedFiles(onDidChangeWatchedFiles);
 
             watchDirectory = (patterns) => {
@@ -328,7 +329,7 @@ export function startServer(options?: LSOptions) {
         connection?.client.register(DidChangeWatchedFilesNotification.type, {
             watchers: [
                 {
-                    globPattern: nonRecursiveWatchPattern
+                    globPattern: recursiveWatchPattern
                 }
             ]
         });
