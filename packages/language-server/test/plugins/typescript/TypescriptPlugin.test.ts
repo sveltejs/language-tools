@@ -45,7 +45,8 @@ describe('TypescriptPlugin', function () {
         const plugin = new TypeScriptPlugin(
             lsConfigManager,
             new LSAndTSDocResolver(docManager, [pathToUrl(testDir)], lsConfigManager),
-            workspaceUris
+            workspaceUris,
+            docManager
         );
         docManager.openClientDocument(<any>'some doc');
         return { plugin, document };

@@ -28,7 +28,12 @@ import {
     TextDocumentContentChangeEvent,
     WorkspaceEdit
 } from 'vscode-languageserver';
-import { Document, getTextInRange, mapSymbolInformationToOriginal } from '../../lib/documents';
+import {
+    Document,
+    DocumentManager,
+    getTextInRange,
+    mapSymbolInformationToOriginal
+} from '../../lib/documents';
 import { LSConfigManager, LSTypescriptConfig } from '../../ls-config';
 import { isNotNullOrUndefined, isZeroLengthRange } from '../../utils';
 import {
@@ -87,8 +92,8 @@ import { isAttributeName, isAttributeShorthand, isEventHandler } from './svelte-
 import {
     convertToLocationForReferenceOrDefinition,
     convertToLocationRange,
-    getScriptKindFromFileName,
     isInScript,
+    isSvelteFilePath,
     symbolKindFromString
 } from './utils';
 
@@ -118,6 +123,7 @@ export class TypeScriptPlugin
 {
     __name = 'ts';
     private readonly configManager: LSConfigManager;
+    private readonly documentManager: DocumentManager;
     private readonly lsAndTsDocResolver: LSAndTSDocResolver;
     private readonly completionProvider: CompletionsProviderImpl;
     private readonly codeActionsProvider: CodeActionsProviderImpl;
@@ -141,9 +147,11 @@ export class TypeScriptPlugin
     constructor(
         configManager: LSConfigManager,
         lsAndTsDocResolver: LSAndTSDocResolver,
-        workspaceUris: string[]
+        workspaceUris: string[],
+        documentManager: DocumentManager
     ) {
         this.configManager = configManager;
+        this.documentManager = documentManager;
         this.lsAndTsDocResolver = lsAndTsDocResolver;
         this.completionProvider = new CompletionsProviderImpl(
             this.lsAndTsDocResolver,
@@ -513,14 +521,14 @@ export class TypeScriptPlugin
                 continue;
             }
 
-            const scriptKind = getScriptKindFromFileName(fileName);
-            if (scriptKind === ts.ScriptKind.Unknown) {
-                // We don't deal with svelte files here
-                continue;
-            }
+            const isSvelteFile = isSvelteFilePath(fileName);
+            const isClientSvelteFile =
+                isSvelteFile && this.documentManager.get(fileName)?.openedByClient;
 
             if (changeType === FileChangeType.Deleted) {
-                await this.lsAndTsDocResolver.deleteSnapshot(fileName);
+                if (!isClientSvelteFile) {
+                    await this.lsAndTsDocResolver.deleteSnapshot(fileName);
+                }
                 continue;
             }
 
@@ -531,6 +539,13 @@ export class TypeScriptPlugin
                 }
                 await this.lsAndTsDocResolver.invalidateModuleCache(fileName);
                 continue;
+            }
+
+            if (isSvelteFile) {
+                if (!isClientSvelteFile) {
+                    await this.lsAndTsDocResolver.updateExistingSvelteFile(fileName);
+                }
+                return;
             }
 
             await this.lsAndTsDocResolver.updateExistingTsOrJsFile(fileName);

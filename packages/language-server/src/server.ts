@@ -99,6 +99,8 @@ export function startServer(options?: LSOptions) {
     let sveltePlugin: SveltePlugin = undefined as any;
     let watcher: FallbackWatcher | undefined;
 
+    const watchFilePattern = '**/*.{ts,js,mts,mjs,cjs,cts,json,svelte}';
+
     connection.onInitialize((evt) => {
         const workspaceUris = evt.workspaceFolders?.map((folder) => folder.uri.toString()) ?? [
             evt.rootUri ?? ''
@@ -110,7 +112,7 @@ export function startServer(options?: LSOptions) {
 
         if (!evt.capabilities.workspace?.didChangeWatchedFiles) {
             const workspacePaths = workspaceUris.map(urlToPath).filter(isNotNullOrUndefined);
-            watcher = new FallbackWatcher('**/*.{ts,js}', workspacePaths);
+            watcher = new FallbackWatcher(watchFilePattern, workspacePaths);
             watcher.onDidChangeWatchedFiles(onDidChangeWatchedFiles);
         }
 
@@ -185,7 +187,8 @@ export function startServer(options?: LSOptions) {
                     onProjectReloaded: refreshCrossFilesSemanticFeatures,
                     watch: true
                 }),
-                normalizedWorkspaceUris
+                normalizedWorkspaceUris,
+                docManager
             )
         );
 
@@ -307,7 +310,7 @@ export function startServer(options?: LSOptions) {
             connection?.client.register(DidChangeWatchedFilesNotification.type, {
                 watchers: [
                     {
-                        globPattern: '**/*.{ts,js,mts,mjs,cjs,cts,json}'
+                        globPattern: watchFilePattern
                     }
                 ]
             });

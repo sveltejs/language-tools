@@ -66,13 +66,7 @@ export class LSAndTSDocResolver {
         // where multiple files and their dependencies
         // being loaded in a short period of times
         docManager.on('documentOpen', (document) => {
-            const path = document.getFilePath();
-            const isNewFile = path && !this.globalSnapshotsManager.get(path);
             handleDocumentChange(document);
-            if (isNewFile && document.openedByClient) {
-                // check if is a file that belongs to other project as well
-                this.updateProjectFiles();
-            }
             docManager.lockDocument(document.uri);
         });
 
@@ -233,6 +227,20 @@ export class LSAndTSDocResolver {
         path: string,
         changes?: TextDocumentContentChangeEvent[]
     ): Promise<void> {
+        await this.updateExistingFile(path, (service) => service.updateTsOrJsFile(path, changes));
+    }
+
+    async updateExistingSvelteFile(path: string): Promise<void> {
+        const newDocument = this.createDocument(path, this.tsSystem.readFile(path) ?? '');
+        await this.updateExistingFile(path, (service) => {
+            service.updateSnapshot(newDocument);
+        });
+    }
+
+    private async updateExistingFile(
+        path: string,
+        cb: (service: LanguageServiceContainer) => void
+    ) {
         path = normalizePath(path);
         // Only update once because all snapshots are shared between
         // services. Since we don't have a current version of TS/JS
@@ -241,7 +249,7 @@ export class LSAndTSDocResolver {
         await forAllServices((service) => {
             if (service.hasFile(path) && !didUpdate) {
                 didUpdate = true;
-                service.updateTsOrJsFile(path, changes);
+                cb(service);
             }
         });
     }
