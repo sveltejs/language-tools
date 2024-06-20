@@ -1,8 +1,14 @@
 import { FSWatcher, watch } from 'chokidar';
 import { debounce } from 'lodash';
 import { join } from 'path';
-import { DidChangeWatchedFilesParams, FileChangeType, FileEvent } from 'vscode-languageserver';
+import {
+    DidChangeWatchedFilesParams,
+    FileChangeType,
+    FileEvent,
+    RelativePattern
+} from 'vscode-languageserver';
 import { pathToUrl } from '../utils';
+import { fileURLToPath } from 'url';
 
 type DidChangeHandler = (para: DidChangeWatchedFilesParams) => void;
 
@@ -13,11 +19,14 @@ export class FallbackWatcher {
     private readonly callbacks: DidChangeHandler[] = [];
 
     private undeliveredFileEvents: FileEvent[] = [];
+    private readonly nonRecursivePatterns: string;
 
-    constructor(glob: string, workspacePaths: string[]) {
+    constructor(nonRecursivePatterns: string, workspacePaths: string[]) {
+        this.nonRecursivePatterns = nonRecursivePatterns;
         const gitOrNodeModules = /\.git|node_modules/;
+        const recursivePatterns = '**/' + nonRecursivePatterns;
         this.watcher = watch(
-            workspacePaths.map((workspacePath) => join(workspacePath, glob)),
+            workspacePaths.map((workspacePath) => join(workspacePath, recursivePatterns)),
             {
                 ignored: (path: string) =>
                     gitOrNodeModules.test(path) &&
@@ -63,6 +72,18 @@ export class FallbackWatcher {
 
     onDidChangeWatchedFiles(callback: DidChangeHandler) {
         this.callbacks.push(callback);
+    }
+
+    watchDirectory(patterns: RelativePattern[]) {
+        for (const pattern of patterns) {
+            const basePath = fileURLToPath(
+                typeof pattern.baseUri === 'string' ? pattern.baseUri : pattern.baseUri.uri
+            );
+            if (!basePath) {
+                continue;
+            }
+            this.watcher.add(join(basePath, pattern.pattern));
+        }
     }
 
     dispose() {

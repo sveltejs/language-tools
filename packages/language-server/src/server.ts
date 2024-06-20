@@ -22,7 +22,8 @@ import {
     InlayHintRequest,
     SemanticTokensRefreshRequest,
     InlayHintRefreshRequest,
-    DidChangeWatchedFilesNotification
+    DidChangeWatchedFilesNotification,
+    RelativePattern
 } from 'vscode-languageserver';
 import { IPCMessageReader, IPCMessageWriter, createConnection } from 'vscode-languageserver/node';
 import { DiagnosticsManager } from './lib/DiagnosticsManager';
@@ -98,8 +99,12 @@ export function startServer(options?: LSOptions) {
     const pluginHost = new PluginHost(docManager);
     let sveltePlugin: SveltePlugin = undefined as any;
     let watcher: FallbackWatcher | undefined;
+    let pendingWatchPatterns: RelativePattern[] = [];
+    let watchDirectory: ((patterns: RelativePattern[]) => void) | undefined = (patterns) => {
+        pendingWatchPatterns = patterns;
+    };
 
-    const watchFilePattern = '**/*.{ts,js,mts,mjs,cjs,cts,json,svelte}';
+    const nonRecursiveWatchPattern = '*.{ts,js,mts,mjs,cjs,cts,json,svelte}';
 
     connection.onInitialize((evt) => {
         const workspaceUris = evt.workspaceFolders?.map((folder) => folder.uri.toString()) ?? [
@@ -112,8 +117,12 @@ export function startServer(options?: LSOptions) {
 
         if (!evt.capabilities.workspace?.didChangeWatchedFiles) {
             const workspacePaths = workspaceUris.map(urlToPath).filter(isNotNullOrUndefined);
-            watcher = new FallbackWatcher(watchFilePattern, workspacePaths);
+            watcher = new FallbackWatcher(nonRecursiveWatchPattern, workspacePaths);
             watcher.onDidChangeWatchedFiles(onDidChangeWatchedFiles);
+
+            watchDirectory = (patterns) => {
+                watcher?.watchDirectory(patterns);
+            };
         }
 
         const isTrusted: boolean = evt.initializationOptions?.isTrusted ?? true;
@@ -185,7 +194,9 @@ export function startServer(options?: LSOptions) {
                 new LSAndTSDocResolver(docManager, normalizedWorkspaceUris, configManager, {
                     notifyExceedSizeLimit: notifyTsServiceExceedSizeLimit,
                     onProjectReloaded: refreshCrossFilesSemanticFeatures,
-                    watch: true
+                    watch: true,
+                    nonRecursiveWatchPattern,
+                    watchDirectory: (patterns) => watchDirectory?.(patterns)
                 }),
                 normalizedWorkspaceUris,
                 docManager
@@ -302,18 +313,38 @@ export function startServer(options?: LSOptions) {
     });
 
     connection.onInitialized(() => {
-        if (
-            !watcher &&
-            configManager.getClientCapabilities()?.workspace?.didChangeWatchedFiles
-                ?.dynamicRegistration
-        ) {
-            connection?.client.register(DidChangeWatchedFilesNotification.type, {
-                watchers: [
-                    {
-                        globPattern: watchFilePattern
-                    }
-                ]
-            });
+        if (watcher) {
+            return;
+        }
+
+        const didChangeWatchedFiles =
+            configManager.getClientCapabilities()?.workspace?.didChangeWatchedFiles;
+
+        if (!didChangeWatchedFiles?.dynamicRegistration) {
+            return;
+        }
+
+        // still watch the roots since some files might be referenced but not included in the project
+        connection?.client.register(DidChangeWatchedFilesNotification.type, {
+            watchers: [
+                {
+                    globPattern: nonRecursiveWatchPattern
+                }
+            ]
+        });
+
+        if (didChangeWatchedFiles.relativePatternSupport) {
+            watchDirectory = (patterns) => {
+                connection?.client.register(DidChangeWatchedFilesNotification.type, {
+                    watchers: patterns.map((pattern) => ({
+                        globPattern: pattern
+                    }))
+                });
+            };
+            if (pendingWatchPatterns.length) {
+                watchDirectory(pendingWatchPatterns);
+                pendingWatchPatterns = [];
+            }
         }
     });
 

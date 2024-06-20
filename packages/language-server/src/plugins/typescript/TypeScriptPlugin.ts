@@ -501,7 +501,7 @@ export class TypeScriptPlugin
     }
 
     async onWatchFileChanges(onWatchFileChangesParas: OnWatchFileChangesPara[]): Promise<void> {
-        let doneUpdateProjectFiles = false;
+        const newFiles: string[] = [];
 
         for (const { fileName, changeType } of onWatchFileChangesParas) {
             const pathParts = fileName.split(/\/|\\/);
@@ -533,11 +533,7 @@ export class TypeScriptPlugin
             }
 
             if (changeType === FileChangeType.Created) {
-                if (!doneUpdateProjectFiles) {
-                    doneUpdateProjectFiles = true;
-                    await this.lsAndTsDocResolver.updateProjectFiles();
-                }
-                await this.lsAndTsDocResolver.invalidateModuleCache(fileName);
+                newFiles.push(fileName);
                 continue;
             }
 
@@ -545,10 +541,15 @@ export class TypeScriptPlugin
                 if (!isClientSvelteFile) {
                     await this.lsAndTsDocResolver.updateExistingSvelteFile(fileName);
                 }
-                return;
+                continue;
             }
 
             await this.lsAndTsDocResolver.updateExistingTsOrJsFile(fileName);
+        }
+
+        if (newFiles.length) {
+            await this.lsAndTsDocResolver.updateProjectFiles(newFiles);
+            await this.lsAndTsDocResolver.invalidateModuleCache(newFiles);
         }
     }
 
@@ -654,13 +655,6 @@ export class TypeScriptPlugin
 
     async getFoldingRanges(document: Document): Promise<FoldingRange[]> {
         return this.foldingRangeProvider.getFoldingRanges(document);
-    }
-
-    /**
-     * @internal Public for tests only
-     */
-    public getSnapshotManager(fileName: string) {
-        return this.lsAndTsDocResolver.getSnapshotManager(fileName);
     }
 
     private featureEnabled(feature: keyof LSTypescriptConfig) {

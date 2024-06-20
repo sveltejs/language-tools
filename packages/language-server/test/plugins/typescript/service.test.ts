@@ -16,6 +16,7 @@ describe('service', () => {
     function setup() {
         const virtualSystem = createVirtualTsSystem(testDir);
 
+        const rootUris = [pathToUrl(testDir)];
         const lsDocumentContext: LanguageServiceDocumentContext = {
             ambientTypesSource: 'svelte2tsx',
             createDocument(fileName, content) {
@@ -28,10 +29,10 @@ describe('service', () => {
             watchTsConfig: false,
             notifyExceedSizeLimit: undefined,
             onProjectReloaded: undefined,
-            projectService: undefined
+            projectService: undefined,
+            nonRecursiveWatchPattern: undefined,
+            watchDirectory: undefined
         };
-
-        const rootUris = [pathToUrl(testDir)];
 
         return { virtualSystem, lsDocumentContext, rootUris };
     }

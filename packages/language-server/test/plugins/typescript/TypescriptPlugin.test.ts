@@ -42,14 +42,22 @@ describe('TypescriptPlugin', function () {
         const document = new Document(pathToUrl(filePath), ts.sys.readFile(filePath) || '');
         const lsConfigManager = new LSConfigManager();
         const workspaceUris = [pathToUrl(testDir)];
+        const lsAndTsDocResolver = new LSAndTSDocResolver(
+            docManager,
+            workspaceUris,
+            lsConfigManager,
+            {
+                nonRecursiveWatchPattern: '**/*.{ts,js}'
+            }
+        );
         const plugin = new TypeScriptPlugin(
             lsConfigManager,
-            new LSAndTSDocResolver(docManager, [pathToUrl(testDir)], lsConfigManager),
+            lsAndTsDocResolver,
             workspaceUris,
             docManager
         );
         docManager.openClientDocument(<any>'some doc');
-        return { plugin, document };
+        return { plugin, document, lsAndTsDocResolver };
     }
 
     it('provides document symbols', async () => {
@@ -610,14 +618,16 @@ describe('TypescriptPlugin', function () {
     });
 
     const setupForOnWatchedFileChanges = async () => {
-        const { plugin, document } = setup('empty.svelte');
+        const { plugin, document, lsAndTsDocResolver } = setup('empty.svelte');
         const targetSvelteFile = document.getFilePath()!;
-        const snapshotManager = await plugin.getSnapshotManager(targetSvelteFile);
+        const snapshotManager = (await lsAndTsDocResolver.getTSService(targetSvelteFile))
+            .snapshotManager;
 
         return {
             snapshotManager,
             plugin,
-            targetSvelteFile
+            targetSvelteFile,
+            lsAndTsDocResolver
         };
     };
 
@@ -678,7 +688,8 @@ describe('TypescriptPlugin', function () {
     });
 
     const testForOnWatchedFileAdd = async (filePath: string, shouldExist: boolean) => {
-        const { snapshotManager, plugin, targetSvelteFile } = await setupForOnWatchedFileChanges();
+        const { snapshotManager, plugin, targetSvelteFile, lsAndTsDocResolver } =
+            await setupForOnWatchedFileChanges();
         const addFile = path.join(path.dirname(targetSvelteFile), filePath);
 
         const dir = path.dirname(addFile);
@@ -697,6 +708,8 @@ describe('TypescriptPlugin', function () {
                     changeType: FileChangeType.Created
                 }
             ]);
+
+            (await lsAndTsDocResolver.getTSService(targetSvelteFile)).getService();
 
             assert.equal(snapshotManager.has(addFile), shouldExist);
 

@@ -99,6 +99,7 @@ export class SnapshotManager {
 
     private readonly projectFileToOriginalCasing: Map<string, string>;
     private getCanonicalFileName: GetCanonicalFileName;
+    private watchingCanonicalDirectories: Map<string, ts.WatchDirectoryFlags> | undefined;
 
     private readonly watchExtensions = [
         ts.Extension.Dts,
@@ -121,7 +122,8 @@ export class SnapshotManager {
         private fileSpec: TsFilesSpec,
         private workspaceRoot: string,
         private tsSystem: ts.System,
-        projectFiles: string[]
+        projectFiles: string[],
+        wildcardDirectories: ts.MapLike<ts.WatchDirectoryFlags> | undefined
     ) {
         this.onSnapshotChange = this.onSnapshotChange.bind(this);
         this.globalSnapshotsManager.onChange(this.onSnapshotChange);
@@ -134,6 +136,13 @@ export class SnapshotManager {
                 this.getCanonicalFileName(originalCasing),
                 originalCasing
             )
+        );
+
+        this.watchingCanonicalDirectories = new Map(
+            Object.entries(wildcardDirectories ?? {}).map(([dir, flags]) => [
+                this.getCanonicalFileName(dir),
+                flags
+            ])
         );
     }
 
@@ -151,11 +160,42 @@ export class SnapshotManager {
         }
     }
 
-    updateProjectFiles(): void {
-        const { include, exclude } = this.fileSpec;
+    filesAreIgnoredFromWatch(watcherNewFiles: string[]): boolean {
+        const { include } = this.fileSpec;
 
         // Since we default to not include anything,
         //  just don't waste time on this
+        if (include?.length === 0 || !this.watchingCanonicalDirectories) {
+            return true;
+        }
+
+        let shouldCheck = false;
+        for (const newFile of watcherNewFiles) {
+            const path = this.getCanonicalFileName(normalizePath(newFile));
+            if (this.projectFileToOriginalCasing.has(path)) {
+                continue;
+            }
+
+            for (const [dir, flags] of this.watchingCanonicalDirectories) {
+                if (path.startsWith(dir)) {
+                    if (!(flags & ts.WatchDirectoryFlags.Recursive)) {
+                        const relative = path.slice(dir.length);
+                        if (relative.includes('/')) {
+                            continue;
+                        }
+                    }
+                    shouldCheck = true;
+                    break;
+                }
+            }
+        }
+
+        return !shouldCheck;
+    }
+
+    updateProjectFiles(): void {
+        const { include, exclude } = this.fileSpec;
+
         if (include?.length === 0) {
             return;
         }
