@@ -81,15 +81,23 @@ export function handleSnippet(
         let generic = '';
         if (snippetBlock.parameters?.length) {
             generic = `<[${snippetBlock.parameters
-                .map((p) =>
-                    p.typeAnnotation?.typeAnnotation
+                .map((p) => {
+                    let type_annotation = p.typeAnnotation;
+                    if (!type_annotation && p.type === 'AssignmentPattern') {
+                        type_annotation = p.left?.typeAnnotation;
+                        if (!type_annotation) {
+                            type_annotation = p.right?.typeAnnotation;
+                        }
+                    }
+                    if (!type_annotation) return 'any';
+                    return type_annotation.typeAnnotation
                         ? str.original.slice(
-                              p.typeAnnotation.typeAnnotation.start,
-                              p.typeAnnotation.typeAnnotation.end
+                              type_annotation.typeAnnotation.start,
+                              type_annotation.typeAnnotation.end
                           )
                         : // slap any on to it to silence "implicit any" errors; JSDoc people can't add types to snippets
-                          'any'
-                )
+                          'any';
+                })
                 .join(', ')}]>`;
         }
 
