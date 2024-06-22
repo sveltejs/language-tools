@@ -42,11 +42,17 @@ export function handleSnippet(
         }
     );
 
+    const last_parameter = snippetBlock.parameters?.at(-1);
+
     const startEnd =
         str.original.indexOf(
             '}',
             // context was the first iteration in a .next release, remove at some point
-            snippetBlock.parameters?.at(-1)?.end || snippetBlock.expression.end
+            (last_parameter?.typeAnnotation
+                ? // if it has a type annotation use the end of the type annotation
+                  // else the end of the parameter
+                  last_parameter?.typeAnnotation.end
+                : last_parameter?.end) || snippetBlock.expression.end
         ) + 1;
 
     if (isImplicitProp) {
@@ -54,7 +60,9 @@ export function handleSnippet(
         const transforms: TransformationArray = ['('];
         if (snippetBlock.parameters?.length) {
             const start = snippetBlock.parameters?.[0].start;
-            const end = snippetBlock.parameters.at(-1).end;
+            const end = last_parameter.typeAnnotation
+                ? last_parameter?.typeAnnotation.end
+                : last_parameter.end;
             transforms.push([start, end]);
             str.overwrite(snippetBlock.expression.end, start, '', {
                 contentOnly: true
@@ -94,7 +102,9 @@ export function handleSnippet(
 
         if (snippetBlock.parameters?.length) {
             const start = snippetBlock.parameters[0].start;
-            const end = snippetBlock.parameters.at(-1).end;
+            const end = last_parameter.typeAnnotation
+                ? last_parameter?.typeAnnotation.end
+                : last_parameter.end;
             transforms.push([start, end]);
         }
 
