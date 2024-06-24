@@ -82,14 +82,19 @@ export function handleSnippet(
                             typeAnnotation = p.right?.typeAnnotation;
                         }
                     }
-                    if (!typeAnnotation) return 'any';
-                    return typeAnnotation.typeAnnotation
-                        ? str.original.slice(
-                              typeAnnotation.typeAnnotation.start,
-                              typeAnnotation.typeAnnotation.end
-                          )
-                        : // slap any on to it to silence "implicit any" errors; JSDoc people can't add types to snippets
-                          'any';
+
+                    // fall back to `any` to silence "implicit any" errors; JSDoc people can't add types to snippets
+                    let type = 'any';
+                    if (typeAnnotation?.typeAnnotation) {
+                        type = str.original.slice(
+                            typeAnnotation.typeAnnotation.start,
+                            typeAnnotation.typeAnnotation.end
+                        );
+                    }
+                    if (p.optional || p.type === 'AssignmentPattern') {
+                        type += '?';
+                    }
+                    return type;
                 })
                 .join(', ')}]>`;
         }

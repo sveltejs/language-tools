@@ -22,9 +22,13 @@ item as string;
 
  var foo3/*Ωignore_startΩ*/: import('svelte').Snippet<[string | number]>/*Ωignore_endΩ*/ = (bar    : string | number) => {async () => { };return __sveltets_2_any(0)};
 
- var foo3/*Ωignore_startΩ*/: import('svelte').Snippet<[string | number, (str: string)=>void]>/*Ωignore_endΩ*/ = (bar    : string | number, baz     : (str: string)=>void) => {async () => { };return __sveltets_2_any(0)};
+ var foo4/*Ωignore_startΩ*/: import('svelte').Snippet<[string | number, (str: string)=>void]>/*Ωignore_endΩ*/ = (bar    : string | number, baz     : (str: string)=>void) => {async () => { };return __sveltets_2_any(0)};
 
- var foo3/*Ωignore_startΩ*/: import('svelte').Snippet<[{baz: string}]>/*Ωignore_endΩ*/ = (bar: {baz: string}) => {async () => { };return __sveltets_2_any(0)};
+ var foo5/*Ωignore_startΩ*/: import('svelte').Snippet<[{baz: string}]>/*Ωignore_endΩ*/ = (bar: {baz: string}) => {async () => { };return __sveltets_2_any(0)};
+
+ var foo6/*Ωignore_startΩ*/: import('svelte').Snippet<[string?]>/*Ωignore_endΩ*/ = (bar?: string) => {async () => { };return __sveltets_2_any(0)};
+
+ var foo7/*Ωignore_startΩ*/: import('svelte').Snippet<[any, any?]>/*Ωignore_endΩ*/ = (bar, baz = '') => {async () => { };return __sveltets_2_any(0)};
 
 ;__sveltets_2_ensureSnippet(foo(bar as string));
 

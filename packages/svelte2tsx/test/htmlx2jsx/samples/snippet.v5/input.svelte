@@ -10,6 +10,10 @@
 	{#await foo then bar}{bar}{/await}
 {/snippet}
 
+{#snippet defaultValue(x = '')}
+	<div>asd{x}</div>
+{/snippet}
+
 {@render foo(1)}
 {@render bar()}
 {@render await_inside()}
