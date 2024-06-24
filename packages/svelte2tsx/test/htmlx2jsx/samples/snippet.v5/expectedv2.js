@@ -10,6 +10,10 @@
 	   { const $$_value = await (foo);{ const bar = $$_value; bar;}}
 };return __sveltets_2_any(0)};
 
+ var default_parameter/*Ωignore_startΩ*/: import('svelte').Snippet<[any]>/*Ωignore_endΩ*/ = (a = '') => {async () => {
+	a;
+};return __sveltets_2_any(0)};
+
 ;__sveltets_2_ensureSnippet(foo(1));
 ;__sveltets_2_ensureSnippet(bar());
 ;__sveltets_2_ensureSnippet(await_inside());
