@@ -25,8 +25,6 @@
     "dependencies": {
         "@jridgewell/trace-mapping": "^0.3.17",
         "chokidar": "^3.4.1",
-        "fast-glob": "^3.2.7",
-        "import-fresh": "^3.2.1",
         "picocolors": "^1.0.0",
         "sade": "^1.7.4",
         "svelte-preprocess": ">=5",
@@ -48,6 +46,7 @@
         "@rollup/plugin-typescript": "^10.0.0",
         "@types/sade": "^1.7.2",
         "builtin-modules": "^3.3.0",
+        "fast-glob": "^3.2.7",
         "rollup": "3.7.5",
         "rollup-plugin-cleanup": "^3.2.0",
         "rollup-plugin-copy": "^3.4.0",
