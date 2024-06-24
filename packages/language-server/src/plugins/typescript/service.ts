@@ -1,12 +1,12 @@
 import { basename, dirname, join, resolve } from 'path';
 import ts from 'typescript';
-import { TextDocumentContentChangeEvent } from 'vscode-languageserver-protocol';
+import { RelativePattern, TextDocumentContentChangeEvent } from 'vscode-languageserver-protocol';
 import { getPackageInfo, importSvelte } from '../../importPackage';
 import { Document } from '../../lib/documents';
 import { configLoader } from '../../lib/documents/configLoader';
 import { FileMap, FileSet } from '../../lib/documents/fileCollection';
 import { Logger } from '../../logger';
-import { createGetCanonicalFileName, normalizePath, urlToPath } from '../../utils';
+import { createGetCanonicalFileName, normalizePath, pathToUrl, urlToPath } from '../../utils';
 import { DocumentSnapshot, SvelteSnapshotOptions } from './DocumentSnapshot';
 import { createSvelteModuleLoader } from './module-loader';
 import {
@@ -34,8 +34,8 @@ export interface LanguageServiceContainer {
     getService(skipSynchronize?: boolean): ts.LanguageService;
     updateSnapshot(documentOrFilePath: Document | string): DocumentSnapshot;
     deleteSnapshot(filePath: string): void;
-    invalidateModuleCache(filePath: string): void;
-    updateProjectFiles(): void;
+    invalidateModuleCache(filePath: string[]): void;
+    scheduleProjectFileUpdate(watcherNewFiles: string[]): void;
     updateTsOrJsFile(fileName: string, changes?: TextDocumentContentChangeEvent[]): void;
     /**
      * Checks if a file is present in the project.
@@ -92,6 +92,7 @@ const configFileModifiedTime = new FileMap<Date | undefined>();
 const configFileForOpenFiles = new FileMap<string>();
 const pendingReloads = new FileSet();
 const documentRegistries = new Map<string, ts.DocumentRegistry>();
+const pendingForAllServices = new Set<Promise<void>>();
 
 /**
  * For testing only: Reset the cache for services.
@@ -115,6 +116,8 @@ export interface LanguageServiceDocumentContext {
     watchTsConfig: boolean;
     tsSystem: ts.System;
     projectService: ProjectService | undefined;
+    watchDirectory: ((patterns: RelativePattern[]) => void) | undefined;
+    nonRecursiveWatchPattern: string | undefined;
 }
 
 export async function getService(
@@ -158,6 +161,13 @@ export async function getService(
 export async function forAllServices(
     cb: (service: LanguageServiceContainer) => any
 ): Promise<void> {
+    const promise = forAllServicesWorker(cb);
+    pendingForAllServices.add(promise);
+    await promise;
+    pendingForAllServices.delete(promise);
+}
+
+async function forAllServicesWorker(cb: (service: LanguageServiceContainer) => any): Promise<void> {
     for (const service of services.values()) {
         cb(await service);
     }
@@ -192,6 +202,10 @@ export async function getServiceForTsconfig(
         service = await services.get(tsconfigPathOrWorkspacePath)!;
     }
 
+    if (pendingForAllServices.size > 0) {
+        await Promise.all(pendingForAllServices);
+    }
+
     return service;
 }
 
@@ -207,15 +221,22 @@ async function createLanguageService(
         errors: configErrors,
         fileNames: files,
         raw,
-        extendedConfigPaths
+        extendedConfigPaths,
+        wildcardDirectories
     } = getParsedConfig();
+
+    const getCanonicalFileName = createGetCanonicalFileName(tsSystem.useCaseSensitiveFileNames);
+    watchWildCardDirectories();
+
     // raw is the tsconfig merged with extending config
     // see: https://github.com/microsoft/TypeScript/blob/08e4f369fbb2a5f0c30dee973618d65e6f7f09f8/src/compiler/commandLineParser.ts#L2537
     const snapshotManager = new SnapshotManager(
         docContext.globalSnapshotsManager,
         raw,
         workspacePath,
-        files
+        tsSystem,
+        files,
+        wildcardDirectories
     );
 
     // Load all configs within the tsconfig scope and the one above so that they are all loaded
@@ -261,8 +282,7 @@ async function createLanguageService(
     let languageServiceReducedMode = false;
     let projectVersion = 0;
     let dirty = false;
-
-    const getCanonicalFileName = createGetCanonicalFileName(tsSystem.useCaseSensitiveFileNames);
+    let pendingProjectFileUpdate = false;
 
     const host: ts.LanguageServiceHost = {
         log: (message) => Logger.debug(`[ts] ${message}`),
@@ -316,7 +336,7 @@ async function createLanguageService(
         getService,
         updateSnapshot,
         deleteSnapshot,
-        updateProjectFiles,
+        scheduleProjectFileUpdate,
         updateTsOrJsFile,
         hasFile,
         fileBelongsToProject,
@@ -328,7 +348,34 @@ async function createLanguageService(
         dispose
     };
 
+    function watchWildCardDirectories() {
+        if (!wildcardDirectories || !docContext.watchDirectory) {
+            return;
+        }
+
+        const patterns: RelativePattern[] = [];
+
+        Object.entries(wildcardDirectories).forEach(([dir, flags]) => {
+            // already watched
+            if (getCanonicalFileName(dir).startsWith(workspacePath)) {
+                return;
+            }
+            patterns.push({
+                baseUri: pathToUrl(dir),
+                pattern:
+                    (flags & ts.WatchDirectoryFlags.Recursive ? `**/` : '') +
+                    docContext.nonRecursiveWatchPattern
+            });
+        });
+
+        docContext.watchDirectory?.(patterns);
+    }
+
     function getService(skipSynchronize?: boolean) {
+        if (pendingProjectFileUpdate) {
+            updateProjectFiles();
+            pendingProjectFileUpdate = false;
+        }
         if (!skipSynchronize) {
             updateIfDirty();
         }
@@ -342,11 +389,13 @@ async function createLanguageService(
         configFileForOpenFiles.delete(filePath);
     }
 
-    function invalidateModuleCache(filePath: string) {
-        svelteModuleLoader.deleteFromModuleCache(filePath);
-        svelteModuleLoader.deleteUnresolvedResolutionsFromCache(filePath);
+    function invalidateModuleCache(filePaths: string[]) {
+        for (const filePath of filePaths) {
+            svelteModuleLoader.deleteFromModuleCache(filePath);
+            svelteModuleLoader.deleteUnresolvedResolutionsFromCache(filePath);
 
-        scheduleUpdate(filePath);
+            scheduleUpdate(filePath);
+        }
     }
 
     function updateSnapshot(documentOrFilePath: Document | string): DocumentSnapshot {
@@ -427,17 +476,23 @@ async function createLanguageService(
         return doc;
     }
 
-    function updateProjectFiles(): void {
+    function scheduleProjectFileUpdate(watcherNewFiles: string[]): void {
+        if (snapshotManager.areIgnoredFromNewFileWatch(watcherNewFiles)) {
+            return;
+        }
+
         scheduleUpdate();
+        pendingProjectFileUpdate = true;
+    }
+
+    function updateProjectFiles(): void {
         const projectFileCountBefore = snapshotManager.getProjectFileNames().length;
         snapshotManager.updateProjectFiles();
         const projectFileCountAfter = snapshotManager.getProjectFileNames().length;
 
-        if (projectFileCountAfter <= projectFileCountBefore) {
-            return;
+        if (projectFileCountAfter > projectFileCountBefore) {
+            reduceLanguageServiceCapabilityIfFileSizeTooBig();
         }
-
-        reduceLanguageServiceCapabilityIfFileSizeTooBig();
     }
 
     function getScriptFileNames() {

@@ -2,11 +2,11 @@ import assert from 'assert';
 import path from 'path';
 import ts from 'typescript';
 import { Document } from '../../../src/lib/documents';
-import {
-    getService,
-    LanguageServiceDocumentContext
-} from '../../../src/plugins/typescript/service';
 import { GlobalSnapshotsManager } from '../../../src/plugins/typescript/SnapshotManager';
+import {
+    LanguageServiceDocumentContext,
+    getService
+} from '../../../src/plugins/typescript/service';
 import { pathToUrl } from '../../../src/utils';
 import { createVirtualTsSystem, getRandomVirtualDirPath } from './test-utils';
 
@@ -16,6 +16,7 @@ describe('service', () => {
     function setup() {
         const virtualSystem = createVirtualTsSystem(testDir);
 
+        const rootUris = [pathToUrl(testDir)];
         const lsDocumentContext: LanguageServiceDocumentContext = {
             ambientTypesSource: 'svelte2tsx',
             createDocument(fileName, content) {
@@ -28,10 +29,10 @@ describe('service', () => {
             watchTsConfig: false,
             notifyExceedSizeLimit: undefined,
             onProjectReloaded: undefined,
-            projectService: undefined
+            projectService: undefined,
+            nonRecursiveWatchPattern: undefined,
+            watchDirectory: undefined
         };
-
-        const rootUris = [pathToUrl(testDir)];
 
         return { virtualSystem, lsDocumentContext, rootUris };
     }

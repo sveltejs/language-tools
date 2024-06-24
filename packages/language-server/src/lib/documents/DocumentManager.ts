@@ -47,15 +47,16 @@ export class DocumentManager {
         let document: Document;
         if (this.documents.has(textDocument.uri)) {
             document = this.documents.get(textDocument.uri)!;
+            document.openedByClient = openedByClient;
             document.setText(textDocument.text);
         } else {
             document = this.createDocument(textDocument);
+            document.openedByClient = openedByClient;
             this.documents.set(textDocument.uri, document);
             this.notify('documentOpen', document);
         }
 
         this.notify('documentChange', document);
-        document.openedByClient = openedByClient;
 
         return document;
     }
