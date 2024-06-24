@@ -20,6 +20,7 @@ import {
     CompletionList,
     DefinitionLink,
     Diagnostic,
+    DocumentHighlight,
     FoldingRange,
     FormattingOptions,
     Hover,
@@ -228,6 +229,13 @@ export interface FoldingRangeProvider {
     getFoldingRanges(document: Document): Resolvable<FoldingRange[]>;
 }
 
+export interface DocumentHighlightProvider {
+    findDocumentHighlight(
+        document: Document,
+        position: Position
+    ): Resolvable<DocumentHighlight[] | null>;
+}
+
 export interface OnWatchFileChanges {
     onWatchFileChanges(onWatchFileChangesParas: OnWatchFileChangesPara[]): void;
 }
@@ -257,7 +265,8 @@ type ProviderBase = DiagnosticsProvider &
     TypeDefinitionProvider &
     InlayHintProvider &
     CallHierarchyProvider &
-    FoldingRangeProvider;
+    FoldingRangeProvider &
+    DocumentHighlightProvider;
 
 export type LSProvider = ProviderBase & BackwardsCompatibleDefinitionsProvider;
 
