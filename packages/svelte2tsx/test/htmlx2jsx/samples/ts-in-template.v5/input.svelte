@@ -38,6 +38,10 @@
     snippet
 {/snippet}
 
+{#snippet foo3(bar: {baz: string})}
+    snippet
+{/snippet}
+
 {@render foo(bar as string)}
 
 <button onclick={(e: Event) => {e as any}}>click</button>
