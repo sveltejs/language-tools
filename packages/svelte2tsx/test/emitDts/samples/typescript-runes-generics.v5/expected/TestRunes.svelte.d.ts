@@ -1,4 +1,3 @@
-/// <reference types="svelte" />
 declare class __sveltets_Render<T extends Record<string, any>, K extends keyof T> {
     props(): {
         foo: T;
