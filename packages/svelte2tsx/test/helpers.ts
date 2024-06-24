@@ -225,8 +225,6 @@ const enum TestError {
 
 const isSvelte5Plus = Number(VERSION[0]) >= 5;
 
-console.log('IS SVELTE 5 +', isSvelte5Plus);
-
 export function test_samples(dir: string, transform: TransformSampleFn, js: 'js' | 'ts') {
     for (const sample of each_sample(dir)) {
         if (sample.name.endsWith('.v5') && !isSvelte5Plus) continue;

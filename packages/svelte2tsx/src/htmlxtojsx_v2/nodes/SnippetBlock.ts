@@ -42,27 +42,20 @@ export function handleSnippet(
         }
     );
 
-    const last_parameter = snippetBlock.parameters?.at(-1);
+    const lastParameter = snippetBlock.parameters?.at(-1);
 
     const startEnd =
         str.original.indexOf(
             '}',
-            // context was the first iteration in a .next release, remove at some point
-            (last_parameter?.typeAnnotation
-                ? // if it has a type annotation use the end of the type annotation
-                  // else the end of the parameter
-                  last_parameter?.typeAnnotation.end
-                : last_parameter?.end) || snippetBlock.expression.end
+            lastParameter?.typeAnnotation.end ?? lastParameter?.end ?? snippetBlock.expression.end
         ) + 1;
 
     if (isImplicitProp) {
         str.overwrite(snippetBlock.start, snippetBlock.expression.start, '', { contentOnly: true });
         const transforms: TransformationArray = ['('];
         if (snippetBlock.parameters?.length) {
-            const start = snippetBlock.parameters?.[0].start;
-            const end = last_parameter.typeAnnotation
-                ? last_parameter?.typeAnnotation.end
-                : last_parameter.end;
+            const start = snippetBlock.parameters[0].start;
+            const end = lastParameter.typeAnnotation?.end ?? lastParameter.end;
             transforms.push([start, end]);
             str.overwrite(snippetBlock.expression.end, start, '', {
                 contentOnly: true
@@ -82,18 +75,18 @@ export function handleSnippet(
         if (snippetBlock.parameters?.length) {
             generic = `<[${snippetBlock.parameters
                 .map((p) => {
-                    let type_annotation = p.typeAnnotation;
-                    if (!type_annotation && p.type === 'AssignmentPattern') {
-                        type_annotation = p.left?.typeAnnotation;
-                        if (!type_annotation) {
-                            type_annotation = p.right?.typeAnnotation;
+                    let typeAnnotation = p.typeAnnotation;
+                    if (!typeAnnotation && p.type === 'AssignmentPattern') {
+                        typeAnnotation = p.left?.typeAnnotation;
+                        if (!typeAnnotation) {
+                            typeAnnotation = p.right?.typeAnnotation;
                         }
                     }
-                    if (!type_annotation) return 'any';
-                    return type_annotation.typeAnnotation
+                    if (!typeAnnotation) return 'any';
+                    return typeAnnotation.typeAnnotation
                         ? str.original.slice(
-                              type_annotation.typeAnnotation.start,
-                              type_annotation.typeAnnotation.end
+                              typeAnnotation.typeAnnotation.start,
+                              typeAnnotation.typeAnnotation.end
                           )
                         : // slap any on to it to silence "implicit any" errors; JSDoc people can't add types to snippets
                           'any';
@@ -110,9 +103,7 @@ export function handleSnippet(
 
         if (snippetBlock.parameters?.length) {
             const start = snippetBlock.parameters[0].start;
-            const end = last_parameter.typeAnnotation
-                ? last_parameter?.typeAnnotation.end
-                : last_parameter.end;
+            const end = lastParameter.typeAnnotation?.end ?? lastParameter.end;
             transforms.push([start, end]);
         }
 
