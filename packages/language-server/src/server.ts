@@ -100,7 +100,7 @@ export function startServer(options?: LSOptions) {
     let sveltePlugin: SveltePlugin = undefined as any;
     let watcher: FallbackWatcher | undefined;
     let pendingWatchPatterns: RelativePattern[] = [];
-    let watchDirectory: ((patterns: RelativePattern[]) => void) | undefined = (patterns) => {
+    let watchDirectory: (patterns: RelativePattern[]) => void = (patterns) => {
         pendingWatchPatterns = patterns;
     };
 
@@ -197,7 +197,7 @@ export function startServer(options?: LSOptions) {
                     onProjectReloaded: refreshCrossFilesSemanticFeatures,
                     watch: true,
                     nonRecursiveWatchPattern,
-                    watchDirectory: (patterns) => watchDirectory?.(patterns)
+                    watchDirectory: (patterns) => watchDirectory(patterns)
                 }),
                 normalizedWorkspaceUris,
                 docManager

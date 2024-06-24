@@ -118,7 +118,9 @@ export class LSAndTSDocResolver {
             watchTsConfig: !!this.options?.watch,
             tsSystem: this.tsSystem,
             projectService,
-            watchDirectory: this.watchDirectory.bind(this),
+            watchDirectory: this.options?.watchDirectory
+                ? this.watchDirectory.bind(this)
+                : undefined,
             nonRecursiveWatchPattern: this.options?.nonRecursiveWatchPattern
         };
     }
@@ -375,7 +377,7 @@ export class LSAndTSDocResolver {
     }
 
     private watchDirectory(patterns: RelativePattern[]) {
-        if (!this.options?.watchDirectory) {
+        if (!this.options?.watchDirectory || patterns.length === 0) {
             return;
         }
 
