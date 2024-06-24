@@ -47,7 +47,7 @@ export function handleSnippet(
     const startEnd =
         str.original.indexOf(
             '}',
-            lastParameter?.typeAnnotation.end ?? lastParameter?.end ?? snippetBlock.expression.end
+            lastParameter?.typeAnnotation?.end ?? lastParameter?.end ?? snippetBlock.expression.end
         ) + 1;
 
     if (isImplicitProp) {
