@@ -709,26 +709,33 @@ export class ExportedNames {
         const others = names.filter(([, { isLet }]) => !isLet);
         const needsAccessors = this.usesAccessors && names.length > 0 && !this.usesRunes(); // runes mode doesn't support accessors
 
-        if (this.isSvelte5Plus && (others.length > 0 || this.usesRunes() || needsAccessors)) {
+        if (this.isSvelte5Plus) {
             let str = '';
 
-            if (others.length > 0 || needsAccessors) {
-                if (this.isTsFile) {
-                    str +=
-                        ', exports: {} as any as { ' +
-                        this.createReturnElementsType(
-                            needsAccessors ? names : others,
-                            undefined,
-                            true
-                        ).join(',') +
-                        ' }';
+            if (others.length > 0 || this.usesRunes() || needsAccessors) {
+                if (others.length > 0 || needsAccessors) {
+                    if (this.isTsFile) {
+                        str +=
+                            ', exports: {} as any as { ' +
+                            this.createReturnElementsType(
+                                needsAccessors ? names : others,
+                                undefined,
+                                true
+                            ).join(',') +
+                            ' }';
+                    } else {
+                        str += `, exports: /** @type {{${this.createReturnElementsType(needsAccessors ? names : others, false, true)}}} */ ({})`;
+                    }
                 } else {
-                    str += `, exports: /** @type {{${this.createReturnElementsType(needsAccessors ? names : others, false, true)}}} */ ({})`;
+                    // Always add that, in TS5.5+ the type for Exports is infered to never when this is not present, which breaks types.
+                    // Don't cast to `Record<string, never>` because that will break the union type we use elsewhere
+                    str += ', exports: {}';
                 }
-            }
 
-            if (this.usesRunes()) {
                 str += `, bindings: ${this.createBindingsStr()}`;
+            } else {
+                // always add that, in TS5.5+ the type for Exports is infered to never when this is not present, which breaks types
+                str += `, exports: {}, bindings: ${this.createBindingsStr()}`;
             }
 
             return str;
