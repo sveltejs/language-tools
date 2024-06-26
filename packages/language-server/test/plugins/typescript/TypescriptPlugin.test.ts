@@ -57,7 +57,7 @@ describe('TypescriptPlugin', function () {
             docManager
         );
         docManager.openClientDocument(<any>'some doc');
-        return { plugin, document, lsAndTsDocResolver };
+        return { plugin, document, lsAndTsDocResolver, docManager };
     }
 
     it('provides document symbols', async () => {
@@ -618,7 +618,7 @@ describe('TypescriptPlugin', function () {
     });
 
     const setupForOnWatchedFileChanges = async () => {
-        const { plugin, document, lsAndTsDocResolver } = setup('empty.svelte');
+        const { plugin, document, lsAndTsDocResolver, docManager } = setup('empty.svelte');
         const targetSvelteFile = document.getFilePath()!;
         const snapshotManager = (await lsAndTsDocResolver.getTSService(targetSvelteFile))
             .snapshotManager;
@@ -627,7 +627,8 @@ describe('TypescriptPlugin', function () {
             snapshotManager,
             plugin,
             targetSvelteFile,
-            lsAndTsDocResolver
+            lsAndTsDocResolver,
+            docManager
         };
     };
 
@@ -767,6 +768,49 @@ describe('TypescriptPlugin', function () {
             secondSnapshot?.getText(0, secondSnapshot?.getLength()),
             'const = "hello world";' + firstText
         );
+    });
+
+    it("shouldn't close svelte document when renamed", async () => {
+        const { plugin, docManager, targetSvelteFile } = await setupForOnWatchedFileChanges();
+        docManager.openClientDocument({
+            text: '',
+            uri: pathToUrl(targetSvelteFile)
+        });
+
+        const basename = path.basename(targetSvelteFile);
+        const newFileName = basename.replace('.svelte', '').toUpperCase() + '.svelte';
+        const newFilePath = path.join(path.dirname(targetSvelteFile), newFileName);
+        await plugin.onWatchFileChanges([
+            {
+                fileName: targetSvelteFile,
+                changeType: FileChangeType.Deleted
+            },
+            {
+                fileName: newFilePath,
+                changeType: FileChangeType.Created
+            }
+        ]);
+
+        const document = docManager.get(pathToUrl(targetSvelteFile));
+        assert.ok(document);
+    });
+
+    it("shouldn't mark client svelte document as close", async () => {
+        const { plugin, docManager, targetSvelteFile } = await setupForOnWatchedFileChanges();
+        docManager.openClientDocument({
+            text: '',
+            uri: pathToUrl(targetSvelteFile)
+        });
+
+        await plugin.onWatchFileChanges([
+            {
+                fileName: targetSvelteFile,
+                changeType: FileChangeType.Changed
+            }
+        ]);
+
+        const document = docManager.get(pathToUrl(targetSvelteFile));
+        assert.equal(document?.openedByClient, true);
     });
 
     // Hacky, but it works. Needed due to testing both new and old transformation

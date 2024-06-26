@@ -9,6 +9,8 @@ import {
 } from '../../../src/plugins/typescript/service';
 import { pathToUrl } from '../../../src/utils';
 import { createVirtualTsSystem, getRandomVirtualDirPath } from './test-utils';
+import sinon from 'sinon';
+import { RelativePattern } from 'vscode-languageserver-protocol';
 
 describe('service', () => {
     const testDir = path.join(__dirname, 'testfiles');
@@ -262,5 +264,62 @@ describe('service', () => {
         assert.doesNotThrow(() => {
             ls.getService().getSemanticDiagnostics(document.getFilePath()!);
         });
+    });
+
+    it('skip directory watching if directory is root', async () => {
+        const dirPath = getRandomVirtualDirPath(path.join(testDir, 'Test'));
+        const { virtualSystem, lsDocumentContext } = setup();
+
+        const rootUris = [pathToUrl(dirPath)];
+
+        const watchDirectory = sinon.spy();
+        lsDocumentContext.watchDirectory = watchDirectory;
+        lsDocumentContext.nonRecursiveWatchPattern = '*.ts';
+
+        virtualSystem.readDirectory = () => [];
+        virtualSystem.directoryExists = () => true;
+
+        virtualSystem.writeFile(
+            path.join(dirPath, 'tsconfig.json'),
+            JSON.stringify({
+                compilerOptions: {},
+                include: ['src/**/*.ts', 'test/**/*.ts', '../foo/**/*.ts']
+            })
+        );
+
+        await getService(path.join(dirPath, 'random.svelte'), rootUris, lsDocumentContext);
+
+        sinon.assert.calledWith(watchDirectory.firstCall, <RelativePattern[]>[
+            {
+                baseUri: pathToUrl(path.join(dirPath, '../foo')),
+                pattern: '**/*.ts'
+            }
+        ]);
+    });
+
+    it('skip directory watching if directory do not exist', async () => {
+        const dirPath = getRandomVirtualDirPath(path.join(testDir, 'Test'));
+        const { virtualSystem, lsDocumentContext } = setup();
+
+        const rootUris = [pathToUrl(dirPath)];
+
+        const watchDirectory = sinon.spy();
+        lsDocumentContext.watchDirectory = watchDirectory;
+        lsDocumentContext.nonRecursiveWatchPattern = '*.ts';
+
+        virtualSystem.readDirectory = () => [];
+        virtualSystem.directoryExists = () => false;
+
+        virtualSystem.writeFile(
+            path.join(dirPath, 'tsconfig.json'),
+            JSON.stringify({
+                compilerOptions: {},
+                include: ['../test/**/*.ts']
+            })
+        );
+
+        await getService(path.join(dirPath, 'random.svelte'), rootUris, lsDocumentContext);
+
+        sinon.assert.calledWith(watchDirectory.firstCall, <RelativePattern[]>[]);
     });
 });
