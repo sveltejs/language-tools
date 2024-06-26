@@ -10,7 +10,7 @@
 async () => {
 
  { __sveltets_createSlot("default", {  x,y,});}};
-return { props: {} as any as Props, bindings: __sveltets_$$bindings(''), slots: {'default': {x:x, y:y}}, events: {} }}
+return { props: {} as any as Props, exports: {}, bindings: __sveltets_$$bindings(''), slots: {'default': {x:x, y:y}}, events: {} }}
 class __sveltets_Render<T> {
     props() {
         return render<T>().props;

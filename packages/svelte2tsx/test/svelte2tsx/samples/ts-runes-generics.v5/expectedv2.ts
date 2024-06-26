@@ -6,7 +6,7 @@
     let y = $derived(x * 2);
 ;
 async () => {};
-return { props: {} as any as $$ComponentProps, bindings: __sveltets_$$bindings(''), slots: {}, events: {} }}
+return { props: {} as any as $$ComponentProps, exports: {}, bindings: __sveltets_$$bindings(''), slots: {}, events: {} }}
 class __sveltets_Render<T> {
     props() {
         return render<T>().props;

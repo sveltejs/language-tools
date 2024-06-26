@@ -330,7 +330,11 @@ export function test_samples(dir: string, transform: TransformSampleFn, js: 'js'
                         // retry with the last part (the returned default export) stripped because it's always differing between old and new,
                         // and if that fails then we're going to rethrow the original error
                         const expectedModified = expected.substring(0, expectDefaultExportPosition);
-                        const actualModified = actual.substring(0, actual.lastIndexOf('\nconst '));
+                        const actualModified = actual
+                            .substring(0, actual.lastIndexOf('\nconst '))
+                            // not added in Svelte 4
+                            .replace(', exports: {}', '')
+                            .replace(', bindings: ""', '');
                         try {
                             assert.strictEqual(
                                 actualModified,
