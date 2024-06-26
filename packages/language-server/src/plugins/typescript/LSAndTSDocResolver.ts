@@ -204,11 +204,21 @@ export class LSAndTSDocResolver {
      * Updates snapshot path in all existing ts services and retrieves snapshot
      */
     async updateSnapshotPath(oldPath: string, newPath: string): Promise<void> {
+        const document = this.docManager.get(pathToUrl(oldPath));
+        const isOpenedInClient = document?.openedByClient;
         for (const snapshot of this.globalSnapshotsManager.getByPrefix(oldPath)) {
             await this.deleteSnapshot(snapshot.filePath);
         }
-        // This may not be a file but a directory, still try
-        await this.getSnapshot(newPath);
+
+        if (isOpenedInClient) {
+            this.docManager.openClientDocument({
+                uri: pathToUrl(newPath),
+                text: document!.getText()
+            });
+        } else {
+            // This may not be a file but a directory, still try
+            await this.getSnapshot(newPath);
+        }
     }
 
     /**

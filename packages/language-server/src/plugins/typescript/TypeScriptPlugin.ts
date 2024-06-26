@@ -35,7 +35,7 @@ import {
     mapSymbolInformationToOriginal
 } from '../../lib/documents';
 import { LSConfigManager, LSTypescriptConfig } from '../../ls-config';
-import { isNotNullOrUndefined, isZeroLengthRange } from '../../utils';
+import { isNotNullOrUndefined, isZeroLengthRange, pathToUrl } from '../../utils';
 import {
     AppCompletionItem,
     AppCompletionList,
@@ -523,7 +523,7 @@ export class TypeScriptPlugin
 
             const isSvelteFile = isSvelteFilePath(fileName);
             const isClientSvelteFile =
-                isSvelteFile && this.documentManager.get(fileName)?.openedByClient;
+                isSvelteFile && this.documentManager.get(pathToUrl(fileName))?.openedByClient;
 
             if (changeType === FileChangeType.Deleted) {
                 if (!isClientSvelteFile) {

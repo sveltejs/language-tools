@@ -353,11 +353,15 @@ async function createLanguageService(
             return;
         }
 
+        const canonicalWorkspacePath = getCanonicalFileName(workspacePath);
         const patterns: RelativePattern[] = [];
 
         Object.entries(wildcardDirectories).forEach(([dir, flags]) => {
-            // already watched
-            if (getCanonicalFileName(dir).startsWith(workspacePath)) {
+            if (
+                // already watched
+                getCanonicalFileName(dir).startsWith(canonicalWorkspacePath) ||
+                !tsSystem.directoryExists(dir)
+            ) {
                 return;
             }
             patterns.push({
