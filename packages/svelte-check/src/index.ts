@@ -25,14 +25,10 @@ type Result = {
     fileCountWithProblems: number;
 };
 
-async function openAllDocuments(
-    workspaceUri: URI,
-    filePathsToIgnore: string[],
-    svelteCheck: SvelteCheck
-) {
+async function openAllDocuments(workspaceUri: URI, svelteCheck: SvelteCheck) {
     const files = await glob('**/*.svelte', {
         cwd: workspaceUri.fsPath,
-        ignore: ['node_modules/**'].concat(filePathsToIgnore.map((ignore) => `${ignore}/**`))
+        ignore: ['node_modules/**']
     });
     const absFilePaths = files.map((f) => path.resolve(workspaceUri.fsPath, f));
 
@@ -110,13 +106,12 @@ class DiagnosticsWatcher {
         private workspaceUri: URI,
         private svelteCheck: SvelteCheck,
         private writer: Writer,
-        filePathsToIgnore: string[],
         ignoreInitialAdd: boolean
     ) {
         watch(`${workspaceUri.fsPath}/**/*.{svelte,d.ts,ts,js,jsx,tsx,mjs,cjs,mts,cts}`, {
-            ignored: ['node_modules', 'vite.config.{js,ts}.timestamp-*']
-                .concat(filePathsToIgnore)
-                .map((ignore) => path.join(workspaceUri.fsPath, ignore)),
+            ignored: ['node_modules', 'vite.config.{js,ts}.timestamp-*'].map((ignore) =>
+                path.join(workspaceUri.fsPath, ignore)
+            ),
             ignoreInitial: ignoreInitialAdd
         })
             .on('add', (path) => this.updateDocument(path, true))
@@ -198,14 +193,13 @@ parseOptions(async (opts) => {
                 opts.workspaceUri,
                 new SvelteCheck(opts.workspaceUri.fsPath, svelteCheckOptions),
                 writer,
-                opts.filePathsToIgnore,
                 !!opts.tsconfig
             );
         } else {
             const svelteCheck = new SvelteCheck(opts.workspaceUri.fsPath, svelteCheckOptions);
 
             if (!opts.tsconfig) {
-                await openAllDocuments(opts.workspaceUri, opts.filePathsToIgnore, svelteCheck);
+                await openAllDocuments(opts.workspaceUri, svelteCheck);
             }
             const result = await getDiagnostics(opts.workspaceUri, writer, svelteCheck);
             if (
