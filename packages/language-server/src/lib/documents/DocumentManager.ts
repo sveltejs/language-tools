@@ -47,7 +47,7 @@ export class DocumentManager {
         let document: Document;
         if (this.documents.has(textDocument.uri)) {
             document = this.documents.get(textDocument.uri)!;
-            // open state should only be update when the document is closed
+            // open state should only be updated when the document is closed
             document.openedByClient ||= openedByClient;
             document.setText(textDocument.text);
         } else {
