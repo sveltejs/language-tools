@@ -770,7 +770,7 @@ describe('TypescriptPlugin', function () {
         );
     });
 
-    it.only("shouldn't close svelte document when renamed", async () => {
+    it("shouldn't close svelte document when renamed", async () => {
         const { plugin, docManager, targetSvelteFile } = await setupForOnWatchedFileChanges();
         docManager.openClientDocument({
             text: '',
