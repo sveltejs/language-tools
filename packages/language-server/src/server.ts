@@ -104,6 +104,8 @@ export function startServer(options?: LSOptions) {
         pendingWatchPatterns = patterns;
     };
 
+    // Include Svelte files to better deal with scenarios such as switching git branches
+    // where files that are not opened in the client could change
     const nonRecursiveWatchPattern = '*.{ts,js,mts,mjs,cjs,cts,json,svelte}';
     const recursiveWatchPattern = '**/' + nonRecursiveWatchPattern;
 
@@ -329,6 +331,8 @@ export function startServer(options?: LSOptions) {
         connection?.client.register(DidChangeWatchedFilesNotification.type, {
             watchers: [
                 {
+                    // Editors have exlude configs, such as VSCode with `files.watcherExclude`,
+                    // which means it's safe to watch recursively here
                     globPattern: recursiveWatchPattern
                 }
             ]
