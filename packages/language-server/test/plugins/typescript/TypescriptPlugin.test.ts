@@ -795,6 +795,24 @@ describe('TypescriptPlugin', function () {
         assert.ok(document);
     });
 
+    it("shouldn't mark client svelte document as close", async () => {
+        const { plugin, docManager, targetSvelteFile } = await setupForOnWatchedFileChanges();
+        docManager.openClientDocument({
+            text: '',
+            uri: pathToUrl(targetSvelteFile)
+        });
+
+        await plugin.onWatchFileChanges([
+            {
+                fileName: targetSvelteFile,
+                changeType: FileChangeType.Changed
+            }
+        ]);
+
+        const document = docManager.get(pathToUrl(targetSvelteFile));
+        assert.equal(document?.openedByClient, true);
+    });
+
     // Hacky, but it works. Needed due to testing both new and old transformation
     after(() => {
         __resetCache();
