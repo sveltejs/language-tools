@@ -203,7 +203,10 @@ export function processInstanceScriptContent(
         if (ts.isVariableDeclaration(node)) {
             events.checkIfIsStringLiteralDeclaration(node);
             events.checkIfDeclarationInstantiatedEventDispatcher(node);
-            implicitStoreValues.addVariableDeclaration(node);
+            // Only top level declarations can be stores
+            if (node.parent?.parent?.parent === tsAst) {
+                implicitStoreValues.addVariableDeclaration(node);
+            }
         }
 
         if (ts.isCallExpression(node)) {
