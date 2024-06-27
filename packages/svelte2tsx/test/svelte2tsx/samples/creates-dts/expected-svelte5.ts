@@ -23,7 +23,7 @@ async () => {
  { svelteHTML.createElement("button", { "on:click":undefined,});  }
  { __sveltets_createSlot("default", {bar,}); }};
 return { props: {
-/** @type {boolean} */bar: bar , foobar: foobar}, slots: {'default': {bar:bar}}, events: {'click':__sveltets_2_mapElementEvent('click'), 'hi': __sveltets_2_customEvent} }}
+/** @type {boolean} */bar: bar , foobar: foobar}, exports: {}, bindings: "", slots: {'default': {bar:bar}}, events: {'click':__sveltets_2_mapElementEvent('click'), 'hi': __sveltets_2_customEvent} }}
 interface $$__sveltets_2_IsomorphicComponent<Props extends Record<string, any> = any, Events extends Record<string, any> = any, Slots extends Record<string, any> = any, Exports = {}, Bindings = string> {
     new (options: import('svelte').ComponentConstructorOptions<Props>): import('svelte').SvelteComponent<Props, Events, Slots> & { $$bindings?: Bindings } & Exports;
     (internal: unknown, props: Props & {$$events?: Events, $$slots?: Slots}): Exports;

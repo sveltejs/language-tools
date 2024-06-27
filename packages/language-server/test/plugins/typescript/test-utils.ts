@@ -88,6 +88,19 @@ export function createVirtualTsSystem(currentDirectory: string): ts.System {
         },
         getModifiedTime(path) {
             return modifiedTime.get(normalizePath(toAbsolute(path)));
+        },
+        readDirectory(path, _extensions, _exclude, include, _depth) {
+            if (include && (include.length != 1 || include[0] !== '**/*')) {
+                throw new Error(
+                    'include pattern matching not implemented. Mock it if the test needs it. Pattern: ' +
+                        include
+                );
+            }
+
+            const normalizedPath = normalizePath(toAbsolute(path));
+            return Array.from(virtualFs.keys()).filter((fileName) =>
+                fileName.startsWith(normalizedPath)
+            );
         }
     };
 

@@ -3,7 +3,7 @@
 async () => {
 
  { svelteHTML.createElement("main", {});     }};
-return { props: /** @type {Record<string, never>} */ ({}), slots: {}, events: {} }}
+return { props: /** @type {Record<string, never>} */ ({}), exports: {}, bindings: "", slots: {}, events: {} }}
 /**
  * This component has multiline documentation:
  *

@@ -4,7 +4,7 @@
      let a: T/*Ωignore_startΩ*/;a = __sveltets_2_any(a);/*Ωignore_endΩ*/;
 ;
 async () => {};
-return { props: {a: a} as {a: T}, slots: {}, events: {} }}
+return { props: {a: a} as {a: T}, exports: {}, bindings: "", slots: {}, events: {} }}
 class __sveltets_Render<T> {
     props() {
         return render<T>().props;

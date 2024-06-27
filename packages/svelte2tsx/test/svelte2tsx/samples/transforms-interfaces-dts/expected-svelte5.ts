@@ -21,7 +21,7 @@ function render() {
      let bar: Bar3/*Ωignore_startΩ*/;bar = __sveltets_2_any(bar);/*Ωignore_endΩ*/;
 ;
 async () => {};
-return { props: {foo: foo , bar: bar}, slots: {}, events: {} }}
+return { props: {foo: foo , bar: bar}, exports: {}, bindings: "", slots: {}, events: {} }}
 interface $$__sveltets_2_IsomorphicComponent<Props extends Record<string, any> = any, Events extends Record<string, any> = any, Slots extends Record<string, any> = any, Exports = {}, Bindings = string> {
     new (options: import('svelte').ComponentConstructorOptions<Props>): import('svelte').SvelteComponent<Props, Events, Slots> & { $$bindings?: Bindings } & Exports;
     (internal: unknown, props: Props & {$$events?: Events, $$slots?: Slots}): Exports;

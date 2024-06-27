@@ -42,19 +42,20 @@ export function handleSnippet(
         }
     );
 
+    const lastParameter = snippetBlock.parameters?.at(-1);
+
     const startEnd =
         str.original.indexOf(
             '}',
-            // context was the first iteration in a .next release, remove at some point
-            snippetBlock.parameters?.at(-1)?.end || snippetBlock.expression.end
+            lastParameter?.typeAnnotation?.end ?? lastParameter?.end ?? snippetBlock.expression.end
         ) + 1;
 
     if (isImplicitProp) {
         str.overwrite(snippetBlock.start, snippetBlock.expression.start, '', { contentOnly: true });
         const transforms: TransformationArray = ['('];
         if (snippetBlock.parameters?.length) {
-            const start = snippetBlock.parameters?.[0].start;
-            const end = snippetBlock.parameters.at(-1).end;
+            const start = snippetBlock.parameters[0].start;
+            const end = lastParameter.typeAnnotation?.end ?? lastParameter.end;
             transforms.push([start, end]);
             str.overwrite(snippetBlock.expression.end, start, '', {
                 contentOnly: true
@@ -73,15 +74,28 @@ export function handleSnippet(
         let generic = '';
         if (snippetBlock.parameters?.length) {
             generic = `<[${snippetBlock.parameters
-                .map((p) =>
-                    p.typeAnnotation?.typeAnnotation
-                        ? str.original.slice(
-                              p.typeAnnotation.typeAnnotation.start,
-                              p.typeAnnotation.typeAnnotation.end
-                          )
-                        : // slap any on to it to silence "implicit any" errors; JSDoc people can't add types to snippets
-                          'any'
-                )
+                .map((p) => {
+                    let typeAnnotation = p.typeAnnotation;
+                    if (!typeAnnotation && p.type === 'AssignmentPattern') {
+                        typeAnnotation = p.left?.typeAnnotation;
+                        if (!typeAnnotation) {
+                            typeAnnotation = p.right?.typeAnnotation;
+                        }
+                    }
+
+                    // fall back to `any` to silence "implicit any" errors; JSDoc people can't add types to snippets
+                    let type = 'any';
+                    if (typeAnnotation?.typeAnnotation) {
+                        type = str.original.slice(
+                            typeAnnotation.typeAnnotation.start,
+                            typeAnnotation.typeAnnotation.end
+                        );
+                    }
+                    if (p.optional || p.type === 'AssignmentPattern') {
+                        type += '?';
+                    }
+                    return type;
+                })
                 .join(', ')}]>`;
         }
 
@@ -94,7 +108,7 @@ export function handleSnippet(
 
         if (snippetBlock.parameters?.length) {
             const start = snippetBlock.parameters[0].start;
-            const end = snippetBlock.parameters.at(-1).end;
+            const end = lastParameter.typeAnnotation?.end ?? lastParameter.end;
             transforms.push([start, end]);
         }
 

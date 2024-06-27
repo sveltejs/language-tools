@@ -1153,8 +1153,8 @@ describe('CodeActionsProvider', function () {
                     edits: [
                         {
                             newText:
-                                `\n${indent}import FixAllImported2 from \"./importing/FixAllImported2.svelte\";\n` +
-                                `${indent}import { FixAllImported3 } from \"./importing/c\";\n`,
+                                `\n${indent}import { FixAllImported3 } from \"./importing/c\";` +
+                                `\n${indent}import FixAllImported2 from \"./importing/FixAllImported2.svelte\";\n`,
                             range: {
                                 start: {
                                     character: 18,

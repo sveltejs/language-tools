@@ -94,7 +94,12 @@ export class SvelteCheck {
                 }
             );
             this.pluginHost.register(
-                new TypeScriptPlugin(this.configManager, this.lsAndTSDocResolver, workspaceUris)
+                new TypeScriptPlugin(
+                    this.configManager,
+                    this.lsAndTSDocResolver,
+                    workspaceUris,
+                    this.docManager
+                )
             );
         }
 

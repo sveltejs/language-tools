@@ -1,6 +1,6 @@
 import { dirname, join } from 'path';
 import ts from 'typescript';
-import { TextDocumentContentChangeEvent } from 'vscode-languageserver';
+import { RelativePattern, TextDocumentContentChangeEvent } from 'vscode-languageserver';
 import { Document, DocumentManager } from '../../lib/documents';
 import { LSConfigManager } from '../../ls-config';
 import {
@@ -22,7 +22,7 @@ import {
 import { createProjectService } from './serviceCache';
 import { GlobalSnapshotsManager, SnapshotManager } from './SnapshotManager';
 import { isSubPath } from './utils';
-import { FileMap } from '../../lib/documents/fileCollection';
+import { FileMap, FileSet } from '../../lib/documents/fileCollection';
 
 interface LSAndTSDocResolverOptions {
     notifyExceedSizeLimit?: () => void;
@@ -39,6 +39,8 @@ interface LSAndTSDocResolverOptions {
     onProjectReloaded?: () => void;
     watch?: boolean;
     tsSystem?: ts.System;
+    watchDirectory?: (patterns: RelativePattern[]) => void;
+    nonRecursiveWatchPattern?: string;
 }
 
 export class LSAndTSDocResolver {
@@ -94,7 +96,17 @@ export class LSAndTSDocResolver {
             }
         });
 
-        this.watchers = new FileMap(this.tsSystem.useCaseSensitiveFileNames);
+        this.packageJsonWatchers = new FileMap(this.tsSystem.useCaseSensitiveFileNames);
+        this.watchedDirectories = new FileSet(this.tsSystem.useCaseSensitiveFileNames);
+
+        // workspaceUris are already watched during initialization
+        for (const root of this.workspaceUris) {
+            const rootPath = urlToPath(root);
+            if (rootPath) {
+                this.watchedDirectories.add(rootPath);
+            }
+        }
+
         this.lsDocumentContext = {
             ambientTypesSource: this.options?.isSvelteCheck ? 'svelte-check' : 'svelte2tsx',
             createDocument: this.createDocument,
@@ -105,7 +117,11 @@ export class LSAndTSDocResolver {
             onProjectReloaded: this.options?.onProjectReloaded,
             watchTsConfig: !!this.options?.watch,
             tsSystem: this.tsSystem,
-            projectService: projectService
+            projectService,
+            watchDirectory: this.options?.watchDirectory
+                ? this.watchDirectory.bind(this)
+                : undefined,
+            nonRecursiveWatchPattern: this.options?.nonRecursiveWatchPattern
         };
     }
 
@@ -131,9 +147,9 @@ export class LSAndTSDocResolver {
     private getCanonicalFileName: GetCanonicalFileName;
 
     private userPreferencesAccessor: { preferences: ts.UserPreferences };
-    private readonly watchers: FileMap<ts.FileWatcher>;
-
+    private readonly packageJsonWatchers: FileMap<ts.FileWatcher>;
     private lsDocumentContext: LanguageServiceDocumentContext;
+    private readonly watchedDirectories: FileSet;
 
     async getLSForPath(path: string) {
         return (await this.getTSService(path)).getService();
@@ -188,11 +204,21 @@ export class LSAndTSDocResolver {
      * Updates snapshot path in all existing ts services and retrieves snapshot
      */
     async updateSnapshotPath(oldPath: string, newPath: string): Promise<void> {
+        const document = this.docManager.get(pathToUrl(oldPath));
+        const isOpenedInClient = document?.openedByClient;
         for (const snapshot of this.globalSnapshotsManager.getByPrefix(oldPath)) {
             await this.deleteSnapshot(snapshot.filePath);
         }
-        // This may not be a file but a directory, still try
-        await this.getSnapshot(newPath);
+
+        if (isOpenedInClient) {
+            this.docManager.openClientDocument({
+                uri: pathToUrl(newPath),
+                text: document!.getText()
+            });
+        } else {
+            // This may not be a file but a directory, still try
+            await this.getSnapshot(newPath);
+        }
     }
 
     /**
@@ -209,15 +235,15 @@ export class LSAndTSDocResolver {
         this.docManager.releaseDocument(uri);
     }
 
-    async invalidateModuleCache(filePath: string) {
-        await forAllServices((service) => service.invalidateModuleCache(filePath));
+    async invalidateModuleCache(filePaths: string[]) {
+        await forAllServices((service) => service.invalidateModuleCache(filePaths));
     }
 
     /**
      * Updates project files in all existing ts services
      */
-    async updateProjectFiles() {
-        await forAllServices((service) => service.updateProjectFiles());
+    async updateProjectFiles(watcherNewFiles: string[]) {
+        await forAllServices((service) => service.scheduleProjectFileUpdate(watcherNewFiles));
     }
 
     /**
@@ -227,6 +253,20 @@ export class LSAndTSDocResolver {
         path: string,
         changes?: TextDocumentContentChangeEvent[]
     ): Promise<void> {
+        await this.updateExistingFile(path, (service) => service.updateTsOrJsFile(path, changes));
+    }
+
+    async updateExistingSvelteFile(path: string): Promise<void> {
+        const newDocument = this.createDocument(path, this.tsSystem.readFile(path) ?? '');
+        await this.updateExistingFile(path, (service) => {
+            service.updateSnapshot(newDocument);
+        });
+    }
+
+    private async updateExistingFile(
+        path: string,
+        cb: (service: LanguageServiceContainer) => void
+    ) {
         path = normalizePath(path);
         // Only update once because all snapshots are shared between
         // services. Since we don't have a current version of TS/JS
@@ -235,7 +275,7 @@ export class LSAndTSDocResolver {
         await forAllServices((service) => {
             if (service.hasFile(path) && !didUpdate) {
                 didUpdate = true;
-                service.updateTsOrJsFile(path, changes);
+                cb(service);
             }
         });
     }
@@ -290,8 +330,8 @@ export class LSAndTSDocResolver {
         return {
             ...sys,
             readFile: (path, encoding) => {
-                if (path.endsWith('package.json') && !this.watchers.has(path)) {
-                    this.watchers.set(
+                if (path.endsWith('package.json') && !this.packageJsonWatchers.has(path)) {
+                    this.packageJsonWatchers.set(
                         path,
                         watchFile(path, this.onPackageJsonWatchChange.bind(this), 3_000)
                     );
@@ -309,8 +349,8 @@ export class LSAndTSDocResolver {
         const normalizedPath = projectService?.toPath(path);
 
         if (onWatchChange === ts.FileWatcherEventKind.Deleted) {
-            this.watchers.get(path)?.close();
-            this.watchers.delete(path);
+            this.packageJsonWatchers.get(path)?.close();
+            this.packageJsonWatchers.delete(path);
             packageJsonCache?.delete(normalizedPath);
         } else {
             packageJsonCache?.addOrUpdate(normalizedPath);
@@ -344,5 +384,21 @@ export class LSAndTSDocResolver {
         this.globalSnapshotsManager.getByPrefix(dir).forEach((snapshot) => {
             this.globalSnapshotsManager.updateTsOrJsFile(snapshot.filePath);
         });
+    }
+
+    private watchDirectory(patterns: RelativePattern[]) {
+        if (!this.options?.watchDirectory || patterns.length === 0) {
+            return;
+        }
+
+        for (const pattern of patterns) {
+            const uri = typeof pattern.baseUri === 'string' ? pattern.baseUri : pattern.baseUri.uri;
+            for (const watched of this.watchedDirectories) {
+                if (isSubPath(watched, uri, this.getCanonicalFileName)) {
+                    return;
+                }
+            }
+        }
+        this.options.watchDirectory(patterns);
     }
 }

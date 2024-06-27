@@ -400,7 +400,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
     }
 
     private mightBeAtStartTagWhitespace(document: Document, originalOffset: number) {
-        return ['  ', ' >', ' /'].includes(
+        return /\s[\s>/]/.test(
             document.getText().substring(originalOffset - 1, originalOffset + 1)
         );
     }

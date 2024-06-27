@@ -91,7 +91,7 @@ export function convertHtmlxToJsx(
                                 ? element
                                 : undefined
                         );
-                        if (!element) {
+                        if (parent === ast) {
                             // root snippet -> move to instance script
                             rootSnippets.push([node.start, node.end]);
                         }
