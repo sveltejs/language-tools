@@ -26,6 +26,7 @@ type Result = {
 };
 
 async function openAllDocuments(workspaceUri: URI, svelteCheck: SvelteCheck) {
+    // TODO: replace glob with smaller implementation
     const files = await glob('**/*.svelte', {
         cwd: workspaceUri.fsPath,
         ignore: ['node_modules/**']
