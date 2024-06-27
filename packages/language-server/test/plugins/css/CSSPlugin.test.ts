@@ -70,7 +70,8 @@ describe('CSS Plugin', () => {
                     kind: 'markdown',
                     value:
                         "Specifies the height of the content area, padding area or border area \\(depending on 'box\\-sizing'\\) of certain boxes\\.\n\n" +
-                        '(Edge 12, Firefox 1, Safari 1, Chrome 1, IE 4, Opera 7)\n\nSyntax: &lt;viewport\\-length&gt;\\{1,2\\}\n\n' +
+                        '(Edge 12, Firefox 1, Safari 1, Chrome 1, IE 4, Opera 7)\n\n' +
+                        'Syntax: auto | &lt;length&gt; | &lt;percentage&gt; | min\\-content | max\\-content | fit\\-content | fit\\-content\\(&lt;length\\-percentage&gt;\\)\n\n' +
                         '[MDN Reference](https://developer.mozilla.org/docs/Web/CSS/height)'
                 },
                 range: Range.create(0, 12, 0, 24)
