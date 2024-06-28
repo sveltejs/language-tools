@@ -9,7 +9,6 @@ export interface SvelteCheckCliOptions {
     watch: boolean;
     preserveWatchOutput: boolean;
     tsconfig?: string;
-    filePathsToIgnore: string[];
     failOnWarnings: boolean;
     compilerWarnings: Record<string, 'error' | 'ignore'>;
     diagnosticSources: DiagnosticSource[];
@@ -73,7 +72,6 @@ export function parseOptions(cb: (opts: SvelteCheckCliOptions) => any) {
                 watch: !!opts.watch,
                 preserveWatchOutput: !!opts.preserveWatchOutput,
                 tsconfig: getTsconfig(opts, workspaceUri.fsPath),
-                filePathsToIgnore: getFilepathsToIgnore(opts),
                 failOnWarnings: !!opts['fail-on-warnings'],
                 compilerWarnings: getCompilerWarnings(opts),
                 diagnosticSources: getDiagnosticSources(opts),
