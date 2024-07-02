@@ -13,7 +13,34 @@ export async function emitDts(config: EmitDtsConfig) {
     const { options, filenames } = loadTsconfig(config, svelteMap);
     const host = await createTsCompilerHost(options, svelteMap);
     const program = ts.createProgram(filenames, options, host);
-    program.emit();
+    const result = program.emit();
+    const likely_failed_files = result.diagnostics.filter((diagnostic) => {
+        // List of errors which hint at a failed d.ts generation
+        // https://github.com/microsoft/TypeScript/blob/main/src/compiler/diagnosticMessages.json
+        return diagnostic.code === 2527 || (diagnostic.code >= 4000 && diagnostic.code <= 4108);
+    });
+
+    if (likely_failed_files.length > 0) {
+        const failed_by_file = new Map<string, string[]>();
+        likely_failed_files.forEach((diagnostic) => {
+            const file = diagnostic.file?.fileName;
+            if (file) {
+                const errors = failed_by_file.get(file) || [];
+                errors.push(ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n'));
+                failed_by_file.set(file, errors);
+            }
+        });
+        console.warn(
+            'd.ts type declaration files for the following files were likely not generated due to the following errors:'
+        );
+        console.warn(
+            [...failed_by_file.entries()]
+                .map(([file, errors]) => {
+                    return `${file}\n${errors.map((error) => `  - ${error}`).join('\n')}`;
+                })
+                .join('\n')
+        );
+    }
 }
 
 function loadTsconfig(config: EmitDtsConfig, svelteMap: SvelteMap) {
