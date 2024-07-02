@@ -21,14 +21,7 @@ import {
     isStoreVariableIn$storeDeclaration,
     get$storeOffsetOf$storeDeclaration
 } from './utils';
-import {
-    not,
-    flatten,
-    passMap,
-    swapRangeStartEndIfNecessary,
-    memoize,
-    traverseTypeString
-} from '../../../utils';
+import { not, flatten, passMap, swapRangeStartEndIfNecessary, memoize } from '../../../utils';
 import { LSConfigManager } from '../../../ls-config';
 import { isAttributeName, isEventHandler } from '../svelte-ast-utils';
 
@@ -206,7 +199,25 @@ function moveBindingErrorMessage(
                 (attr: any) => attr.type === 'Binding' && attr.name === name
             );
             if (binding) {
-                diagnostic.message = 'Cannot bind: to this property\n\n' + diagnostic.message;
+                // try to make the error more readable for english users
+                if (
+                    diagnostic.message.startsWith("Type '") &&
+                    diagnostic.message.includes("is not assignable to type '")
+                ) {
+                    const idx = diagnostic.message.indexOf(`Type '"`) + `Type '"`.length;
+                    const propName = diagnostic.message.substring(
+                        idx,
+                        diagnostic.message.indexOf('"', idx)
+                    );
+                    diagnostic.message =
+                        "Cannot use 'bind:' with this property. It is declared as non-bindable inside the component.\n" +
+                        `To mark a property as bindable: 'let { ${propName} = $bindable() = $props()'`;
+                } else {
+                    diagnostic.message =
+                        "Cannot use 'bind:' with this property. It is declared as non-bindable inside the component.\n" +
+                        `To mark a property as bindable: 'let { prop = $bindable() = $props()'\n\n` +
+                        diagnostic.message;
+                }
                 diagnostic.range = {
                     start: document.positionAt(binding.start),
                     end: document.positionAt(binding.end)
