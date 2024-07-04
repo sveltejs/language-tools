@@ -4,7 +4,7 @@
 
 import { watch } from 'chokidar';
 import * as fs from 'fs';
-import glob from 'fast-glob';
+import { fdir } from 'fdir';
 import * as path from 'path';
 import { SvelteCheck, SvelteCheckOptions } from 'svelte-language-server';
 import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver-protocol';
@@ -30,10 +30,20 @@ async function openAllDocuments(
     filePathsToIgnore: string[],
     svelteCheck: SvelteCheck
 ) {
-    const files = await glob('**/*.svelte', {
-        cwd: workspaceUri.fsPath,
-        ignore: ['node_modules/**'].concat(filePathsToIgnore.map((ignore) => `${ignore}/**`))
-    });
+    const ignored = ['node_modules'].concat(filePathsToIgnore);
+    const isIngored = (path: string) => {
+        for (const i of ignored) {
+            if (path.startsWith(i)) {
+                return true;
+            }
+        }
+        return false;
+    };
+    const files = await new fdir()
+        .withBasePath()
+        .filter((path) => path.endsWith('.svelte') && !isIngored(path))
+        .crawl(workspaceUri.fsPath)
+        .withPromise();
     const absFilePaths = files.map((f) => path.resolve(workspaceUri.fsPath, f));
 
     for (const absFilePath of absFilePaths) {

@@ -121,6 +121,9 @@ importers:
       chokidar:
         specifier: ^3.4.1
         version: 3.5.3
+      fdir:
+        specifier: ^6.1.1
+        version: 6.1.1
       picocolors:
         specifier: ^1.0.0
         version: 1.0.0
@@ -158,9 +161,6 @@ importers:
       builtin-modules:
         specifier: ^3.3.0
         version: 3.3.0
-      fast-glob:
-        specifier: ^3.2.7
-        version: 3.2.12
       rollup:
         specifier: 3.7.5
         version: 3.7.5
@@ -744,6 +744,14 @@ packages:
 
   fastq@1.15.0:
     resolution: {integrity: sha512-wBrocU2LCXXa+lWBt8RoIRD89Fi8OdABODa/kEnyeyjS5aZO5/GNvI5sEINADqP/h8M29UHTHUb53sUu5Ihqdw==}
+
+  fdir@6.1.1:
+    resolution: {integrity: sha512-QfKBVg453Dyn3mr0Q0O+Tkr1r79lOTAKSi9f/Ot4+qVEwxWhav2Z+SudrG9vQjM2aYRMQQZ2/Q1zdA8ACM1pDg==}
+    peerDependencies:
+      picomatch: 3.x
+    peerDependenciesMeta:
+      picomatch:
+        optional: true
 
   fill-range@7.0.1:
     resolution: {integrity: sha512-qOo9F+dMUmC2Lcb4BbVvnKJxTPjCm+RRpe4gDuGrzkL7mEVl/djYSu2OdQ2Pa302N4oqkSg9ir6jaLWJ2USVpQ==}
@@ -1817,6 +1825,8 @@ snapshots:
   fastq@1.15.0:
     dependencies:
       reusify: 1.0.4
+
+  fdir@6.1.1: {}
 
   fill-range@7.0.1:
     dependencies:
