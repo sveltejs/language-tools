@@ -55,7 +55,7 @@
         "prettier": "~3.2.5",
         "prettier-plugin-svelte": "^3.2.2",
         "svelte": "^3.57.0",
-        "svelte-preprocess": "^6.0.0",
+        "svelte-preprocess": "^6.0.2",
         "svelte2tsx": "workspace:~",
         "typescript": "^5.5.2",
         "typescript-auto-import-cache": "^0.3.3",

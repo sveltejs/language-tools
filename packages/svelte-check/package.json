@@ -27,7 +27,7 @@
         "chokidar": "^3.4.1",
         "picocolors": "^1.0.0",
         "sade": "^1.7.4",
-        "svelte-preprocess": "^6.0.0",
+        "svelte-preprocess": "^6.0.2",
         "typescript": "^5.0.3"
     },
     "peerDependencies": {
