@@ -106,7 +106,7 @@ const tagPossibilities: Array<{ tag: SvelteTag | ':else'; values: string[] }> = 
     // each
     { tag: 'each' as const, values: ['#each', '/each'] },
     // await
-    { tag: 'await' as const, values: ['#await', '/await', ':then', ':catch'] },
+    { tag: 'await' as const, values: ['#await', '/await', ':then', ':catch', ':finally'] },
     // key
     { tag: 'key' as const, values: ['#key', '/key'] },
     // snippet

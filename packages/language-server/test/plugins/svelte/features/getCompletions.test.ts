@@ -100,11 +100,11 @@ describe('SveltePlugin#getCompletions', () => {
         });
 
         it('for await', () => {
-            expectCompletionsFor('{#await}{:').toEqual(['then', 'catch']);
+            expectCompletionsFor('{#await}{:').toEqual(['then', 'catch', 'finally']);
         });
 
         it('for last open tag', () => {
-            expectCompletionsFor('{#if}{/if}{#if}{#await}{:').toEqual(['then', 'catch']);
+            expectCompletionsFor('{#if}{/if}{#if}{#await}{:').toEqual(['then', 'catch', 'finally']);
         });
     });
 

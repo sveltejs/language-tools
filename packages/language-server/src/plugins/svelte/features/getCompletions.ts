@@ -154,7 +154,8 @@ function getCompletionsWithRegardToTriggerCharacter(
             {
                 awaitOpen: createCompletionItems([
                     { tag: 'await', label: 'then' },
-                    { tag: 'await', label: 'catch' }
+                    { tag: 'await', label: 'catch' },
+                    { tag: 'await', label: 'finally' }
                 ]),
                 eachOpen: createCompletionItems([{ tag: 'each', label: 'else' }]),
                 ifOpen: createCompletionItems([

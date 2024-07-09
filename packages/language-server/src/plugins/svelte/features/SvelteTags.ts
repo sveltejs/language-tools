@@ -19,7 +19,7 @@ export const documentation = {
 Await blocks allow you to branch on the three possible states of a Promise — pending, ` +
         `fulfilled or rejected.
 #### Usage:
-\`{#await expression}...{:then name}...{:catch name}...{/await}\`\\
+\`{#await expression}...{:then name}...{:catch name}...{:finally}...{/await}\`\\
 \`{#await expression}...{:then name}...{/await}\`\\
 \`{#await expression then name}...{/await}\`\\
 \\

@@ -221,14 +221,14 @@ repository:
       1: { name: punctuation.definition.keyword.svelte }
       # The keyword itself. If others are patched in in the future, they can easily be added here.
       2: { patterns: [
-         { match: if|else\s+if|else, name: keyword.control.conditional.svelte },
-         { match: each|key,          name: keyword.control.svelte             },
-         { match: await|then|catch,  name: keyword.control.flow.svelte        },
-         { match: snippet,           name: keyword.control.svelte        },
-         { match: html,              name: keyword.other.svelte               },
-         { match: render,            name: keyword.other.svelte               },
-         { match: debug,             name: keyword.other.debugger.svelte      },
-         { match: const,             name: storage.type.svelte                }]}
+         { match: if|else\s+if|else,         name: keyword.control.conditional.svelte },
+         { match: each|key,                  name: keyword.control.svelte             },
+         { match: await|then|catch|finally,  name: keyword.control.flow.svelte        },
+         { match: snippet,                   name: keyword.control.svelte        },
+         { match: html,                      name: keyword.other.svelte               },
+         { match: render,                    name: keyword.other.svelte               },
+         { match: debug,                     name: keyword.other.debugger.svelte      },
+         { match: const,                     name: storage.type.svelte                }]}
 
   # Scopes special tag _block start nodes_ depending on what type they are, such as `#if` or `#await` blocks.
   special-tags-modes:
