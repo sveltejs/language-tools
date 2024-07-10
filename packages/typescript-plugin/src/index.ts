@@ -146,7 +146,8 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
             // don't clear semantic cache here
             // typescript now expected the program updates to be completely in their control
             // doing so will result in a crash
-            info.project.markAsDirty();
+            // @ts-expect-error internal API since TS 5.5
+            info.project.markAsDirty?.();
 
             // updateGraph checks for new root files
             // if there's no tsconfig there isn't root files to check
