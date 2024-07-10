@@ -64,11 +64,11 @@ importers:
         specifier: ^0.3.3
         version: 0.3.3
       vscode-css-languageservice:
-        specifier: ~6.2.10
-        version: 6.2.10
+        specifier: ~6.3.0
+        version: 6.3.0
       vscode-html-languageservice:
-        specifier: ~5.1.1
-        version: 5.1.1
+        specifier: ~5.3.0
+        version: 5.3.0
       vscode-languageserver:
         specifier: 8.0.2
         version: 8.0.2
@@ -523,8 +523,8 @@ packages:
   '@vscode/emmet-helper@2.8.4':
     resolution: {integrity: sha512-lUki5QLS47bz/U8IlG9VQ+1lfxMtxMZENmU5nu4Z71eOD5j9FK0SmYGL5NiVJg9WBWeAU0VxRADMY2Qpq7BfVg==}
 
-  '@vscode/l10n@0.0.16':
-    resolution: {integrity: sha512-JT5CvrIYYCrmB+dCana8sUqJEcGB1ZDXNLMQ2+42bW995WmNoenijWMUdZfwmuQUTQcEVVIa2OecZzTYWUW9Cg==}
+  '@vscode/l10n@0.0.18':
+    resolution: {integrity: sha512-KYSIHVmslkaCDyw013pphY+d7x1qV8IZupYfeIfzNA+nsaWHbn5uPuQRvdRFsa9zFzGeudPuoGoZ1Op4jrJXIQ==}
 
   acorn-walk@8.2.0:
     resolution: {integrity: sha512-k+iyHEuPgSw6SbuDpGQM+06HQUa04DZ3o+F6CSzXMvvI5KMvnaEqXe+YVe555R9nn6GPt404fos4wcgpw12SDA==}
@@ -1284,11 +1284,11 @@ packages:
   vfile-message@3.1.4:
     resolution: {integrity: sha512-fa0Z6P8HUrQN4BZaX05SIVXic+7kE3b05PWAtPuYP9QLHsLKYR7/AlLW3NtOrpXRLeawpDLMsVkmk5DG0NXgWw==}
 
-  vscode-css-languageservice@6.2.10:
-    resolution: {integrity: sha512-sYUZPku4mQ06AWGCbMyjv2tdR6juBW6hTbVPFwbJvNVzdtEfBioQOgkdXg7yMJNWnXkvWSU1FL2kb4Vxu5Cdyw==}
+  vscode-css-languageservice@6.3.0:
+    resolution: {integrity: sha512-nU92imtkgzpCL0xikrIb8WvedV553F2BENzgz23wFuok/HLN5BeQmroMy26pUwFxV2eV8oNRmYCUv8iO7kSMhw==}
 
-  vscode-html-languageservice@5.1.1:
-    resolution: {integrity: sha512-JenrspIIG/Q+93R6G3L6HdK96itSisMynE0glURqHpQbL3dKAKzdm8L40lAHNkwJeBg+BBPpAshZKv/38onrTQ==}
+  vscode-html-languageservice@5.3.0:
+    resolution: {integrity: sha512-C4Z3KsP5Ih+fjHpiBc5jxmvCl+4iEwvXegIrzu2F5pktbWvQaBT3YkVPk8N+QlSSMk8oCG6PKtZ/Sq2YHb5e8g==}
 
   vscode-jsonrpc@8.0.2:
     resolution: {integrity: sha512-RY7HwI/ydoC1Wwg4gJ3y6LpU9FJRZAUnTYMXthqhFXXu77ErDd/xkREpGuk4MyYkk4a+XDWAMqe0S3KkelYQEQ==}
@@ -1590,7 +1590,7 @@ snapshots:
       vscode-nls: 5.2.0
       vscode-uri: 2.1.2
 
-  '@vscode/l10n@0.0.16': {}
+  '@vscode/l10n@0.0.18': {}
 
   acorn-walk@8.2.0: {}
 
@@ -2318,16 +2318,16 @@ snapshots:
       '@types/unist': 2.0.6
       unist-util-stringify-position: 3.0.3
 
-  vscode-css-languageservice@6.2.10:
+  vscode-css-languageservice@6.3.0:
     dependencies:
-      '@vscode/l10n': 0.0.16
+      '@vscode/l10n': 0.0.18
       vscode-languageserver-textdocument: 1.0.11
       vscode-languageserver-types: 3.17.5
       vscode-uri: 3.0.8
 
-  vscode-html-languageservice@5.1.1:
+  vscode-html-languageservice@5.3.0:
     dependencies:
-      '@vscode/l10n': 0.0.16
+      '@vscode/l10n': 0.0.18
       vscode-languageserver-textdocument: 1.0.11
       vscode-languageserver-types: 3.17.5
       vscode-uri: 3.0.8
