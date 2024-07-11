@@ -12,11 +12,12 @@ ESM-style (for everything with `"type": "module"` in its `package.json`, like Sv
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 
 export default {
-  preprocess: [vitePreprocess()]
+    preprocess: [vitePreprocess()]
 };
 ```
 
 Or:
+
 ```js
 import sveltePreprocess from 'svelte-preprocess';
 
