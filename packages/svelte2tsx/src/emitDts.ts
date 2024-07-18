@@ -173,8 +173,8 @@ async function createTsCompilerHost(options: any, svelteMap: SvelteMap) {
             if (fileName.endsWith('d.ts.map')) {
                 data = data.replace(/"sources":\["(.+?)"\]/, (_, sourcePath: string) => {
                     // Due to our hack of treating .svelte files as .ts files, we need to adjust the extension
-                    if (sourcePath.endsWith('.svelte.ts')) {
-                        sourcePath = sourcePath.slice(0, -3);
+                    if (svelteMap.get(path.join(options.rootDir, toRealSvelteFilepath(sourcePath)))) {
+                        sourcePath = toRealSvelteFilepath(sourcePath);
                     }
                     // The inverse of the pathPrefix adjustment
                     sourcePath =
