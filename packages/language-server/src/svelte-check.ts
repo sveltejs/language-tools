@@ -211,8 +211,8 @@ export class SvelteCheck {
                     const skipDiagnosticsForFile =
                         (options.skipLibCheck && file.isDeclarationFile) ||
                         (options.skipDefaultLibCheck && file.hasNoDefaultLib) ||
-                        // ignore JS files in node_modules
-                        /\/node_modules\/.+\.(c|m)?js$/.test(file.fileName);
+                        // ignore files in the same common package folders that TypeScript does.
+                        /\/(node_modules|bower_components|jspm_packages)\//.test(file.fileName);
                     const snapshot = lsContainer.snapshotManager.get(file.fileName) as
                         | JSOrTSDocumentSnapshot
                         | undefined;
