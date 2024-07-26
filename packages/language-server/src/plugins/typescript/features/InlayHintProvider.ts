@@ -17,10 +17,10 @@ import {
     isInGeneratedCode,
     findChildOfKind,
     findRenderFunction,
-    findClosestContainingNode,
-    SnapshotMap
+    SnapshotMap,
+    startsWithIgnoredPosition
 } from './utils';
-import { convertRange } from '../utils';
+import { convertRange, isSvelte2tsxShimFile } from '../utils';
 
 export class InlayHintProviderImpl implements InlayHintProvider {
     constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
@@ -195,10 +195,19 @@ export class InlayHintProviderImpl implements InlayHintProvider {
             return false;
         }
 
-        const node = findClosestContainingNode(
+        if (inlayHint.displayParts?.some((v) => isSvelte2tsxShimFile(v.file))) {
+            return true;
+        }
+
+        const hasParameterWithSamePosition = (node: ts.CallExpression | ts.NewExpression) =>
+            node.arguments !== undefined &&
+            node.arguments.some((arg) => arg.getStart() === inlayHint.position);
+
+        const node = findContainingNode(
             sourceFile,
             { start: inlayHint.position, length: 0 },
-            ts.isCallOrNewExpression
+            (node): node is ts.CallExpression | ts.NewExpression =>
+                ts.isCallOrNewExpression(node) && hasParameterWithSamePosition(node)
         );
 
         if (!node) {
@@ -222,6 +231,10 @@ export class InlayHintProviderImpl implements InlayHintProvider {
     ): boolean {
         if (inlayHint.kind !== ts.InlayHintKind.Type) {
             return false;
+        }
+
+        if (startsWithIgnoredPosition(sourceFile.text, inlayHint.position)) {
+            return true;
         }
 
         const declaration = findContainingNode(

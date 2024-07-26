@@ -2,7 +2,7 @@ import MagicString from 'magic-string';
 import { BaseNode } from '../../interfaces';
 import { transform, TransformationArray } from '../utils/node-utils';
 import { InlineComponent } from './InlineComponent';
-import { surroundWithIgnoreComments } from '../../utils/ignore';
+import { IGNORE_POSITION_COMMENT, surroundWithIgnoreComments } from '../../utils/ignore';
 
 /**
  * Transform #snippet into a function
@@ -14,9 +14,9 @@ import { surroundWithIgnoreComments } from '../../utils/ignore';
  * ```
  * --> if standalone:
  * ```ts
- * const foo = (bar) => {
+ * const foo = (() => {const $$_func = (bar) => {
  * ..
- * }
+ * };return __sveltets_2_inferSnippet($$_func)})()
  * ```
  * --> if slot prop:
  * ```ts
@@ -32,15 +32,14 @@ export function handleSnippet(
 ): void {
     const isImplicitProp = component !== undefined;
     const endSnippet = str.original.lastIndexOf('{', snippetBlock.end - 1);
-    // Return something to silence the "snippet type not assignable to return type void" error
-    str.overwrite(
-        endSnippet,
-        snippetBlock.end,
-        `};return __sveltets_2_any(0)}${isImplicitProp ? '' : ';'}`,
-        {
-            contentOnly: true
-        }
-    );
+
+    const afterSnippet = isImplicitProp
+        ? `};return __sveltets_2_any(0)}`
+        : `};return __sveltets_2_any(0)};`; //`}};return __sveltets_2_inferSnippet($$_func)})()`;
+
+    str.overwrite(endSnippet, snippetBlock.end, afterSnippet, {
+        contentOnly: true
+    });
 
     const lastParameter = snippetBlock.parameters?.at(-1);
 
@@ -50,13 +49,24 @@ export function handleSnippet(
             lastParameter?.typeAnnotation?.end ?? lastParameter?.end ?? snippetBlock.expression.end
         ) + 1;
 
+    let parameters: [number, number] | undefined;
+
+    if (snippetBlock.parameters?.length) {
+        const firstParameter = snippetBlock.parameters[0];
+        const start = firstParameter?.leadingComments?.[0]?.start ?? firstParameter.start;
+        const end = lastParameter.typeAnnotation?.end ?? lastParameter.end;
+        parameters = [start, end];
+    }
+
+    // inner async function for potential #await blocks
+    const afterParameters = ` => { async ()${IGNORE_POSITION_COMMENT} => {`;
+
     if (isImplicitProp) {
         str.overwrite(snippetBlock.start, snippetBlock.expression.start, '', { contentOnly: true });
         const transforms: TransformationArray = ['('];
-        if (snippetBlock.parameters?.length) {
-            const start = snippetBlock.parameters[0].start;
-            const end = lastParameter.typeAnnotation?.end ?? lastParameter.end;
-            transforms.push([start, end]);
+        if (parameters) {
+            transforms.push(parameters);
+            const [start, end] = parameters;
             str.overwrite(snippetBlock.expression.end, start, '', {
                 contentOnly: true
             });
@@ -64,55 +74,30 @@ export function handleSnippet(
         } else {
             str.overwrite(snippetBlock.expression.end, startEnd, '', { contentOnly: true });
         }
-        transforms.push(') => {async () => {'); // inner async function for potential #await blocks
+        transforms.push(')' + afterParameters);
         transforms.push([startEnd, snippetBlock.end]);
         component.addProp(
             [[snippetBlock.expression.start, snippetBlock.expression.end]],
             transforms
         );
     } else {
-        let generic = '';
-        if (snippetBlock.parameters?.length) {
-            generic = `<[${snippetBlock.parameters
-                .map((p) => {
-                    let typeAnnotation = p.typeAnnotation;
-                    if (!typeAnnotation && p.type === 'AssignmentPattern') {
-                        typeAnnotation = p.left?.typeAnnotation;
-                        if (!typeAnnotation) {
-                            typeAnnotation = p.right?.typeAnnotation;
-                        }
-                    }
-
-                    // fall back to `any` to silence "implicit any" errors; JSDoc people can't add types to snippets
-                    let type = 'any';
-                    if (typeAnnotation?.typeAnnotation) {
-                        type = str.original.slice(
-                            typeAnnotation.typeAnnotation.start,
-                            typeAnnotation.typeAnnotation.end
-                        );
-                    }
-                    if (p.optional || p.type === 'AssignmentPattern') {
-                        type += '?';
-                    }
-                    return type;
-                })
-                .join(', ')}]>`;
-        }
-
-        const typeAnnotation = surroundWithIgnoreComments(`: import('svelte').Snippet${generic}`);
         const transforms: TransformationArray = [
-            'var ',
+            'const ',
             [snippetBlock.expression.start, snippetBlock.expression.end],
-            typeAnnotation + ' = ('
+            IGNORE_POSITION_COMMENT,
+            ' = ('
         ];
 
-        if (snippetBlock.parameters?.length) {
-            const start = snippetBlock.parameters[0].start;
-            const end = lastParameter.typeAnnotation?.end ?? lastParameter.end;
-            transforms.push([start, end]);
+        if (parameters) {
+            transforms.push(parameters);
         }
 
-        transforms.push(') => {async () => {'); // inner async function for potential #await blocks
+        transforms.push(
+            ')',
+            surroundWithIgnoreComments(`: ReturnType<import('svelte').Snippet>`),
+            afterParameters
+        );
+
         transform(str, snippetBlock.start, startEnd, startEnd, transforms);
     }
 }

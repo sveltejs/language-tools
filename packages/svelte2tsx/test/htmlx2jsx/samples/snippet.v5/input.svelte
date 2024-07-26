@@ -39,3 +39,7 @@
 </List>
 
 {@render children()}
+
+{#snippet jsDoc(/**@type {number}*/a)}
+	{a}
+{/snippet}

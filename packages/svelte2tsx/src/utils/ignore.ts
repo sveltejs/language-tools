@@ -1,5 +1,6 @@
 export const IGNORE_START_COMMENT = '/*Ωignore_startΩ*/';
 export const IGNORE_END_COMMENT = '/*Ωignore_endΩ*/';
+export const IGNORE_POSITION_COMMENT = '/*Ωignore_positionΩ*/';
 
 /**
  * Surrounds given string with a start/end comment which marks it
