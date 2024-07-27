@@ -18,12 +18,13 @@ export function decorateInlayHints(
         }
 
         const { languageService, toVirtualPos, toOriginalPos } = result;
+        const start = toVirtualPos(span.start);
         return languageService
             .provideInlayHints(
                 fileName,
                 {
-                    start: toVirtualPos(span.start),
-                    length: span.length
+                    start,
+                    length: toVirtualPos(span.start + span.length) - start
                 },
                 preferences
             )

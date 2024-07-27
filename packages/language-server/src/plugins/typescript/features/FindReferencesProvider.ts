@@ -194,7 +194,26 @@ export class FindReferencesProviderImpl implements FindReferencesProvider {
             )
         );
 
-        return flatten(references.filter(isNotNullOrUndefined));
+        const flattened: Location[] = [];
+        for (const ref of references) {
+            if (ref) {
+                const tmp: Location[] = []; // perf optimization: we know each iteration has unique references
+                for (const r of ref) {
+                    const exists = flattened.some(
+                        (f) =>
+                            f.uri === r.uri &&
+                            f.range.start.line === r.range.start.line &&
+                            f.range.start.character === r.range.start.character
+                    );
+                    if (!exists) {
+                        tmp.push(r);
+                    }
+                }
+                flattened.push(...tmp);
+            }
+        }
+
+        return flattened;
     }
 
     private async mapReference(

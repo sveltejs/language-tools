@@ -24,11 +24,13 @@ import { sortBy } from 'lodash';
 import { LSConfigManager } from '../../../../src/ls-config';
 import { __resetCache } from '../../../../src/plugins/typescript/service';
 import { getRandomVirtualDirPath, serviceWarmup, setupVirtualEnvironment } from '../test-utils';
+import { VERSION } from 'svelte/compiler';
 
 const testDir = join(__dirname, '..');
 const testFilesDir = join(testDir, 'testfiles', 'completions');
 const newLine = ts.sys.newLine;
 const indent = ' '.repeat(4);
+const isSvelte5Plus = +VERSION.split('.')[0] >= 5;
 
 const fileNameToAbsoluteUri = (file: string) => {
     return pathToUrl(join(testFilesDir, file));
@@ -855,7 +857,7 @@ describe('CompletionProviderImpl', function () {
 
         assert.strictEqual(
             detail,
-            'Add import from "../imported-file.svelte"\n\nclass ImportedFile'
+            `Add import from "../imported-file.svelte"${isSvelte5Plus ? '' : '\n\nclass ImportedFile'}`
         );
 
         assert.strictEqual(
@@ -893,7 +895,7 @@ describe('CompletionProviderImpl', function () {
 
         assert.strictEqual(
             detail,
-            'Add import from "../imported-file.svelte"\n\nclass ImportedFile'
+            `Add import from "../imported-file.svelte"${isSvelte5Plus ? '' : '\n\nclass ImportedFile'}`
         );
 
         assert.strictEqual(
@@ -1502,7 +1504,10 @@ describe('CompletionProviderImpl', function () {
         const item2 = completions2?.items.find((item) => item.label === 'Bar');
         const { detail } = await completionProvider.resolveCompletion(document, item2!);
 
-        assert.strictEqual(detail, 'Add import from "./Bar.svelte"\n\nclass Bar');
+        assert.strictEqual(
+            detail,
+            `Add import from "./Bar.svelte"${isSvelte5Plus ? '' : '\n\nclass Bar'}`
+        );
     });
 
     it("doesn't use empty cache", async () => {
@@ -1551,7 +1556,10 @@ describe('CompletionProviderImpl', function () {
         const item2 = completions?.items.find((item) => item.label === 'Bar');
         const { detail } = await completionProvider.resolveCompletion(document, item2!);
 
-        assert.strictEqual(detail, 'Add import from "./Bar.svelte"\n\nclass Bar');
+        assert.strictEqual(
+            detail,
+            `Add import from "./Bar.svelte"${isSvelte5Plus ? '' : '\n\nclass Bar'}`
+        );
     });
 
     it('can auto import new export', async () => {
@@ -1707,7 +1715,13 @@ describe('CompletionProviderImpl', function () {
             [Position.create(9, 26), 'namespace import after tag name'],
             [Position.create(9, 35), 'namespace import before tag end'],
             [Position.create(10, 27), 'object namespace after tag name'],
-            [Position.create(10, 36), 'object namespace before tag end']
+            [Position.create(10, 36), 'object namespace before tag end'],
+            [Position.create(11, 27), 'object namespace + reexport after tag name'],
+            [Position.create(11, 36), 'object namespace + reexport before tag end'],
+            [Position.create(12, 37), 'constructor signature after tag name'],
+            [Position.create(12, 46), 'constructor signature before tag end'],
+            [Position.create(12, 37), 'overloaded constructor signature after tag name'],
+            [Position.create(12, 46), 'overloaded constructor signature before tag end']
         ];
 
         for (const [position, name] of namespacedComponentTestList) {
@@ -1725,5 +1739,44 @@ describe('CompletionProviderImpl', function () {
     // Hacky, but it works. Needed due to testing both new and old transformation
     after(() => {
         __resetCache();
+    });
+
+    // -------------------- put tests that only run in Svelte 5 below this line and everything else above --------------------
+    if (!isSvelte5Plus) return;
+
+    it(`provide props completions for rune-mode component`, async () => {
+        const { completionProvider, document } = setup('component-props-completion-rune.svelte');
+
+        const completions = await completionProvider.getCompletions(
+            document,
+            {
+                line: 5,
+                character: 20
+            },
+            {
+                triggerKind: CompletionTriggerKind.Invoked
+            }
+        );
+
+        const item = completions?.items.find((item) => item.label === 'a');
+        assert.ok(item);
+    });
+
+    it(`provide props completions for v5+ Component type`, async () => {
+        const { completionProvider, document } = setup('component-props-completion-rune.svelte');
+
+        const completions = await completionProvider.getCompletions(
+            document,
+            {
+                line: 6,
+                character: 15
+            },
+            {
+                triggerKind: CompletionTriggerKind.Invoked
+            }
+        );
+
+        const item = completions?.items.find((item) => item.label === 'hi');
+        assert.ok(item);
     });
 });

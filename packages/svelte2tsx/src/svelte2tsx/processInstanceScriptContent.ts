@@ -41,7 +41,8 @@ export function processInstanceScriptContent(
     mode: 'ts' | 'dts',
     hasModuleScript: boolean,
     isTSFile: boolean,
-    basename: string
+    basename: string,
+    isSvelte5Plus: boolean
 ): InstanceScriptProcessResult {
     const htmlx = str.original;
     const scriptContent = htmlx.substring(script.content.start, script.content.end);
@@ -53,7 +54,7 @@ export function processInstanceScriptContent(
         ts.ScriptKind.TS
     );
     const astOffset = script.content.start;
-    const exportedNames = new ExportedNames(str, astOffset, basename, isTSFile);
+    const exportedNames = new ExportedNames(str, astOffset, basename, isTSFile, isSvelte5Plus);
     const generics = new Generics(str, astOffset, script);
     const interfacesAndTypes = new InterfacesAndTypes();
 
@@ -202,7 +203,10 @@ export function processInstanceScriptContent(
         if (ts.isVariableDeclaration(node)) {
             events.checkIfIsStringLiteralDeclaration(node);
             events.checkIfDeclarationInstantiatedEventDispatcher(node);
-            implicitStoreValues.addVariableDeclaration(node);
+            // Only top level declarations can be stores
+            if (node.parent?.parent?.parent === tsAst) {
+                implicitStoreValues.addVariableDeclaration(node);
+            }
         }
 
         if (ts.isCallExpression(node)) {

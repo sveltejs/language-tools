@@ -136,7 +136,7 @@ export namespace DocumentSnapshot {
 
         if (normalizedPath.endsWith('node_modules/svelte/types/index.d.ts')) {
             const startIdx = originalText.indexOf(`declare module '*.svelte' {`);
-            const endIdx = originalText.indexOf(`}`, originalText.indexOf(';', startIdx)) + 1;
+            const endIdx = originalText.indexOf(`\n}`, startIdx + 1) + 2;
             originalText =
                 originalText.substring(0, startIdx) +
                 ' '.repeat(endIdx - startIdx) +
@@ -268,6 +268,7 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
     private url = pathToUrl(this.filePath);
 
     version = this.parent.version;
+    isSvelte5Plus = Number(this.svelteVersion?.split('.')[0]) >= 5;
 
     constructor(
         public readonly parent: Document,
@@ -280,10 +281,6 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
         private readonly tsxMap?: EncodedSourceMap,
         private readonly htmlAst?: TemplateNode
     ) {}
-
-    get isSvelte5Plus() {
-        return Number(this.svelteVersion?.split('.')[0]) >= 5;
-    }
 
     get filePath() {
         return this.parent.getFilePath() || '';

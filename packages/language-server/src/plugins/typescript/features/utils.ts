@@ -50,21 +50,15 @@ export function getComponentAtPosition(
         doc.positionAt(node.start + symbolPosWithinNode + 1)
     );
 
-    let def = lang.getDefinitionAtPosition(tsDoc.filePath, tsDoc.offsetAt(generatedPosition))?.[0];
-
-    while (def != null && def.kind !== ts.ScriptElementKind.classElement) {
-        const newDef = lang.getDefinitionAtPosition(tsDoc.filePath, def.textSpan.start)?.[0];
-        if (newDef?.fileName === def.fileName && newDef?.textSpan.start === def.textSpan.start) {
-            break;
-        }
-        def = newDef;
-    }
-
+    const def = lang.getDefinitionAtPosition(
+        tsDoc.filePath,
+        tsDoc.offsetAt(generatedPosition)
+    )?.[0];
     if (!def) {
         return null;
     }
 
-    return JsOrTsComponentInfoProvider.create(lang, def);
+    return JsOrTsComponentInfoProvider.create(lang, def, tsDoc.isSvelte5Plus);
 }
 
 export function isComponentAtPosition(

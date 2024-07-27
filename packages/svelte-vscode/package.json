@@ -492,7 +492,8 @@
                 "scopeName": "markdown.svelte.codeblock",
                 "path": "./syntaxes/markdown-svelte.json",
                 "injectTo": [
-                    "text.html.markdown"
+                    "text.html.markdown",
+                    "source.mdx"
                 ],
                 "embeddedLanguages": {
                     "meta.embedded.block.svelte": "svelte"
@@ -502,14 +503,16 @@
                 "scopeName": "markdown.svelte.codeblock.script",
                 "path": "./syntaxes/markdown-svelte-js.json",
                 "injectTo": [
-                    "text.html.markdown"
+                    "text.html.markdown",
+                    "source.mdx"
                 ]
             },
             {
                 "scopeName": "markdown.svelte.codeblock.style",
                 "path": "./syntaxes/markdown-svelte-css.json",
                 "injectTo": [
-                    "text.html.markdown"
+                    "text.html.markdown",
+                    "source.mdx"
                 ]
             },
             {
@@ -719,7 +722,7 @@
         "@types/vscode": "^1.67",
         "js-yaml": "^3.14.0",
         "tslib": "^2.4.0",
-        "typescript": "^5.4.5",
+        "typescript": "^5.5.2",
         "vscode-tmgrammar-test": "^0.0.11"
     },
     "dependencies": {

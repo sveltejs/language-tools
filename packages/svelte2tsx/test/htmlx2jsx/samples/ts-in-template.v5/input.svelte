@@ -34,7 +34,19 @@
     snippet
 {/snippet}
 
-{#snippet foo3(bar    : string | number, baz     : (str: string)=>void)}
+{#snippet foo4(bar    : string | number, baz     : (str: string)=>void)}
+    snippet
+{/snippet}
+
+{#snippet foo5(bar: {baz: string})}
+    snippet
+{/snippet}
+
+{#snippet foo6(bar?: string)}
+    snippet
+{/snippet}
+
+{#snippet foo7(bar, baz = '')}
     snippet
 {/snippet}
 

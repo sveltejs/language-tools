@@ -32,9 +32,9 @@ function parseAttributes(str: string, start: number) {
 
 // Regex ensures that attributes with > characters in them still result in the content being matched correctly
 const scriptRegex =
-    /(<!--[^]*?-->)|(<script((?:\s+[^=>'"\/]+=(?:"[^"]*"|'[^']*'|[^>\s]+)|\s+[^=>'"\/]+)*\s*)>)([\S\s]*?)<\/script>/g;
+    /(<!--[^]*?-->)|(<script((?:\s+[^=>'"\/\s]+=(?:"[^"]*"|'[^']*'|[^>\s]+)|\s+[^=>'"\/\s]+)*\s*)>)([\S\s]*?)<\/script>/g;
 const styleRegex =
-    /(<!--[^]*?-->)|(<style((?:\s+[^=>'"\/]+=(?:"[^"]*"|'[^']*'|[^>\s]+)|\s+[^=>'"\/]+)*\s*)>)([\S\s]*?)<\/style>/g;
+    /(<!--[^]*?-->)|(<style((?:\s+[^=>'"\/\s]+=(?:"[^"]*"|'[^']*'|[^>\s]+)|\s+[^=>'"\/\s]+)*\s*)>)([\S\s]*?)<\/style>/g;
 
 function extractTag(htmlx: string, tag: 'script' | 'style') {
     const exp = tag === 'script' ? scriptRegex : styleRegex;
