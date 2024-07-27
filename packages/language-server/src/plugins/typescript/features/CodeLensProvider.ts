@@ -49,6 +49,18 @@ export class CodeLensProviderImpl implements CodeLensProvider {
                 collect: (tsDoc, item, parent) =>
                     this.extractReferenceLocation(tsDoc, item, parent, clientTsConfig)
             });
+
+            if (!tsDoc.parserError) {
+                // always add a reference code lens for the generated component
+                results.push([
+                    'reference',
+                    {
+                        start: { line: 0, character: 0 },
+                        // some client refused to resolve the code lens if the start is the same as the end
+                        end: { line: 0, character: 1 }
+                    }
+                ]);
+            }
         }
 
         if (
@@ -209,15 +221,6 @@ export class CodeLensProviderImpl implements CodeLensProvider {
 
         if (range.start.line >= 0 && range.end.line >= 0) {
             return isZeroLengthRange(range) ? undefined : range;
-        }
-
-        // unlike references, only map to the start of file if it's a generated component
-        if (isGeneratedSvelteComponentName(item.text)) {
-            return {
-                start: { line: 0, character: 0 },
-                // some client refused to resolve the code lens if the start is the same as the end
-                end: { line: 0, character: 1 }
-            };
         }
     }
 
