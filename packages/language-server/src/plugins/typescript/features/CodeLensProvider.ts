@@ -2,12 +2,12 @@ import ts from 'typescript';
 import { CancellationToken, CodeLens, Range } from 'vscode-languageserver';
 import { Document, mapRangeToOriginal } from '../../../lib/documents';
 import { LSConfigManager, TSUserConfig } from '../../../ls-config';
+import { isZeroLengthRange } from '../../../utils';
 import { CodeLensProvider, FindReferencesProvider, ImplementationProvider } from '../../interfaces';
 import { SvelteDocumentSnapshot } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
-import { convertRange, isGeneratedSvelteComponentName } from '../utils';
+import { convertRange } from '../utils';
 import { isTextSpanInGeneratedCode } from './utils';
-import { isZeroLengthRange } from '../../../utils';
 
 type CodeLensType = 'reference' | 'implementation';
 
