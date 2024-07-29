@@ -76,8 +76,8 @@ export function handleSnippet(
         }
         transforms.push(')' + afterParameters);
         transforms.push([startEnd, snippetBlock.end]);
-        component.addProp(
-            [[snippetBlock.expression.start, snippetBlock.expression.end]],
+        component.addImplicitSnippetProp(
+            [snippetBlock.expression.start, snippetBlock.expression.end],
             transforms
         );
     } else {
@@ -150,8 +150,7 @@ export function handleImplicitChildren(componentNode: BaseNode, component: Inlin
 
 export function hoistSnippetBlock(str: MagicString, blockOrEle: BaseNode) {
     if (blockOrEle.type === 'InlineComponent') {
-        // TODO: handle inline components.
-        // Right now the snippet is directly passed in to component as implicit props
+        // implicit props, handled in InlineComponent
         return;
     }
 

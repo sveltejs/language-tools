@@ -30,8 +30,7 @@
     {#snippet foo()}{/snippet}
 </div>
 
-<!--TODO-->
-<!-- <Component>
+<Component>
     {@render foo()}
     {#snippet foo()}{/snippet}
-</Component> -->
+</Component>
