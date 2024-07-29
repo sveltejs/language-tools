@@ -147,3 +147,33 @@ export function handleImplicitChildren(componentNode: BaseNode, component: Inlin
     // it's enough to fake a children prop, we don't need to actually move the content inside (which would also reset control flow)
     component.addProp(['children'], ['() => { return __sveltets_2_any(0); }']);
 }
+
+export function hoistSnippetBlock(str: MagicString, blockOrEle: BaseNode) {
+    if (blockOrEle.type === 'InlineComponent') {
+        // TODO: handle inline components.
+        // Right now the snippet is directly passed in to component as implicit props
+        return;
+    }
+
+    let targetPosition: number | undefined;
+
+    for (const node of blockOrEle.children ?? []) {
+        if (node.type !== 'SnippetBlock') {
+            if (targetPosition === undefined && (node.type !== 'Text' || node.data.trim() !== '')) {
+                targetPosition = node.type === 'Text' ? node.end : node.start;
+            }
+            continue;
+        }
+
+        // already first
+        if (targetPosition === undefined) {
+            continue;
+        }
+
+        if (node.start === targetPosition) {
+            continue;
+        }
+
+        str.move(node.start, node.end, targetPosition);
+    }
+}
