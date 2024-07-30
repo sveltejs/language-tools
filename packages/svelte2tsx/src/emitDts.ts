@@ -172,10 +172,6 @@ async function createTsCompilerHost(options: any, svelteMap: SvelteMap) {
             fileName = pathPrefix ? path.join(pathPrefix, fileName) : fileName;
             if (fileName.endsWith('d.ts.map')) {
                 data = data.replace(/"sources":\["(.+?)"\]/, (_, sourcePath: string) => {
-                    // Due to our hack of treating .svelte files as .ts files, we need to adjust the extension
-                    if (sourcePath.endsWith('.svelte.ts')) {
-                        sourcePath = sourcePath.slice(0, -3);
-                    }
                     // The inverse of the pathPrefix adjustment
                     sourcePath =
                         pathPrefix && sourcePath.includes(pathPrefix)
@@ -184,6 +180,12 @@ async function createTsCompilerHost(options: any, svelteMap: SvelteMap) {
                                   sourcePath.indexOf(pathPrefix) + pathPrefix.length + 1
                               )
                             : sourcePath;
+                    // Due to our hack of treating .svelte files as .ts files, we need to adjust the extension
+                    if (
+                        svelteMap.get(path.join(options.rootDir, toRealSvelteFilepath(sourcePath)))
+                    ) {
+                        sourcePath = toRealSvelteFilepath(sourcePath);
+                    }
                     return `"sources":["${sourcePath}"]`;
                 });
             } else if (fileName.endsWith('js.map')) {
