@@ -5,7 +5,10 @@ interface $$__sveltets_2_IsomorphicComponent<Props extends Record<string, any> =
     (internal: unknown, props: Props & {
         $$events?: Events;
         $$slots?: Slots;
-    }): Exports;
+    }): Exports & {
+        $set?: any;
+        $on?: any;
+    };
     z_$$bindings?: Bindings;
 }
 declare const TestRunes: $$__sveltets_2_IsomorphicComponent<{
