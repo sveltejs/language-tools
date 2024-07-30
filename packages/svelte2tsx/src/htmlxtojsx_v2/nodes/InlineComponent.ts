@@ -33,6 +33,7 @@ export class InlineComponent {
     private propsTransformation: TransformationArray = [];
     private eventsTransformation: TransformationArray = [];
     private slotLetsTransformation?: [TransformationArray, TransformationArray];
+    private snippetPropsTransformation: TransformationArray = [];
     private endTransformation: TransformationArray = [];
     private startTagStart: number;
     private startTagEnd: number;
@@ -159,6 +160,12 @@ export class InlineComponent {
         this.slotLetsTransformation[1].push(...transformation, ',');
     }
 
+    addImplicitSnippetProp(name: [number, number], transforms: TransformationArray): void {
+        this.addProp([name], transforms);
+
+        this.snippetPropsTransformation.push(this.str.original.slice(name[0], name[1]));
+    }
+
     /**
      * Add something right after the start tag end.
      */
@@ -191,6 +198,13 @@ export class InlineComponent {
             this.endTransformation.push('}');
         }
 
+        const snippetPropVariables = this.snippetPropsTransformation?.join(', ');
+        const snippetPropVariablesDeclaration = snippetPropVariables
+            ? surroundWithIgnoreComments(
+                  `const {${snippetPropVariables}} = ${this.name}.$$prop_def;`
+              )
+            : '';
+
         if (this.isSelfclosing) {
             this.endTransformation.push('}');
             transform(this.str, this.startTagStart, this.startTagEnd, this.startTagEnd, [
@@ -203,6 +217,7 @@ export class InlineComponent {
                 ...this.startEndTransformation,
                 ...this.eventsTransformation,
                 ...defaultSlotLetTransformation,
+                snippetPropVariablesDeclaration,
                 ...this.endTransformation
             ]);
         } else {
@@ -223,6 +238,7 @@ export class InlineComponent {
                 ...this.propsTransformation,
                 ...this.startEndTransformation,
                 ...this.eventsTransformation,
+                snippetPropVariablesDeclaration,
                 ...defaultSlotLetTransformation
             ]);
             transform(this.str, endStart, this.node.end, this.node.end, this.endTransformation);

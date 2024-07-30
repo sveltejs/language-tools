@@ -145,10 +145,6 @@ declare function __sveltets_2_cssProp(prop: Record<string, any>): {};
 
 // @ts-ignore Svelte v3/v4 don't have this
 declare function __sveltets_2_ensureSnippet(val: ReturnType<import('svelte').Snippet> | undefined | null): any;
-// @ts-ignore Svelte v3/v4 don't have this
-declare function __sveltets_2_snippet(): import('svelte').Snippet;
-// @ts-ignore Svelte v3/v4 don't have this
-declare function __sveltets_2_snippet<T>(t: T): import('svelte').Snippet<[T]>;
 
 /** @internal PRIVATE API, DO NOT USE */
 type __sveltets_2_SvelteAnimationReturnType = {

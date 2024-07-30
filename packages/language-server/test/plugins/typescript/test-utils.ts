@@ -7,6 +7,9 @@ import { FileMap } from '../../../src/lib/documents/fileCollection';
 import { LSConfigManager } from '../../../src/ls-config';
 import { LSAndTSDocResolver } from '../../../src/plugins';
 import { createGetCanonicalFileName, normalizePath, pathToUrl } from '../../../src/utils';
+import { VERSION } from 'svelte/compiler';
+
+const isSvelte5Plus = Number(VERSION.split('.')[0]) >= 5;
 
 export function createVirtualTsSystem(currentDirectory: string): ts.System {
     const virtualFs = new FileMap<string>();
@@ -198,7 +201,12 @@ export function createSnapshotTester<
         }
 
         if (existsSync(inputFile)) {
-            const _it = dir.endsWith('.only') ? it.only : it;
+            const _it =
+                dir.endsWith('.v5') && !isSvelte5Plus
+                    ? it.skip
+                    : dir.endsWith('.only')
+                      ? it.only
+                      : it;
             _it(dir.substring(__dirname.length), () => executeTest(inputFile, testOptions));
         } else {
             const _describe = dir.endsWith('.only') ? describe.only : describe;
