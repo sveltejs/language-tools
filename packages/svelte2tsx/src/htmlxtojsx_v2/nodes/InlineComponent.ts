@@ -200,7 +200,9 @@ export class InlineComponent {
 
         const snippetPropVariables = this.snippetPropsTransformation?.join(', ');
         const snippetPropVariablesDeclaration = snippetPropVariables
-            ? surroundWithIgnoreComments(`const {${snippetPropVariables}} = ${this.name}.$$prop_def;`)
+            ? surroundWithIgnoreComments(
+                  `const {${snippetPropVariables}} = ${this.name}.$$prop_def;`
+              )
             : '';
 
         if (this.isSelfclosing) {
