@@ -32,6 +32,7 @@ import { TsPlugin } from './tsplugin';
 import { addFindComponentReferencesListener } from './typescript/findComponentReferences';
 import { addFindFileReferencesListener } from './typescript/findFileReferences';
 import { setupSvelteKit } from './sveltekit';
+import { resolveCodeLensMiddleware } from './middlewares';
 
 namespace TagCloseRequest {
     export const type: RequestType<TextDocumentPositionParams, string, any> = new RequestType(
@@ -180,6 +181,9 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
             },
             dontFilterIncompleteCompletions: true, // VSCode filters client side and is smarter at it than us
             isTrusted: workspace.isTrusted
+        },
+        middleware: {
+            resolveCodeLens: resolveCodeLensMiddleware
         }
     };
 

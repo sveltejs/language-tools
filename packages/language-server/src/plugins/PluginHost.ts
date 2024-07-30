@@ -7,6 +7,7 @@ import {
     CancellationToken,
     CodeAction,
     CodeActionContext,
+    CodeLens,
     Color,
     ColorInformation,
     ColorPresentation,
@@ -417,13 +418,14 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
     async findReferences(
         textDocument: TextDocumentIdentifier,
         position: Position,
-        context: ReferenceContext
+        context: ReferenceContext,
+        cancellationToken?: CancellationToken
     ): Promise<Location[] | null> {
         const document = this.getDocument(textDocument.uri);
 
         return await this.execute<any>(
             'findReferences',
-            [document, position, context],
+            [document, position, context, cancellationToken],
             ExecuteMode.FirstNonNull,
             'high'
         );
@@ -525,13 +527,14 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
 
     getImplementation(
         textDocument: TextDocumentIdentifier,
-        position: Position
+        position: Position,
+        cancellationToken?: CancellationToken
     ): Promise<Location[] | null> {
         const document = this.getDocument(textDocument.uri);
 
         return this.execute<Location[] | null>(
             'getImplementation',
-            [document, position],
+            [document, position, cancellationToken],
             ExecuteMode.FirstNonNull,
             'high'
         );
@@ -605,6 +608,20 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         );
     }
 
+    async getCodeLens(textDocument: TextDocumentIdentifier) {
+        const document = this.getDocument(textDocument.uri);
+        if (!document) {
+            throw new Error('Cannot call methods on an unopened document');
+        }
+
+        return await this.execute<CodeLens[]>(
+            'getCodeLens',
+            [document],
+            ExecuteMode.FirstNonNull,
+            'smart'
+        );
+    }
+
     async getFoldingRanges(textDocument: TextDocumentIdentifier): Promise<FoldingRange[]> {
         const document = this.getDocument(textDocument.uri);
 
@@ -618,6 +635,26 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         );
 
         return result;
+    }
+
+    async resolveCodeLens(
+        textDocument: TextDocumentIdentifier,
+        codeLens: CodeLens,
+        cancellationToken: CancellationToken
+    ) {
+        const document = this.getDocument(textDocument.uri);
+        if (!document) {
+            throw new Error('Cannot call methods on an unopened document');
+        }
+
+        return (
+            (await this.execute<CodeLens>(
+                'resolveCodeLens',
+                [document, codeLens, cancellationToken],
+                ExecuteMode.FirstNonNull,
+                'smart'
+            )) ?? codeLens
+        );
     }
 
     onWatchFileChanges(onWatchFileChangesParas: OnWatchFileChangesPara[]): void {

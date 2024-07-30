@@ -1,5 +1,5 @@
 import ts from 'typescript';
-import { Location, Position, ReferenceContext } from 'vscode-languageserver';
+import { CancellationToken, Location, Position, ReferenceContext } from 'vscode-languageserver';
 import { Document } from '../../../lib/documents';
 import { flatten, isNotNullOrUndefined, pathToUrl } from '../../../utils';
 import { FindComponentReferencesProvider, FindReferencesProvider } from '../../interfaces';
@@ -28,13 +28,20 @@ export class FindReferencesProviderImpl implements FindReferencesProvider {
     async findReferences(
         document: Document,
         position: Position,
-        context: ReferenceContext
+        context: ReferenceContext,
+        cancellationToken?: CancellationToken
     ): Promise<Location[] | null> {
-        if (this.isScriptStartOrEndTag(position, document)) {
+        if (
+            this.isPositionForComponentCodeLens(position) ||
+            this.isScriptStartOrEndTag(position, document)
+        ) {
             return this.componentReferencesProvider.findComponentReferences(document.uri);
         }
 
         const { lang, tsDoc } = await this.getLSAndTSDoc(document);
+        if (cancellationToken?.isCancellationRequested) {
+            return null;
+        }
         const offset = tsDoc.offsetAt(tsDoc.getGeneratedPosition(position));
 
         const rawReferences = lang.findReferences(
@@ -61,10 +68,20 @@ export class FindReferencesProviderImpl implements FindReferencesProvider {
         }
         const references = flatten(rawReferences.map((ref) => ref.references));
 
-        references.push(...(await this.getStoreReferences(references, tsDoc, snapshots, lang)));
+        references.push(
+            ...(await this.getStoreReferences(
+                references,
+                tsDoc,
+                snapshots,
+                lang,
+                cancellationToken
+            ))
+        );
 
         const locations = await Promise.all(
-            references.map(async (ref) => this.mapReference(ref, context, snapshots))
+            references.map(async (ref) =>
+                this.mapReference(ref, context, snapshots, cancellationToken)
+            )
         );
 
         return (
@@ -88,6 +105,10 @@ export class FindReferencesProviderImpl implements FindReferencesProvider {
         );
     }
 
+    private isPositionForComponentCodeLens(position: Position) {
+        return position.line === 0 && position.character === 0;
+    }
+
     /**
      * If references of a $store are searched, also find references for the corresponding store
      * and vice versa.
@@ -96,7 +117,8 @@ export class FindReferencesProviderImpl implements FindReferencesProvider {
         references: ts.ReferencedSymbolEntry[],
         tsDoc: SvelteDocumentSnapshot,
         snapshots: SnapshotMap,
-        lang: ts.LanguageService
+        lang: ts.LanguageService,
+        cancellationToken: CancellationToken | undefined
     ): Promise<ts.ReferencedSymbolEntry[]> {
         // If user started finding references at $store, find references for store, too
         let storeReferences: ts.ReferencedSymbolEntry[] = [];
@@ -123,6 +145,10 @@ export class FindReferencesProviderImpl implements FindReferencesProvider {
         const $storeReferences: ts.ReferencedSymbolEntry[] = [];
         for (const ref of [...references, ...storeReferences]) {
             const snapshot = await snapshots.retrieve(ref.fileName);
+            if (cancellationToken?.isCancellationRequested) {
+                return [];
+            }
+
             if (
                 !(
                     isTextSpanInGeneratedCode(snapshot.getFullText(), ref.textSpan) &&
@@ -193,13 +219,18 @@ export class FindReferencesProviderImpl implements FindReferencesProvider {
     private async mapReference(
         ref: ts.ReferencedSymbolEntry,
         context: ReferenceContext,
-        snapshots: SnapshotMap
+        snapshots: SnapshotMap,
+        cancellationToken: CancellationToken | undefined
     ) {
         if (!context.includeDeclaration && ref.isDefinition) {
             return null;
         }
 
         const snapshot = await snapshots.retrieve(ref.fileName);
+
+        if (cancellationToken?.isCancellationRequested) {
+            return null;
+        }
 
         if (isTextSpanInGeneratedCode(snapshot.getFullText(), ref.textSpan)) {
             return null;
