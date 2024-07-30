@@ -288,11 +288,14 @@ async function createSvelteMap(config: EmitDtsConfig): Promise<SvelteMap> {
             version,
             noSvelteComponentTyped: noSvelteComponentTyped
         }).code;
-        svelteFiles.set(path, transformed);
+        svelteFiles.set(path.replace(/\\/g, '/'), transformed);
         return isTsFile;
     }
 
-    return { add, get: (key: string) => svelteFiles.get(key) };
+    return {
+        add,
+        get: (key: string) => svelteFiles.get(key.replace(/\\/g, '/'))
+    };
 }
 
 function isSvelteFilepath(filePath: string) {
