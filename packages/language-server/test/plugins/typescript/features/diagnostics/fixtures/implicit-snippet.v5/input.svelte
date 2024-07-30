@@ -7,6 +7,5 @@
         {a === 'b'}
     {/snippet}
 
-    <!--TODO-->
-    <!-- {@render foo('a')} -->
+    {@render foo('')}
 </SnippetParent>

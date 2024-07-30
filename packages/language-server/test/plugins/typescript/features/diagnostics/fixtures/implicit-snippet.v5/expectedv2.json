@@ -3,7 +3,7 @@
         "range": { "start": { "line": 4, "character": 1 }, "end": { "line": 4, "character": 14 } },
         "severity": 1,
         "source": "ts",
-        "message": "Property 'required' is missing in type '{ foo: (this: void, a: \"\") => any; }' but required in type '$$ComponentProps'.",
+        "message": "Property 'required' is missing in type '{ children: () => any; foo: (this: void, a: \"\") => any; }' but required in type '$$ComponentProps'.",
         "code": 2741,
         "tags": []
     },
