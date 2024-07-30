@@ -14,9 +14,9 @@ import { IGNORE_POSITION_COMMENT, surroundWithIgnoreComments } from '../../utils
  * ```
  * --> if standalone:
  * ```ts
- * const foo = (() => {const $$_func = (bar) => {
+ * const foo = (bar) => { async () => {
  * ..
- * };return __sveltets_2_inferSnippet($$_func)})()
+ * };return return __sveltets_2_any(0)};
  * ```
  * --> if slot prop:
  * ```ts
@@ -35,7 +35,7 @@ export function handleSnippet(
 
     const afterSnippet = isImplicitProp
         ? `};return __sveltets_2_any(0)}`
-        : `};return __sveltets_2_any(0)};`; //`}};return __sveltets_2_inferSnippet($$_func)})()`;
+        : `};return __sveltets_2_any(0)};`;
 
     str.overwrite(endSnippet, snippetBlock.end, afterSnippet, {
         contentOnly: true
@@ -94,7 +94,7 @@ export function handleSnippet(
 
         transforms.push(
             ')',
-            surroundWithIgnoreComments(`: ReturnType<import('svelte').Snippet>`),
+            surroundWithIgnoreComments(`: ReturnType<import('svelte').Snippet>`), // shows up nicely preserved on hover, other alternatives don't
             afterParameters
         );
 
@@ -148,15 +148,15 @@ export function handleImplicitChildren(componentNode: BaseNode, component: Inlin
     component.addProp(['children'], ['() => { return __sveltets_2_any(0); }']);
 }
 
-export function hoistSnippetBlock(str: MagicString, blockOrEle: BaseNode) {
-    if (blockOrEle.type === 'InlineComponent') {
+export function hoistSnippetBlock(str: MagicString, blockOrEl: BaseNode) {
+    if (blockOrEl.type === 'InlineComponent') {
         // implicit props, handled in InlineComponent
         return;
     }
 
     let targetPosition: number | undefined;
 
-    for (const node of blockOrEle.children ?? []) {
+    for (const node of blockOrEl.children ?? []) {
         if (node.type !== 'SnippetBlock') {
             if (targetPosition === undefined && (node.type !== 'Text' || node.data.trim() !== '')) {
                 targetPosition = node.type === 'Text' ? node.end : node.start;
