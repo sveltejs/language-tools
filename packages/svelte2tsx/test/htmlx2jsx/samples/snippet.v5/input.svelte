@@ -38,6 +38,16 @@
 	implicit children
 </List>
 
+<List data={[1, 2, 3]}>
+	{#snippet row1(item)}
+		{item}
+	{/snippet}
+	<p>html between snippets</p>
+	{#snippet row2(item)}
+		{item}
+	{/snippet}
+</List>
+
 {@render children()}
 
 {#snippet jsDoc(/**@type {number}*/a)}
