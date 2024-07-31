@@ -50,7 +50,7 @@
         "@vscode/emmet-helper": "2.8.4",
         "chokidar": "^3.4.1",
         "estree-walker": "^2.0.1",
-        "fast-glob": "^3.2.7",
+        "fdir": "^6.2.0",
         "lodash": "^4.17.21",
         "prettier": "~3.2.5",
         "prettier-plugin-svelte": "^3.2.2",

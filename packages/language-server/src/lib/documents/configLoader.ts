@@ -4,7 +4,7 @@ import { CompileOptions } from 'svelte/types/compiler/interfaces';
 // @ts-ignore
 import { PreprocessorGroup } from 'svelte/types/compiler/preprocess';
 import { importSveltePreprocess } from '../../importPackage';
-import _glob from 'fast-glob';
+import { fdir } from 'fdir';
 import _path from 'path';
 import _fs from 'fs';
 import { pathToFileURL, URL } from 'url';
@@ -46,6 +46,8 @@ const _dynamicImport = new Function('modulePath', 'return import(modulePath)') a
     modulePath: URL
 ) => Promise<any>;
 
+const configRegex = /\/svelte\.config\.(js|cjs|mjs)$/;
+
 /**
  * Loads svelte.config.{js,cjs,mjs} files. Provides both a synchronous and asynchronous
  * interface to get a config file because snapshots need access to it synchronously.
@@ -60,7 +62,7 @@ export class ConfigLoader {
     private disabled = false;
 
     constructor(
-        private globSync: typeof _glob.sync,
+        private globSync: typeof fdir,
         private fs: Pick<typeof _fs, 'existsSync'>,
         private path: Pick<typeof _path, 'dirname' | 'relative' | 'join'>,
         private dynamicImport: typeof _dynamicImport
@@ -83,12 +85,19 @@ export class ConfigLoader {
         Logger.log('Trying to load configs for', directory);
 
         try {
-            const pathResults = this.globSync('**/svelte.config.{js,cjs,mjs}', {
-                cwd: directory,
-                // the second pattern is necessary because else fast-glob treats .tmp/../node_modules/.. as a valid match for some reason
-                ignore: ['**/node_modules/**', '**/.*/**'],
-                onlyFiles: true
-            });
+            const pathResults = new this.globSync({})
+                .withPathSeparator('/')
+                .exclude((_, path) => {
+                    // no / at the start, path could start with node_modules
+                    return path.includes('node_modules/') || path.includes('/.');
+                })
+                .filter((path, isDir) => {
+                    return !isDir && configRegex.test(path);
+                })
+                .withRelativePaths()
+                .crawl(directory)
+                .sync();
+
             const someConfigIsImmediateFileInDirectory =
                 pathResults.length > 0 && pathResults.some((res) => !this.path.dirname(res));
             if (!someConfigIsImmediateFileInDirectory) {
@@ -270,4 +279,4 @@ export class ConfigLoader {
     }
 }
 
-export const configLoader = new ConfigLoader(_glob.sync, _fs, _path, _dynamicImport);
+export const configLoader = new ConfigLoader(fdir, _fs, _path, _dynamicImport);

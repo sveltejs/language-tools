@@ -73,7 +73,7 @@ export function parseOptions(cb: (opts: SvelteCheckCliOptions) => any) {
                 watch: !!opts.watch,
                 preserveWatchOutput: !!opts.preserveWatchOutput,
                 tsconfig: getTsconfig(opts, workspaceUri.fsPath),
-                filePathsToIgnore: getFilepathsToIgnore(opts),
+                filePathsToIgnore: opts.ignore?.split(',') || [],
                 failOnWarnings: !!opts['fail-on-warnings'],
                 compilerWarnings: getCompilerWarnings(opts),
                 diagnosticSources: getDiagnosticSources(opts),
@@ -178,10 +178,6 @@ function getDiagnosticSources(opts: Record<string, any>): DiagnosticSource[] {
               ?.map((s: string) => s.trim())
               .filter((s: any) => diagnosticSources.includes(s))
         : diagnosticSources;
-}
-
-function getFilepathsToIgnore(opts: Record<string, any>): string[] {
-    return opts.ignore?.split(',') || [];
 }
 
 const thresholds = ['warning', 'error'] as const;
