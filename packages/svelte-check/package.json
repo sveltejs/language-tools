@@ -22,6 +22,9 @@
         "url": "https://github.com/sveltejs/language-tools/issues"
     },
     "homepage": "https://github.com/sveltejs/language-tools#readme",
+    "engines": {
+        "node": ">= 18.0.0"
+    },
     "dependencies": {
         "@jridgewell/trace-mapping": "^0.3.17",
         "chokidar": "^3.4.1",
