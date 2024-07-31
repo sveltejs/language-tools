@@ -127,9 +127,6 @@ importers:
       sade:
         specifier: ^1.7.4
         version: 1.8.1
-      svelte:
-        specifier: ^3.55.0 || ^4.0.0-next.0 || ^4.0.0 || ^5.0.0-next.0
-        version: 3.57.0
       svelte-preprocess:
         specifier: ^5.1.3
         version: 5.1.3(svelte@3.57.0)(typescript@5.5.2)
@@ -167,6 +164,9 @@ importers:
       rollup-plugin-copy:
         specifier: ^3.4.0
         version: 3.4.0
+      svelte:
+        specifier: ^3.57.0
+        version: 3.57.0
       svelte-language-server:
         specifier: workspace:*
         version: link:../language-server
