@@ -30,21 +30,42 @@ async function openAllDocuments(
     filePathsToIgnore: string[],
     svelteCheck: SvelteCheck
 ) {
-    const ignored = ['node_modules'].concat(filePathsToIgnore);
+    const offset = workspaceUri.fsPath.length + 1;
+    // We support a very limited subset of glob patterns: You can have a * at the end or the start
+    const ignored: Array<(path: string) => boolean> = filePathsToIgnore.map((i) => {
+        if (i.endsWith('*')) i = i.slice(0, -1);
+        if (i.startsWith('*')) {
+            i = i.slice(1);
+            if (i.includes('*'))
+                throw new Error(
+                    'Invalid svelte-check --ignore pattern: Only * at the start or end is supported'
+                );
+            return (path) => path.includes(i);
+        }
+        if (i.includes('*'))
+            throw new Error(
+                'Invalid svelte-check --ignore pattern: Only * at the start or end is supported'
+            );
+        return (path) => path.startsWith(i);
+    });
     const isIngored = (path: string) => {
+        path = path.slice(offset).replace(/\\/g, '/');
         for (const i of ignored) {
-            if (path.startsWith(i)) {
+            if (i(path)) {
                 return true;
             }
         }
         return false;
     };
-    const files = await new fdir()
-        .withBasePath()
+    const absFilePaths = await new fdir()
         .filter((path) => path.endsWith('.svelte') && !isIngored(path))
+        .exclude((_, path) => {
+            path = path.slice(offset);
+            return path.startsWith('.') || path.startsWith('node_modules');
+        })
+        .withFullPaths()
         .crawl(workspaceUri.fsPath)
         .withPromise();
-    const absFilePaths = files.map((f) => path.resolve(workspaceUri.fsPath, f));
 
     for (const absFilePath of absFilePaths) {
         const text = fs.readFileSync(absFilePath, 'utf-8');
