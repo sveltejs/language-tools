@@ -25,7 +25,7 @@
     "dependencies": {
         "@jridgewell/trace-mapping": "^0.3.17",
         "chokidar": "^3.4.1",
-        "fdir": "^6.1.1",
+        "fdir": "^6.2.0",
         "picocolors": "^1.0.0",
         "sade": "^1.7.4",
         "svelte-preprocess": "^5.1.3",

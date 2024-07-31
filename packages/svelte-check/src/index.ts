@@ -49,7 +49,7 @@ async function openAllDocuments(
         return (path) => path.startsWith(i);
     });
     const isIngored = (path: string) => {
-        path = path.slice(offset).replace(/\\/g, '/');
+        path = path.slice(offset);
         for (const i of ignored) {
             if (i(path)) {
                 return true;
@@ -63,6 +63,7 @@ async function openAllDocuments(
             path = path.slice(offset);
             return path.startsWith('.') || path.startsWith('node_modules');
         })
+        .withPathSeparator('/')
         .withFullPaths()
         .crawl(workspaceUri.fsPath)
         .withPromise();
