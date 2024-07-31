@@ -273,7 +273,7 @@ export class ConfigLoader {
             // User doesn't have svelte-preprocess installed, provide a barebones TS preprocessor
             return {
                 preprocess: {
-                    // @ts-expect-error name property exists in Svelte 4 onwards
+                    // @ts-ignore name property exists in Svelte 4 onwards
                     name: 'svelte-language-tools-ts-fallback-preprocessor',
                     script: ({ content, attributes, filename }) => {
                         if (attributes.lang !== 'ts') return;
