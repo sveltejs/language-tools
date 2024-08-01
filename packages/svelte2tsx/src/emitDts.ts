@@ -6,6 +6,7 @@ export interface EmitDtsConfig {
     declarationDir: string;
     svelteShimsPath: string;
     libRoot?: string;
+    tsconfig?: string;
 }
 
 export async function emitDts(config: EmitDtsConfig) {
@@ -47,7 +48,7 @@ function loadTsconfig(config: EmitDtsConfig, svelteMap: SvelteMap) {
     const libRoot = config.libRoot || process.cwd();
 
     const jsconfigFile = ts.findConfigFile(libRoot, ts.sys.fileExists, 'jsconfig.json');
-    let tsconfigFile = ts.findConfigFile(libRoot, ts.sys.fileExists);
+    let tsconfigFile = ts.findConfigFile(libRoot, ts.sys.fileExists, config.tsconfig);
 
     if (!tsconfigFile && !jsconfigFile) {
         throw new Error('Failed to locate tsconfig or jsconfig');
