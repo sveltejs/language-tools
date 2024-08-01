@@ -63,11 +63,11 @@ async function tryGetDiagnostics(
         }
 
         let ignoreScriptWarnings = false;
-        let ingoreStyleWarnings = false;
+        let ignoreStyleWarnings = false;
         let ignoreTemplateWarnings = false;
         if (!document.config?.preprocess || !!document.config.isFallbackConfig) {
             ignoreTemplateWarnings = !!document.getLanguageAttribute('template');
-            ingoreStyleWarnings = !!document.getLanguageAttribute('style');
+            ignoreStyleWarnings = !!document.getLanguageAttribute('style');
             const scriptAttr = document.getLanguageAttribute('script');
             ignoreScriptWarnings = !!scriptAttr && scriptAttr !== 'ts';
         }
@@ -95,7 +95,7 @@ async function tryGetDiagnostics(
                     diag,
                     document,
                     ignoreScriptWarnings,
-                    ingoreStyleWarnings,
+                    ignoreStyleWarnings,
                     ignoreTemplateWarnings
                 )
             );
@@ -311,7 +311,7 @@ function isNoFalsePositive(
     diag: Diagnostic,
     doc: Document,
     ignoreScriptWarnings: boolean,
-    ingoreStyleWarnings: boolean,
+    ignoreStyleWarnings: boolean,
     ignoreTemplateWarnings: boolean
 ): boolean {
     if (
@@ -322,7 +322,7 @@ function isNoFalsePositive(
     }
 
     if (
-        ingoreStyleWarnings &&
+        ignoreStyleWarnings &&
         (diag.code === 'css-unused-selector' || diag.code === 'css_unused_selector')
     ) {
         return false;
