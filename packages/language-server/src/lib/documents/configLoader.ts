@@ -9,6 +9,7 @@ import _path from 'path';
 import _fs from 'fs';
 import { pathToFileURL, URL } from 'url';
 import { FileMap } from './fileCollection';
+import ts from 'typescript';
 
 export type InternalPreprocessorGroup = PreprocessorGroup & {
     /**
@@ -249,24 +250,49 @@ export class ConfigLoader {
     }
 
     private useFallbackPreprocessor(path: string, foundConfig: boolean): SvelteConfig {
-        Logger.log(
-            (foundConfig
-                ? 'Found svelte.config.js but there was an error loading it. '
-                : 'No svelte.config.js found. ') +
-                'Using https://github.com/sveltejs/svelte-preprocess as fallback'
-        );
-        const sveltePreprocess = importSveltePreprocess(path);
-        return {
-            preprocess: sveltePreprocess({
-                // 4.x does not have transpileOnly anymore, but if the user has version 3.x
-                // in his repo, that one is loaded instead, for which we still need this.
-                typescript: <any>{
-                    transpileOnly: true,
-                    compilerOptions: { sourceMap: true, inlineSourceMap: false }
-                }
-            }),
-            isFallbackConfig: true
-        };
+        try {
+            const sveltePreprocess = importSveltePreprocess(path);
+            Logger.log(
+                (foundConfig
+                    ? 'Found svelte.config.js but there was an error loading it. '
+                    : 'No svelte.config.js found. ') +
+                    'Using https://github.com/sveltejs/svelte-preprocess as fallback'
+            );
+            return {
+                preprocess: sveltePreprocess({
+                    // 4.x does not have transpileOnly anymore, but if the user has version 3.x
+                    // in his repo, that one is loaded instead, for which we still need this.
+                    typescript: {
+                        transpileOnly: true,
+                        compilerOptions: { sourceMap: true, inlineSourceMap: false }
+                    }
+                }),
+                isFallbackConfig: true
+            };
+        } catch (e) {
+            // User doesn't have svelte-preprocess installed, provide a barebones TS preprocessor
+            return {
+                preprocess: {
+                    // @ts-ignore name property exists in Svelte 4 onwards
+                    name: 'svelte-language-tools-ts-fallback-preprocessor',
+                    script: ({ content, attributes, filename }) => {
+                        if (attributes.lang !== 'ts') return;
+
+                        const { outputText, sourceMapText } = ts.transpileModule(content, {
+                            fileName: filename,
+                            compilerOptions: {
+                                module: ts.ModuleKind.ESNext,
+                                target: ts.ScriptTarget.ESNext,
+                                sourceMap: true,
+                                verbatimModuleSyntax: true
+                            }
+                        });
+                        return { code: outputText, map: sourceMapText };
+                    }
+                },
+                isFallbackConfig: true
+            };
+        }
     }
 }
 
