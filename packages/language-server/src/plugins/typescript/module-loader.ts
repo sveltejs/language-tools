@@ -64,8 +64,11 @@ class ModuleResolutionCache {
         const fileNameWithoutEnding =
             getLastPartOfPath(this.getCanonicalFileName(path)).split('.').shift() || '';
         this.cache.forEach((val, key) => {
+            if (val) {
+                return;
+            }
             const [containingFile, moduleName = ''] = key.split(CACHE_KEY_SEPARATOR);
-            if (!val && moduleName.includes(fileNameWithoutEnding)) {
+            if (moduleName.includes(fileNameWithoutEnding)) {
                 this.cache.delete(key);
                 this.pendingInvalidations.add(containingFile);
             }
@@ -87,6 +90,8 @@ class ModuleResolutionCache {
 
 class ImpliedNodeFormatResolver {
     private alreadyResolved = new FileMap<ReturnType<typeof ts.getModeForResolutionAtIndex>>();
+
+    constructor(private readonly tsSystem: ts.System) {}
 
     resolve(
         importPath: string,
@@ -116,7 +121,7 @@ class ImpliedNodeFormatResolver {
                 sourceFile.impliedNodeFormat = ts.getImpliedNodeFormatForFile(
                     toVirtualSvelteFilePath(sourceFile.fileName) as any,
                     undefined,
-                    ts.sys,
+                    this.tsSystem,
                     compilerOptions
                 );
                 this.alreadyResolved.set(sourceFile.fileName, sourceFile.impliedNodeFormat);
@@ -183,7 +188,7 @@ export function createSvelteModuleLoader(
         ts.ResolvedTypeReferenceDirectiveWithFailedLookupLocations
     >();
 
-    const impliedNodeFormatResolver = new ImpliedNodeFormatResolver();
+    const impliedNodeFormatResolver = new ImpliedNodeFormatResolver(tsSystem);
     const failedPathToContainingFile = new FileMap<FileSet>();
     const failedLocationInvalidated = new FileSet();
 

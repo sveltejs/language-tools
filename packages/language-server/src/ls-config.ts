@@ -201,6 +201,8 @@ export interface TSUserConfig {
     suggest?: TSSuggestConfig;
     format?: TsFormatConfig;
     inlayHints?: TsInlayHintsConfig;
+    referencesCodeLens?: TsReferenceCodeLensConfig;
+    implementationsCodeLens?: TsImplementationCodeLensConfig;
 }
 
 /**
@@ -252,6 +254,16 @@ export interface TsInlayHintsConfig {
     variableTypes: { enabled: boolean; suppressWhenTypeMatchesName: boolean } | undefined;
 }
 
+export interface TsReferenceCodeLensConfig {
+    showOnAllFunctions?: boolean | undefined;
+    enabled: boolean;
+}
+
+export interface TsImplementationCodeLensConfig {
+    enabled: boolean;
+    showOnInterfaceMethods?: boolean | undefined;
+}
+
 export type TsUserConfigLang = 'typescript' | 'javascript';
 
 /**
@@ -285,6 +297,11 @@ export class LSConfigManager {
         typescript: {},
         javascript: {}
     };
+    private rawTsUserConfig: Record<TsUserConfigLang, TSUserConfig> = {
+        typescript: {},
+        javascript: {}
+    };
+
     private resolvedAutoImportExcludeCache = new FileMap<string[]>();
     private tsFormatCodeOptions: Record<TsUserConfigLang, ts.FormatCodeSettings> = {
         typescript: this.getDefaultFormatCodeOptions(),
@@ -396,6 +413,7 @@ export class LSConfigManager {
         (['typescript', 'javascript'] as const).forEach((lang) => {
             if (config[lang]) {
                 this._updateTsUserPreferences(lang, config[lang]);
+                this.rawTsUserConfig[lang] = config[lang];
             }
         });
         this.notifyListeners();
@@ -496,6 +514,10 @@ export class LSConfigManager {
             ...userPreferences,
             autoImportFileExcludePatterns
         };
+    }
+
+    getClientTsUserConfig(lang: TsUserConfigLang): TSUserConfig {
+        return this.rawTsUserConfig[lang];
     }
 
     updateCssConfig(config: CssConfig | undefined): void {

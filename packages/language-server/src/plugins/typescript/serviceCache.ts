@@ -6,6 +6,7 @@ import {
 } from 'typescript-auto-import-cache/out/5_0/projectService';
 import { createProject as createProject50 } from 'typescript-auto-import-cache/out/5_0/project';
 import { createProject as createProject53 } from 'typescript-auto-import-cache/out/5_3/project';
+import { createProject as createProject55 } from 'typescript-auto-import-cache/out/5_5/project';
 import ts from 'typescript';
 import { ExportInfoMap } from 'typescript-auto-import-cache/out/5_0/exportInfoMap';
 import { ModuleSpecifierCache } from 'typescript-auto-import-cache/out/5_0/moduleSpecifierCache';
@@ -70,7 +71,7 @@ export function createProject(
         return undefined;
     }
 
-    const factory = minor < 3 ? createProject50 : createProject53;
+    const factory = minor < 3 ? createProject50 : minor < 5 ? createProject53 : createProject55;
     const project = factory(ts, host, createLanguageService, options);
 
     const proxyMethods: (keyof typeof project)[] = [

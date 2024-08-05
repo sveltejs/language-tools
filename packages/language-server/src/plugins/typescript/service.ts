@@ -1,12 +1,12 @@
 import { dirname, join, resolve } from 'path';
 import ts from 'typescript';
-import { TextDocumentContentChangeEvent } from 'vscode-languageserver-protocol';
+import { RelativePattern, TextDocumentContentChangeEvent } from 'vscode-languageserver-protocol';
 import { getPackageInfo, importSvelte } from '../../importPackage';
 import { Document } from '../../lib/documents';
 import { configLoader } from '../../lib/documents/configLoader';
 import { FileMap, FileSet } from '../../lib/documents/fileCollection';
 import { Logger } from '../../logger';
-import { createGetCanonicalFileName, normalizePath, urlToPath } from '../../utils';
+import { createGetCanonicalFileName, normalizePath, pathToUrl, urlToPath } from '../../utils';
 import { DocumentSnapshot, SvelteSnapshotOptions } from './DocumentSnapshot';
 import { createSvelteModuleLoader } from './module-loader';
 import {
@@ -34,8 +34,8 @@ export interface LanguageServiceContainer {
     getService(skipSynchronize?: boolean): ts.LanguageService;
     updateSnapshot(documentOrFilePath: Document | string): DocumentSnapshot;
     deleteSnapshot(filePath: string): void;
-    invalidateModuleCache(filePath: string): void;
-    updateProjectFiles(): void;
+    invalidateModuleCache(filePath: string[]): void;
+    scheduleProjectFileUpdate(watcherNewFiles: string[]): void;
     updateTsOrJsFile(fileName: string, changes?: TextDocumentContentChangeEvent[]): void;
     /**
      * Checks if a file is present in the project.
@@ -49,7 +49,7 @@ export interface LanguageServiceContainer {
     fileBelongsToProject(filePath: string, isNew: boolean): boolean;
     onAutoImportProviderSettingsChanged(): void;
     onPackageJsonChange(packageJsonPath: string): void;
-    scheduleUpdate(triggeredFile?: string): void;
+    getTsConfigSvelteOptions(): { namespace: string };
 
     dispose(): void;
 }
@@ -97,6 +97,7 @@ const configFileModifiedTime = new FileMap<Date | undefined>();
 const configFileForOpenFiles = new FileMap<string>();
 const pendingReloads = new FileSet();
 const documentRegistries = new Map<string, ts.DocumentRegistry>();
+const pendingForAllServices = new Set<Promise<void>>();
 
 /**
  * For testing only: Reset the cache for services.
@@ -120,6 +121,8 @@ export interface LanguageServiceDocumentContext {
     watchTsConfig: boolean;
     tsSystem: ts.System;
     projectService: ProjectService | undefined;
+    watchDirectory: ((patterns: RelativePattern[]) => void) | undefined;
+    nonRecursiveWatchPattern: string | undefined;
 }
 
 export async function getService(
@@ -163,6 +166,13 @@ export async function getService(
 export async function forAllServices(
     cb: (service: LanguageServiceContainer) => any
 ): Promise<void> {
+    const promise = forAllServicesWorker(cb);
+    pendingForAllServices.add(promise);
+    await promise;
+    pendingForAllServices.delete(promise);
+}
+
+async function forAllServicesWorker(cb: (service: LanguageServiceContainer) => any): Promise<void> {
     for (const service of services.values()) {
         cb(await service);
     }
@@ -197,6 +207,10 @@ export async function getServiceForTsconfig(
         service = await services.get(tsconfigPathOrWorkspacePath)!;
     }
 
+    if (pendingForAllServices.size > 0) {
+        await Promise.all(pendingForAllServices);
+    }
+
     return service;
 }
 
@@ -213,15 +227,22 @@ async function createLanguageService(
         fileNames: files,
         projectReferences,
         raw,
-        extendedConfigPaths
+        extendedConfigPaths,
+        wildcardDirectories
     } = getParsedConfig();
+
+    const getCanonicalFileName = createGetCanonicalFileName(tsSystem.useCaseSensitiveFileNames);
+    watchWildCardDirectories();
+
     // raw is the tsconfig merged with extending config
     // see: https://github.com/microsoft/TypeScript/blob/08e4f369fbb2a5f0c30dee973618d65e6f7f09f8/src/compiler/commandLineParser.ts#L2537
     const snapshotManager = new SnapshotManager(
         docContext.globalSnapshotsManager,
         raw,
         workspacePath,
-        files
+        tsSystem,
+        files,
+        wildcardDirectories
     );
 
     // Load all configs within the tsconfig scope and the one above so that they are all loaded
@@ -246,10 +267,11 @@ async function createLanguageService(
         svelteTsPath = __dirname;
     }
     const sveltePackageInfo = getPackageInfo('svelte', tsconfigPath || workspacePath);
+    // Svelte 4 has some fixes with regards to parsing the generics attribute.
     // Svelte 5 has new features, but we don't want to add the new compiler into language-tools. In the future it's probably
     // best to shift more and more of this into user's node_modules for better handling of multiple Svelte versions.
     const svelteCompiler =
-        sveltePackageInfo.version.major >= 5
+        sveltePackageInfo.version.major >= 4
             ? importSvelte(tsconfigPath || workspacePath)
             : undefined;
 
@@ -273,8 +295,7 @@ async function createLanguageService(
     let languageServiceReducedMode = false;
     let projectVersion = 0;
     let dirty = false;
-
-    const getCanonicalFileName = createGetCanonicalFileName(tsSystem.useCaseSensitiveFileNames);
+    let pendingProjectFileUpdate = false;
 
     const host: ts.LanguageServiceHost = {
         log: (message) => Logger.debug(`[ts] ${message}`),
@@ -335,7 +356,7 @@ async function createLanguageService(
         getService,
         updateSnapshot,
         deleteSnapshot,
-        updateProjectFiles,
+        scheduleProjectFileUpdate,
         updateTsOrJsFile,
         hasFile,
         fileBelongsToProject,
@@ -343,11 +364,42 @@ async function createLanguageService(
         invalidateModuleCache,
         onAutoImportProviderSettingsChanged,
         onPackageJsonChange,
-        scheduleUpdate,
+        getTsConfigSvelteOptions,
         dispose
     };
 
+    function watchWildCardDirectories() {
+        if (!wildcardDirectories || !docContext.watchDirectory) {
+            return;
+        }
+
+        const canonicalWorkspacePath = getCanonicalFileName(workspacePath);
+        const patterns: RelativePattern[] = [];
+
+        Object.entries(wildcardDirectories).forEach(([dir, flags]) => {
+            if (
+                // already watched
+                getCanonicalFileName(dir).startsWith(canonicalWorkspacePath) ||
+                !tsSystem.directoryExists(dir)
+            ) {
+                return;
+            }
+            patterns.push({
+                baseUri: pathToUrl(dir),
+                pattern:
+                    (flags & ts.WatchDirectoryFlags.Recursive ? `**/` : '') +
+                    docContext.nonRecursiveWatchPattern
+            });
+        });
+
+        docContext.watchDirectory?.(patterns);
+    }
+
     function getService(skipSynchronize?: boolean) {
+        if (pendingProjectFileUpdate) {
+            updateProjectFiles();
+            pendingProjectFileUpdate = false;
+        }
         if (!skipSynchronize) {
             updateIfDirty();
         }
@@ -361,11 +413,13 @@ async function createLanguageService(
         configFileForOpenFiles.delete(filePath);
     }
 
-    function invalidateModuleCache(filePath: string) {
-        svelteModuleLoader.deleteFromModuleCache(filePath);
-        svelteModuleLoader.deleteUnresolvedResolutionsFromCache(filePath);
+    function invalidateModuleCache(filePaths: string[]) {
+        for (const filePath of filePaths) {
+            svelteModuleLoader.deleteFromModuleCache(filePath);
+            svelteModuleLoader.deleteUnresolvedResolutionsFromCache(filePath);
 
-        scheduleUpdate(filePath);
+            scheduleUpdate(filePath);
+        }
     }
 
     function updateSnapshot(documentOrFilePath: Document | string): DocumentSnapshot {
@@ -449,17 +503,23 @@ async function createLanguageService(
         return doc;
     }
 
-    function updateProjectFiles(): void {
+    function scheduleProjectFileUpdate(watcherNewFiles: string[]): void {
+        if (snapshotManager.areIgnoredFromNewFileWatch(watcherNewFiles)) {
+            return;
+        }
+
         scheduleUpdate();
+        pendingProjectFileUpdate = true;
+    }
+
+    function updateProjectFiles(): void {
         const projectFileCountBefore = snapshotManager.getProjectFileNames().length;
         snapshotManager.updateProjectFiles();
         const projectFileCountAfter = snapshotManager.getProjectFileNames().length;
 
-        if (projectFileCountAfter <= projectFileCountBefore) {
-            return;
+        if (projectFileCountAfter > projectFileCountBefore) {
+            reduceLanguageServiceCapabilityIfFileSizeTooBig();
         }
-
-        reduceLanguageServiceCapabilityIfFileSizeTooBig();
     }
 
     function getScriptFileNames() {
@@ -745,11 +805,16 @@ async function createLanguageService(
         dirty = false;
         compilerHost = undefined;
 
-        if (!oldProgram) {
+        // https://github.com/microsoft/TypeScript/blob/23faef92703556567ddbcb9afb893f4ba638fc20/src/server/project.ts#L1624
+        // host.getCachedExportInfoMap will create the cache if it doesn't exist
+        // so we need to check the property instead
+        const exportMapCache = project?.exportMapCache;
+        if (!oldProgram || !exportMapCache || exportMapCache.isEmpty()) {
             changedFilesForExportCache.clear();
             return;
         }
 
+        exportMapCache.releaseSymbols();
         for (const fileName of changedFilesForExportCache) {
             const oldFile = oldProgram.getSourceFile(fileName);
             const newFile = program?.getSourceFile(fileName);
@@ -760,10 +825,10 @@ async function createLanguageService(
             }
 
             if (oldFile && newFile) {
-                host.getCachedExportInfoMap?.().onFileChanged?.(oldFile, newFile, false);
+                exportMapCache.onFileChanged?.(oldFile, newFile, false);
             } else {
                 // new file or deleted file
-                host.getCachedExportInfoMap?.().clear();
+                exportMapCache.clear();
             }
         }
         changedFilesForExportCache.clear();
@@ -826,6 +891,13 @@ async function createLanguageService(
                 host.getModuleSpecifierCache?.().clear();
             }
         }
+    }
+
+    function getTsConfigSvelteOptions() {
+        // if there's more options in the future, get it from raw.svelteOptions and normalize it
+        return {
+            namespace: transformationConfig.typingsNamespace
+        };
     }
 }
 

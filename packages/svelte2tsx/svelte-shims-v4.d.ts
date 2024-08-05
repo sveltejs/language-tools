@@ -5,8 +5,6 @@
 // If you change anything in this file, think about whether or not it should be backported to svelte-shims.d.ts
 
 type AConstructorTypeOf<T, U extends any[] = any[]> = new (...args: U) => T;
-/** @internal PRIVATE API, DO NOT USE */
-type SvelteComponentConstructor<T, U extends import('svelte').ComponentConstructorOptions<any>> = new (options: U) => T;
 
 /** @internal PRIVATE API, DO NOT USE */
 type SvelteActionReturnType = {
@@ -72,30 +70,30 @@ declare function __sveltets_2_slotsType<Slots, Key extends keyof Slots>(slots: S
 // An empty array of optionalProps makes OptionalProps type any, which means we lose the prop typing.
 // optionalProps need to be first or its type cannot be infered correctly.
 
-declare function __sveltets_2_partial<Props = {}, Events = {}, Slots = {}>(
-    render: {props: Props, events: Events, slots: Slots }
-): {props: Expand<SveltePropsAnyFallback<Props>>, events: Events, slots: Expand<SvelteSlotsAnyFallback<Slots>> }
-declare function __sveltets_2_partial<Props = {}, Events = {}, Slots = {}, OptionalProps extends keyof Props = any>(
+declare function __sveltets_2_partial<Props = {}, Events = {}, Slots = {}, Exports = {}, Bindings = string>(
+    render: {props: Props, events: Events, slots: Slots, exports?: Exports, bindings?: Bindings }
+): {props: Expand<SveltePropsAnyFallback<Props>>, events: Events, slots: Expand<SvelteSlotsAnyFallback<Slots>>, exports?: Exports, bindings?: Bindings }
+declare function __sveltets_2_partial<Props = {}, Events = {}, Slots = {}, Exports = {}, Bindings = string, OptionalProps extends keyof Props = any>(
     optionalProps: OptionalProps[],
-    render: {props: Props, events: Events, slots: Slots }
-): {props: Expand<SvelteWithOptionalProps<SveltePropsAnyFallback<Props>, OptionalProps>>, events: Events, slots: Expand<SvelteSlotsAnyFallback<Slots>> }
+    render: {props: Props, events: Events, slots: Slots, exports?: Exports, bindings?: Bindings }
+): {props: Expand<SvelteWithOptionalProps<SveltePropsAnyFallback<Props>, OptionalProps>>, events: Events, slots: Expand<SvelteSlotsAnyFallback<Slots>>, exports?: Exports, bindings?: Bindings }
 
-declare function __sveltets_2_partial_with_any<Props = {}, Events = {}, Slots = {}>(
-    render: {props: Props, events: Events, slots: Slots }
-): {props: Expand<SveltePropsAnyFallback<Props> & SvelteAllProps>, events: Events, slots: Expand<SvelteSlotsAnyFallback<Slots>> }
-declare function __sveltets_2_partial_with_any<Props = {}, Events = {}, Slots = {}, OptionalProps extends keyof Props = any>(
+declare function __sveltets_2_partial_with_any<Props = {}, Events = {}, Slots = {}, Exports = {}, Bindings = string>(
+    render: {props: Props, events: Events, slots: Slots, exports?: Exports, bindings?: Bindings }
+): {props: Expand<SveltePropsAnyFallback<Props> & SvelteAllProps>, events: Events, slots: Expand<SvelteSlotsAnyFallback<Slots>>, exports?: Exports, bindings?: Bindings }
+declare function __sveltets_2_partial_with_any<Props = {}, Events = {}, Slots = {}, Exports = {}, Bindings = string, OptionalProps extends keyof Props = any>(
     optionalProps: OptionalProps[],
-    render: {props: Props, events: Events, slots: Slots }
-): {props: Expand<SvelteWithOptionalProps<SveltePropsAnyFallback<Props>, OptionalProps> & SvelteAllProps>, events: Events, slots: Expand<SvelteSlotsAnyFallback<Slots>> }
+    render: {props: Props, events: Events, slots: Slots, exports?: Exports, bindings?: Bindings }
+): {props: Expand<SvelteWithOptionalProps<SveltePropsAnyFallback<Props>, OptionalProps> & SvelteAllProps>, events: Events, slots: Expand<SvelteSlotsAnyFallback<Slots>>, exports?: Exports, bindings?: Bindings }
 
 
-declare function __sveltets_2_with_any<Props = {}, Events = {}, Slots = {}>(
-    render: {props: Props, events: Events, slots: Slots }
-): {props: Expand<Props & SvelteAllProps>, events: Events, slots: Slots }
+declare function __sveltets_2_with_any<Props = {}, Events = {}, Slots = {}, Exports = {}, Bindings = string>(
+    render: {props: Props, events: Events, slots: Slots, exports?: Exports, bindings?: Bindings }
+): {props: Expand<Props & SvelteAllProps>, events: Events, slots: Slots, exports?: Exports, bindings?: Bindings }
 
-declare function __sveltets_2_with_any_event<Props = {}, Events = {}, Slots = {}>(
-    render: {props: Props, events: Events, slots: Slots }
-): {props: Props, events: Events & {[evt: string]: CustomEvent<any>;}, slots: Slots }
+declare function __sveltets_2_with_any_event<Props = {}, Events = {}, Slots = {}, Exports = {}, Bindings = string>(
+    render: {props: Props, events: Events, slots: Slots, exports?: Exports, bindings?: Bindings }
+): {props: Props, events: Events & {[evt: string]: CustomEvent<any>;}, slots: Slots, exports?: Exports, bindings?: Bindings }
 
 declare function __sveltets_2_store_get<T = any>(store: SvelteStore<T>): T
 declare function __sveltets_2_store_get<Store extends SvelteStore<any> | undefined | null>(store: Store): Store extends SvelteStore<infer T> ? T : Store;
@@ -129,7 +127,7 @@ declare function __sveltets_2_unionType(...types: any[]): any;
 
 declare function __sveltets_2_createSvelte2TsxComponent<Props extends {}, Events extends {}, Slots extends {}>(
     render: {props: Props, events: Events, slots: Slots }
-): SvelteComponentConstructor<import("svelte").SvelteComponent<Props, Events, Slots>,import('svelte').ComponentConstructorOptions<Props>>;
+): typeof import("svelte").SvelteComponent<Props, Events, Slots>;
 
 declare function __sveltets_2_unwrapArr<T>(arr: ArrayLike<T>): T
 declare function __sveltets_2_unwrapPromiseLike<T>(promise: PromiseLike<T> | T): T
@@ -146,10 +144,7 @@ declare function __sveltets_2_nonNullable<T>(type: T): NonNullable<T>;
 declare function __sveltets_2_cssProp(prop: Record<string, any>): {};
 
 // @ts-ignore Svelte v3/v4 don't have this
-declare function __sveltets_2_ensureSnippet(val: ReturnType<import('svelte').Snippet>): any;
-// @ts-ignore Svelte v3/v4 don't have this
-declare function __sveltets_2_snippet(): import('svelte').Snippet<void>;
-declare function __sveltets_2_snippet<T>(t: T): import('svelte').Snippet<T>;
+declare function __sveltets_2_ensureSnippet(val: ReturnType<import('svelte').Snippet> | undefined | null): any;
 
 /** @internal PRIVATE API, DO NOT USE */
 type __sveltets_2_SvelteAnimationReturnType = {
@@ -226,6 +221,36 @@ declare type ATypedSvelteComponent = {
  * ```
  */
 declare type ConstructorOfATypedSvelteComponent = new (args: {target: any, props?: any}) => ATypedSvelteComponent
-declare function __sveltets_2_ensureComponent<T extends ConstructorOfATypedSvelteComponent | null | undefined>(type: T): NonNullable<T>;
-
+declare function __sveltets_2_ensureComponent<
+    // @ts-ignore svelte.Component doesn't exist in Svelte 4
+    T extends ConstructorOfATypedSvelteComponent | (0 extends (1 & import('svelte').Component) ? never : import('svelte').Component<any, any, any>) | null | undefined
+    // @ts-ignore svelte.Component doesn't exist in Svelte 4
+>(type: T): NonNullable<T extends ConstructorOfATypedSvelteComponent ? T : 0 extends (1 & import('svelte').Component) ? T : T extends import('svelte').Component<infer Props> ? typeof import('svelte').SvelteComponent<Props, Props['$$events'], Props['$$slots']> : T>;
 declare function __sveltets_2_ensureArray<T extends ArrayLike<unknown> | Iterable<unknown>>(array: T): T extends ArrayLike<infer U> ? U[] : T extends Iterable<infer U> ? Iterable<U> : any[];
+
+type __sveltets_2_PropsWithChildren<Props, Slots> = Props &
+    (Slots extends { default: any }
+        // This is unfortunate because it means "accepts no props" turns into "accepts any prop"
+        // but the alternative is non-fixable type errors because of the way TypeScript index
+        // signatures work (they will always take precedence and make an impossible-to-satisfy children type).
+        ? Props extends Record<string, never>
+        ? any
+        : { children?: any }
+        : {});
+declare function __sveltets_2_runes_constructor<Props extends {}>(render: {props: Props }): import("svelte").ComponentConstructorOptions<Props>;
+
+declare function __sveltets_$$bindings<Bindings extends string[]>(...bindings: Bindings): Bindings[number];
+
+interface __sveltets_2_IsomorphicComponent<Props extends Record<string, any> = any, Events extends Record<string, any> = any, Slots extends Record<string, any> = any, Exports = {}, Bindings = string> {
+    new (options: import('svelte').ComponentConstructorOptions<Props>): import('svelte').SvelteComponent<Props, Events, Slots> & { $$bindings?: Bindings } & Exports;
+    (internal: unknown, props: Props extends Record<string, never> ? {$$events?: Events, $$slots?: Slots} : Props & {$$events?: Events, $$slots?: Slots}): Exports & { $set?: any, $on?: any };
+    z_$$bindings?: Bindings;
+}
+
+declare function __sveltets_2_isomorphic_component<
+    Props extends Record<string, any>, Events extends Record<string, any>, Slots extends Record<string, any>, Exports extends Record<string, any>, Bindings extends string
+>(klass: {props: Props, events: Events, slots: Slots, exports?: Exports, bindings?: Bindings }): __sveltets_2_IsomorphicComponent<Props, Events, Slots, Exports, Bindings>;
+
+declare function __sveltets_2_isomorphic_component_slots<
+    Props extends Record<string, any>, Events extends Record<string, any>, Slots extends Record<string, any>, Exports extends Record<string, any>, Bindings extends string
+>(klass: {props: Props, events: Events, slots: Slots, exports?: Exports, bindings?: Bindings }): __sveltets_2_IsomorphicComponent<__sveltets_2_PropsWithChildren<Props, Slots>, Events, Slots, Exports, Bindings>;

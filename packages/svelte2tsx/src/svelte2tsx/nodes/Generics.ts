@@ -102,6 +102,10 @@ export class Generics {
         return this.references.length ? `<${this.references.join(',')}>` : '';
     }
 
+    toReferencesAnyString() {
+        return this.references.length ? `<${this.references.map(() => 'any').join(',')}>` : '';
+    }
+
     has() {
         return this.definitions.length > 0;
     }

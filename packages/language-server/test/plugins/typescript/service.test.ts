@@ -2,15 +2,17 @@ import assert from 'assert';
 import path from 'path';
 import ts from 'typescript';
 import { Document, DocumentManager } from '../../../src/lib/documents';
-import {
-    getService,
-    LanguageServiceDocumentContext
-} from '../../../src/plugins/typescript/service';
 import { GlobalSnapshotsManager } from '../../../src/plugins/typescript/SnapshotManager';
+import {
+    LanguageServiceDocumentContext,
+    getService
+} from '../../../src/plugins/typescript/service';
 import { pathToUrl } from '../../../src/utils';
 import { createVirtualTsSystem, getRandomVirtualDirPath } from './test-utils';
 import { LSConfigManager } from '../../../src/ls-config';
 import { LSAndTSDocResolver } from '../../../src/plugins';
+import sinon from 'sinon';
+import { RelativePattern } from 'vscode-languageserver-protocol';
 
 describe('service', () => {
     const testDir = path.join(__dirname, 'testfiles');
@@ -19,6 +21,7 @@ describe('service', () => {
     function setup() {
         const virtualSystem = createVirtualTsSystem(testDir);
 
+        const rootUris = [pathToUrl(testDir)];
         const lsDocumentContext: LanguageServiceDocumentContext = {
             ambientTypesSource: 'svelte2tsx',
             createDocument(fileName, content) {
@@ -31,10 +34,10 @@ describe('service', () => {
             watchTsConfig: false,
             notifyExceedSizeLimit: undefined,
             onProjectReloaded: undefined,
-            projectService: undefined
+            projectService: undefined,
+            nonRecursiveWatchPattern: undefined,
+            watchDirectory: undefined
         };
-
-        const rootUris = [pathToUrl(testDir)];
 
         return { virtualSystem, lsDocumentContext, rootUris };
     }
@@ -322,4 +325,60 @@ describe('service', () => {
 
         return { lsAndTsDocResolver, docManager };
     }
+    it('skip directory watching if directory is root', async () => {
+        const dirPath = getRandomVirtualDirPath(path.join(testDir, 'Test'));
+        const { virtualSystem, lsDocumentContext } = setup();
+
+        const rootUris = [pathToUrl(dirPath)];
+
+        const watchDirectory = sinon.spy();
+        lsDocumentContext.watchDirectory = watchDirectory;
+        lsDocumentContext.nonRecursiveWatchPattern = '*.ts';
+
+        virtualSystem.readDirectory = () => [];
+        virtualSystem.directoryExists = () => true;
+
+        virtualSystem.writeFile(
+            path.join(dirPath, 'tsconfig.json'),
+            JSON.stringify({
+                compilerOptions: {},
+                include: ['src/**/*.ts', 'test/**/*.ts', '../foo/**/*.ts']
+            })
+        );
+
+        await getService(path.join(dirPath, 'random.svelte'), rootUris, lsDocumentContext);
+
+        sinon.assert.calledWith(watchDirectory.firstCall, <RelativePattern[]>[
+            {
+                baseUri: pathToUrl(path.join(dirPath, '../foo')),
+                pattern: '**/*.ts'
+            }
+        ]);
+    });
+
+    it('skip directory watching if directory do not exist', async () => {
+        const dirPath = getRandomVirtualDirPath(path.join(testDir, 'Test'));
+        const { virtualSystem, lsDocumentContext } = setup();
+
+        const rootUris = [pathToUrl(dirPath)];
+
+        const watchDirectory = sinon.spy();
+        lsDocumentContext.watchDirectory = watchDirectory;
+        lsDocumentContext.nonRecursiveWatchPattern = '*.ts';
+
+        virtualSystem.readDirectory = () => [];
+        virtualSystem.directoryExists = () => false;
+
+        virtualSystem.writeFile(
+            path.join(dirPath, 'tsconfig.json'),
+            JSON.stringify({
+                compilerOptions: {},
+                include: ['../test/**/*.ts']
+            })
+        );
+
+        await getService(path.join(dirPath, 'random.svelte'), rootUris, lsDocumentContext);
+
+        sinon.assert.calledWith(watchDirectory.firstCall, <RelativePattern[]>[]);
+    });
 });

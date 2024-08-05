@@ -20,9 +20,12 @@ import { LSAndTSDocResolver } from '../../../../src/plugins/typescript/LSAndTSDo
 import { __resetCache } from '../../../../src/plugins/typescript/service';
 import { pathToUrl } from '../../../../src/utils';
 import { recursiveServiceWarmup } from '../test-utils';
+import { DiagnosticCode } from '../../../../src/plugins/typescript/features/DiagnosticsProvider';
+import { VERSION } from 'svelte/compiler';
 
 const testDir = path.join(__dirname, '..');
 const indent = ' '.repeat(4);
+const isSvelte5Plus = +VERSION.split('.')[0] >= 5;
 
 describe('CodeActionsProvider', function () {
     recursiveServiceWarmup(
@@ -64,7 +67,7 @@ describe('CodeActionsProvider', function () {
             uri: pathToUrl(filePath),
             text: harmonizeNewLines(ts.sys.readFile(filePath) || '')
         });
-        return { provider, document, docManager };
+        return { provider, document, docManager, lsAndTsDocResolver };
     }
 
     it('provides quickfix', async () => {
@@ -373,6 +376,17 @@ describe('CodeActionsProvider', function () {
             uri: getUri('codeaction-checkJs.svelte'),
             version: null
         };
+
+        if (isSvelte5Plus) {
+            // Maybe because of the hidden interface declarations? It's harmless anyway
+            if (
+                codeActions.length === 4 &&
+                codeActions[3].title === "Add '@ts-ignore' to all error messages"
+            ) {
+                codeActions.splice(3, 1);
+            }
+        }
+
         assert.deepStrictEqual(codeActions, <CodeAction[]>[
             {
                 edit: {
@@ -661,6 +675,81 @@ describe('CodeActionsProvider', function () {
         ]);
     });
 
+    it('provides quickfix for component import with "did you mean" diagnostics', async () => {
+        const { provider, document } = setup('codeaction-component-import.svelte');
+
+        const codeActions = await provider.getCodeActions(
+            document,
+            Range.create(Position.create(4, 1), Position.create(4, 6)),
+            {
+                diagnostics: [
+                    {
+                        code: 2552,
+                        message: "Cannot find name 'Empty'. Did you mean 'EMpty'?",
+                        range: Range.create(Position.create(4, 1), Position.create(4, 6)),
+                        source: 'ts'
+                    }
+                ],
+                only: [CodeActionKind.QuickFix]
+            }
+        );
+
+        (<TextDocumentEdit>codeActions[0]?.edit?.documentChanges?.[0])?.edits.forEach(
+            (edit) => (edit.newText = harmonizeNewLines(edit.newText))
+        );
+
+        assert.deepStrictEqual(codeActions, <CodeAction[]>[
+            {
+                edit: {
+                    documentChanges: [
+                        {
+                            edits: [
+                                {
+                                    newText: harmonizeNewLines(
+                                        `\n${indent}import Empty from "../empty.svelte";\n`
+                                    ),
+                                    range: {
+                                        end: Position.create(0, 18),
+                                        start: Position.create(0, 18)
+                                    }
+                                }
+                            ],
+                            textDocument: {
+                                uri: getUri('codeaction-component-import.svelte'),
+                                version: null
+                            }
+                        }
+                    ]
+                },
+                kind: 'quickfix',
+                title: 'Add import from "../empty.svelte"'
+            },
+            {
+                edit: {
+                    documentChanges: [
+                        {
+                            edits: [
+                                {
+                                    newText: 'EMpty',
+                                    range: {
+                                        end: Position.create(4, 6),
+                                        start: Position.create(4, 1)
+                                    }
+                                }
+                            ],
+                            textDocument: {
+                                uri: getUri('codeaction-component-import.svelte'),
+                                version: null
+                            }
+                        }
+                    ]
+                },
+                kind: 'quickfix',
+                title: "Change spelling to 'EMpty'"
+            }
+        ]);
+    });
+
     it('remove import inline with script tag', async () => {
         const { provider, document } = setup('remove-imports-inline.svelte');
 
@@ -863,13 +952,15 @@ describe('CodeActionsProvider', function () {
     });
 
     it('provide quick fix to fix all missing import component', async () => {
-        const { provider, document } = setup('codeaction-custom-fix-all-component.svelte');
+        const { provider, document, docManager, lsAndTsDocResolver } = setup(
+            'codeaction-custom-fix-all-component.svelte'
+        );
 
         const range = Range.create(Position.create(4, 1), Position.create(4, 15));
         const codeActions = await provider.getCodeActions(document, range, {
             diagnostics: [
                 {
-                    code: 2304,
+                    code: DiagnosticCode.CANNOT_FIND_NAME,
                     message: "Cannot find name 'FixAllImported'.",
                     range: range,
                     source: 'ts'
@@ -907,6 +998,73 @@ describe('CodeActionsProvider', function () {
                     ],
                     textDocument: {
                         uri: getUri('codeaction-custom-fix-all-component.svelte'),
+                        version: null
+                    }
+                }
+            ]
+        });
+
+        // fix-all has some "creative" workaround. Testing if it won't affect the document synchronization after applying the fix
+        docManager.updateDocument(
+            document,
+            resolvedFixAll.edit.documentChanges[0].edits.map((edit) => ({
+                range: edit.range,
+                text: edit.newText
+            }))
+        );
+
+        const { lang, tsDoc } = await lsAndTsDocResolver.getLSAndTSDoc(document);
+        const cannotFindNameDiagnostics = lang
+            .getSemanticDiagnostics(tsDoc.filePath)
+            .filter((diagnostic) => diagnostic.code === DiagnosticCode.CANNOT_FIND_NAME);
+        assert.strictEqual(cannotFindNameDiagnostics.length, 0);
+    });
+
+    it('provide quick fix to fix all missing import component with "did you mean" diagnostics', async () => {
+        const { provider, document } = setup('codeaction-custom-fix-all-component4.svelte');
+
+        const range = Range.create(Position.create(4, 1), Position.create(4, 15));
+        const codeActions = await provider.getCodeActions(document, range, {
+            diagnostics: [
+                {
+                    code: DiagnosticCode.CANNOT_FIND_NAME_X_DID_YOU_MEAN_Y,
+                    message: "Cannot find name 'FixAllImported'. Did you mean 'FixAllImported3'?",
+                    range: range,
+                    source: 'ts'
+                }
+            ],
+            only: [CodeActionKind.QuickFix]
+        });
+
+        const fixAll = codeActions.find((action) => action.data);
+        const resolvedFixAll = await provider.resolveCodeAction(document, fixAll!);
+
+        (<TextDocumentEdit>resolvedFixAll?.edit?.documentChanges?.[0])?.edits.forEach(
+            (edit) => (edit.newText = harmonizeNewLines(edit.newText))
+        );
+
+        assert.deepStrictEqual(resolvedFixAll.edit, {
+            documentChanges: [
+                {
+                    edits: [
+                        {
+                            newText:
+                                `\n${indent}import FixAllImported from \"./importing/FixAllImported.svelte\";\n` +
+                                `${indent}import FixAllImported2 from \"./importing/FixAllImported2.svelte\";\n`,
+                            range: {
+                                start: {
+                                    character: 18,
+                                    line: 0
+                                },
+                                end: {
+                                    character: 18,
+                                    line: 0
+                                }
+                            }
+                        }
+                    ],
+                    textDocument: {
+                        uri: getUri('codeaction-custom-fix-all-component4.svelte'),
                         version: null
                     }
                 }
@@ -995,8 +1153,8 @@ describe('CodeActionsProvider', function () {
                     edits: [
                         {
                             newText:
-                                `\n${indent}import FixAllImported2 from \"./importing/FixAllImported2.svelte\";\n` +
-                                `${indent}import { FixAllImported3 } from \"./importing/c\";\n`,
+                                `\n${indent}import { FixAllImported3 } from \"./importing/c\";` +
+                                `\n${indent}import FixAllImported2 from \"./importing/FixAllImported2.svelte\";\n`,
                             range: {
                                 start: {
                                     character: 18,

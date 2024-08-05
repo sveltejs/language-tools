@@ -4,14 +4,21 @@ The svelte-language-server and therefore the VSCode extension can only handle CS
 
 ## PostCSS
 
-1. Setup you build and `svelte.config.js` ([general info](./in-general.md)) correctly and add a `postcss.config.cjs` (note the `cjs` ending; you need to write the config in CommonJS style currently, more on that below). We recommend using [svelte-preprocess](https://github.com/sveltejs/svelte-preprocess/blob/master/docs/preprocessing.md#postcss). For the `svelte.config.js`, this should be enough:
+1. Setup your build and `svelte.config.js` ([general info](./in-general.md)) correctly and add a `postcss.config.js`. We recommend using [vitePreprocess](https://github.com/sveltejs/vite-plugin-svelte/blob/main/docs/preprocess.md) or [svelte-preprocess](https://github.com/sveltejs/svelte-preprocess/blob/master/docs/preprocessing.md#postcss). For the `svelte.config.js`, this should be enough:
+
+```js
+import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
+export default { preprocess: [vitePreprocess()] };
+```
+
+Or:
 
 ```js
 import sveltePreprocess from 'svelte-preprocess';
 export default { preprocess: sveltePreprocess({ postcss: true }) };
 ```
 
-Note that this assumes that you have a ESM-style project, which means there's `"type": "module"` in your project's `package.json`. If not, you need to use CommonJS in your `svelte.config.js`, things like `import ...` or `export const ...` are not allowed. You then also switch the `postcss.config` `cjs` file ending to `js`.
+Note that this assumes that you have a ESM-style project, which means there's `"type": "module"` in your project's `package.json`. If not, you need to use CommonJS in your `svelte.config.js` and `postcss.config.js` as things like `import ...` or `export const ...` are not allowed.
 
 If your `svelte.config.js` is not in the workspace root (for example your `svelte.config.js` is within `/frontend`), you'll have to pass in the `configFilePath` config. This is because the relative path is resolved relative to the working directory of the node process.
 
@@ -35,7 +42,7 @@ export default {
 
 ## TailwindCSS
 
-We assume you already have setup TailwindCSS within your Svelte project. If not, [this article](https://dev.to/inalbant/a-simpler-way-to-add-tailwindcss-to-your-svelte-project-11ja) and [this article](https://dev.to/sarioglu/using-svelte-with-tailwindcss-a-better-approach-47ph) explain two approaches on how to do it.
+We assume you already have setup TailwindCSS within your Svelte project. If not, you can run `npx svelte-add tailwindcss` to set it up automatically or visit [the Tailwind docs](https://tailwindcss.com/docs/guides/sveltekit) which explain how to manually set it up.
 
 To use TailwindCSS with the VSCode extension:
 

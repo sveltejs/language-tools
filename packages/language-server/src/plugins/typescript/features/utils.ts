@@ -50,21 +50,15 @@ export function getComponentAtPosition(
         doc.positionAt(node.start + symbolPosWithinNode + 1)
     );
 
-    let def = lang.getDefinitionAtPosition(tsDoc.filePath, tsDoc.offsetAt(generatedPosition))?.[0];
-
-    while (def != null && def.kind !== ts.ScriptElementKind.classElement) {
-        const newDef = lang.getDefinitionAtPosition(tsDoc.filePath, def.textSpan.start)?.[0];
-        if (newDef?.fileName === def.fileName && newDef?.textSpan.start === def.textSpan.start) {
-            break;
-        }
-        def = newDef;
-    }
-
+    const def = lang.getDefinitionAtPosition(
+        tsDoc.filePath,
+        tsDoc.offsetAt(generatedPosition)
+    )?.[0];
     if (!def) {
         return null;
     }
 
-    return JsOrTsComponentInfoProvider.create(lang, def);
+    return JsOrTsComponentInfoProvider.create(lang, def, tsDoc.isSvelte5Plus);
 }
 
 export function isComponentAtPosition(
@@ -89,6 +83,7 @@ export function isComponentAtPosition(
 
 export const IGNORE_START_COMMENT = '/*Ωignore_startΩ*/';
 export const IGNORE_END_COMMENT = '/*Ωignore_endΩ*/';
+export const IGNORE_POSITION_COMMENT = '/*Ωignore_positionΩ*/';
 
 /**
  * Surrounds given string with a start/end comment which marks it
@@ -109,6 +104,10 @@ export function isInGeneratedCode(text: string, start: number, end: number = sta
     // if lastEnd === nextEnd, this means that the str was found at the index
     // up to which is searched for it
     return (lastStart > lastEnd || lastEnd === nextEnd) && lastStart < nextEnd;
+}
+
+export function startsWithIgnoredPosition(text: string, offset: number) {
+    return text.slice(offset).startsWith(IGNORE_POSITION_COMMENT);
 }
 
 /**

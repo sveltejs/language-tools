@@ -7,6 +7,9 @@ import { FileMap } from '../../../src/lib/documents/fileCollection';
 import { LSConfigManager } from '../../../src/ls-config';
 import { LSAndTSDocResolver } from '../../../src/plugins';
 import { createGetCanonicalFileName, normalizePath, pathToUrl } from '../../../src/utils';
+import { VERSION } from 'svelte/compiler';
+
+const isSvelte5Plus = Number(VERSION.split('.')[0]) >= 5;
 
 export function createVirtualTsSystem(currentDirectory: string): ts.System {
     const virtualFs = new FileMap<string>();
@@ -88,6 +91,19 @@ export function createVirtualTsSystem(currentDirectory: string): ts.System {
         },
         getModifiedTime(path) {
             return modifiedTime.get(normalizePath(toAbsolute(path)));
+        },
+        readDirectory(path, _extensions, _exclude, include, _depth) {
+            if (include && (include.length != 1 || include[0] !== '**/*')) {
+                throw new Error(
+                    'include pattern matching not implemented. Mock it if the test needs it. Pattern: ' +
+                        include
+                );
+            }
+
+            const normalizedPath = normalizePath(toAbsolute(path));
+            return Array.from(virtualFs.keys()).filter((fileName) =>
+                fileName.startsWith(normalizedPath)
+            );
         }
     };
 
@@ -185,7 +201,12 @@ export function createSnapshotTester<
         }
 
         if (existsSync(inputFile)) {
-            const _it = dir.endsWith('.only') ? it.only : it;
+            const _it =
+                dir.endsWith('.v5') && !isSvelte5Plus
+                    ? it.skip
+                    : dir.endsWith('.only')
+                      ? it.only
+                      : it;
             _it(dir.substring(__dirname.length), () => executeTest(inputFile, testOptions));
         } else {
             const _describe = dir.endsWith('.only') ? describe.only : describe;

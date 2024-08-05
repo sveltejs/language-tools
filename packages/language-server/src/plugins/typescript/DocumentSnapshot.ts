@@ -87,6 +87,7 @@ export namespace DocumentSnapshot {
             document,
             parserError,
             scriptKind,
+            options.version,
             text,
             nrPrependedLines,
             exportedNames,
@@ -135,7 +136,7 @@ export namespace DocumentSnapshot {
 
         if (normalizedPath.endsWith('node_modules/svelte/types/index.d.ts')) {
             const startIdx = originalText.indexOf(`declare module '*.svelte' {`);
-            const endIdx = originalText.indexOf(`}`, originalText.indexOf(';', startIdx)) + 1;
+            const endIdx = originalText.indexOf(`\n}`, startIdx + 1) + 2;
             originalText =
                 originalText.substring(0, startIdx) +
                 ' '.repeat(endIdx - startIdx) +
@@ -267,11 +268,13 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
     private url = pathToUrl(this.filePath);
 
     version = this.parent.version;
+    isSvelte5Plus = Number(this.svelteVersion?.split('.')[0]) >= 5;
 
     constructor(
         public readonly parent: Document,
         public readonly parserError: ParserError | null,
         public readonly scriptKind: ts.ScriptKind,
+        public readonly svelteVersion: string | undefined,
         private readonly text: string,
         private readonly nrPrependedLines: number,
         private readonly exportedNames: IExportedNames,

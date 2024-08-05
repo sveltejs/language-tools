@@ -328,6 +328,7 @@ export function svelte2tsx(
     const str = new MagicString(svelte);
     const basename = path.basename(options.filename || '');
     const svelte5Plus = Number(options.version![0]) > 4;
+
     // process the htmlx as a svelte template
     let {
         htmlAst,
@@ -369,7 +370,7 @@ export function svelte2tsx(
         : instanceScriptTarget;
     const implicitStoreValues = new ImplicitStoreValues(resolvedStores, renderFunctionStart);
     //move the instance script and process the content
-    let exportedNames = new ExportedNames(str, 0, basename, options?.isTsFile);
+    let exportedNames = new ExportedNames(str, 0, basename, options?.isTsFile, svelte5Plus);
     let generics = new Generics(str, 0, { attributes: [] } as any);
     let uses$$SlotsInterface = false;
     if (scriptTag) {
@@ -385,13 +386,19 @@ export function svelte2tsx(
             options.mode,
             /**hasModuleScripts */ !!moduleScriptTag,
             options?.isTsFile,
-            basename
+            basename,
+            svelte5Plus
         );
         uses$$props = uses$$props || res.uses$$props;
         uses$$restProps = uses$$restProps || res.uses$$restProps;
         uses$$slots = uses$$slots || res.uses$$slots;
 
         ({ exportedNames, events, generics, uses$$SlotsInterface } = res);
+    }
+
+    exportedNames.usesAccessors = usesAccessors;
+    if (svelte5Plus) {
+        exportedNames.checkGlobalsForRunes(implicitStoreValues.getGlobals());
     }
 
     //wrap the script tag and template content in a function returning the slot and exports
@@ -428,14 +435,16 @@ export function svelte2tsx(
     addComponentExport({
         str,
         canHaveAnyProp: !exportedNames.uses$$Props && (uses$$props || uses$$restProps),
-        strictEvents: events.hasStrictEvents(),
+        strictEvents: events.hasStrictEvents(), // TODO in Svelte 6 we should also apply strictEvents in runes mode
         isTsFile: options?.isTsFile,
         exportedNames,
         usesAccessors,
+        usesSlots: slots.size > 0,
         fileName: options?.filename,
         componentDocumentation,
         mode: options.mode,
         generics,
+        isSvelte5: svelte5Plus,
         noSvelteComponentTyped: options.noSvelteComponentTyped
     });
 

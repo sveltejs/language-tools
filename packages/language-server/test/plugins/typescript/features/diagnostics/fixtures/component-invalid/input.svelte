@@ -1,6 +1,6 @@
 <script lang="ts">
     import Imported from './imported.svelte';
-    import { Works, Works2, Works3, DoesntWork } from './components'
+    import { Works, Works2, Works3, Works4, DoesntWork } from './components'
 </script>
 
 <!-- valid -->
@@ -28,3 +28,7 @@
 <svelte:component this={DoesntWork} foo="bar" on:click={() => ''} let:etc>
     {etc}
 </svelte:component>
+
+<!-- valid in Svelte 5 -->
+<Works4 foo="bar" />
+<svelte:component this={Works4} foo="bar" />

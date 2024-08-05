@@ -13,7 +13,34 @@ export async function emitDts(config: EmitDtsConfig) {
     const { options, filenames } = loadTsconfig(config, svelteMap);
     const host = await createTsCompilerHost(options, svelteMap);
     const program = ts.createProgram(filenames, options, host);
-    program.emit();
+    const result = program.emit();
+    const likely_failed_files = result.diagnostics.filter((diagnostic) => {
+        // List of errors which hint at a failed d.ts generation
+        // https://github.com/microsoft/TypeScript/blob/main/src/compiler/diagnosticMessages.json
+        return diagnostic.code === 2527 || (diagnostic.code >= 4000 && diagnostic.code <= 4108);
+    });
+
+    if (likely_failed_files.length > 0) {
+        const failed_by_file = new Map<string, string[]>();
+        likely_failed_files.forEach((diagnostic) => {
+            const file = diagnostic.file?.fileName;
+            if (file) {
+                const errors = failed_by_file.get(file) || [];
+                errors.push(ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n'));
+                failed_by_file.set(file, errors);
+            }
+        });
+        console.warn(
+            'd.ts type declaration files for the following files were likely not generated due to the following errors:'
+        );
+        console.warn(
+            [...failed_by_file.entries()]
+                .map(([file, errors]) => {
+                    return `${file}\n${errors.map((error) => `  - ${error}`).join('\n')}`;
+                })
+                .join('\n')
+        );
+    }
 }
 
 function loadTsconfig(config: EmitDtsConfig, svelteMap: SvelteMap) {
@@ -145,10 +172,6 @@ async function createTsCompilerHost(options: any, svelteMap: SvelteMap) {
             fileName = pathPrefix ? path.join(pathPrefix, fileName) : fileName;
             if (fileName.endsWith('d.ts.map')) {
                 data = data.replace(/"sources":\["(.+?)"\]/, (_, sourcePath: string) => {
-                    // Due to our hack of treating .svelte files as .ts files, we need to adjust the extension
-                    if (sourcePath.endsWith('.svelte.ts')) {
-                        sourcePath = sourcePath.slice(0, -3);
-                    }
                     // The inverse of the pathPrefix adjustment
                     sourcePath =
                         pathPrefix && sourcePath.includes(pathPrefix)
@@ -157,6 +180,12 @@ async function createTsCompilerHost(options: any, svelteMap: SvelteMap) {
                                   sourcePath.indexOf(pathPrefix) + pathPrefix.length + 1
                               )
                             : sourcePath;
+                    // Due to our hack of treating .svelte files as .ts files, we need to adjust the extension
+                    if (
+                        svelteMap.get(path.join(options.rootDir, toRealSvelteFilepath(sourcePath)))
+                    ) {
+                        sourcePath = toRealSvelteFilepath(sourcePath);
+                    }
                     return `"sources":["${sourcePath}"]`;
                 });
             } else if (fileName.endsWith('js.map')) {
@@ -243,6 +272,12 @@ interface SvelteMap {
 async function createSvelteMap(config: EmitDtsConfig): Promise<SvelteMap> {
     const svelteFiles = new Map();
 
+    // TODO detect Svelte version in here and set shimsPath accordingly if not given from above
+    const noSvelteComponentTyped = config.svelteShimsPath
+        .replace(/\\/g, '/')
+        .endsWith('svelte2tsx/svelte-shims-v4.d.ts');
+    const version = noSvelteComponentTyped ? undefined : '3.42.0';
+
     function add(path: string): boolean {
         const code = ts.sys.readFile(path, 'utf-8');
         const isTsFile = /<script\s+[^>]*?lang=('|")(ts|typescript)('|")/.test(code);
@@ -250,15 +285,17 @@ async function createSvelteMap(config: EmitDtsConfig): Promise<SvelteMap> {
             filename: path,
             isTsFile,
             mode: 'dts',
-            noSvelteComponentTyped: config.svelteShimsPath
-                .replace(/\\/g, '/')
-                .endsWith('svelte2tsx/svelte-shims-v4.d.ts')
+            version,
+            noSvelteComponentTyped: noSvelteComponentTyped
         }).code;
-        svelteFiles.set(path, transformed);
+        svelteFiles.set(path.replace(/\\/g, '/'), transformed);
         return isTsFile;
     }
 
-    return { add, get: (key: string) => svelteFiles.get(key) };
+    return {
+        add,
+        get: (key: string) => svelteFiles.get(key.replace(/\\/g, '/'))
+    };
 }
 
 function isSvelteFilepath(filePath: string) {
