@@ -1,18 +1,16 @@
 import assert from 'assert';
 import path from 'path';
+import sinon from 'sinon';
 import ts from 'typescript';
-import { Document, DocumentManager } from '../../../src/lib/documents';
+import { RelativePattern } from 'vscode-languageserver-protocol';
+import { Document } from '../../../src/lib/documents';
 import { GlobalSnapshotsManager } from '../../../src/plugins/typescript/SnapshotManager';
 import {
     LanguageServiceDocumentContext,
     getService
 } from '../../../src/plugins/typescript/service';
-import { pathToUrl } from '../../../src/utils';
+import { normalizePath, pathToUrl } from '../../../src/utils';
 import { createVirtualTsSystem, getRandomVirtualDirPath } from './test-utils';
-import { LSConfigManager } from '../../../src/ls-config';
-import { LSAndTSDocResolver } from '../../../src/plugins';
-import sinon from 'sinon';
-import { RelativePattern } from 'vscode-languageserver-protocol';
 
 describe('service', () => {
     const testDir = path.join(__dirname, 'testfiles');
@@ -267,6 +265,71 @@ describe('service', () => {
         assert.doesNotThrow(() => {
             ls.getService().getSemanticDiagnostics(document.getFilePath()!);
         });
+    });
+
+    it('resolve module with source project reference redirect', async () => {
+        const dirPath = getRandomVirtualDirPath(testDir);
+        const { virtualSystem, lsDocumentContext, rootUris } = setup();
+
+        const package1 = path.join(dirPath, 'package1');
+
+        virtualSystem.writeFile(
+            path.join(package1, 'tsconfig.json'),
+            JSON.stringify({
+                references: [{ path: '../package2' }],
+                files: ['index.ts']
+            })
+        );
+
+        const package2 = path.join(dirPath, 'package2');
+        virtualSystem.writeFile(
+            path.join(package2, 'tsconfig.json'),
+            JSON.stringify({
+                compilerOptions: {
+                    composite: true,
+                    strict: true
+                },
+                files: ['index.ts']
+            })
+        );
+
+        const importing = path.join(package1, 'index.ts');
+        virtualSystem.writeFile(
+            importing,
+            'import { hi } from "package2"; hi((a) => `${a}`);'
+        );
+
+        const imported = path.join(package2, 'index.ts');
+        virtualSystem.writeFile(imported, 'export function hi(cb: (num: number) => string) {}');        
+
+        const package2Link = normalizePath(path.join(package1, 'node_modules', 'package2'));
+        virtualSystem.realpath = (p) => {
+            if (normalizePath(p).startsWith(package2Link)) {
+                const sub = p.substring(package2Link.length);
+                return path.join(package2) + sub;
+            }
+
+            return p;
+        };
+
+        const fileExists = virtualSystem.fileExists;
+        virtualSystem.fileExists = (p) => {
+            const realPath = virtualSystem.realpath!(p);
+            
+            return fileExists(realPath);
+        }
+
+        const ls = await getService(
+            path.join(package1, 'DoNotMatter.svelte'),
+            rootUris,
+            lsDocumentContext
+        );
+
+        const service = ls.getService();
+        assert.deepStrictEqual(
+            [],
+            service.getSemanticDiagnostics(importing).map((d) => d.messageText)
+        );
     });
 
     it('skip directory watching if directory is root', async () => {

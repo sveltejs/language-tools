@@ -258,6 +258,9 @@ async function createLanguageService(
     );
 
     let svelteTsPath: string;
+    /**
+     * set and clear during program creation, shouldn't not be cached elsewhere
+     */
     let compilerHost: ts.CompilerHost | undefined;
     try {
         // For when svelte2tsx/svelte-check is part of node_modules, for example VS Code extension
@@ -323,9 +326,9 @@ async function createLanguageService(
         getModuleResolutionCache: svelteModuleLoader.getModuleResolutionCache,
         useSourceOfProjectReferenceRedirect() {
             return !languageServiceReducedMode;
-        }
-        // setCompilerHost: (host) => (compilerHost = host),
-        // getCompilerHost: () => compilerHost,
+        },
+        setCompilerHost: (host) => (compilerHost = host),
+        getCompilerHost: () => compilerHost,
     };
 
     const documentRegistry = getOrCreateDocumentRegistry(
