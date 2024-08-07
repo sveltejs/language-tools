@@ -432,9 +432,12 @@ async function createLanguageService(
         const filePath = document.getFilePath() || '';
         const prevSnapshot = snapshotManager.get(filePath);
 
-        console.log(filePath, prevSnapshot?.isOpenedInClient(), document.openedByClient)
-
-        if (prevSnapshot?.version === document.version) {
+        if (
+            prevSnapshot?.version === document.version &&
+            // In the test, there might be a new document instance with a different openedByClient
+            // In that case, Create a new snapshot otherwise the getClientFileNames won't include the new client file
+            prevSnapshot.isOpenedInClient() === document.openedByClient
+        ) {
             return prevSnapshot;
         }
 
@@ -815,6 +818,9 @@ async function createLanguageService(
         }
 
         exportMapCache.releaseSymbols();
+        // https://github.com/microsoft/TypeScript/blob/941d1543c201e40d87e63c9db04818493afdd9e7/src/server/project.ts#L1731
+        // if one file change results in clearing the cache
+        // don't continue to check other files, this will mark the cache as usable while it's empty
         for (const fileName of changedFilesForExportCache) {
             const oldFile = oldProgram.getSourceFile(fileName);
             const newFile = program?.getSourceFile(fileName);
@@ -824,11 +830,15 @@ async function createLanguageService(
                 continue;
             }
 
-            if (oldFile && newFile) {
-                exportMapCache.onFileChanged?.(oldFile, newFile, false);
-            } else {
+            if (!oldFile || !newFile) {
                 // new file or deleted file
                 exportMapCache.clear();
+                break;
+            }
+
+            const cleared = exportMapCache.onFileChanged?.(oldFile, newFile, false);
+            if (cleared) {
+                break;
             }
         }
         changedFilesForExportCache.clear();

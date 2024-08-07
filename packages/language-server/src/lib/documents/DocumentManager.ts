@@ -50,12 +50,10 @@ export class DocumentManager {
             // open state should only be updated when the document is closed
             document.openedByClient ||= openedByClient;
             document.setText(textDocument.text);
-            document.openedByClient = openedByClient;
         } else {
             document = this.createDocument(textDocument);
             document.openedByClient = openedByClient;
             this.documents.set(textDocument.uri, document);
-            document.openedByClient = openedByClient;
             this.notify('documentOpen', document);
         }
 
