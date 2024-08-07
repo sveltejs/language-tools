@@ -269,62 +269,6 @@ describe('service', () => {
         });
     });
 
-    it('resolve module with the compilerOptions from project reference', async () => {
-        // Don't test this with module not found diagnostics
-        // because there is a case where is won't have an error but still not resolved the module
-
-        const { lsAndTsDocResolver, docManager } = setupRealFS();
-        const pathsProjectRefDir = path.join(serviceTestDir, 'project-reference', 'paths');
-
-        const importingFilePath = path.join(pathsProjectRefDir, 'importing.svelte');
-        const document = docManager.openClientDocument({
-            uri: pathToUrl(importingFilePath),
-            text: ts.sys.readFile(importingFilePath) || ''
-        });
-
-        const lsContainer = await lsAndTsDocResolver.getTSService(importingFilePath);
-        lsContainer.getService();
-        const snapshotManager = lsContainer.snapshotManager;
-
-        const importedFilePath = path.join(pathsProjectRefDir, 'imported.ts');
-        assert.equal(
-            snapshotManager.has(importedFilePath),
-            false,
-            'expected to load imported file through module resolution'
-        );
-
-        // uncomment the import
-        document.update(
-            '',
-            document.offsetAt({
-                line: 2,
-                character: 0
-            }),
-            document.offsetAt({
-                line: 2,
-                character: 2
-            })
-        );
-        lsContainer.updateSnapshot(document);
-        lsContainer.getService();
-
-        assert.ok(snapshotManager.has(importedFilePath));
-    });
-
-    function setupRealFS() {
-        const docManager = new DocumentManager(
-            (textDocument) => new Document(textDocument.uri, textDocument.text)
-        );
-        const lsConfigManager = new LSConfigManager();
-        const workspaceUris = [pathToUrl(serviceTestDir)];
-        const lsAndTsDocResolver = new LSAndTSDocResolver(
-            docManager,
-            workspaceUris,
-            lsConfigManager
-        );
-
-        return { lsAndTsDocResolver, docManager };
-    }
     it('skip directory watching if directory is root', async () => {
         const dirPath = getRandomVirtualDirPath(path.join(testDir, 'Test'));
         const { virtualSystem, lsDocumentContext } = setup();

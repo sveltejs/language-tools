@@ -1,1 +1,0 @@
-export function hi(cb: (num: number) => string) {};

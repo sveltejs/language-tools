@@ -107,7 +107,7 @@ class ImpliedNodeFormatResolver {
         let mode = undefined;
         if (sourceFile) {
             this.cacheImpliedNodeFormat(sourceFile, compilerOptions);
-            mode = ts.getModeForResolutionAtIndex(sourceFile, importIdxInFile);
+            mode = ts.getModeForResolutionAtIndex(sourceFile, importIdxInFile, compilerOptions);
         }
         return mode;
     }
@@ -230,7 +230,7 @@ export function createSvelteModuleLoader(
         containingFile: string,
         _reusedNames: string[] | undefined,
         redirectedReference: ts.ResolvedProjectReference | undefined,
-        _options: ts.CompilerOptions,
+        options: ts.CompilerOptions,
         containingSourceFile?: ts.SourceFile | undefined
     ): Array<ts.ResolvedModule | undefined> {
         return moduleNames.map((moduleName, index) => {
@@ -243,7 +243,8 @@ export function createSvelteModuleLoader(
                 containingFile,
                 containingSourceFile,
                 index,
-                redirectedReference
+                redirectedReference,
+                options
             );
 
             resolvedModule?.failedLookupLocations?.forEach((failedLocation) => {
@@ -262,13 +263,14 @@ export function createSvelteModuleLoader(
         containingFile: string,
         containingSourceFile: ts.SourceFile | undefined,
         index: number,
-        redirectedReference: ts.ResolvedProjectReference | undefined
+        redirectedReference: ts.ResolvedProjectReference | undefined,
+        option: ts.CompilerOptions
     ): ts.ResolvedModuleWithFailedLookupLocations {
         const mode = impliedNodeFormatResolver.resolve(
             name,
             index,
             containingSourceFile,
-            compilerOptions
+            option
         );
         const resolvedModuleWithFailedLookup = tsModule.resolveModuleName(
             name,
