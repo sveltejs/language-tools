@@ -266,12 +266,7 @@ export function createSvelteModuleLoader(
         redirectedReference: ts.ResolvedProjectReference | undefined,
         option: ts.CompilerOptions
     ): ts.ResolvedModuleWithFailedLookupLocations {
-        const mode = impliedNodeFormatResolver.resolve(
-            name,
-            index,
-            containingSourceFile,
-            option
-        );
+        const mode = impliedNodeFormatResolver.resolve(name, index, containingSourceFile, option);
         const resolvedModuleWithFailedLookup = tsModule.resolveModuleName(
             name,
             containingFile,

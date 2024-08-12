@@ -23,9 +23,8 @@ describe('createSvelteModuleLoader', () => {
         };
         const moduleResolutionHost = { ...ts.sys };
 
-        
         const svelteSys = {
-            ...svS.createSvelteSys(ts.sys),
+            ...svS.createSvelteSys(ts.sys)
         };
         sinon.stub(svS, 'createSvelteSys').returns(svelteSys);
 

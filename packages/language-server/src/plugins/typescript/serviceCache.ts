@@ -81,7 +81,7 @@ export function createProject(
         'getSymlinkCache',
         'getPackageJsonsVisibleToFile',
         'getPackageJsonAutoImportProvider',
-        'includePackageJsonAutoImports',
+        'includePackageJsonAutoImports'
         // Volar doesn't have the "languageServiceReducedMode" support but we do
         // so don't proxy this method and implement this directly in the ts.LanguageServiceHost
         // 'useSourceOfProjectReferenceRedirect'

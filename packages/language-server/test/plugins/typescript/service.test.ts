@@ -6,6 +6,7 @@ import { RelativePattern } from 'vscode-languageserver-protocol';
 import { Document } from '../../../src/lib/documents';
 import { GlobalSnapshotsManager } from '../../../src/plugins/typescript/SnapshotManager';
 import {
+    LanguageServiceContainer,
     LanguageServiceDocumentContext,
     getService
 } from '../../../src/plugins/typescript/service';
@@ -14,7 +15,6 @@ import { createVirtualTsSystem, getRandomVirtualDirPath } from './test-utils';
 
 describe('service', () => {
     const testDir = path.join(__dirname, 'testfiles');
-    const serviceTestDir = path.join(testDir, 'services');
 
     function setup() {
         const virtualSystem = createVirtualTsSystem(testDir);
@@ -126,21 +126,24 @@ describe('service', () => {
 
     function createReloadTester(
         docContext: LanguageServiceDocumentContext,
-        testAfterReload: () => Promise<void>
+        testAfterReload: (reloadingConfigs: string[]) => Promise<boolean>
     ) {
         let _resolve: () => void;
-        const reloadPromise = new Promise<void>((resolve) => {
+        let _reject: (e: unknown) => void;
+        const reloadPromise = new Promise<void>((resolve, reject) => {
             _resolve = resolve;
+            _reject = reject;
         });
 
         return {
             docContextWithReload: {
                 ...docContext,
-                async onProjectReloaded() {
+                async onProjectReloaded(reloadingConfigs: string[]) {
                     try {
-                        await testAfterReload();
-                    } finally {
+                        await testAfterReload(reloadingConfigs);
                         _resolve();
+                    } catch (e) {
+                        _reject(e);
                     }
                 }
             },
@@ -190,6 +193,8 @@ describe('service', () => {
                 true,
                 'expected to reload compilerOptions'
             );
+
+            return true;
         }
     });
 
@@ -198,7 +203,7 @@ describe('service', () => {
         const { virtualSystem, lsDocumentContext, rootUris } = setup();
         const tsconfigPath = path.join(dirPath, 'tsconfig.json');
         const extend = './.svelte-kit/tsconfig.json';
-        const extendedConfigPathFull = path.resolve(tsconfigPath, extend);
+        const extendedConfigPathFull = path.resolve(path.dirname(tsconfigPath), extend);
 
         virtualSystem.writeFile(
             tsconfigPath,
@@ -235,6 +240,69 @@ describe('service', () => {
                 true,
                 'expected to reload compilerOptions'
             );
+            return true;
+        }
+    });
+
+    it('can watch project reference tsconfig', async () => {
+        const dirPath = getRandomVirtualDirPath(testDir);
+        const { virtualSystem, lsDocumentContext, rootUris } = setup();
+        const tsconfigPath = path.join(dirPath, 'tsconfig.json');
+        const referenced = './tsconfig_node.json';
+        const referencedConfigPathFull = path.resolve(path.dirname(tsconfigPath), referenced);
+
+        virtualSystem.writeFile(
+            tsconfigPath,
+            JSON.stringify({
+                references: [{ path: referenced }]
+            })
+        );
+
+        virtualSystem.writeFile(
+            referencedConfigPathFull,
+            JSON.stringify({
+                compilerOptions: <ts.CompilerOptions>{
+                    strict: true
+                },
+                files: ['random.ts']
+            })
+        );
+
+        const { reloadPromise, docContextWithReload } = createReloadTester(
+            { ...lsDocumentContext, watchTsConfig: true },
+            testAfterReload
+        );
+
+        const tsFilePath = path.join(dirPath, 'random.ts');
+        virtualSystem.writeFile(tsFilePath, 'const a: number = null;');
+
+        const ls = await getService(tsFilePath, rootUris, docContextWithReload);
+        assert.deepStrictEqual(getSemanticDiagnosticsMessages(ls, tsFilePath), [
+            "Type 'null' is not assignable to type 'number'."
+        ]);
+
+        virtualSystem.writeFile(
+            referencedConfigPathFull,
+            JSON.stringify({
+                compilerOptions: <ts.CompilerOptions>{
+                    strict: false
+                }
+            })
+        );
+
+        await reloadPromise;
+
+        async function testAfterReload(reloadingConfigs: string[]) {
+            if (!reloadingConfigs.includes(referencedConfigPathFull)) {
+                return false;
+            }
+            const newLs = await getService(tsFilePath, rootUris, {
+                ...lsDocumentContext,
+                watchTsConfig: true
+            });
+
+            assert.deepStrictEqual(getSemanticDiagnosticsMessages(newLs, tsFilePath), []);
+            return true;
         }
     });
 
@@ -294,13 +362,10 @@ describe('service', () => {
         );
 
         const importing = path.join(package1, 'index.ts');
-        virtualSystem.writeFile(
-            importing,
-            'import { hi } from "package2"; hi((a) => `${a}`);'
-        );
+        virtualSystem.writeFile(importing, 'import { hi } from "package2"; hi((a) => `${a}`);');
 
         const imported = path.join(package2, 'index.ts');
-        virtualSystem.writeFile(imported, 'export function hi(cb: (num: number) => string) {}');        
+        virtualSystem.writeFile(imported, 'export function hi(cb: (num: number) => string) {}');
 
         const package2Link = normalizePath(path.join(package1, 'node_modules', 'package2'));
         virtualSystem.realpath = (p) => {
@@ -315,9 +380,9 @@ describe('service', () => {
         const fileExists = virtualSystem.fileExists;
         virtualSystem.fileExists = (p) => {
             const realPath = virtualSystem.realpath!(p);
-            
+
             return fileExists(realPath);
-        }
+        };
 
         const ls = await getService(
             path.join(package1, 'DoNotMatter.svelte'),
@@ -325,11 +390,7 @@ describe('service', () => {
             lsDocumentContext
         );
 
-        const service = ls.getService();
-        assert.deepStrictEqual(
-            [],
-            service.getSemanticDiagnostics(importing).map((d) => d.messageText)
-        );
+        assert.deepStrictEqual(getSemanticDiagnosticsMessages(ls, importing), []);
     });
 
     it('skip directory watching if directory is root', async () => {
@@ -388,4 +449,11 @@ describe('service', () => {
 
         sinon.assert.calledWith(watchDirectory.firstCall, <RelativePattern[]>[]);
     });
+
+    function getSemanticDiagnosticsMessages(ls: LanguageServiceContainer, filePath: string) {
+        return ls
+            .getService()
+            .getSemanticDiagnostics(filePath)
+            .map((d) => d.messageText);
+    }
 });

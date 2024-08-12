@@ -262,6 +262,11 @@ export class SnapshotManager {
         return Array.from(this.projectFileToOriginalCasing.values());
     }
 
+    isProjectFile(fileName: string): boolean {
+        fileName = normalizePath(fileName);
+        return this.projectFileToOriginalCasing.has(this.getCanonicalFileName(fileName));
+    }
+
     private logStatistics() {
         const date = new Date();
         // Don't use setInterval because that will keep tests running forever

@@ -110,6 +110,11 @@ export function createVirtualTsSystem(currentDirectory: string): ts.System {
     return virtualSystem;
 
     function triggerWatch(normalizedPath: string, kind: ts.FileWatcherEventKind) {
+        // if watcher is not set yet. don't trigger it
+        if (!watchers.has(normalizedPath)) {
+            return;
+        }
+
         let timeoutsOfPath = watchTimeout.get(normalizedPath);
 
         if (!timeoutsOfPath) {
