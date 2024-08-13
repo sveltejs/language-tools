@@ -34,7 +34,8 @@ describe('service', () => {
             onProjectReloaded: undefined,
             projectService: undefined,
             nonRecursiveWatchPattern: undefined,
-            watchDirectory: undefined
+            watchDirectory: undefined,
+            projectReferenceInfo: new Map()
         };
 
         return { virtualSystem, lsDocumentContext, rootUris };
@@ -254,7 +255,8 @@ describe('service', () => {
         virtualSystem.writeFile(
             tsconfigPath,
             JSON.stringify({
-                references: [{ path: referenced }]
+                references: [{ path: referenced }],
+                include: []
             })
         );
 

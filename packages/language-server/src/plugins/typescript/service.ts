@@ -54,7 +54,7 @@ export interface LanguageServiceContainer {
     onPackageJsonChange(packageJsonPath: string): void;
     getTsConfigSvelteOptions(): { namespace: string };
 
-    getProjectReferences(): ProjectReferenceInfo[];
+    getProjectReferences(): TsConfigInfo[];
 
     dispose(): void;
 }
@@ -92,11 +92,12 @@ declare module 'typescript' {
     }
 }
 
-export interface ProjectReferenceInfo {
+export interface TsConfigInfo {
     parsedCommandLine: ts.ParsedCommandLine;
     snapshotManager: SnapshotManager;
     pendingProjectFileUpdate: boolean;
     configFilePath: string;
+    extendedConfigPaths?: Set<string>;
 }
 
 const maxProgramSizeForNonTsFiles = 20 * 1024 * 1024; // 20 MB
@@ -135,6 +136,7 @@ export interface LanguageServiceDocumentContext {
     projectService: ProjectService | undefined;
     watchDirectory: ((patterns: RelativePattern[]) => void) | undefined;
     nonRecursiveWatchPattern: string | undefined;
+    projectReferenceInfo: Map<string, TsConfigInfo | null>;
 }
 
 export async function getService(
@@ -193,13 +195,9 @@ function findDefaultServiceForFile(
         return service;
     }
 
-    let possibleDefaultProject: ProjectReferenceInfo | undefined;
-    for (const element of projectReferences) {
-        if (element.snapshotManager.isProjectFile(filePath)) {
-            possibleDefaultProject = element;
-            break;
-        }
-    }
+    // might be possible that the file is a further nested project file
+    // but then we'll have to initialize a new service and the corresponding ts.Program to know
+    // so just skip this for now
     const defaultProject = projectReferences.find((p) => p.snapshotManager.isProjectFile(filePath));
 
     return defaultProject
@@ -275,7 +273,7 @@ async function createLanguageService(
     const getCanonicalFileName = createGetCanonicalFileName(tsSystem.useCaseSensitiveFileNames);
     watchWildCardDirectories(projectConfig);
 
-    const snapshotManager = createSnapshotManager(projectConfig);
+    const snapshotManager = createSnapshotManager(projectConfig, tsconfigPath);
 
     // Load all configs within the tsconfig scope and the one above so that they are all loaded
     // by the time they need to be accessed synchronously by DocumentSnapshots.
@@ -320,7 +318,6 @@ async function createLanguageService(
             : './svelte-jsx-v4.d.ts';
 
     const changedFilesForExportCache = new Set<string>();
-    const projectReferenceInfo = new Map<string, ProjectReferenceInfo | null>();
 
     const svelteTsxFiles = (
         isSvelte3
@@ -406,7 +403,16 @@ async function createLanguageService(
         dispose
     };
 
-    function createSnapshotManager(parsedCommandLine: ts.ParsedCommandLine) {
+    function createSnapshotManager(
+        parsedCommandLine: ts.ParsedCommandLine,
+        configFileName: string
+    ) {
+        const cached = configFileName
+            ? docContext.projectReferenceInfo.get(configFileName)
+            : undefined;
+        if (cached?.snapshotManager) {
+            return cached.snapshotManager;
+        }
         // raw is the tsconfig merged with extending config
         // see: https://github.com/microsoft/TypeScript/blob/08e4f369fbb2a5f0c30dee973618d65e6f7f09f8/src/compiler/commandLineParser.ts#L2537
         return new SnapshotManager(
@@ -564,8 +570,14 @@ async function createLanguageService(
             pendingProjectFileUpdate = true;
         }
 
-        for (const config of projectReferenceInfo.values()) {
-            if (config && !config.snapshotManager.areIgnoredFromNewFileWatch(watcherNewFiles)) {
+        const projectReferences = getProjectReferences();
+        for (const config of projectReferences) {
+            if (
+                config &&
+                // handled by the respective service
+                !services.has(config.configFilePath) &&
+                !config.snapshotManager.areIgnoredFromNewFileWatch(watcherNewFiles)
+            ) {
                 config.pendingProjectFileUpdate = true;
                 scheduleUpdate();
             }
@@ -618,47 +630,22 @@ async function createLanguageService(
     }
 
     function getParsedConfig() {
-        const forcedCompilerOptions: ts.CompilerOptions = {
-            allowNonTsExtensions: true,
-            target: ts.ScriptTarget.Latest,
-            allowJs: true,
-            noEmit: true,
-            declaration: false,
-            skipLibCheck: true
-        };
+        let compilerOptions: ts.CompilerOptions;
+        let parsedConfig: ts.ParsedCommandLine;
+        let extendedConfigPaths: Set<string>;
 
-        // always let ts parse config to get default compilerOption
-        let configJson =
-            (tsconfigPath && ts.readConfigFile(tsconfigPath, tsSystem.readFile).config) ||
-            getDefaultJsConfig();
-
-        // Only default exclude when no extends for now
-        if (!configJson.extends) {
-            configJson = Object.assign(
-                {
-                    exclude: getDefaultExclude()
-                },
-                configJson
-            );
+        const exist = tsconfigPath && docContext.projectReferenceInfo.get(tsconfigPath);
+        if (exist) {
+            compilerOptions = exist.parsedCommandLine.options;
+            parsedConfig = exist.parsedCommandLine;
+            extendedConfigPaths = exist.extendedConfigPaths ?? new Set();
+        } else {
+            const config = parseDefaultCompilerOptions();
+            compilerOptions = config.compilerOptions;
+            parsedConfig = config.parsedConfig;
+            extendedConfigPaths = config.extendedConfigPaths;
         }
 
-        const { cacheMonitorProxy, extendedConfigPaths } = monitorExtendedConfig();
-
-        const parsedConfig = ts.parseJsonConfigFileContent(
-            configJson,
-            tsSystem,
-            workspacePath,
-            forcedCompilerOptions,
-            tsconfigPath,
-            undefined,
-            getExtraExtensions(),
-            cacheMonitorProxy
-        );
-
-        const compilerOptions: ts.CompilerOptions = {
-            ...parsedConfig.options,
-            ...forcedCompilerOptions
-        };
         if (
             !compilerOptions.moduleResolution ||
             compilerOptions.moduleResolution === ts.ModuleResolutionKind.Classic
@@ -704,6 +691,52 @@ async function createLanguageService(
             options: compilerOptions,
             extendedConfigPaths
         };
+    }
+
+    function parseDefaultCompilerOptions() {
+        const forcedCompilerOptions: ts.CompilerOptions = {
+            allowNonTsExtensions: true,
+            target: ts.ScriptTarget.Latest,
+            allowJs: true,
+            noEmit: true,
+            declaration: false,
+            skipLibCheck: true
+        };
+
+        // always let ts parse config to get default compilerOption
+        let configJson =
+            (tsconfigPath && ts.readConfigFile(tsconfigPath, tsSystem.readFile).config) ||
+            getDefaultJsConfig();
+
+        // Only default exclude when no extends for now
+        if (!configJson.extends) {
+            configJson = Object.assign(
+                {
+                    exclude: getDefaultExclude()
+                },
+                configJson
+            );
+        }
+
+        const { cacheMonitorProxy, extendedConfigPaths } = monitorExtendedConfig();
+
+        const parsedConfig = ts.parseJsonConfigFileContent(
+            configJson,
+            tsSystem,
+            workspacePath,
+            forcedCompilerOptions,
+            tsconfigPath,
+            undefined,
+            getExtraExtensions(),
+            cacheMonitorProxy
+        );
+
+        const compilerOptions: ts.CompilerOptions = {
+            ...parsedConfig.options,
+            ...forcedCompilerOptions
+        };
+
+        return { compilerOptions, parsedConfig, extendedConfigPaths };
     }
 
     function monitorExtendedConfig() {
@@ -786,6 +819,7 @@ async function createLanguageService(
     }
 
     function dispose() {
+        compilerHost = undefined;
         languageService.dispose();
         snapshotManager.dispose();
         configWatchers.get(tsconfigPath)?.close();
@@ -980,22 +1014,18 @@ async function createLanguageService(
         };
     }
 
-    function getParsedCommandLine(configFilePath: string): ts.ParsedCommandLine | undefined {
-        const cached = projectReferenceInfo.get(tsconfigPath);
+    function ensureTsConfigInfoUpToDate(configFilePath: string) {
+        const projectReferenceInfo = docContext.projectReferenceInfo;
+        const cached = projectReferenceInfo.get(configFilePath);
         if (cached !== undefined) {
-            if (cached?.pendingProjectFileUpdate) {
-                cached.pendingProjectFileUpdate = false;
-                cached.snapshotManager.updateProjectFiles();
-                cached.parsedCommandLine.fileNames = cached.snapshotManager.getProjectFileNames();
-            }
-
-            return cached?.parsedCommandLine;
+            ensureProjectFileUpToDate(cached);
+            return cached;
         }
 
         const content = tsSystem.fileExists(configFilePath) && tsSystem.readFile(configFilePath);
         if (!content) {
-            projectReferenceInfo.set(tsconfigPath, null);
-            return undefined;
+            projectReferenceInfo.set(configFilePath, null);
+            return null;
         }
 
         const json = ts.parseJsonText(configFilePath, content);
@@ -1014,30 +1044,53 @@ async function createLanguageService(
             cacheMonitorProxy
         );
 
+        parsedCommandLine.options.allowNonTsExtensions = true;
+
         if (parsedCommandLine.errors.length) {
             configErrors.push(...parsedCommandLine.errors);
         }
 
-        const snapshotManager = createSnapshotManager(parsedCommandLine);
+        const snapshotManager = createSnapshotManager(parsedCommandLine, configFilePath);
 
-        projectReferenceInfo.set(configFilePath, {
+        const tsconfigInfo: TsConfigInfo = {
             parsedCommandLine,
             snapshotManager,
             pendingProjectFileUpdate: false,
-            configFilePath
-        });
+            configFilePath,
+            extendedConfigPaths
+        };
+        projectReferenceInfo.set(configFilePath, tsconfigInfo);
 
         watchConfigFiles(extendedConfigPaths, parsedCommandLine);
 
-        return parsedCommandLine;
+        return tsconfigInfo;
     }
 
-    function getProjectReferences(): ProjectReferenceInfo[] {
-        if (projectConfig.projectReferences?.length) {
-            languageService.getProgram(); // ensure program is up to date
+    function getParsedCommandLine(configFilePath: string) {
+        const info = docContext.projectReferenceInfo.get(configFilePath);
+        if (info) {
+            return info.parsedCommandLine;
         }
 
-        return Array.from(projectReferenceInfo.values()).filter(isNotNullOrUndefined);
+        return ensureTsConfigInfoUpToDate(configFilePath)?.parsedCommandLine;
+    }
+
+    function ensureProjectFileUpToDate(info: TsConfigInfo | null) {
+        if (info?.pendingProjectFileUpdate) {
+            info.pendingProjectFileUpdate = false;
+            info.snapshotManager.updateProjectFiles();
+            info.parsedCommandLine.fileNames = info.snapshotManager.getProjectFileNames();
+        }
+    }
+
+    function getProjectReferences(): TsConfigInfo[] {
+        if (!tsconfigPath || !projectConfig.projectReferences) {
+            return [];
+        }
+
+        return projectConfig.projectReferences
+            .map((ref) => ensureTsConfigInfoUpToDate(normalizePath(ref.path)))
+            .filter(isNotNullOrUndefined);
     }
 }
 

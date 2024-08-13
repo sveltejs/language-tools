@@ -121,7 +121,8 @@ export class LSAndTSDocResolver {
             watchDirectory: this.options?.watchDirectory
                 ? this.watchDirectory.bind(this)
                 : undefined,
-            nonRecursiveWatchPattern: this.options?.nonRecursiveWatchPattern
+            nonRecursiveWatchPattern: this.options?.nonRecursiveWatchPattern,
+            projectReferenceInfo: new Map()
         };
     }
 
