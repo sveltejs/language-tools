@@ -407,9 +407,7 @@ async function createLanguageService(
         parsedCommandLine: ts.ParsedCommandLine,
         configFileName: string
     ) {
-        const cached = configFileName
-            ? projectReferenceInfo.get(configFileName)
-            : undefined;
+        const cached = configFileName ? projectReferenceInfo.get(configFileName) : undefined;
         if (cached?.snapshotManager) {
             return cached.snapshotManager;
         }
