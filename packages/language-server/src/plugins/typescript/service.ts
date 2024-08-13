@@ -246,6 +246,7 @@ export async function getServiceForTsconfig(
         }
 
         pendingReloads.delete(tsconfigPath);
+        docContext.projectReferenceInfo.delete(tsconfigPath);
         const newService = createLanguageService(tsconfigPath, workspacePath, docContext);
         services.set(tsconfigPathOrWorkspacePath, newService);
         service = await newService;
