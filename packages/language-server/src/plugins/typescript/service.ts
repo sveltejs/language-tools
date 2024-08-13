@@ -111,6 +111,7 @@ const configFileForOpenFiles = new FileMap<string>();
 const pendingReloads = new FileSet();
 const documentRegistries = new Map<string, ts.DocumentRegistry>();
 const pendingForAllServices = new Set<Promise<void>>();
+const projectReferenceInfo = new FileMap<TsConfigInfo | null>();
 
 /**
  * For testing only: Reset the cache for services.
@@ -136,7 +137,6 @@ export interface LanguageServiceDocumentContext {
     projectService: ProjectService | undefined;
     watchDirectory: ((patterns: RelativePattern[]) => void) | undefined;
     nonRecursiveWatchPattern: string | undefined;
-    projectReferenceInfo: Map<string, TsConfigInfo | null>;
 }
 
 export async function getService(
@@ -156,7 +156,6 @@ export async function getService(
         const needAssign = !configFileForOpenFiles.has(path);
         let service = await getServiceForTsconfig(tsconfigPath, dirname(tsconfigPath), docContext);
         if (!needAssign) {
-            configFileForOpenFiles.set(path, tsconfigPath);
             return service;
         }
 
@@ -246,7 +245,7 @@ export async function getServiceForTsconfig(
         }
 
         pendingReloads.delete(tsconfigPath);
-        docContext.projectReferenceInfo.delete(tsconfigPath);
+        projectReferenceInfo.delete(tsconfigPath);
         const newService = createLanguageService(tsconfigPath, workspacePath, docContext);
         services.set(tsconfigPathOrWorkspacePath, newService);
         service = await newService;
@@ -409,7 +408,7 @@ async function createLanguageService(
         configFileName: string
     ) {
         const cached = configFileName
-            ? docContext.projectReferenceInfo.get(configFileName)
+            ? projectReferenceInfo.get(configFileName)
             : undefined;
         if (cached?.snapshotManager) {
             return cached.snapshotManager;
@@ -571,8 +570,11 @@ async function createLanguageService(
             pendingProjectFileUpdate = true;
         }
 
-        const projectReferences = getProjectReferences();
-        for (const config of projectReferences) {
+        if (!projectConfig.projectReferences) {
+            return;
+        }
+        for (const ref of projectConfig.projectReferences) {
+            const config = projectReferenceInfo.get(ref.path);
             if (
                 config &&
                 // handled by the respective service
@@ -635,7 +637,7 @@ async function createLanguageService(
         let parsedConfig: ts.ParsedCommandLine;
         let extendedConfigPaths: Set<string>;
 
-        const exist = tsconfigPath && docContext.projectReferenceInfo.get(tsconfigPath);
+        const exist = tsconfigPath && projectReferenceInfo.get(tsconfigPath);
         if (exist) {
             compilerOptions = exist.parsedCommandLine.options;
             parsedConfig = exist.parsedCommandLine;
@@ -1016,7 +1018,6 @@ async function createLanguageService(
     }
 
     function ensureTsConfigInfoUpToDate(configFilePath: string) {
-        const projectReferenceInfo = docContext.projectReferenceInfo;
         const cached = projectReferenceInfo.get(configFilePath);
         if (cached !== undefined) {
             ensureProjectFileUpToDate(cached);
@@ -1068,11 +1069,6 @@ async function createLanguageService(
     }
 
     function getParsedCommandLine(configFilePath: string) {
-        const info = docContext.projectReferenceInfo.get(configFilePath);
-        if (info) {
-            return info.parsedCommandLine;
-        }
-
         return ensureTsConfigInfoUpToDate(configFilePath)?.parsedCommandLine;
     }
 
