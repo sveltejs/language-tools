@@ -118,6 +118,7 @@ const projectReferenceInfo = new FileMap<TsConfigInfo | null>();
  */
 export function __resetCache() {
     services.clear();
+    projectReferenceInfo.clear();
     serviceSizeMap.clear();
     configFileForOpenFiles.clear();
 }
