@@ -3,9 +3,9 @@
     "references": [
         {
             "path": "./paths/tsconfig_sub.json"
+        },
+        {
+            "path": "./nested/tsconfig_sub2.json"
         }
-    ],
-    "compilerOptions": {
-        "types": []
-    }
+    ]
 }

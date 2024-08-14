@@ -1,10 +1,9 @@
 {
     "compilerOptions": {
-        "baseUrl": ".",
         "composite": true,
         "strict": true,
         "paths": {
-            "hi": ["./imported.ts"]
+            "hi2": ["./imported.ts"]
         },
         "types": []
     }

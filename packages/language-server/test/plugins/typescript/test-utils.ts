@@ -278,23 +278,35 @@ export async function createJsonSnapshotFormatter(dir: string) {
         });
 }
 
-export function serviceWarmup(suite: Mocha.Suite, testDir: string, rootUri = pathToUrl(testDir)) {
+export function serviceWarmup(
+    suite: Mocha.Suite,
+    testDir: string,
+    rootUri = pathToUrl(testDir),
+    tsconfigPath: string | undefined = undefined
+) {
     const defaultTimeout = suite.timeout();
 
     // allow to set a higher timeout for slow machines from cli flag
     const warmupTimeout = Math.max(defaultTimeout, 5_000);
     suite.timeout(warmupTimeout);
-    before(async () => {
+    before(() => warmup(tsconfigPath));
+
+    suite.timeout(defaultTimeout);
+
+    async function warmup(configFilePath: string | undefined = undefined) {
         const start = Date.now();
         console.log('Warming up language service...');
 
         const docManager = new DocumentManager(
             (textDocument) => new Document(textDocument.uri, textDocument.text)
         );
+
+        const options = configFilePath ? { tsconfigPath: configFilePath } : undefined;
         const lsAndTsDocResolver = new LSAndTSDocResolver(
             docManager,
             [rootUri],
-            new LSConfigManager()
+            new LSConfigManager(),
+            options
         );
 
         const filePath = join(testDir, 'DoesNotMater.svelte');
@@ -303,12 +315,16 @@ export function serviceWarmup(suite: Mocha.Suite, testDir: string, rootUri = pat
             text: ts.sys.readFile(filePath) || ''
         });
 
+        const ls = await lsAndTsDocResolver.getTSService(filePath);
         await lsAndTsDocResolver.getLSAndTSDoc(document);
+        const projectReferences = ls.getResolvedProjectReferences();
+
+        if (projectReferences.length) {
+            await Promise.all(projectReferences.map((ref) => warmup(ref.configFilePath)));
+        }
 
         console.log(`Service warming up done in ${Date.now() - start}ms`);
-    });
-
-    suite.timeout(defaultTimeout);
+    }
 }
 
 export function recursiveServiceWarmup(

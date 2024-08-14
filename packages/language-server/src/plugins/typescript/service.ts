@@ -53,9 +53,7 @@ export interface LanguageServiceContainer {
     onAutoImportProviderSettingsChanged(): void;
     onPackageJsonChange(packageJsonPath: string): void;
     getTsConfigSvelteOptions(): { namespace: string };
-
-    getProjectReferences(): TsConfigInfo[];
-
+    getResolvedProjectReferences(): TsConfigInfo[];
     dispose(): void;
 }
 
@@ -148,18 +146,29 @@ export async function getService(
         docContext.tsSystem.useCaseSensitiveFileNames
     );
 
+    const fileExistsWithCache = (fileName: string) => {
+        return (
+            (projectReferenceInfo.has(fileName) && !pendingReloads.has(fileName)) ||
+            docContext.tsSystem.fileExists(fileName)
+        );
+    };
+
     const tsconfigPath =
         configFileForOpenFiles.get(path) ??
-        findTsConfigPath(path, workspaceUris, docContext.tsSystem.fileExists, getCanonicalFileName);
+        findTsConfigPath(path, workspaceUris, fileExistsWithCache, getCanonicalFileName);
 
+    /**
+     * Prevent infinite loop when the project reference is circular
+     */
+    const triedTsConfig = new Set<string>();
     if (tsconfigPath) {
         const needAssign = !configFileForOpenFiles.has(path);
-        let service = await getServiceForTsconfig(tsconfigPath, dirname(tsconfigPath), docContext);
+        let service = await getConfiguredService(tsconfigPath);
         if (!needAssign) {
             return service;
         }
 
-        service = await findDefaultServiceForFile(path, service, docContext);
+        service = (await findDefaultServiceForFile(service)) ?? service;
         configFileForOpenFiles.set(path, service.tsconfigPath);
         return service;
     }
@@ -182,30 +191,50 @@ export async function getService(
             docContext.tsSystem.getCurrentDirectory(),
         docContext
     );
-}
 
-function findDefaultServiceForFile(
-    filePath: string,
-    service: LanguageServiceContainer,
-    docContext: LanguageServiceDocumentContext
-) {
-    const projectReferences = service.getProjectReferences();
-    if (projectReferences.length === 0 || service.snapshotManager.isProjectFile(filePath)) {
-        return service;
+    function getConfiguredService(tsconfigPath: string) {
+        return getServiceForTsconfig(tsconfigPath, dirname(tsconfigPath), docContext);
     }
 
-    // might be possible that the file is a further nested project file
-    // but then we'll have to initialize a new service and the corresponding ts.Program to know
-    // so just skip this for now
-    const defaultProject = projectReferences.find((p) => p.snapshotManager.isProjectFile(filePath));
+    async function findDefaultServiceForFile(
+        service: LanguageServiceContainer
+    ): Promise<LanguageServiceContainer | undefined> {
+        if (service.snapshotManager.isProjectFile(path)) {
+            return service;
+        }
+        if (triedTsConfig.has(service.tsconfigPath)) {
+            return;
+        }
 
-    return defaultProject
-        ? getServiceForTsconfig(
-              defaultProject.configFilePath,
-              dirname(defaultProject.configFilePath),
-              docContext
-          )
-        : service;
+        // TODO: maybe add support for ts 5.6's ancestor searching
+        return findDefaultFromProjectReferences(service);
+    }
+
+    async function findDefaultFromProjectReferences(service: LanguageServiceContainer) {
+        const projectReferences = service.getResolvedProjectReferences();
+        if (projectReferences.length === 0) {
+            return service;
+        }
+
+        let possibleSubPaths: string[] = [];
+        for (const ref of projectReferences) {
+            if (ref.snapshotManager.isProjectFile(path)) {
+                return getConfiguredService(ref.configFilePath);
+            }
+
+            if (ref.parsedCommandLine.projectReferences?.length) {
+                possibleSubPaths.push(ref.configFilePath);
+            }
+        }
+
+        for (const ref of possibleSubPaths) {
+            const subService = await getConfiguredService(ref);
+            const defaultService = await findDefaultServiceForFile(subService);
+            if (defaultService) {
+                return defaultService;
+            }
+        }
+    }
 }
 
 export async function forAllServices(
@@ -240,12 +269,12 @@ export async function getServiceForTsconfig(
     if (reloading || !services.has(tsconfigPathOrWorkspacePath)) {
         if (reloading) {
             Logger.log('Reloading ts service at ', tsconfigPath, ' due to config updated');
+            projectReferenceInfo.delete(tsconfigPath);
         } else {
             Logger.log('Initialize new ts service at ', tsconfigPath);
         }
 
         pendingReloads.delete(tsconfigPath);
-        projectReferenceInfo.delete(tsconfigPath);
         const newService = createLanguageService(tsconfigPath, workspacePath, docContext);
         services.set(tsconfigPathOrWorkspacePath, newService);
         service = await newService;
@@ -399,7 +428,7 @@ async function createLanguageService(
         onAutoImportProviderSettingsChanged,
         onPackageJsonChange,
         getTsConfigSvelteOptions,
-        getProjectReferences,
+        getResolvedProjectReferences,
         dispose
     };
 
@@ -1078,7 +1107,7 @@ async function createLanguageService(
         }
     }
 
-    function getProjectReferences(): TsConfigInfo[] {
+    function getResolvedProjectReferences(): TsConfigInfo[] {
         if (!tsconfigPath || !projectConfig.projectReferences) {
             return [];
         }
