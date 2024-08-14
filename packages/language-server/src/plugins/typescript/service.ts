@@ -158,18 +158,18 @@ export async function getService(
         configFileForOpenFiles.get(path) ??
         findTsConfigPath(path, workspaceUris, fileExistsWithCache, getCanonicalFileName);
 
-    /**
-     * Prevent infinite loop when the project reference is circular
-     */
-    const triedTsConfig = new Set<string>();
     if (tsconfigPath) {
+        /**
+         * Prevent infinite loop when the project reference is circular
+         */
+        const triedTsConfig = new Set<string>();
         const needAssign = !configFileForOpenFiles.has(path);
-        let service = await getConfiguredService(tsconfigPath);
+        let service = await getConfiguredService(tsconfigPath, triedTsConfig);
         if (!needAssign) {
             return service;
         }
 
-        service = (await findDefaultServiceForFile(service)) ?? service;
+        service = (await findDefaultServiceForFile(service, triedTsConfig)) ?? service;
         configFileForOpenFiles.set(path, service.tsconfigPath);
         return service;
     }
@@ -193,12 +193,13 @@ export async function getService(
         docContext
     );
 
-    function getConfiguredService(tsconfigPath: string) {
+    function getConfiguredService(tsconfigPath: string, triedTsConfig: Set<string>) {
         return getServiceForTsconfig(tsconfigPath, dirname(tsconfigPath), docContext);
     }
 
     async function findDefaultServiceForFile(
-        service: LanguageServiceContainer
+        service: LanguageServiceContainer,
+        triedTsConfig: Set<string>
     ): Promise<LanguageServiceContainer | undefined> {
         if (service.snapshotManager.isProjectFile(path)) {
             return service;
@@ -208,10 +209,13 @@ export async function getService(
         }
 
         // TODO: maybe add support for ts 5.6's ancestor searching
-        return findDefaultFromProjectReferences(service);
+        return findDefaultFromProjectReferences(service, triedTsConfig);
     }
 
-    async function findDefaultFromProjectReferences(service: LanguageServiceContainer) {
+    async function findDefaultFromProjectReferences(
+        service: LanguageServiceContainer,
+        triedTsConfig: Set<string>
+    ) {
         const projectReferences = service.getResolvedProjectReferences();
         if (projectReferences.length === 0) {
             return service;
@@ -220,7 +224,7 @@ export async function getService(
         let possibleSubPaths: string[] = [];
         for (const ref of projectReferences) {
             if (ref.snapshotManager.isProjectFile(path)) {
-                return getConfiguredService(ref.configFilePath);
+                return getConfiguredService(ref.configFilePath, triedTsConfig);
             }
 
             if (ref.parsedCommandLine.projectReferences?.length) {
@@ -229,8 +233,8 @@ export async function getService(
         }
 
         for (const ref of possibleSubPaths) {
-            const subService = await getConfiguredService(ref);
-            const defaultService = await findDefaultServiceForFile(subService);
+            const subService = await getConfiguredService(ref, triedTsConfig);
+            const defaultService = await findDefaultServiceForFile(subService, triedTsConfig);
             if (defaultService) {
                 return defaultService;
             }
@@ -297,8 +301,9 @@ async function createLanguageService(
 ): Promise<LanguageServiceContainer> {
     const { tsSystem } = docContext;
 
+    const configErrors: ts.Diagnostic[] = [];
     const projectConfig = getParsedConfig();
-    const { options: compilerOptions, raw, errors: configErrors } = projectConfig;
+    const { options: compilerOptions, raw } = projectConfig;
 
     const getCanonicalFileName = createGetCanonicalFileName(tsSystem.useCaseSensitiveFileNames);
     watchWildCardDirectories(projectConfig);
@@ -358,7 +363,6 @@ async function createLanguageService(
     let languageServiceReducedMode = false;
     let projectVersion = 0;
     let dirty = false;
-    let pendingProjectFileUpdate = false;
 
     const host: ts.LanguageServiceHost = {
         log: (message) => Logger.debug(`[ts] ${message}`),
@@ -482,10 +486,8 @@ async function createLanguageService(
     }
 
     function getService(skipSynchronize?: boolean) {
-        if (pendingProjectFileUpdate) {
-            updateProjectFiles();
-            pendingProjectFileUpdate = false;
-        }
+        updateProjectFiles();
+
         if (!skipSynchronize) {
             updateIfDirty();
         }
@@ -595,7 +597,10 @@ async function createLanguageService(
     function scheduleProjectFileUpdate(watcherNewFiles: string[]): void {
         if (!snapshotManager.areIgnoredFromNewFileWatch(watcherNewFiles)) {
             scheduleUpdate();
-            pendingProjectFileUpdate = true;
+            const info = projectReferenceInfo.get(tsconfigPath);
+            if (info) {
+                info.pendingProjectFileUpdate = true;
+            }
         }
 
         if (!projectConfig.projectReferences) {
@@ -616,8 +621,12 @@ async function createLanguageService(
     }
 
     function updateProjectFiles(): void {
+        const info = projectReferenceInfo.get(tsconfigPath);
+        if (!info || !info.pendingProjectFileUpdate) {
+            return;
+        }
         const projectFileCountBefore = snapshotManager.getProjectFileNames().length;
-        snapshotManager.updateProjectFiles();
+        ensureProjectFileUpToDate(info);
         const projectFileCountAfter = snapshotManager.getProjectFileNames().length;
 
         if (projectFileCountAfter > projectFileCountBefore) {
@@ -665,11 +674,16 @@ async function createLanguageService(
         let parsedConfig: ts.ParsedCommandLine;
         let extendedConfigPaths: Set<string>;
 
-        const exist = tsconfigPath && projectReferenceInfo.get(tsconfigPath);
-        if (exist) {
-            compilerOptions = exist.parsedCommandLine.options;
-            parsedConfig = exist.parsedCommandLine;
-            extendedConfigPaths = exist.extendedConfigPaths ?? new Set();
+        if (tsconfigPath) {
+            const info = ensureTsConfigInfoUpToDate(tsconfigPath);
+            // tsconfig is either found from file-system or passed from svelte-check
+            // so this is already be validated to exist
+            if (!info) {
+                throw new Error('Failed to get tsconfig: ' + tsconfigPath);
+            }
+            compilerOptions = info.parsedCommandLine.options;
+            parsedConfig = info.parsedCommandLine;
+            extendedConfigPaths = info.extendedConfigPaths ?? new Set();
         } else {
             const config = parseDefaultCompilerOptions();
             compilerOptions = config.compilerOptions;

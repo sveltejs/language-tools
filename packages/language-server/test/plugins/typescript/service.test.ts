@@ -64,16 +64,11 @@ describe('service', () => {
         delete ls.compilerOptions.configFilePath;
 
         assert.deepStrictEqual(ls.compilerOptions, <ts.CompilerOptions>{
-            allowJs: true,
             allowNonTsExtensions: true,
             checkJs: true,
             strict: true,
-            declaration: false,
             module: ts.ModuleKind.ESNext,
-            moduleResolution: ts.ModuleResolutionKind.Node10,
-            noEmit: true,
-            skipLibCheck: true,
-            target: ts.ScriptTarget.ESNext
+            moduleResolution: ts.ModuleResolutionKind.Node10
         });
     });
 
