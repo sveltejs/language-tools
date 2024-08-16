@@ -180,10 +180,11 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
 
         const isImportFix = codeAction.data.fixName === FIX_IMPORT_FIX_NAME;
         const virtualDocInfo = isImportFix
-            ? await this.createVirtualDocumentForCombinedImportCodeFix(
+            ? this.createVirtualDocumentForCombinedImportCodeFix(
                   document,
                   getDiagnostics(),
                   tsDoc,
+                  lsContainer,
                   lang
               )
             : undefined;
@@ -259,10 +260,11 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
      * Do not use this in regular code action
      * This'll cause TypeScript to rebuild and invalidate caches every time. It'll be slow
      */
-    private async createVirtualDocumentForCombinedImportCodeFix(
+    private createVirtualDocumentForCombinedImportCodeFix(
         document: Document,
         diagnostics: Diagnostic[],
         tsDoc: DocumentSnapshot,
+        lsContainer: LanguageServiceContainer,
         lang: ts.LanguageService
     ) {
         const virtualUri = document.uri + '.__virtual__.svelte';
@@ -314,10 +316,8 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         const virtualDoc = new Document(virtualUri, newText);
         virtualDoc.openedByClient = true;
         // let typescript know about the virtual document
-        // getLSAndTSDoc instead of getSnapshot so that project dirty state is correctly tracked by us
-        // otherwise, sometime the applied code fix might not be picked up by the language service
-        // because we think the project is still dirty and doesn't update the project version
-        await this.lsAndTsDocResolver.getLSAndTSDoc(virtualDoc);
+        lsContainer.openVirtualDocument(virtualDoc);
+        lsContainer.getService();
 
         return {
             virtualDoc,

@@ -55,6 +55,7 @@ export interface LanguageServiceContainer {
     onPackageJsonChange(packageJsonPath: string): void;
     getTsConfigSvelteOptions(): { namespace: string };
     getResolvedProjectReferences(): TsConfigInfo[];
+    openVirtualDocument(document: Document): void;
     dispose(): void;
 }
 
@@ -440,6 +441,7 @@ async function createLanguageService(
         onPackageJsonChange,
         getTsConfigSvelteOptions,
         getResolvedProjectReferences,
+        openVirtualDocument,
         dispose
     };
 
@@ -1136,6 +1138,16 @@ async function createLanguageService(
         return projectConfig.projectReferences
             .map((ref) => ensureTsConfigInfoUpToDate(normalizePath(ref.path)))
             .filter(isNotNullOrUndefined);
+    }
+
+    function openVirtualDocument(document: Document) {
+        const filePath = document.getFilePath();
+        if (!filePath) {
+            return;
+        }
+        configFileForOpenFiles.set(filePath, tsconfigPath || workspacePath);
+        updateSnapshot(document);
+        scheduleUpdate(filePath);
     }
 }
 
