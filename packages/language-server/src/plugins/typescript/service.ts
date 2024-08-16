@@ -56,6 +56,7 @@ export interface LanguageServiceContainer {
     getTsConfigSvelteOptions(): { namespace: string };
     getResolvedProjectReferences(): TsConfigInfo[];
     openVirtualDocument(document: Document): void;
+    isShimFiles(filePath: string): boolean;
     dispose(): void;
 }
 
@@ -353,22 +354,8 @@ async function createLanguageService(
             ? importSvelte(tsconfigPath || workspacePath)
             : undefined;
 
-    const isSvelte3 = sveltePackageInfo.version.major === 3;
-    const svelteHtmlDeclaration = isSvelte3
-        ? undefined
-        : join(sveltePackageInfo.path, 'svelte-html.d.ts');
-    const svelteHtmlFallbackIfNotExist =
-        svelteHtmlDeclaration && tsSystem.fileExists(svelteHtmlDeclaration)
-            ? svelteHtmlDeclaration
-            : './svelte-jsx-v4.d.ts';
-
     const changedFilesForExportCache = new Set<string>();
-
-    const svelteTsxFiles = (
-        isSvelte3
-            ? ['./svelte-shims.d.ts', './svelte-jsx.d.ts', './svelte-native-jsx.d.ts']
-            : ['./svelte-shims-v4.d.ts', svelteHtmlFallbackIfNotExist, './svelte-native-jsx.d.ts']
-    ).map((f) => tsSystem.resolvePath(resolve(svelteTsPath, f)));
+    const svelteTsxFiles = getSvelteShimFiles();
 
     let languageServiceReducedMode = false;
     let projectVersion = 0;
@@ -446,6 +433,7 @@ async function createLanguageService(
         getTsConfigSvelteOptions,
         getResolvedProjectReferences,
         openVirtualDocument,
+        isShimFiles,
         dispose
     };
 
@@ -1152,6 +1140,36 @@ async function createLanguageService(
         configFileForOpenFiles.set(filePath, tsconfigPath || workspacePath);
         updateSnapshot(document);
         scheduleUpdate(filePath);
+    }
+
+    function getSvelteShimFiles() {
+        const isSvelte3 = sveltePackageInfo.version.major === 3;
+        const svelteHtmlDeclaration = isSvelte3
+            ? undefined
+            : join(sveltePackageInfo.path, 'svelte-html.d.ts');
+        const svelteHtmlFallbackIfNotExist =
+            svelteHtmlDeclaration && tsSystem.fileExists(svelteHtmlDeclaration)
+                ? svelteHtmlDeclaration
+                : './svelte-jsx-v4.d.ts';
+
+        const svelteTsxFiles = (
+            isSvelte3
+                ? ['./svelte-shims.d.ts', './svelte-jsx.d.ts', './svelte-native-jsx.d.ts']
+                : [
+                      './svelte-shims-v4.d.ts',
+                      svelteHtmlFallbackIfNotExist,
+                      './svelte-native-jsx.d.ts'
+                  ]
+        ).map((f) => tsSystem.resolvePath(resolve(svelteTsPath, f)));
+
+        const result = new FileSet(tsSystem.useCaseSensitiveFileNames);
+
+        svelteTsxFiles.forEach((f) => result.add(normalizePath(f)));
+        return result;
+    }
+
+    function isShimFiles(filePath: string) {
+        return svelteTsxFiles.has(normalizePath(filePath));
     }
 }
 

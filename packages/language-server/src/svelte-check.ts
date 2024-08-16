@@ -211,6 +211,7 @@ export class SvelteCheck {
                     const skipDiagnosticsForFile =
                         (options.skipLibCheck && file.isDeclarationFile) ||
                         (options.skipDefaultLibCheck && file.hasNoDefaultLib) ||
+                        lsContainer.isShimFiles(file.fileName) ||
                         // ignore JS files in node_modules
                         /\/node_modules\/.+\.(c|m)?js$/.test(file.fileName);
                     const snapshot = lsContainer.snapshotManager.get(file.fileName) as
