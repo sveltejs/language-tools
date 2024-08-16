@@ -54,6 +54,11 @@ describe('service', () => {
             })
         );
 
+        virtualSystem.writeFile(
+            path.join(dirPath, 'random.svelte'),
+            '<script>const a: number = null;</script>'
+        );
+
         const ls = await getService(
             path.join(dirPath, 'random.svelte'),
             rootUris,
@@ -87,6 +92,11 @@ describe('service', () => {
                     moduleResolution: 'NodeNext'
                 }
             })
+        );
+
+        virtualSystem.writeFile(
+            path.join(dirPath, 'random.svelte'),
+            '<script>const a: number = null;</script>'
         );
 
         const ls = await getService(
@@ -160,6 +170,11 @@ describe('service', () => {
             })
         );
 
+        virtualSystem.writeFile(
+            path.join(dirPath, 'random.svelte'),
+            '<script>const a: number = null;</script>'
+        );
+
         const { reloadPromise, docContextWithReload } = createReloadTester(
             { ...lsDocumentContext, watchTsConfig: true },
             testAfterReload
@@ -205,6 +220,11 @@ describe('service', () => {
             JSON.stringify({
                 extends: extend
             })
+        );
+
+        virtualSystem.writeFile(
+            path.join(dirPath, 'random.svelte'),
+            '<script>const a: number = null;</script>'
         );
 
         const { reloadPromise, docContextWithReload } = createReloadTester(
@@ -304,18 +324,9 @@ describe('service', () => {
 
     it('can open client file that do not exist in fs', async () => {
         const dirPath = getRandomVirtualDirPath(testDir);
-        const { virtualSystem, lsDocumentContext, rootUris } = setup();
+        const { lsDocumentContext, rootUris } = setup();
 
-        virtualSystem.writeFile(
-            path.join(dirPath, 'tsconfig.json'),
-            JSON.stringify({
-                compilerOptions: <ts.CompilerOptions>{
-                    checkJs: true,
-                    strict: true
-                }
-            })
-        );
-
+        // don't need tsconfig because files doesn't exist in fs goes to a service with default config
         const ls = await getService(
             path.join(dirPath, 'random.svelte'),
             rootUris,
@@ -380,11 +391,7 @@ describe('service', () => {
             return fileExists(realPath);
         };
 
-        const ls = await getService(
-            path.join(package1, 'DoNotMatter.svelte'),
-            rootUris,
-            lsDocumentContext
-        );
+        const ls = await getService(importing, rootUris, lsDocumentContext);
 
         assert.deepStrictEqual(getSemanticDiagnosticsMessages(ls, importing), []);
     });

@@ -156,7 +156,7 @@ export async function getService(
         );
     };
 
-    const tsconfigPath =
+    let tsconfigPath =
         configFileForOpenFiles.get(path) ??
         findTsConfigPath(path, workspaceUris, fileExistsWithCache, getCanonicalFileName);
 
@@ -171,9 +171,13 @@ export async function getService(
             return service;
         }
 
-        service = (await findDefaultServiceForFile(service, triedTsConfig)) ?? service;
-        configFileForOpenFiles.set(path, service.tsconfigPath);
-        return service;
+        const defaultService = await findDefaultServiceForFile(service, triedTsConfig);
+        if (defaultService) {
+            configFileForOpenFiles.set(path, defaultService.tsconfigPath);
+            return defaultService;
+        }
+
+        tsconfigPath = '';
     }
 
     // Find closer boundary: workspace uri or node_modules
