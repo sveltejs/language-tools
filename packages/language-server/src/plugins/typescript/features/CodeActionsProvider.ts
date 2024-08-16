@@ -46,7 +46,6 @@ import {
 import { CompletionsProviderImpl } from './CompletionProvider';
 import {
     findClosestContainingNode,
-    findContainingNode,
     FormatCodeBasis,
     getFormatCodeBasis,
     getNewScriptStartTag,
@@ -56,6 +55,7 @@ import {
 } from './utils';
 import { DiagnosticCode } from './DiagnosticsProvider';
 import { createGetCanonicalFileName } from '../../../utils';
+import { LanguageServiceContainer } from '../service';
 
 /**
  * TODO change this to protocol constant if it's part of the protocol
@@ -156,7 +156,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             return codeAction;
         }
 
-        const { lang, tsDoc, userPreferences, tsconfigPath } =
+        const { lang, tsDoc, userPreferences, lsContainer } =
             await this.lsAndTsDocResolver.getLSAndTSDoc(document);
         if (cancellationToken?.isCancellationRequested) {
             return codeAction;
@@ -218,7 +218,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             await this.lsAndTsDocResolver.deleteSnapshot(virtualDocPath);
         }
 
-        const snapshots = new SnapshotMap(this.lsAndTsDocResolver, tsconfigPath);
+        const snapshots = new SnapshotMap(this.lsAndTsDocResolver, lsContainer);
         const fixActions: ts.CodeFixAction[] = [
             {
                 fixName: codeAction.data.fixName,
@@ -553,7 +553,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         context: CodeActionContext,
         cancellationToken: CancellationToken | undefined
     ) {
-        const { lang, tsDoc, userPreferences, tsconfigPath } = await this.getLSAndTSDoc(document);
+        const { lang, tsDoc, userPreferences, lsContainer } = await this.getLSAndTSDoc(document);
 
         if (cancellationToken?.isCancellationRequested) {
             return [];
@@ -613,7 +613,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             );
         }
 
-        const snapshots = new SnapshotMap(this.lsAndTsDocResolver, tsconfigPath);
+        const snapshots = new SnapshotMap(this.lsAndTsDocResolver, lsContainer);
         snapshots.set(tsDoc.filePath, tsDoc);
 
         const codeActionsPromises = codeFixes.map(async (fix) => {

@@ -386,7 +386,7 @@ export class TypeScriptPlugin
     }
 
     async getDefinitions(document: Document, position: Position): Promise<DefinitionLink[]> {
-        const { lang, tsDoc, tsconfigPath } = await this.lsAndTsDocResolver.getLSAndTSDoc(document);
+        const { lang, tsDoc, lsContainer } = await this.lsAndTsDocResolver.getLSAndTSDoc(document);
 
         const defs = lang.getDefinitionAndBoundSpan(
             tsDoc.filePath,
@@ -397,7 +397,7 @@ export class TypeScriptPlugin
             return [];
         }
 
-        const snapshots = new SnapshotMap(this.lsAndTsDocResolver, tsconfigPath);
+        const snapshots = new SnapshotMap(this.lsAndTsDocResolver, lsContainer);
         snapshots.set(tsDoc.filePath, tsDoc);
 
         const result = await Promise.all(

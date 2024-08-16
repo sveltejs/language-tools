@@ -20,12 +20,7 @@ const testDir = join(__dirname, '..');
 const updateImportTestDir = join(testDir, 'testfiles', 'update-imports');
 
 describe('UpdateImportsProviderImpl', function () {
-    serviceWarmup(
-        this,
-        updateImportTestDir,
-        pathToUrl(testDir),
-        join(testDir, 'testfiles', 'tsconfig.json')
-    );
+    serviceWarmup(this, updateImportTestDir, pathToUrl(testDir));
 
     async function setup(filename: string, useCaseSensitiveFileNames: boolean) {
         const docManager = new DocumentManager(

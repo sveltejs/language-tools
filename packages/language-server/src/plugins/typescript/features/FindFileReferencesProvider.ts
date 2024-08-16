@@ -23,7 +23,7 @@ export class FindFileReferencesProviderImpl implements FileReferencesProvider {
             return null;
         }
 
-        const snapshots = new SnapshotMap(this.lsAndTsDocResolver, lsContainer.tsconfigPath);
+        const snapshots = new SnapshotMap(this.lsAndTsDocResolver, lsContainer);
         snapshots.set(tsDoc.filePath, tsDoc);
 
         const locations = await Promise.all(

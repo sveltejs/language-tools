@@ -456,7 +456,7 @@ async function createLanguageService(
         return new SnapshotManager(
             docContext.globalSnapshotsManager,
             parsedCommandLine.raw,
-            workspacePath,
+            configFileName ? dirname(configFileName) : workspacePath,
             tsSystem,
             parsedCommandLine.fileNames.map(normalizePath),
             parsedCommandLine.wildcardDirectories

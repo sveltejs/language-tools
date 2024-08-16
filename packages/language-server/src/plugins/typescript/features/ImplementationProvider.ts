@@ -18,7 +18,7 @@ export class ImplementationProviderImpl implements ImplementationProvider {
         position: Position,
         cancellationToken?: CancellationToken
     ): Promise<Location[] | null> {
-        const { tsDoc, lang, tsconfigPath } = await this.lsAndTsDocResolver.getLSAndTSDoc(document);
+        const { tsDoc, lang, lsContainer } = await this.lsAndTsDocResolver.getLSAndTSDoc(document);
 
         if (cancellationToken?.isCancellationRequested) {
             return null;
@@ -27,7 +27,7 @@ export class ImplementationProviderImpl implements ImplementationProvider {
         const offset = tsDoc.offsetAt(tsDoc.getGeneratedPosition(position));
         const implementations = lang.getImplementationAtPosition(tsDoc.filePath, offset);
 
-        const snapshots = new SnapshotMap(this.lsAndTsDocResolver, tsconfigPath);
+        const snapshots = new SnapshotMap(this.lsAndTsDocResolver, lsContainer);
         snapshots.set(tsDoc.filePath, tsDoc);
 
         if (!implementations) {

@@ -41,7 +41,7 @@ export class CallHierarchyProviderImpl implements CallHierarchyProvider {
         position: Position,
         cancellationToken?: CancellationToken
     ): Promise<CallHierarchyItem[] | null> {
-        const { lang, tsDoc, tsconfigPath } = await this.lsAndTsDocResolver.getLSAndTSDoc(document);
+        const { lang, tsDoc, lsContainer } = await this.lsAndTsDocResolver.getLSAndTSDoc(document);
 
         if (cancellationToken?.isCancellationRequested) {
             return null;
@@ -52,7 +52,7 @@ export class CallHierarchyProviderImpl implements CallHierarchyProvider {
 
         const itemsArray = Array.isArray(items) ? items : items ? [items] : [];
 
-        const snapshots = new SnapshotMap(this.lsAndTsDocResolver, tsconfigPath);
+        const snapshots = new SnapshotMap(this.lsAndTsDocResolver, lsContainer);
         snapshots.set(tsDoc.filePath, tsDoc);
 
         const program = lang.getProgram();
@@ -261,7 +261,7 @@ export class CallHierarchyProviderImpl implements CallHierarchyProvider {
 
         const program = lang.getProgram();
 
-        const snapshots = new SnapshotMap(this.lsAndTsDocResolver, lsContainer.tsconfigPath);
+        const snapshots = new SnapshotMap(this.lsAndTsDocResolver, lsContainer);
         snapshots.set(tsDoc.filePath, tsDoc);
 
         const isComponentModulePosition =

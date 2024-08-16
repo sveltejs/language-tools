@@ -155,7 +155,7 @@ export class LSAndTSDocResolver {
         tsDoc: SvelteDocumentSnapshot;
         lang: ts.LanguageService;
         userPreferences: ts.UserPreferences;
-        tsconfigPath: string;
+        lsContainer: LanguageServiceContainer;
     }> {
         const { tsDoc, lsContainer, userPreferences } = await this.getLSAndTSDocWorker(document);
 
@@ -163,7 +163,7 @@ export class LSAndTSDocResolver {
             tsDoc,
             lang: lsContainer.getService(),
             userPreferences,
-            tsconfigPath: lsContainer.tsconfigPath
+            lsContainer
         };
     }
 
@@ -292,7 +292,10 @@ export class LSAndTSDocResolver {
 
     async getTSService(filePath?: string): Promise<LanguageServiceContainer> {
         if (this.options?.tsconfigPath) {
-            return this.getTSServiceByConfigPath(this.options.tsconfigPath);
+            return this.getTSServiceByConfigPath(
+                this.options.tsconfigPath,
+                dirname(this.options.tsconfigPath)
+            );
         }
         if (!filePath) {
             throw new Error('Cannot call getTSService without filePath and without tsconfigPath');
@@ -300,8 +303,11 @@ export class LSAndTSDocResolver {
         return getService(filePath, this.workspaceUris, this.lsDocumentContext);
     }
 
-    async getTSServiceByConfigPath(tsconfigPath: string): Promise<LanguageServiceContainer> {
-        return getServiceForTsconfig(tsconfigPath, dirname(tsconfigPath), this.lsDocumentContext);
+    async getTSServiceByConfigPath(
+        tsconfigPath: string,
+        workspacePath: string
+    ): Promise<LanguageServiceContainer> {
+        return getServiceForTsconfig(tsconfigPath, workspacePath, this.lsDocumentContext);
     }
 
     private getUserPreferences(tsDoc: DocumentSnapshot): ts.UserPreferences {

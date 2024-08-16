@@ -6,7 +6,12 @@ import { DocumentManager, Document } from '../../../src/lib/documents';
 import { FileMap } from '../../../src/lib/documents/fileCollection';
 import { LSConfigManager } from '../../../src/ls-config';
 import { LSAndTSDocResolver } from '../../../src/plugins';
-import { createGetCanonicalFileName, normalizePath, pathToUrl } from '../../../src/utils';
+import {
+    createGetCanonicalFileName,
+    normalizePath,
+    pathToUrl,
+    urlToPath
+} from '../../../src/utils';
 import { VERSION } from 'svelte/compiler';
 import { findTsConfigPath } from '../../../src/plugins/typescript/utils';
 
@@ -315,7 +320,10 @@ export function serviceWarmup(
             createGetCanonicalFileName(ts.sys.useCaseSensitiveFileNames)
         );
 
-        const ls = await lsAndTsDocResolver.getTSServiceByConfigPath(configFilePath);
+        const ls = await lsAndTsDocResolver.getTSServiceByConfigPath(
+            configFilePath,
+            configFilePath ? dirname(configFilePath) : urlToPath(rootUri)!
+        );
         ls.getService();
 
         const projectReferences = ls.getResolvedProjectReferences();

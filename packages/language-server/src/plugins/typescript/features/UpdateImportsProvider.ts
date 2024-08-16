@@ -128,7 +128,7 @@ export class UpdateImportsProviderImpl implements UpdateImportsProvider {
                 return change;
             });
 
-        const docs = new SnapshotMap(this.lsAndTsDocResolver, lsContainer.tsconfigPath);
+        const docs = new SnapshotMap(this.lsAndTsDocResolver, lsContainer);
         await Promise.all(
             updateImportsChanges.map(async (change) => {
                 if (documentChanges.has(change.fileName)) {

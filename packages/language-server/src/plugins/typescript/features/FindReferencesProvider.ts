@@ -38,7 +38,7 @@ export class FindReferencesProviderImpl implements FindReferencesProvider {
             return this.componentReferencesProvider.findComponentReferences(document.uri);
         }
 
-        const { lang, tsDoc, tsconfigPath } = await this.getLSAndTSDoc(document);
+        const { lang, tsDoc, lsContainer } = await this.getLSAndTSDoc(document);
         if (cancellationToken?.isCancellationRequested) {
             return null;
         }
@@ -52,7 +52,7 @@ export class FindReferencesProviderImpl implements FindReferencesProvider {
             return null;
         }
 
-        const snapshots = new SnapshotMap(this.lsAndTsDocResolver, tsconfigPath);
+        const snapshots = new SnapshotMap(this.lsAndTsDocResolver, lsContainer);
         snapshots.set(tsDoc.filePath, tsDoc);
 
         if (rawReferences.some((ref) => ref.definition.kind === ts.ScriptElementKind.alias)) {

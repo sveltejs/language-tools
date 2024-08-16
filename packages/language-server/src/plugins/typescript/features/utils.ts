@@ -145,10 +145,9 @@ export function getStoreOffsetOf$storeDeclaration(text: string, $storeVarStart: 
 
 export class SnapshotMap {
     private map = new FileMap<DocumentSnapshot>();
-    private sourceLs: LanguageServiceContainer | undefined;
     constructor(
         private resolver: LSAndTSDocResolver,
-        private readonly tsconfigPath: string
+        private sourceLs: LanguageServiceContainer
     ) {}
 
     set(fileName: string, snapshot: DocumentSnapshot) {
@@ -163,10 +162,6 @@ export class SnapshotMap {
         let snapshot = this.get(fileName);
         if (snapshot) {
             return snapshot;
-        }
-
-        if (!this.sourceLs) {
-            this.sourceLs = await this.resolver.getTSServiceByConfigPath(this.tsconfigPath);
         }
 
         const snap =

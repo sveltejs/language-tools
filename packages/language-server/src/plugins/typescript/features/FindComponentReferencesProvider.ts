@@ -35,7 +35,7 @@ export class FindComponentReferencesProviderImpl implements FindComponentReferen
             return null;
         }
 
-        const snapshots = new SnapshotMap(this.lsAndTsDocResolver, lsContainer.tsconfigPath);
+        const snapshots = new SnapshotMap(this.lsAndTsDocResolver, lsContainer);
         snapshots.set(tsDoc.filePath, tsDoc);
 
         const locations = await Promise.all(

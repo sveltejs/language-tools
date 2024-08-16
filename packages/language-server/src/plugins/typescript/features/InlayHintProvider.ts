@@ -41,7 +41,7 @@ export class InlayHintProviderImpl implements InlayHintProvider {
             return null;
         }
 
-        const { tsDoc, lang, tsconfigPath } = await this.lsAndTsDocResolver.getLSAndTSDoc(document);
+        const { tsDoc, lang, lsContainer } = await this.lsAndTsDocResolver.getLSAndTSDoc(document);
 
         const inlayHints = lang.provideInlayHints(
             tsDoc.filePath,
@@ -59,7 +59,7 @@ export class InlayHintProviderImpl implements InlayHintProvider {
         const renderFunctionReturnTypeLocation =
             renderFunction && this.getTypeAnnotationPosition(renderFunction);
 
-        const snapshotMap = new SnapshotMap(this.lsAndTsDocResolver, tsconfigPath);
+        const snapshotMap = new SnapshotMap(this.lsAndTsDocResolver, lsContainer);
         snapshotMap.set(tsDoc.filePath, tsDoc);
 
         const convertPromises = inlayHints
