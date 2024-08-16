@@ -39,6 +39,7 @@ export interface LanguageServiceContainer {
     deleteSnapshot(filePath: string): void;
     invalidateModuleCache(filePath: string[]): void;
     scheduleProjectFileUpdate(watcherNewFiles: string[]): void;
+    ensureProjectFileUpdates(): void;
     updateTsOrJsFile(fileName: string, changes?: TextDocumentContentChangeEvent[]): void;
     /**
      * Checks if a file is present in the project.
@@ -164,7 +165,7 @@ export async function getService(
          */
         const triedTsConfig = new Set<string>();
         const needAssign = !configFileForOpenFiles.has(path);
-        let service = await getConfiguredService(tsconfigPath, triedTsConfig);
+        let service = await getConfiguredService(tsconfigPath);
         if (!needAssign) {
             return service;
         }
@@ -193,7 +194,7 @@ export async function getService(
         docContext
     );
 
-    function getConfiguredService(tsconfigPath: string, triedTsConfig: Set<string>) {
+    function getConfiguredService(tsconfigPath: string) {
         return getServiceForTsconfig(tsconfigPath, dirname(tsconfigPath), docContext);
     }
 
@@ -201,6 +202,7 @@ export async function getService(
         service: LanguageServiceContainer,
         triedTsConfig: Set<string>
     ): Promise<LanguageServiceContainer | undefined> {
+        service.ensureProjectFileUpdates();
         if (service.snapshotManager.isProjectFile(path)) {
             return service;
         }
@@ -218,13 +220,13 @@ export async function getService(
     ) {
         const projectReferences = service.getResolvedProjectReferences();
         if (projectReferences.length === 0) {
-            return service;
+            return undefined;
         }
 
         let possibleSubPaths: string[] = [];
         for (const ref of projectReferences) {
             if (ref.snapshotManager.isProjectFile(path)) {
-                return getConfiguredService(ref.configFilePath, triedTsConfig);
+                return getConfiguredService(ref.configFilePath);
             }
 
             if (ref.parsedCommandLine.projectReferences?.length) {
@@ -233,7 +235,7 @@ export async function getService(
         }
 
         for (const ref of possibleSubPaths) {
-            const subService = await getConfiguredService(ref, triedTsConfig);
+            const subService = await getConfiguredService(ref);
             const defaultService = await findDefaultServiceForFile(subService, triedTsConfig);
             if (defaultService) {
                 return defaultService;
@@ -266,6 +268,9 @@ export async function getServiceForTsconfig(
     workspacePath: string,
     docContext: LanguageServiceDocumentContext
 ): Promise<LanguageServiceContainer> {
+    if (tsconfigPath) {
+        tsconfigPath = normalizePath(tsconfigPath);
+    }
     const tsconfigPathOrWorkspacePath = tsconfigPath || workspacePath;
     const reloading = pendingReloads.has(tsconfigPath);
 
@@ -362,7 +367,7 @@ async function createLanguageService(
 
     let languageServiceReducedMode = false;
     let projectVersion = 0;
-    let dirty = false;
+    let dirty = projectConfig.fileNames.length > 0;
 
     const host: ts.LanguageServiceHost = {
         log: (message) => Logger.debug(`[ts] ${message}`),
@@ -426,6 +431,7 @@ async function createLanguageService(
         deleteSnapshot,
         scheduleProjectFileUpdate,
         updateTsOrJsFile,
+        ensureProjectFileUpdates,
         hasFile,
         fileBelongsToProject,
         snapshotManager,
@@ -452,7 +458,7 @@ async function createLanguageService(
             parsedCommandLine.raw,
             workspacePath,
             tsSystem,
-            parsedCommandLine.fileNames,
+            parsedCommandLine.fileNames.map(normalizePath),
             parsedCommandLine.wildcardDirectories
         );
     }
@@ -486,7 +492,7 @@ async function createLanguageService(
     }
 
     function getService(skipSynchronize?: boolean) {
-        updateProjectFiles();
+        ensureProjectFileUpdates();
 
         if (!skipSynchronize) {
             updateIfDirty();
@@ -620,13 +626,13 @@ async function createLanguageService(
         }
     }
 
-    function updateProjectFiles(): void {
+    function ensureProjectFileUpdates(): void {
         const info = projectReferenceInfo.get(tsconfigPath);
         if (!info || !info.pendingProjectFileUpdate) {
             return;
         }
         const projectFileCountBefore = snapshotManager.getProjectFileNames().length;
-        ensureProjectFileUpToDate(info);
+        ensureFilesForConfigUpdates(info);
         const projectFileCountAfter = snapshotManager.getProjectFileNames().length;
 
         if (projectFileCountAfter > projectFileCountBefore) {
@@ -1062,7 +1068,7 @@ async function createLanguageService(
     function ensureTsConfigInfoUpToDate(configFilePath: string) {
         const cached = projectReferenceInfo.get(configFilePath);
         if (cached !== undefined) {
-            ensureProjectFileUpToDate(cached);
+            ensureFilesForConfigUpdates(cached);
             return cached;
         }
 
@@ -1114,7 +1120,7 @@ async function createLanguageService(
         return ensureTsConfigInfoUpToDate(configFilePath)?.parsedCommandLine;
     }
 
-    function ensureProjectFileUpToDate(info: TsConfigInfo | null) {
+    function ensureFilesForConfigUpdates(info: TsConfigInfo | null) {
         if (info?.pendingProjectFileUpdate) {
             info.pendingProjectFileUpdate = false;
             info.snapshotManager.updateProjectFiles();

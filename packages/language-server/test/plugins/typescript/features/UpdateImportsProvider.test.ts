@@ -20,7 +20,12 @@ const testDir = join(__dirname, '..');
 const updateImportTestDir = join(testDir, 'testfiles', 'update-imports');
 
 describe('UpdateImportsProviderImpl', function () {
-    serviceWarmup(this, updateImportTestDir, pathToUrl(testDir));
+    serviceWarmup(
+        this,
+        updateImportTestDir,
+        pathToUrl(testDir),
+        join(testDir, 'testfiles', 'tsconfig.json')
+    );
 
     async function setup(filename: string, useCaseSensitiveFileNames: boolean) {
         const docManager = new DocumentManager(
@@ -33,7 +38,10 @@ describe('UpdateImportsProviderImpl', function () {
             new LSConfigManager(),
             { tsSystem: { ...ts.sys, useCaseSensitiveFileNames } }
         );
-        const updateImportsProvider = new UpdateImportsProviderImpl(lsAndTsDocResolver);
+        const updateImportsProvider = new UpdateImportsProviderImpl(
+            lsAndTsDocResolver,
+            useCaseSensitiveFileNames
+        );
         const filePath = join(updateImportTestDir, filename);
         const fileUri = pathToUrl(filePath);
         const document = docManager.openClientDocument(<any>{

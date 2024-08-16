@@ -156,7 +156,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             return codeAction;
         }
 
-        const { lang, tsDoc, userPreferences } =
+        const { lang, tsDoc, userPreferences, tsconfigPath } =
             await this.lsAndTsDocResolver.getLSAndTSDoc(document);
         if (cancellationToken?.isCancellationRequested) {
             return codeAction;
@@ -218,7 +218,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             await this.lsAndTsDocResolver.deleteSnapshot(virtualDocPath);
         }
 
-        const snapshots = new SnapshotMap(this.lsAndTsDocResolver);
+        const snapshots = new SnapshotMap(this.lsAndTsDocResolver, tsconfigPath);
         const fixActions: ts.CodeFixAction[] = [
             {
                 fixName: codeAction.data.fixName,
@@ -553,7 +553,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         context: CodeActionContext,
         cancellationToken: CancellationToken | undefined
     ) {
-        const { lang, tsDoc, userPreferences } = await this.getLSAndTSDoc(document);
+        const { lang, tsDoc, userPreferences, tsconfigPath } = await this.getLSAndTSDoc(document);
 
         if (cancellationToken?.isCancellationRequested) {
             return [];
@@ -613,7 +613,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             );
         }
 
-        const snapshots = new SnapshotMap(this.lsAndTsDocResolver);
+        const snapshots = new SnapshotMap(this.lsAndTsDocResolver, tsconfigPath);
         snapshots.set(tsDoc.filePath, tsDoc);
 
         const codeActionsPromises = codeFixes.map(async (fix) => {

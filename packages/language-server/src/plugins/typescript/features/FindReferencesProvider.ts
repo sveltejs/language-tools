@@ -1,7 +1,7 @@
 import ts from 'typescript';
 import { CancellationToken, Location, Position, ReferenceContext } from 'vscode-languageserver';
 import { Document } from '../../../lib/documents';
-import { flatten, isNotNullOrUndefined, pathToUrl } from '../../../utils';
+import { flatten, isNotNullOrUndefined, normalizePath, pathToUrl } from '../../../utils';
 import { FindComponentReferencesProvider, FindReferencesProvider } from '../../interfaces';
 import { SvelteDocumentSnapshot } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
@@ -38,7 +38,7 @@ export class FindReferencesProviderImpl implements FindReferencesProvider {
             return this.componentReferencesProvider.findComponentReferences(document.uri);
         }
 
-        const { lang, tsDoc } = await this.getLSAndTSDoc(document);
+        const { lang, tsDoc, tsconfigPath } = await this.getLSAndTSDoc(document);
         if (cancellationToken?.isCancellationRequested) {
             return null;
         }
@@ -52,7 +52,7 @@ export class FindReferencesProviderImpl implements FindReferencesProvider {
             return null;
         }
 
-        const snapshots = new SnapshotMap(this.lsAndTsDocResolver);
+        const snapshots = new SnapshotMap(this.lsAndTsDocResolver, tsconfigPath);
         snapshots.set(tsDoc.filePath, tsDoc);
 
         if (rawReferences.some((ref) => ref.definition.kind === ts.ScriptElementKind.alias)) {
@@ -124,7 +124,7 @@ export class FindReferencesProviderImpl implements FindReferencesProvider {
         let storeReferences: ts.ReferencedSymbolEntry[] = [];
         const storeReference = references.find(
             (ref) =>
-                ref.fileName === tsDoc.filePath &&
+                normalizePath(ref.fileName) === tsDoc.filePath &&
                 isTextSpanInGeneratedCode(tsDoc.getFullText(), ref.textSpan) &&
                 is$storeVariableIn$storeDeclaration(tsDoc.getFullText(), ref.textSpan.start)
         );

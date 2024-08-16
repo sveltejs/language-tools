@@ -65,7 +65,7 @@ export class RenameProviderImpl implements RenameProvider {
         position: Position,
         newName: string
     ): Promise<WorkspaceEdit | null> {
-        const { lang, tsDoc } = await this.getLSAndTSDoc(document);
+        const { lang, tsDoc, tsconfigPath } = await this.getLSAndTSDoc(document);
 
         const offset = tsDoc.offsetAt(tsDoc.getGeneratedPosition(position));
 
@@ -85,7 +85,7 @@ export class RenameProviderImpl implements RenameProvider {
             return null;
         }
 
-        const docs = new SnapshotMap(this.lsAndTsDocResolver);
+        const docs = new SnapshotMap(this.lsAndTsDocResolver, tsconfigPath);
         docs.set(tsDoc.filePath, tsDoc);
 
         let convertedRenameLocations: TsRenameLocation[] = await this.mapAndFilterRenameLocations(
@@ -536,7 +536,7 @@ export class RenameProviderImpl implements RenameProvider {
     }
 
     private getSnapshot(filePath: string) {
-        return this.lsAndTsDocResolver.getSnapshot(filePath);
+        return this.lsAndTsDocResolver.getOrCreateSnapshot(filePath);
     }
 
     private checkShortHandBindingOrSlotLetLocation(

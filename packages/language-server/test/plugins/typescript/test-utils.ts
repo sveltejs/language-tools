@@ -8,6 +8,7 @@ import { LSConfigManager } from '../../../src/ls-config';
 import { LSAndTSDocResolver } from '../../../src/plugins';
 import { createGetCanonicalFileName, normalizePath, pathToUrl } from '../../../src/utils';
 import { VERSION } from 'svelte/compiler';
+import { findTsConfigPath } from '../../../src/plugins/typescript/utils';
 
 const isSvelte5Plus = Number(VERSION.split('.')[0]) >= 5;
 
@@ -301,22 +302,22 @@ export function serviceWarmup(
             (textDocument) => new Document(textDocument.uri, textDocument.text)
         );
 
-        const options = configFilePath ? { tsconfigPath: configFilePath } : undefined;
         const lsAndTsDocResolver = new LSAndTSDocResolver(
             docManager,
             [rootUri],
-            new LSConfigManager(),
-            options
+            new LSConfigManager()
         );
 
-        const filePath = join(testDir, 'DoesNotMater.svelte');
-        const document = docManager.openClientDocument(<any>{
-            uri: pathToUrl(filePath),
-            text: ts.sys.readFile(filePath) || ''
-        });
+        configFilePath ??= findTsConfigPath(
+            join(testDir, 'DoesNotMater.svelte'),
+            [rootUri],
+            ts.sys.fileExists,
+            createGetCanonicalFileName(ts.sys.useCaseSensitiveFileNames)
+        );
 
-        const ls = await lsAndTsDocResolver.getTSService(filePath);
-        await lsAndTsDocResolver.getLSAndTSDoc(document);
+        const ls = await lsAndTsDocResolver.getTSServiceByConfigPath(configFilePath);
+        ls.getService();
+
         const projectReferences = ls.getResolvedProjectReferences();
 
         if (projectReferences.length) {

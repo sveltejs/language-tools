@@ -12,6 +12,7 @@ import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { or } from '../../../utils';
 import { FileMap } from '../../../lib/documents/fileCollection';
 import { LSConfig } from '../../../ls-config';
+import { LanguageServiceContainer } from '../service';
 
 type NodePredicate = (node: ts.Node) => boolean;
 
@@ -144,7 +145,11 @@ export function getStoreOffsetOf$storeDeclaration(text: string, $storeVarStart: 
 
 export class SnapshotMap {
     private map = new FileMap<DocumentSnapshot>();
-    constructor(private resolver: LSAndTSDocResolver) {}
+    private sourceLs: LanguageServiceContainer | undefined;
+    constructor(
+        private resolver: LSAndTSDocResolver,
+        private readonly tsconfigPath: string
+    ) {}
 
     set(fileName: string, snapshot: DocumentSnapshot) {
         this.map.set(fileName, snapshot);
@@ -156,12 +161,22 @@ export class SnapshotMap {
 
     async retrieve(fileName: string) {
         let snapshot = this.get(fileName);
-        if (!snapshot) {
-            const snap = await this.resolver.getSnapshot(fileName);
-            this.set(fileName, snap);
-            snapshot = snap;
+        if (snapshot) {
+            return snapshot;
         }
-        return snapshot;
+
+        if (!this.sourceLs) {
+            this.sourceLs = await this.resolver.getTSServiceByConfigPath(this.tsconfigPath);
+        }
+
+        const snap =
+            this.sourceLs.snapshotManager.get(fileName) ??
+            // should not happen in most cases,
+            // the file should be in the project otherwise why would we know about it
+            (await this.resolver.getOrCreateSnapshot(fileName));
+
+        this.set(fileName, snap);
+        return snap;
     }
 }
 
