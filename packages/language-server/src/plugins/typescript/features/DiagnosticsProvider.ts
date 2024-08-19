@@ -211,11 +211,11 @@ function moveBindingErrorMessage(
                     );
                     diagnostic.message =
                         "Cannot use 'bind:' with this property. It is declared as non-bindable inside the component.\n" +
-                        `To mark a property as bindable: 'let { ${propName} = $bindable() = $props()'`;
+                        `To mark a property as bindable: 'let { ${propName} = $bindable() } = $props()'`;
                 } else {
                     diagnostic.message =
                         "Cannot use 'bind:' with this property. It is declared as non-bindable inside the component.\n" +
-                        `To mark a property as bindable: 'let { prop = $bindable() = $props()'\n\n` +
+                        `To mark a property as bindable: 'let { prop = $bindable() } = $props()'\n\n` +
                         diagnostic.message;
                 }
                 diagnostic.range = {
