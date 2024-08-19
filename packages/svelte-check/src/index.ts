@@ -31,21 +31,26 @@ async function openAllDocuments(
     svelteCheck: SvelteCheck
 ) {
     const offset = workspaceUri.fsPath.length + 1;
-    // We support a very limited subset of glob patterns: You can have a * at the end or the start
+    // We support a very limited subset of glob patterns: You can only have  ** at the end or the start
     const ignored: Array<(path: string) => boolean> = filePathsToIgnore.map((i) => {
-        if (i.endsWith('*')) i = i.slice(0, -1);
-        if (i.startsWith('*')) {
-            i = i.slice(1);
+        if (i.endsWith('**')) i = i.slice(0, -2);
+
+        if (i.startsWith('**')) {
+            i = i.slice(2);
+
             if (i.includes('*'))
                 throw new Error(
-                    'Invalid svelte-check --ignore pattern: Only * at the start or end is supported'
+                    'Invalid svelte-check --ignore pattern: Only ** at the start or end is supported'
                 );
+
             return (path) => path.includes(i);
         }
+
         if (i.includes('*'))
             throw new Error(
-                'Invalid svelte-check --ignore pattern: Only * at the start or end is supported'
+                'Invalid svelte-check --ignore pattern: Only ** at the start or end is supported'
             );
+
         return (path) => path.startsWith(i);
     });
     const isIngored = (path: string) => {
