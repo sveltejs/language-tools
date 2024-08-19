@@ -108,6 +108,10 @@ export interface EmitDtsConfig {
      * set to `src/lib` by default.
      */
     libRoot?: string;
+    /**
+     * Name of your tsconfig file, if it's not the standard `tsconfig.json` or `jsconfig.json` 
+     */
+    tsconfig?: string;
 }
 
 // to make typo fix non-breaking, continue to export the old name but mark it as deprecated
