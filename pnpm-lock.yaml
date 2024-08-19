@@ -36,9 +36,9 @@ importers:
       estree-walker:
         specifier: ^2.0.1
         version: 2.0.2
-      fast-glob:
-        specifier: ^3.2.7
-        version: 3.2.12
+      fdir:
+        specifier: ^6.2.0
+        version: 6.2.0
       lodash:
         specifier: ^4.17.21
         version: 4.17.21
@@ -118,6 +118,9 @@ importers:
       chokidar:
         specifier: ^3.4.1
         version: 3.5.3
+      fdir:
+        specifier: ^6.2.0
+        version: 6.2.0
       picocolors:
         specifier: ^1.0.0
         version: 1.0.0
@@ -149,9 +152,6 @@ importers:
       builtin-modules:
         specifier: ^3.3.0
         version: 3.3.0
-      fast-glob:
-        specifier: ^3.2.7
-        version: 3.2.12
       rollup:
         specifier: 3.7.5
         version: 3.7.5
@@ -741,6 +741,14 @@ packages:
 
   fastq@1.15.0:
     resolution: {integrity: sha512-wBrocU2LCXXa+lWBt8RoIRD89Fi8OdABODa/kEnyeyjS5aZO5/GNvI5sEINADqP/h8M29UHTHUb53sUu5Ihqdw==}
+
+  fdir@6.2.0:
+    resolution: {integrity: sha512-9XaWcDl0riOX5j2kYfy0kKdg7skw3IY6kA4LFT8Tk2yF9UdrADUy8D6AJuBLtf7ISm/MksumwAHE3WVbMRyCLw==}
+    peerDependencies:
+      picomatch: ^3 || ^4
+    peerDependenciesMeta:
+      picomatch:
+        optional: true
 
   fill-range@7.0.1:
     resolution: {integrity: sha512-qOo9F+dMUmC2Lcb4BbVvnKJxTPjCm+RRpe4gDuGrzkL7mEVl/djYSu2OdQ2Pa302N4oqkSg9ir6jaLWJ2USVpQ==}
@@ -1800,6 +1808,8 @@ snapshots:
   fastq@1.15.0:
     dependencies:
       reusify: 1.0.4
+
+  fdir@6.2.0: {}
 
   fill-range@7.0.1:
     dependencies:

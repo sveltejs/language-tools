@@ -4,7 +4,7 @@
 
 import { watch } from 'chokidar';
 import * as fs from 'fs';
-import glob from 'fast-glob';
+import { fdir } from 'fdir';
 import * as path from 'path';
 import { SvelteCheck, SvelteCheckOptions } from 'svelte-language-server';
 import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver-protocol';
@@ -30,11 +30,48 @@ async function openAllDocuments(
     filePathsToIgnore: string[],
     svelteCheck: SvelteCheck
 ) {
-    const files = await glob('**/*.svelte', {
-        cwd: workspaceUri.fsPath,
-        ignore: ['node_modules/**'].concat(filePathsToIgnore.map((ignore) => `${ignore}/**`))
+    const offset = workspaceUri.fsPath.length + 1;
+    // We support a very limited subset of glob patterns: You can only have  ** at the end or the start
+    const ignored: Array<(path: string) => boolean> = filePathsToIgnore.map((i) => {
+        if (i.endsWith('**')) i = i.slice(0, -2);
+
+        if (i.startsWith('**')) {
+            i = i.slice(2);
+
+            if (i.includes('*'))
+                throw new Error(
+                    'Invalid svelte-check --ignore pattern: Only ** at the start or end is supported'
+                );
+
+            return (path) => path.includes(i);
+        }
+
+        if (i.includes('*'))
+            throw new Error(
+                'Invalid svelte-check --ignore pattern: Only ** at the start or end is supported'
+            );
+
+        return (path) => path.startsWith(i);
     });
-    const absFilePaths = files.map((f) => path.resolve(workspaceUri.fsPath, f));
+    const isIgnored = (path: string) => {
+        path = path.slice(offset);
+        for (const i of ignored) {
+            if (i(path)) {
+                return true;
+            }
+        }
+        return false;
+    };
+    const absFilePaths = await new fdir()
+        .filter((path) => path.endsWith('.svelte') && !isIgnored(path))
+        .exclude((_, path) => {
+            path = path.slice(offset);
+            return path.startsWith('.') || path.startsWith('node_modules');
+        })
+        .withPathSeparator('/')
+        .withFullPaths()
+        .crawl(workspaceUri.fsPath)
+        .withPromise();
 
     for (const absFilePath of absFilePaths) {
         const text = fs.readFileSync(absFilePath, 'utf-8');
