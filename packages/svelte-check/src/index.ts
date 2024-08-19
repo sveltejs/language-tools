@@ -53,7 +53,7 @@ async function openAllDocuments(
 
         return (path) => path.startsWith(i);
     });
-    const isIngored = (path: string) => {
+    const isIgnored = (path: string) => {
         path = path.slice(offset);
         for (const i of ignored) {
             if (i(path)) {
@@ -63,7 +63,7 @@ async function openAllDocuments(
         return false;
     };
     const absFilePaths = await new fdir()
-        .filter((path) => path.endsWith('.svelte') && !isIngored(path))
+        .filter((path) => path.endsWith('.svelte') && !isIgnored(path))
         .exclude((_, path) => {
             path = path.slice(offset);
             return path.startsWith('.') || path.startsWith('node_modules');
