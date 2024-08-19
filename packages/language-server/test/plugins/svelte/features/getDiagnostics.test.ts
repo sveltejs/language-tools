@@ -31,7 +31,12 @@ describe('SveltePlugin#getDiagnostics', () => {
         docText?: string;
     }) {
         const document = new Document('', docText);
-        const svelteDoc: SvelteDocument = <any>{ getTranspiled, getCompiled, config };
+        const svelteDoc: SvelteDocument = <any>{
+            getTranspiled,
+            getCompiled,
+            config,
+            getSvelteVersion: () => [4, 0]
+        };
         const result = await getDiagnostics(document, svelteDoc, settings);
         return {
             toEqual: (expected: Diagnostic[]) => assert.deepStrictEqual(result, expected)
@@ -298,7 +303,9 @@ describe('SveltePlugin#getDiagnostics', () => {
                             }
                         ]
                     }),
-                config: {}
+                config: {
+                    preprocess: []
+                }
             })
         ).toEqual([
             {
@@ -343,7 +350,9 @@ describe('SveltePlugin#getDiagnostics', () => {
                             ]
                         }
                     }),
-                config: {}
+                config: {
+                    preprocess: []
+                }
             })
         ).toEqual([]);
     });
@@ -372,7 +381,9 @@ describe('SveltePlugin#getDiagnostics', () => {
                             ]
                         }
                     }),
-                config: {}
+                config: {
+                    preprocess: []
+                }
             })
         ).toEqual([]);
     });
@@ -399,7 +410,9 @@ describe('SveltePlugin#getDiagnostics', () => {
                             ]
                         }
                     }),
-                config: {},
+                config: {
+                    preprocess: []
+                },
                 settings: { 123: 'ignore' }
             })
         ).toEqual([]);
@@ -425,7 +438,9 @@ describe('SveltePlugin#getDiagnostics', () => {
                             }
                         ]
                     }),
-                config: {},
+                config: {
+                    preprocess: []
+                },
                 settings: { 123: 'error' }
             })
         ).toEqual([

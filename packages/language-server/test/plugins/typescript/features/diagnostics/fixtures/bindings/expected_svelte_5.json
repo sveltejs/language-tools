@@ -1,7 +1,7 @@
 [
     {
         "code": 2322,
-        "message": "Cannot use 'bind:' with this property. It is declared as non-bindable inside the component.\nTo mark a property as bindable: 'let { readonly = $bindable() = $props()'",
+        "message": "Cannot use 'bind:' with this property. It is declared as non-bindable inside the component.\nTo mark a property as bindable: 'let { readonly = $bindable() } = $props()'",
         "range": {
             "end": {
                 "character": 20,
@@ -35,7 +35,7 @@
     },
     {
         "code": 2322,
-        "message": "Cannot use 'bind:' with this property. It is declared as non-bindable inside the component.\nTo mark a property as bindable: 'let { only_bind = $bindable() = $props()'",
+        "message": "Cannot use 'bind:' with this property. It is declared as non-bindable inside the component.\nTo mark a property as bindable: 'let { only_bind = $bindable() } = $props()'",
         "range": {
             "end": {
                 "character": 21,

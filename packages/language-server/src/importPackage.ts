@@ -1,7 +1,6 @@
 import { dirname, resolve } from 'path';
 import * as prettier from 'prettier';
 import * as svelte from 'svelte/compiler';
-import sveltePreprocess from 'svelte-preprocess';
 import { Logger } from './logger';
 
 /**
@@ -25,11 +24,15 @@ function dynamicRequire(dynamicFileToRequire: string): any {
     return require(dynamicFileToRequire);
 }
 
-export function getPackageInfo(packageName: string, fromPath: string) {
-    const paths = [__dirname];
+export function getPackageInfo(packageName: string, fromPath: string, use_fallback = true) {
+    const paths: string[] = [];
     if (isTrusted) {
-        paths.unshift(fromPath);
+        paths.push(fromPath);
     }
+    if (use_fallback) {
+        paths.push(__dirname);
+    }
+
     const packageJSONPath = require.resolve(`${packageName}/package.json`, {
         paths
     });
@@ -73,8 +76,13 @@ export function importSvelte(fromPath: string): typeof svelte {
     }
 }
 
-export function importSveltePreprocess(fromPath: string): typeof sveltePreprocess {
-    const pkg = getPackageInfo('svelte-preprocess', fromPath);
+/** Can throw because no fallback guaranteed */
+export function importSveltePreprocess(fromPath: string): any {
+    const pkg = getPackageInfo(
+        'svelte-preprocess',
+        fromPath,
+        false // svelte-language-server doesn't have a dependency on svelte-preprocess so we can't provide a fallback
+    );
     const main = resolve(pkg.path);
     Logger.debug('Using svelte-preprocess v' + pkg.version.full, 'from', main);
     return dynamicRequire(main);
