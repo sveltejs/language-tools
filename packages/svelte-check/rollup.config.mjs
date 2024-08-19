@@ -65,7 +65,6 @@ export default [
             'sade',
             'svelte',
             'svelte/compiler',
-            'svelte-preprocess',
             '@jridgewell/trace-mapping'
             // import-fresh removed some time ago, no dependency uses it anymore.
             // if it creeps back in check if the dependency uses a version that
