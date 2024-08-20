@@ -1,6 +1,10 @@
 import { dirname, join } from 'path';
 import ts from 'typescript';
-import { PublishDiagnosticsParams, RelativePattern, TextDocumentContentChangeEvent } from 'vscode-languageserver';
+import {
+    PublishDiagnosticsParams,
+    RelativePattern,
+    TextDocumentContentChangeEvent
+} from 'vscode-languageserver';
 import { Document, DocumentManager } from '../../lib/documents';
 import { LSConfigManager } from '../../ls-config';
 import {
