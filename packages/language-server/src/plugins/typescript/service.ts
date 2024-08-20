@@ -1,6 +1,10 @@
 import { dirname, join, resolve } from 'path';
 import ts from 'typescript';
-import { RelativePattern, TextDocumentContentChangeEvent } from 'vscode-languageserver-protocol';
+import {
+    PublishDiagnosticsParams,
+    RelativePattern,
+    TextDocumentContentChangeEvent
+} from 'vscode-languageserver-protocol';
 import { getPackageInfo, importSvelte } from '../../importPackage';
 import { Document } from '../../lib/documents';
 import { configLoader } from '../../lib/documents/configLoader';
@@ -15,11 +19,7 @@ import {
 } from '../../utils';
 import { DocumentSnapshot, SvelteSnapshotOptions } from './DocumentSnapshot';
 import { createSvelteModuleLoader } from './module-loader';
-import {
-    GlobalSnapshotsManager,
-    ignoredBuildDirectories,
-    SnapshotManager
-} from './SnapshotManager';
+import { GlobalSnapshotsManager, SnapshotManager } from './SnapshotManager';
 import {
     ensureRealSvelteFilePath,
     findTsConfigPath,
@@ -134,6 +134,7 @@ export interface LanguageServiceDocumentContext {
     notifyExceedSizeLimit: (() => void) | undefined;
     extendedConfigCache: Map<string, ts.ExtendedConfigCacheEntry>;
     onProjectReloaded: ((configFileNames: string[]) => void) | undefined;
+    reportConfigError: ((diagnostics: PublishDiagnosticsParams) => void) | undefined;
     watchTsConfig: boolean;
     tsSystem: ts.System;
     projectService: ProjectService | undefined;
@@ -736,12 +737,54 @@ async function createLanguageService(
             }
         }
 
+        const svelteConfigDiagnostics = checkSvelteInput(parsedConfig);
+        if (docContext.reportConfigError) {
+            docContext.reportConfigError({
+                uri: pathToUrl(tsconfigPath),
+                diagnostics: svelteConfigDiagnostics.map((d) => ({
+                    message: d.messageText as string,
+                    range: { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } },
+                    severity: ts.DiagnosticCategory.Error,
+                    source: 'svelte'
+                }))
+            });
+        } else {
+            parsedConfig.errors.push(...svelteConfigDiagnostics);
+        }
+
         return {
             ...parsedConfig,
             fileNames: parsedConfig.fileNames.map(normalizePath),
             options: compilerOptions,
             extendedConfigPaths
         };
+    }
+
+    function checkSvelteInput(config: ts.ParsedCommandLine) {
+        if (!tsconfigPath || config.raw.references || config.raw.files) {
+            return [];
+        }
+
+        const svelteFiles = config.fileNames.filter(isSvelteFilePath);
+        if (svelteFiles.length > 0) {
+            return [];
+        }
+        const { include, exclude } = config.raw;
+        const inputText = JSON.stringify(include);
+        const excludeText = JSON.stringify(exclude);
+        const svelteConfigDiagnostics: ts.Diagnostic[] = [
+            {
+                category: ts.DiagnosticCategory.Error,
+                code: 0,
+                file: undefined,
+                start: undefined,
+                length: undefined,
+                messageText: `No svelte input files were found in config file '${tsconfigPath}'. Specified 'include' paths were '${inputText}' and 'exclude' paths were '${excludeText}'`,
+                source: 'svelte'
+            }
+        ];
+
+        return svelteConfigDiagnostics;
     }
 
     function parseDefaultCompilerOptions() {
@@ -870,6 +913,7 @@ async function createLanguageService(
         }
 
         docContext.onProjectReloaded?.([fileName]);
+        docContext.reportConfigError?.({ uri: pathToUrl(fileName), diagnostics: [] });
     }
 
     function updateIfDirty() {
@@ -1203,6 +1247,12 @@ function createWatchDependedConfigCallback(docContext: LanguageServiceDocumentCo
             return;
         }
 
+        const getCanonicalFileName = createGetCanonicalFileName(
+            docContext.tsSystem.useCaseSensitiveFileNames
+        );
+
+        docContext.extendedConfigCache.delete(getCanonicalFileName(fileName));
+        // rely on TypeScript internal behavior so delete both just in case
         docContext.extendedConfigCache.delete(fileName);
 
         const reloadingConfigs: string[] = [];

@@ -1,6 +1,6 @@
 import { dirname, join } from 'path';
 import ts from 'typescript';
-import { RelativePattern, TextDocumentContentChangeEvent } from 'vscode-languageserver';
+import { PublishDiagnosticsParams, RelativePattern, TextDocumentContentChangeEvent } from 'vscode-languageserver';
 import { Document, DocumentManager } from '../../lib/documents';
 import { LSConfigManager } from '../../ls-config';
 import {
@@ -37,6 +37,7 @@ interface LSAndTSDocResolverOptions {
     tsconfigPath?: string;
 
     onProjectReloaded?: () => void;
+    reportConfigError?: (diagnostic: PublishDiagnosticsParams) => void;
     watch?: boolean;
     tsSystem?: ts.System;
     watchDirectory?: (patterns: RelativePattern[]) => void;
@@ -121,7 +122,8 @@ export class LSAndTSDocResolver {
             watchDirectory: this.options?.watchDirectory
                 ? this.watchDirectory.bind(this)
                 : undefined,
-            nonRecursiveWatchPattern: this.options?.nonRecursiveWatchPattern
+            nonRecursiveWatchPattern: this.options?.nonRecursiveWatchPattern,
+            reportConfigError: this.options?.reportConfigError
         };
     }
 

@@ -34,7 +34,8 @@ describe('service', () => {
             onProjectReloaded: undefined,
             projectService: undefined,
             nonRecursiveWatchPattern: undefined,
-            watchDirectory: undefined
+            watchDirectory: undefined,
+            reportConfigError: undefined
         };
 
         return { virtualSystem, lsDocumentContext, rootUris };
