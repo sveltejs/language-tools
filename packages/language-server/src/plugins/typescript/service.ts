@@ -698,6 +698,7 @@ async function createLanguageService(
                 // NodeJS: up to 4.9, Node10: since 5.0
                 (ts.ModuleResolutionKind as any).NodeJs ?? ts.ModuleResolutionKind.Node10;
         }
+
         if (
             !compilerOptions.module ||
             [
@@ -710,6 +711,12 @@ async function createLanguageService(
             ].includes(compilerOptions.module)
         ) {
             compilerOptions.module = ts.ModuleKind.ESNext;
+        }
+
+        if (!compilerOptions.target) {
+            compilerOptions.target = ts.ScriptTarget.Latest;
+        } else if (ts.ScriptTarget.ES2015 > compilerOptions.target) {
+            compilerOptions.target = ts.ScriptTarget.ES2015;
         }
 
         // detect which JSX namespace to use (svelte | svelteNative) if not specified or not compatible
