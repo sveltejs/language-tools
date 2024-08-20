@@ -77,6 +77,31 @@ describe('service', () => {
         });
     });
 
+    it('can loads default tsconfig', async () => {
+        const dirPath = getRandomVirtualDirPath(testDir);
+        const { lsDocumentContext, rootUris } = setup();
+
+        const ls = await getService(
+            path.join(dirPath, 'random.svelte'),
+            rootUris,
+            lsDocumentContext
+        );
+
+        assert.deepStrictEqual(ls.compilerOptions, <ts.CompilerOptions>{
+            allowJs: true,
+            allowSyntheticDefaultImports: true,
+            allowNonTsExtensions: true,
+            configFilePath: undefined,
+            declaration: false,
+            maxNodeModuleJsDepth: 2,
+            module: ts.ModuleKind.ESNext,
+            moduleResolution: ts.ModuleResolutionKind.Node10,
+            noEmit: true,
+            skipLibCheck: true,
+            target: ts.ScriptTarget.ESNext
+        });
+    });
+
     it('patch release document so dispose do not throw', async () => {
         // testing this because the patch rely on ts implementation details
         // and we want to be aware of the changes

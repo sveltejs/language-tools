@@ -672,7 +672,7 @@ async function createLanguageService(
     function getParsedConfig() {
         let compilerOptions: ts.CompilerOptions;
         let parsedConfig: ts.ParsedCommandLine;
-        let extendedConfigPaths: Set<string>;
+        let extendedConfigPaths: Set<string> | undefined;
 
         if (tsconfigPath) {
             const info = ensureTsConfigInfoUpToDate(tsconfigPath);
@@ -683,12 +683,11 @@ async function createLanguageService(
             }
             compilerOptions = info.parsedCommandLine.options;
             parsedConfig = info.parsedCommandLine;
-            extendedConfigPaths = info.extendedConfigPaths ?? new Set();
+            extendedConfigPaths = info.extendedConfigPaths;
         } else {
             const config = parseDefaultCompilerOptions();
             compilerOptions = config.compilerOptions;
             parsedConfig = config.parsedConfig;
-            extendedConfigPaths = config.extendedConfigPaths;
         }
 
         if (
@@ -739,94 +738,12 @@ async function createLanguageService(
     }
 
     function parseDefaultCompilerOptions() {
-        const forcedCompilerOptions: ts.CompilerOptions = {
-            allowNonTsExtensions: true,
-            target: ts.ScriptTarget.Latest,
-            allowJs: true,
-            noEmit: true,
-            declaration: false,
-            skipLibCheck: true
-        };
-
-        // always let ts parse config to get default compilerOption
-        let configJson =
-            (tsconfigPath && ts.readConfigFile(tsconfigPath, tsSystem.readFile).config) ||
-            getDefaultJsConfig();
-
-        // Only default exclude when no extends for now
-        if (!configJson.extends) {
-            configJson = Object.assign(
-                {
-                    exclude: getDefaultExclude()
-                },
-                configJson
-            );
-        }
-
-        const { cacheMonitorProxy, extendedConfigPaths } = monitorExtendedConfig();
-
-        const parsedConfig = ts.parseJsonConfigFileContent(
-            configJson,
-            tsSystem,
-            workspacePath,
-            forcedCompilerOptions,
-            tsconfigPath,
-            undefined,
-            getExtraExtensions(),
-            cacheMonitorProxy
-        );
-
-        const compilerOptions: ts.CompilerOptions = {
-            ...parsedConfig.options,
-            ...forcedCompilerOptions
-        };
-
-        return { compilerOptions, parsedConfig, extendedConfigPaths };
-    }
-
-    function monitorExtendedConfig() {
-        const extendedConfigPaths = new Set<string>();
-        const { extendedConfigCache } = docContext;
-        const cacheMonitorProxy = {
-            ...docContext.extendedConfigCache,
-            get(key: string) {
-                extendedConfigPaths.add(key);
-                return extendedConfigCache.get(key);
-            },
-            has(key: string) {
-                extendedConfigPaths.add(key);
-                return extendedConfigCache.has(key);
-            },
-            set(key: string, value: ts.ExtendedConfigCacheEntry) {
-                extendedConfigPaths.add(key);
-                return extendedConfigCache.set(key, value);
-            }
-        };
-        return { cacheMonitorProxy, extendedConfigPaths };
-    }
-
-    function getExtraExtensions(): readonly ts.FileExtensionInfo[] | undefined {
-        return [
-            {
-                extension: 'svelte',
-                isMixedContent: true,
-                // Deferred was added in a later TS version, fall back to tsx
-                // If Deferred exists, this means that all Svelte files are included
-                // in parsedConfig.fileNames
-                scriptKind: ts.ScriptKind.Deferred ?? ts.ScriptKind.TS
-            }
-        ];
-    }
-
-    /**
-     * This should only be used when there's no jsconfig/tsconfig at all
-     */
-    function getDefaultJsConfig(): {
-        compilerOptions: ts.CompilerOptions;
-        include: string[];
-    } {
-        return {
+        let configJson = {
             compilerOptions: {
+                allowJs: true,
+                noEmit: true,
+                declaration: false,
+                skipLibCheck: true,
                 maxNodeModuleJsDepth: 2,
                 allowSyntheticDefaultImports: true
             },
@@ -834,10 +751,17 @@ async function createLanguageService(
             // with potentially completely unrelated .ts/.js files:
             include: []
         };
-    }
 
-    function getDefaultExclude() {
-        return ['node_modules', ...ignoredBuildDirectories];
+        const parsedConfig = ts.parseJsonConfigFileContent(configJson, tsSystem, workspacePath);
+
+        const compilerOptions: ts.CompilerOptions = {
+            ...parsedConfig.options,
+            target: ts.ScriptTarget.Latest,
+            allowNonTsExtensions: true,
+            moduleResolution: ts.ModuleResolutionKind.Node10
+        };
+
+        return { compilerOptions, parsedConfig };
     }
 
     /**
@@ -874,10 +798,10 @@ async function createLanguageService(
     }
 
     function watchConfigFiles(
-        extendedConfigPaths: Set<string>,
+        extendedConfigPaths: Set<string> | undefined,
         parsedCommandLine: ts.ParsedCommandLine
     ) {
-        const tsconfigDependencies = Array.from(extendedConfigPaths).concat(
+        const tsconfigDependencies = Array.from(extendedConfigPaths ?? []).concat(
             parsedCommandLine.projectReferences?.map((r) => r.path) ?? []
         );
         tsconfigDependencies.forEach((configPath) => {
@@ -1074,7 +998,24 @@ async function createLanguageService(
 
         const json = ts.parseJsonText(configFilePath, content);
 
-        const { cacheMonitorProxy, extendedConfigPaths } = monitorExtendedConfig();
+        const extendedConfigPaths = new Set<string>();
+        const { extendedConfigCache } = docContext;
+        const cacheMonitorProxy = {
+            ...docContext.extendedConfigCache,
+            get(key: string) {
+                extendedConfigPaths.add(key);
+                return extendedConfigCache.get(key);
+            },
+            has(key: string) {
+                extendedConfigPaths.add(key);
+                return extendedConfigCache.has(key);
+            },
+            set(key: string, value: ts.ExtendedConfigCacheEntry) {
+                extendedConfigPaths.add(key);
+                return extendedConfigCache.set(key, value);
+            }
+        };
+
         // TypeScript will throw if the parsedCommandLine doesn't include the sourceFile for the config file
         // i.e. it must be directly parse from the json text instead of a javascript object like we do in getParsedConfig
         const parsedCommandLine = ts.parseJsonSourceFileConfigFileContent(
@@ -1084,7 +1025,16 @@ async function createLanguageService(
             /*existingOptions*/ undefined,
             configFilePath,
             /*resolutionStack*/ undefined,
-            getExtraExtensions(),
+            [
+                {
+                    extension: 'svelte',
+                    isMixedContent: true,
+                    // Deferred was added in a later TS version, fall back to tsx
+                    // If Deferred exists, this means that all Svelte files are included
+                    // in parsedConfig.fileNames
+                    scriptKind: ts.ScriptKind.Deferred ?? ts.ScriptKind.TS
+                }
+            ],
             cacheMonitorProxy
         );
 
