@@ -73,7 +73,8 @@ describe('service', () => {
             checkJs: true,
             strict: true,
             module: ts.ModuleKind.ESNext,
-            moduleResolution: ts.ModuleResolutionKind.Node10
+            moduleResolution: ts.ModuleResolutionKind.Node10,
+            target: ts.ScriptTarget.ESNext
         });
     });
 

@@ -106,7 +106,7 @@ export function createVirtualTsSystem(currentDirectory: string): ts.System {
                 );
             }
 
-            const normalizedPath = normalizePath(toAbsolute(path));
+            const normalizedPath = getCanonicalFileName(normalizePath(toAbsolute(path)));
             return Array.from(virtualFs.keys()).filter((fileName) =>
                 fileName.startsWith(normalizedPath)
             );
