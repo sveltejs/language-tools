@@ -67,12 +67,18 @@ export function parseOptions(cb: (opts: SvelteCheckCliOptions) => any) {
         )
         .action((opts) => {
             const workspaceUri = getWorkspaceUri(opts);
+            const tsconfig = getTsconfig(opts, workspaceUri.fsPath);
+
+            if (opts.ignore && tsconfig) {
+                throwError('`--ignore` only has an effect when using `--no-tsconfig`');
+            }
+
             cb({
                 workspaceUri,
                 outputFormat: getOutputFormat(opts),
                 watch: !!opts.watch,
                 preserveWatchOutput: !!opts.preserveWatchOutput,
-                tsconfig: getTsconfig(opts, workspaceUri.fsPath),
+                tsconfig,
                 filePathsToIgnore: opts.ignore?.split(',') || [],
                 failOnWarnings: !!opts['fail-on-warnings'],
                 compilerWarnings: getCompilerWarnings(opts),
@@ -141,9 +147,13 @@ function getTsconfig(myArgs: Record<string, any>, workspacePath: string) {
         tsconfig = path.join(workspacePath, tsconfig);
     }
     if (tsconfig && !fs.existsSync(tsconfig)) {
-        throw new Error('Could not find tsconfig/jsconfig file at ' + myArgs.tsconfig);
+        throwError('Could not find tsconfig/jsconfig file at ' + myArgs.tsconfig);
     }
     return tsconfig;
+}
+
+function throwError(msg: string) {
+    throw new Error('Invalid svelte-check CLI args: ' + msg);
 }
 
 function getCompilerWarnings(opts: Record<string, any>) {
