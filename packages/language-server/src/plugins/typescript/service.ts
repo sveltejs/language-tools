@@ -112,7 +112,7 @@ const configFileForOpenFiles = new FileMap<string>();
 const pendingReloads = new FileSet();
 const documentRegistries = new Map<string, ts.DocumentRegistry>();
 const pendingForAllServices = new Set<Promise<void>>();
-const projectReferenceInfo = new FileMap<TsConfigInfo | null>();
+const parsedTsConfigInfo = new FileMap<TsConfigInfo | null>();
 
 /**
  * For testing only: Reset the cache for services.
@@ -121,7 +121,7 @@ const projectReferenceInfo = new FileMap<TsConfigInfo | null>();
  */
 export function __resetCache() {
     services.clear();
-    projectReferenceInfo.clear();
+    parsedTsConfigInfo.clear();
     serviceSizeMap.clear();
     configFileForOpenFiles.clear();
 }
@@ -153,7 +153,7 @@ export async function getService(
 
     const fileExistsWithCache = (fileName: string) => {
         return (
-            (projectReferenceInfo.has(fileName) && !pendingReloads.has(fileName)) ||
+            (parsedTsConfigInfo.has(fileName) && !pendingReloads.has(fileName)) ||
             docContext.tsSystem.fileExists(fileName)
         );
     };
@@ -286,7 +286,7 @@ export async function getServiceForTsconfig(
     if (reloading || !services.has(tsconfigPathOrWorkspacePath)) {
         if (reloading) {
             Logger.log('Reloading ts service at ', tsconfigPath, ' due to config updated');
-            projectReferenceInfo.delete(tsconfigPath);
+            parsedTsConfigInfo.delete(tsconfigPath);
         } else {
             Logger.log('Initialize new ts service at ', tsconfigPath);
         }
@@ -313,9 +313,8 @@ async function createLanguageService(
 ): Promise<LanguageServiceContainer> {
     const { tsSystem } = docContext;
 
-    const configErrors: ts.Diagnostic[] = [];
     const projectConfig = getParsedConfig();
-    const { options: compilerOptions, raw } = projectConfig;
+    const { options: compilerOptions, raw, errors: configErrors } = projectConfig;
 
     const getCanonicalFileName = createGetCanonicalFileName(tsSystem.useCaseSensitiveFileNames);
     watchWildCardDirectories(projectConfig);
@@ -442,7 +441,7 @@ async function createLanguageService(
         parsedCommandLine: ts.ParsedCommandLine,
         configFileName: string
     ) {
-        const cached = configFileName ? projectReferenceInfo.get(configFileName) : undefined;
+        const cached = configFileName ? parsedTsConfigInfo.get(configFileName) : undefined;
         if (cached?.snapshotManager) {
             return cached.snapshotManager;
         }
@@ -598,7 +597,7 @@ async function createLanguageService(
     function scheduleProjectFileUpdate(watcherNewFiles: string[]): void {
         if (!snapshotManager.areIgnoredFromNewFileWatch(watcherNewFiles)) {
             scheduleUpdate();
-            const info = projectReferenceInfo.get(tsconfigPath);
+            const info = parsedTsConfigInfo.get(tsconfigPath);
             if (info) {
                 info.pendingProjectFileUpdate = true;
             }
@@ -608,7 +607,7 @@ async function createLanguageService(
             return;
         }
         for (const ref of projectConfig.projectReferences) {
-            const config = projectReferenceInfo.get(ref.path);
+            const config = parsedTsConfigInfo.get(ref.path);
             if (
                 config &&
                 // handled by the respective service
@@ -622,7 +621,7 @@ async function createLanguageService(
     }
 
     function ensureProjectFileUpdates(): void {
-        const info = projectReferenceInfo.get(tsconfigPath);
+        const info = parsedTsConfigInfo.get(tsconfigPath);
         if (!info || !info.pendingProjectFileUpdate) {
             return;
         }
@@ -738,8 +737,8 @@ async function createLanguageService(
         }
 
         const svelteConfigDiagnostics = checkSvelteInput(parsedConfig);
-        if (docContext.reportConfigError) {
-            docContext.reportConfigError({
+        if (svelteConfigDiagnostics.length > 0) {
+            docContext.reportConfigError?.({
                 uri: pathToUrl(tsconfigPath),
                 diagnostics: svelteConfigDiagnostics.map((d) => ({
                     message: d.messageText as string,
@@ -748,7 +747,6 @@ async function createLanguageService(
                     source: 'svelte'
                 }))
             });
-        } else {
             parsedConfig.errors.push(...svelteConfigDiagnostics);
         }
 
@@ -1035,7 +1033,7 @@ async function createLanguageService(
     }
 
     function ensureTsConfigInfoUpToDate(configFilePath: string) {
-        const cached = projectReferenceInfo.get(configFilePath);
+        const cached = parsedTsConfigInfo.get(configFilePath);
         if (cached !== undefined) {
             ensureFilesForConfigUpdates(cached);
             return cached;
@@ -1043,7 +1041,7 @@ async function createLanguageService(
 
         const content = tsSystem.fileExists(configFilePath) && tsSystem.readFile(configFilePath);
         if (!content) {
-            projectReferenceInfo.set(configFilePath, null);
+            parsedTsConfigInfo.set(configFilePath, null);
             return null;
         }
 
@@ -1091,10 +1089,6 @@ async function createLanguageService(
 
         parsedCommandLine.options.allowNonTsExtensions = true;
 
-        if (parsedCommandLine.errors.length) {
-            configErrors.push(...parsedCommandLine.errors);
-        }
-
         const snapshotManager = createSnapshotManager(parsedCommandLine, configFilePath);
 
         const tsconfigInfo: TsConfigInfo = {
@@ -1104,7 +1098,7 @@ async function createLanguageService(
             configFilePath,
             extendedConfigPaths
         };
-        projectReferenceInfo.set(configFilePath, tsconfigInfo);
+        parsedTsConfigInfo.set(configFilePath, tsconfigInfo);
 
         watchConfigFiles(extendedConfigPaths, parsedCommandLine);
 
