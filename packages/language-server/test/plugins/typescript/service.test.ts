@@ -79,6 +79,91 @@ describe('service', () => {
         });
     });
 
+    it('errors if tsconfig matches no svelte files', async () => {
+        const dirPath = getRandomVirtualDirPath(testDir);
+        const { virtualSystem, lsDocumentContext, rootUris } = setup();
+
+        virtualSystem.readDirectory = () => [path.join(dirPath, 'random.ts')];
+
+        virtualSystem.writeFile(
+            path.join(dirPath, 'tsconfig.json'),
+            JSON.stringify({
+                include: ['**/*.ts']
+            })
+        );
+
+        virtualSystem.writeFile(
+            path.join(dirPath, 'random.svelte'),
+            '<script>const a: number = null;</script>'
+        );
+
+        let called = false;
+        await getService(path.join(dirPath, 'random.svelte'), rootUris, {
+            ...lsDocumentContext,
+            reportConfigError: (message) => {
+                called = true;
+                assert.equal(message.uri, pathToUrl(path.join(dirPath, 'tsconfig.json')));
+            }
+        });
+        assert.ok(called);
+    });
+
+    it('do not errors if referenced tsconfig matches no svelte files', async () => {
+        const dirPath = getRandomVirtualDirPath(testDir);
+        const { virtualSystem, lsDocumentContext, rootUris } = setup();
+
+        const tsPattern = '**/*.ts';
+        const sveltePattern = '**/*.svelte';
+        virtualSystem.readDirectory = (_path, _extensions, _excludes, include) => {
+            return include?.[0] === tsPattern
+                ? [path.join(dirPath, 'random.ts')]
+                : include?.[0] === sveltePattern
+                  ? [path.join(dirPath, 'random.svelte')]
+                  : [];
+        };
+
+        virtualSystem.writeFile(
+            path.join(dirPath, 'tsconfig.json'),
+            JSON.stringify({
+                include: [],
+                references: [{ path: './tsconfig_node.json' }, { path: './tsconfig_web.json' }]
+            })
+        );
+
+        virtualSystem.writeFile(
+            path.join(dirPath, 'tsconfig_node.json'),
+            JSON.stringify({
+                include: [tsPattern]
+            })
+        );
+
+        virtualSystem.writeFile(
+            path.join(dirPath, 'tsconfig_web.json'),
+            JSON.stringify({
+                include: [sveltePattern]
+            })
+        );
+
+        virtualSystem.writeFile(
+            path.join(dirPath, 'random.svelte'),
+            '<script>const a: number = null;</script>'
+        );
+
+        let called = false;
+        const lsContainer = await getService(path.join(dirPath, 'random.svelte'), rootUris, {
+            ...lsDocumentContext,
+            reportConfigError: () => {
+                called = true;
+            }
+        });
+
+        assert.equal(
+            normalizePath(path.join(dirPath, 'tsconfig_web.json')),
+            lsContainer.tsconfigPath
+        );
+        assert.equal(called, false, 'expected not to call reportConfigError');
+    });
+
     it('can loads default tsconfig', async () => {
         const dirPath = getRandomVirtualDirPath(testDir);
         const { lsDocumentContext, rootUris } = setup();
