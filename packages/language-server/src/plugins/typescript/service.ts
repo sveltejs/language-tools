@@ -779,7 +779,7 @@ async function createLanguageService(
                 length: undefined,
                 messageText:
                     `No svelte input files were found in config file '${tsconfigPath}'. ` +
-                    `Did you forget to add svelte files to the "include" in your ${basename(tsconfigPath)}? ` +
+                    `Did you forget to add svelte files to the 'include' in your ${basename(tsconfigPath)}? ` +
                     `Specified 'include' paths were '${inputText}' and 'exclude' paths were '${excludeText}'`,
                 source: 'svelte'
             }
