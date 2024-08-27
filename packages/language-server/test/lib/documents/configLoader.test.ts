@@ -110,11 +110,10 @@ describe('ConfigLoader', () => {
 
         assert.deepStrictEqual(
             // Can't do the equal-check directly, instead check if it's the expected object props
-            // of svelte-preprocess
             Object.keys(
                 configLoader.getConfig(normalizePath('/some/path/comp.svelte'))?.preprocess || {}
             ).sort(),
-            ['markup', 'script', 'style'].sort()
+            ['name', 'script'].sort()
         );
     });
 
