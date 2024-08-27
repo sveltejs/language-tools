@@ -7,6 +7,9 @@ on:
 
 jobs:
   deploy:
+    permissions:
+      id-token: write # OpenID Connect token needed for provenance
+
     runs-on: ubuntu-latest
 
     steps:
@@ -32,7 +35,7 @@ jobs:
       - run: |
           cd packages/typescript-plugin
           pnpm install
-          pnpm publish --no-git-checks
+          pnpm publish --provenance --no-git-checks
 
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
