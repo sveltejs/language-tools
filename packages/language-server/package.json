@@ -6,7 +6,8 @@
     "typings": "dist/src/index",
     "exports": {
         "./package.json": "./package.json",
-        ".": "./dist/src/index.js"
+        ".": "./dist/src/index.js",
+        "./bin/server.js": "./bin/server.js"
     },
     "scripts": {
         "test": "cross-env TS_NODE_TRANSPILE_ONLY=true mocha --require ts-node/register \"test/**/*.ts\" --exclude \"test/**/*.d.ts\"",
