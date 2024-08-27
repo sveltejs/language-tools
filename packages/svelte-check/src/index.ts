@@ -65,8 +65,7 @@ async function openAllDocuments(
     const absFilePaths = await new fdir()
         .filter((path) => path.endsWith('.svelte') && !isIgnored(path))
         .exclude((_, path) => {
-            path = path.slice(offset);
-            return path.startsWith('.') || path.startsWith('node_modules');
+            return path.includes('/node_modules/') || path.includes('/.');
         })
         .withPathSeparator('/')
         .withFullPaths()
