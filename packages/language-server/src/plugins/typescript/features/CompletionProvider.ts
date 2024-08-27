@@ -49,6 +49,7 @@ import {
     isPartOfImportStatement
 } from './utils';
 import { isInTag as svelteIsInTag } from '../svelte-ast-utils';
+import { LanguageServiceContainer } from '../service';
 
 export interface CompletionResolveInfo
     extends Pick<ts.CompletionEntry, 'data' | 'name' | 'source'>,
@@ -170,7 +171,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
             return null;
         }
 
-        const { lang } = await this.lsAndTsDocResolver.getLSAndTSDoc(document);
+        const { lang, lsContainer } = await this.lsAndTsDocResolver.getLSAndTSDoc(document);
         if (cancellationToken?.isCancellationRequested) {
             return null;
         }
@@ -192,7 +193,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
         const tagCompletions =
             componentInfo || eventAndSlotLetCompletions.length > 0
                 ? []
-                : await this.getCustomElementCompletions(lang, document, tsDoc, position);
+                : this.getCustomElementCompletions(lang, lsContainer, document, tsDoc, position);
 
         const formatSettings = await this.configManager.getFormatCodeSettingsForFile(
             document,
@@ -474,12 +475,13 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
         ];
     }
 
-    private async getCustomElementCompletions(
+    private getCustomElementCompletions(
         lang: ts.LanguageService,
+        lsContainer: LanguageServiceContainer,
         document: Document,
         tsDoc: SvelteDocumentSnapshot,
         position: Position
-    ): Promise<CompletionItem[] | undefined> {
+    ): CompletionItem[] | undefined {
         const offset = document.offsetAt(position);
         const tag = getNodeIfIsInHTMLStartTag(document.html, offset);
 
@@ -499,9 +501,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
             return;
         }
 
-        const typingsNamespace = (
-            await this.lsAndTsDocResolver.getTSService(tsDoc.filePath)
-        )?.getTsConfigSvelteOptions().namespace;
+        const typingsNamespace = lsContainer.getTsConfigSvelteOptions().namespace;
 
         const typingsNamespaceSymbol = this.findTypingsNamespaceSymbol(
             typingsNamespace,

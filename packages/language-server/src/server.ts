@@ -199,7 +199,10 @@ export function startServer(options?: LSOptions) {
                     onProjectReloaded: refreshCrossFilesSemanticFeatures,
                     watch: true,
                     nonRecursiveWatchPattern,
-                    watchDirectory: (patterns) => watchDirectory(patterns)
+                    watchDirectory: (patterns) => watchDirectory(patterns),
+                    reportConfigError(diagnostic) {
+                        connection?.sendDiagnostics(diagnostic);
+                    }
                 }),
                 normalizedWorkspaceUris,
                 docManager

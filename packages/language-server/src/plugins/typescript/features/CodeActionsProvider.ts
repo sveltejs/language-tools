@@ -46,7 +46,6 @@ import {
 import { CompletionsProviderImpl } from './CompletionProvider';
 import {
     findClosestContainingNode,
-    findContainingNode,
     FormatCodeBasis,
     getFormatCodeBasis,
     getNewScriptStartTag,
@@ -56,6 +55,7 @@ import {
 } from './utils';
 import { DiagnosticCode } from './DiagnosticsProvider';
 import { createGetCanonicalFileName } from '../../../utils';
+import { LanguageServiceContainer } from '../service';
 
 /**
  * TODO change this to protocol constant if it's part of the protocol
@@ -156,7 +156,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             return codeAction;
         }
 
-        const { lang, tsDoc, userPreferences } =
+        const { lang, tsDoc, userPreferences, lsContainer } =
             await this.lsAndTsDocResolver.getLSAndTSDoc(document);
         if (cancellationToken?.isCancellationRequested) {
             return codeAction;
@@ -180,10 +180,11 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
 
         const isImportFix = codeAction.data.fixName === FIX_IMPORT_FIX_NAME;
         const virtualDocInfo = isImportFix
-            ? await this.createVirtualDocumentForCombinedImportCodeFix(
+            ? this.createVirtualDocumentForCombinedImportCodeFix(
                   document,
                   getDiagnostics(),
                   tsDoc,
+                  lsContainer,
                   lang
               )
             : undefined;
@@ -218,7 +219,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             await this.lsAndTsDocResolver.deleteSnapshot(virtualDocPath);
         }
 
-        const snapshots = new SnapshotMap(this.lsAndTsDocResolver);
+        const snapshots = new SnapshotMap(this.lsAndTsDocResolver, lsContainer);
         const fixActions: ts.CodeFixAction[] = [
             {
                 fixName: codeAction.data.fixName,
@@ -259,10 +260,11 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
      * Do not use this in regular code action
      * This'll cause TypeScript to rebuild and invalidate caches every time. It'll be slow
      */
-    private async createVirtualDocumentForCombinedImportCodeFix(
+    private createVirtualDocumentForCombinedImportCodeFix(
         document: Document,
         diagnostics: Diagnostic[],
         tsDoc: DocumentSnapshot,
+        lsContainer: LanguageServiceContainer,
         lang: ts.LanguageService
     ) {
         const virtualUri = document.uri + '.__virtual__.svelte';
@@ -314,10 +316,8 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         const virtualDoc = new Document(virtualUri, newText);
         virtualDoc.openedByClient = true;
         // let typescript know about the virtual document
-        // getLSAndTSDoc instead of getSnapshot so that project dirty state is correctly tracked by us
-        // otherwise, sometime the applied code fix might not be picked up by the language service
-        // because we think the project is still dirty and doesn't update the project version
-        await this.lsAndTsDocResolver.getLSAndTSDoc(virtualDoc);
+        lsContainer.openVirtualDocument(virtualDoc);
+        lsContainer.getService();
 
         return {
             virtualDoc,
@@ -553,7 +553,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         context: CodeActionContext,
         cancellationToken: CancellationToken | undefined
     ) {
-        const { lang, tsDoc, userPreferences } = await this.getLSAndTSDoc(document);
+        const { lang, tsDoc, userPreferences, lsContainer } = await this.getLSAndTSDoc(document);
 
         if (cancellationToken?.isCancellationRequested) {
             return [];
@@ -613,7 +613,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             );
         }
 
-        const snapshots = new SnapshotMap(this.lsAndTsDocResolver);
+        const snapshots = new SnapshotMap(this.lsAndTsDocResolver, lsContainer);
         snapshots.set(tsDoc.filePath, tsDoc);
 
         const codeActionsPromises = codeFixes.map(async (fix) => {

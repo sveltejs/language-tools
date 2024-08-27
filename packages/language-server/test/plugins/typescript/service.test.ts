@@ -1,16 +1,17 @@
 import assert from 'assert';
 import path from 'path';
+import sinon from 'sinon';
 import ts from 'typescript';
+import { RelativePattern } from 'vscode-languageserver-protocol';
 import { Document } from '../../../src/lib/documents';
 import { GlobalSnapshotsManager } from '../../../src/plugins/typescript/SnapshotManager';
 import {
+    LanguageServiceContainer,
     LanguageServiceDocumentContext,
     getService
 } from '../../../src/plugins/typescript/service';
-import { pathToUrl } from '../../../src/utils';
+import { normalizePath, pathToUrl } from '../../../src/utils';
 import { createVirtualTsSystem, getRandomVirtualDirPath } from './test-utils';
-import sinon from 'sinon';
-import { RelativePattern } from 'vscode-languageserver-protocol';
 
 describe('service', () => {
     const testDir = path.join(__dirname, 'testfiles');
@@ -33,7 +34,8 @@ describe('service', () => {
             onProjectReloaded: undefined,
             projectService: undefined,
             nonRecursiveWatchPattern: undefined,
-            watchDirectory: undefined
+            watchDirectory: undefined,
+            reportConfigError: undefined
         };
 
         return { virtualSystem, lsDocumentContext, rootUris };
@@ -53,6 +55,11 @@ describe('service', () => {
             })
         );
 
+        virtualSystem.writeFile(
+            path.join(dirPath, 'random.svelte'),
+            '<script>const a: number = null;</script>'
+        );
+
         const ls = await getService(
             path.join(dirPath, 'random.svelte'),
             rootUris,
@@ -63,11 +70,117 @@ describe('service', () => {
         delete ls.compilerOptions.configFilePath;
 
         assert.deepStrictEqual(ls.compilerOptions, <ts.CompilerOptions>{
-            allowJs: true,
             allowNonTsExtensions: true,
             checkJs: true,
             strict: true,
+            module: ts.ModuleKind.ESNext,
+            moduleResolution: ts.ModuleResolutionKind.Node10,
+            target: ts.ScriptTarget.ESNext
+        });
+    });
+
+    it('errors if tsconfig matches no svelte files', async () => {
+        const dirPath = getRandomVirtualDirPath(testDir);
+        const { virtualSystem, lsDocumentContext, rootUris } = setup();
+
+        virtualSystem.readDirectory = () => [path.join(dirPath, 'random.ts')];
+
+        virtualSystem.writeFile(
+            path.join(dirPath, 'tsconfig.json'),
+            JSON.stringify({
+                include: ['**/*.ts']
+            })
+        );
+
+        virtualSystem.writeFile(
+            path.join(dirPath, 'random.svelte'),
+            '<script>const a: number = null;</script>'
+        );
+
+        let called = false;
+        await getService(path.join(dirPath, 'random.svelte'), rootUris, {
+            ...lsDocumentContext,
+            reportConfigError: (message) => {
+                called = true;
+                assert.equal(message.uri, pathToUrl(path.join(dirPath, 'tsconfig.json')));
+            }
+        });
+        assert.ok(called);
+    });
+
+    it('do not errors if referenced tsconfig matches no svelte files', async () => {
+        const dirPath = getRandomVirtualDirPath(testDir);
+        const { virtualSystem, lsDocumentContext, rootUris } = setup();
+
+        const tsPattern = '**/*.ts';
+        const sveltePattern = '**/*.svelte';
+        virtualSystem.readDirectory = (_path, _extensions, _excludes, include) => {
+            return include?.[0] === tsPattern
+                ? [path.join(dirPath, 'random.ts')]
+                : include?.[0] === sveltePattern
+                  ? [path.join(dirPath, 'random.svelte')]
+                  : [];
+        };
+
+        virtualSystem.writeFile(
+            path.join(dirPath, 'tsconfig.json'),
+            JSON.stringify({
+                include: [],
+                references: [{ path: './tsconfig_node.json' }, { path: './tsconfig_web.json' }]
+            })
+        );
+
+        virtualSystem.writeFile(
+            path.join(dirPath, 'tsconfig_node.json'),
+            JSON.stringify({
+                include: [tsPattern]
+            })
+        );
+
+        virtualSystem.writeFile(
+            path.join(dirPath, 'tsconfig_web.json'),
+            JSON.stringify({
+                include: [sveltePattern]
+            })
+        );
+
+        virtualSystem.writeFile(
+            path.join(dirPath, 'random.svelte'),
+            '<script>const a: number = null;</script>'
+        );
+
+        let called = false;
+        const lsContainer = await getService(path.join(dirPath, 'random.svelte'), rootUris, {
+            ...lsDocumentContext,
+            reportConfigError: () => {
+                called = true;
+            }
+        });
+
+        assert.equal(
+            normalizePath(path.join(dirPath, 'tsconfig_web.json')),
+            lsContainer.tsconfigPath
+        );
+        assert.equal(called, false, 'expected not to call reportConfigError');
+    });
+
+    it('can loads default tsconfig', async () => {
+        const dirPath = getRandomVirtualDirPath(testDir);
+        const { lsDocumentContext, rootUris } = setup();
+
+        const ls = await getService(
+            path.join(dirPath, 'random.svelte'),
+            rootUris,
+            lsDocumentContext
+        );
+
+        assert.deepStrictEqual(ls.compilerOptions, <ts.CompilerOptions>{
+            allowJs: true,
+            allowSyntheticDefaultImports: true,
+            allowNonTsExtensions: true,
+            configFilePath: undefined,
             declaration: false,
+            maxNodeModuleJsDepth: 2,
             module: ts.ModuleKind.ESNext,
             moduleResolution: ts.ModuleResolutionKind.Node10,
             noEmit: true,
@@ -91,6 +204,11 @@ describe('service', () => {
                     moduleResolution: 'NodeNext'
                 }
             })
+        );
+
+        virtualSystem.writeFile(
+            path.join(dirPath, 'random.svelte'),
+            '<script>const a: number = null;</script>'
         );
 
         const ls = await getService(
@@ -125,21 +243,24 @@ describe('service', () => {
 
     function createReloadTester(
         docContext: LanguageServiceDocumentContext,
-        testAfterReload: () => Promise<void>
+        testAfterReload: (reloadingConfigs: string[]) => Promise<boolean>
     ) {
         let _resolve: () => void;
-        const reloadPromise = new Promise<void>((resolve) => {
+        let _reject: (e: unknown) => void;
+        const reloadPromise = new Promise<void>((resolve, reject) => {
             _resolve = resolve;
+            _reject = reject;
         });
 
         return {
             docContextWithReload: {
                 ...docContext,
-                async onProjectReloaded() {
+                async onProjectReloaded(reloadingConfigs: string[]) {
                     try {
-                        await testAfterReload();
-                    } finally {
+                        await testAfterReload(reloadingConfigs);
                         _resolve();
+                    } catch (e) {
+                        _reject(e);
                     }
                 }
             },
@@ -159,6 +280,11 @@ describe('service', () => {
                     strict: false
                 }
             })
+        );
+
+        virtualSystem.writeFile(
+            path.join(dirPath, 'random.svelte'),
+            '<script>const a: number = null;</script>'
         );
 
         const { reloadPromise, docContextWithReload } = createReloadTester(
@@ -189,6 +315,8 @@ describe('service', () => {
                 true,
                 'expected to reload compilerOptions'
             );
+
+            return true;
         }
     });
 
@@ -197,13 +325,18 @@ describe('service', () => {
         const { virtualSystem, lsDocumentContext, rootUris } = setup();
         const tsconfigPath = path.join(dirPath, 'tsconfig.json');
         const extend = './.svelte-kit/tsconfig.json';
-        const extendedConfigPathFull = path.resolve(tsconfigPath, extend);
+        const extendedConfigPathFull = path.resolve(path.dirname(tsconfigPath), extend);
 
         virtualSystem.writeFile(
             tsconfigPath,
             JSON.stringify({
                 extends: extend
             })
+        );
+
+        virtualSystem.writeFile(
+            path.join(dirPath, 'random.svelte'),
+            '<script>const a: number = null;</script>'
         );
 
         const { reloadPromise, docContextWithReload } = createReloadTester(
@@ -234,23 +367,78 @@ describe('service', () => {
                 true,
                 'expected to reload compilerOptions'
             );
+            return true;
+        }
+    });
+
+    it('can watch project reference tsconfig', async () => {
+        const dirPath = getRandomVirtualDirPath(testDir);
+        const { virtualSystem, lsDocumentContext, rootUris } = setup();
+        const tsconfigPath = path.join(dirPath, 'tsconfig.json');
+        const referenced = './tsconfig_node.json';
+        const referencedConfigPathFull = path.resolve(path.dirname(tsconfigPath), referenced);
+
+        virtualSystem.writeFile(
+            tsconfigPath,
+            JSON.stringify({
+                references: [{ path: referenced }],
+                include: []
+            })
+        );
+
+        virtualSystem.writeFile(
+            referencedConfigPathFull,
+            JSON.stringify({
+                compilerOptions: <ts.CompilerOptions>{
+                    strict: true
+                },
+                files: ['random.ts']
+            })
+        );
+
+        const { reloadPromise, docContextWithReload } = createReloadTester(
+            { ...lsDocumentContext, watchTsConfig: true },
+            testAfterReload
+        );
+
+        const tsFilePath = path.join(dirPath, 'random.ts');
+        virtualSystem.writeFile(tsFilePath, 'const a: number = null;');
+
+        const ls = await getService(tsFilePath, rootUris, docContextWithReload);
+        assert.deepStrictEqual(getSemanticDiagnosticsMessages(ls, tsFilePath), [
+            "Type 'null' is not assignable to type 'number'."
+        ]);
+
+        virtualSystem.writeFile(
+            referencedConfigPathFull,
+            JSON.stringify({
+                compilerOptions: <ts.CompilerOptions>{
+                    strict: false
+                }
+            })
+        );
+
+        await reloadPromise;
+
+        async function testAfterReload(reloadingConfigs: string[]) {
+            if (!reloadingConfigs.includes(referencedConfigPathFull)) {
+                return false;
+            }
+            const newLs = await getService(tsFilePath, rootUris, {
+                ...lsDocumentContext,
+                watchTsConfig: true
+            });
+
+            assert.deepStrictEqual(getSemanticDiagnosticsMessages(newLs, tsFilePath), []);
+            return true;
         }
     });
 
     it('can open client file that do not exist in fs', async () => {
         const dirPath = getRandomVirtualDirPath(testDir);
-        const { virtualSystem, lsDocumentContext, rootUris } = setup();
+        const { lsDocumentContext, rootUris } = setup();
 
-        virtualSystem.writeFile(
-            path.join(dirPath, 'tsconfig.json'),
-            JSON.stringify({
-                compilerOptions: <ts.CompilerOptions>{
-                    checkJs: true,
-                    strict: true
-                }
-            })
-        );
-
+        // don't need tsconfig because files doesn't exist in fs goes to a service with default config
         const ls = await getService(
             path.join(dirPath, 'random.svelte'),
             rootUris,
@@ -264,6 +452,60 @@ describe('service', () => {
         assert.doesNotThrow(() => {
             ls.getService().getSemanticDiagnostics(document.getFilePath()!);
         });
+    });
+
+    it('resolve module with source project reference redirect', async () => {
+        const dirPath = getRandomVirtualDirPath(testDir);
+        const { virtualSystem, lsDocumentContext, rootUris } = setup();
+
+        const package1 = path.join(dirPath, 'package1');
+
+        virtualSystem.writeFile(
+            path.join(package1, 'tsconfig.json'),
+            JSON.stringify({
+                references: [{ path: '../package2' }],
+                files: ['index.ts']
+            })
+        );
+
+        const package2 = path.join(dirPath, 'package2');
+        virtualSystem.writeFile(
+            path.join(package2, 'tsconfig.json'),
+            JSON.stringify({
+                compilerOptions: {
+                    composite: true,
+                    strict: true
+                },
+                files: ['index.ts']
+            })
+        );
+
+        const importing = path.join(package1, 'index.ts');
+        virtualSystem.writeFile(importing, 'import { hi } from "package2"; hi((a) => `${a}`);');
+
+        const imported = path.join(package2, 'index.ts');
+        virtualSystem.writeFile(imported, 'export function hi(cb: (num: number) => string) {}');
+
+        const package2Link = normalizePath(path.join(package1, 'node_modules', 'package2'));
+        virtualSystem.realpath = (p) => {
+            if (normalizePath(p).startsWith(package2Link)) {
+                const sub = p.substring(package2Link.length);
+                return path.join(package2) + sub;
+            }
+
+            return p;
+        };
+
+        const fileExists = virtualSystem.fileExists;
+        virtualSystem.fileExists = (p) => {
+            const realPath = virtualSystem.realpath!(p);
+
+            return fileExists(realPath);
+        };
+
+        const ls = await getService(importing, rootUris, lsDocumentContext);
+
+        assert.deepStrictEqual(getSemanticDiagnosticsMessages(ls, importing), []);
     });
 
     it('skip directory watching if directory is root', async () => {
@@ -322,4 +564,11 @@ describe('service', () => {
 
         sinon.assert.calledWith(watchDirectory.firstCall, <RelativePattern[]>[]);
     });
+
+    function getSemanticDiagnosticsMessages(ls: LanguageServiceContainer, filePath: string) {
+        return ls
+            .getService()
+            .getSemanticDiagnostics(filePath)
+            .map((d) => d.messageText);
+    }
 });

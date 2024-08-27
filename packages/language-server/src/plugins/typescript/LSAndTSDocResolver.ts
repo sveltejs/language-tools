@@ -1,6 +1,10 @@
 import { dirname, join } from 'path';
 import ts from 'typescript';
-import { RelativePattern, TextDocumentContentChangeEvent } from 'vscode-languageserver';
+import {
+    PublishDiagnosticsParams,
+    RelativePattern,
+    TextDocumentContentChangeEvent
+} from 'vscode-languageserver';
 import { Document, DocumentManager } from '../../lib/documents';
 import { LSConfigManager } from '../../ls-config';
 import {
@@ -37,6 +41,7 @@ interface LSAndTSDocResolverOptions {
     tsconfigPath?: string;
 
     onProjectReloaded?: () => void;
+    reportConfigError?: (diagnostic: PublishDiagnosticsParams) => void;
     watch?: boolean;
     tsSystem?: ts.System;
     watchDirectory?: (patterns: RelativePattern[]) => void;
@@ -50,14 +55,10 @@ export class LSAndTSDocResolver {
         private readonly configManager: LSConfigManager,
         private readonly options?: LSAndTSDocResolverOptions
     ) {
-        const handleDocumentChange = (document: Document) => {
-            // This refreshes the document in the ts language service
-            this.getSnapshot(document);
-        };
         docManager.on(
             'documentChange',
             debounceSameArg(
-                handleDocumentChange,
+                this.updateSnapshot.bind(this),
                 (newDoc, prevDoc) => newDoc.uri === prevDoc?.uri,
                 1000
             )
@@ -68,7 +69,11 @@ export class LSAndTSDocResolver {
         // where multiple files and their dependencies
         // being loaded in a short period of times
         docManager.on('documentOpen', (document) => {
-            handleDocumentChange(document);
+            if (document.openedByClient) {
+                this.getOrCreateSnapshot(document);
+            } else {
+                this.updateSnapshot(document);
+            }
             docManager.lockDocument(document.uri);
         });
 
@@ -121,7 +126,8 @@ export class LSAndTSDocResolver {
             watchDirectory: this.options?.watchDirectory
                 ? this.watchDirectory.bind(this)
                 : undefined,
-            nonRecursiveWatchPattern: this.options?.nonRecursiveWatchPattern
+            nonRecursiveWatchPattern: this.options?.nonRecursiveWatchPattern,
+            reportConfigError: this.options?.reportConfigError
         };
     }
 
@@ -151,18 +157,20 @@ export class LSAndTSDocResolver {
     private lsDocumentContext: LanguageServiceDocumentContext;
     private readonly watchedDirectories: FileSet;
 
-    async getLSForPath(path: string) {
-        return (await this.getTSService(path)).getService();
-    }
-
     async getLSAndTSDoc(document: Document): Promise<{
         tsDoc: SvelteDocumentSnapshot;
         lang: ts.LanguageService;
         userPreferences: ts.UserPreferences;
+        lsContainer: LanguageServiceContainer;
     }> {
         const { tsDoc, lsContainer, userPreferences } = await this.getLSAndTSDocWorker(document);
 
-        return { tsDoc, lang: lsContainer.getService(), userPreferences };
+        return {
+            tsDoc,
+            lang: lsContainer.getService(),
+            userPreferences,
+            lsContainer
+        };
     }
 
     /**
@@ -181,7 +189,7 @@ export class LSAndTSDocResolver {
 
     private async getLSAndTSDocWorker(document: Document) {
         const lsContainer = await this.getTSService(document.getFilePath() || '');
-        const tsDoc = await this.getSnapshot(document);
+        const tsDoc = await this.getOrCreateSnapshot(document);
         const userPreferences = this.getUserPreferences(tsDoc);
 
         return { tsDoc, lsContainer, userPreferences };
@@ -192,12 +200,20 @@ export class LSAndTSDocResolver {
      * the ts service it primarily belongs into.
      * The update is mirrored in all other services, too.
      */
-    async getSnapshot(document: Document): Promise<SvelteDocumentSnapshot>;
-    async getSnapshot(pathOrDoc: string | Document): Promise<DocumentSnapshot>;
-    async getSnapshot(pathOrDoc: string | Document) {
+    async getOrCreateSnapshot(document: Document): Promise<SvelteDocumentSnapshot>;
+    async getOrCreateSnapshot(pathOrDoc: string | Document): Promise<DocumentSnapshot>;
+    async getOrCreateSnapshot(pathOrDoc: string | Document) {
         const filePath = typeof pathOrDoc === 'string' ? pathOrDoc : pathOrDoc.getFilePath() || '';
         const tsService = await this.getTSService(filePath);
         return tsService.updateSnapshot(pathOrDoc);
+    }
+    private async updateSnapshot(document: Document) {
+        const filePath = document.getFilePath();
+        if (!filePath) {
+            return;
+        }
+        // ensure no new service is created
+        await this.updateExistingFile(filePath, (service) => service.updateSnapshot(document));
     }
 
     /**
@@ -217,7 +233,7 @@ export class LSAndTSDocResolver {
             });
         } else {
             // This may not be a file but a directory, still try
-            await this.getSnapshot(newPath);
+            await this.getOrCreateSnapshot(newPath);
         }
     }
 
@@ -280,25 +296,24 @@ export class LSAndTSDocResolver {
         });
     }
 
-    /**
-     * @internal Public for tests only
-     */
-    async getSnapshotManager(filePath: string): Promise<SnapshotManager> {
-        return (await this.getTSService(filePath)).snapshotManager;
-    }
-
     async getTSService(filePath?: string): Promise<LanguageServiceContainer> {
         if (this.options?.tsconfigPath) {
-            return getServiceForTsconfig(
-                this.options?.tsconfigPath,
-                dirname(this.options.tsconfigPath),
-                this.lsDocumentContext
+            return this.getTSServiceByConfigPath(
+                this.options.tsconfigPath,
+                dirname(this.options.tsconfigPath)
             );
         }
         if (!filePath) {
             throw new Error('Cannot call getTSService without filePath and without tsconfigPath');
         }
         return getService(filePath, this.workspaceUris, this.lsDocumentContext);
+    }
+
+    async getTSServiceByConfigPath(
+        tsconfigPath: string,
+        workspacePath: string
+    ): Promise<LanguageServiceContainer> {
+        return getServiceForTsconfig(tsconfigPath, workspacePath, this.lsDocumentContext);
     }
 
     private getUserPreferences(tsDoc: DocumentSnapshot): ts.UserPreferences {

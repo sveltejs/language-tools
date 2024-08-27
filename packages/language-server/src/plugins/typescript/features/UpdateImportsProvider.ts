@@ -6,14 +6,27 @@ import {
     WorkspaceEdit
 } from 'vscode-languageserver';
 import { mapRangeToOriginal } from '../../../lib/documents';
-import { urlToPath } from '../../../utils';
+import {
+    createGetCanonicalFileName,
+    GetCanonicalFileName,
+    normalizePath,
+    urlToPath
+} from '../../../utils';
 import { FileRename, UpdateImportsProvider } from '../../interfaces';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
+import { forAllServices, LanguageServiceContainer } from '../service';
 import { convertRange } from '../utils';
 import { isKitTypePath, SnapshotMap } from './utils';
 
 export class UpdateImportsProviderImpl implements UpdateImportsProvider {
-    constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
+    constructor(
+        private readonly lsAndTsDocResolver: LSAndTSDocResolver,
+        useCaseSensitiveFileNames: boolean
+    ) {
+        this.getCanonicalFileName = createGetCanonicalFileName(useCaseSensitiveFileNames);
+    }
+
+    private getCanonicalFileName: GetCanonicalFileName;
 
     async updateImports(fileRename: FileRename): Promise<WorkspaceEdit | null> {
         // TODO does this handle folder moves/renames correctly? old/new path isn't a file then
@@ -23,7 +36,47 @@ export class UpdateImportsProviderImpl implements UpdateImportsProvider {
             return null;
         }
 
-        const ls = await this.getLSForPath(newPath);
+        const services: LanguageServiceContainer[] = [];
+        await forAllServices((ls) => {
+            services.push(ls);
+        });
+
+        const documentChanges = new Map<string, TextDocumentEdit>();
+        for (const service of services) {
+            await this.updateImportForSingleService(oldPath, newPath, service, documentChanges);
+        }
+
+        return {
+            documentChanges: Array.from(documentChanges.values())
+        };
+    }
+
+    async updateImportForSingleService(
+        oldPath: string,
+        newPath: string,
+        lsContainer: LanguageServiceContainer,
+        documentChanges: Map<string, TextDocumentEdit>
+    ) {
+        const ls = lsContainer.getService();
+        const program = ls.getProgram();
+        if (!program) {
+            return;
+        }
+
+        const canonicalOldPath = this.getCanonicalFileName(normalizePath(oldPath));
+        const canonicalNewPath = this.getCanonicalFileName(normalizePath(newPath));
+        const hasFile = program.getSourceFiles().some((sf) => {
+            const normalizedFileName = this.getCanonicalFileName(normalizePath(sf.fileName));
+            return (
+                normalizedFileName.startsWith(canonicalOldPath) ||
+                normalizedFileName.startsWith(canonicalNewPath)
+            );
+        });
+
+        if (!hasFile) {
+            return;
+        }
+
         const oldPathTsProgramCasing = ls.getProgram()?.getSourceFile(oldPath)?.fileName ?? oldPath;
         // `getEditsForFileRename` might take a while
         const fileChanges = ls
@@ -75,12 +128,15 @@ export class UpdateImportsProviderImpl implements UpdateImportsProvider {
                 return change;
             });
 
-        const docs = new SnapshotMap(this.lsAndTsDocResolver);
-        const documentChanges = await Promise.all(
+        const docs = new SnapshotMap(this.lsAndTsDocResolver, lsContainer);
+        await Promise.all(
             updateImportsChanges.map(async (change) => {
+                if (documentChanges.has(change.fileName)) {
+                    return;
+                }
                 const snapshot = await docs.retrieve(change.fileName);
 
-                return TextDocumentEdit.create(
+                const edit = TextDocumentEdit.create(
                     OptionalVersionedTextDocumentIdentifier.create(snapshot.getURL(), null),
                     change.textChanges.map((edit) => {
                         const range = mapRangeToOriginal(
@@ -90,13 +146,9 @@ export class UpdateImportsProviderImpl implements UpdateImportsProvider {
                         return TextEdit.replace(range, edit.newText);
                     })
                 );
+
+                documentChanges.set(change.fileName, edit);
             })
         );
-
-        return { documentChanges };
-    }
-
-    private async getLSForPath(path: string) {
-        return this.lsAndTsDocResolver.getLSForPath(path);
     }
 }

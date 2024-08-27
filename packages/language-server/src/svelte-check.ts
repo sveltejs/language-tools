@@ -18,6 +18,7 @@ import { JSOrTSDocumentSnapshot } from './plugins/typescript/DocumentSnapshot';
 import { isInGeneratedCode } from './plugins/typescript/features/utils';
 import { convertRange, getDiagnosticTag, mapSeverity } from './plugins/typescript/utils';
 import { pathToUrl, urlToPath } from './utils';
+import { groupBy } from 'lodash';
 
 export type SvelteCheckDiagnosticSource = 'js' | 'css' | 'svelte';
 
@@ -188,10 +189,36 @@ export class SvelteCheck {
 
     private async getDiagnosticsForTsconfig(tsconfigPath: string) {
         const lsContainer = await this.getLSContainer(tsconfigPath);
+        const map = (diagnostic: ts.Diagnostic, range?: Range): Diagnostic => {
+            const file = diagnostic.file;
+            range ??= file
+                ? convertRange(
+                      { positionAt: file.getLineAndCharacterOfPosition.bind(file) },
+                      diagnostic
+                  )
+                : { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } };
 
-        const noInputsFoundError = lsContainer.configErrors?.find((e) => e.code === 18003);
-        if (noInputsFoundError) {
-            throw new Error(noInputsFoundError.messageText.toString());
+            return {
+                range: range,
+                severity: mapSeverity(diagnostic.category),
+                source: diagnostic.source,
+                message: ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n'),
+                code: diagnostic.code,
+                tags: getDiagnosticTag(diagnostic)
+            };
+        };
+
+        if (lsContainer.configErrors) {
+            const grouped = groupBy(
+                lsContainer.configErrors,
+                (error) => error.file?.fileName ?? tsconfigPath
+            );
+
+            return Object.entries(grouped).map(([filePath, errors]) => ({
+                filePath,
+                text: '',
+                diagnostics: errors.map((diagnostic) => map(diagnostic))
+            }));
         }
 
         const lang = lsContainer.getService();
@@ -211,6 +238,7 @@ export class SvelteCheck {
                     const skipDiagnosticsForFile =
                         (options.skipLibCheck && file.isDeclarationFile) ||
                         (options.skipDefaultLibCheck && file.hasNoDefaultLib) ||
+                        lsContainer.isShimFiles(file.fileName) ||
                         // ignore JS files in node_modules
                         /\/node_modules\/.+\.(c|m)?js$/.test(file.fileName);
                     const snapshot = lsContainer.snapshotManager.get(file.fileName) as
@@ -218,20 +246,6 @@ export class SvelteCheck {
                         | undefined;
                     const isKitFile = snapshot?.kitFile ?? false;
                     const diagnostics: Diagnostic[] = [];
-                    const map = (diagnostic: ts.Diagnostic, range?: Range) => ({
-                        range:
-                            range ??
-                            convertRange(
-                                { positionAt: file.getLineAndCharacterOfPosition.bind(file) },
-                                diagnostic
-                            ),
-                        severity: mapSeverity(diagnostic.category),
-                        source: diagnostic.source,
-                        message: ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n'),
-                        code: diagnostic.code,
-                        tags: getDiagnosticTag(diagnostic)
-                    });
-
                     if (!skipDiagnosticsForFile) {
                         const originalDiagnostics = [
                             ...lang.getSyntacticDiagnostics(file.fileName),

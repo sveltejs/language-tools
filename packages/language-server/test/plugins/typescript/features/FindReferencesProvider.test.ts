@@ -31,7 +31,11 @@ describe('FindReferencesProvider', function () {
             (textDocument) => new Document(textDocument.uri, textDocument.text)
         );
         const lsConfigManager = new LSConfigManager();
-        const lsAndTsDocResolver = new LSAndTSDocResolver(docManager, [testDir], lsConfigManager);
+        const lsAndTsDocResolver = new LSAndTSDocResolver(
+            docManager,
+            [pathToUrl(testDir)],
+            lsConfigManager
+        );
         const provider = new FindReferencesProviderImpl(
             lsAndTsDocResolver,
             new FindComponentReferencesProviderImpl(lsAndTsDocResolver)

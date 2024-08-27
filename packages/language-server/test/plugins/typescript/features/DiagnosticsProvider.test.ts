@@ -98,7 +98,7 @@ describe('DiagnosticsProvider', function () {
         );
 
         const newFilePath = normalizePath(path.join(testDir, 'empty-export.ts')) || '';
-        await lsAndTsDocResolver.getSnapshot(newFilePath);
+        await lsAndTsDocResolver.getOrCreateSnapshot(newFilePath);
 
         const diagnostics1 = await plugin.getDiagnostics(document);
         assert.deepStrictEqual(
