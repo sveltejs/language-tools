@@ -90,7 +90,7 @@ export class ConfigLoader {
                 .withPathSeparator('/')
                 .exclude((_, path) => {
                     // no / at the start, path could start with node_modules
-                    return path.includes('node_modules/') || path.includes('/.');
+                    return path.includes('node_modules/') || path.includes('/.') || path[0] === '.';
                 })
                 .filter((path, isDir) => {
                     return !isDir && configRegex.test(path);
