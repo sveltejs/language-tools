@@ -1471,7 +1471,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
 
         const position = inModuleScript
             ? originalRange.start
-            : this.fixPropsCodeActionRange(originalRange.start, document) ?? originalRange.start;
+            : (this.fixPropsCodeActionRange(originalRange.start, document) ?? originalRange.start);
 
         // fix the length of trailing indent
         const linesOfNewText = edit.newText.split('\n');

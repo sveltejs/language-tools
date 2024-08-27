@@ -213,7 +213,7 @@ export class CallHierarchyProviderImpl implements CallHierarchyProvider {
             .provideCallHierarchyOutgoingCalls(filePath, offset)
             .concat(
                 isComponentModulePosition
-                    ? this.getOutgoingCallsForComponent(program, filePath) ?? []
+                    ? (this.getOutgoingCallsForComponent(program, filePath) ?? [])
                     : []
             );
 

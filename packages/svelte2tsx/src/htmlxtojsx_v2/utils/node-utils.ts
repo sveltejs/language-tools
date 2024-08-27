@@ -233,7 +233,7 @@ export function rangeWithTrailingPropertyAccess(
  * Get the end of the node, excluding the type annotation
  */
 export function getEnd(node: any) {
-    return isTypescriptNode(node) ? node.expression.end : node.typeAnnotation?.start ?? node.end;
+    return isTypescriptNode(node) ? node.expression.end : (node.typeAnnotation?.start ?? node.end);
 }
 
 export function isTypescriptNode(node: any) {
