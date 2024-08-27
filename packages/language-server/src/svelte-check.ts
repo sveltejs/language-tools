@@ -208,7 +208,7 @@ export class SvelteCheck {
             };
         };
 
-        if (lsContainer.configErrors) {
+        if (lsContainer.configErrors.length > 0) {
             const grouped = groupBy(
                 lsContainer.configErrors,
                 (error) => error.file?.fileName ?? tsconfigPath
