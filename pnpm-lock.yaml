@@ -266,8 +266,8 @@ importers:
         specifier: ^2.0.1
         version: 2.0.2
       magic-string:
-        specifier: ^0.27.0
-        version: 0.27.0
+        specifier: ^0.30.11
+        version: 0.30.11
       mocha:
         specifier: ^9.2.0
         version: 9.2.2
