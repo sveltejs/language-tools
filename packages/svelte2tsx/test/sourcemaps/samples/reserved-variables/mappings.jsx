@@ -23,17 +23,18 @@
 ;                                                                                                                                                     {/**
 ;↲            [generated] line 8                                                                                                                      
 <                                                                                                                                                     
-</script>↲    [original] line 6 (rest generated at line 9)                                                                                            
+</script>↲    [original] line 6 (rest generated at lines 9, 10)                                                                                       
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
 async () => {                                                                                                                                         {/**
-============#     Originless mappings                                                                                                                 
 async•()•=>•{↲    [generated] line 9                                                                                                                  
-             ↲                                                                                                                                        
-         ↲                                                                                                                                            
-</script>↲        [original] line 6 (rest generated at line 8)                                                                                        
+<            ↲                                                                                                                                        
+<        ↲                                                                                                                                            
+</script>↲        [original] line 6 (rest generated at lines 8, 10)                                                                                   
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                                                                                                                                                       {/**
-
+↲             [generated] line 10                                                                                                                     
+         ↲                                                                                                                                            
+</script>↲    [original] line 6 (rest generated at lines 8, 9)                                                                                        
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
 if($$slots.foo){                                                                                                                                      {/**
 if($$slots.foo){↲     [generated] line 11                                                                                                             
@@ -45,10 +46,9 @@ if($$slots.foo){↲     [generated] line 11
    ╚$$restProps.bar;↲     [generated] line 12                                                                                                         
    ╚$$restProps.bar}↲                                                                                                                                 
    ╚ $$restProps.bar}↲                                                                                                                                
-   ╚{$$restProps.bar}↲    [original] line 9                                                                                                           
+   ╚{$$restProps.bar}↲    [original] line 9 (rest generated at line 13)                                                                               
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
      { const $$_tnenopmoC0C = __sveltets_2_ensureComponent(Component); new $$_tnenopmoC0C({ target: __sveltets_2_any(), props: {  ...$$props,}});}    {/**
-   #                                                                                                                                                   Originless mappings
    ╚•{•const•$$_tnenopmoC0C•=•__sveltets_2_ensureComponent(Component);•new•$$_tnenopmoC0C({•target:•__sveltets_2_any(),•props:•{••...$$props,}});}↲    [generated] line 13
                                                                                                                                 • ...$$props,}});}     [generated] subset
                                                                                                                                 ╚ ...$$props}          
@@ -60,6 +60,12 @@ if($$slots.foo){↲     [generated] line 11
                                                                                                                                  ╚                ↲    
    ╚  ↲                                                                                                                                                
    ╚/>↲                                                                                                                                                [original] line 12 
+                                                                                                                                                       
+   ╚•{•const•$$_tnenopmoC0C•=•__sveltets_2_ensureComponent(Component);•new•$$_tnenopmoC0C({•target:•__sveltets_2_any(),•props:•{••...$$props,}});}↲    [generated] line 13
+   ╚                                                                                                                                                   [generated] subset
+   ↲                                                                                                                                                   
+                     ↲                                                                                                                                 
+   ╚{$$restProps.bar}↲                                                                                                                                 [original] line 9 (rest generated at line 12)
                                                                                                                                                        
    ╚•{•const•$$_tnenopmoC0C•=•__sveltets_2_ensureComponent(Component);•new•$$_tnenopmoC0C({•target:•__sveltets_2_any(),•props:•{••...$$props,}});}↲    [generated] line 13
     •{•const•$$_tnenopmoC0C•=•__sveltets_2_ensureComponent(Component);•new•$$_tnenopmoC0C({•target:•__sveltets_2_any(),•props:•{                       [generated] subset

@@ -7,14 +7,20 @@ async•()•=>•{•{•const•$$_tnenopmoC0C•=•__sveltets_2_ensureCompon
              <                                                      Component                                                                                  el{•l                                                   hi•hi2=hi_2}hi3                                            ↲    
                                                                                                                                                                   #                                                                                                                    Order-breaking mappings
 <Component le  hi•l   hi2={hi_2}•    hi3 ↲                                                                                                                                                                                                                                             
-<Component•let:hi•let:hi2={hi_2}•let:hi3>↲                                                                                                                                                                                                                                             [original] line 1 
+<Component•let:hi•let:hi2={hi_2}•let:hi3>↲                                                                                                                                                                                                                                             [original] line 1 (rest generated at line 4)
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
     hi;hi_2;hi3;                                                                                                                                      {/**
-===#                    Originless mappings                                                                                                           
-••••hi;hi_2;hi3;↲       [generated] line 4                                                                                                            
+••••hi;hi_2;hi3;↲                             [generated] line 4                                                                                      
+••••                                          [generated] subset                                                                                      
+↲                                                                                                                                                     
+                                         ↲                                                                                                            
+<Component•let:hi•let:hi2={hi_2}•let:hi3>↲    [original] line 1 (rest generated at line 3)                                                            
+                                                                                                                                                      
+••••hi;hi_2;hi3;↲                             [generated] line 4                                                                                      
+    hi;hi_2;hi3;↲                             [generated] subset                                                                                      
     hi}hi_2}hi3}↲                                                                                                                                     
      hi} hi_2} hi3}↲                                                                                                                                  
-••••{hi}{hi_2}{hi3}↲    [original] line 2                                                                                                             
+••••{hi}{hi_2}{hi3}↲                          [original] line 2                                                                                       
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
  }Component}};                                                                                                                                        {/**
 •}Component}};↲    [generated] line 5                                                                                                                 

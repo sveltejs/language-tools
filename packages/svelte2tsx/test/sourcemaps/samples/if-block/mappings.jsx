@@ -18,19 +18,23 @@ async•()•=>•{if(foo){↲    [generated] line 3
 }↲        [generated] line 5                                                                                                                          
 {↲                                                                                                                                                    
 {    ↲                                                                                                                                                
-{/if}↲    [original] line 3                                                                                                                           
+{/if}↲    [original] line 3 (rest generated at line 6)                                                                                                
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                                                                                                                                                       {/**
-
+↲         [generated] line 6                                                                                                                          
+     ↲                                                                                                                                                
+{/if}↲    [original] line 3 (rest generated at line 5)                                                                                                
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
 if($foo){ { svelteHTML.createElement("element", {});}}                                                                                                {/**
 if($foo){•{•svelteHTML.createElement("element",•{});}}↲    [generated] line 7                                                                         
 {  $foo} <                            element    /   {↲                                                                                               
 {    $foo}<element / {    ↲                                                                                                                           
-{#if•$foo}<element•/>{/if}↲                                [original] line 5                                                                          
+{#if•$foo}<element•/>{/if}↲                                [original] line 5 (rest generated at line 8)                                               
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                                                                                                                                                       {/**
-
+↲                              [generated] line 8                                                                                                     
+                          ↲                                                                                                                           
+{#if•$foo}<element•/>{/if}↲    [original] line 5 (rest generated at line 7)                                                                           
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
 if(foo){                                                                                                                                              {/**
 if(foo){↲     [generated] line 9                                                                                                                      

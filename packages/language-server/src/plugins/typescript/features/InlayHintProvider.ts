@@ -1,4 +1,4 @@
-import ts from 'typescript';
+import ts, { ArrowFunction } from 'typescript';
 import { CancellationToken } from 'vscode-languageserver';
 import {
     Position,
@@ -69,6 +69,7 @@ export class InlayHintProviderImpl implements InlayHintProvider {
                     inlayHint.position !== renderFunctionReturnTypeLocation &&
                     !this.isSvelte2tsxFunctionHints(sourceFile, inlayHint) &&
                     !this.isGeneratedVariableTypeHint(sourceFile, inlayHint) &&
+                    !this.isGeneratedAsyncFunctionReturnType(sourceFile, inlayHint) &&
                     !this.isGeneratedFunctionReturnType(sourceFile, inlayHint)
             )
             .map(async (inlayHint) => ({
@@ -252,6 +253,29 @@ export class InlayHintProviderImpl implements InlayHintProvider {
             isInGeneratedCode(sourceFile.text, declaration.pos) ||
             declaration.name.getText().startsWith('$$')
         );
+    }
+
+    /** `true` if is one of the `async () => {...}` functions svelte2tsx generates */
+    private isGeneratedAsyncFunctionReturnType(sourceFile: ts.SourceFile, inlayHint: ts.InlayHint) {
+        if (inlayHint.kind !== ts.InlayHintKind.Type) {
+            return false;
+        }
+
+        const expression = findContainingNode(
+            sourceFile,
+            { start: inlayHint.position, length: 0 },
+            (node): node is ArrowFunction => ts.isArrowFunction(node)
+        );
+
+        if (
+            !expression?.modifiers?.some((m) => m.kind === ts.SyntaxKind.AsyncKeyword) ||
+            !expression.parent?.parent ||
+            !ts.isBlock(expression.parent.parent)
+        ) {
+            return false;
+        }
+
+        return this.getTypeAnnotationPosition(expression) === inlayHint.position;
     }
 
     private isGeneratedFunctionReturnType(sourceFile: ts.SourceFile, inlayHint: ts.InlayHint) {
