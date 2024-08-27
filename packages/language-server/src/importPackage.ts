@@ -63,14 +63,6 @@ export function importSvelte(fromPath: string): typeof svelte {
     Logger.debug('Using Svelte v' + pkg.version.full, 'from', main);
     if (pkg.version.major === 4) {
         return dynamicRequire(main + '.cjs');
-    } else if (pkg.version.major === 5) {
-        // TODO remove once Svelte 5 is released
-        // (we switched from compiler.cjs to compiler/index.js at some point)
-        try {
-            return dynamicRequire(main);
-        } catch (e) {
-            return dynamicRequire(main + '.cjs');
-        }
     } else {
         return dynamicRequire(main);
     }

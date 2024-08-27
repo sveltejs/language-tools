@@ -37,7 +37,7 @@
         "Formatters"
     ],
     "engines": {
-        "vscode": "^1.67.0"
+        "vscode": "^1.82.0"
     },
     "activationEvents": [
         "onLanguage:svelte",
@@ -718,7 +718,7 @@
     },
     "devDependencies": {
         "@types/lodash": "^4.14.116",
-        "@types/node": "^16.0.0",
+        "@types/node": "^18.0.0",
         "@types/vscode": "^1.67",
         "js-yaml": "^3.14.0",
         "tslib": "^2.4.0",
@@ -729,7 +729,7 @@
         "lodash": "^4.17.21",
         "svelte-language-server": "workspace:*",
         "typescript-svelte-plugin": "workspace:*",
-        "vscode-languageclient": "^8.0.0",
-        "vscode-languageserver-protocol": "3.17.2"
+        "vscode-languageclient": "^9.0.1",
+        "vscode-languageserver-protocol": "3.17.5"
     }
 }
