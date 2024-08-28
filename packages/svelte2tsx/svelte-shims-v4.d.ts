@@ -265,5 +265,5 @@ declare function __sveltets_binding_value<
     // bail on unknown because it hints at a generic type which we can't properly resolve here
     // remove undefined because optional properties have it, and would result in false positives
     unknown extends import('svelte').ComponentProps<Comp>[Key] ? any : __sveltets_NonUndefined<import('svelte').ComponentProps<Comp>[Key]> : any;
-// Overload to ensure typings that only use old SvelteComponent class are gracefully handled
-declare function __sveltets_binding_value<Comp extends typeof import('svelte').SvelteComponent<any>>(comp: Comp, key: string): any
+// Overload to ensure typings that only use old SvelteComponent class or something invalid are gracefully handled
+declare function __sveltets_binding_value(comp: any, key: string): any

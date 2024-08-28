@@ -131,10 +131,12 @@ export function handleBinding(
     if (isSvelte5Plus && element instanceof InlineComponent) {
         // To check if property is actually bindable
         element.appendToStartEnd([`${element.name}.$$bindings = '${attr.name}';`]);
-        // To check if the binding is also assigned to the variable
-        element.appendToStartEnd([
-            `${expressionStr} = __sveltets_binding_value(${element.originalName}, '${attr.name}');`
-        ]);
+        // To check if the binding is also assigned to the variable (only works when there's no assertion, we can't transform that)
+        if (!isTypescriptNode(attr.expression)) {
+            element.appendToStartEnd([
+                `${expressionStr} = __sveltets_binding_value(${element.originalName}, '${attr.name}');`
+            ]);
+        }
     }
 
     if (element instanceof Element) {
