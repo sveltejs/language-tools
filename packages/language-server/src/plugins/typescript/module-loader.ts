@@ -104,10 +104,13 @@ class ImpliedNodeFormatResolver {
             return undefined;
         }
 
-        let mode = undefined;
+        let mode: ReturnType<typeof ts.getModeForResolutionAtIndex> = undefined;
         if (sourceFile) {
             this.cacheImpliedNodeFormat(sourceFile, compilerOptions);
             mode = ts.getModeForResolutionAtIndex(sourceFile, importIdxInFile, compilerOptions);
+            if (!mode && isSvelteFilePath(importPath)) {
+                mode = ts.ModuleKind.ESNext; // necessary for TS' module resolution to go into the right branches
+            }
         }
         return mode;
     }
@@ -292,6 +295,21 @@ export function createSvelteModuleLoader(
         }
 
         const snapshot = getSnapshot(resolvedFileName);
+
+        // Align with TypeScript behavior: If the Svelte file is not using TypeScript,
+        // mark it as unresolved so that people need to provide a .d.ts file.
+        // For backwards compatibility we're not doing this for files from packages
+        // without an exports map, because that may break too many existing projects.
+        if (
+            resolvedModule.isExternalLibraryImport &&
+            resolvedModule.extension === '.d.svelte.ts' && // this tells us it's from an exports map
+            snapshot.scriptKind !== ts.ScriptKind.TS
+        ) {
+            return {
+                ...resolvedModuleWithFailedLookup,
+                resolvedModule: undefined
+            };
+        }
 
         const resolvedSvelteModule: ts.ResolvedModuleFull = {
             extension: getExtensionFromScriptKind(snapshot && snapshot.scriptKind),

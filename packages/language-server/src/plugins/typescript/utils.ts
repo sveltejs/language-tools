@@ -74,7 +74,13 @@ export function isVirtualSvelteFilePath(filePath: string) {
 }
 
 export function toRealSvelteFilePath(filePath: string) {
-    return filePath.slice(0, -'.ts'.length);
+    filePath = filePath.slice(0, -'.ts'.length);
+    // When a .svelte file referenced inside an exports map of a package.json is tried to be resolved,
+    // TypeScript will probe for the file with a .d.svelte.ts extension.
+    if (filePath.endsWith('.d.svelte')) {
+        filePath = filePath.slice(0, -8) + 'svelte';
+    }
+    return filePath;
 }
 
 export function toVirtualSvelteFilePath(filePath: string) {
