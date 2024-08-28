@@ -1,7 +1,7 @@
-<script>
-    export let value;
+<script lang="ts">
+	import MyComponent from './ComponentB.svelte'
+	let value: Date
+	$: console.log('value:', value)
 </script>
-
-{#if value}
-    <input bind:value on:change />
-{/if}
+  
+<MyComponent bind:value />
