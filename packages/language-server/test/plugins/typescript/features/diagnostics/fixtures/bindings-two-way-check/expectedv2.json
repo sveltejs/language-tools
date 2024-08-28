@@ -1,1 +1,18 @@
-[]
+[
+    {
+        "code": -1,
+        "message": "Unexpected token",
+        "range": {
+            "end": {
+                "character": 47,
+                "line": 12
+            },
+            "start": {
+                "character": 47,
+                "line": 12
+            }
+        },
+        "severity": 1,
+        "source": "ts"
+    }
+]
