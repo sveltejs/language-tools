@@ -39,6 +39,7 @@ export class InlineComponent {
     private startTagEnd: number;
     private isSelfclosing: boolean;
     public child?: any;
+    public originalName = this.node.name;
 
     // Add const $$xxx = ... only if the variable name is actually used
     // in order to prevent "$$xxx is defined but never used" TS hints
