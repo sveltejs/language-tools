@@ -8,11 +8,17 @@ export function isSvelteFilePath(filePath: string) {
 }
 
 export function isVirtualSvelteFilePath(filePath: string) {
-    return filePath.endsWith('.svelte.ts');
+    return filePath.endsWith('.d.svelte.ts');
 }
 
 export function toRealSvelteFilePath(filePath: string) {
-    return filePath.slice(0, -'.ts'.length);
+    return filePath.slice(0, -11 /* 'd.svelte.ts'.length */) + 'svelte';
+}
+
+export function toVirtualSvelteFilePath(svelteFilePath: string) {
+    return isVirtualSvelteFilePath(svelteFilePath)
+        ? svelteFilePath
+        : svelteFilePath.slice(0, -6 /* 'svelte'.length */) + 'd.svelte.ts';
 }
 
 export function ensureRealSvelteFilePath(filePath: string) {

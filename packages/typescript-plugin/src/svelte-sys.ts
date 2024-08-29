@@ -30,7 +30,7 @@ export function createSvelteSys(ts: _ts, logger: Logger) {
         const realpath = ts.sys.realpath;
         svelteSys.realpath = function (path) {
             if (isVirtualSvelteFilePath(path)) {
-                return realpath(toRealSvelteFilePath(path)) + '.ts';
+                return realpath(toRealSvelteFilePath(path));
             }
             return realpath(path);
         };
