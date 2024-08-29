@@ -11,6 +11,17 @@ export function createSvelteSys(tsSystem: ts.System) {
     function svelteFileExists(path: string) {
         if (isVirtualSvelteFilePath(path)) {
             const sveltePath = toRealSvelteFilePath(path);
+
+            // First check if there's a `.svelte.d.ts` or `.d.svelte.ts` file, which should take precedence
+            const dtsPath = sveltePath.slice(0, -7) + '.svelte.d.ts';
+            const dtsPathExists = fileExistsCache.get(dtsPath) ?? tsSystem.fileExists(dtsPath);
+            fileExistsCache.set(dtsPath, dtsPathExists);
+            if (dtsPathExists) return false;
+
+            const svelteDtsPathExists = fileExistsCache.get(path) ?? tsSystem.fileExists(path);
+            fileExistsCache.set(path, svelteDtsPathExists);
+            if (svelteDtsPathExists) return false;
+
             const sveltePathExists =
                 fileExistsCache.get(sveltePath) ?? tsSystem.fileExists(sveltePath);
             fileExistsCache.set(sveltePath, sveltePathExists);
@@ -33,10 +44,11 @@ export function createSvelteSys(tsSystem: ts.System) {
         svelteFileExists,
         getRealSveltePathIfExists,
         fileExists(path: string) {
-            // We need to check both .svelte and .svelte.ts/js because that's how Svelte 5 will likely mark files with runes in them
+            // We need to check if this is a virtual svelte file
             const sveltePathExists = svelteFileExists(path);
-            const exists =
-                sveltePathExists || (fileExistsCache.get(path) ?? tsSystem.fileExists(path));
+            if (sveltePathExists) return true;
+
+            const exists = fileExistsCache.get(path) ?? tsSystem.fileExists(path);
             fileExistsCache.set(path, exists);
             return exists;
         },
@@ -66,7 +78,7 @@ export function createSvelteSys(tsSystem: ts.System) {
         const realpath = tsSystem.realpath;
         svelteSys.realpath = function (path) {
             if (svelteFileExists(path)) {
-                return realpath(toRealSvelteFilePath(path)) + '.ts';
+                return realpath(toRealSvelteFilePath(path));
             }
             return realpath(path);
         };

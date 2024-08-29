@@ -108,9 +108,6 @@ class ImpliedNodeFormatResolver {
         if (sourceFile) {
             this.cacheImpliedNodeFormat(sourceFile, compilerOptions);
             mode = ts.getModeForResolutionAtIndex(sourceFile, importIdxInFile, compilerOptions);
-            if (!mode && isSvelteFilePath(importPath)) {
-                mode = ts.ModuleKind.ESNext; // necessary for TS' module resolution to go into the right branches
-            }
         }
         return mode;
     }

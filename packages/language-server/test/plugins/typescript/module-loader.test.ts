@@ -59,12 +59,12 @@ describe('createSvelteModuleLoader', () => {
     it('uses svelte script kind if resolved module is svelte file', async () => {
         const resolvedModule: ts.ResolvedModuleFull = {
             extension: ts.Extension.Ts,
-            resolvedFileName: 'filename.svelte.ts'
+            resolvedFileName: 'filename.d.svelte.ts'
         };
         const { getSvelteSnapshotStub, moduleResolver, svelteSys } = setup(resolvedModule);
 
         svelteSys.getRealSveltePathIfExists = (filename: string) =>
-            filename === 'filename.svelte.ts' ? 'filename.svelte' : filename;
+            filename === 'filename.d.svelte.ts' ? 'filename.svelte' : filename;
 
         const result = moduleResolver.resolveModuleNames(
             ['./normal.ts'],
