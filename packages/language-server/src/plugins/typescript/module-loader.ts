@@ -104,7 +104,7 @@ class ImpliedNodeFormatResolver {
             return undefined;
         }
 
-        let mode = undefined;
+        let mode: ReturnType<typeof ts.getModeForResolutionAtIndex> = undefined;
         if (sourceFile) {
             this.cacheImpliedNodeFormat(sourceFile, compilerOptions);
             mode = ts.getModeForResolutionAtIndex(sourceFile, importIdxInFile, compilerOptions);

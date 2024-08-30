@@ -29,18 +29,24 @@ describe('Svelte Sys', () => {
     }
 
     describe('#fileExists', () => {
-        it('should leave files with no .svelte.ts-ending as is', async () => {
+        it('should leave files with no .d.svelte.ts-ending as is', async () => {
             const { loader, fileExistsStub } = setupLoader();
             loader.fileExists('../file.ts');
 
             assert.strictEqual(fileExistsStub.getCall(0).args[0], '../file.ts');
         });
 
-        it('should convert .svelte.ts-endings', async () => {
+        it('should convert .d.svelte.ts-endings', async () => {
             const { loader, fileExistsStub } = setupLoader();
-            loader.fileExists('../file.svelte.ts');
+            fileExistsStub.onCall(0).returns(false);
+            fileExistsStub.onCall(1).returns(false);
+            fileExistsStub.onCall(2).returns(true);
 
-            assert.strictEqual(fileExistsStub.getCall(0).args[0], '../file.svelte');
+            loader.fileExists('../file.d.svelte.ts');
+
+            assert.strictEqual(fileExistsStub.getCall(0).args[0], '../file.svelte.d.ts');
+            assert.strictEqual(fileExistsStub.getCall(1).args[0], '../file.d.svelte.ts');
+            assert.strictEqual(fileExistsStub.getCall(2).args[0], '../file.svelte');
         });
     });
 });
