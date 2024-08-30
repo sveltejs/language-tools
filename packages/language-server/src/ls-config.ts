@@ -478,16 +478,25 @@ export class LSConfigManager {
         };
     }
 
-    getTsUserPreferences(lang: TsUserConfigLang, workspacePath: string | null): ts.UserPreferences {
+    getTsUserPreferences(
+        lang: TsUserConfigLang,
+        normalizedWorkspacePath: string | null
+    ): ts.UserPreferences {
         const userPreferences = this.tsUserPreferences[lang];
 
-        if (!workspacePath || !userPreferences.autoImportFileExcludePatterns) {
+        if (!normalizedWorkspacePath || !userPreferences.autoImportFileExcludePatterns) {
             return userPreferences;
         }
 
-        let autoImportFileExcludePatterns = this.resolvedAutoImportExcludeCache.get(workspacePath);
+        let autoImportFileExcludePatterns =
+            this.resolvedAutoImportExcludeCache.get(normalizedWorkspacePath);
 
         if (!autoImportFileExcludePatterns) {
+            const version = ts.version.split('.');
+            const major = parseInt(version[0]);
+            const minor = parseInt(version[1]);
+
+            const gte5_4 = major > 5 || (major === 5 && minor >= 4);
             autoImportFileExcludePatterns = userPreferences.autoImportFileExcludePatterns.map(
                 (p) => {
                     // Normalization rules: https://github.com/microsoft/TypeScript/pull/49578
@@ -497,17 +506,20 @@ export class LSConfigManager {
                         return p;
                     }
 
-                    return path.join(
-                        workspacePath,
-                        p.startsWith('*')
-                            ? '/' + slashNormalized
-                            : isRelative
-                              ? p
-                              : '/**/' + slashNormalized
-                    );
+                    // https://github.com/microsoft/vscode/pull/202762
+                    // ts 5.4+ supports leading wildcards
+                    const wildcardPrefix = gte5_4 ? '' : path.parse(normalizedWorkspacePath).root;
+                    return p.startsWith('*')
+                        ? wildcardPrefix + slashNormalized
+                        : isRelative
+                          ? path.join(normalizedWorkspacePath, p)
+                          : wildcardPrefix + '**/' + slashNormalized;
                 }
             );
-            this.resolvedAutoImportExcludeCache.set(workspacePath, autoImportFileExcludePatterns);
+            this.resolvedAutoImportExcludeCache.set(
+                normalizedWorkspacePath,
+                autoImportFileExcludePatterns
+            );
         }
 
         return {
