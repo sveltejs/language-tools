@@ -11,12 +11,12 @@ import { ensureRealSvelteFilePath, isSvelteFilePath, isVirtualSvelteFilePath } f
 class ModuleResolutionCache {
     constructor(private readonly projectService: ts.server.ProjectService) {}
 
-    private cache = new Map<string, ts.ResolvedModuleFull>();
+    private cache = new Map<string, ts.ResolvedModuleFull | null>();
 
     /**
      * Tries to get a cached module.
      */
-    get(moduleName: string, containingFile: string): ts.ResolvedModuleFull | undefined {
+    get(moduleName: string, containingFile: string): ts.ResolvedModuleFull | null | undefined {
         return this.cache.get(this.getKey(moduleName, containingFile));
     }
 
@@ -28,10 +28,14 @@ class ModuleResolutionCache {
         containingFile: string,
         resolvedModule: ts.ResolvedModuleFull | undefined
     ) {
-        if (!resolvedModule) {
+        if (!resolvedModule && moduleName[0] === '.') {
+            // We cache unresolved modules for non-relative imports, too, because it's very likely that they don't change
+            // and we don't want to resolve them every time. If they do change, the original resolution mode will notice
+            // most of the time, and the only time this would result in a stale cache entry is if a node_modules package
+            // is added with a "svelte" condition and no "types" condition, which is rare enough.
             return;
         }
-        this.cache.set(this.getKey(moduleName, containingFile), resolvedModule);
+        this.cache.set(this.getKey(moduleName, containingFile), resolvedModule ?? null);
     }
 
     /**
@@ -42,6 +46,7 @@ class ModuleResolutionCache {
         resolvedModuleName = this.projectService.toCanonicalFileName(resolvedModuleName);
         this.cache.forEach((val, key) => {
             if (
+                val &&
                 this.projectService.toCanonicalFileName(val.resolvedFileName) === resolvedModuleName
             ) {
                 this.cache.delete(key);
@@ -87,6 +92,8 @@ export function patchModuleLoader(
     if (lsHost.resolveModuleNameLiterals) {
         lsHost.resolveModuleNameLiterals = resolveModuleNameLiterals;
     } else {
+        // TODO do we need to keep this around? We're requiring 5.0 now, so TS doesn't need it,
+        // but would this break when other TS plugins are used and we no longer provide it?
         lsHost.resolveModuleNames = resolveModuleNames;
     }
 
@@ -139,7 +146,9 @@ export function patchModuleLoader(
         return resolved.map((tsResolvedModule, idx) => {
             const moduleName = moduleNames[idx];
             if (
-                !isSvelteFilePath(moduleName) ||
+                // Only recheck relative Svelte imports or unresolved non-relative paths (which hint at node_modules,
+                // where an exports map with "svelte" but not "types" could be present)
+                (!isSvelteFilePath(moduleName) && (moduleName[0] === '.' || tsResolvedModule)) ||
                 // corresponding .d.ts files take precedence over .svelte files
                 tsResolvedModule?.resolvedFileName.endsWith('.d.ts') ||
                 tsResolvedModule?.resolvedFileName.endsWith('.d.svelte.ts')
@@ -165,7 +174,8 @@ export function patchModuleLoader(
         const svelteResolvedModule = typescript.resolveModuleName(
             name,
             containingFile,
-            compilerOptions,
+            // customConditions makes the TS algorithm look at the "svelte" condition in exports maps
+            { ...compilerOptions, customConditions: ['svelte'] },
             svelteSys
             // don't set mode or else .svelte imports couldn't be resolved
         ).resolvedModule;
@@ -225,19 +235,22 @@ export function patchModuleLoader(
 
         return resolved.map((tsResolvedModule, idx) => {
             const moduleName = moduleLiterals[idx].text;
+            const resolvedModule = tsResolvedModule.resolvedModule;
 
             if (
-                !isSvelteFilePath(moduleName) ||
+                // Only recheck relative Svelte imports or unresolved non-relative paths (which hint at node_modules,
+                // where an exports map with "svelte" but not "types" could be present)
+                (!isSvelteFilePath(moduleName) && (moduleName[0] === '.' || resolvedModule)) ||
                 // corresponding .d.ts files take precedence over .svelte files
-                tsResolvedModule?.resolvedModule?.resolvedFileName.endsWith('.d.ts') ||
-                tsResolvedModule?.resolvedModule?.resolvedFileName.endsWith('.d.svelte.ts')
+                resolvedModule?.resolvedFileName.endsWith('.d.ts') ||
+                resolvedModule?.resolvedFileName.endsWith('.d.svelte.ts')
             ) {
                 return tsResolvedModule;
             }
 
             const result = resolveSvelteModuleNameFromCache(moduleName, containingFile, options);
             // .svelte takes precedence over .svelte.ts etc
-            return result ?? tsResolvedModule;
+            return result.resolvedModule ? result : tsResolvedModule;
         });
     }
 
@@ -247,13 +260,29 @@ export function patchModuleLoader(
         options: ts.CompilerOptions
     ) {
         const cachedModule = moduleCache.get(moduleName, containingFile);
-        if (cachedModule) {
+        if (typeof cachedModule === 'object') {
             return {
-                resolvedModule: cachedModule
+                resolvedModule: cachedModule ?? undefined
             };
         }
 
         const resolvedModule = resolveSvelteModuleName(moduleName, containingFile, options);
+
+        // Align with TypeScript behavior: If the Svelte file is not using TypeScript,
+        // mark it as unresolved so that people need to provide a .d.ts file.
+        // For backwards compatibility we're not doing this for files from packages
+        // without an exports map, because that may break too many existing projects.
+        if (
+            resolvedModule?.isExternalLibraryImport && // TODO how to check this is not from a non-exports map?
+            // TODO check what happens if this resolves to a real .d.svelte.ts file
+            resolvedModule.extension === '.ts' // this tells us it's from an exports map
+        ) {
+            moduleCache.set(moduleName, containingFile, undefined);
+            return {
+                resolvedModule: undefined
+            };
+        }
+
         moduleCache.set(moduleName, containingFile, resolvedModule);
         return {
             resolvedModule: resolvedModule

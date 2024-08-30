@@ -299,6 +299,7 @@ export function createSvelteModuleLoader(
         // without an exports map, because that may break too many existing projects.
         if (
             resolvedModule.isExternalLibraryImport &&
+            // TODO check what happens if this resolves to a real .d.svelte.ts file
             resolvedModule.extension === '.d.svelte.ts' && // this tells us it's from an exports map
             snapshot.scriptKind !== ts.ScriptKind.TS
         ) {
