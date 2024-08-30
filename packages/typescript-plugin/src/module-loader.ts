@@ -146,7 +146,7 @@ export function patchModuleLoader(
         return resolved.map((tsResolvedModule, idx) => {
             const moduleName = moduleNames[idx];
             if (
-                // Only recheck relative Svelte imports or unresolved non-relative paths (which hint at node_modules,
+                // Only recheck relative Svelte imports or unresolved non-relative paths (which hint at node_modules
                 // where an exports map with "svelte" but not "types" could be present)
                 (!isSvelteFilePath(moduleName) && (moduleName[0] === '.' || tsResolvedModule)) ||
                 // corresponding .d.ts files take precedence over .svelte files
