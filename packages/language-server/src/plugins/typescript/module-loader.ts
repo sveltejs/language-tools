@@ -293,22 +293,6 @@ export function createSvelteModuleLoader(
 
         const snapshot = getSnapshot(resolvedFileName);
 
-        // Align with TypeScript behavior: If the Svelte file is not using TypeScript,
-        // mark it as unresolved so that people need to provide a .d.ts file.
-        // For backwards compatibility we're not doing this for files from packages
-        // without an exports map, because that may break too many existing projects.
-        if (
-            resolvedModule.isExternalLibraryImport &&
-            // TODO check what happens if this resolves to a real .d.svelte.ts file
-            resolvedModule.extension === '.d.svelte.ts' && // this tells us it's from an exports map
-            snapshot.scriptKind !== ts.ScriptKind.TS
-        ) {
-            return {
-                ...resolvedModuleWithFailedLookup,
-                resolvedModule: undefined
-            };
-        }
-
         const resolvedSvelteModule: ts.ResolvedModuleFull = {
             extension: getExtensionFromScriptKind(snapshot && snapshot.scriptKind),
             resolvedFileName,

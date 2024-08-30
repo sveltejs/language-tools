@@ -11,12 +11,12 @@ import { ensureRealSvelteFilePath, isSvelteFilePath, isVirtualSvelteFilePath } f
 class ModuleResolutionCache {
     constructor(private readonly projectService: ts.server.ProjectService) {}
 
-    private cache = new Map<string, ts.ResolvedModuleFull | null>();
+    private cache = new Map<string, ts.ResolvedModuleFull>();
 
     /**
      * Tries to get a cached module.
      */
-    get(moduleName: string, containingFile: string): ts.ResolvedModuleFull | null | undefined {
+    get(moduleName: string, containingFile: string): ts.ResolvedModuleFull | undefined {
         return this.cache.get(this.getKey(moduleName, containingFile));
     }
 
@@ -28,14 +28,10 @@ class ModuleResolutionCache {
         containingFile: string,
         resolvedModule: ts.ResolvedModuleFull | undefined
     ) {
-        if (!resolvedModule && moduleName[0] === '.') {
-            // We cache unresolved modules for non-relative imports, too, because it's very likely that they don't change
-            // and we don't want to resolve them every time. If they do change, the original resolution mode will notice
-            // most of the time, and the only time this would result in a stale cache entry is if a node_modules package
-            // is added with a "svelte" condition and no "types" condition, which is rare enough.
+        if (!resolvedModule) {
             return;
         }
-        this.cache.set(this.getKey(moduleName, containingFile), resolvedModule ?? null);
+        this.cache.set(this.getKey(moduleName, containingFile), resolvedModule);
     }
 
     /**
@@ -46,7 +42,6 @@ class ModuleResolutionCache {
         resolvedModuleName = this.projectService.toCanonicalFileName(resolvedModuleName);
         this.cache.forEach((val, key) => {
             if (
-                val &&
                 this.projectService.toCanonicalFileName(val.resolvedFileName) === resolvedModuleName
             ) {
                 this.cache.delete(key);
@@ -146,9 +141,7 @@ export function patchModuleLoader(
         return resolved.map((tsResolvedModule, idx) => {
             const moduleName = moduleNames[idx];
             if (
-                // Only recheck relative Svelte imports or unresolved non-relative paths (which hint at node_modules,
-                // where an exports map with "svelte" but not "types" could be present)
-                (!isSvelteFilePath(moduleName) && (moduleName[0] === '.' || tsResolvedModule)) ||
+                !isSvelteFilePath(moduleName) ||
                 // corresponding .d.ts files take precedence over .svelte files
                 tsResolvedModule?.resolvedFileName.endsWith('.d.ts') ||
                 tsResolvedModule?.resolvedFileName.endsWith('.d.svelte.ts')
@@ -174,8 +167,7 @@ export function patchModuleLoader(
         const svelteResolvedModule = typescript.resolveModuleName(
             name,
             containingFile,
-            // customConditions makes the TS algorithm look at the "svelte" condition in exports maps
-            { ...compilerOptions, customConditions: ['svelte'] },
+            compilerOptions,
             svelteSys
             // don't set mode or else .svelte imports couldn't be resolved
         ).resolvedModule;
@@ -238,9 +230,7 @@ export function patchModuleLoader(
             const resolvedModule = tsResolvedModule.resolvedModule;
 
             if (
-                // Only recheck relative Svelte imports or unresolved non-relative paths (which hint at node_modules,
-                // where an exports map with "svelte" but not "types" could be present)
-                (!isSvelteFilePath(moduleName) && (moduleName[0] === '.' || resolvedModule)) ||
+                !isSvelteFilePath(moduleName) ||
                 // corresponding .d.ts files take precedence over .svelte files
                 resolvedModule?.resolvedFileName.endsWith('.d.ts') ||
                 resolvedModule?.resolvedFileName.endsWith('.d.svelte.ts')
@@ -260,28 +250,13 @@ export function patchModuleLoader(
         options: ts.CompilerOptions
     ) {
         const cachedModule = moduleCache.get(moduleName, containingFile);
-        if (typeof cachedModule === 'object') {
+        if (cachedModule) {
             return {
-                resolvedModule: cachedModule ?? undefined
+                resolvedModule: cachedModule
             };
         }
 
         const resolvedModule = resolveSvelteModuleName(moduleName, containingFile, options);
-
-        // Align with TypeScript behavior: If the Svelte file is not using TypeScript,
-        // mark it as unresolved so that people need to provide a .d.ts file.
-        // For backwards compatibility we're not doing this for files from packages
-        // without an exports map, because that may break too many existing projects.
-        if (
-            resolvedModule?.isExternalLibraryImport && // TODO how to check this is not from a non-exports map?
-            // TODO check what happens if this resolves to a real .d.svelte.ts file
-            resolvedModule.extension === '.ts' // this tells us it's from an exports map
-        ) {
-            moduleCache.set(moduleName, containingFile, undefined);
-            return {
-                resolvedModule: undefined
-            };
-        }
 
         moduleCache.set(moduleName, containingFile, resolvedModule);
         return {

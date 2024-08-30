@@ -75,8 +75,7 @@ describe('service', () => {
             strict: true,
             module: ts.ModuleKind.ESNext,
             moduleResolution: ts.ModuleResolutionKind.Node10,
-            target: ts.ScriptTarget.ESNext,
-            customConditions: ['svelte']
+            target: ts.ScriptTarget.ESNext
         });
     });
 
@@ -186,8 +185,7 @@ describe('service', () => {
             moduleResolution: ts.ModuleResolutionKind.Node10,
             noEmit: true,
             skipLibCheck: true,
-            target: ts.ScriptTarget.ESNext,
-            customConditions: ['svelte']
+            target: ts.ScriptTarget.ESNext
         });
     });
 

@@ -736,13 +736,6 @@ async function createLanguageService(
             }
         }
 
-        // Necessary to be able to resolve export maps that only contain a "svelte" condition without an accompanying "types" condition
-        // https://www.typescriptlang.org/tsconfig/#customConditions
-        if (!compilerOptions.customConditions?.includes('svelte')) {
-            compilerOptions.customConditions = compilerOptions.customConditions ?? [];
-            compilerOptions.customConditions.push('svelte');
-        }
-
         const svelteConfigDiagnostics = checkSvelteInput(parsedConfig);
         if (svelteConfigDiagnostics.length > 0) {
             docContext.reportConfigError?.({
