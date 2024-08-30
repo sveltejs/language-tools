@@ -143,8 +143,12 @@ export function extractScriptTags(
         return null;
     }
 
-    const script = scripts.find((s) => s.attributes['context'] !== 'module');
-    const moduleScript = scripts.find((s) => s.attributes['context'] === 'module');
+    const script = scripts.find(
+        (s) => s.attributes['context'] !== 'module' && !('module' in s.attributes)
+    );
+    const moduleScript = scripts.find(
+        (s) => s.attributes['context'] === 'module' || 'module' in s.attributes
+    );
     return { script, moduleScript };
 }
 
