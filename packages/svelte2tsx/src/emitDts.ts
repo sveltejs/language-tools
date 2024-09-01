@@ -18,7 +18,13 @@ export async function emitDts(config: EmitDtsConfig) {
     const likely_failed_files = result.diagnostics.filter((diagnostic) => {
         // List of errors which hint at a failed d.ts generation
         // https://github.com/microsoft/TypeScript/blob/main/src/compiler/diagnosticMessages.json
-        return diagnostic.code === 2527 || (diagnostic.code >= 4000 && diagnostic.code <= 4108);
+        return (
+            diagnostic.code === 2527 ||
+            diagnostic.code === 5088 ||
+            diagnostic.code === 2742 ||
+            (diagnostic.code >= 9005 && diagnostic.code <= 9039) ||
+            (diagnostic.code >= 4000 && diagnostic.code <= 4108)
+        );
     });
 
     if (likely_failed_files.length > 0) {
