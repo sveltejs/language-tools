@@ -113,6 +113,7 @@ const dependedConfigWatchers = new FileMap<ts.FileWatcher>();
 const configPathToDependedProject = new FileMap<FileSet>();
 const configFileModifiedTime = new FileMap<Date | undefined>();
 const configFileForOpenFiles = new FileMap<string>();
+const containingServices = new FileMap<string>();
 const pendingReloads = new FileSet();
 const documentRegistries = new Map<string, ts.DocumentRegistry>();
 const pendingForAllServices = new Set<Promise<void>>();
@@ -190,8 +191,8 @@ export async function getService(
 
         for (const configPath of possibleConfigPath) {
             const service = await getConfiguredService(configPath);
-            service.getService();
-            if (service.snapshotManager.has(path)) {
+            const ls = service.getService();
+            if (ls.getProgram()?.getSourceFile(path)) {
                 return service;
             }
         }
@@ -340,6 +341,7 @@ async function createLanguageService(
 
     const projectConfig = getParsedConfig();
     const { options: compilerOptions, raw, errors: configErrors } = projectConfig;
+    const allowJs = compilerOptions.allowJs ?? !!compilerOptions.checkJs;
 
     const getCanonicalFileName = createGetCanonicalFileName(tsSystem.useCaseSensitiveFileNames);
     watchWildCardDirectories(projectConfig);
@@ -555,11 +557,18 @@ async function createLanguageService(
             return prevSnapshot;
         }
 
+        const newSnapshot = DocumentSnapshot.fromDocument(document, transformationConfig);
+
         if (!prevSnapshot) {
             svelteModuleLoader.deleteUnresolvedResolutionsFromCache(filePath);
+            if (configFileForOpenFiles.get(filePath) === '' && services.size > 1) {
+                configFileForOpenFiles.delete(filePath);
+            }
+        } else if (prevSnapshot.scriptKind !== newSnapshot.scriptKind && !allowJs) {
+            // if allowJs is false, we need to invalid the cache so that js svelte files can be loaded through module resolution
+            svelteModuleLoader.deleteFromModuleCache(filePath);
+            configFileForOpenFiles.delete(filePath);
         }
-
-        const newSnapshot = DocumentSnapshot.fromDocument(document, transformationConfig);
 
         snapshotManager.set(filePath, newSnapshot);
 
