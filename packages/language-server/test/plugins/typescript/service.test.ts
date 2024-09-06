@@ -108,7 +108,46 @@ describe('service', () => {
         assert.ok(called);
     });
 
-    it('do not errors if referenced tsconfig matches no svelte files', async () => {
+    it('does not report no svelte files when loaded through import', async () => {
+        const dirPath = getRandomVirtualDirPath(testDir);
+        const { virtualSystem, lsDocumentContext, rootUris } = setup();
+
+        virtualSystem.readDirectory = () => [path.join(dirPath, 'random.ts')];
+
+        virtualSystem.writeFile(
+            path.join(dirPath, 'tsconfig.json'),
+            JSON.stringify({
+                include: ['**/*.ts']
+            })
+        );
+
+        virtualSystem.writeFile(
+            path.join(dirPath, 'random.svelte'),
+            '<script lang="ts">const a: number = null;</script>'
+        );
+
+        virtualSystem.writeFile(
+            path.join(dirPath, 'random.ts'),
+            'import {} from "./random.svelte"'
+        );
+
+        let called = false;
+        const service = await getService(path.join(dirPath, 'random.svelte'), rootUris, {
+            ...lsDocumentContext,
+            reportConfigError: (message) => {
+                called = true;
+                assert.deepStrictEqual([], message.diagnostics);
+            }
+        });
+
+        assert.equal(
+            normalizePath(path.join(dirPath, 'tsconfig.json')),
+            normalizePath(service.tsconfigPath)
+        );
+        assert.ok(called);
+    });
+
+    it('does not errors if referenced tsconfig matches no svelte files', async () => {
         const dirPath = getRandomVirtualDirPath(testDir);
         const { virtualSystem, lsDocumentContext, rootUris } = setup();
 

@@ -101,6 +101,10 @@ export interface TsConfigInfo {
     extendedConfigPaths?: Set<string>;
 }
 
+enum TsconfigSvelteDiagnostics {
+    NO_SVELTE_INPUT = 100_001
+}
+
 const maxProgramSizeForNonTsFiles = 20 * 1024 * 1024; // 20 MB
 const services = new FileMap<Promise<LanguageServiceContainer>>();
 const serviceSizeMap = new FileMap<number>();
@@ -167,16 +171,29 @@ export async function getService(
          * Prevent infinite loop when the project reference is circular
          */
         const triedTsConfig = new Set<string>();
+        const possibleConfigPath = new Set<string>();
         const needAssign = !configFileForOpenFiles.has(path);
         let service = await getConfiguredService(tsconfigPath);
         if (!needAssign) {
             return service;
         }
 
-        const defaultService = await findDefaultServiceForFile(service, triedTsConfig);
+        const defaultService = await findDefaultServiceForFile(
+            service,
+            triedTsConfig,
+            possibleConfigPath
+        );
         if (defaultService) {
             configFileForOpenFiles.set(path, defaultService.tsconfigPath);
             return defaultService;
+        }
+
+        for (const configPath of possibleConfigPath) {
+            const service = await getConfiguredService(configPath);
+            service.getService();
+            if (service.snapshotManager.has(path)) {
+                return service;
+            }
         }
 
         tsconfigPath = '';
@@ -207,7 +224,8 @@ export async function getService(
 
     async function findDefaultServiceForFile(
         service: LanguageServiceContainer,
-        triedTsConfig: Set<string>
+        triedTsConfig: Set<string>,
+        possibleConfigPath: Set<string>
     ): Promise<LanguageServiceContainer | undefined> {
         service.ensureProjectFileUpdates();
         if (service.snapshotManager.isProjectFile(path)) {
@@ -217,13 +235,16 @@ export async function getService(
             return;
         }
 
+        possibleConfigPath.add(service.tsconfigPath);
+
         // TODO: maybe add support for ts 5.6's ancestor searching
-        return findDefaultFromProjectReferences(service, triedTsConfig);
+        return findDefaultFromProjectReferences(service, triedTsConfig, possibleConfigPath);
     }
 
     async function findDefaultFromProjectReferences(
         service: LanguageServiceContainer,
-        triedTsConfig: Set<string>
+        triedTsConfig: Set<string>,
+        possibleConfigPath: Set<string>
     ) {
         const projectReferences = service.getResolvedProjectReferences();
         if (projectReferences.length === 0) {
@@ -243,7 +264,11 @@ export async function getService(
 
         for (const ref of possibleSubPaths) {
             const subService = await getConfiguredService(ref);
-            const defaultService = await findDefaultServiceForFile(subService, triedTsConfig);
+            const defaultService = await findDefaultServiceForFile(
+                subService,
+                triedTsConfig,
+                possibleConfigPath
+            );
             if (defaultService) {
                 return defaultService;
             }
@@ -360,6 +385,7 @@ async function createLanguageService(
     let languageServiceReducedMode = false;
     let projectVersion = 0;
     let dirty = projectConfig.fileNames.length > 0;
+    let skipSvelteInputCheck = !tsconfigPath;
 
     const host: ts.LanguageServiceHost = {
         log: (message) => Logger.debug(`[ts] ${message}`),
@@ -736,20 +762,6 @@ async function createLanguageService(
             }
         }
 
-        const svelteConfigDiagnostics = checkSvelteInput(parsedConfig);
-        if (svelteConfigDiagnostics.length > 0) {
-            docContext.reportConfigError?.({
-                uri: pathToUrl(tsconfigPath),
-                diagnostics: svelteConfigDiagnostics.map((d) => ({
-                    message: d.messageText as string,
-                    range: { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } },
-                    severity: ts.DiagnosticCategory.Error,
-                    source: 'svelte'
-                }))
-            });
-            parsedConfig.errors.push(...svelteConfigDiagnostics);
-        }
-
         return {
             ...parsedConfig,
             fileNames: parsedConfig.fileNames.map(normalizePath),
@@ -758,22 +770,32 @@ async function createLanguageService(
         };
     }
 
-    function checkSvelteInput(config: ts.ParsedCommandLine) {
+    function checkSvelteInput(program: ts.Program | undefined, config: ts.ParsedCommandLine) {
         if (!tsconfigPath || config.raw.references || config.raw.files) {
             return [];
         }
 
-        const svelteFiles = config.fileNames.filter(isSvelteFilePath);
-        if (svelteFiles.length > 0) {
+        const configFileName = basename(tsconfigPath);
+        // Only report to possible nearest config file since referenced project might not be a svelte project
+        if (configFileName !== 'tsconfig.json' && configFileName !== 'jsconfig.json') {
             return [];
         }
+
+        const hasSvelteFiles =
+            config.fileNames.some(isSvelteFilePath) ||
+            program?.getSourceFiles().some((file) => isSvelteFilePath(file.fileName));
+
+        if (hasSvelteFiles) {
+            return [];
+        }
+
         const { include, exclude } = config.raw;
         const inputText = JSON.stringify(include);
         const excludeText = JSON.stringify(exclude);
         const svelteConfigDiagnostics: ts.Diagnostic[] = [
             {
                 category: ts.DiagnosticCategory.Error,
-                code: 0,
+                code: TsconfigSvelteDiagnostics.NO_SVELTE_INPUT,
                 file: undefined,
                 start: undefined,
                 length: undefined,
@@ -932,6 +954,28 @@ async function createLanguageService(
 
         dirty = false;
         compilerHost = undefined;
+
+        if (!skipSvelteInputCheck) {
+            const svelteConfigDiagnostics = checkSvelteInput(program, projectConfig);
+            const codes = svelteConfigDiagnostics.map((d) => d.code);
+            if (!svelteConfigDiagnostics.length) {
+                // stop checking once it passed once
+                skipSvelteInputCheck = true;
+            }
+            // report even if empty to clear previous diagnostics
+            docContext.reportConfigError?.({
+                uri: pathToUrl(tsconfigPath),
+                diagnostics: svelteConfigDiagnostics.map((d) => ({
+                    message: d.messageText as string,
+                    range: { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } },
+                    severity: ts.DiagnosticCategory.Error,
+                    source: 'svelte'
+                }))
+            });
+            projectConfig.errors = projectConfig.errors
+                .filter((e) => !codes.includes(e.code))
+                .concat(svelteConfigDiagnostics);
+        }
 
         // https://github.com/microsoft/TypeScript/blob/23faef92703556567ddbcb9afb893f4ba638fc20/src/server/project.ts#L1624
         // host.getCachedExportInfoMap will create the cache if it doesn't exist
