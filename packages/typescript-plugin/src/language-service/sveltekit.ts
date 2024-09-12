@@ -232,13 +232,13 @@ export const kitExports: Record<
                 kind: 'punctuation'
             },
             {
-                text: "'auto' | 'always' | 'never'",
+                text: "'never' | 'always' | 'ignore'",
                 kind: 'stringLiteral'
             }
         ],
         documentation: [
             {
-                text: 'Control how SvelteKit should handle (missing) trailing slashes in the URL. More info: https://kit.svelte.dev/docs/page-options#trailingslash',
+                text: 'Control how SvelteKit should handle trailing slashes in the URL. More info: https://kit.svelte.dev/docs/page-options#trailingslash',
                 kind: 'text'
             }
         ]
