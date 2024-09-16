@@ -604,10 +604,63 @@ describe('service', () => {
         sinon.assert.calledWith(watchDirectory.firstCall, <RelativePattern[]>[]);
     });
 
+    it('assigns files to service with the file in the program', async () => {
+        const dirPath = getRandomVirtualDirPath(testDir);
+        const { virtualSystem, lsDocumentContext, rootUris } = setup();
+
+        const tsconfigPath = path.join(dirPath, 'tsconfig.json');
+        virtualSystem.writeFile(
+            tsconfigPath,
+            JSON.stringify({
+                compilerOptions: <ts.CompilerOptions>{
+                    noImplicitOverride: true
+                },
+                include: ['src/*.ts']
+            })
+        );
+
+        const referencedFile = path.join(dirPath, 'anotherPackage', 'index.svelte');
+        const tsFilePath = path.join(dirPath, 'src', 'random.ts');
+
+        virtualSystem.readDirectory = () => [tsFilePath];
+        virtualSystem.writeFile(
+            referencedFile,
+            '<script lang="ts">class A { a =1 }; class B extends A { a =2 };</script>'
+        );
+        virtualSystem.writeFile(tsFilePath, 'import "../anotherPackage/index.svelte";');
+
+        const document = new Document(
+            pathToUrl(referencedFile),
+            virtualSystem.readFile(referencedFile)!
+        );
+        document.openedByClient = true;
+        const ls = await getService(referencedFile, rootUris, lsDocumentContext);
+        ls.updateSnapshot(document);
+
+        assert.equal(normalizePath(ls.tsconfigPath), normalizePath(tsconfigPath));
+
+        const noImplicitOverrideErrorCode = 4114;
+        const findError = (ls: LanguageServiceContainer) =>
+            ls
+                .getService()
+                .getSemanticDiagnostics(referencedFile)
+                .find((f) => f.code === noImplicitOverrideErrorCode);
+
+        assert.ok(findError(ls));
+
+        virtualSystem.writeFile(tsFilePath, '');
+        ls.updateTsOrJsFile(tsFilePath);
+
+        const ls2 = await getService(referencedFile, rootUris, lsDocumentContext);
+        ls2.updateSnapshot(document);
+
+        assert.deepStrictEqual(findError(ls2), undefined);
+    });
+
     function getSemanticDiagnosticsMessages(ls: LanguageServiceContainer, filePath: string) {
         return ls
             .getService()
             .getSemanticDiagnostics(filePath)
-            .map((d) => d.messageText);
+            .map((d) => ts.flattenDiagnosticMessageText(d.messageText, '\n'));
     }
 });

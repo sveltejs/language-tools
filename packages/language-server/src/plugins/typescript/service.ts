@@ -113,7 +113,6 @@ const dependedConfigWatchers = new FileMap<ts.FileWatcher>();
 const configPathToDependedProject = new FileMap<FileSet>();
 const configFileModifiedTime = new FileMap<Date | undefined>();
 const configFileForOpenFiles = new FileMap<string>();
-const containingServices = new FileMap<string>();
 const pendingReloads = new FileSet();
 const documentRegistries = new Map<string, ts.DocumentRegistry>();
 const pendingForAllServices = new Set<Promise<void>>();
@@ -172,24 +171,19 @@ export async function getService(
          * Prevent infinite loop when the project reference is circular
          */
         const triedTsConfig = new Set<string>();
-        const possibleConfigPath = new Set<string>();
         const needAssign = !configFileForOpenFiles.has(path);
         let service = await getConfiguredService(tsconfigPath);
         if (!needAssign) {
             return service;
         }
 
-        const defaultService = await findDefaultServiceForFile(
-            service,
-            triedTsConfig,
-            possibleConfigPath
-        );
+        const defaultService = await findDefaultServiceForFile(service, triedTsConfig);
         if (defaultService) {
             configFileForOpenFiles.set(path, defaultService.tsconfigPath);
             return defaultService;
         }
 
-        for (const configPath of possibleConfigPath) {
+        for (const configPath of triedTsConfig) {
             const service = await getConfiguredService(configPath);
             const ls = service.getService();
             if (ls.getProgram()?.getSourceFile(path)) {
@@ -225,8 +219,7 @@ export async function getService(
 
     async function findDefaultServiceForFile(
         service: LanguageServiceContainer,
-        triedTsConfig: Set<string>,
-        possibleConfigPath: Set<string>
+        triedTsConfig: Set<string>
     ): Promise<LanguageServiceContainer | undefined> {
         service.ensureProjectFileUpdates();
         if (service.snapshotManager.isProjectFile(path)) {
@@ -236,16 +229,15 @@ export async function getService(
             return;
         }
 
-        possibleConfigPath.add(service.tsconfigPath);
+        triedTsConfig.add(service.tsconfigPath);
 
         // TODO: maybe add support for ts 5.6's ancestor searching
-        return findDefaultFromProjectReferences(service, triedTsConfig, possibleConfigPath);
+        return findDefaultFromProjectReferences(service, triedTsConfig);
     }
 
     async function findDefaultFromProjectReferences(
         service: LanguageServiceContainer,
-        triedTsConfig: Set<string>,
-        possibleConfigPath: Set<string>
+        triedTsConfig: Set<string>
     ) {
         const projectReferences = service.getResolvedProjectReferences();
         if (projectReferences.length === 0) {
@@ -265,11 +257,7 @@ export async function getService(
 
         for (const ref of possibleSubPaths) {
             const subService = await getConfiguredService(ref);
-            const defaultService = await findDefaultServiceForFile(
-                subService,
-                triedTsConfig,
-                possibleConfigPath
-            );
+            const defaultService = await findDefaultServiceForFile(subService, triedTsConfig);
             if (defaultService) {
                 return defaultService;
             }
@@ -342,6 +330,7 @@ async function createLanguageService(
     const projectConfig = getParsedConfig();
     const { options: compilerOptions, raw, errors: configErrors } = projectConfig;
     const allowJs = compilerOptions.allowJs ?? !!compilerOptions.checkJs;
+    const virtualDocuments = new FileMap<Document>(tsSystem.useCaseSensitiveFileNames);
 
     const getCanonicalFileName = createGetCanonicalFileName(tsSystem.useCaseSensitiveFileNames);
     watchWildCardDirectories(projectConfig);
@@ -675,14 +664,22 @@ async function createLanguageService(
             : snapshotManager.getProjectFileNames();
         const canonicalProjectFileNames = new Set(projectFiles.map(getCanonicalFileName));
 
+        // We only assign project files or files already in the program to the language service
+        // so don't need to include other client files otherwise it will stay in the program and not be removed
+        const clientFiles = tsconfigPath
+            ? Array.from(virtualDocuments.values())
+                  .map((v) => v.getFilePath())
+                  .filter(isNotNullOrUndefined)
+            : snapshotManager.getClientFileNames();
+
         return Array.from(
             new Set([
                 ...projectFiles,
                 // project file is read from the file system so it's more likely to have
                 // the correct casing
-                ...snapshotManager
-                    .getClientFileNames()
-                    .filter((file) => !canonicalProjectFileNames.has(getCanonicalFileName(file))),
+                ...clientFiles.filter(
+                    (file) => !canonicalProjectFileNames.has(getCanonicalFileName(file))
+                ),
                 ...svelteTsxFiles
             ])
         );
@@ -1188,6 +1185,7 @@ async function createLanguageService(
         if (!filePath) {
             return;
         }
+        virtualDocuments.set(filePath, document);
         configFileForOpenFiles.set(filePath, tsconfigPath || workspacePath);
         updateSnapshot(document);
         scheduleUpdate(filePath);
