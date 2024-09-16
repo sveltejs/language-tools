@@ -224,7 +224,7 @@ declare function __sveltets_2_ensureComponent<
     // @ts-ignore svelte.Component doesn't exist in Svelte 4
     T extends ConstructorOfATypedSvelteComponent | (typeof import('svelte') extends { mount: any } ? import('svelte').Component<any, any, any> : never) | null | undefined
     // @ts-ignore svelte.Component doesn't exist in Svelte 4
->(type: T): NonNullable<T extends ConstructorOfATypedSvelteComponent ? T : typeof import('svelte') extends { mount: any } ? T extends import('svelte').Component<infer Props> ? typeof import('svelte').SvelteComponent<Props, Props['$$events'], Props['$$slots']> : T : T>;
+>(type: T): NonNullable<T extends ConstructorOfATypedSvelteComponent ? T : typeof import('svelte') extends { mount: any } ? T extends import('svelte').Component<infer Props extends Record<string, any>> ? typeof import('svelte').SvelteComponent<Props, Props['$$events'], Props['$$slots']> : T : T>;
 declare function __sveltets_2_ensureArray<T extends ArrayLike<unknown> | Iterable<unknown>>(array: T): T extends ArrayLike<infer U> ? U[] : T extends Iterable<infer U> ? Iterable<U> : any[];
 
 type __sveltets_2_PropsWithChildren<Props, Slots> = Props &
