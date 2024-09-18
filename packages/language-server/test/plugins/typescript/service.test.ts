@@ -108,7 +108,46 @@ describe('service', () => {
         assert.ok(called);
     });
 
-    it('do not errors if referenced tsconfig matches no svelte files', async () => {
+    it('does not report no svelte files when loaded through import', async () => {
+        const dirPath = getRandomVirtualDirPath(testDir);
+        const { virtualSystem, lsDocumentContext, rootUris } = setup();
+
+        virtualSystem.readDirectory = () => [path.join(dirPath, 'random.ts')];
+
+        virtualSystem.writeFile(
+            path.join(dirPath, 'tsconfig.json'),
+            JSON.stringify({
+                include: ['**/*.ts']
+            })
+        );
+
+        virtualSystem.writeFile(
+            path.join(dirPath, 'random.svelte'),
+            '<script lang="ts">const a: number = null;</script>'
+        );
+
+        virtualSystem.writeFile(
+            path.join(dirPath, 'random.ts'),
+            'import {} from "./random.svelte"'
+        );
+
+        let called = false;
+        const service = await getService(path.join(dirPath, 'random.svelte'), rootUris, {
+            ...lsDocumentContext,
+            reportConfigError: (message) => {
+                called = true;
+                assert.deepStrictEqual([], message.diagnostics);
+            }
+        });
+
+        assert.equal(
+            normalizePath(path.join(dirPath, 'tsconfig.json')),
+            normalizePath(service.tsconfigPath)
+        );
+        assert.ok(called);
+    });
+
+    it('does not errors if referenced tsconfig matches no svelte files', async () => {
         const dirPath = getRandomVirtualDirPath(testDir);
         const { virtualSystem, lsDocumentContext, rootUris } = setup();
 
@@ -565,10 +604,63 @@ describe('service', () => {
         sinon.assert.calledWith(watchDirectory.firstCall, <RelativePattern[]>[]);
     });
 
+    it('assigns files to service with the file in the program', async () => {
+        const dirPath = getRandomVirtualDirPath(testDir);
+        const { virtualSystem, lsDocumentContext, rootUris } = setup();
+
+        const tsconfigPath = path.join(dirPath, 'tsconfig.json');
+        virtualSystem.writeFile(
+            tsconfigPath,
+            JSON.stringify({
+                compilerOptions: <ts.CompilerOptions>{
+                    noImplicitOverride: true
+                },
+                include: ['src/*.ts']
+            })
+        );
+
+        const referencedFile = path.join(dirPath, 'anotherPackage', 'index.svelte');
+        const tsFilePath = path.join(dirPath, 'src', 'random.ts');
+
+        virtualSystem.readDirectory = () => [tsFilePath];
+        virtualSystem.writeFile(
+            referencedFile,
+            '<script lang="ts">class A { a =1 }; class B extends A { a =2 };</script>'
+        );
+        virtualSystem.writeFile(tsFilePath, 'import "../anotherPackage/index.svelte";');
+
+        const document = new Document(
+            pathToUrl(referencedFile),
+            virtualSystem.readFile(referencedFile)!
+        );
+        document.openedByClient = true;
+        const ls = await getService(referencedFile, rootUris, lsDocumentContext);
+        ls.updateSnapshot(document);
+
+        assert.equal(normalizePath(ls.tsconfigPath), normalizePath(tsconfigPath));
+
+        const noImplicitOverrideErrorCode = 4114;
+        const findError = (ls: LanguageServiceContainer) =>
+            ls
+                .getService()
+                .getSemanticDiagnostics(referencedFile)
+                .find((f) => f.code === noImplicitOverrideErrorCode);
+
+        assert.ok(findError(ls));
+
+        virtualSystem.writeFile(tsFilePath, '');
+        ls.updateTsOrJsFile(tsFilePath);
+
+        const ls2 = await getService(referencedFile, rootUris, lsDocumentContext);
+        ls2.updateSnapshot(document);
+
+        assert.deepStrictEqual(findError(ls2), undefined);
+    });
+
     function getSemanticDiagnosticsMessages(ls: LanguageServiceContainer, filePath: string) {
         return ls
             .getService()
             .getSemanticDiagnostics(filePath)
-            .map((d) => d.messageText);
+            .map((d) => ts.flattenDiagnosticMessageText(d.messageText, '\n'));
     }
 });

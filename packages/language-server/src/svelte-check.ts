@@ -209,19 +209,14 @@ export class SvelteCheck {
         };
 
         if (lsContainer.configErrors.length > 0) {
-            const grouped = groupBy(
-                lsContainer.configErrors,
-                (error) => error.file?.fileName ?? tsconfigPath
-            );
-
-            return Object.entries(grouped).map(([filePath, errors]) => ({
-                filePath,
-                text: '',
-                diagnostics: errors.map((diagnostic) => map(diagnostic))
-            }));
+            return reportConfigError();
         }
 
         const lang = lsContainer.getService();
+        if (lsContainer.configErrors.length > 0) {
+            return reportConfigError();
+        }
+
         const files = lang.getProgram()?.getSourceFiles() || [];
         const options = lang.getProgram()?.getCompilerOptions() || {};
 
@@ -318,6 +313,19 @@ export class SvelteCheck {
                 }
             })
         );
+
+        function reportConfigError() {
+            const grouped = groupBy(
+                lsContainer.configErrors,
+                (error) => error.file?.fileName ?? tsconfigPath
+            );
+
+            return Object.entries(grouped).map(([filePath, errors]) => ({
+                filePath,
+                text: '',
+                diagnostics: errors.map((diagnostic) => map(diagnostic))
+            }));
+        }
     }
 
     private async getDiagnosticsForFile(uri: string) {
