@@ -177,12 +177,15 @@ export async function getService(
             return service;
         }
 
+        // First try to find a service whose includes config matches our file
         const defaultService = await findDefaultServiceForFile(service, triedTsConfig);
         if (defaultService) {
             configFileForOpenFiles.set(path, defaultService.tsconfigPath);
             return defaultService;
         }
 
+        // If no such service found, see if the file is part of any existing service indirectly.
+        // This can happen if the includes doesn't match the file but it was imported from one of the included files.
         for (const configPath of triedTsConfig) {
             const service = await getConfiguredService(configPath);
             const ls = service.getService();
@@ -664,8 +667,8 @@ async function createLanguageService(
             : snapshotManager.getProjectFileNames();
         const canonicalProjectFileNames = new Set(projectFiles.map(getCanonicalFileName));
 
-        // We only assign project files or files already in the program to the language service
-        // so don't need to include other client files otherwise it will stay in the program and not be removed
+        // We only assign project files (i.e. those found through includes config) and virtual files to getScriptFileNames.
+        // We don't to include other client files otherwise they stay in the program and are never removed
         const clientFiles = tsconfigPath
             ? Array.from(virtualDocuments.values())
                   .map((v) => v.getFilePath())
