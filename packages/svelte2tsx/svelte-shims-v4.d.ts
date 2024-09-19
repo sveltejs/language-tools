@@ -253,16 +253,3 @@ declare function __sveltets_2_isomorphic_component<
 declare function __sveltets_2_isomorphic_component_slots<
     Props extends Record<string, any>, Events extends Record<string, any>, Slots extends Record<string, any>, Exports extends Record<string, any>, Bindings extends string
 >(klass: {props: Props, events: Events, slots: Slots, exports?: Exports, bindings?: Bindings }): __sveltets_2_IsomorphicComponent<__sveltets_2_PropsWithChildren<Props, Slots>, Events, Slots, Exports, Bindings>;
-
-type __sveltets_NonUndefined<T> = T extends undefined ? never : T;
-
-declare function __sveltets_binding_value<
-    // @ts-ignore this is only used for Svelte 5, which knows about the Component type
-    Comp extends typeof import('svelte').Component<any>,
-    Key extends string
->(comp: Comp, key: Key): Key extends keyof import('svelte').ComponentProps<Comp> ?
-    // bail on unknown because it hints at a generic type which we can't properly resolve here
-    // remove undefined because optional properties have it, and would result in false positives
-    unknown extends import('svelte').ComponentProps<Comp>[Key] ? any : __sveltets_NonUndefined<import('svelte').ComponentProps<Comp>[Key]> : any;
-// Overload to ensure typings that only use old SvelteComponent class or something invalid are gracefully handled
-declare function __sveltets_binding_value(comp: any, key: string): any
