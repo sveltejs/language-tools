@@ -1,6 +1,7 @@
 import { dirname, join, resolve, basename } from 'path';
 import ts from 'typescript';
 import {
+    DiagnosticSeverity,
     PublishDiagnosticsParams,
     RelativePattern,
     TextDocumentContentChangeEvent
@@ -803,7 +804,7 @@ async function createLanguageService(
         const excludeText = JSON.stringify(exclude);
         const svelteConfigDiagnostics: ts.Diagnostic[] = [
             {
-                category: ts.DiagnosticCategory.Error,
+                category: ts.DiagnosticCategory.Warning,
                 code: TsconfigSvelteDiagnostics.NO_SVELTE_INPUT,
                 file: undefined,
                 start: undefined,
@@ -977,13 +978,14 @@ async function createLanguageService(
                 diagnostics: svelteConfigDiagnostics.map((d) => ({
                     message: d.messageText as string,
                     range: { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } },
-                    severity: ts.DiagnosticCategory.Error,
+                    severity: DiagnosticSeverity.Warning,
                     source: 'svelte'
                 }))
             });
-            projectConfig.errors = projectConfig.errors
+            const new_errors = projectConfig.errors
                 .filter((e) => !codes.includes(e.code))
                 .concat(svelteConfigDiagnostics);
+            projectConfig.errors.splice(0, projectConfig.errors.length, ...new_errors);
         }
 
         // https://github.com/microsoft/TypeScript/blob/23faef92703556567ddbcb9afb893f4ba638fc20/src/server/project.ts#L1624

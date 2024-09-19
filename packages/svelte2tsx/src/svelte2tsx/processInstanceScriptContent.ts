@@ -49,7 +49,13 @@ export function processInstanceScriptContent(
     const tsAst = ts.createSourceFile(
         'component.ts.svelte',
         scriptContent,
-        ts.ScriptTarget.Latest,
+        ts.JSDocParsingMode
+            ? {
+                  languageVersion: ts.ScriptTarget.Latest,
+                  // Exists since TS 5.3
+                  jsDocParsingMode: ts.JSDocParsingMode.ParseNone
+              }
+            : ts.ScriptTarget.Latest,
         true,
         ts.ScriptKind.TS
     );
