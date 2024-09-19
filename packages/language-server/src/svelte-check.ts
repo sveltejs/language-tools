@@ -208,19 +208,23 @@ export class SvelteCheck {
             };
         };
 
-        if (lsContainer.configErrors.length > 0) {
+        if (
+            lsContainer.configErrors.some((error) => error.category === ts.DiagnosticCategory.Error)
+        ) {
             return reportConfigError();
         }
 
         const lang = lsContainer.getService();
-        if (lsContainer.configErrors.length > 0) {
+        if (
+            lsContainer.configErrors.some((error) => error.category === ts.DiagnosticCategory.Error)
+        ) {
             return reportConfigError();
         }
 
         const files = lang.getProgram()?.getSourceFiles() || [];
         const options = lang.getProgram()?.getCompilerOptions() || {};
 
-        return await Promise.all(
+        const diagnostics = await Promise.all(
             files.map((file) => {
                 const uri = pathToUrl(file.fileName);
                 const doc = this.docManager.get(uri);
@@ -313,6 +317,12 @@ export class SvelteCheck {
                 }
             })
         );
+
+        if (lsContainer.configErrors.length) {
+            diagnostics.push(...reportConfigError());
+        }
+
+        return diagnostics;
 
         function reportConfigError() {
             const grouped = groupBy(
