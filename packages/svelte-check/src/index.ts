@@ -149,20 +149,19 @@ class DiagnosticsWatcher {
         filePathsToIgnore: string[],
         ignoreInitialAdd: boolean
     ) {
-        const ifMatching = (path: string, f: Function) => {
-            if (/\.(svelte|d\.ts|ts|js|jsx|tsx|mjs|cjs|mts|cts)$/.test(path)) {
-                f();
-            }
-        };
         watch(workspaceUri.fsPath, {
-            ignored: ['node_modules', 'vite.config.{js,ts}.timestamp-*']
+            ignored: [
+                'node_modules',
+                'vite.config.{js,ts}.timestamp-*',
+                (path) => !/\.(svelte|d\.ts|ts|js|jsx|tsx|mjs|cjs|mts|cts)$/.test(path)
+            ]
                 .concat(filePathsToIgnore)
                 .map((ignore) => path.join(workspaceUri.fsPath, ignore)),
             ignoreInitial: ignoreInitialAdd
         })
-            .on('add', (path) => ifMatching(path, () => this.updateDocument(path, true)))
-            .on('unlink', (path) => ifMatching(path, () => this.removeDocument(path)))
-            .on('change', (path) => ifMatching(path, () => this.updateDocument(path, false)));
+            .on('add', (path) => this.updateDocument(path, true))
+            .on('unlink', (path) => this.removeDocument(path))
+            .on('change', (path) => this.updateDocument(path, false));
 
         if (ignoreInitialAdd) {
             this.scheduleDiagnostics();
