@@ -220,11 +220,36 @@ declare type ATypedSvelteComponent = {
  * ```
  */
 declare type ConstructorOfATypedSvelteComponent = new (args: {target: any, props?: any}) => ATypedSvelteComponent
+// Usage note: Cannot properly transform generic function components to class components due to TypeScript limitations
 declare function __sveltets_2_ensureComponent<
-    // @ts-ignore svelte.Component doesn't exist in Svelte 4
-    T extends ConstructorOfATypedSvelteComponent | (typeof import('svelte') extends { mount: any } ? import('svelte').Component<any, any, any> : never) | null | undefined
-    // @ts-ignore svelte.Component doesn't exist in Svelte 4
->(type: T): NonNullable<T extends ConstructorOfATypedSvelteComponent ? T : typeof import('svelte') extends { mount: any } ? T extends import('svelte').Component<infer Props extends Record<string, any>> ? typeof import('svelte').SvelteComponent<Props, Props['$$events'], Props['$$slots']> : T : T>;
+    T extends
+        | ConstructorOfATypedSvelteComponent
+        | (typeof import('svelte') extends { mount: any }
+              ? // @ts-ignore svelte.Component doesn't exist in Svelte 4
+                import('svelte').Component<any, any, any>
+              : never)
+        | null
+        | undefined
+>(
+    type: T
+): NonNullable<
+    T extends ConstructorOfATypedSvelteComponent
+        ? T
+        : typeof import('svelte') extends { mount: any }
+          ? // @ts-ignore svelte.Component doesn't exist in Svelte 4
+            T extends import('svelte').Component<
+                infer Props extends Record<string, any>,
+                infer Exports extends Record<string, any>,
+                infer Bindings extends string
+            >
+              ? new (
+                    options: import('svelte').ComponentConstructorOptions<Props>
+                ) => import('svelte').SvelteComponent<Props, Props['$$events'], Props['$$slots']> &
+                    Exports & { $$bindings: Bindings }
+              : never
+          : never
+>;
+
 declare function __sveltets_2_ensureArray<T extends ArrayLike<unknown> | Iterable<unknown>>(array: T): T extends ArrayLike<infer U> ? U[] : T extends Iterable<infer U> ? Iterable<U> : any[];
 
 type __sveltets_2_PropsWithChildren<Props, Slots> = Props &

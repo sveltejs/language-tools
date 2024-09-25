@@ -109,28 +109,21 @@ ${
                 : `${returnType('props')} & {${eventsSlotsType.join(', ')}}`;
         const bindingsType = `ReturnType<__sveltets_Render${generics.toReferencesAnyString()}['bindings']>`;
 
-        if (exportedNames.usesRunes() && !events.hasEvents() && !usesSlots) {
-            statement +=
-                `\ntype $$$Component${genericsDef} = import('svelte').Component<${propsType}, ${returnType('exports')}, ${bindingsType}> \n` +
-                `${doc}declare function ${className || '$$Component'}${genericsDef}(...args: Parameters<$$$Component${generics.toReferencesString()}>): ReturnType<$$$Component${generics.toReferencesString()}>;\n` +
-                // The only way to preserve the generic type when transforming this function type to a class via __sveltets_2_ensureComponent later is a function,
-                // and so we need to manually add the properties on the function itself this way.
-                `${className || '$$Component'}.z_$$bindings = null as any as ${bindingsType};\n` +
-                `${className || '$$Component'}.element = null as any;\n` +
-                `export default ${className || '$$Component'};`;
-        } else {
-            statement +=
-                `\ninterface $$IsomorphicComponent {\n` +
-                `    new ${genericsDef}(options: import('svelte').ComponentConstructorOptions<${returnType('props') + (usesSlots ? '& {children?: any}' : '')}>): import('svelte').SvelteComponent<${returnType('props')}, ${returnType('events')}, ${returnType('slots')}> & { $$bindings?: ${returnType('bindings')} } & ${returnType('exports')};\n` +
-                `    ${genericsDef}(internal: unknown, props: ${propsType}): ${returnType('exports')};\n` +
-                `    z_$$bindings?: ${bindingsType};\n` +
-                `}\n` +
-                `${doc}const ${className || '$$Component'}: $$IsomorphicComponent = null as any;\n` +
-                surroundWithIgnoreComments(
-                    `type ${className || '$$Component'}${genericsDef} = InstanceType<typeof ${className || '$$Component'}${genericsRef}>;\n`
-                ) +
-                `export default ${className || '$$Component'};`;
-        }
+        // Sadly, due to a combination of requirements and TypeScript limitations, we need to always create both a legacy class component and function component type.
+        // - Constraints: Need to support Svelte 4 class component types, therefore we need to use __sveltets_2_ensureComponent to transform function components to classes
+        // - Limitations: TypeScript is not able to preserve generics during said transformation (i.e. there's no way to express keeping the generic etc)
+        // TODO Svelte 6/7: Switch this around and not use new Component in svelte2tsx anymore, which means we can remove the legacy class component. We need something like _ensureFnComponent then.
+        statement +=
+            `\ninterface $$IsomorphicComponent {\n` +
+            `    new ${genericsDef}(options: import('svelte').ComponentConstructorOptions<${returnType('props') + (usesSlots ? '& {children?: any}' : '')}>): import('svelte').SvelteComponent<${returnType('props')}, ${returnType('events')}, ${returnType('slots')}> & { $$bindings?: ${returnType('bindings')} } & ${returnType('exports')};\n` +
+            `    ${genericsDef}(internal: unknown, props: ${propsType}): ${returnType('exports')};\n` +
+            `    z_$$bindings?: ${bindingsType};\n` +
+            `}\n` +
+            `${doc}const ${className || '$$Component'}: $$IsomorphicComponent = null as any;\n` +
+            surroundWithIgnoreComments(
+                `type ${className || '$$Component'}${genericsDef} = InstanceType<typeof ${className || '$$Component'}${genericsRef}>;\n`
+            ) +
+            `export default ${className || '$$Component'};`;
     } else if (mode === 'dts') {
         statement +=
             `export type ${PropsName}${genericsDef} = ${returnType('props')};\n` +

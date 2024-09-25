@@ -9,7 +9,7 @@
     let can_bind = '';
     let readonly = ''
 
-    let instance: Runes;
+    let instance: ReturnType<typeof Runes>;
     instance!.only_bind() === true;
 </script>
 
@@ -26,3 +26,7 @@
 <Runes bind:readonly />
 <Runes bind:only_bind />
 <Runes {only_bind} />
+
+<RunesGeneric bind:readonly />
+<RunesGeneric bind:only_bind />
+<RunesGeneric {only_bind} />
