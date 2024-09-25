@@ -1,6 +1,7 @@
 <script lang="ts">
     import Legacy from './Legacy.svelte';
     import Runes from './Runes.svelte';
+    import RunesGeneric from './RunesGeneric.svelte';
 
     let bind_and_prop: () => boolean;
     let value = '';
