@@ -10,6 +10,22 @@ interface KitSnapshot {
     addedCode: InternalHelpers.AddedCode[];
 }
 
+declare module 'typescript/lib/tsserverlibrary' {
+    interface LanguageServiceHost {
+        /** @internal */ getCachedExportInfoMap?(): unknown;
+        /** @internal */ getModuleSpecifierCache?(): unknown;
+        /** @internal */ getGlobalTypingsCacheLocation?(): string | undefined;
+        /** @internal */ getSymlinkCache?(files: readonly ts.SourceFile[]): unknown;
+        /** @internal */ getPackageJsonsVisibleToFile?(
+            fileName: string,
+            rootDir?: string
+        ): readonly unknown[];
+        /** @internal */ getPackageJsonAutoImportProvider?(): ts.Program | undefined;
+
+        /** @internal*/ getModuleResolutionCache?(): ts.ModuleResolutionCache;
+    }
+}
+
 const cache = new WeakMap<
     ts.server.PluginCreateInfo,
     {
@@ -718,6 +734,51 @@ function getProxiedLanguageService(info: ts.server.PluginCreateInfo, ts: _ts, lo
         realpath = originalLanguageServiceHost.realpath
             ? (...args: Parameters<NonNullable<ts.LanguageServiceHost['realpath']>>) =>
                   originalLanguageServiceHost.realpath!(...args)
+            : undefined;
+
+        getProjectReferences = originalLanguageServiceHost.getProjectReferences
+            ? () => originalLanguageServiceHost.getProjectReferences!()
+            : undefined;
+
+        getParsedCommandLine = originalLanguageServiceHost.getParsedCommandLine
+            ? (fileName: string) => originalLanguageServiceHost.getParsedCommandLine!(fileName)
+            : undefined;
+
+        getCachedExportInfoMap = originalLanguageServiceHost.getCachedExportInfoMap
+            ? () => originalLanguageServiceHost.getCachedExportInfoMap!()
+            : undefined;
+
+        getModuleSpecifierCache = originalLanguageServiceHost.getModuleSpecifierCache
+            ? () => originalLanguageServiceHost.getModuleSpecifierCache!()
+            : undefined;
+
+        getGlobalTypingsCacheLocation = originalLanguageServiceHost.getGlobalTypingsCacheLocation
+            ? () => originalLanguageServiceHost.getGlobalTypingsCacheLocation!()
+            : undefined;
+
+        getSymlinkCache = originalLanguageServiceHost.getSymlinkCache
+            ? (...args: any[]) =>
+                  originalLanguageServiceHost.getSymlinkCache!(
+                      // @ts-ignore
+                      ...args
+                  )
+            : undefined;
+
+        getPackageJsonsVisibleToFile = originalLanguageServiceHost.getPackageJsonsVisibleToFile
+            ? (...args: any[]) =>
+                  originalLanguageServiceHost.getPackageJsonsVisibleToFile!(
+                      // @ts-ignore
+                      ...args
+                  )
+            : undefined;
+
+        getPackageJsonAutoImportProvider =
+            originalLanguageServiceHost.getPackageJsonAutoImportProvider
+                ? () => originalLanguageServiceHost.getPackageJsonAutoImportProvider!()
+                : undefined;
+
+        getModuleResolutionCache = originalLanguageServiceHost.getModuleResolutionCache
+            ? () => originalLanguageServiceHost.getModuleResolutionCache!()
             : undefined;
     }
 
