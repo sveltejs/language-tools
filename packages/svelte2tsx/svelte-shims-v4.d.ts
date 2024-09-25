@@ -240,6 +240,11 @@ declare function __sveltets_2_runes_constructor<Props extends {}>(render: {props
 
 declare function __sveltets_$$bindings<Bindings extends string[]>(...bindings: Bindings): Bindings[number];
 
+declare function __sveltets_2_fn_component<
+    Props extends Record<string, any>, Exports extends Record<string, any>, Bindings extends string
+    // @ts-ignore Svelte 5 only
+>(klass: {props: Props, exports?: Exports, bindings?: Bindings }): import('svelte').Component<Props, Exports, Bindings>;
+
 interface __sveltets_2_IsomorphicComponent<Props extends Record<string, any> = any, Events extends Record<string, any> = any, Slots extends Record<string, any> = any, Exports = {}, Bindings = string> {
     new (options: import('svelte').ComponentConstructorOptions<Props>): import('svelte').SvelteComponent<Props, Events, Slots> & { $$bindings?: Bindings } & Exports;
     (internal: unknown, props: Props extends Record<string, never> ? {$$events?: Events, $$slots?: Slots} : Props & {$$events?: Events, $$slots?: Slots}): Exports & { $set?: any, $on?: any };

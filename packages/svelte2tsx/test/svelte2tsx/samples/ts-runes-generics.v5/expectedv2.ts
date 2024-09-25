@@ -12,7 +12,7 @@ class __sveltets_Render<T> {
         return render<T>().props;
     }
     events() {
-        return __sveltets_2_with_any_event(render<T>()).events;
+        return render<T>().events;
     }
     slots() {
         return render<T>().slots;
@@ -21,11 +21,8 @@ class __sveltets_Render<T> {
     exports() { return {}; }
 }
 
-interface $$IsomorphicComponent {
-    new <T>(options: import('svelte').ComponentConstructorOptions<ReturnType<__sveltets_Render<T>['props']>>): import('svelte').SvelteComponent<ReturnType<__sveltets_Render<T>['props']>, ReturnType<__sveltets_Render<T>['events']>, ReturnType<__sveltets_Render<T>['slots']>> & { $$bindings?: ReturnType<__sveltets_Render<T>['bindings']> } & ReturnType<__sveltets_Render<T>['exports']>;
-    <T>(internal: unknown, props: ReturnType<__sveltets_Render<T>['props']> & {$$events?: ReturnType<__sveltets_Render<T>['events']>}): ReturnType<__sveltets_Render<T>['exports']>;
-    z_$$bindings?: ReturnType<__sveltets_Render<any>['bindings']>;
-}
-const Input__SvelteComponent_: $$IsomorphicComponent = null as any;
-/*Ωignore_startΩ*/type Input__SvelteComponent_<T> = InstanceType<typeof Input__SvelteComponent_<T>>;
-/*Ωignore_endΩ*/export default Input__SvelteComponent_;
+type $$$Component<T> = import('svelte').Component<ReturnType<__sveltets_Render<T>['props']> & {}, ReturnType<__sveltets_Render<T>['exports']>, ReturnType<__sveltets_Render<any>['bindings']>> 
+declare function Input__SvelteComponent_<T>(...args: Parameters<$$$Component<T>>): ReturnType<$$$Component<T>>;
+Input__SvelteComponent_.z_$$bindings = null as any as ReturnType<__sveltets_Render<any>['bindings']>;
+Input__SvelteComponent_.element = null as any;
+export default Input__SvelteComponent_;

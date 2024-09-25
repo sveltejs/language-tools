@@ -3,24 +3,17 @@ declare class __sveltets_Render<T extends Record<string, any>, K extends keyof T
         foo: T;
         bar?: K;
     };
-    events(): {} & {
-        [evt: string]: CustomEvent<any>;
-    };
+    events(): {};
     slots(): {};
     bindings(): "bar";
     exports(): {
         baz: () => T;
     };
 }
-interface $$IsomorphicComponent {
-    new <T extends Record<string, any>, K extends keyof T>(options: import('svelte').ComponentConstructorOptions<ReturnType<__sveltets_Render<T, K>['props']>>): import('svelte').SvelteComponent<ReturnType<__sveltets_Render<T, K>['props']>, ReturnType<__sveltets_Render<T, K>['events']>, ReturnType<__sveltets_Render<T, K>['slots']>> & {
-        $$bindings?: ReturnType<__sveltets_Render<T, K>['bindings']>;
-    } & ReturnType<__sveltets_Render<T, K>['exports']>;
-    <T extends Record<string, any>, K extends keyof T>(internal: unknown, props: ReturnType<__sveltets_Render<T, K>['props']> & {
-        $$events?: ReturnType<__sveltets_Render<T, K>['events']>;
-    }): ReturnType<__sveltets_Render<T, K>['exports']>;
-    z_$$bindings?: ReturnType<__sveltets_Render<any, any>['bindings']>;
+type $$$Component<T extends Record<string, any>, K extends keyof T> = import('svelte').Component<ReturnType<__sveltets_Render<T, K>['props']> & {}, ReturnType<__sveltets_Render<T, K>['exports']>, ReturnType<__sveltets_Render<any, any>['bindings']>>;
+declare function TestRunes<T extends Record<string, any>, K extends keyof T>(...args: Parameters<$$$Component<T, K>>): ReturnType<$$$Component<T, K>>;
+declare namespace TestRunes {
+    var z_$$bindings: "bar";
+    var element: any;
 }
-declare const TestRunes: $$IsomorphicComponent;
-type TestRunes<T extends Record<string, any>, K extends keyof T> = InstanceType<typeof TestRunes<T, K>>;
 export default TestRunes;
