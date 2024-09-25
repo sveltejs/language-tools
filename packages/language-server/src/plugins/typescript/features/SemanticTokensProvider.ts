@@ -66,29 +66,23 @@ export class SemanticTokensProviderImpl implements SemanticTokensProvider {
                 continue;
             }
 
-            const originalPosition = this.mapToOrigin(
+            const original = this.map(
                 textDocument,
                 tsDoc,
                 generatedOffset,
                 generatedLength,
-                encodedClassification
+                encodedClassification,
+                classificationType
             );
-            if (!originalPosition) {
-                continue;
-            }
-
-            const [line, character, length] = originalPosition;
 
             // remove identifiers whose start and end mapped to the same location,
             // like the svelte2tsx inserted render function,
             // or reversed like Component.$on
-            if (length <= 0) {
+            if (!original || original[2] <= 0) {
                 continue;
             }
 
-            const modifier = this.getTokenModifierFromClassification(encodedClassification);
-
-            data.push([line, character, length, classificationType, modifier]);
+            data.push(original);
         }
 
         const sorted = data.sort((a, b) => {
@@ -103,17 +97,20 @@ export class SemanticTokensProviderImpl implements SemanticTokensProvider {
         return builder.build();
     }
 
-    private mapToOrigin(
+    private map(
         document: Document,
         snapshot: SvelteDocumentSnapshot,
         generatedOffset: number,
         generatedLength: number,
-        token: number
-    ): [line: number, character: number, length: number, start: number] | undefined {
+        encodedClassification: number,
+        classificationType: number
+    ):
+        | [line: number, character: number, length: number, token: number, modifier: number]
+        | undefined {
         const text = snapshot.getFullText();
         if (
             isInGeneratedCode(text, generatedOffset, generatedOffset + generatedLength) ||
-            (token === 2817 /* top level function */ &&
+            (encodedClassification === 2817 /* top level function */ &&
                 text.substring(generatedOffset, generatedOffset + generatedLength) === 'render')
         ) {
             return;
@@ -132,7 +129,25 @@ export class SemanticTokensProviderImpl implements SemanticTokensProvider {
         const startOffset = document.offsetAt(startPosition);
         const endOffset = document.offsetAt(endPosition);
 
-        return [startPosition.line, startPosition.character, endOffset - startOffset, startOffset];
+        // Ensure components are highlighted consistently as types
+        if (
+            (encodedClassification === /* const variant 1 */ 2056 ||
+                encodedClassification === /* const variant 2 */ 2088 ||
+                encodedClassification === /* function */ 2848) &&
+            snapshot.svelteNodeAt(startOffset)?.type === 'InlineComponent' &&
+            (document.getText().charCodeAt(startOffset - 1) === /* < */ 60 ||
+                document.getText().charCodeAt(startOffset - 1) === /* / */ 47)
+        ) {
+            classificationType = 5;
+        }
+
+        return [
+            startPosition.line,
+            startPosition.character,
+            endOffset - startOffset,
+            classificationType,
+            this.getTokenModifierFromClassification(encodedClassification)
+        ];
     }
 
     /**
