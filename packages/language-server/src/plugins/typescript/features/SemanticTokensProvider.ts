@@ -129,16 +129,17 @@ export class SemanticTokensProviderImpl implements SemanticTokensProvider {
         const startOffset = document.offsetAt(startPosition);
         const endOffset = document.offsetAt(endPosition);
 
-        // Ensure components are highlighted consistently as types
+        // Ensure components in the template get no semantic highlighting
         if (
-            (encodedClassification === /* const variant 1 */ 2056 ||
-                encodedClassification === /* const variant 2 */ 2088 ||
-                encodedClassification === /* function */ 2848) &&
+            (classificationType === 0 ||
+                classificationType === 5 ||
+                classificationType === 7 ||
+                classificationType === 10) &&
             snapshot.svelteNodeAt(startOffset)?.type === 'InlineComponent' &&
             (document.getText().charCodeAt(startOffset - 1) === /* < */ 60 ||
                 document.getText().charCodeAt(startOffset - 1) === /* / */ 47)
         ) {
-            classificationType = 5;
+            return;
         }
 
         return [
