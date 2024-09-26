@@ -651,7 +651,6 @@ async function createLanguageService(
     function ensureProjectFileUpdates(newFile?: string): void {
         const info = parsedTsConfigInfo.get(tsconfigPath);
         if (!info) {
-            console.log('No tsconfig info found for', tsconfigPath);
             return;
         }
 
