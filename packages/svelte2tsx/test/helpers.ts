@@ -230,7 +230,10 @@ export function test_samples(dir: string, transform: TransformSampleFn, js: 'js'
         if (sample.name.endsWith('.v5') && !isSvelte5Plus) continue;
 
         const svelteFile = sample.find_file('*.svelte');
-        const expectedFile = isSvelte5Plus ? `expected-svelte5.${js}` : `expectedv2.${js}`;
+        const expectedFile =
+            isSvelte5Plus && !sample.name.endsWith('.v5')
+                ? `expected-svelte5.${js}`
+                : `expectedv2.${js}`;
         const config = {
             filename: svelteFile,
             sampleName: sample.name,

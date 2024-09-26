@@ -193,13 +193,6 @@ describe('SemanticTokensProvider', function () {
             },
             {
                 line: 12,
-                character: 5,
-                length: 'Imported'.length,
-                type: isSvelte5Plus ? TokenType.type : TokenType.class,
-                modifiers: isSvelte5Plus ? [TokenModifier.readonly] : []
-            },
-            {
-                line: 12,
                 character: 23,
                 length: 'blurHandler'.length,
                 type: TokenType.function,

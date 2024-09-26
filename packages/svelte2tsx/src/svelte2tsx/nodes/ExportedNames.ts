@@ -793,7 +793,7 @@ export class ExportedNames {
     }
 
     hasPropsRune() {
-        return this.isSvelte5Plus && (this.$props.type || this.$props.comment);
+        return this.isSvelte5Plus && !!(this.$props.type || this.$props.comment);
     }
 
     checkGlobalsForRunes(globals: string[]) {
