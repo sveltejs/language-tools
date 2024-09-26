@@ -665,7 +665,7 @@ describe('service', () => {
         virtualSystem.writeFile(
             tsconfigPath,
             JSON.stringify({
-                compilerOptions: {},
+                compilerOptions: {}
             })
         );
 
