@@ -40,7 +40,7 @@ export interface LanguageServiceContainer {
     deleteSnapshot(filePath: string): void;
     invalidateModuleCache(filePath: string[]): void;
     scheduleProjectFileUpdate(watcherNewFiles: string[]): void;
-    ensureProjectFileUpdates(): void;
+    ensureProjectFileUpdates(newFile?: string): void;
     updateTsOrJsFile(fileName: string, changes?: TextDocumentContentChangeEvent[]): void;
     /**
      * Checks if a file is present in the project.
@@ -225,7 +225,7 @@ export async function getService(
         service: LanguageServiceContainer,
         triedTsConfig: Set<string>
     ): Promise<LanguageServiceContainer | undefined> {
-        service.ensureProjectFileUpdates();
+        service.ensureProjectFileUpdates(path);
         if (service.snapshotManager.isProjectFile(path)) {
             return service;
         }
@@ -648,9 +648,23 @@ async function createLanguageService(
         }
     }
 
-    function ensureProjectFileUpdates(): void {
+    function ensureProjectFileUpdates(newFile?: string): void {
         const info = parsedTsConfigInfo.get(tsconfigPath);
-        if (!info || !info.pendingProjectFileUpdate) {
+        if (!info) {
+            return;
+        }
+
+        if (
+            newFile &&
+            !info.pendingProjectFileUpdate &&
+            // no global snapshots yet when initial load pending
+            !snapshotManager.isProjectFile(newFile) &&
+            !docContext.globalSnapshotsManager.get(newFile)
+        ) {
+            scheduleProjectFileUpdate([newFile]);
+        }
+
+        if (!info.pendingProjectFileUpdate) {
             return;
         }
         const projectFileCountBefore = snapshotManager.getProjectFileNames().length;
