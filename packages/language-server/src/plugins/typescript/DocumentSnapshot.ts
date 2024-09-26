@@ -109,7 +109,7 @@ export namespace DocumentSnapshot {
         tsSystem: ts.System
     ) {
         if (isSvelteFilePath(filePath)) {
-            return DocumentSnapshot.fromSvelteFilePath(filePath, createDocument, options);
+            return DocumentSnapshot.fromSvelteFilePath(filePath, createDocument, options, tsSystem);
         } else {
             return DocumentSnapshot.fromNonSvelteFilePath(filePath, tsSystem);
         }
@@ -173,9 +173,10 @@ export namespace DocumentSnapshot {
     export function fromSvelteFilePath(
         filePath: string,
         createDocument: (filePath: string, text: string) => Document,
-        options: SvelteSnapshotOptions
+        options: SvelteSnapshotOptions,
+        tsSystem: ts.System
     ) {
-        const originalText = ts.sys.readFile(filePath) ?? '';
+        const originalText = tsSystem.readFile(filePath) ?? '';
         return fromDocument(createDocument(filePath, originalText), options);
     }
 }

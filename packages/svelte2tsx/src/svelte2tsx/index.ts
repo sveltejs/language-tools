@@ -435,7 +435,7 @@ export function svelte2tsx(
     addComponentExport({
         str,
         canHaveAnyProp: !exportedNames.uses$$Props && (uses$$props || uses$$restProps),
-        strictEvents: events.hasStrictEvents(), // TODO in Svelte 6 we should also apply strictEvents in runes mode
+        events,
         isTsFile: options?.isTsFile,
         exportedNames,
         usesAccessors,

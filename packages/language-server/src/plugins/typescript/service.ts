@@ -1,6 +1,7 @@
 import { dirname, join, resolve, basename } from 'path';
 import ts from 'typescript';
 import {
+    DiagnosticSeverity,
     PublishDiagnosticsParams,
     RelativePattern,
     TextDocumentContentChangeEvent
@@ -39,7 +40,7 @@ export interface LanguageServiceContainer {
     deleteSnapshot(filePath: string): void;
     invalidateModuleCache(filePath: string[]): void;
     scheduleProjectFileUpdate(watcherNewFiles: string[]): void;
-    ensureProjectFileUpdates(): void;
+    ensureProjectFileUpdates(newFile?: string): void;
     updateTsOrJsFile(fileName: string, changes?: TextDocumentContentChangeEvent[]): void;
     /**
      * Checks if a file is present in the project.
@@ -99,6 +100,10 @@ export interface TsConfigInfo {
     pendingProjectFileUpdate: boolean;
     configFilePath: string;
     extendedConfigPaths?: Set<string>;
+}
+
+enum TsconfigSvelteDiagnostics {
+    NO_SVELTE_INPUT = 100_001
 }
 
 const maxProgramSizeForNonTsFiles = 20 * 1024 * 1024; // 20 MB
@@ -173,10 +178,21 @@ export async function getService(
             return service;
         }
 
+        // First try to find a service whose includes config matches our file
         const defaultService = await findDefaultServiceForFile(service, triedTsConfig);
         if (defaultService) {
             configFileForOpenFiles.set(path, defaultService.tsconfigPath);
             return defaultService;
+        }
+
+        // If no such service found, see if the file is part of any existing service indirectly.
+        // This can happen if the includes doesn't match the file but it was imported from one of the included files.
+        for (const configPath of triedTsConfig) {
+            const service = await getConfiguredService(configPath);
+            const ls = service.getService();
+            if (ls.getProgram()?.getSourceFile(path)) {
+                return service;
+            }
         }
 
         tsconfigPath = '';
@@ -209,13 +225,15 @@ export async function getService(
         service: LanguageServiceContainer,
         triedTsConfig: Set<string>
     ): Promise<LanguageServiceContainer | undefined> {
-        service.ensureProjectFileUpdates();
+        service.ensureProjectFileUpdates(path);
         if (service.snapshotManager.isProjectFile(path)) {
             return service;
         }
         if (triedTsConfig.has(service.tsconfigPath)) {
             return;
         }
+
+        triedTsConfig.add(service.tsconfigPath);
 
         // TODO: maybe add support for ts 5.6's ancestor searching
         return findDefaultFromProjectReferences(service, triedTsConfig);
@@ -315,6 +333,8 @@ async function createLanguageService(
 
     const projectConfig = getParsedConfig();
     const { options: compilerOptions, raw, errors: configErrors } = projectConfig;
+    const allowJs = compilerOptions.allowJs ?? !!compilerOptions.checkJs;
+    const virtualDocuments = new FileMap<Document>(tsSystem.useCaseSensitiveFileNames);
 
     const getCanonicalFileName = createGetCanonicalFileName(tsSystem.useCaseSensitiveFileNames);
     watchWildCardDirectories(projectConfig);
@@ -360,6 +380,7 @@ async function createLanguageService(
     let languageServiceReducedMode = false;
     let projectVersion = 0;
     let dirty = projectConfig.fileNames.length > 0;
+    let skipSvelteInputCheck = !tsconfigPath;
 
     const host: ts.LanguageServiceHost = {
         log: (message) => Logger.debug(`[ts] ${message}`),
@@ -529,11 +550,18 @@ async function createLanguageService(
             return prevSnapshot;
         }
 
+        const newSnapshot = DocumentSnapshot.fromDocument(document, transformationConfig);
+
         if (!prevSnapshot) {
             svelteModuleLoader.deleteUnresolvedResolutionsFromCache(filePath);
+            if (configFileForOpenFiles.get(filePath) === '' && services.size > 1) {
+                configFileForOpenFiles.delete(filePath);
+            }
+        } else if (prevSnapshot.scriptKind !== newSnapshot.scriptKind && !allowJs) {
+            // if allowJs is false, we need to invalid the cache so that js svelte files can be loaded through module resolution
+            svelteModuleLoader.deleteFromModuleCache(filePath);
+            configFileForOpenFiles.delete(filePath);
         }
-
-        const newSnapshot = DocumentSnapshot.fromDocument(document, transformationConfig);
 
         snapshotManager.set(filePath, newSnapshot);
 
@@ -620,9 +648,23 @@ async function createLanguageService(
         }
     }
 
-    function ensureProjectFileUpdates(): void {
+    function ensureProjectFileUpdates(newFile?: string): void {
         const info = parsedTsConfigInfo.get(tsconfigPath);
-        if (!info || !info.pendingProjectFileUpdate) {
+        if (!info) {
+            return;
+        }
+
+        if (
+            newFile &&
+            !info.pendingProjectFileUpdate &&
+            // no global snapshots yet when initial load pending
+            !snapshotManager.isProjectFile(newFile) &&
+            !docContext.globalSnapshotsManager.get(newFile)
+        ) {
+            scheduleProjectFileUpdate([newFile]);
+        }
+
+        if (!info.pendingProjectFileUpdate) {
             return;
         }
         const projectFileCountBefore = snapshotManager.getProjectFileNames().length;
@@ -640,14 +682,22 @@ async function createLanguageService(
             : snapshotManager.getProjectFileNames();
         const canonicalProjectFileNames = new Set(projectFiles.map(getCanonicalFileName));
 
+        // We only assign project files (i.e. those found through includes config) and virtual files to getScriptFileNames.
+        // We don't to include other client files otherwise they stay in the program and are never removed
+        const clientFiles = tsconfigPath
+            ? Array.from(virtualDocuments.values())
+                  .map((v) => v.getFilePath())
+                  .filter(isNotNullOrUndefined)
+            : snapshotManager.getClientFileNames();
+
         return Array.from(
             new Set([
                 ...projectFiles,
                 // project file is read from the file system so it's more likely to have
                 // the correct casing
-                ...snapshotManager
-                    .getClientFileNames()
-                    .filter((file) => !canonicalProjectFileNames.has(getCanonicalFileName(file))),
+                ...clientFiles.filter(
+                    (file) => !canonicalProjectFileNames.has(getCanonicalFileName(file))
+                ),
                 ...svelteTsxFiles
             ])
         );
@@ -736,20 +786,6 @@ async function createLanguageService(
             }
         }
 
-        const svelteConfigDiagnostics = checkSvelteInput(parsedConfig);
-        if (svelteConfigDiagnostics.length > 0) {
-            docContext.reportConfigError?.({
-                uri: pathToUrl(tsconfigPath),
-                diagnostics: svelteConfigDiagnostics.map((d) => ({
-                    message: d.messageText as string,
-                    range: { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } },
-                    severity: ts.DiagnosticCategory.Error,
-                    source: 'svelte'
-                }))
-            });
-            parsedConfig.errors.push(...svelteConfigDiagnostics);
-        }
-
         return {
             ...parsedConfig,
             fileNames: parsedConfig.fileNames.map(normalizePath),
@@ -758,22 +794,32 @@ async function createLanguageService(
         };
     }
 
-    function checkSvelteInput(config: ts.ParsedCommandLine) {
+    function checkSvelteInput(program: ts.Program | undefined, config: ts.ParsedCommandLine) {
         if (!tsconfigPath || config.raw.references || config.raw.files) {
             return [];
         }
 
-        const svelteFiles = config.fileNames.filter(isSvelteFilePath);
-        if (svelteFiles.length > 0) {
+        const configFileName = basename(tsconfigPath);
+        // Only report to possible nearest config file since referenced project might not be a svelte project
+        if (configFileName !== 'tsconfig.json' && configFileName !== 'jsconfig.json') {
             return [];
         }
+
+        const hasSvelteFiles =
+            config.fileNames.some(isSvelteFilePath) ||
+            program?.getSourceFiles().some((file) => isSvelteFilePath(file.fileName));
+
+        if (hasSvelteFiles) {
+            return [];
+        }
+
         const { include, exclude } = config.raw;
         const inputText = JSON.stringify(include);
         const excludeText = JSON.stringify(exclude);
         const svelteConfigDiagnostics: ts.Diagnostic[] = [
             {
-                category: ts.DiagnosticCategory.Error,
-                code: 0,
+                category: ts.DiagnosticCategory.Warning,
+                code: TsconfigSvelteDiagnostics.NO_SVELTE_INPUT,
                 file: undefined,
                 start: undefined,
                 length: undefined,
@@ -932,6 +978,29 @@ async function createLanguageService(
 
         dirty = false;
         compilerHost = undefined;
+
+        if (!skipSvelteInputCheck) {
+            const svelteConfigDiagnostics = checkSvelteInput(program, projectConfig);
+            const codes = svelteConfigDiagnostics.map((d) => d.code);
+            if (!svelteConfigDiagnostics.length) {
+                // stop checking once it passed once
+                skipSvelteInputCheck = true;
+            }
+            // report even if empty to clear previous diagnostics
+            docContext.reportConfigError?.({
+                uri: pathToUrl(tsconfigPath),
+                diagnostics: svelteConfigDiagnostics.map((d) => ({
+                    message: d.messageText as string,
+                    range: { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } },
+                    severity: DiagnosticSeverity.Warning,
+                    source: 'svelte'
+                }))
+            });
+            const new_errors = projectConfig.errors
+                .filter((e) => !codes.includes(e.code))
+                .concat(svelteConfigDiagnostics);
+            projectConfig.errors.splice(0, projectConfig.errors.length, ...new_errors);
+        }
 
         // https://github.com/microsoft/TypeScript/blob/23faef92703556567ddbcb9afb893f4ba638fc20/src/server/project.ts#L1624
         // host.getCachedExportInfoMap will create the cache if it doesn't exist
@@ -1135,6 +1204,7 @@ async function createLanguageService(
         if (!filePath) {
             return;
         }
+        virtualDocuments.set(filePath, document);
         configFileForOpenFiles.set(filePath, tsconfigPath || workspacePath);
         updateSnapshot(document);
         scheduleUpdate(filePath);

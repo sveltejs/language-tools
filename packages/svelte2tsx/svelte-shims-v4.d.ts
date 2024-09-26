@@ -220,11 +220,36 @@ declare type ATypedSvelteComponent = {
  * ```
  */
 declare type ConstructorOfATypedSvelteComponent = new (args: {target: any, props?: any}) => ATypedSvelteComponent
+// Usage note: Cannot properly transform generic function components to class components due to TypeScript limitations
 declare function __sveltets_2_ensureComponent<
-    // @ts-ignore svelte.Component doesn't exist in Svelte 4
-    T extends ConstructorOfATypedSvelteComponent | (typeof import('svelte') extends { mount: any } ? import('svelte').Component<any, any, any> : never) | null | undefined
-    // @ts-ignore svelte.Component doesn't exist in Svelte 4
->(type: T): NonNullable<T extends ConstructorOfATypedSvelteComponent ? T : typeof import('svelte') extends { mount: any } ? T extends import('svelte').Component<infer Props extends Record<string, any>> ? typeof import('svelte').SvelteComponent<Props, Props['$$events'], Props['$$slots']> : T : T>;
+    T extends
+        | ConstructorOfATypedSvelteComponent
+        | (typeof import('svelte') extends { mount: any }
+              ? // @ts-ignore svelte.Component doesn't exist in Svelte 4
+                import('svelte').Component<any, any, any>
+              : never)
+        | null
+        | undefined
+>(
+    type: T
+): NonNullable<
+    T extends ConstructorOfATypedSvelteComponent
+        ? T
+        : typeof import('svelte') extends { mount: any }
+          ? // @ts-ignore svelte.Component doesn't exist in Svelte 4
+            T extends import('svelte').Component<
+                infer Props extends Record<string, any>,
+                infer Exports extends Record<string, any>,
+                infer Bindings extends string
+            >
+              ? new (
+                    options: import('svelte').ComponentConstructorOptions<Props>
+                ) => import('svelte').SvelteComponent<Props, Props['$$events'], Props['$$slots']> &
+                    Exports & { $$bindings: Bindings }
+              : never
+          : never
+>;
+
 declare function __sveltets_2_ensureArray<T extends ArrayLike<unknown> | Iterable<unknown>>(array: T): T extends ArrayLike<infer U> ? U[] : T extends Iterable<infer U> ? Iterable<U> : any[];
 
 type __sveltets_2_PropsWithChildren<Props, Slots> = Props &
@@ -240,6 +265,11 @@ declare function __sveltets_2_runes_constructor<Props extends {}>(render: {props
 
 declare function __sveltets_$$bindings<Bindings extends string[]>(...bindings: Bindings): Bindings[number];
 
+declare function __sveltets_2_fn_component<
+    Props extends Record<string, any>, Exports extends Record<string, any>, Bindings extends string
+    // @ts-ignore Svelte 5 only
+>(klass: {props: Props, exports?: Exports, bindings?: Bindings }): import('svelte').Component<Props, Exports, Bindings>;
+
 interface __sveltets_2_IsomorphicComponent<Props extends Record<string, any> = any, Events extends Record<string, any> = any, Slots extends Record<string, any> = any, Exports = {}, Bindings = string> {
     new (options: import('svelte').ComponentConstructorOptions<Props>): import('svelte').SvelteComponent<Props, Events, Slots> & { $$bindings?: Bindings } & Exports;
     (internal: unknown, props: Props extends Record<string, never> ? {$$events?: Events, $$slots?: Slots} : Props & {$$events?: Events, $$slots?: Slots}): Exports & { $set?: any, $on?: any };
@@ -253,16 +283,3 @@ declare function __sveltets_2_isomorphic_component<
 declare function __sveltets_2_isomorphic_component_slots<
     Props extends Record<string, any>, Events extends Record<string, any>, Slots extends Record<string, any>, Exports extends Record<string, any>, Bindings extends string
 >(klass: {props: Props, events: Events, slots: Slots, exports?: Exports, bindings?: Bindings }): __sveltets_2_IsomorphicComponent<__sveltets_2_PropsWithChildren<Props, Slots>, Events, Slots, Exports, Bindings>;
-
-type __sveltets_NonUndefined<T> = T extends undefined ? never : T;
-
-declare function __sveltets_binding_value<
-    // @ts-ignore this is only used for Svelte 5, which knows about the Component type
-    Comp extends typeof import('svelte').Component<any>,
-    Key extends string
->(comp: Comp, key: Key): Key extends keyof import('svelte').ComponentProps<Comp> ?
-    // bail on unknown because it hints at a generic type which we can't properly resolve here
-    // remove undefined because optional properties have it, and would result in false positives
-    unknown extends import('svelte').ComponentProps<Comp>[Key] ? any : __sveltets_NonUndefined<import('svelte').ComponentProps<Comp>[Key]> : any;
-// Overload to ensure typings that only use old SvelteComponent class or something invalid are gracefully handled
-declare function __sveltets_binding_value(comp: any, key: string): any

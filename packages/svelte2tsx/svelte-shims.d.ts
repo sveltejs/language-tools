@@ -1,3 +1,5 @@
+// @ts-nocheck
+// nocheck because we don't want to adjust this anymore (only used for Svelte 3)
 // Whenever a ambient declaration changes, its number should be increased
 // This way, we avoid the situation where multiple ambient versions of svelte2tsx
 // are loaded and their declarations conflict each other

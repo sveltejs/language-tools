@@ -463,16 +463,8 @@ export class RenameProviderImpl implements RenameProvider {
         const mappedLocations = await Promise.all(
             renameLocations.map(async (loc) => {
                 const snapshot = await snapshots.retrieve(loc.fileName);
-                const text = snapshot.getFullText();
-                const end = loc.textSpan.start + loc.textSpan.length;
 
-                if (
-                    !(snapshot instanceof SvelteDocumentSnapshot) ||
-                    (!isTextSpanInGeneratedCode(text, loc.textSpan) &&
-                        // prevent generated code for bindings from being renamed
-                        // (it's not inside a generate comment because diagnostics should show up)
-                        text.slice(end + 3, end + 27) !== '__sveltets_binding_value')
-                ) {
+                if (!isTextSpanInGeneratedCode(snapshot.getFullText(), loc.textSpan)) {
                     return {
                         ...loc,
                         range: this.mapRangeToOriginal(snapshot, loc.textSpan),
