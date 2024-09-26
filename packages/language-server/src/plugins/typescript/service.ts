@@ -651,11 +651,20 @@ async function createLanguageService(
     function ensureProjectFileUpdates(newFile?: string): void {
         const info = parsedTsConfigInfo.get(tsconfigPath);
         if (!info) {
+            console.log('No tsconfig info found for', tsconfigPath);
             return;
         }
-        if (newFile && !docContext.globalSnapshotsManager.get(newFile)) {
+
+        if (
+            newFile &&
+            !info.pendingProjectFileUpdate &&
+            // no global snapshots yet when initial load pending
+            !snapshotManager.isProjectFile(newFile) &&
+            !docContext.globalSnapshotsManager.get(newFile)
+        ) {
             scheduleProjectFileUpdate([newFile]);
         }
+
         if (!info.pendingProjectFileUpdate) {
             return;
         }
