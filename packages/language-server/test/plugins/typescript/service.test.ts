@@ -657,6 +657,33 @@ describe('service', () => {
         assert.deepStrictEqual(findError(ls2), undefined);
     });
 
+    it('assigns newly created files to the right service before the watcher trigger', async () => {
+        const dirPath = getRandomVirtualDirPath(testDir);
+        const { virtualSystem, lsDocumentContext, rootUris } = setup();
+
+        const tsconfigPath = path.join(dirPath, 'tsconfig.json');
+        virtualSystem.writeFile(
+            tsconfigPath,
+            JSON.stringify({
+                compilerOptions: {},
+            })
+        );
+
+        const svelteFilePath = path.join(dirPath, 'random.svelte');
+
+        virtualSystem.writeFile(svelteFilePath, '');
+
+        const ls = await getService(svelteFilePath, rootUris, lsDocumentContext);
+
+        assert.equal(normalizePath(ls.tsconfigPath), normalizePath(tsconfigPath));
+
+        const svelteFilePath2 = path.join(dirPath, 'random2.svelte');
+        virtualSystem.writeFile(svelteFilePath2, '');
+
+        const ls2 = await getService(svelteFilePath2, rootUris, lsDocumentContext);
+        assert.equal(normalizePath(ls2.tsconfigPath), normalizePath(tsconfigPath));
+    });
+
     function getSemanticDiagnosticsMessages(ls: LanguageServiceContainer, filePath: string) {
         return ls
             .getService()
