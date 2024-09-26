@@ -52,7 +52,7 @@
     "dependencies": {
         "@jridgewell/trace-mapping": "^0.3.25",
         "@vscode/emmet-helper": "2.8.4",
-        "chokidar": "^3.4.1",
+        "chokidar": "^4.0.1",
         "estree-walker": "^2.0.1",
         "fdir": "^6.2.0",
         "lodash": "^4.17.21",
