@@ -32,27 +32,7 @@ async function openAllDocuments(
 ) {
     const offset = workspaceUri.fsPath.length + 1;
     // We support a very limited subset of glob patterns: You can only have  ** at the end or the start
-    const ignored: Array<(path: string) => boolean> = filePathsToIgnore.map((i) => {
-        if (i.endsWith('**')) i = i.slice(0, -2);
-
-        if (i.startsWith('**')) {
-            i = i.slice(2);
-
-            if (i.includes('*'))
-                throw new Error(
-                    'Invalid svelte-check --ignore pattern: Only ** at the start or end is supported'
-                );
-
-            return (path) => path.includes(i);
-        }
-
-        if (i.includes('*'))
-            throw new Error(
-                'Invalid svelte-check --ignore pattern: Only ** at the start or end is supported'
-            );
-
-        return (path) => path.startsWith(i);
-    });
+    const ignored = createIgnored(filePathsToIgnore);
     const isIgnored = (path: string) => {
         path = path.slice(offset);
         for (const i of ignored) {
@@ -82,6 +62,30 @@ async function openAllDocuments(
             true
         );
     }
+}
+
+function createIgnored(filePathsToIgnore: string[]): Array<(path: string) => boolean> {
+    return filePathsToIgnore.map((i) => {
+        if (i.endsWith('**')) i = i.slice(0, -2);
+
+        if (i.startsWith('**')) {
+            i = i.slice(2);
+
+            if (i.includes('*'))
+                throw new Error(
+                    'Invalid svelte-check --ignore pattern: Only ** at the start or end is supported'
+                );
+
+            return (path) => path.includes(i);
+        }
+
+        if (i.includes('*'))
+            throw new Error(
+                'Invalid svelte-check --ignore pattern: Only ** at the start or end is supported'
+            );
+
+        return (path) => path.startsWith(i);
+    });
 }
 
 async function getDiagnostics(
@@ -149,14 +153,32 @@ class DiagnosticsWatcher {
         filePathsToIgnore: string[],
         ignoreInitialAdd: boolean
     ) {
+        const fileEnding = /\.(svelte|d\.ts|ts|js|jsx|tsx|mjs|cjs|mts|cts)$/;
+        const viteConfigRegex = /vite\.config\.(js|ts)\.timestamp-/;
+        const userIgnored = createIgnored(filePathsToIgnore);
+        const offset = workspaceUri.fsPath.length + 1;
+
         watch(workspaceUri.fsPath, {
-            ignored: [
-                'node_modules',
-                'vite.config.{js,ts}.timestamp-*',
-                (path) => !/\.(svelte|d\.ts|ts|js|jsx|tsx|mjs|cjs|mts|cts)$/.test(path)
-            ]
-                .concat(filePathsToIgnore)
-                .map((ignore) => path.join(workspaceUri.fsPath, ignore)),
+            ignored: (path, stats) => {
+                if (
+                    path.includes('node_modules') ||
+                    path.includes('.git') ||
+                    (stats?.isFile() && (!fileEnding.test(path) || viteConfigRegex.test(path)))
+                ) {
+                    return true;
+                }
+
+                if (userIgnored.length !== 0) {
+                    path = path.slice(offset);
+                    for (const i of userIgnored) {
+                        if (i(path)) {
+                            return true;
+                        }
+                    }
+                }
+
+                return false;
+            },
             ignoreInitial: ignoreInitialAdd
         })
             .on('add', (path) => this.updateDocument(path, true))

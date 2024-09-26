@@ -25,12 +25,7 @@ export class FallbackWatcher {
         this.watcher = watch(
             workspacePaths.map((workspacePath) => join(workspacePath, recursivePatterns)),
             {
-                ignored: (path: string) =>
-                    gitOrNodeModules.test(path) &&
-                    // Handle Sapper's alias mapping
-                    !path.includes('src/node_modules') &&
-                    !path.includes('src\\node_modules'),
-
+                ignored: gitOrNodeModules,
                 // typescript would scan the project files on init.
                 // We only need to know what got updated.
                 ignoreInitial: true,
