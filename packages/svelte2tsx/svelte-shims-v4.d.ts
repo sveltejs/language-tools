@@ -207,7 +207,7 @@ declare type ATypedSvelteComponent = {
      */
     $$slot_def: any;
 
-    $on(event: string, handler: ((e: any) => any) | null | undefined): () => void;
+    $on(event: string, handler: any): () => void;
 }
 /**
  * Ambient type only used for intellisense, DO NOT USE IN YOUR PROJECT.
