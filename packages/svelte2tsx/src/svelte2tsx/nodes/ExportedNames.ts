@@ -55,7 +55,8 @@ export class ExportedNames {
         private astOffset: number,
         private basename: string,
         private isTsFile: boolean,
-        private isSvelte5Plus: boolean
+        private isSvelte5Plus: boolean,
+        private isRunes: boolean
     ) {}
 
     handleVariableStatement(node: ts.VariableStatement, parent: ts.Node): void {
@@ -808,6 +809,6 @@ export class ExportedNames {
     }
 
     usesRunes() {
-        return this.hasRunesGlobals || this.hasPropsRune();
+        return this.hasRunesGlobals || this.hasPropsRune() || this.isRunes;
     }
 }
