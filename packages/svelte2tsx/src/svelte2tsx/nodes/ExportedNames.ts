@@ -17,6 +17,7 @@ interface ExportedName {
     identifierText?: string;
     required?: boolean;
     doc?: string;
+    isNamedExport?: boolean;
 }
 
 export class ExportedNames {
@@ -127,9 +128,9 @@ export class ExportedNames {
         if (ts.isNamedExports(exportClause)) {
             for (const ne of exportClause.elements) {
                 if (ne.propertyName) {
-                    this.addExport(ne.propertyName, false, ne.name);
+                    this.addExport(ne.propertyName, false, ne.name, undefined, undefined, true);
                 } else {
-                    this.addExport(ne.name, false);
+                    this.addExport(ne.name, false, undefined, undefined, undefined, true);
                 }
             }
             //we can remove entire statement
@@ -552,24 +553,26 @@ export class ExportedNames {
         isLet: boolean,
         target: ts.Identifier = null,
         type: ts.TypeNode = null,
-        required = false
+        required = false,
+        isNamedExport = false
     ): void {
         const existingDeclaration = this.possibleExports.get(name.text);
-
         if (target) {
             this.exports.set(name.text, {
                 isLet: isLet || existingDeclaration?.isLet,
                 type: type?.getText() || existingDeclaration?.type,
                 identifierText: target.text,
                 required: required || existingDeclaration?.required,
-                doc: this.getDoc(target) || existingDeclaration?.doc
+                doc: this.getDoc(target) || existingDeclaration?.doc,
+                isNamedExport
             });
         } else {
             this.exports.set(name.text, {
                 isLet: isLet || existingDeclaration?.isLet,
                 type: existingDeclaration?.type,
                 required: existingDeclaration?.required,
-                doc: existingDeclaration?.doc
+                doc: existingDeclaration?.doc,
+                isNamedExport
             });
         }
 
@@ -706,7 +709,7 @@ export class ExportedNames {
      */
     createExportsStr(): string {
         const names = Array.from(this.exports.entries());
-        const others = names.filter(([, { isLet }]) => !isLet);
+        const others = names.filter(([, { isLet, isNamedExport }]) => !isLet || isNamedExport);
         const needsAccessors = this.usesAccessors && names.length > 0 && !this.usesRunes(); // runes mode doesn't support accessors
 
         if (this.isSvelte5Plus) {
