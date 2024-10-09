@@ -709,7 +709,9 @@ export class ExportedNames {
      */
     createExportsStr(): string {
         const names = Array.from(this.exports.entries());
-        const others = names.filter(([, { isLet, isNamedExport }]) => !isLet || isNamedExport);
+        const others = names.filter(
+            ([, { isLet, isNamedExport }]) => !isLet || (this.usesRunes() && isNamedExport)
+        );
         const needsAccessors = this.usesAccessors && names.length > 0 && !this.usesRunes(); // runes mode doesn't support accessors
 
         if (this.isSvelte5Plus) {
