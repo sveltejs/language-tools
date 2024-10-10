@@ -290,6 +290,7 @@ export function startServer(options?: LSOptions) {
                               'constant_scope_2',
                               'constant_scope_3',
                               'extract_to_svelte_component',
+                              'migrate_to_svelte_5',
                               'Infer function return type'
                           ]
                       }
@@ -592,15 +593,13 @@ export function startServer(options?: LSOptions) {
             return null;
         }
 
-        if (doc) {
-            const compiled = await sveltePlugin.getCompiledResult(doc);
-            if (compiled) {
-                const js = compiled.js;
-                const css = compiled.css;
-                return { js, css };
-            } else {
-                return null;
-            }
+        const compiled = await sveltePlugin.getCompiledResult(doc);
+        if (compiled) {
+            const js = compiled.js;
+            const css = compiled.css;
+            return { js, css };
+        } else {
+            return null;
         }
     });
 

@@ -541,6 +541,10 @@
                 "title": "Svelte: Extract Component"
             },
             {
+                "command": "svelte.migrate_to_svelte_5",
+                "title": "Svelte: Migrate Component to Svelte 5 Syntax"
+            },
+            {
                 "command": "svelte.typescript.findAllFileReferences",
                 "title": "Svelte: Find File References"
             },
