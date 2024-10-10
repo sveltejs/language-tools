@@ -225,7 +225,7 @@ function getSvelteIgnoreEdit(
     const indent = getIndent(afterStartLineStart);
 
     // TODO: Make all code action's new line consistent
-    let ignore = `${indent}// svelte-ignore wtf ${code}${EOL}${indent}`;
+    let ignore = `${indent}// svelte-ignore ${code}${EOL}${indent}`;
     if (isHtml) {
         ignore = `${indent}<!-- svelte-ignore ${code} -->${EOL}`;
     }
