@@ -212,12 +212,12 @@ describe('DocumentHighlightProvider', function () {
 
         it('get highlight for await block (skip pending)', async () => {
             await testSameHighlight(
-                '{#await expression then name}{/await}',
-                [2, 20, 30],
+                '{#await expression then name} {/await}',
+                [2, 20, 31],
                 [
                     [1, 7],
                     [19, 23],
-                    [30, 36]
+                    [31, 37]
                 ]
             );
         });

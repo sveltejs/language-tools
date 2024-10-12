@@ -211,7 +211,7 @@ export class DocumentHighlightProviderImpl implements DocumentHighlightProvider 
         const ranges: RangeTupleArray = [];
 
         walkSvelteAst(candidate.else, {
-            enter(node) {
+            enter(node, _, key) {
                 const templateNode = node as TemplateNode;
                 if (templateNode.type === 'IfBlock' && templateNode.elseif) {
                     const elseIfStart = content.lastIndexOf(
@@ -224,7 +224,7 @@ export class DocumentHighlightProviderImpl implements DocumentHighlightProvider 
                     }
                 }
 
-                if (templateNode.type === 'ElseBlock') {
+                if (templateNode.type === 'ElseBlock' && key === 'else') {
                     const elseStart = content.lastIndexOf(':else', templateNode.start);
 
                     if (
