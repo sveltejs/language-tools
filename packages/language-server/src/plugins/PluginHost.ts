@@ -637,7 +637,7 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
 
         return result;
     }
-   
+
     async resolveCodeLens(
         textDocument: TextDocumentIdentifier,
         codeLens: CodeLens,
