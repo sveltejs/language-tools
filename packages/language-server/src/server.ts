@@ -317,7 +317,10 @@ export function startServer(options?: LSOptions) {
                 foldingRangeProvider: true,
                 codeLensProvider: {
                     resolveProvider: true
-                }
+                },
+                documentHighlightProvider:
+                    !!evt.initializationOptions?.configuration?.svelte?.experimental
+                        ?.documentHighlight?.enable
             }
         };
     });
@@ -487,6 +490,9 @@ export function startServer(options?: LSOptions) {
 
         return pluginHost.resolveCodeLens(data, codeLens, token);
     });
+    connection.onDocumentHighlight((evt) =>
+        pluginHost.findDocumentHighlight(evt.textDocument, evt.position)
+    );
 
     const diagnosticsManager = new DiagnosticsManager(
         connection.sendDiagnostics,

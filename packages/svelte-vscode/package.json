@@ -393,6 +393,12 @@
                         "none",
                         "ts"
                     ]
+                },
+                "svelte.experimental.documentHighlight.enable": {
+                    "type": "boolean",
+                    "default": false,
+                    "title": "Experimental: Document Highlight",
+                    "description": "Enable experimental document highlight support. Require restart."
                 }
             }
         },
