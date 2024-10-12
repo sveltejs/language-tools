@@ -26,7 +26,7 @@ import { handleSpread } from './nodes/Spread';
 import { handleStyleDirective } from './nodes/StyleDirective';
 import { handleText } from './nodes/Text';
 import { handleTransitionDirective } from './nodes/Transition';
-import { handleImplicitChildren, handleSnippet } from './nodes/SnippetBlock';
+import { handleImplicitChildren, handleSnippet, hoistSnippetBlock } from './nodes/SnippetBlock';
 import { handleRenderTag } from './nodes/RenderTag';
 
 type Walker = (node: TemplateNode, parent: BaseNode, prop: string, index: number) => void;
@@ -63,6 +63,8 @@ export function convertHtmlxToJsx(
     const rootSnippets: Array<[number, number]> = [];
     let element: Element | InlineComponent | undefined;
 
+    const pendingSnippetHoistCheck = new Set<BaseNode>();
+
     walk(ast as any, {
         enter: (estreeTypedNode, estreeTypedParent, prop: string, index: number) => {
             const node = estreeTypedNode as TemplateNode;
@@ -91,9 +93,11 @@ export function convertHtmlxToJsx(
                                 ? element
                                 : undefined
                         );
-                        if (!element) {
+                        if (parent === ast) {
                             // root snippet -> move to instance script
                             rootSnippets.push([node.start, node.end]);
+                        } else {
+                            pendingSnippetHoistCheck.add(parent);
                         }
                         break;
                     case 'MustacheTag':
@@ -154,7 +158,8 @@ export function convertHtmlxToJsx(
                             node as BaseDirective,
                             parent,
                             element,
-                            options.typingsNamespace === 'svelteHTML'
+                            options.typingsNamespace === 'svelteHTML',
+                            options.svelte5Plus
                         );
                         break;
                     case 'Class':
@@ -178,6 +183,7 @@ export function convertHtmlxToJsx(
                             node as Attribute,
                             parent,
                             options.preserveAttributeCase,
+                            options.svelte5Plus,
                             element
                         );
                         break;
@@ -188,7 +194,14 @@ export function convertHtmlxToJsx(
                         handleEventHandler(str, node as BaseDirective, element);
                         break;
                     case 'Let':
-                        handleLet(str, node, parent, options.preserveAttributeCase, element);
+                        handleLet(
+                            str,
+                            node,
+                            parent,
+                            options.preserveAttributeCase,
+                            options.svelte5Plus,
+                            element
+                        );
                         break;
                     case 'Text':
                         handleText(str, node as Text, parent);
@@ -241,6 +254,10 @@ export function convertHtmlxToJsx(
             }
         }
     });
+
+    for (const node of pendingSnippetHoistCheck) {
+        hoistSnippetBlock(str, node);
+    }
 
     return rootSnippets;
 }

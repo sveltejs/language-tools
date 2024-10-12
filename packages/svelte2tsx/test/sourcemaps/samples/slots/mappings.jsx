@@ -7,30 +7,36 @@ async () => { { __sveltets_createSlot("default", {});}                          
 async•()•=>•{•{•__sveltets_createSlot("default",•{});}↲    [generated] line 4                                                                         
              <                                    /   ↲                                                                                               
 <     / ↲                                                                                                                                             
-<slot•/>↲                                                  [original] line 1                                                                          
+<slot•/>↲                                                  [original] line 1 (rest generated at line 5)                                               
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                                                                                                                                                       {/**
-
+↲            [generated] line 5                                                                                                                       
+        ↲                                                                                                                                             
+<slot•/>↲    [original] line 1 (rest generated at line 4)                                                                                             
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
  { __sveltets_createSlot("foo", { });  }                                                                                                              {/**
 •{•__sveltets_createSlot("foo",•{•});••}↲    [generated] line 6                                                                                       
 <                        f oo "  an  f/ ↲                                                                                                             
                               #==#           Order-breaking mappings                                                                                  
 <     na    foo" f        /     ↲                                                                                                                     
-<slot•name="foo">fallback</slot>↲            [original] line 3                                                                                        
+<slot•name="foo">fallback</slot>↲            [original] line 3 (rest generated at line 7)                                                             
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                                                                                                                                                       {/**
-
+↲                                    [generated] line 7                                                                                               
+                                ↲                                                                                                                     
+<slot•name="foo">fallback</slot>↲    [original] line 3 (rest generated at line 6)                                                                     
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
  { __sveltets_createSlot("bar", {    "foo":foo,baz,"leet":true,});  }                                                                                 {/**
 •{•__sveltets_createSlot("bar",•{••••"foo":foo,baz,"leet":true,});••}↲    [generated] line 8                                                          
 <                        b ar "  {•••f oo= foo}baz}l eet          f/ ↲                                                                                
                               #==   #                                     Order-breaking mappings                                                     
 <     foo={foo}•      bar"• baz}•leet f        /     ↲                                                                                                
-<slot•foo={foo}•name="bar"•{baz}•leet>fallback</slot>↲                    [original] line 5                                                           
+<slot•foo={foo}•name="bar"•{baz}•leet>fallback</slot>↲                    [original] line 5 (rest generated at line 9)                                
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                                                                                                                                                       {/**
-
+↲                                                         [generated] line 9                                                                          
+                                                     ↲                                                                                                
+<slot•foo={foo}•name="bar"•{baz}•leet>fallback</slot>↲    [original] line 5 (rest generated at line 8)                                                
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
  { __sveltets_createSlot("bar", {     "foo":foo,baz,"leet":true,});                                                                                   {/**
 •{•__sveltets_createSlot("bar",•{•••••"foo":foo,baz,"leet":true,});↲    [generated] line 10                                                           

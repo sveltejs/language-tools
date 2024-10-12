@@ -1,0 +1,7 @@
+{
+    "include": [],
+    "compilerOptions": {
+        "composite": true
+    },
+    "references": [{ "path": "./tsconfig_sub3.json" }]
+}

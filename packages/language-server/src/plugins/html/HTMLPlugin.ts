@@ -321,7 +321,7 @@ export class HTMLPlugin
         }
         const tagNameStart = node.start + '<'.length;
 
-        return toRange(document.getText(), tagNameStart, tagNameStart + node.tag.length);
+        return toRange(document, tagNameStart, tagNameStart + node.tag.length);
     }
 
     getLinkedEditingRanges(document: Document, position: Position): LinkedEditingRanges | null {

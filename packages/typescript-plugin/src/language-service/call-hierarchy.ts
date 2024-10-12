@@ -89,7 +89,7 @@ export function decorateCallHierarchy(
         return provideCallHierarchyOutgoingCalls(fileName, offset)
             .concat(
                 program && sourceFile && isComponentModulePosition(fileName, position)
-                    ? getOutgoingCallsForComponent(program, sourceFile) ?? []
+                    ? (getOutgoingCallsForComponent(program, sourceFile) ?? [])
                     : []
             )
             .map((item): ts.CallHierarchyOutgoingCall | null => {

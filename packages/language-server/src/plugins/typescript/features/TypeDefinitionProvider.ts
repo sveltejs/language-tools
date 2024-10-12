@@ -10,11 +10,11 @@ export class TypeDefinitionProviderImpl implements TypeDefinitionProvider {
     constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
 
     async getTypeDefinition(document: Document, position: Position): Promise<Location[] | null> {
-        const { tsDoc, lang } = await this.lsAndTsDocResolver.getLSAndTSDoc(document);
+        const { tsDoc, lang, lsContainer } = await this.lsAndTsDocResolver.getLSAndTSDoc(document);
         const offset = tsDoc.offsetAt(tsDoc.getGeneratedPosition(position));
         const typeDefs = lang.getTypeDefinitionAtPosition(tsDoc.filePath, offset);
 
-        const snapshots = new SnapshotMap(this.lsAndTsDocResolver);
+        const snapshots = new SnapshotMap(this.lsAndTsDocResolver, lsContainer);
         snapshots.set(tsDoc.filePath, tsDoc);
 
         if (!typeDefs) {

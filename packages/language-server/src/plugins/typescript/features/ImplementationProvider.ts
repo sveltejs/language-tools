@@ -1,4 +1,4 @@
-import { Position, Location } from 'vscode-languageserver-protocol';
+import { Position, Location, CancellationToken } from 'vscode-languageserver-protocol';
 import { Document, mapLocationToOriginal } from '../../../lib/documents';
 import { isNotNullOrUndefined } from '../../../utils';
 import { ImplementationProvider } from '../../interfaces';
@@ -13,12 +13,21 @@ import {
 export class ImplementationProviderImpl implements ImplementationProvider {
     constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
 
-    async getImplementation(document: Document, position: Position): Promise<Location[] | null> {
-        const { tsDoc, lang } = await this.lsAndTsDocResolver.getLSAndTSDoc(document);
+    async getImplementation(
+        document: Document,
+        position: Position,
+        cancellationToken?: CancellationToken
+    ): Promise<Location[] | null> {
+        const { tsDoc, lang, lsContainer } = await this.lsAndTsDocResolver.getLSAndTSDoc(document);
+
+        if (cancellationToken?.isCancellationRequested) {
+            return null;
+        }
+
         const offset = tsDoc.offsetAt(tsDoc.getGeneratedPosition(position));
         const implementations = lang.getImplementationAtPosition(tsDoc.filePath, offset);
 
-        const snapshots = new SnapshotMap(this.lsAndTsDocResolver);
+        const snapshots = new SnapshotMap(this.lsAndTsDocResolver, lsContainer);
         snapshots.set(tsDoc.filePath, tsDoc);
 
         if (!implementations) {
@@ -45,6 +54,10 @@ export class ImplementationProviderImpl implements ImplementationProvider {
                         tsDoc.getFullText().indexOf(');', implementation.textSpan.start) - 1
                     )![0];
                     snapshot = await snapshots.retrieve(implementation.fileName);
+                }
+
+                if (cancellationToken?.isCancellationRequested) {
+                    return null;
                 }
 
                 const location = mapLocationToOriginal(

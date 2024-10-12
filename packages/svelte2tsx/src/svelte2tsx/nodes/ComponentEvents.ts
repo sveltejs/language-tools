@@ -77,6 +77,10 @@ export class ComponentEvents {
         this.componentEventsInterface.setComponentEventsInterface(node, this.str, astOffset);
     }
 
+    hasEvents(): boolean {
+        return this.eventsClass.events.size > 0;
+    }
+
     hasStrictEvents(): boolean {
         return this.componentEventsInterface.isPresent() || this.strictEvents;
     }

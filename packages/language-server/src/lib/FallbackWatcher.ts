@@ -1,8 +1,14 @@
 import { FSWatcher, watch } from 'chokidar';
 import { debounce } from 'lodash';
 import { join } from 'path';
-import { DidChangeWatchedFilesParams, FileChangeType, FileEvent } from 'vscode-languageserver';
+import {
+    DidChangeWatchedFilesParams,
+    FileChangeType,
+    FileEvent,
+    RelativePattern
+} from 'vscode-languageserver';
 import { pathToUrl } from '../utils';
+import { fileURLToPath } from 'url';
 
 type DidChangeHandler = (para: DidChangeWatchedFilesParams) => void;
 
@@ -14,17 +20,12 @@ export class FallbackWatcher {
 
     private undeliveredFileEvents: FileEvent[] = [];
 
-    constructor(glob: string, workspacePaths: string[]) {
+    constructor(recursivePatterns: string, workspacePaths: string[]) {
         const gitOrNodeModules = /\.git|node_modules/;
         this.watcher = watch(
-            workspacePaths.map((workspacePath) => join(workspacePath, glob)),
+            workspacePaths.map((workspacePath) => join(workspacePath, recursivePatterns)),
             {
-                ignored: (path: string) =>
-                    gitOrNodeModules.test(path) &&
-                    // Handle Sapper's alias mapping
-                    !path.includes('src/node_modules') &&
-                    !path.includes('src\\node_modules'),
-
+                ignored: gitOrNodeModules,
                 // typescript would scan the project files on init.
                 // We only need to know what got updated.
                 ignoreInitial: true,
@@ -63,6 +64,18 @@ export class FallbackWatcher {
 
     onDidChangeWatchedFiles(callback: DidChangeHandler) {
         this.callbacks.push(callback);
+    }
+
+    watchDirectory(patterns: RelativePattern[]) {
+        for (const pattern of patterns) {
+            const basePath = fileURLToPath(
+                typeof pattern.baseUri === 'string' ? pattern.baseUri : pattern.baseUri.uri
+            );
+            if (!basePath) {
+                continue;
+            }
+            this.watcher.add(join(basePath, pattern.pattern));
+        }
     }
 
     dispose() {

@@ -14,9 +14,11 @@ import { SemanticTokensProviderImpl } from '../../../../src/plugins/typescript/f
 import { LSAndTSDocResolver } from '../../../../src/plugins/typescript/LSAndTSDocResolver';
 import { pathToUrl } from '../../../../src/utils';
 import { serviceWarmup } from '../test-utils';
+import { VERSION } from 'svelte/compiler';
 
 const testDir = path.join(__dirname, '..');
 const semanticTokenTestDir = path.join(testDir, 'testfiles', 'semantic-tokens');
+const isSvelte5Plus = +VERSION.split('.')[0] >= 5;
 
 describe('SemanticTokensProvider', function () {
     const tsFile = 'tokens.svelte';
@@ -40,7 +42,6 @@ describe('SemanticTokensProvider', function () {
         return { provider, document };
     }
 
-    // TODO reenable with updated tokens for new transformation
     it('provides semantic token', async () => {
         const { provider, document } = setup(tsFile);
 
@@ -189,13 +190,6 @@ describe('SemanticTokensProvider', function () {
                 length: 'text'.length,
                 type: TokenType.variable,
                 modifiers: [TokenModifier.declaration, TokenModifier.local, TokenModifier.readonly]
-            },
-            {
-                line: 12,
-                character: 5,
-                length: 'Imported'.length,
-                type: TokenType.class,
-                modifiers: []
             },
             {
                 line: 12,

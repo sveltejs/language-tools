@@ -18,6 +18,7 @@ import { JSOrTSDocumentSnapshot } from './plugins/typescript/DocumentSnapshot';
 import { isInGeneratedCode } from './plugins/typescript/features/utils';
 import { convertRange, getDiagnosticTag, mapSeverity } from './plugins/typescript/utils';
 import { pathToUrl, urlToPath } from './utils';
+import { groupBy } from 'lodash';
 
 export type SvelteCheckDiagnosticSource = 'js' | 'css' | 'svelte';
 
@@ -94,7 +95,12 @@ export class SvelteCheck {
                 }
             );
             this.pluginHost.register(
-                new TypeScriptPlugin(this.configManager, this.lsAndTSDocResolver, workspaceUris)
+                new TypeScriptPlugin(
+                    this.configManager,
+                    this.lsAndTSDocResolver,
+                    workspaceUris,
+                    this.docManager
+                )
             );
         }
 
@@ -183,17 +189,42 @@ export class SvelteCheck {
 
     private async getDiagnosticsForTsconfig(tsconfigPath: string) {
         const lsContainer = await this.getLSContainer(tsconfigPath);
+        const map = (diagnostic: ts.Diagnostic, range?: Range): Diagnostic => {
+            const file = diagnostic.file;
+            range ??= file
+                ? convertRange(
+                      { positionAt: file.getLineAndCharacterOfPosition.bind(file) },
+                      diagnostic
+                  )
+                : { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } };
 
-        const noInputsFoundError = lsContainer.configErrors?.find((e) => e.code === 18003);
-        if (noInputsFoundError) {
-            throw new Error(noInputsFoundError.messageText.toString());
+            return {
+                range: range,
+                severity: mapSeverity(diagnostic.category),
+                source: diagnostic.source,
+                message: ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n'),
+                code: diagnostic.code,
+                tags: getDiagnosticTag(diagnostic)
+            };
+        };
+
+        if (
+            lsContainer.configErrors.some((error) => error.category === ts.DiagnosticCategory.Error)
+        ) {
+            return reportConfigError();
         }
 
         const lang = lsContainer.getService();
+        if (
+            lsContainer.configErrors.some((error) => error.category === ts.DiagnosticCategory.Error)
+        ) {
+            return reportConfigError();
+        }
+
         const files = lang.getProgram()?.getSourceFiles() || [];
         const options = lang.getProgram()?.getCompilerOptions() || {};
 
-        return await Promise.all(
+        const diagnostics = await Promise.all(
             files.map((file) => {
                 const uri = pathToUrl(file.fileName);
                 const doc = this.docManager.get(uri);
@@ -206,6 +237,7 @@ export class SvelteCheck {
                     const skipDiagnosticsForFile =
                         (options.skipLibCheck && file.isDeclarationFile) ||
                         (options.skipDefaultLibCheck && file.hasNoDefaultLib) ||
+                        lsContainer.isShimFiles(file.fileName) ||
                         // ignore JS files in node_modules
                         /\/node_modules\/.+\.(c|m)?js$/.test(file.fileName);
                     const snapshot = lsContainer.snapshotManager.get(file.fileName) as
@@ -213,20 +245,6 @@ export class SvelteCheck {
                         | undefined;
                     const isKitFile = snapshot?.kitFile ?? false;
                     const diagnostics: Diagnostic[] = [];
-                    const map = (diagnostic: ts.Diagnostic, range?: Range) => ({
-                        range:
-                            range ??
-                            convertRange(
-                                { positionAt: file.getLineAndCharacterOfPosition.bind(file) },
-                                diagnostic
-                            ),
-                        severity: mapSeverity(diagnostic.category),
-                        source: diagnostic.source,
-                        message: ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n'),
-                        code: diagnostic.code,
-                        tags: getDiagnosticTag(diagnostic)
-                    });
-
                     if (!skipDiagnosticsForFile) {
                         const originalDiagnostics = [
                             ...lang.getSyntacticDiagnostics(file.fileName),
@@ -299,6 +317,25 @@ export class SvelteCheck {
                 }
             })
         );
+
+        if (lsContainer.configErrors.length) {
+            diagnostics.push(...reportConfigError());
+        }
+
+        return diagnostics;
+
+        function reportConfigError() {
+            const grouped = groupBy(
+                lsContainer.configErrors,
+                (error) => error.file?.fileName ?? tsconfigPath
+            );
+
+            return Object.entries(grouped).map(([filePath, errors]) => ({
+                filePath,
+                text: '',
+                diagnostics: errors.map((diagnostic) => map(diagnostic))
+            }));
+        }
     }
 
     private async getDiagnosticsForFile(uri: string) {

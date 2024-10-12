@@ -20,8 +20,9 @@ export class FindComponentReferencesProviderImpl implements FindComponentReferen
             return null;
         }
 
-        const lang = await this.lsAndTsDocResolver.getLSForPath(fileName);
-        const tsDoc = await this.lsAndTsDocResolver.getSnapshot(fileName);
+        const lsContainer = await this.lsAndTsDocResolver.getTSService(fileName);
+        const lang = lsContainer.getService();
+        const tsDoc = await this.lsAndTsDocResolver.getOrCreateSnapshot(fileName);
         if (!(tsDoc instanceof SvelteDocumentSnapshot)) {
             return null;
         }
@@ -34,7 +35,7 @@ export class FindComponentReferencesProviderImpl implements FindComponentReferen
             return null;
         }
 
-        const snapshots = new SnapshotMap(this.lsAndTsDocResolver);
+        const snapshots = new SnapshotMap(this.lsAndTsDocResolver, lsContainer);
         snapshots.set(tsDoc.filePath, tsDoc);
 
         const locations = await Promise.all(

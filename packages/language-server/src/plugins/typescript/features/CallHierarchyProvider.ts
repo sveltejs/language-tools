@@ -41,7 +41,7 @@ export class CallHierarchyProviderImpl implements CallHierarchyProvider {
         position: Position,
         cancellationToken?: CancellationToken
     ): Promise<CallHierarchyItem[] | null> {
-        const { lang, tsDoc } = await this.lsAndTsDocResolver.getLSAndTSDoc(document);
+        const { lang, tsDoc, lsContainer } = await this.lsAndTsDocResolver.getLSAndTSDoc(document);
 
         if (cancellationToken?.isCancellationRequested) {
             return null;
@@ -52,7 +52,7 @@ export class CallHierarchyProviderImpl implements CallHierarchyProvider {
 
         const itemsArray = Array.isArray(items) ? items : items ? [items] : [];
 
-        const snapshots = new SnapshotMap(this.lsAndTsDocResolver);
+        const snapshots = new SnapshotMap(this.lsAndTsDocResolver, lsContainer);
         snapshots.set(tsDoc.filePath, tsDoc);
 
         const program = lang.getProgram();
@@ -213,7 +213,7 @@ export class CallHierarchyProviderImpl implements CallHierarchyProvider {
             .provideCallHierarchyOutgoingCalls(filePath, offset)
             .concat(
                 isComponentModulePosition
-                    ? this.getOutgoingCallsForComponent(program, filePath) ?? []
+                    ? (this.getOutgoingCallsForComponent(program, filePath) ?? [])
                     : []
             );
 
@@ -251,8 +251,9 @@ export class CallHierarchyProviderImpl implements CallHierarchyProvider {
             return null;
         }
 
-        const lang = await this.lsAndTsDocResolver.getLSForPath(filePath);
-        const tsDoc = await this.lsAndTsDocResolver.getSnapshot(filePath);
+        const lsContainer = await this.lsAndTsDocResolver.getTSService(filePath);
+        const lang = lsContainer.getService();
+        const tsDoc = await this.lsAndTsDocResolver.getOrCreateSnapshot(filePath);
 
         if (cancellationToken?.isCancellationRequested) {
             return null;
@@ -260,7 +261,7 @@ export class CallHierarchyProviderImpl implements CallHierarchyProvider {
 
         const program = lang.getProgram();
 
-        const snapshots = new SnapshotMap(this.lsAndTsDocResolver);
+        const snapshots = new SnapshotMap(this.lsAndTsDocResolver, lsContainer);
         snapshots.set(tsDoc.filePath, tsDoc);
 
         const isComponentModulePosition =

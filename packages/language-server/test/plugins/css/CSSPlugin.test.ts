@@ -72,7 +72,8 @@ describe('CSS Plugin', () => {
                     kind: 'markdown',
                     value:
                         "Specifies the height of the content area, padding area or border area \\(depending on 'box\\-sizing'\\) of certain boxes\\.\n\n" +
-                        '(Edge 12, Firefox 1, Safari 1, Chrome 1, IE 4, Opera 7)\n\nSyntax: &lt;viewport\\-length&gt;\\{1,2\\}\n\n' +
+                        '(Edge 12, Firefox 1, Safari 1, Chrome 1, IE 4, Opera 7)\n\n' +
+                        'Syntax: auto | &lt;length&gt; | &lt;percentage&gt; | min\\-content | max\\-content | fit\\-content | fit\\-content\\(&lt;length\\-percentage&gt;\\)\n\n' +
                         '[MDN Reference](https://developer.mozilla.org/docs/Web/CSS/height)'
                 },
                 range: Range.create(0, 12, 0, 24)
@@ -135,32 +136,33 @@ describe('CSS Plugin', () => {
             const completions = await plugin.getCompletions(document, Position.create(0, 22), {
                 triggerKind: CompletionTriggerKind.Invoked
             } as CompletionContext);
-            assert.deepStrictEqual(completions?.items.find((item) => item.label === 'none'), <
-                CompletionItem
-            >{
-                insertTextFormat: undefined,
-                kind: 12,
-                label: 'none',
-                documentation: {
-                    kind: 'markdown',
-                    value: 'The element and its descendants generates no boxes\\.'
-                },
-                sortText: ' ',
-                tags: [],
-                textEdit: {
-                    newText: 'none',
-                    range: {
-                        start: {
-                            line: 0,
-                            character: 21
-                        },
-                        end: {
-                            line: 0,
-                            character: 22
+            assert.deepStrictEqual(
+                completions?.items.find((item) => item.label === 'none'),
+                <CompletionItem>{
+                    insertTextFormat: undefined,
+                    kind: 12,
+                    label: 'none',
+                    documentation: {
+                        kind: 'markdown',
+                        value: 'The element and its descendants generates no boxes\\.'
+                    },
+                    sortText: ' ',
+                    tags: [],
+                    textEdit: {
+                        newText: 'none',
+                        range: {
+                            start: {
+                                line: 0,
+                                character: 21
+                            },
+                            end: {
+                                line: 0,
+                                character: 22
+                            }
                         }
                     }
                 }
-            });
+            );
         });
 
         it('not for style attribute with interpolation', async () => {
@@ -185,25 +187,26 @@ describe('CSS Plugin', () => {
                 }
             });
             const completions = await plugin.getCompletions(document, Position.create(0, 16));
-            assert.deepStrictEqual(completions?.items.find((item) => item.label === 'foo.css'), <
-                CompletionItem
-            >{
-                label: 'foo.css',
-                kind: 17,
-                textEdit: {
-                    newText: 'foo.css',
-                    range: {
-                        end: {
-                            character: 18,
-                            line: 0
-                        },
-                        start: {
-                            character: 16,
-                            line: 0
+            assert.deepStrictEqual(
+                completions?.items.find((item) => item.label === 'foo.css'),
+                <CompletionItem>{
+                    label: 'foo.css',
+                    kind: 17,
+                    textEdit: {
+                        newText: 'foo.css',
+                        range: {
+                            end: {
+                                character: 18,
+                                line: 0
+                            },
+                            start: {
+                                character: 16,
+                                line: 0
+                            }
                         }
                     }
                 }
-            });
+            );
         });
     });
 

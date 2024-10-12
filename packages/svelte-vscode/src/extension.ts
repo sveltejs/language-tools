@@ -32,6 +32,7 @@ import { TsPlugin } from './tsplugin';
 import { addFindComponentReferencesListener } from './typescript/findComponentReferences';
 import { addFindFileReferencesListener } from './typescript/findFileReferences';
 import { setupSvelteKit } from './sveltekit';
+import { resolveCodeLensMiddleware } from './middlewares';
 
 namespace TagCloseRequest {
     export const type: RequestType<TextDocumentPositionParams, string, any> = new RequestType(
@@ -180,6 +181,9 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
             },
             dontFilterIncompleteCompletions: true, // VSCode filters client side and is smarter at it than us
             isTrusted: workspace.isTrusted
+        },
+        middleware: {
+            resolveCodeLens: resolveCodeLensMiddleware
         }
     };
 
@@ -254,6 +258,8 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
     addCompilePreviewCommand(getLS, context);
 
     addExtracComponentCommand(getLS, context);
+
+    addMigrateToSvelte5Command(getLS, context);
 
     languages.setLanguageConfiguration('svelte', {
         indentationRules: {
@@ -486,6 +492,22 @@ function addExtracComponentCommand(getLS: () => LanguageClient, context: Extensi
                     command: 'extract_to_svelte_component',
                     arguments: [uri, { uri, range, filePath }]
                 });
+            });
+        })
+    );
+}
+
+function addMigrateToSvelte5Command(getLS: () => LanguageClient, context: ExtensionContext) {
+    context.subscriptions.push(
+        commands.registerTextEditorCommand('svelte.migrate_to_svelte_5', async (editor) => {
+            if (editor?.document?.languageId !== 'svelte') {
+                return;
+            }
+
+            const uri = editor.document.uri.toString();
+            getLS().sendRequest(ExecuteCommandRequest.type, {
+                command: 'migrate_to_svelte_5',
+                arguments: [uri]
             });
         })
     );

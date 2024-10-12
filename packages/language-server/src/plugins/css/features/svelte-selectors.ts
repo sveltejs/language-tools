@@ -1,6 +1,6 @@
 import { IPseudoClassData } from 'vscode-css-languageservice';
 
-export const pesudoClass: IPseudoClassData[] = [
+export const pseudoClass: IPseudoClassData[] = [
     {
         name: ':global()',
         description: `[svelte] :global modifier

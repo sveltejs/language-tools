@@ -13,6 +13,7 @@ import {
     CallHierarchyOutgoingCall,
     CodeAction,
     CodeActionContext,
+    CodeLens,
     Color,
     ColorInformation,
     ColorPresentation,
@@ -151,7 +152,8 @@ export interface FindReferencesProvider {
     findReferences(
         document: Document,
         position: Position,
-        context: ReferenceContext
+        context: ReferenceContext,
+        cancellationToken?: CancellationToken
     ): Promise<Location[] | null>;
 }
 
@@ -188,7 +190,11 @@ export interface LinkedEditingRangesProvider {
 }
 
 export interface ImplementationProvider {
-    getImplementation(document: Document, position: Position): Resolvable<Location[] | null>;
+    getImplementation(
+        document: Document,
+        position: Position,
+        cancellationToken?: CancellationToken
+    ): Resolvable<Location[] | null>;
 }
 
 export interface TypeDefinitionProvider {
@@ -210,6 +216,15 @@ export interface CallHierarchyProvider {
         item: CallHierarchyItem,
         cancellationToken?: CancellationToken
     ): Resolvable<CallHierarchyOutgoingCall[] | null>;
+}
+
+export interface CodeLensProvider {
+    getCodeLens(document: Document): Resolvable<CodeLens[] | null>;
+    resolveCodeLens(
+        document: Document,
+        codeLensToResolve: CodeLens,
+        cancellationToken?: CancellationToken
+    ): Resolvable<CodeLens>;
 }
 
 export interface OnWatchFileChangesPara {
@@ -266,6 +281,7 @@ type ProviderBase = DiagnosticsProvider &
     InlayHintProvider &
     CallHierarchyProvider &
     FoldingRangeProvider &
+    CodeLensProvider &
     DocumentHighlightProvider;
 
 export type LSProvider = ProviderBase & BackwardsCompatibleDefinitionsProvider;

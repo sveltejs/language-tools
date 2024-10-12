@@ -421,6 +421,55 @@ describe('SveltePlugin#getCodeAction', () => {
                 }
             ]);
         });
+
+        it('should provide ignore comment in script tags', async () => {
+            (
+                await expectCodeActionFor(svelteIgnoreCodeAction, {
+                    diagnostics: [
+                        {
+                            severity: DiagnosticSeverity.Warning,
+                            code: 'state_referenced_locally',
+                            range: Range.create(
+                                { line: 13, character: 9 },
+                                { line: 13, character: 14 }
+                            ),
+                            message: '',
+                            source: 'svelte'
+                        }
+                    ]
+                })
+            ).toEqual([
+                {
+                    edit: {
+                        documentChanges: [
+                            {
+                                edits: [
+                                    {
+                                        newText: `\t// svelte-ignore state_referenced_locally${EOL}\t`,
+                                        range: {
+                                            end: {
+                                                character: 0,
+                                                line: 13
+                                            },
+                                            start: {
+                                                character: 0,
+                                                line: 13
+                                            }
+                                        }
+                                    }
+                                ],
+                                textDocument: {
+                                    uri: getUri(svelteIgnoreCodeAction),
+                                    version: null
+                                }
+                            }
+                        ]
+                    },
+                    title: '(svelte) Disable state_referenced_locally for this line',
+                    kind: 'quickfix'
+                }
+            ]);
+        });
     });
 
     describe('It should provide svelte ignore code actions (TypeScript)', () => {

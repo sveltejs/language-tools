@@ -143,8 +143,12 @@ export function extractScriptTags(
         return null;
     }
 
-    const script = scripts.find((s) => s.attributes['context'] !== 'module');
-    const moduleScript = scripts.find((s) => s.attributes['context'] === 'module');
+    const script = scripts.find(
+        (s) => s.attributes['context'] !== 'module' && !('module' in s.attributes)
+    );
+    const moduleScript = scripts.find(
+        (s) => s.attributes['context'] === 'module' || 'module' in s.attributes
+    );
     return { script, moduleScript };
 }
 
@@ -397,8 +401,14 @@ export function getWordAt(
 /**
  * Returns start/end offset of a text into a range
  */
-export function toRange(str: string, start: number, end: number): Range {
-    return Range.create(positionAt(start, str), positionAt(end, str));
+export function toRange(str: string, start: number, end: number): Range;
+export function toRange(str: Document, start: number, end: number): Range;
+export function toRange(str: string | Document, start: number, end: number): Range {
+    if (typeof str === 'string') {
+        return Range.create(positionAt(start, str), positionAt(end, str));
+    }
+
+    return Range.create(str.positionAt(start), str.positionAt(end));
 }
 
 /**

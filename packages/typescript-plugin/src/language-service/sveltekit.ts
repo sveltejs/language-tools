@@ -1,6 +1,6 @@
 import type ts from 'typescript/lib/tsserverlibrary';
 import { Logger } from '../logger';
-import { hasNodeModule } from '../utils';
+import { getProjectDirectory, hasNodeModule } from '../utils';
 import { InternalHelpers, internalHelpers } from 'svelte2tsx';
 type _ts = typeof ts;
 
@@ -8,6 +8,22 @@ interface KitSnapshot {
     file: ts.IScriptSnapshot;
     version: string;
     addedCode: InternalHelpers.AddedCode[];
+}
+
+declare module 'typescript/lib/tsserverlibrary' {
+    interface LanguageServiceHost {
+        /** @internal */ getCachedExportInfoMap?(): unknown;
+        /** @internal */ getModuleSpecifierCache?(): unknown;
+        /** @internal */ getGlobalTypingsCacheLocation?(): string | undefined;
+        /** @internal */ getSymlinkCache?(files: readonly ts.SourceFile[]): unknown;
+        /** @internal */ getPackageJsonsVisibleToFile?(
+            fileName: string,
+            rootDir?: string
+        ): readonly unknown[];
+        /** @internal */ getPackageJsonAutoImportProvider?(): ts.Program | undefined;
+
+        /** @internal*/ getModuleResolutionCache?(): ts.ModuleResolutionCache;
+    }
 }
 
 const cache = new WeakMap<
@@ -232,13 +248,13 @@ export const kitExports: Record<
                 kind: 'punctuation'
             },
             {
-                text: "'auto' | 'always' | 'never'",
+                text: "'never' | 'always' | 'ignore'",
                 kind: 'stringLiteral'
             }
         ],
         documentation: [
             {
-                text: 'Control how SvelteKit should handle (missing) trailing slashes in the URL. More info: https://kit.svelte.dev/docs/page-options#trailingslash',
+                text: 'Control how SvelteKit should handle trailing slashes in the URL. More info: https://kit.svelte.dev/docs/page-options#trailingslash',
                 kind: 'text'
             }
         ]
@@ -531,7 +547,8 @@ function getProxiedLanguageService(info: ts.server.PluginCreateInfo, ts: _ts, lo
         return cachedProxiedLanguageService ?? undefined;
     }
 
-    if (!hasNodeModule(info.project.getCompilerOptions(), '@sveltejs/kit')) {
+    const projectDirectory = getProjectDirectory(info.project);
+    if (projectDirectory && !hasNodeModule(projectDirectory, '@sveltejs/kit')) {
         // Not a SvelteKit project, do nothing
         cache.set(info, null);
         return;
@@ -649,11 +666,8 @@ function getProxiedLanguageService(info: ts.server.PluginCreateInfo, ts: _ts, lo
         }
 
         upsertKitFile(fileName: string) {
-            const result = internalHelpers.upsertKitFile(
-                ts,
-                fileName,
-                kitFilesSettings,
-                () => info.languageService.getProgram()?.getSourceFile(fileName)
+            const result = internalHelpers.upsertKitFile(ts, fileName, kitFilesSettings, () =>
+                info.languageService.getProgram()?.getSourceFile(fileName)
             );
             if (!result) {
                 return;
@@ -720,6 +734,51 @@ function getProxiedLanguageService(info: ts.server.PluginCreateInfo, ts: _ts, lo
         realpath = originalLanguageServiceHost.realpath
             ? (...args: Parameters<NonNullable<ts.LanguageServiceHost['realpath']>>) =>
                   originalLanguageServiceHost.realpath!(...args)
+            : undefined;
+
+        getProjectReferences = originalLanguageServiceHost.getProjectReferences
+            ? () => originalLanguageServiceHost.getProjectReferences!()
+            : undefined;
+
+        getParsedCommandLine = originalLanguageServiceHost.getParsedCommandLine
+            ? (fileName: string) => originalLanguageServiceHost.getParsedCommandLine!(fileName)
+            : undefined;
+
+        getCachedExportInfoMap = originalLanguageServiceHost.getCachedExportInfoMap
+            ? () => originalLanguageServiceHost.getCachedExportInfoMap!()
+            : undefined;
+
+        getModuleSpecifierCache = originalLanguageServiceHost.getModuleSpecifierCache
+            ? () => originalLanguageServiceHost.getModuleSpecifierCache!()
+            : undefined;
+
+        getGlobalTypingsCacheLocation = originalLanguageServiceHost.getGlobalTypingsCacheLocation
+            ? () => originalLanguageServiceHost.getGlobalTypingsCacheLocation!()
+            : undefined;
+
+        getSymlinkCache = originalLanguageServiceHost.getSymlinkCache
+            ? (...args: any[]) =>
+                  originalLanguageServiceHost.getSymlinkCache!(
+                      // @ts-ignore
+                      ...args
+                  )
+            : undefined;
+
+        getPackageJsonsVisibleToFile = originalLanguageServiceHost.getPackageJsonsVisibleToFile
+            ? (...args: any[]) =>
+                  originalLanguageServiceHost.getPackageJsonsVisibleToFile!(
+                      // @ts-ignore
+                      ...args
+                  )
+            : undefined;
+
+        getPackageJsonAutoImportProvider =
+            originalLanguageServiceHost.getPackageJsonAutoImportProvider
+                ? () => originalLanguageServiceHost.getPackageJsonAutoImportProvider!()
+                : undefined;
+
+        getModuleResolutionCache = originalLanguageServiceHost.getModuleResolutionCache
+            ? () => originalLanguageServiceHost.getModuleResolutionCache!()
             : undefined;
     }
 

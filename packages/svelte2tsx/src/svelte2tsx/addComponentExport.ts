@@ -4,15 +4,17 @@ import MagicString from 'magic-string';
 import { ExportedNames } from './nodes/ExportedNames';
 import { ComponentDocumentation } from './nodes/ComponentDocumentation';
 import { Generics } from './nodes/Generics';
+import { surroundWithIgnoreComments } from '../utils/ignore';
+import { ComponentEvents } from './nodes/ComponentEvents';
 
 export interface AddComponentExportPara {
     str: MagicString;
     canHaveAnyProp: boolean;
     /**
-     * If true, not fallback to `any`
+     * If strictEvents true, not fallback to `any`
      * -> all unknown events will throw a type error
      * */
-    strictEvents: boolean;
+    events: ComponentEvents;
     isTsFile: boolean;
     usesAccessors: boolean;
     exportedNames: ExportedNames;
@@ -20,6 +22,8 @@ export interface AddComponentExportPara {
     componentDocumentation: ComponentDocumentation;
     mode: 'ts' | 'dts' | 'tsx';
     generics: Generics;
+    usesSlots: boolean;
+    isSvelte5: boolean;
     noSvelteComponentTyped?: boolean;
 }
 
@@ -38,7 +42,7 @@ export function addComponentExport(params: AddComponentExportPara) {
 }
 
 function addGenericsComponentExport({
-    strictEvents,
+    events,
     canHaveAnyProp,
     exportedNames,
     componentDocumentation,
@@ -47,6 +51,8 @@ function addGenericsComponentExport({
     usesAccessors,
     str,
     generics,
+    usesSlots,
+    isSvelte5,
     noSvelteComponentTyped
 }: AddComponentExportPara) {
     const genericsDef = generics.toDefinitionString();
@@ -65,27 +71,68 @@ class __sveltets_Render${genericsDef} {
         return ${props(true, canHaveAnyProp, exportedNames, `render${genericsRef}()`)}.props;
     }
     events() {
-        return ${events(strictEvents, `render${genericsRef}()`)}.events;
+        return ${_events(events.hasStrictEvents() || exportedNames.usesRunes(), `render${genericsRef}()`)}.events;
     }
     slots() {
         return render${genericsRef}().slots;
     }
+${
+    isSvelte5
+        ? `    bindings() { return ${exportedNames.createBindingsStr()}; }
+    exports() { return ${exportedNames.hasExports() ? `render${genericsRef}().exports` : '{}'}; }
+}`
+        : '}'
 }
 `;
 
     const svelteComponentClass = noSvelteComponentTyped
         ? 'SvelteComponent'
         : 'SvelteComponentTyped';
+    const [PropsName] = addTypeExport(str, className, 'Props');
+    const [EventsName] = addTypeExport(str, className, 'Events');
+    const [SlotsName] = addTypeExport(str, className, 'Slots');
 
-    if (mode === 'dts') {
+    if (isSvelte5) {
+        // Don't add props/events/slots type exports in dts mode for now, maybe someone asks for it to be back,
+        // but it's safer to not do it for now to have more flexibility in the future.
+        let eventsSlotsType = [];
+        if (events.hasEvents() || !exportedNames.usesRunes()) {
+            eventsSlotsType.push(`$$events?: ${returnType('events')}`);
+        }
+        if (usesSlots) {
+            eventsSlotsType.push(`$$slots?: ${returnType('slots')}`);
+            eventsSlotsType.push(`children?: any`);
+        }
+        const propsType =
+            !canHaveAnyProp && exportedNames.hasNoProps()
+                ? `{${eventsSlotsType.join(', ')}}`
+                : `${returnType('props')} & {${eventsSlotsType.join(', ')}}`;
+        const bindingsType = `ReturnType<__sveltets_Render${generics.toReferencesAnyString()}['bindings']>`;
+
+        // Sadly, due to a combination of requirements and TypeScript limitations, we need to always create both a legacy class component and function component type.
+        // - Constraints: Need to support Svelte 4 class component types, therefore we need to use __sveltets_2_ensureComponent to transform function components to classes
+        // - Limitations: TypeScript is not able to preserve generics during said transformation (i.e. there's no way to express keeping the generic etc)
+        // TODO Svelte 6/7: Switch this around and not use new Component in svelte2tsx anymore, which means we can remove the legacy class component. We need something like _ensureFnComponent then.
         statement +=
-            `export type ${className}Props${genericsDef} = ${returnType('props')};\n` +
-            `export type ${className}Events${genericsDef} = ${returnType('events')};\n` +
-            `export type ${className}Slots${genericsDef} = ${returnType('slots')};\n` +
+            `\ninterface $$IsomorphicComponent {\n` +
+            `    new ${genericsDef}(options: import('svelte').ComponentConstructorOptions<${returnType('props') + (usesSlots ? '& {children?: any}' : '')}>): import('svelte').SvelteComponent<${returnType('props')}, ${returnType('events')}, ${returnType('slots')}> & { $$bindings?: ${returnType('bindings')} } & ${returnType('exports')};\n` +
+            `    ${genericsDef}(internal: unknown, props: ${propsType}): ${returnType('exports')};\n` +
+            `    z_$$bindings?: ${bindingsType};\n` +
+            `}\n` +
+            `${doc}const ${className || '$$Component'}: $$IsomorphicComponent = null as any;\n` +
+            surroundWithIgnoreComments(
+                `type ${className || '$$Component'}${genericsDef} = InstanceType<typeof ${className || '$$Component'}${genericsRef}>;\n`
+            ) +
+            `export default ${className || '$$Component'};`;
+    } else if (mode === 'dts') {
+        statement +=
+            `export type ${PropsName}${genericsDef} = ${returnType('props')};\n` +
+            `export type ${EventsName}${genericsDef} = ${returnType('events')};\n` +
+            `export type ${SlotsName}${genericsDef} = ${returnType('slots')};\n` +
             `\n${doc}export default class${
                 className ? ` ${className}` : ''
-            }${genericsDef} extends ${svelteComponentClass}<${className}Props${genericsRef}, ${className}Events${genericsRef}, ${className}Slots${genericsRef}> {` +
-            exportedNames.createClassGetters() +
+            }${genericsDef} extends ${svelteComponentClass}<${PropsName}${genericsRef}, ${EventsName}${genericsRef}, ${SlotsName}${genericsRef}> {` +
+            exportedNames.createClassGetters(genericsRef) +
             (usesAccessors ? exportedNames.createClassAccessors() : '') +
             '\n}';
     } else {
@@ -96,7 +143,7 @@ class __sveltets_Render${genericsDef} {
             }${genericsDef} extends __SvelteComponentTyped__<${returnType('props')}, ${returnType(
                 'events'
             )}, ${returnType('slots')}> {` +
-            exportedNames.createClassGetters() +
+            exportedNames.createClassGetters(genericsRef) +
             (usesAccessors ? exportedNames.createClassAccessors() : '') +
             '\n}';
     }
@@ -105,7 +152,7 @@ class __sveltets_Render${genericsDef} {
 }
 
 function addSimpleComponentExport({
-    strictEvents,
+    events,
     isTsFile,
     canHaveAnyProp,
     exportedNames,
@@ -114,75 +161,152 @@ function addSimpleComponentExport({
     mode,
     usesAccessors,
     str,
-    noSvelteComponentTyped
+    usesSlots,
+    noSvelteComponentTyped,
+    isSvelte5
 }: AddComponentExportPara) {
     const propDef = props(
         isTsFile,
         canHaveAnyProp,
         exportedNames,
-        events(strictEvents, 'render()')
+        _events(events.hasStrictEvents(), 'render()')
     );
 
     const doc = componentDocumentation.getFormatted();
     const className = fileName && classNameFromFilename(fileName, mode !== 'dts');
 
     let statement: string;
-    if (mode === 'dts' && isTsFile) {
-        const addTypeExport = (type: string) => {
-            const exportName = className + type;
+    if (mode === 'dts') {
+        if (isSvelte5 && exportedNames.usesRunes() && !usesSlots && !events.hasEvents()) {
+            statement =
+                `\n${doc}const ${className || '$$Component'} = __sveltets_2_fn_component(render());\n` +
+                `export default ${className || '$$Component'};`;
+        } else if (isSvelte5) {
+            // Inline definitions from Svelte shims; else dts files will reference the globals which will be unresolved
+            statement =
+                `\ninterface $$__sveltets_2_IsomorphicComponent<Props extends Record<string, any> = any, Events extends Record<string, any> = any, Slots extends Record<string, any> = any, Exports = {}, Bindings = string> {
+    new (options: import('svelte').ComponentConstructorOptions<Props>): import('svelte').SvelteComponent<Props, Events, Slots> & { $$bindings?: Bindings } & Exports;
+    (internal: unknown, props: ${!canHaveAnyProp && exportedNames.hasNoProps() ? '{$$events?: Events, $$slots?: Slots}' : 'Props & {$$events?: Events, $$slots?: Slots}'}): Exports & { $set?: any, $on?: any };
+    z_$$bindings?: Bindings;
+}\n` +
+                (usesSlots
+                    ? `type $$__sveltets_2_PropsWithChildren<Props, Slots> = Props &
+    (Slots extends { default: any }
+        ? Props extends Record<string, never>
+        ? any
+        : { children?: any }
+        : {});
+        declare function $$__sveltets_2_isomorphic_component_slots<
+            Props extends Record<string, any>, Events extends Record<string, any>, Slots extends Record<string, any>, Exports extends Record<string, any>, Bindings extends string
+        >(klass: {props: Props, events: Events, slots: Slots, exports?: Exports, bindings?: Bindings }): $$__sveltets_2_IsomorphicComponent<$$__sveltets_2_PropsWithChildren<Props, Slots>, Events, Slots, Exports, Bindings>;\n`
+                    : `
+declare function $$__sveltets_2_isomorphic_component<
+    Props extends Record<string, any>, Events extends Record<string, any>, Slots extends Record<string, any>, Exports extends Record<string, any>, Bindings extends string
+>(klass: {props: Props, events: Events, slots: Slots, exports?: Exports, bindings?: Bindings }): $$__sveltets_2_IsomorphicComponent<Props, Events, Slots, Exports, Bindings>;\n`) +
+                `${doc}const ${className || '$$Component'} = $$__sveltets_2_isomorphic_component${usesSlots ? '_slots' : ''}(${propDef});\n` +
+                surroundWithIgnoreComments(
+                    `type ${className || '$$Component'} = InstanceType<typeof ${className || '$$Component'}>;\n`
+                ) +
+                `export default ${className || '$$Component'};`;
+        } else if (isTsFile) {
+            const svelteComponentClass = noSvelteComponentTyped
+                ? 'SvelteComponent'
+                : 'SvelteComponentTyped';
+            const [PropsName, PropsExport] = addTypeExport(str, className, 'Props');
+            const [EventsName, EventsExport] = addTypeExport(str, className, 'Events');
+            const [SlotsName, SlotsExport] = addTypeExport(str, className, 'Slots');
 
-            if (!str.original.includes(exportName)) {
-                return `export type ${exportName} = typeof __propDef.${type.toLowerCase()};\n`;
-            }
-
-            let replacement = exportName + '_';
-            while (str.original.includes(replacement)) {
-                replacement += '_';
-            }
-            return `type ${replacement} = typeof __propDef.${type.toLowerCase()};\nexport { ${replacement} as ${exportName} };\n`;
-        };
-
-        const svelteComponentClass = noSvelteComponentTyped
-            ? 'SvelteComponent'
-            : 'SvelteComponentTyped';
-
-        statement =
-            `\nconst __propDef = ${propDef};\n` +
-            addTypeExport('Props') +
-            addTypeExport('Events') +
-            addTypeExport('Slots') +
-            `\n${doc}export default class${
-                className ? ` ${className}` : ''
-            } extends ${svelteComponentClass}<${className}Props, ${className}Events, ${className}Slots> {` +
-            exportedNames.createClassGetters() +
-            (usesAccessors ? exportedNames.createClassAccessors() : '') +
-            '\n}';
-    } else if (mode === 'dts' && !isTsFile) {
-        statement =
-            `\nconst __propDef = ${propDef};\n` +
-            `/** @typedef {typeof __propDef.props}  ${className}Props */\n` +
-            `/** @typedef {typeof __propDef.events}  ${className}Events */\n` +
-            `/** @typedef {typeof __propDef.slots}  ${className}Slots */\n` +
-            `\n${doc}export default class${
-                className ? ` ${className}` : ''
-            } extends __sveltets_2_createSvelte2TsxComponent(${propDef}) {` +
-            exportedNames.createClassGetters() +
-            (usesAccessors ? exportedNames.createClassAccessors() : '') +
-            '\n}';
+            statement =
+                `\nconst __propDef = ${propDef};\n` +
+                PropsExport +
+                EventsExport +
+                SlotsExport +
+                `\n${doc}export default class${
+                    className ? ` ${className}` : ''
+                } extends ${svelteComponentClass}<${PropsName}, ${EventsName}, ${SlotsName}> {` +
+                exportedNames.createClassGetters() +
+                (usesAccessors ? exportedNames.createClassAccessors() : '') +
+                '\n}';
+        } else {
+            statement =
+                `\nconst __propDef = ${propDef};\n` +
+                `/** @typedef {typeof __propDef.props}  ${className}Props */\n` +
+                `/** @typedef {typeof __propDef.events}  ${className}Events */\n` +
+                `/** @typedef {typeof __propDef.slots}  ${className}Slots */\n` +
+                `\n${doc}export default class${
+                    className ? ` ${className}` : ''
+                } extends __sveltets_2_createSvelte2TsxComponent(${propDef}) {` +
+                exportedNames.createClassGetters() +
+                (usesAccessors ? exportedNames.createClassAccessors() : '') +
+                '\n}';
+        }
     } else {
-        statement =
-            `\n\n${doc}export default class${
-                className ? ` ${className}` : ''
-            } extends __sveltets_2_createSvelte2TsxComponent(${propDef}) {` +
-            exportedNames.createClassGetters() +
-            (usesAccessors ? exportedNames.createClassAccessors() : '') +
-            '\n}';
+        if (isSvelte5) {
+            if (exportedNames.usesRunes() && !usesSlots && !events.hasEvents()) {
+                statement =
+                    `\n${doc}const ${className || '$$Component'} = __sveltets_2_fn_component(render());\n` +
+                    `export default ${className || '$$Component'};`;
+            } else {
+                statement =
+                    `\n${doc}const ${className || '$$Component'} = __sveltets_2_isomorphic_component${usesSlots ? '_slots' : ''}(${propDef});\n` +
+                    surroundWithIgnoreComments(
+                        `type ${className || '$$Component'} = InstanceType<typeof ${className || '$$Component'}>;\n`
+                    ) +
+                    `export default ${className || '$$Component'};`;
+            }
+        } else {
+            statement =
+                `\n\n${doc}export default class${
+                    className ? ` ${className}` : ''
+                } extends __sveltets_2_createSvelte2TsxComponent(${propDef}) {` +
+                exportedNames.createClassGetters() +
+                (usesAccessors ? exportedNames.createClassAccessors() : '') +
+                '\n}';
+        }
     }
 
     str.append(statement);
 }
 
-function events(strictEvents: boolean, renderStr: string) {
+function addTypeExport(
+    str: MagicString,
+    className: string,
+    type: string
+): [name: string, exportstring: string] {
+    const exportName = className + type;
+
+    if (!new RegExp(`\\W${exportName}\\W`).test(str.original)) {
+        return [
+            exportName,
+            `export type ${exportName} = typeof __propDef.${type.toLowerCase()};\n`
+        ];
+    }
+
+    let replacement = exportName + '_';
+    while (str.original.includes(replacement)) {
+        replacement += '_';
+    }
+
+    if (
+        // Check if there's already an export with the same name
+        !new RegExp(
+            `export ((const|let|var|class|interface|type) ${exportName}\\W|{[^}]*?${exportName}(}|\\W.*?}))`
+        ).test(str.original)
+    ) {
+        return [
+            replacement,
+            `type ${replacement} = typeof __propDef.${type.toLowerCase()};\nexport { ${replacement} as ${exportName} };\n`
+        ];
+    } else {
+        return [
+            replacement,
+            // we assume that the author explicitly named the type the same and don't export the generated type (which has an unstable name)
+            `type ${replacement} = typeof __propDef.${type.toLowerCase()};\n`
+        ];
+    }
+}
+
+function _events(strictEvents: boolean, renderStr: string) {
     return strictEvents ? renderStr : `__sveltets_2_with_any_event(${renderStr})`;
 }
 
@@ -192,7 +316,9 @@ function props(
     exportedNames: ExportedNames,
     renderStr: string
 ) {
-    if (isTsFile) {
+    if (exportedNames.usesRunes()) {
+        return renderStr;
+    } else if (isTsFile) {
         return canHaveAnyProp ? `__sveltets_2_with_any(${renderStr})` : renderStr;
     } else {
         const optionalProps = exportedNames.createOptionalPropsArray();

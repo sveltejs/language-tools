@@ -57,14 +57,9 @@ export class HumanFriendlyWriter implements Writer {
                 `${workspaceDir}${sep}${pc.green(filename)}:${line + 1}:${character + 1}\n`
             );
 
-            // Show some context around diagnostic range
-            const codePrevLine = this.getLine(diagnostic.range.start.line - 1, text);
-            const codeLine = this.getCodeLine(diagnostic, text);
-            const codeNextLine = this.getLine(diagnostic.range.end.line + 1, text);
-            const code = codePrevLine + codeLine + codeNextLine;
-
             let msg;
             if (this.isVerbose) {
+                const code = this.formatRelatedCode(diagnostic, text);
                 msg = `${diagnostic.message} ${source}\n${pc.cyan(code)}`;
             } else {
                 msg = `${diagnostic.message} ${source}`;
@@ -78,6 +73,20 @@ export class HumanFriendlyWriter implements Writer {
 
             this.stream.write('\n');
         });
+    }
+
+    private formatRelatedCode(diagnostic: Diagnostic, text: string) {
+        if (!text) {
+            return '';
+        }
+
+        // Show some context around diagnostic range
+        const codePrevLine = this.getLine(diagnostic.range.start.line - 1, text);
+        const codeLine = this.getCodeLine(diagnostic, text);
+        const codeNextLine = this.getLine(diagnostic.range.end.line + 1, text);
+        const code = codePrevLine + codeLine + codeNextLine;
+
+        return code;
     }
 
     private getCodeLine(diagnostic: Diagnostic, text: string) {

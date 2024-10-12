@@ -15,7 +15,7 @@ import {
     WorkspaceEdit
 } from 'vscode-languageserver';
 import { Plugin } from 'prettier';
-import { getPackageInfo, importPrettier } from '../../importPackage';
+import { getPackageInfo, importPrettier, importSvelte } from '../../importPackage';
 import { Document } from '../../lib/documents';
 import { Logger } from '../../logger';
 import { LSConfigManager, LSSvelteConfig } from '../../ls-config';
@@ -288,6 +288,10 @@ export class SveltePlugin
         command: string,
         args?: any[]
     ): Promise<WorkspaceEdit | string | null> {
+        if (command === 'migrate_to_svelte_5') {
+            return this.migrate(document);
+        }
+
         if (!this.featureEnabled('codeActions')) {
             return null;
         }
@@ -297,6 +301,36 @@ export class SveltePlugin
             return executeCommand(svelteDoc, command, args);
         } catch (error) {
             return null;
+        }
+    }
+
+    private migrate(document: Document): WorkspaceEdit | string {
+        try {
+            const compiler = importSvelte(document.getFilePath() ?? '') as any;
+            if (!compiler.migrate) {
+                return 'Your installed Svelte version does not support migration';
+            }
+
+            const migrated = compiler.migrate(document.getText(), {
+                filename: document.getFilePath() ?? undefined
+            });
+
+            return {
+                changes: {
+                    [document.uri]: [
+                        TextEdit.replace(
+                            Range.create(
+                                document.positionAt(0),
+                                document.positionAt(document.getTextLength())
+                            ),
+                            migrated.code
+                        )
+                    ]
+                }
+            };
+        } catch (error: any) {
+            Logger.error('Failed to migrate Svelte file', error);
+            return error?.message ?? 'Failed to migrate Svelte file';
         }
     }
 

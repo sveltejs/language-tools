@@ -1,6 +1,6 @@
 {
-    "extends": "@tsconfig/node12/tsconfig.json",
     "compilerOptions": {
+        "target": "ESNext",
         "moduleResolution": "node",
         "strict": true,
         "allowJs": true,

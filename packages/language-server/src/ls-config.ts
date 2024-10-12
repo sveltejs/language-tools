@@ -201,6 +201,8 @@ export interface TSUserConfig {
     suggest?: TSSuggestConfig;
     format?: TsFormatConfig;
     inlayHints?: TsInlayHintsConfig;
+    referencesCodeLens?: TsReferenceCodeLensConfig;
+    implementationsCodeLens?: TsImplementationCodeLensConfig;
 }
 
 /**
@@ -252,6 +254,16 @@ export interface TsInlayHintsConfig {
     variableTypes: { enabled: boolean; suppressWhenTypeMatchesName: boolean } | undefined;
 }
 
+export interface TsReferenceCodeLensConfig {
+    showOnAllFunctions?: boolean | undefined;
+    enabled: boolean;
+}
+
+export interface TsImplementationCodeLensConfig {
+    enabled: boolean;
+    showOnInterfaceMethods?: boolean | undefined;
+}
+
 export type TsUserConfigLang = 'typescript' | 'javascript';
 
 /**
@@ -285,6 +297,11 @@ export class LSConfigManager {
         typescript: {},
         javascript: {}
     };
+    private rawTsUserConfig: Record<TsUserConfigLang, TSUserConfig> = {
+        typescript: {},
+        javascript: {}
+    };
+
     private resolvedAutoImportExcludeCache = new FileMap<string[]>();
     private tsFormatCodeOptions: Record<TsUserConfigLang, ts.FormatCodeSettings> = {
         typescript: this.getDefaultFormatCodeOptions(),
@@ -396,6 +413,7 @@ export class LSConfigManager {
         (['typescript', 'javascript'] as const).forEach((lang) => {
             if (config[lang]) {
                 this._updateTsUserPreferences(lang, config[lang]);
+                this.rawTsUserConfig[lang] = config[lang];
             }
         });
         this.notifyListeners();
@@ -460,16 +478,25 @@ export class LSConfigManager {
         };
     }
 
-    getTsUserPreferences(lang: TsUserConfigLang, workspacePath: string | null): ts.UserPreferences {
+    getTsUserPreferences(
+        lang: TsUserConfigLang,
+        normalizedWorkspacePath: string | null
+    ): ts.UserPreferences {
         const userPreferences = this.tsUserPreferences[lang];
 
-        if (!workspacePath || !userPreferences.autoImportFileExcludePatterns) {
+        if (!normalizedWorkspacePath || !userPreferences.autoImportFileExcludePatterns) {
             return userPreferences;
         }
 
-        let autoImportFileExcludePatterns = this.resolvedAutoImportExcludeCache.get(workspacePath);
+        let autoImportFileExcludePatterns =
+            this.resolvedAutoImportExcludeCache.get(normalizedWorkspacePath);
 
         if (!autoImportFileExcludePatterns) {
+            const version = ts.version.split('.');
+            const major = parseInt(version[0]);
+            const minor = parseInt(version[1]);
+
+            const gte5_4 = major > 5 || (major === 5 && minor >= 4);
             autoImportFileExcludePatterns = userPreferences.autoImportFileExcludePatterns.map(
                 (p) => {
                     // Normalization rules: https://github.com/microsoft/TypeScript/pull/49578
@@ -479,23 +506,30 @@ export class LSConfigManager {
                         return p;
                     }
 
-                    return path.join(
-                        workspacePath,
-                        p.startsWith('*')
-                            ? '/' + slashNormalized
-                            : isRelative
-                              ? p
-                              : '/**/' + slashNormalized
-                    );
+                    // https://github.com/microsoft/vscode/pull/202762
+                    // ts 5.4+ supports leading wildcards
+                    const wildcardPrefix = gte5_4 ? '' : path.parse(normalizedWorkspacePath).root;
+                    return p.startsWith('*')
+                        ? wildcardPrefix + slashNormalized
+                        : isRelative
+                          ? path.join(normalizedWorkspacePath, p)
+                          : wildcardPrefix + '**/' + slashNormalized;
                 }
             );
-            this.resolvedAutoImportExcludeCache.set(workspacePath, autoImportFileExcludePatterns);
+            this.resolvedAutoImportExcludeCache.set(
+                normalizedWorkspacePath,
+                autoImportFileExcludePatterns
+            );
         }
 
         return {
             ...userPreferences,
             autoImportFileExcludePatterns
         };
+    }
+
+    getClientTsUserConfig(lang: TsUserConfigLang): TSUserConfig {
+        return this.rawTsUserConfig[lang];
     }
 
     updateCssConfig(config: CssConfig | undefined): void {

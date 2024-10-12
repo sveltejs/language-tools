@@ -19,7 +19,8 @@ describe('TypeScript Plugin Performance Tests', () => {
         const plugin = new TypeScriptPlugin(
             pluginManager,
             new LSAndTSDocResolver(docManager, workspaceUris, pluginManager),
-            workspaceUris
+            workspaceUris,
+            docManager
         );
         docManager.openClientDocument({ uri, text: document.getText() });
         const append = (newText: string) =>

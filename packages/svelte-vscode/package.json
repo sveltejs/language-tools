@@ -37,7 +37,7 @@
         "Formatters"
     ],
     "engines": {
-        "vscode": "^1.67.0"
+        "vscode": "^1.82.0"
     },
     "activationEvents": [
         "onLanguage:svelte",
@@ -498,7 +498,8 @@
                 "scopeName": "markdown.svelte.codeblock",
                 "path": "./syntaxes/markdown-svelte.json",
                 "injectTo": [
-                    "text.html.markdown"
+                    "text.html.markdown",
+                    "source.mdx"
                 ],
                 "embeddedLanguages": {
                     "meta.embedded.block.svelte": "svelte"
@@ -508,14 +509,16 @@
                 "scopeName": "markdown.svelte.codeblock.script",
                 "path": "./syntaxes/markdown-svelte-js.json",
                 "injectTo": [
-                    "text.html.markdown"
+                    "text.html.markdown",
+                    "source.mdx"
                 ]
             },
             {
                 "scopeName": "markdown.svelte.codeblock.style",
                 "path": "./syntaxes/markdown-svelte-css.json",
                 "injectTo": [
-                    "text.html.markdown"
+                    "text.html.markdown",
+                    "source.mdx"
                 ]
             },
             {
@@ -542,6 +545,10 @@
             {
                 "command": "svelte.extractComponent",
                 "title": "Svelte: Extract Component"
+            },
+            {
+                "command": "svelte.migrate_to_svelte_5",
+                "title": "Svelte: Migrate Component to Svelte 5 Syntax"
             },
             {
                 "command": "svelte.typescript.findAllFileReferences",
@@ -721,18 +728,18 @@
     },
     "devDependencies": {
         "@types/lodash": "^4.14.116",
-        "@types/node": "^16.0.0",
+        "@types/node": "^18.0.0",
         "@types/vscode": "^1.67",
         "js-yaml": "^3.14.0",
         "tslib": "^2.4.0",
-        "typescript": "^5.3.2",
+        "typescript": "^5.5.2",
         "vscode-tmgrammar-test": "^0.0.11"
     },
     "dependencies": {
         "lodash": "^4.17.21",
         "svelte-language-server": "workspace:*",
         "typescript-svelte-plugin": "workspace:*",
-        "vscode-languageclient": "^8.0.0",
-        "vscode-languageserver-protocol": "3.17.2"
+        "vscode-languageclient": "^9.0.1",
+        "vscode-languageserver-protocol": "3.17.5"
     }
 }

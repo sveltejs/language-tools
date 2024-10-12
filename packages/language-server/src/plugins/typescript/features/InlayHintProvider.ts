@@ -1,4 +1,4 @@
-import ts from 'typescript';
+import ts, { ArrowFunction } from 'typescript';
 import { CancellationToken } from 'vscode-languageserver';
 import {
     Position,
@@ -17,10 +17,10 @@ import {
     isInGeneratedCode,
     findChildOfKind,
     findRenderFunction,
-    findClosestContainingNode,
-    SnapshotMap
+    SnapshotMap,
+    startsWithIgnoredPosition
 } from './utils';
-import { convertRange } from '../utils';
+import { convertRange, isSvelte2tsxShimFile } from '../utils';
 
 export class InlayHintProviderImpl implements InlayHintProvider {
     constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
@@ -41,7 +41,7 @@ export class InlayHintProviderImpl implements InlayHintProvider {
             return null;
         }
 
-        const { tsDoc, lang } = await this.lsAndTsDocResolver.getLSAndTSDoc(document);
+        const { tsDoc, lang, lsContainer } = await this.lsAndTsDocResolver.getLSAndTSDoc(document);
 
         const inlayHints = lang.provideInlayHints(
             tsDoc.filePath,
@@ -59,7 +59,7 @@ export class InlayHintProviderImpl implements InlayHintProvider {
         const renderFunctionReturnTypeLocation =
             renderFunction && this.getTypeAnnotationPosition(renderFunction);
 
-        const snapshotMap = new SnapshotMap(this.lsAndTsDocResolver);
+        const snapshotMap = new SnapshotMap(this.lsAndTsDocResolver, lsContainer);
         snapshotMap.set(tsDoc.filePath, tsDoc);
 
         const convertPromises = inlayHints
@@ -69,6 +69,7 @@ export class InlayHintProviderImpl implements InlayHintProvider {
                     inlayHint.position !== renderFunctionReturnTypeLocation &&
                     !this.isSvelte2tsxFunctionHints(sourceFile, inlayHint) &&
                     !this.isGeneratedVariableTypeHint(sourceFile, inlayHint) &&
+                    !this.isGeneratedAsyncFunctionReturnType(sourceFile, inlayHint) &&
                     !this.isGeneratedFunctionReturnType(sourceFile, inlayHint)
             )
             .map(async (inlayHint) => ({
@@ -195,10 +196,19 @@ export class InlayHintProviderImpl implements InlayHintProvider {
             return false;
         }
 
-        const node = findClosestContainingNode(
+        if (inlayHint.displayParts?.some((v) => isSvelte2tsxShimFile(v.file))) {
+            return true;
+        }
+
+        const hasParameterWithSamePosition = (node: ts.CallExpression | ts.NewExpression) =>
+            node.arguments !== undefined &&
+            node.arguments.some((arg) => arg.getStart() === inlayHint.position);
+
+        const node = findContainingNode(
             sourceFile,
             { start: inlayHint.position, length: 0 },
-            ts.isCallOrNewExpression
+            (node): node is ts.CallExpression | ts.NewExpression =>
+                ts.isCallOrNewExpression(node) && hasParameterWithSamePosition(node)
         );
 
         if (!node) {
@@ -224,6 +234,10 @@ export class InlayHintProviderImpl implements InlayHintProvider {
             return false;
         }
 
+        if (startsWithIgnoredPosition(sourceFile.text, inlayHint.position)) {
+            return true;
+        }
+
         const declaration = findContainingNode(
             sourceFile,
             { start: inlayHint.position, length: 0 },
@@ -239,6 +253,29 @@ export class InlayHintProviderImpl implements InlayHintProvider {
             isInGeneratedCode(sourceFile.text, declaration.pos) ||
             declaration.name.getText().startsWith('$$')
         );
+    }
+
+    /** `true` if is one of the `async () => {...}` functions svelte2tsx generates */
+    private isGeneratedAsyncFunctionReturnType(sourceFile: ts.SourceFile, inlayHint: ts.InlayHint) {
+        if (inlayHint.kind !== ts.InlayHintKind.Type) {
+            return false;
+        }
+
+        const expression = findContainingNode(
+            sourceFile,
+            { start: inlayHint.position, length: 0 },
+            (node): node is ArrowFunction => ts.isArrowFunction(node)
+        );
+
+        if (
+            !expression?.modifiers?.some((m) => m.kind === ts.SyntaxKind.AsyncKeyword) ||
+            !expression.parent?.parent ||
+            !ts.isBlock(expression.parent.parent)
+        ) {
+            return false;
+        }
+
+        return this.getTypeAnnotationPosition(expression) === inlayHint.position;
     }
 
     private isGeneratedFunctionReturnType(sourceFile: ts.SourceFile, inlayHint: ts.InlayHint) {

@@ -25,7 +25,16 @@ export class HoverProviderImpl implements HoverProvider {
             return null;
         }
 
-        const declaration = ts.displayPartsToString(info.displayParts);
+        let declaration = ts.displayPartsToString(info.displayParts);
+        if (
+            tsDoc.isSvelte5Plus &&
+            declaration.includes('(alias)') &&
+            declaration.includes('__sveltets_2_IsomorphicComponent')
+        ) {
+            // info ends with "import ComponentName"
+            declaration = declaration.substring(declaration.lastIndexOf('import'));
+        }
+
         const documentation = getMarkdownDocumentation(info.documentation, info.tags);
 
         // https://microsoft.github.io/language-server-protocol/specification#textDocument_hover

@@ -1,0 +1,18 @@
+[
+    {
+        "range": { "start": { "line": 4, "character": 1 }, "end": { "line": 4, "character": 14 } },
+        "severity": 1,
+        "source": "ts",
+        "message": "Property 'required' is missing in type '{ children: () => any; foo: (this: void, a: \"\") => any; }' but required in type '$$ComponentProps'.",
+        "code": 2741,
+        "tags": []
+    },
+    {
+        "range": { "start": { "line": 6, "character": 9 }, "end": { "line": 6, "character": 18 } },
+        "severity": 1,
+        "source": "ts",
+        "message": "This comparison appears to be unintentional because the types '\"\"' and '\"b\"' have no overlap.",
+        "code": 2367,
+        "tags": []
+    }
+]
