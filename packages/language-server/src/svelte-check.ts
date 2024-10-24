@@ -1,24 +1,25 @@
+import { groupBy } from 'lodash';
 import { isAbsolute } from 'path';
 import ts from 'typescript';
 import { Diagnostic, Position, Range } from 'vscode-languageserver';
-import { WorkspaceFolder } from 'vscode-languageserver-protocol';
+import { TextDocumentContentChangeEvent, WorkspaceFolder } from 'vscode-languageserver-protocol';
 import { Document, DocumentManager } from './lib/documents';
 import { Logger } from './logger';
 import { LSConfigManager } from './ls-config';
-import {
-    CSSPlugin,
-    LSAndTSDocResolver,
-    PluginHost,
-    SveltePlugin,
-    TypeScriptPlugin
-} from './plugins';
+import { Plugin } from './plugins';
+import { CSSPlugin } from './plugins/css/CSSPlugin';
 import { FileSystemProvider } from './plugins/css/FileSystemProvider';
 import { createLanguageServices } from './plugins/css/service';
+import { PluginHost } from './plugins/PluginHost';
+import { SveltePlugin } from './plugins/svelte/SveltePlugin';
 import { JSOrTSDocumentSnapshot } from './plugins/typescript/DocumentSnapshot';
+import { DiagnosticsProviderImpl } from './plugins/typescript/features/DiagnosticsProvider';
 import { isInGeneratedCode } from './plugins/typescript/features/utils';
+import { LSAndTSDocResolver } from './plugins/typescript/LSAndTSDocResolver';
 import { convertRange, getDiagnosticTag, mapSeverity } from './plugins/typescript/utils';
 import { pathToUrl, urlToPath } from './utils';
-import { groupBy } from 'lodash';
+
+export { offsetAt } from './lib/documents';
 
 export type SvelteCheckDiagnosticSource = 'js' | 'css' | 'svelte';
 
@@ -95,11 +96,9 @@ export class SvelteCheck {
                 }
             );
             this.pluginHost.register(
-                new TypeScriptPlugin(
-                    this.configManager,
+                new SvelteCheckTypeScriptPlugin(
                     this.lsAndTSDocResolver,
-                    workspaceUris,
-                    this.docManager
+                    this.configManager,
                 )
             );
         }
@@ -352,5 +351,28 @@ export class SvelteCheck {
             throw new Error('Cannot run with tsconfig path without LS/TSdoc resolver');
         }
         return this.lsAndTSDocResolver.getTSService(tsconfigPath);
+    }
+}
+
+export class SvelteCheckTypeScriptPlugin implements Plugin {
+    __name = 'ts';
+
+    constructor(lsAndTSDocResolver: LSAndTSDocResolver, lsConfigManager: LSConfigManager) {
+        this.lsAndTsDocResolver = lsAndTSDocResolver;
+        this.diagnosticsProvider = new DiagnosticsProviderImpl(lsAndTSDocResolver, lsConfigManager);
+    }
+
+    private readonly diagnosticsProvider: DiagnosticsProviderImpl;
+    private readonly lsAndTsDocResolver: LSAndTSDocResolver;
+
+    getDiagnostics(document: Document): Promise<Diagnostic[]> {
+        return this.diagnosticsProvider.getDiagnostics(document);
+    }
+
+    async updateTsOrJsFile(
+        fileName: string,
+        changes: TextDocumentContentChangeEvent[]
+    ): Promise<void> {
+        await this.lsAndTsDocResolver.updateExistingTsOrJsFile(fileName, changes);
     }
 }
