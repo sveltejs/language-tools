@@ -486,6 +486,7 @@ export class LSConfigManager {
             includeInlayPropertyDeclarationTypeHints: inlayHints?.propertyDeclarationTypes?.enabled,
             includeInlayVariableTypeHintsWhenTypeMatchesName:
                 inlayHints?.variableTypes?.suppressWhenTypeMatchesName === false,
+            interactiveInlayHints: true,
 
             autoImportSpecifierExcludeRegexes:
                 config.preferences?.autoImportSpecifierExcludeRegexes,
