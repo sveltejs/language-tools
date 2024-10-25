@@ -550,9 +550,9 @@ export class ExportedNames {
      * Adds export to map
      */
     private addExport(
-        name: ts.Identifier,
+        name: ts.ModuleExportName,
         isLet: boolean,
-        target: ts.Identifier = null,
+        target: ts.ModuleExportName = null,
         type: ts.TypeNode = null,
         required = false,
         isNamedExport = false
@@ -601,7 +601,7 @@ export class ExportedNames {
         });
     }
 
-    private getDoc(target: ts.BindingName) {
+    private getDoc(target: ts.BindingName | ts.ModuleExportName) {
         let doc = undefined;
         // Traverse `a` one up. If the declaration is part of a declaration list,
         // the comment is at this point already
