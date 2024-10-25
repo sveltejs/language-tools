@@ -69,7 +69,7 @@
         },
         "severity": 1,
         "source": "ts",
-        "message": "Type 'Component' is not assignable to type 'OtherComponent'.",
+        "message": "Type 'Component' is not assignable to type 'OtherComponent'.\n  Type '{ prop: boolean; }' is not assignable to type '{ prop: string; }'.\n    Types of property 'prop' are incompatible.\n      Type 'boolean' is not assignable to type 'string'.",
         "code": 2322,
         "tags": []
     },
