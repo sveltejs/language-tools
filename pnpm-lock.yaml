@@ -58,8 +58,8 @@ importers:
         specifier: ^5.5.2
         version: 5.6.3
       typescript-auto-import-cache:
-        specifier: ^0.3.4
-        version: 0.3.4
+        specifier: ^0.3.5
+        version: 0.3.5
       vscode-css-languageservice:
         specifier: ~6.3.0
         version: 6.3.0
@@ -1269,8 +1269,8 @@ packages:
     resolution: {integrity: sha512-0fr/mIH1dlO+x7TlcMy+bIDqKPsw/70tVyeHW787goQjhmqaZe10uwLujubK9q9Lg6Fiho1KUKDYz0Z7k7g5/g==}
     engines: {node: '>=4'}
 
-  typescript-auto-import-cache@0.3.4:
-    resolution: {integrity: sha512-ztlGq1CB0TX9wKv3DJPRBiT5GJf0Gio1bRzcXElEZMjW1VlyZifiZqk6No3OS1XwNBx+n74dSbH2Bjy+5fN5Xw==}
+  typescript-auto-import-cache@0.3.5:
+    resolution: {integrity: sha512-fAIveQKsoYj55CozUiBoj4b/7WpN0i4o74wiGY5JVUEoD0XiqDk1tJqTEjgzL2/AizKQrXxyRosSebyDzBZKjw==}
 
   typescript@5.6.3:
     resolution: {integrity: sha512-hjcS1mhfuyi4WW8IWtjP7brDrG2cuDZukyrYrSauoXGNgx0S7zceP07adYkJycEr56BOUTNPzbInooiN3fn1qw==}
@@ -2340,7 +2340,7 @@ snapshots:
 
   type-detect@4.0.8: {}
 
-  typescript-auto-import-cache@0.3.4:
+  typescript-auto-import-cache@0.3.5:
     dependencies:
       semver: 7.5.1
 
