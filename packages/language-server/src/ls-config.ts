@@ -221,6 +221,19 @@ export interface TsUserPreferencesConfig {
     includePackageJsonAutoImports?: ts.UserPreferences['includePackageJsonAutoImports'];
 
     preferTypeOnlyAutoImports?: ts.UserPreferences['preferTypeOnlyAutoImports'];
+
+    autoImportSpecifierExcludeRegexes?: string[];
+
+    organizeImports?: TsOrganizeImportPreferencesConfig;
+}
+
+interface TsOrganizeImportPreferencesConfig {
+    accentCollation: ts.UserPreferences['organizeImportsAccentCollation'];
+    caseFirst: ts.UserPreferences['organizeImportsCaseFirst'] | 'default';
+    caseSensitivity: ts.UserPreferences['organizeImportsIgnoreCase'];
+    locale: ts.UserPreferences['organizeImportsLocale'];
+    numericCollation: ts.UserPreferences['organizeImportsNumericCollation'];
+    typeOrder: ts.UserPreferences['organizeImportsTypeOrder'] | 'auto';
 }
 
 /**
@@ -474,8 +487,29 @@ export class LSConfigManager {
             includeInlayVariableTypeHintsWhenTypeMatchesName:
                 inlayHints?.variableTypes?.suppressWhenTypeMatchesName === false,
 
-            interactiveInlayHints: true
+            autoImportSpecifierExcludeRegexes:
+                config.preferences?.autoImportSpecifierExcludeRegexes,
+
+            organizeImportsAccentCollation: config.preferences?.organizeImports?.accentCollation,
+            organizeImportsCaseFirst: this.withDefaultAsUndefined(
+                config.preferences?.organizeImports?.caseFirst,
+                'default'
+            ),
+            organizeImportsIgnoreCase: this.withDefaultAsUndefined(
+                config.preferences?.organizeImports?.caseSensitivity,
+                'auto'
+            ),
+            organizeImportsLocale: config.preferences?.organizeImports?.locale,
+            organizeImportsNumericCollation: config.preferences?.organizeImports?.numericCollation,
+            organizeImportsTypeOrder: this.withDefaultAsUndefined(
+                config.preferences?.organizeImports?.typeOrder,
+                'auto'
+            )
         };
+    }
+
+    private withDefaultAsUndefined<T, O extends T>(value: T, def: O): Exclude<T, O> | undefined {
+        return value === def ? undefined : (value as Exclude<T, O>);
     }
 
     getTsUserPreferences(
