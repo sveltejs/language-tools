@@ -400,7 +400,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
                 });
             }
         }
-        
+
         this.lastCompletion = { key: document.getFilePath() || '', position, completionList };
 
         return completionList;
