@@ -231,6 +231,7 @@ interface TsOrganizeImportPreferencesConfig {
     accentCollation: ts.UserPreferences['organizeImportsAccentCollation'];
     caseFirst: ts.UserPreferences['organizeImportsCaseFirst'] | 'default';
     caseSensitivity: ts.UserPreferences['organizeImportsIgnoreCase'];
+    collation: ts.UserPreferences['organizeImportsCollation'];
     locale: ts.UserPreferences['organizeImportsLocale'];
     numericCollation: ts.UserPreferences['organizeImportsNumericCollation'];
     typeOrder: ts.UserPreferences['organizeImportsTypeOrder'] | 'auto';
@@ -492,6 +493,7 @@ export class LSConfigManager {
                 config.preferences?.autoImportSpecifierExcludeRegexes,
 
             organizeImportsAccentCollation: config.preferences?.organizeImports?.accentCollation,
+            organizeImportsCollation: config.preferences?.organizeImports?.collation,
             organizeImportsCaseFirst: this.withDefaultAsUndefined(
                 config.preferences?.organizeImports?.caseFirst,
                 'default'
