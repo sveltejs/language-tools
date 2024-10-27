@@ -106,7 +106,9 @@ export function startServer(options?: LSOptions) {
 
     // Include Svelte files to better deal with scenarios such as switching git branches
     // where files that are not opened in the client could change
-    const nonRecursiveWatchPattern = '*.{ts,js,mts,mjs,cjs,cts,json,svelte}';
+    const watchExtensions = ['.ts', '.js', '.mts', '.mjs', '.cjs', '.cts', '.json', '.svelte'];
+    const nonRecursiveWatchPattern =
+        '*.{' + watchExtensions.map((ext) => ext.slice(1)).join(',') + '}';
     const recursiveWatchPattern = '**/' + nonRecursiveWatchPattern;
 
     connection.onInitialize((evt) => {
@@ -120,7 +122,7 @@ export function startServer(options?: LSOptions) {
 
         if (!evt.capabilities.workspace?.didChangeWatchedFiles) {
             const workspacePaths = workspaceUris.map(urlToPath).filter(isNotNullOrUndefined);
-            watcher = new FallbackWatcher(recursiveWatchPattern, workspacePaths);
+            watcher = new FallbackWatcher(watchExtensions, workspacePaths);
             watcher.onDidChangeWatchedFiles(onDidChangeWatchedFiles);
 
             watchDirectory = (patterns) => {
@@ -338,7 +340,7 @@ export function startServer(options?: LSOptions) {
         connection?.client.register(DidChangeWatchedFilesNotification.type, {
             watchers: [
                 {
-                    // Editors have exlude configs, such as VSCode with `files.watcherExclude`,
+                    // Editors have exclude configs, such as VSCode with `files.watcherExclude`,
                     // which means it's safe to watch recursively here
                     globPattern: recursiveWatchPattern
                 }
