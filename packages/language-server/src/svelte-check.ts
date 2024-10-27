@@ -96,10 +96,7 @@ export class SvelteCheck {
                 }
             );
             this.pluginHost.register(
-                new SvelteCheckTypeScriptPlugin(
-                    this.lsAndTSDocResolver,
-                    this.configManager,
-                )
+                new SvelteCheckTypeScriptPlugin(this.lsAndTSDocResolver, this.configManager)
             );
         }
 
