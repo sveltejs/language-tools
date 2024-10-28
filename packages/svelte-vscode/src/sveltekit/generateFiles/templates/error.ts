@@ -8,7 +8,6 @@ const defaultScriptTemplate = `
 <h1>{$page.status}: {$page.error.message}</h1>
 `;
 
-
 const tsScriptTemplate = `
 <script lang="ts">
     import { page } from '$app/stores';
@@ -24,7 +23,7 @@ const scriptTemplate: ReadonlyMap<ProjectType, string> = new Map([
     [ProjectType.TS, tsScriptTemplate],
     [ProjectType.TS_SATISFIES, tsScriptTemplate],
     [ProjectType.JS, defaultScriptTemplate]
-])
+]);
 
 export default async function (config: GenerateConfig): ReturnType<Resource['generate']> {
     return (scriptTemplate.get(config.type) ?? defaultScriptTemplate).trim();

@@ -7,7 +7,6 @@ export async function GET() {
 };
 `;
 
-
 const tsScriptTemplate = `
 import type { RequestHandler } from './$types';
 
@@ -23,7 +22,7 @@ const scriptTemplate: ReadonlyMap<ProjectType, string> = new Map([
     [ProjectType.TS, tsScriptTemplate],
     [ProjectType.TS_SATISFIES, tsScriptTemplate],
     [ProjectType.JS, defaultScriptTemplate]
-])
+]);
 
 export default async function (config: GenerateConfig): ReturnType<Resource['generate']> {
     return (scriptTemplate.get(config.type) ?? defaultScriptTemplate).trim();

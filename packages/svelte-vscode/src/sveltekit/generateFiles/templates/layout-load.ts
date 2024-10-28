@@ -7,7 +7,6 @@ export async function load() {
 }
 `;
 
-
 const tsScriptTemplate = `
 import type { LayoutLoad } from './$types';
 
@@ -31,7 +30,7 @@ const scriptTemplate: ReadonlyMap<ProjectType, string> = new Map([
     [ProjectType.TS, tsScriptTemplate],
     [ProjectType.TS_SATISFIES, tsSatisfiesScriptTemplate],
     [ProjectType.JS, defaultScriptTemplate]
-])
+]);
 
 export default async function (config: GenerateConfig): ReturnType<Resource['generate']> {
     return (scriptTemplate.get(config.type) ?? defaultScriptTemplate).trim();

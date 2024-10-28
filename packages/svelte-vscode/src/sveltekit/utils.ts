@@ -1,7 +1,7 @@
 import { TextDecoder } from 'util';
 import * as path from 'path';
 import { Uri, workspace } from 'vscode';
-import { IsSvelte5Plus, ProjectType } from './generateFiles/types'
+import { IsSvelte5Plus, ProjectType } from './generateFiles/types';
 
 export async function fileExists(file: string) {
     try {
