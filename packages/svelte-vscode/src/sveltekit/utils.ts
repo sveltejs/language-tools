@@ -1,3 +1,4 @@
+import { TextDecoder } from 'util';
 import * as path from 'path';
 import { Uri, workspace } from 'vscode';
 import { IsSvelte5Plus, ProjectType } from './generateFiles/types'
@@ -57,12 +58,11 @@ export function isSvelte5Plus(version: string | undefined): IsSvelte5Plus {
     return version.split('.')[0] >= '5';
 }
 
-export async function getSvelteVersionFromPackageJson(): Promise<string> {
+export async function getSvelteVersionFromPackageJson(): Promise<string | undefined> {
     const packageJsonList = await workspace.findFiles('**/package.json', '**/node_modules/**');
 
     if (packageJsonList.length === 0) {
-        // We assume that the user has not setup their project yet
-        throw new Error('No package.json found');
+        return undefined;
     }
 
     for (const fileUri of packageJsonList) {
@@ -79,5 +79,5 @@ export async function getSvelteVersionFromPackageJson(): Promise<string> {
         }
     }
 
-    throw new Error('No svelte version found');
+    return undefined;
 }

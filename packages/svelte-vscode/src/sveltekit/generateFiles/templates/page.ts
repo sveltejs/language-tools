@@ -11,7 +11,7 @@ const tsSv5ScriptTemplate = `
 <script lang="ts">
     import type { PageData } from './$types';
     
-    let data: PageData = $props();
+    let { data }: PageData = $props();
 </script>
 `;
 
@@ -26,7 +26,7 @@ const tsScriptTemplate = `
 const jsSv5ScriptTemplate = `
 <script>
     /** @type {import('./$types').PageData} */
-    let data = $props();
+    let { data } = $props();
 </script>
 `;
 

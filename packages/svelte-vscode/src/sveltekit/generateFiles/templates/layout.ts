@@ -11,7 +11,7 @@ const tsSv5ScriptTemplate = `
 <script lang="ts">
     import type { LayoutData } from './$types';
     
-    let data: LayoutData = $props();
+    let { data }: LayoutData = $props();
 </script>
 `;
 
@@ -26,7 +26,7 @@ const tsScriptTemplate = `
 const jsSv5ScriptTemplate = `
 <script>
     /** @type {import('./$types').LayoutData} */
-    let data = $props();
+    let { data } = $props();
 </script>
 `;
 
