@@ -1,5 +1,6 @@
 import * as path from 'path';
 import { Uri, workspace } from 'vscode';
+import { IsSvelte5Plus, ProjectType } from './generateFiles/types'
 
 export async function fileExists(file: string) {
     try {
@@ -24,9 +25,11 @@ export async function findFile(searchPath: string, fileName: string) {
     }
 }
 
-export async function checkProjectType(path: string) {
+export async function checkProjectType(path: string): Promise<ProjectType> {
     const tsconfig = await findFile(path, 'tsconfig.json');
     const jsconfig = await findFile(path, 'jsconfig.json');
+    const svelteVersion = await getSvelteVersionFromPackageJson();
+    const isSv5Plus = isSvelte5Plus(svelteVersion);
     const isTs = !!tsconfig && (!jsconfig || tsconfig.length >= jsconfig.length);
     if (isTs) {
         try {
@@ -36,14 +39,45 @@ export async function checkProjectType(path: string) {
             const { version } = require(packageJSONPath);
             const [major, minor] = version.split('.');
             if ((Number(major) === 4 && Number(minor) >= 9) || Number(major) > 4) {
-                return 'ts-satisfies';
+                return isSv5Plus ? ProjectType.TS_SATISFIES_SV5 : ProjectType.TS_SATISFIES;
             } else {
-                return 'ts';
+                return isSv5Plus ? ProjectType.TS_SV5 : ProjectType.TS;
             }
         } catch (e) {
-            return 'ts';
+            return isSv5Plus ? ProjectType.TS_SV5 : ProjectType.TS;
         }
     } else {
-        return 'js';
+        return isSv5Plus ? ProjectType.JS_SV5 : ProjectType.JS;
     }
+}
+
+export function isSvelte5Plus(version: string | undefined): IsSvelte5Plus {
+    if (!version) return IsSvelte5Plus.no;
+
+    return version.split('.')[0] >= '5';
+}
+
+export async function getSvelteVersionFromPackageJson(): Promise<string> {
+    const packageJsonList = await workspace.findFiles('**/package.json', '**/node_modules/**');
+
+    if (packageJsonList.length === 0) {
+        // We assume that the user has not setup their project yet
+        throw new Error('No package.json found');
+    }
+
+    for (const fileUri of packageJsonList) {
+        try {
+            const text = new TextDecoder().decode(await workspace.fs.readFile(fileUri));
+            const pkg = JSON.parse(text);
+            const svelteVersion = pkg.devDependencies?.svelte ?? pkg.dependencies?.svelte;
+
+            if (svelteVersion !== undefined) {
+                return svelteVersion;
+            }
+        } catch (error) {
+            console.error(error);
+        }
+    }
+
+    throw new Error('No svelte version found');
 }

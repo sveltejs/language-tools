@@ -3,7 +3,7 @@ import { commands, ExtensionContext, ProgressLocation, Uri, window, workspace } 
 import { addResourceCommandMap } from './commands';
 import { generateResources } from './generate';
 import { resourcesMap } from './resources';
-import { FileType, ResourceType, GenerateConfig, CommandType } from './types';
+import { FileType, ResourceType, GenerateConfig, CommandType, ProjectType } from './types';
 import { checkProjectType } from '../utils';
 
 class GenerateError extends Error {}
@@ -126,12 +126,16 @@ async function getCommonConfig(uri: Uri | undefined) {
     }
 
     const type = await checkProjectType(rootPath);
-    const scriptExtension = type === 'js' ? 'js' : 'ts';
+    const scriptExtension = getScriptExtension(type);
     return {
         type,
         scriptExtension,
         rootPath
     } as const;
+}
+
+function getScriptExtension(type: ProjectType) {
+    return type === ProjectType.JS || type === ProjectType.JS_SV5 ? 'js' : 'ts';
 }
 
 function getRootPath(uri: Uri | undefined) {
