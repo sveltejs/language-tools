@@ -48,6 +48,9 @@ export class SvelteDocument {
     public get config() {
         return this.parent.configPromise;
     }
+    public get isSvelte5() {
+        return this.getSvelteVersion()[0] > 4;
+    }
 
     constructor(private parent: Document) {
         this.script = this.parent.scriptInfo;
@@ -70,11 +73,7 @@ export class SvelteDocument {
 
     async getTranspiled(): Promise<ITranspiledSvelteDocument> {
         if (!this.transpiledDoc) {
-            if (!this.svelteVersion) {
-                const { major, minor } = getPackageInfo('svelte', this.getFilePath()).version;
-                this.svelteVersion = [major, minor];
-            }
-            const [major, minor] = this.svelteVersion;
+            const [major, minor] = this.getSvelteVersion();
 
             if (major > 3 || (major === 3 && minor >= 32)) {
                 this.transpiledDoc = await TranspiledSvelteDocument.create(
@@ -102,6 +101,14 @@ export class SvelteDocument {
     async getCompiledWith(options: CompileOptions = {}): Promise<SvelteCompileResult> {
         const svelte = importSvelte(this.getFilePath());
         return svelte.compile((await this.getTranspiled()).getText(), options);
+    }
+
+    private getSvelteVersion() {
+        if (!this.svelteVersion) {
+            const { major, minor } = getPackageInfo('svelte', this.getFilePath()).version;
+            this.svelteVersion = [major, minor];
+        }
+        return this.svelteVersion;
     }
 }
 

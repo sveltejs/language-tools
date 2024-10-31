@@ -261,6 +261,8 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
 
     addMigrateToSvelte5Command(getLS, context);
 
+    addOpenLinkCommand(context);
+
     languages.setLanguageConfiguration('svelte', {
         indentationRules: {
             // Matches a valid opening tag that is:
@@ -509,6 +511,14 @@ function addMigrateToSvelte5Command(getLS: () => LanguageClient, context: Extens
                 command: 'migrate_to_svelte_5',
                 arguments: [uri]
             });
+        })
+    );
+}
+
+function addOpenLinkCommand(context: ExtensionContext) {
+    context.subscriptions.push(
+        commands.registerCommand('svelte.openLink', (url: string) => {
+            commands.executeCommand('vscode.open', Uri.parse(url));
         })
     );
 }
