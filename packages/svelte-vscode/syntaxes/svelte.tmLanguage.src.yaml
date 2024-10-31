@@ -224,7 +224,7 @@ repository:
          { match: if|else\s+if|else, name: keyword.control.conditional.svelte },
          { match: each|key,          name: keyword.control.svelte             },
          { match: await|then|catch,  name: keyword.control.flow.svelte        },
-         { match: snippet,           name: keyword.control.svelte        },
+         { match: snippet,           name: keyword.control.svelte             },
          { match: html,              name: keyword.other.svelte               },
          { match: render,            name: keyword.other.svelte               },
          { match: debug,             name: keyword.other.debugger.svelte      },
@@ -509,16 +509,22 @@ repository:
   # Scopes the `name` part in `<name>`.
   tags-name:
     patterns:
-    # Svelte (`svelte:<type>`) elements.
-    - match: '(svelte)(:)([a-z][\w0-9:-]*)'
+    # Svelte built-in elements (e.g., svelte:self, svelte:component).
+    - match: '(svelte)(:)([a-z][\w:-]*)'
       captures:
         1: { name: keyword.control.svelte }
         2: { name: punctuation.definition.keyword.svelte }
         3: { name: entity.name.tag.svelte }
     # Slot.
     - { match: 'slot', name: keyword.control.svelte }
-    # Components.
-    - { match: '[A-Z][a-zA-Z0-9_]*', name: support.class.component.svelte }
+    # Components (either Namespaced.Component, namespaced.component or PascalCase).
+    - match: '([\w]+(?:\.[\w]+)+)|([A-Z][\w]+)'
+      captures:
+        1: { patterns: [
+           { match: '\w+', name: support.class.component.svelte },
+           { match: '\.', name: punctuation.definition.keyword.svelte },
+         ]}
+        2: { name: support.class.component.svelte }
     # Custom elements. (has a dash, but otherwise is a valid HTML element)
     - { match: '[a-z][\w0-9:]*-[\w0-9:-]*', name: meta.tag.custom.svelte entity.name.tag.svelte }
     # HTML elements.
