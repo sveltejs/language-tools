@@ -174,13 +174,15 @@ function addSimpleComponentExport({
 
     const doc = componentDocumentation.getFormatted();
     const className = fileName && classNameFromFilename(fileName, mode !== 'dts');
+    const componentName = className || '$$Component';
 
     let statement: string;
     if (mode === 'dts') {
         if (isSvelte5 && exportedNames.usesRunes() && !usesSlots && !events.hasEvents()) {
             statement =
-                `\n${doc}const ${className || '$$Component'} = __sveltets_2_fn_component(render());\n` +
-                `export default ${className || '$$Component'};`;
+                `\n${doc}const ${componentName} = __sveltets_2_fn_component(render());\n` +
+                `type ${componentName} = ReturnType<typeof ${componentName}>;\n` +
+                `export default ${componentName};`;
         } else if (isSvelte5) {
             // Inline definitions from Svelte shims; else dts files will reference the globals which will be unresolved
             statement =
@@ -203,11 +205,11 @@ function addSimpleComponentExport({
 declare function $$__sveltets_2_isomorphic_component<
     Props extends Record<string, any>, Events extends Record<string, any>, Slots extends Record<string, any>, Exports extends Record<string, any>, Bindings extends string
 >(klass: {props: Props, events: Events, slots: Slots, exports?: Exports, bindings?: Bindings }): $$__sveltets_2_IsomorphicComponent<Props, Events, Slots, Exports, Bindings>;\n`) +
-                `${doc}const ${className || '$$Component'} = $$__sveltets_2_isomorphic_component${usesSlots ? '_slots' : ''}(${propDef});\n` +
+                `${doc}const ${componentName} = $$__sveltets_2_isomorphic_component${usesSlots ? '_slots' : ''}(${propDef});\n` +
                 surroundWithIgnoreComments(
-                    `type ${className || '$$Component'} = InstanceType<typeof ${className || '$$Component'}>;\n`
+                    `type ${componentName} = InstanceType<typeof ${componentName}>;\n`
                 ) +
-                `export default ${className || '$$Component'};`;
+                `export default ${componentName};`;
         } else if (isTsFile) {
             const svelteComponentClass = noSvelteComponentTyped
                 ? 'SvelteComponent'
@@ -244,15 +246,16 @@ declare function $$__sveltets_2_isomorphic_component<
         if (isSvelte5) {
             if (exportedNames.usesRunes() && !usesSlots && !events.hasEvents()) {
                 statement =
-                    `\n${doc}const ${className || '$$Component'} = __sveltets_2_fn_component(render());\n` +
-                    `export default ${className || '$$Component'};`;
+                    `\n${doc}const ${componentName} = __sveltets_2_fn_component(render());\n` +
+                    `type ${componentName} = ReturnType<typeof ${componentName}>;\n` +
+                    `export default ${componentName};`;
             } else {
                 statement =
-                    `\n${doc}const ${className || '$$Component'} = __sveltets_2_isomorphic_component${usesSlots ? '_slots' : ''}(${propDef});\n` +
+                    `\n${doc}const ${componentName} = __sveltets_2_isomorphic_component${usesSlots ? '_slots' : ''}(${propDef});\n` +
                     surroundWithIgnoreComments(
-                        `type ${className || '$$Component'} = InstanceType<typeof ${className || '$$Component'}>;\n`
+                        `type ${componentName} = InstanceType<typeof ${componentName}>;\n`
                     ) +
-                    `export default ${className || '$$Component'};`;
+                    `export default ${componentName};`;
             }
         } else {
             statement =
