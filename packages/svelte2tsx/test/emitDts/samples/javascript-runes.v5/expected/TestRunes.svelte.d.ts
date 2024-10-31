@@ -4,4 +4,5 @@ declare const TestRunes: import("svelte").Component<{
 }, {
     baz: () => void;
 }, "bar">;
+type TestRunes = ReturnType<typeof TestRunes>;
 export default TestRunes;
