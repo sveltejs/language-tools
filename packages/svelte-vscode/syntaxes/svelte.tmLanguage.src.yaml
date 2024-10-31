@@ -224,7 +224,7 @@ repository:
          { match: if|else\s+if|else, name: keyword.control.conditional.svelte },
          { match: each|key,          name: keyword.control.svelte             },
          { match: await|then|catch,  name: keyword.control.flow.svelte        },
-         { match: snippet,           name: keyword.control.svelte        },
+         { match: snippet,           name: keyword.control.svelte             },
          { match: html,              name: keyword.other.svelte               },
          { match: render,            name: keyword.other.svelte               },
          { match: debug,             name: keyword.other.debugger.svelte      },
@@ -518,11 +518,13 @@ repository:
     # Slot.
     - { match: 'slot', name: keyword.control.svelte }
     # Components (either Namespaced.Component, namespaced.component or PascalCase).
-    - match: '([A-Z][\w]+)|(?<=\.)([\w]+)(?<!\.)|(?!\.)([\w]+)(?=\.)'
+    - match: '([\w]+(?:\.[\w]+)+)|([A-Z][\w]+)'
       captures:
-        1: { name: support.class.component.svelte }
+        1: { patterns: [
+           { match: '\w+', name: support.class.component.svelte },
+           { match: '\.', name: punctuation.definition.keyword.svelte },
+         ]}
         2: { name: support.class.component.svelte }
-        3: { name: support.class.component.svelte }
     # Custom elements. (has a dash, but otherwise is a valid HTML element)
     - { match: '[a-z][\w0-9:]*-[\w0-9:-]*', name: meta.tag.custom.svelte entity.name.tag.svelte }
     # HTML elements.
