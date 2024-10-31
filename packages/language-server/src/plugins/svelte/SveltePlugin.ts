@@ -3,6 +3,7 @@ import {
     CancellationToken,
     CodeAction,
     CodeActionContext,
+    CodeLens,
     CompletionContext,
     CompletionList,
     Diagnostic,
@@ -48,6 +49,45 @@ export class SveltePlugin
     private docManager = new Map<Document, SvelteDocument>();
 
     constructor(private configManager: LSConfigManager) {}
+
+    async getCodeLens(document: Document): Promise<CodeLens[] | null> {
+        const doc = await this.getSvelteDoc(document);
+        if (!doc.isSvelte5) return null;
+
+        try {
+            const result = await doc.getCompiled();
+            // @ts-ignore
+            const runes = result.metadata.runes as boolean;
+
+            return [
+                {
+                    range: {
+                        start: { line: 0, character: 0 },
+                        end: { line: 0, character: 0 }
+                    },
+                    command: {
+                        title: runes ? 'Runes mode' : 'Legacy mode',
+                        command: 'svelte.openLink',
+                        arguments: ['https://svelte.dev/docs/svelte/legacy-overview']
+                    }
+                }
+            ];
+        } catch (e) {
+            // show an empty code lens in case of a compilation error to prevent code from jumping around
+            return [
+                {
+                    range: {
+                        start: { line: 0, character: 0 },
+                        end: { line: 0, character: 0 }
+                    },
+                    command: {
+                        title: '',
+                        command: ''
+                    }
+                }
+            ];
+        }
+    }
 
     async getDiagnostics(
         document: Document,
