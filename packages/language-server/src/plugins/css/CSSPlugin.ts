@@ -50,6 +50,7 @@ import { StyleAttributeDocument } from './StyleAttributeDocument';
 import { getDocumentContext } from '../documentContext';
 import { FoldingRange, FoldingRangeKind } from 'vscode-languageserver-types';
 import { indentBasedFoldingRangeForTag } from '../../lib/foldingRange/indentFolding';
+import { isNotNullOrUndefined, urlToPath } from '../../utils';
 
 export class CSSPlugin
     implements
@@ -68,7 +69,7 @@ export class CSSPlugin
     private cssLanguageServices: CSSLanguageServices;
     private workspaceFolders: WorkspaceFolder[];
     private triggerCharacters = ['.', ':', '-', '/'];
-    private globalVars = new GlobalVars();
+    private globalVars: GlobalVars;
 
     constructor(
         docManager: DocumentManager,
@@ -80,6 +81,10 @@ export class CSSPlugin
         this.workspaceFolders = workspaceFolders;
         this.configManager = configManager;
         this.updateConfigs();
+        const workspacePaths = workspaceFolders
+            .map((folder) => urlToPath(folder.uri))
+            .filter(isNotNullOrUndefined);
+        this.globalVars = new GlobalVars(workspacePaths);
 
         this.globalVars.watchFiles(this.configManager.get('css.globals'));
         this.configManager.onChange((config) => {

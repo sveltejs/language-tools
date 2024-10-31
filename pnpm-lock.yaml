@@ -82,6 +82,9 @@ importers:
       '@types/estree':
         specifier: ^0.0.42
         version: 0.0.42
+      '@types/globrex':
+        specifier: ^0.1.4
+        version: 0.1.4
       '@types/lodash':
         specifier: ^4.14.116
         version: 4.14.194
@@ -97,6 +100,9 @@ importers:
       cross-env:
         specifier: ^7.0.2
         version: 7.0.3
+      globrex:
+        specifier: ^0.1.2
+        version: 0.1.2
       mocha:
         specifier: ^9.2.0
         version: 9.2.2
@@ -472,6 +478,9 @@ packages:
 
   '@types/glob@7.2.0':
     resolution: {integrity: sha512-ZUxbzKl0IfJILTS6t7ip5fQQM/J3TJYubDm3nMbgubNNYS62eXeUpoLUC8/7fJNiFYHTrGPQn7hspDUzIHX3UA==}
+
+  '@types/globrex@0.1.4':
+    resolution: {integrity: sha512-qm82zaOxfn8Us/GGjNrQQ1XfCBUDV86DxQgIQq/p1zGHlt0xnbUiabNjN9rZUhMNvvIE2gg8iTW+GMfw0TnnLg==}
 
   '@types/lodash@4.14.194':
     resolution: {integrity: sha512-r22s9tAS7imvBt2lyHC9B8AGwWnXaYb1tY09oyLkXDs4vArpYJzw09nj8MLx5VfciBPGIb+ZwG0ssYnEPJxn/g==}
@@ -1552,6 +1561,8 @@ snapshots:
     dependencies:
       '@types/minimatch': 5.1.2
       '@types/node': 18.19.46
+
+  '@types/globrex@0.1.4': {}
 
   '@types/lodash@4.14.194': {}
 
