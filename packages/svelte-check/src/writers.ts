@@ -2,7 +2,7 @@ import pc from 'picocolors';
 import { sep } from 'path';
 import { Writable } from 'stream';
 import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver-protocol';
-import { offsetAt } from 'svelte-language-server';
+import { offsetAt } from 'svelte-language-server/svelte-check';
 
 export interface Writer {
     start: (workspaceDir: string) => void;
