@@ -695,7 +695,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
             label,
             insertText,
             kind: scriptElementKindToCompletionItemKind(comp.kind),
-            commitCharacters: this.getCommitCharacters(comp, commitCharactersOptions),
+            commitCharacters: this.getCommitCharacters(comp, commitCharactersOptions, isSvelteComp),
             // Make sure svelte component and runes take precedence
             sortText: isRunesCompletion || isSvelteComp ? '-1' : comp.sortText,
             preselect: isRunesCompletion || isSvelteComp ? true : comp.isRecommended,
@@ -791,7 +791,18 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
         };
     }
 
-    private getCommitCharacters(entry: ts.CompletionEntry, options: CommitCharactersOptions) {
+    private getCommitCharacters(
+        entry: ts.CompletionEntry,
+        options: CommitCharactersOptions,
+        isSvelteComp: boolean
+    ) {
+        // Because Svelte components take precedence, we leave out commit characters to not auto complete
+        // in weird places (e.g. when you have foo.filter(a => a)) and get autocomplete for component A,
+        // then a commit character of `.` would auto import the component which is not what we want
+        if (isSvelteComp) {
+            return ['>'];
+        }
+
         // https://github.com/microsoft/vscode/blob/d012408e88ffabd6456c367df4d343654da2eb10/extensions/typescript-language-features/src/languageFeatures/completions.ts#L504
         if (!options.checkCommitCharacters) {
             return undefined;
