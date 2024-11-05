@@ -29,6 +29,7 @@ import {
     isSvelteFilePath
 } from './utils';
 import { createProject, ProjectService } from './serviceCache';
+import { internalHelpers } from 'svelte2tsx';
 
 export interface LanguageServiceContainer {
     readonly tsconfigPath: string;
@@ -132,6 +133,7 @@ export function __resetCache() {
 }
 
 export interface LanguageServiceDocumentContext {
+    isSvelteCheck: boolean;
     ambientTypesSource: string;
     transformOnTemplateError: boolean;
     createDocument: (fileName: string, content: string) => Document;
@@ -1211,25 +1213,13 @@ async function createLanguageService(
     }
 
     function getSvelteShimFiles() {
-        const isSvelte3 = sveltePackageInfo.version.major === 3;
-        const svelteHtmlDeclaration = isSvelte3
-            ? undefined
-            : join(sveltePackageInfo.path, 'svelte-html.d.ts');
-        const svelteHtmlFallbackIfNotExist =
-            svelteHtmlDeclaration && tsSystem.fileExists(svelteHtmlDeclaration)
-                ? svelteHtmlDeclaration
-                : './svelte-jsx-v4.d.ts';
-
-        const svelteTsxFiles = (
-            isSvelte3
-                ? ['./svelte-shims.d.ts', './svelte-jsx.d.ts', './svelte-native-jsx.d.ts']
-                : [
-                      './svelte-shims-v4.d.ts',
-                      svelteHtmlFallbackIfNotExist,
-                      './svelte-native-jsx.d.ts'
-                  ]
-        ).map((f) => tsSystem.resolvePath(resolve(svelteTsPath, f)));
-
+        const svelteTsxFiles = internalHelpers.get_global_types(
+            tsSystem,
+            sveltePackageInfo.version.major === 3,
+            sveltePackageInfo.path,
+            svelteTsPath,
+            docContext.isSvelteCheck ? undefined : tsconfigPath || workspacePath
+        );
         const result = new FileSet(tsSystem.useCaseSensitiveFileNames);
 
         svelteTsxFiles.forEach((f) => result.add(normalizePath(f)));
