@@ -27,13 +27,12 @@ export class SignatureHelpProviderImpl implements SignatureHelpProvider {
         cancellationToken?: CancellationToken
     ): Promise<SignatureHelp | null> {
         const { lang, tsDoc } = await this.lsAndTsDocResolver.getLSAndTSDoc(document);
-        const fragment = await tsDoc.getFragment();
 
         if (cancellationToken?.isCancellationRequested) {
             return null;
         }
 
-        const offset = fragment.offsetAt(fragment.getGeneratedPosition(position));
+        const offset = tsDoc.offsetAt(tsDoc.getGeneratedPosition(position));
         const triggerReason = this.toTsTriggerReason(context);
         const info = lang.getSignatureHelpItems(
             tsDoc.filePath,

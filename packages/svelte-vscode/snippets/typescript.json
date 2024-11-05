@@ -1,0 +1,37 @@
+{
+    "SvelteKit Endpoint": {
+        "prefix": "kitEndpoint",
+        "description": "SvelteKit Endpoint",
+        "body": [
+            "export const ${1|GET,POST,PUT,PATCH,DELETE|}: RequestHandler = async ($2) => {",
+            "\t$3",
+            "\treturn new Response();",
+            "};"
+        ]
+    },
+    "SvelteKit Actions": {
+        "prefix": "kitActions",
+        "description": "SvelteKit Actions",
+        "body": ["export const actions: Actions = {", "\t$1", "};"]
+    },
+    "SvelteKit Load": {
+        "prefix": "kitLoad",
+        "description": "SvelteKit Load",
+        "body": [
+            "export const load: ${1|PageLoad,PageServerLoad,LayoutLoad,LayoutServerLoad|} = async ($2) => {",
+            "\t$3",
+            "};"
+        ]
+    },
+    "SvelteKit Param Matcher": {
+        "prefix": "kitParamMatcher",
+        "description": "SvelteKit Param Matcher",
+        "body": [
+            "import type { ParamMatcher } from '@sveltejs/kit';",
+            "",
+            "export const match: ParamMatcher = (param) => {",
+            "\treturn $1;",
+            "};"
+        ]
+    }
+}

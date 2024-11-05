@@ -1,0 +1,138 @@
+[
+    {
+        "code": 2322,
+        "message": "Cannot use 'bind:' with this property. It is declared as non-bindable inside the component.\nTo mark a property as bindable: 'let { readonly = $bindable() } = $props()'",
+        "range": {
+            "end": {
+                "character": 20,
+                "line": 26
+            },
+            "start": {
+                "character": 7,
+                "line": 26
+            }
+        },
+        "severity": 1,
+        "source": "ts",
+        "tags": []
+    },
+    {
+        "code": 2353,
+        "message": "Object literal may only specify known properties, and 'only_bind' does not exist in type '$$ComponentProps'.",
+        "range": {
+            "end": {
+                "character": 21,
+                "line": 27
+            },
+            "start": {
+                "character": 12,
+                "line": 27
+            }
+        },
+        "severity": 1,
+        "source": "ts",
+        "tags": []
+    },
+    {
+        "code": 2322,
+        "message": "Cannot use 'bind:' with this property. It is declared as non-bindable inside the component.\nTo mark a property as bindable: 'let { only_bind = $bindable() } = $props()'",
+        "range": {
+            "end": {
+                "character": 21,
+                "line": 27
+            },
+            "start": {
+                "character": 7,
+                "line": 27
+            }
+        },
+        "severity": 1,
+        "source": "ts",
+        "tags": []
+    },
+    {
+        "code": 2353,
+        "message": "Object literal may only specify known properties, and 'only_bind' does not exist in type '$$ComponentProps'.",
+        "range": {
+            "end": {
+                "character": 17,
+                "line": 28
+            },
+            "start": {
+                "character": 8,
+                "line": 28
+            }
+        },
+        "severity": 1,
+        "source": "ts",
+        "tags": []
+    },
+    {
+        "code": 2322,
+        "message": "Cannot use 'bind:' with this property. It is declared as non-bindable inside the component.\nTo mark a property as bindable: 'let { readonly = $bindable() } = $props()'",
+        "range": {
+            "end": {
+                "character": 27,
+                "line": 30
+            },
+            "start": {
+                "character": 14,
+                "line": 30
+            }
+        },
+        "severity": 1,
+        "source": "ts",
+        "tags": []
+    },
+    {
+        "code": 2353,
+        "message": "Object literal may only specify known properties, and 'only_bind' does not exist in type '$$ComponentProps'.",
+        "range": {
+            "end": {
+                "character": 28,
+                "line": 31
+            },
+            "start": {
+                "character": 19,
+                "line": 31
+            }
+        },
+        "severity": 1,
+        "source": "ts",
+        "tags": []
+    },
+    {
+        "code": 2322,
+        "message": "Cannot use 'bind:' with this property. It is declared as non-bindable inside the component.\nTo mark a property as bindable: 'let { only_bind = $bindable() } = $props()'",
+        "range": {
+            "end": {
+                "character": 28,
+                "line": 31
+            },
+            "start": {
+                "character": 14,
+                "line": 31
+            }
+        },
+        "severity": 1,
+        "source": "ts",
+        "tags": []
+    },
+    {
+        "code": 2353,
+        "message": "Object literal may only specify known properties, and 'only_bind' does not exist in type '$$ComponentProps'.",
+        "range": {
+            "end": {
+                "character": 24,
+                "line": 32
+            },
+            "start": {
+                "character": 15,
+                "line": 32
+            }
+        },
+        "severity": 1,
+        "source": "ts",
+        "tags": []
+    }
+]

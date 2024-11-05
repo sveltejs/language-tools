@@ -54,7 +54,7 @@ Install a plugin for your editor:
 
 The language server has quite a few settings to toggle features. They are listed below. When using the VS Code extension, you can set these through the settings UI or in the `settings.json` using the keys mentioned below.
 
-When using the language server directly, put the settings as JSON inside `initializationOptions.configuration` for the [initialize command](https://microsoft.github.io/language-server-protocol/specification#initialize). When using the [didChangeConfiguration command](https://microsoft.github.io/language-server-protocol/specification#workspace_didChangeConfiguration), pass the JSON directly. The language server also accepts configuration for Emmet (key: `emmet`), Prettier (key: `prettier`), CSS (key: `css` / `less` / `scss`) and TypeScript (keys: `javascript` and `typescript` for JS/TS config).
+When using the language server directly, put the settings as JSON inside `initializationOptions.configuration` for the [initialize command](https://microsoft.github.io/language-server-protocol/specification#initialize). When using the [didChangeConfiguration command](https://microsoft.github.io/language-server-protocol/specification#workspace_didChangeConfiguration), pass the JSON directly. The language server also accepts configuration for Emmet (key: `emmet`; [settings reference](https://github.com/microsoft/vscode/blob/main/extensions/emmet/package.json#L26)), Prettier (key: `prettier`), CSS (key: `css` / `less` / `scss`; [settings reference](https://github.com/microsoft/vscode/blob/main/extensions/css-language-features/package.json#L36)) and TypeScript (keys: `javascript` and `typescript` for JS/TS config; [settings reference](https://github.com/microsoft/vscode/blob/main/extensions/typescript-language-features/package.json#L141)).
 
 Example:
 
@@ -119,14 +119,6 @@ Enable document symbols for TypeScript. _Default_: `true`
 
 Enable completions for TypeScript. _Default_: `true`
 
-##### `svelte.plugin.typescript.findReferences.enable`
-
-Enable find-references for TypeScript. _Default_: `true`
-
-##### `svelte.plugin.typescript.definitions.enable`
-
-Enable go to definition for TypeScript. _Default_: `true`
-
 ##### `svelte.plugin.typescript.codeActions.enable`
 
 Enable code actions for TypeScript. _Default_: `true`
@@ -135,10 +127,6 @@ Enable code actions for TypeScript. _Default_: `true`
 
 Enable selection range for TypeScript. _Default_: `true`
 
-##### `svelte.plugin.typescript.rename.enable`
-
-Enable rename functionality for JS/TS variables inside Svelte files. _Default_: `true`
-
 ##### `svelte.plugin.typescript.signatureHelp.enable`
 
 Enable signature help (parameter hints) for JS/TS. _Default_: `true`
@@ -146,10 +134,6 @@ Enable signature help (parameter hints) for JS/TS. _Default_: `true`
 ##### `svelte.plugin.typescript.semanticTokens.enable`
 
 Enable semantic tokens (semantic highlight) for TypeScript. _Default_: `true`
-
-##### `svelte.plugin.typescript.implementation.enable`
-
-Enable go to implementation for Typescript. _Default_: `true`
 
 ##### `svelte.plugin.css.enable`
 
@@ -220,10 +204,6 @@ Enable document symbols for HTML. _Default_: `true`
 ##### `svelte.plugin.html.linkedEditing.enable`
 
 Enable Linked Editing for HTML. _Default_: `true`
-
-##### `svelte.plugin.html.renameTags.enable`
-
-Enable rename tags for the opening/closing tag pairs in HTML. _Default_: `true`
 
 ##### `svelte.plugin.svelte.enable`
 

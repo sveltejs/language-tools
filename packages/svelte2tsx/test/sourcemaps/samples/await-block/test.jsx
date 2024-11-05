@@ -15,7 +15,7 @@
 {#await promise}                                                                                                                                      {/**
         #======                                                              [original] line 5                                                        
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
-{() => {let _$$p = ((__sveltets_1_store_get(promise), $promise)); <>                                                                                  {/**
+{() => {let _$$p = ((__sveltets_2_store_get(promise), $promise)); <>                                                                                  {/**
                                             #======                          [generated] line 13                                                       */}
 {#await $promise}                                                                                                                                     {/**
          #======                                                             [original] line 11                                                       

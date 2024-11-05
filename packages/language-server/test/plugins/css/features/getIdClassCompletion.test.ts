@@ -9,6 +9,8 @@ import {
     NodeType,
     CSSNode
 } from '../../../../src/plugins/css/features/getIdClassCompletion';
+import { createLanguageServices } from '../../../../src/plugins/css/service';
+import { pathToUrl } from '../../../../src/utils';
 
 describe('getIdClassCompletion', () => {
     function createDocument(content: string) {
@@ -16,7 +18,7 @@ describe('getIdClassCompletion', () => {
     }
 
     function createCSSDocument(content: string) {
-        return new CSSDocument(createDocument(content));
+        return new CSSDocument(createDocument(content), createLanguageServices());
     }
 
     function testSelectors(items: CompletionItem[], expectedSelectors: string[]) {
@@ -47,30 +49,35 @@ describe('getIdClassCompletion', () => {
         const document = createDocument(content);
         const docManager = new DocumentManager(() => document);
         const pluginManager = new LSConfigManager();
-        const plugin = new CSSPlugin(docManager, pluginManager);
-        docManager.openDocument(<any>'some doc');
+        const plugin = new CSSPlugin(
+            docManager,
+            pluginManager,
+            [{ name: '', uri: pathToUrl(process.cwd()) }],
+            createLanguageServices()
+        );
+        docManager.openClientDocument(<any>'some doc');
         return { plugin, document };
     }
 
-    it('provides css classes completion for class attribute', () => {
+    it('provides css classes completion for class attribute', async () => {
         const { plugin, document } = setup('<div class=></div><style>.abc{}</style>');
-        assert.deepStrictEqual(plugin.getCompletions(document, { line: 0, character: 11 }), {
+        assert.deepStrictEqual(await plugin.getCompletions(document, { line: 0, character: 11 }), {
             isIncomplete: false,
             items: [{ label: 'abc', kind: CompletionItemKind.Keyword }]
         } as CompletionList);
     });
 
-    it('provides css classes completion for class directive', () => {
+    it('provides css classes completion for class directive', async () => {
         const { plugin, document } = setup('<div class:></div><style>.abc{}</style>');
-        assert.deepStrictEqual(plugin.getCompletions(document, { line: 0, character: 11 }), {
+        assert.deepStrictEqual(await plugin.getCompletions(document, { line: 0, character: 11 }), {
             isIncomplete: false,
             items: [{ label: 'abc', kind: CompletionItemKind.Keyword }]
         } as CompletionList);
     });
 
-    it('provides css id completion for id attribute', () => {
+    it('provides css id completion for id attribute', async () => {
         const { plugin, document } = setup('<div id=></div><style>#abc{}</style>');
-        assert.deepStrictEqual(plugin.getCompletions(document, { line: 0, character: 8 }), {
+        assert.deepStrictEqual(await plugin.getCompletions(document, { line: 0, character: 8 }), {
             isIncomplete: false,
             items: [{ label: 'abc', kind: CompletionItemKind.Keyword }]
         } as CompletionList);

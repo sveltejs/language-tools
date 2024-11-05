@@ -10,22 +10,25 @@ import {
     TextDocumentEdit
 } from 'vscode-languageserver';
 import { Document, DocumentManager } from '../../../../src/lib/documents';
-import { LSConfigManager, TSUserConfig } from '../../../../src/ls-config';
+import { LSConfigManager, TSUserConfig, TsUserPreferencesConfig } from '../../../../src/ls-config';
 import { CodeActionsProviderImpl } from '../../../../src/plugins/typescript/features/CodeActionsProvider';
 import { CompletionsProviderImpl } from '../../../../src/plugins/typescript/features/CompletionProvider';
 import { LSAndTSDocResolver } from '../../../../src/plugins/typescript/LSAndTSDocResolver';
 import { pathToUrl } from '../../../../src/utils';
+import { serviceWarmup } from '../test-utils';
 
 const testFilesDir = join(__dirname, '..', 'testfiles', 'preferences');
 
-describe('ts user preferences', () => {
+describe('ts user preferences', function () {
+    serviceWarmup(this, testFilesDir);
+
     function setup(filename: string) {
         const docManager = new DocumentManager(
             (textDocument) => new Document(textDocument.uri, textDocument.text)
         );
 
         const filePath = join(testFilesDir, filename);
-        const document = docManager.openDocument(<any>{
+        const document = docManager.openClientDocument(<any>{
             uri: pathToUrl(filePath),
             text: ts.sys.readFile(filePath) || ''
         });
@@ -37,14 +40,17 @@ describe('ts user preferences', () => {
     function getPreferences(): TSUserConfig {
         return {
             preferences: {
+                ...getDefaultPreferences(),
                 importModuleSpecifier: 'non-relative',
-                importModuleSpecifierEnding: 'index',
-                quoteStyle: 'single'
+                importModuleSpecifierEnding: 'index'
             },
             suggest: {
                 autoImports: true,
                 includeAutomaticOptionalChainCompletions: undefined,
-                includeCompletionsForImportStatements: undefined
+                includeCompletionsForImportStatements: undefined,
+                classMemberSnippets: undefined,
+                objectLiteralMethodSnippets: undefined,
+                includeCompletionsWithSnippetText: undefined
             }
         };
     }
@@ -58,16 +64,31 @@ describe('ts user preferences', () => {
             typescript: { ...getPreferences(), ...preferences },
             javascript: { ...getPreferences(), ...preferences }
         });
-        return new LSAndTSDocResolver(docManager, [pathToUrl(testFilesDir)], configManager);
+        return {
+            lsAndTsDocResolver: new LSAndTSDocResolver(
+                docManager,
+                [pathToUrl(testFilesDir)],
+                configManager
+            ),
+            configManager
+        };
+    }
+
+    function getDefaultPreferences(): TsUserPreferencesConfig {
+        return {
+            autoImportFileExcludePatterns: undefined,
+            importModuleSpecifier: 'non-relative',
+            importModuleSpecifierEnding: undefined,
+            quoteStyle: 'single',
+            includePackageJsonAutoImports: undefined,
+            organizeImports: undefined
+        };
     }
 
     it('provides auto import completion according to preferences', async () => {
         const { docManager, document } = setup('code-action.svelte');
-        const lsAndTsDocResolver = createLSAndTSDocResolver(docManager);
-        const completionProvider = new CompletionsProviderImpl(
-            lsAndTsDocResolver,
-            new LSConfigManager()
-        );
+        const { lsAndTsDocResolver, configManager } = createLSAndTSDocResolver(docManager);
+        const completionProvider = new CompletionsProviderImpl(lsAndTsDocResolver, configManager);
 
         const completions = await completionProvider.getCompletions(
             document,
@@ -86,15 +107,13 @@ describe('ts user preferences', () => {
         context: CodeActionContext
     ) {
         const { docManager, document } = setup(filename);
-        const lsAndTsDocResolver = createLSAndTSDocResolver(docManager);
-        const completionProvider = new CompletionsProviderImpl(
-            lsAndTsDocResolver,
-            new LSConfigManager()
-        );
+        const { lsAndTsDocResolver, configManager } = createLSAndTSDocResolver(docManager);
+        const completionProvider = new CompletionsProviderImpl(lsAndTsDocResolver, configManager);
+
         const codeActionProvider = new CodeActionsProviderImpl(
             lsAndTsDocResolver,
             completionProvider,
-            new LSConfigManager()
+            configManager
         );
 
         const codeAction = await codeActionProvider.getCodeActions(document, range, context);
@@ -121,17 +140,17 @@ describe('ts user preferences', () => {
 
     it('provides auto import suggestions according to preferences', async () => {
         const { docManager, document } = setup('code-action.svelte');
-        const lsAndTsDocResolver = createLSAndTSDocResolver(docManager, {
+        const { lsAndTsDocResolver, configManager } = createLSAndTSDocResolver(docManager, {
             suggest: {
                 autoImports: false,
                 includeAutomaticOptionalChainCompletions: undefined,
-                includeCompletionsForImportStatements: undefined
+                includeCompletionsForImportStatements: undefined,
+                classMemberSnippets: undefined,
+                objectLiteralMethodSnippets: undefined,
+                includeCompletionsWithSnippetText: undefined
             }
         });
-        const completionProvider = new CompletionsProviderImpl(
-            lsAndTsDocResolver,
-            new LSConfigManager()
-        );
+        const completionProvider = new CompletionsProviderImpl(lsAndTsDocResolver, configManager);
 
         const completions = await completionProvider.getCompletions(
             document,
@@ -146,15 +165,14 @@ describe('ts user preferences', () => {
 
     function setupImportModuleSpecifierEndingJs() {
         const { docManager, document } = setup('module-specifier-js.svelte');
-        const lsAndTsDocResolver = createLSAndTSDocResolver(docManager, {
+        const { lsAndTsDocResolver, configManager } = createLSAndTSDocResolver(docManager, {
             preferences: {
-                importModuleSpecifier: 'non-relative',
-                importModuleSpecifierEnding: 'js',
-                quoteStyle: 'single'
+                ...getDefaultPreferences(),
+                importModuleSpecifierEnding: 'js'
             }
         });
 
-        return { document, lsAndTsDocResolver };
+        return { document, lsAndTsDocResolver, configManager };
     }
 
     it('provides auto import for svelte component when importModuleSpecifierEnding is js', async () => {
@@ -226,5 +244,57 @@ describe('ts user preferences', () => {
             | TextDocumentEdit
             | undefined;
         assert.strictEqual(documentChange?.edits[0].newText.trim(), expectedComponentImportEdit);
+    });
+
+    async function testExcludeDefinitionDir(pattern: string) {
+        const { docManager, document } = setup('code-action.svelte');
+        const { lsAndTsDocResolver, configManager } = createLSAndTSDocResolver(docManager, {
+            preferences: {
+                ...getDefaultPreferences(),
+                autoImportFileExcludePatterns: [pattern]
+            }
+        });
+        const completionProvider = new CompletionsProviderImpl(lsAndTsDocResolver, configManager);
+
+        const completions = await completionProvider.getCompletions(
+            document,
+            Position.create(1, 14)
+        );
+
+        const item = completions?.items.find((item) => item.label === 'definition');
+
+        assert.equal(item, undefined);
+    }
+
+    it('exclude auto import', async () => {
+        await testExcludeDefinitionDir('definition');
+    });
+
+    it('exclude auto import (relative pattern)', async () => {
+        await testExcludeDefinitionDir('./definition');
+    });
+
+    it('exclude auto import (**/ pattern)', async () => {
+        await testExcludeDefinitionDir('**/definition');
+    });
+
+    it('exclude auto import outside of the root', async () => {
+        const { docManager, document } = setup('code-action-outside-root.svelte');
+        const { lsAndTsDocResolver, configManager } = createLSAndTSDocResolver(docManager, {
+            preferences: {
+                ...getDefaultPreferences(),
+                autoImportFileExcludePatterns: ['definitions.ts']
+            }
+        });
+        const completionProvider = new CompletionsProviderImpl(lsAndTsDocResolver, configManager);
+
+        const completions = await completionProvider.getCompletions(
+            document,
+            Position.create(4, 7)
+        );
+
+        const item = completions?.items.find((item) => item.label === 'blubb');
+
+        assert.equal(item, undefined);
     });
 });

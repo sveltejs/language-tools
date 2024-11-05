@@ -1,0 +1,50 @@
+[
+    {
+        "label": [{ "value": ": " }, { "value": "number" }],
+        "position": { "line": 1, "character": 12 },
+        "kind": 1,
+        "paddingLeft": true
+    },
+    {
+        "label": [
+            {
+                "value": "message",
+                "location": {
+                    "range": {
+                        "start": { "line": 10, "character": 17 },
+                        "end": { "line": 10, "character": 24 }
+                    },
+                    "uri": "<workspaceUri>/reactive-block/input.svelte"
+                }
+            },
+            { "value": ":" }
+        ],
+        "position": { "line": 2, "character": 11 },
+        "kind": 2,
+        "paddingRight": true
+    },
+    {
+        "label": [
+            {
+                "value": "message",
+                "location": {
+                    "range": {
+                        "start": { "line": 10, "character": 17 },
+                        "end": { "line": 10, "character": 24 }
+                    },
+                    "uri": "<workspaceUri>/reactive-block/input.svelte"
+                }
+            },
+            { "value": ":" }
+        ],
+        "position": { "line": 4, "character": 12 },
+        "kind": 2,
+        "paddingRight": true
+    },
+    {
+        "label": [{ "value": ": " }, { "value": "any" }],
+        "position": { "line": 10, "character": 24 },
+        "kind": 1,
+        "paddingLeft": true
+    }
+]

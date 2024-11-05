@@ -13,36 +13,28 @@ export class HoverProviderImpl implements HoverProvider {
 
     async doHover(document: Document, position: Position): Promise<Hover | null> {
         const { lang, tsDoc } = await this.getLSAndTSDoc(document);
-        const fragment = await tsDoc.getFragment();
 
-        const eventHoverInfo = await this.getEventHoverInfo(lang, document, tsDoc, position);
+        const eventHoverInfo = this.getEventHoverInfo(lang, document, tsDoc, position);
         if (eventHoverInfo) {
             return eventHoverInfo;
         }
 
-        const offset = fragment.offsetAt(fragment.getGeneratedPosition(position));
-        let info = lang.getQuickInfoAtPosition(tsDoc.filePath, offset);
+        const offset = tsDoc.offsetAt(tsDoc.getGeneratedPosition(position));
+        const info = lang.getQuickInfoAtPosition(tsDoc.filePath, offset);
         if (!info) {
             return null;
         }
 
-        const textSpan = info.textSpan;
-
-        // show docs of $store instead of store if necessary
-        const is$store = fragment.text
-            .substring(0, info.textSpan.start)
-            .endsWith('(__sveltets_1_store_get(');
-        if (is$store) {
-            const infoFor$store = lang.getQuickInfoAtPosition(
-                tsDoc.filePath,
-                textSpan.start + textSpan.length + 3
-            );
-            if (infoFor$store) {
-                info = infoFor$store;
-            }
+        let declaration = ts.displayPartsToString(info.displayParts);
+        if (
+            tsDoc.isSvelte5Plus &&
+            declaration.includes('(alias)') &&
+            declaration.includes('__sveltets_2_IsomorphicComponent')
+        ) {
+            // info ends with "import ComponentName"
+            declaration = declaration.substring(declaration.lastIndexOf('import'));
         }
 
-        const declaration = ts.displayPartsToString(info.displayParts);
         const documentation = getMarkdownDocumentation(info.documentation, info.tags);
 
         // https://microsoft.github.io/language-server-protocol/specification#textDocument_hover
@@ -50,18 +42,18 @@ export class HoverProviderImpl implements HoverProvider {
             .concat(documentation ? ['---', documentation] : [])
             .join('\n');
 
-        return mapObjWithRangeToOriginal(fragment, {
-            range: convertRange(fragment, textSpan),
+        return mapObjWithRangeToOriginal(tsDoc, {
+            range: convertRange(tsDoc, info.textSpan),
             contents
         });
     }
 
-    private async getEventHoverInfo(
+    private getEventHoverInfo(
         lang: ts.LanguageService,
         doc: Document,
         tsDoc: SvelteDocumentSnapshot,
         originalPosition: Position
-    ): Promise<Hover | null> {
+    ): Hover | null {
         const possibleEventName = getWordAt(doc.getText(), doc.offsetAt(originalPosition), {
             left: /\S+$/,
             right: /[\s=]/
@@ -70,7 +62,7 @@ export class HoverProviderImpl implements HoverProvider {
             return null;
         }
 
-        const component = await getComponentAtPosition(lang, doc, tsDoc, originalPosition);
+        const component = getComponentAtPosition(lang, doc, tsDoc, originalPosition);
         if (!component) {
             return null;
         }

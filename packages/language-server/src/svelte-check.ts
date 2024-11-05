@@ -1,6 +1,7 @@
 import { isAbsolute } from 'path';
 import ts from 'typescript';
 import { Diagnostic, Position, Range } from 'vscode-languageserver';
+import { WorkspaceFolder } from 'vscode-languageserver-protocol';
 import { Document, DocumentManager } from './lib/documents';
 import { Logger } from './logger';
 import { LSConfigManager } from './ls-config';
@@ -11,8 +12,13 @@ import {
     SveltePlugin,
     TypeScriptPlugin
 } from './plugins';
+import { FileSystemProvider } from './plugins/css/FileSystemProvider';
+import { createLanguageServices } from './plugins/css/service';
+import { JSOrTSDocumentSnapshot } from './plugins/typescript/DocumentSnapshot';
+import { isInGeneratedCode } from './plugins/typescript/features/utils';
 import { convertRange, getDiagnosticTag, mapSeverity } from './plugins/typescript/utils';
 import { pathToUrl, urlToPath } from './utils';
+import { groupBy } from 'lodash';
 
 export type SvelteCheckDiagnosticSource = 'js' | 'css' | 'svelte';
 
@@ -23,6 +29,8 @@ export interface SvelteCheckOptions {
      * Path has to be absolute
      */
     tsconfig?: string;
+    onProjectReload?: () => void;
+    watch?: boolean;
 }
 
 /**
@@ -37,7 +45,10 @@ export class SvelteCheck {
     private pluginHost = new PluginHost(this.docManager);
     private lsAndTSDocResolver?: LSAndTSDocResolver;
 
-    constructor(workspacePath: string, private options: SvelteCheckOptions = {}) {
+    constructor(
+        workspacePath: string,
+        private options: SvelteCheckOptions = {}
+    ) {
         Logger.setLogErrorsOnly(true);
         this.initialize(workspacePath, options);
     }
@@ -57,19 +68,39 @@ export class SvelteCheck {
             this.pluginHost.register(new SveltePlugin(this.configManager));
         }
         if (shouldRegister('css')) {
-            this.pluginHost.register(new CSSPlugin(this.docManager, this.configManager));
+            const services = createLanguageServices({
+                fileSystemProvider: new FileSystemProvider()
+            });
+            const workspaceFolders: WorkspaceFolder[] = [
+                {
+                    name: '',
+                    uri: pathToUrl(workspacePath)
+                }
+            ];
+            this.pluginHost.register(
+                new CSSPlugin(this.docManager, this.configManager, workspaceFolders, services)
+            );
         }
         if (shouldRegister('js') || options.tsconfig) {
+            const workspaceUris = [pathToUrl(workspacePath)];
             this.lsAndTSDocResolver = new LSAndTSDocResolver(
                 this.docManager,
-                [pathToUrl(workspacePath)],
+                workspaceUris,
                 this.configManager,
-                undefined,
-                true,
-                options.tsconfig
+                {
+                    tsconfigPath: options.tsconfig,
+                    isSvelteCheck: true,
+                    onProjectReloaded: options.onProjectReload,
+                    watch: options.watch
+                }
             );
             this.pluginHost.register(
-                new TypeScriptPlugin(this.configManager, this.lsAndTSDocResolver)
+                new TypeScriptPlugin(
+                    this.configManager,
+                    this.lsAndTSDocResolver,
+                    workspaceUris,
+                    this.docManager
+                )
             );
         }
 
@@ -87,14 +118,23 @@ export class SvelteCheck {
     async upsertDocument(doc: { text: string; uri: string }, isNew: boolean): Promise<void> {
         const filePath = urlToPath(doc.uri) || '';
 
-        if (isNew && this.options.tsconfig) {
+        if (this.options.tsconfig) {
             const lsContainer = await this.getLSContainer(this.options.tsconfig);
-            if (!lsContainer.fileBelongsToProject(filePath)) {
+            if (!lsContainer.fileBelongsToProject(filePath, isNew)) {
                 return;
             }
         }
 
-        if (doc.uri.endsWith('.ts') || doc.uri.endsWith('.js')) {
+        if (
+            doc.uri.endsWith('.ts') ||
+            doc.uri.endsWith('.js') ||
+            doc.uri.endsWith('.tsx') ||
+            doc.uri.endsWith('.jsx') ||
+            doc.uri.endsWith('.mjs') ||
+            doc.uri.endsWith('.cjs') ||
+            doc.uri.endsWith('.mts') ||
+            doc.uri.endsWith('.cts')
+        ) {
             this.pluginHost.updateTsOrJsFile(filePath, [
                 {
                     range: Range.create(
@@ -105,11 +145,10 @@ export class SvelteCheck {
                 }
             ]);
         } else {
-            this.docManager.openDocument({
+            this.docManager.openClientDocument({
                 text: doc.text,
                 uri: doc.uri
             });
-            this.docManager.markAsOpenedInClient(doc.uri);
         }
     }
 
@@ -150,11 +189,42 @@ export class SvelteCheck {
 
     private async getDiagnosticsForTsconfig(tsconfigPath: string) {
         const lsContainer = await this.getLSContainer(tsconfigPath);
+        const map = (diagnostic: ts.Diagnostic, range?: Range): Diagnostic => {
+            const file = diagnostic.file;
+            range ??= file
+                ? convertRange(
+                      { positionAt: file.getLineAndCharacterOfPosition.bind(file) },
+                      diagnostic
+                  )
+                : { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } };
+
+            return {
+                range: range,
+                severity: mapSeverity(diagnostic.category),
+                source: diagnostic.source,
+                message: ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n'),
+                code: diagnostic.code,
+                tags: getDiagnosticTag(diagnostic)
+            };
+        };
+
+        if (
+            lsContainer.configErrors.some((error) => error.category === ts.DiagnosticCategory.Error)
+        ) {
+            return reportConfigError();
+        }
+
         const lang = lsContainer.getService();
+        if (
+            lsContainer.configErrors.some((error) => error.category === ts.DiagnosticCategory.Error)
+        ) {
+            return reportConfigError();
+        }
+
         const files = lang.getProgram()?.getSourceFiles() || [];
         const options = lang.getProgram()?.getCompilerOptions() || {};
 
-        return await Promise.all(
+        const diagnostics = await Promise.all(
             files.map((file) => {
                 const uri = pathToUrl(file.fileName);
                 const doc = this.docManager.get(uri);
@@ -166,37 +236,106 @@ export class SvelteCheck {
                     // doesn't apply to all code paths. That's why we do it here, too.
                     const skipDiagnosticsForFile =
                         (options.skipLibCheck && file.isDeclarationFile) ||
-                        (options.skipDefaultLibCheck && file.hasNoDefaultLib);
+                        (options.skipDefaultLibCheck && file.hasNoDefaultLib) ||
+                        lsContainer.isShimFiles(file.fileName) ||
+                        // ignore JS files in node_modules
+                        /\/node_modules\/.+\.(c|m)?js$/.test(file.fileName);
+                    const snapshot = lsContainer.snapshotManager.get(file.fileName) as
+                        | JSOrTSDocumentSnapshot
+                        | undefined;
+                    const isKitFile = snapshot?.kitFile ?? false;
+                    const diagnostics: Diagnostic[] = [];
+                    if (!skipDiagnosticsForFile) {
+                        const originalDiagnostics = [
+                            ...lang.getSyntacticDiagnostics(file.fileName),
+                            ...lang.getSuggestionDiagnostics(file.fileName),
+                            ...lang.getSemanticDiagnostics(file.fileName)
+                        ];
 
-                    const diagnostics = skipDiagnosticsForFile
-                        ? []
-                        : [
-                              ...lang.getSyntacticDiagnostics(file.fileName),
-                              ...lang.getSuggestionDiagnostics(file.fileName),
-                              ...lang.getSemanticDiagnostics(file.fileName)
-                          ].map<Diagnostic>((diagnostic) => ({
-                              range: convertRange(
-                                  { positionAt: file.getLineAndCharacterOfPosition.bind(file) },
-                                  diagnostic
-                              ),
-                              severity: mapSeverity(diagnostic.category),
-                              source: diagnostic.source,
-                              message: ts.flattenDiagnosticMessageText(
-                                  diagnostic.messageText,
-                                  '\n'
-                              ),
-                              code: diagnostic.code,
-                              tags: getDiagnosticTag(diagnostic)
-                          }));
+                        for (let diagnostic of originalDiagnostics) {
+                            if (!diagnostic.start || !diagnostic.length || !isKitFile) {
+                                diagnostics.push(map(diagnostic));
+                                continue;
+                            }
+
+                            let range: Range | undefined = undefined;
+                            const inGenerated = isInGeneratedCode(
+                                file.text,
+                                diagnostic.start,
+                                diagnostic.start + diagnostic.length
+                            );
+                            if (inGenerated && snapshot) {
+                                const pos = snapshot.getOriginalPosition(
+                                    snapshot.positionAt(diagnostic.start)
+                                );
+                                range = {
+                                    start: pos,
+                                    end: {
+                                        line: pos.line,
+                                        // adjust length so it doesn't spill over to the next line
+                                        character: pos.character + 1
+                                    }
+                                };
+                                // If not one of the specific error messages then filter out
+                                if (diagnostic.code === 2307) {
+                                    diagnostic = {
+                                        ...diagnostic,
+                                        messageText:
+                                            typeof diagnostic.messageText === 'string' &&
+                                            diagnostic.messageText.includes('./$types')
+                                                ? diagnostic.messageText +
+                                                  ` (this likely means that SvelteKit's type generation didn't run yet - try running it by executing 'npm run dev' or 'npm run build')`
+                                                : diagnostic.messageText
+                                    };
+                                } else if (diagnostic.code === 2694) {
+                                    diagnostic = {
+                                        ...diagnostic,
+                                        messageText:
+                                            typeof diagnostic.messageText === 'string' &&
+                                            diagnostic.messageText.includes('/$types')
+                                                ? diagnostic.messageText +
+                                                  ` (this likely means that SvelteKit's generated types are out of date - try rerunning it by executing 'npm run dev' or 'npm run build')`
+                                                : diagnostic.messageText
+                                    };
+                                } else if (
+                                    diagnostic.code !==
+                                    2355 /*  A function whose declared type is neither 'void' nor 'any' must return a value */
+                                ) {
+                                    continue;
+                                }
+                            }
+
+                            diagnostics.push(map(diagnostic, range));
+                        }
+                    }
 
                     return {
                         filePath: file.fileName,
-                        text: file.text,
+                        text: snapshot?.originalText ?? file.text,
                         diagnostics
                     };
                 }
             })
         );
+
+        if (lsContainer.configErrors.length) {
+            diagnostics.push(...reportConfigError());
+        }
+
+        return diagnostics;
+
+        function reportConfigError() {
+            const grouped = groupBy(
+                lsContainer.configErrors,
+                (error) => error.file?.fileName ?? tsconfigPath
+            );
+
+            return Object.entries(grouped).map(([filePath, errors]) => ({
+                filePath,
+                text: '',
+                diagnostics: errors.map((diagnostic) => map(diagnostic))
+            }));
+        }
     }
 
     private async getDiagnosticsForFile(uri: string) {

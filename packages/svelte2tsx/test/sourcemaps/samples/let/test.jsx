@@ -1,6 +1,6 @@
 /** tested-ranges: [[16,8,"selected"],[27,16,"lookup.get(slug)"]] */                                                                                  {/**
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
-    let  selected = __sveltets_1_invalidate(() => lookup.get(slug));                                                                                  {/**
+    let  selected = __sveltets_2_invalidate(() => lookup.get(slug));                                                                                  {/**
          1=======                                 2===============    [generated] line 4                                                               */}
     $: selected = lookup.get(slug);                                                                                                                   {/**
        1=======   2===============                                    [original] line 2                                                               

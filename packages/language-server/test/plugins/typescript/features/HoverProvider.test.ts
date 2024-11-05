@@ -6,23 +6,29 @@ import { Document, DocumentManager } from '../../../../src/lib/documents';
 import { LSConfigManager } from '../../../../src/ls-config';
 import { HoverProviderImpl } from '../../../../src/plugins/typescript/features/HoverProvider';
 import { LSAndTSDocResolver } from '../../../../src/plugins/typescript/LSAndTSDocResolver';
+import { __resetCache } from '../../../../src/plugins/typescript/service';
 import { pathToUrl } from '../../../../src/utils';
+import { serviceWarmup } from '../test-utils';
 
 const testDir = path.join(__dirname, '..');
+const hoverTestDir = path.join(testDir, 'testfiles', 'hover');
 
-describe('HoverProvider', () => {
+describe('HoverProvider', function () {
+    serviceWarmup(this, hoverTestDir, pathToUrl(testDir));
+
     function getFullPath(filename: string) {
-        return path.join(testDir, 'testfiles', 'hover', filename);
+        return path.join(hoverTestDir, filename);
     }
 
     function setup(filename: string) {
         const docManager = new DocumentManager(
             (textDocument) => new Document(textDocument.uri, textDocument.text)
         );
+        const lsConfigManager = new LSConfigManager();
         const lsAndTsDocResolver = new LSAndTSDocResolver(
             docManager,
-            [testDir],
-            new LSConfigManager()
+            [pathToUrl(testDir)],
+            lsConfigManager
         );
         const provider = new HoverProviderImpl(lsAndTsDocResolver);
         const document = openDoc(filename);
@@ -30,7 +36,7 @@ describe('HoverProvider', () => {
 
         function openDoc(filename: string) {
             const filePath = getFullPath(filename);
-            const doc = docManager.openDocument(<any>{
+            const doc = docManager.openClientDocument(<any>{
                 uri: pathToUrl(filePath),
                 text: ts.sys.readFile(filePath) || ''
             });
@@ -112,7 +118,7 @@ describe('HoverProvider', () => {
                     line: 3
                 },
                 start: {
-                    character: 5,
+                    character: 4,
                     line: 3
                 }
             }
@@ -125,7 +131,7 @@ describe('HoverProvider', () => {
                     line: 5
                 },
                 start: {
-                    character: 9,
+                    character: 8,
                     line: 5
                 }
             }
@@ -153,7 +159,7 @@ describe('HoverProvider', () => {
                     line: 10
                 },
                 start: {
-                    character: 2,
+                    character: 1,
                     line: 10
                 }
             }
@@ -166,7 +172,7 @@ describe('HoverProvider', () => {
                     line: 12
                 },
                 start: {
-                    character: 6,
+                    character: 5,
                     line: 12
                 }
             }
@@ -185,5 +191,10 @@ describe('HoverProvider', () => {
                 }
             }
         });
+    });
+
+    // Hacky, but it works. Needed due to testing both new and old transformation
+    after(() => {
+        __resetCache();
     });
 });

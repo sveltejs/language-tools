@@ -1,10 +1,16 @@
 {
-    "extends": "@tsconfig/node12/tsconfig.json",
     "compilerOptions": {
+        "lib": ["es2021"],
+        "module": "CommonJS",
+        "target": "es2021",
         "moduleResolution": "node",
-        "strict": true,
-        "declaration": true,
+
         "outDir": "dist",
+        "strict": true,
+        "esModuleInterop": true,
+        "skipLibCheck": true,
+        "forceConsistentCasingInFileNames": true,
+        "declaration": true,
         "sourceMap": true,
         "composite": true
     }

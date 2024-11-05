@@ -1,0 +1,26 @@
+[
+    {
+        "label": [{ "value": ": " }, { "value": "void" }],
+        "position": { "line": 4, "character": 29 },
+        "kind": 1,
+        "paddingLeft": true
+    },
+    {
+        "label": [
+            {
+                "value": "name",
+                "location": {
+                    "range": {
+                        "start": { "line": 4, "character": 16 },
+                        "end": { "line": 4, "character": 20 }
+                    },
+                    "uri": "<workspaceUri>/function-call-in-props/input.svelte"
+                }
+            },
+            { "value": ":" }
+        ],
+        "position": { "line": 7, "character": 20 },
+        "kind": 2,
+        "paddingRight": true
+    }
+]

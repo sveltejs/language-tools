@@ -1,0 +1,36 @@
+><div transition:fade></div>
+#^ source.svelte meta.scope.tag.div.svelte meta.tag.start.svelte punctuation.definition.tag.begin.svelte
+# ^^^ source.svelte meta.scope.tag.div.svelte meta.tag.start.svelte entity.name.tag.svelte
+#    ^ source.svelte meta.scope.tag.div.svelte meta.tag.start.svelte
+#     ^^^^^^^^^^ source.svelte meta.scope.tag.div.svelte meta.tag.start.svelte meta.directive.transition.svelte keyword.other.animation.svelte
+#               ^ source.svelte meta.scope.tag.div.svelte meta.tag.start.svelte meta.directive.transition.svelte punctuation.definition.keyword.svelte
+#                ^^^^ source.svelte meta.scope.tag.div.svelte meta.tag.start.svelte meta.directive.transition.svelte entity.name.type.svelte
+#                    ^ source.svelte meta.scope.tag.div.svelte meta.tag.start.svelte punctuation.definition.tag.end.svelte
+#                     ^^ source.svelte meta.scope.tag.div.svelte meta.tag.end.svelte punctuation.definition.tag.begin.svelte
+#                       ^^^ source.svelte meta.scope.tag.div.svelte meta.tag.end.svelte entity.name.tag.svelte
+#                          ^ source.svelte meta.scope.tag.div.svelte meta.tag.end.svelte punctuation.definition.tag.end.svelte
+>
+><div in:fade></div>
+#^ source.svelte meta.scope.tag.div.svelte meta.tag.start.svelte punctuation.definition.tag.begin.svelte
+# ^^^ source.svelte meta.scope.tag.div.svelte meta.tag.start.svelte entity.name.tag.svelte
+#    ^ source.svelte meta.scope.tag.div.svelte meta.tag.start.svelte
+#     ^^ source.svelte meta.scope.tag.div.svelte meta.tag.start.svelte meta.directive.in.svelte keyword.other.animation.svelte
+#       ^ source.svelte meta.scope.tag.div.svelte meta.tag.start.svelte meta.directive.in.svelte punctuation.definition.keyword.svelte
+#        ^^^^ source.svelte meta.scope.tag.div.svelte meta.tag.start.svelte meta.directive.in.svelte variable.function.svelte
+#            ^ source.svelte meta.scope.tag.div.svelte meta.tag.start.svelte punctuation.definition.tag.end.svelte
+#             ^^ source.svelte meta.scope.tag.div.svelte meta.tag.end.svelte punctuation.definition.tag.begin.svelte
+#               ^^^ source.svelte meta.scope.tag.div.svelte meta.tag.end.svelte entity.name.tag.svelte
+#                  ^ source.svelte meta.scope.tag.div.svelte meta.tag.end.svelte punctuation.definition.tag.end.svelte
+>
+><div out:fade></div>
+#^ source.svelte meta.scope.tag.div.svelte meta.tag.start.svelte punctuation.definition.tag.begin.svelte
+# ^^^ source.svelte meta.scope.tag.div.svelte meta.tag.start.svelte entity.name.tag.svelte
+#    ^ source.svelte meta.scope.tag.div.svelte meta.tag.start.svelte
+#     ^^^ source.svelte meta.scope.tag.div.svelte meta.tag.start.svelte meta.directive.out.svelte keyword.other.animation.svelte
+#        ^ source.svelte meta.scope.tag.div.svelte meta.tag.start.svelte meta.directive.out.svelte punctuation.definition.keyword.svelte
+#         ^^^^ source.svelte meta.scope.tag.div.svelte meta.tag.start.svelte meta.directive.out.svelte variable.function.svelte
+#             ^ source.svelte meta.scope.tag.div.svelte meta.tag.start.svelte punctuation.definition.tag.end.svelte
+#              ^^ source.svelte meta.scope.tag.div.svelte meta.tag.end.svelte punctuation.definition.tag.begin.svelte
+#                ^^^ source.svelte meta.scope.tag.div.svelte meta.tag.end.svelte entity.name.tag.svelte
+#                   ^ source.svelte meta.scope.tag.div.svelte meta.tag.end.svelte punctuation.definition.tag.end.svelte
+>

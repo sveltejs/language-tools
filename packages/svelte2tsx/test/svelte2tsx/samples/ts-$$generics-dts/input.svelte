@@ -10,6 +10,10 @@
     export let c: C;
 
     const dispatch = createEventDispatcher<{a: A}>();
+
+    export function getA() {
+        return a;
+    }
 </script>
 
 <slot {c} />

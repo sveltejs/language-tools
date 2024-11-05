@@ -7,12 +7,16 @@ import { LSConfigManager } from '../../../../src/ls-config';
 import { LSAndTSDocResolver } from '../../../../src/plugins';
 import { TypeDefinitionProviderImpl } from '../../../../src/plugins/typescript/features/TypeDefinitionProvider';
 import { pathToUrl } from '../../../../src/utils';
+import { serviceWarmup } from '../test-utils';
 
 const testDir = path.join(__dirname, '..');
+const typeDefinitionTestDir = path.join(testDir, 'testfiles', 'typedefinition');
 
-describe('TypeDefinitionProvider', () => {
+describe('TypeDefinitionProvider', function () {
+    serviceWarmup(this, typeDefinitionTestDir, pathToUrl(testDir));
+
     function getFullPath(filename: string) {
-        return path.join(testDir, 'testfiles', 'typedefinition', filename);
+        return path.join(typeDefinitionTestDir, filename);
     }
 
     function getUri(filename: string) {
@@ -25,12 +29,12 @@ describe('TypeDefinitionProvider', () => {
         );
         const lsAndTsDocResolver = new LSAndTSDocResolver(
             docManager,
-            [testDir],
+            [pathToUrl(testDir)],
             new LSConfigManager()
         );
         const provider = new TypeDefinitionProviderImpl(lsAndTsDocResolver);
         const filePath = getFullPath(filename);
-        const document = docManager.openDocument(<any>{
+        const document = docManager.openClientDocument(<any>{
             uri: pathToUrl(filePath),
             text: ts.sys.readFile(filePath) || ''
         });
@@ -83,6 +87,21 @@ describe('TypeDefinitionProvider', () => {
                     }
                 },
                 uri: getUri('typedefinition.svelte')
+            }
+        ]);
+    });
+
+    it('map definition of dts with declarationMap to source ', async () => {
+        const { provider, document } = setup('../declaration-map/importing.svelte');
+
+        const typeDefs = await provider.getTypeDefinition(document, { line: 1, character: 13 });
+        assert.deepStrictEqual(typeDefs, <Location[]>[
+            {
+                range: {
+                    end: { line: 0, character: 18 },
+                    start: { line: 0, character: 16 }
+                },
+                uri: getUri('../declaration-map/declaration-map-project/index.ts')
             }
         ]);
     });

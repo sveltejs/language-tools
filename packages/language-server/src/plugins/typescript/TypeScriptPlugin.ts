@@ -1,14 +1,20 @@
 import ts, { NavigationTree } from 'typescript';
 import {
+    CallHierarchyIncomingCall,
+    CallHierarchyItem,
+    CallHierarchyOutgoingCall,
     CancellationToken,
     CodeAction,
     CodeActionContext,
+    CodeLens,
     CompletionContext,
     CompletionList,
     DefinitionLink,
     Diagnostic,
     FileChangeType,
+    FoldingRange,
     Hover,
+    InlayHint,
     Location,
     LocationLink,
     Position,
@@ -19,24 +25,36 @@ import {
     SignatureHelp,
     SignatureHelpContext,
     SymbolInformation,
+    SymbolKind,
     TextDocumentContentChangeEvent,
     WorkspaceEdit
 } from 'vscode-languageserver';
-import { Document, getTextInRange, mapSymbolInformationToOriginal } from '../../lib/documents';
+import {
+    Document,
+    DocumentManager,
+    getTextInRange,
+    mapSymbolInformationToOriginal
+} from '../../lib/documents';
 import { LSConfigManager, LSTypescriptConfig } from '../../ls-config';
-import { isNotNullOrUndefined, pathToUrl } from '../../utils';
+import { isNotNullOrUndefined, isZeroLengthRange, pathToUrl } from '../../utils';
 import {
     AppCompletionItem,
     AppCompletionList,
+    CallHierarchyProvider,
     CodeActionsProvider,
+    CodeLensProvider,
     CompletionsProvider,
     DefinitionsProvider,
     DiagnosticsProvider,
     DocumentSymbolsProvider,
+    FileReferencesProvider,
     FileRename,
+    FindComponentReferencesProvider,
     FindReferencesProvider,
+    FoldingRangeProvider,
     HoverProvider,
     ImplementationProvider,
+    InlayHintProvider,
     OnWatchFileChanges,
     OnWatchFileChangesPara,
     RenameProvider,
@@ -47,26 +65,41 @@ import {
     UpdateImportsProvider,
     UpdateTsOrJsFile
 } from '../interfaces';
+import { LSAndTSDocResolver } from './LSAndTSDocResolver';
+import { ignoredBuildDirectories } from './SnapshotManager';
 import { CodeActionsProviderImpl } from './features/CodeActionsProvider';
-import {
-    CompletionEntryWithIdentifer,
-    CompletionsProviderImpl
-} from './features/CompletionProvider';
+import { CompletionResolveInfo, CompletionsProviderImpl } from './features/CompletionProvider';
 import { DiagnosticsProviderImpl } from './features/DiagnosticsProvider';
+import { FindComponentReferencesProviderImpl } from './features/FindComponentReferencesProvider';
+import { FindFileReferencesProviderImpl } from './features/FindFileReferencesProvider';
 import { FindReferencesProviderImpl } from './features/FindReferencesProvider';
-import { getDirectiveCommentCompletions } from './features/getDirectiveCommentCompletions';
+import { FoldingRangeProviderImpl } from './features/FoldingRangeProvider';
 import { HoverProviderImpl } from './features/HoverProvider';
 import { ImplementationProviderImpl } from './features/ImplementationProvider';
+import { InlayHintProviderImpl } from './features/InlayHintProvider';
 import { RenameProviderImpl } from './features/RenameProvider';
 import { SelectionRangeProviderImpl } from './features/SelectionRangeProvider';
 import { SemanticTokensProviderImpl } from './features/SemanticTokensProvider';
 import { SignatureHelpProviderImpl } from './features/SignatureHelpProvider';
 import { TypeDefinitionProviderImpl } from './features/TypeDefinitionProvider';
 import { UpdateImportsProviderImpl } from './features/UpdateImportsProvider';
-import { isNoTextSpanInGeneratedCode, SnapshotFragmentMap } from './features/utils';
-import { LSAndTSDocResolver } from './LSAndTSDocResolver';
-import { ignoredBuildDirectories } from './SnapshotManager';
-import { convertToLocationRange, getScriptKindFromFileName, symbolKindFromString } from './utils';
+import { getDirectiveCommentCompletions } from './features/getDirectiveCommentCompletions';
+import {
+    SnapshotMap,
+    is$storeVariableIn$storeDeclaration,
+    isTextSpanInGeneratedCode
+} from './features/utils';
+import { isAttributeName, isAttributeShorthand, isEventHandler } from './svelte-ast-utils';
+import {
+    convertToLocationForReferenceOrDefinition,
+    convertToLocationRange,
+    isInScript,
+    isSvelte2tsxShimFile,
+    isSvelteFilePath,
+    symbolKindFromString
+} from './utils';
+import { CallHierarchyProviderImpl } from './features/CallHierarchyProvider';
+import { CodeLensProviderImpl } from './features/CodeLensProvider';
 
 export class TypeScriptPlugin
     implements
@@ -78,16 +111,24 @@ export class TypeScriptPlugin
         UpdateImportsProvider,
         RenameProvider,
         FindReferencesProvider,
+        FileReferencesProvider,
+        FindComponentReferencesProvider,
         SelectionRangeProvider,
         SignatureHelpProvider,
         SemanticTokensProvider,
         ImplementationProvider,
         TypeDefinitionProvider,
+        InlayHintProvider,
+        CallHierarchyProvider,
+        FoldingRangeProvider,
+        CodeLensProvider,
         OnWatchFileChanges,
-        CompletionsProvider<CompletionEntryWithIdentifer>,
+        CompletionsProvider<CompletionResolveInfo>,
         UpdateTsOrJsFile
 {
+    __name = 'ts';
     private readonly configManager: LSConfigManager;
+    private readonly documentManager: DocumentManager;
     private readonly lsAndTsDocResolver: LSAndTSDocResolver;
     private readonly completionProvider: CompletionsProviderImpl;
     private readonly codeActionsProvider: CodeActionsProviderImpl;
@@ -96,14 +137,27 @@ export class TypeScriptPlugin
     private readonly renameProvider: RenameProviderImpl;
     private readonly hoverProvider: HoverProviderImpl;
     private readonly findReferencesProvider: FindReferencesProviderImpl;
+    private readonly findFileReferencesProvider: FindFileReferencesProviderImpl;
+    private readonly findComponentReferencesProvider: FindComponentReferencesProviderImpl;
+
     private readonly selectionRangeProvider: SelectionRangeProviderImpl;
     private readonly signatureHelpProvider: SignatureHelpProviderImpl;
     private readonly semanticTokensProvider: SemanticTokensProviderImpl;
     private readonly implementationProvider: ImplementationProviderImpl;
     private readonly typeDefinitionProvider: TypeDefinitionProviderImpl;
+    private readonly inlayHintProvider: InlayHintProviderImpl;
+    private readonly foldingRangeProvider: FoldingRangeProviderImpl;
+    private readonly callHierarchyProvider: CallHierarchyProviderImpl;
+    private readonly codLensProvider: CodeLensProviderImpl;
 
-    constructor(configManager: LSConfigManager, lsAndTsDocResolver: LSAndTSDocResolver) {
+    constructor(
+        configManager: LSConfigManager,
+        lsAndTsDocResolver: LSAndTSDocResolver,
+        workspaceUris: string[],
+        documentManager: DocumentManager
+    ) {
         this.configManager = configManager;
+        this.documentManager = documentManager;
         this.lsAndTsDocResolver = lsAndTsDocResolver;
         this.completionProvider = new CompletionsProviderImpl(
             this.lsAndTsDocResolver,
@@ -114,16 +168,46 @@ export class TypeScriptPlugin
             this.completionProvider,
             configManager
         );
-        this.updateImportsProvider = new UpdateImportsProviderImpl(this.lsAndTsDocResolver);
-        this.diagnosticsProvider = new DiagnosticsProviderImpl(this.lsAndTsDocResolver);
-        this.renameProvider = new RenameProviderImpl(this.lsAndTsDocResolver);
+        this.updateImportsProvider = new UpdateImportsProviderImpl(
+            this.lsAndTsDocResolver,
+            ts.sys.useCaseSensitiveFileNames
+        );
+        this.diagnosticsProvider = new DiagnosticsProviderImpl(
+            this.lsAndTsDocResolver,
+            configManager
+        );
+        this.renameProvider = new RenameProviderImpl(this.lsAndTsDocResolver, configManager);
         this.hoverProvider = new HoverProviderImpl(this.lsAndTsDocResolver);
-        this.findReferencesProvider = new FindReferencesProviderImpl(this.lsAndTsDocResolver);
+        this.findFileReferencesProvider = new FindFileReferencesProviderImpl(
+            this.lsAndTsDocResolver
+        );
+        this.findComponentReferencesProvider = new FindComponentReferencesProviderImpl(
+            this.lsAndTsDocResolver
+        );
+        this.findReferencesProvider = new FindReferencesProviderImpl(
+            this.lsAndTsDocResolver,
+            this.findComponentReferencesProvider
+        );
         this.selectionRangeProvider = new SelectionRangeProviderImpl(this.lsAndTsDocResolver);
         this.signatureHelpProvider = new SignatureHelpProviderImpl(this.lsAndTsDocResolver);
         this.semanticTokensProvider = new SemanticTokensProviderImpl(this.lsAndTsDocResolver);
         this.implementationProvider = new ImplementationProviderImpl(this.lsAndTsDocResolver);
         this.typeDefinitionProvider = new TypeDefinitionProviderImpl(this.lsAndTsDocResolver);
+        this.inlayHintProvider = new InlayHintProviderImpl(this.lsAndTsDocResolver);
+        this.callHierarchyProvider = new CallHierarchyProviderImpl(
+            this.lsAndTsDocResolver,
+            workspaceUris
+        );
+        this.foldingRangeProvider = new FoldingRangeProviderImpl(
+            this.lsAndTsDocResolver,
+            configManager
+        );
+        this.codLensProvider = new CodeLensProviderImpl(
+            this.lsAndTsDocResolver,
+            this.findReferencesProvider,
+            this.implementationProvider,
+            this.configManager
+        );
     }
 
     async getDiagnostics(
@@ -153,8 +237,7 @@ export class TypeScriptPlugin
             return [];
         }
 
-        const { lang, tsDoc } = await this.getLSAndTSDoc(document);
-        const fragment = await tsDoc.getFragment();
+        const { lang, tsDoc } = await this.lsAndTsDocResolver.getLsForSyntheticOperations(document);
 
         if (cancellationToken?.isCancellationRequested) {
             return [];
@@ -166,41 +249,67 @@ export class TypeScriptPlugin
         collectSymbols(navTree, undefined, (symbol) => symbols.push(symbol));
 
         const topContainerName = symbols[0].name;
-        return (
-            symbols
-                .slice(1)
-                .map((symbol) => {
-                    if (symbol.containerName === topContainerName) {
-                        return { ...symbol, containerName: 'script' };
-                    }
+        const result: SymbolInformation[] = [];
 
-                    return symbol;
-                })
-                .map((symbol) => mapSymbolInformationToOriginal(fragment, symbol))
-                // Due to svelte2tsx, there will also be some symbols that are unmapped.
-                // Filter those out to keep the lsp from throwing errors.
-                // Also filter out transformation artifacts
-                .filter(
-                    (symbol) =>
-                        symbol.location.range.start.line >= 0 &&
-                        symbol.location.range.end.line >= 0 &&
-                        !symbol.name.startsWith('__sveltets_')
-                )
-                .map((symbol) => {
-                    if (symbol.name !== '<function>') {
-                        return symbol;
-                    }
+        for (let symbol of symbols.slice(1)) {
+            if (symbol.containerName === topContainerName) {
+                symbol.containerName = 'script';
+            }
 
-                    let name = getTextInRange(symbol.location.range, document.getText()).trimLeft();
-                    if (name.length > 50) {
-                        name = name.substring(0, 50) + '...';
-                    }
-                    return {
-                        ...symbol,
-                        name
-                    };
-                })
-        );
+            symbol = mapSymbolInformationToOriginal(tsDoc, symbol);
+
+            if (
+                symbol.location.range.start.line < 0 ||
+                symbol.location.range.end.line < 0 ||
+                isZeroLengthRange(symbol.location.range) ||
+                symbol.name.startsWith('__sveltets_')
+            ) {
+                continue;
+            }
+
+            if (
+                (symbol.kind === SymbolKind.Property || symbol.kind === SymbolKind.Method) &&
+                !isInScript(symbol.location.range.start, document)
+            ) {
+                if (
+                    symbol.name === 'props' &&
+                    document.getText().charAt(document.offsetAt(symbol.location.range.start)) !==
+                        'p'
+                ) {
+                    // This is the "props" of a generated component constructor
+                    continue;
+                }
+                const node = tsDoc.svelteNodeAt(symbol.location.range.start);
+                if (
+                    (node && (isAttributeName(node) || isAttributeShorthand(node))) ||
+                    isEventHandler(node)
+                ) {
+                    // This is a html or component property, they are not treated as a new symbol
+                    // in JSX and so we do the same for the new transformation.
+                    continue;
+                }
+            }
+
+            if (symbol.name === '<function>') {
+                let name = getTextInRange(symbol.location.range, document.getText()).trimLeft();
+                if (name.length > 50) {
+                    name = name.substring(0, 50) + '...';
+                }
+                symbol.name = name;
+            }
+
+            if (symbol.name.startsWith('$$_')) {
+                if (!symbol.name.includes('$on')) {
+                    continue;
+                }
+                // on:foo={() => ''}   ->   $on("foo") callback
+                symbol.name = symbol.name.substring(symbol.name.indexOf('$on'));
+            }
+
+            result.push(symbol);
+        }
+
+        return result;
 
         function collectSymbols(
             tree: NavigationTree,
@@ -215,10 +324,10 @@ export class TypeScriptPlugin
                         tree.text,
                         symbolKindFromString(tree.kind),
                         Range.create(
-                            fragment.positionAt(start.start),
-                            fragment.positionAt(end.start + end.length)
+                            tsDoc.positionAt(start.start),
+                            tsDoc.positionAt(end.start + end.length)
                         ),
-                        fragment.getURL(),
+                        tsDoc.getURL(),
                         container
                     )
                 );
@@ -236,7 +345,7 @@ export class TypeScriptPlugin
         position: Position,
         completionContext?: CompletionContext,
         cancellationToken?: CancellationToken
-    ): Promise<AppCompletionList<CompletionEntryWithIdentifer> | null> {
+    ): Promise<AppCompletionList<CompletionResolveInfo> | null> {
         if (!this.featureEnabled('completions')) {
             return null;
         }
@@ -266,9 +375,9 @@ export class TypeScriptPlugin
 
     async resolveCompletion(
         document: Document,
-        completionItem: AppCompletionItem<CompletionEntryWithIdentifer>,
+        completionItem: AppCompletionItem<CompletionResolveInfo>,
         cancellationToken?: CancellationToken
-    ): Promise<AppCompletionItem<CompletionEntryWithIdentifer>> {
+    ): Promise<AppCompletionItem<CompletionResolveInfo>> {
         return this.completionProvider.resolveCompletion(
             document,
             completionItem,
@@ -277,47 +386,62 @@ export class TypeScriptPlugin
     }
 
     async getDefinitions(document: Document, position: Position): Promise<DefinitionLink[]> {
-        if (!this.featureEnabled('definitions')) {
-            return [];
-        }
-
-        const { lang, tsDoc } = await this.getLSAndTSDoc(document);
-        const mainFragment = await tsDoc.getFragment();
+        const { lang, tsDoc, lsContainer } = await this.lsAndTsDocResolver.getLSAndTSDoc(document);
 
         const defs = lang.getDefinitionAndBoundSpan(
             tsDoc.filePath,
-            mainFragment.offsetAt(mainFragment.getGeneratedPosition(position))
+            tsDoc.offsetAt(tsDoc.getGeneratedPosition(position))
         );
 
         if (!defs || !defs.definitions) {
             return [];
         }
 
-        const docs = new SnapshotFragmentMap(this.lsAndTsDocResolver);
-        docs.set(tsDoc.filePath, { fragment: mainFragment, snapshot: tsDoc });
+        const snapshots = new SnapshotMap(this.lsAndTsDocResolver, lsContainer);
+        snapshots.set(tsDoc.filePath, tsDoc);
 
         const result = await Promise.all(
             defs.definitions.map(async (def) => {
-                const { fragment, snapshot } = await docs.retrieve(def.fileName);
-
-                if (isNoTextSpanInGeneratedCode(snapshot.getFullText(), def.textSpan)) {
-                    return LocationLink.create(
-                        pathToUrl(def.fileName),
-                        convertToLocationRange(fragment, def.textSpan),
-                        convertToLocationRange(fragment, def.textSpan),
-                        convertToLocationRange(mainFragment, defs.textSpan)
-                    );
+                if (isSvelte2tsxShimFile(def.fileName)) {
+                    return;
                 }
+
+                let snapshot = await snapshots.retrieve(def.fileName);
+
+                // Go from generated $store to store if user wants to find definition for $store
+                if (isTextSpanInGeneratedCode(snapshot.getFullText(), def.textSpan)) {
+                    if (
+                        !is$storeVariableIn$storeDeclaration(
+                            snapshot.getFullText(),
+                            def.textSpan.start
+                        )
+                    ) {
+                        return;
+                    }
+                    // there will be exactly one definition, the store
+                    def = lang.getDefinitionAndBoundSpan(
+                        tsDoc.filePath,
+                        tsDoc.getFullText().indexOf(');', def.textSpan.start) - 1
+                    )!.definitions![0];
+                    snapshot = await snapshots.retrieve(def.fileName);
+                }
+
+                const defLocation = convertToLocationForReferenceOrDefinition(
+                    snapshot,
+                    def.textSpan
+                );
+                return LocationLink.create(
+                    defLocation.uri,
+                    defLocation.range,
+                    defLocation.range,
+                    convertToLocationRange(tsDoc, defs.textSpan)
+                );
             })
         );
         return result.filter(isNotNullOrUndefined);
     }
 
     async prepareRename(document: Document, position: Position): Promise<Range | null> {
-        if (!this.featureEnabled('rename')) {
-            return null;
-        }
-
         return this.renameProvider.prepareRename(document, position);
     }
 
@@ -326,10 +450,6 @@ export class TypeScriptPlugin
         position: Position,
         newName: string
     ): Promise<WorkspaceEdit | null> {
-        if (!this.featureEnabled('rename')) {
-            return null;
-        }
-
         return this.renameProvider.rename(document, position, newName);
     }
 
@@ -344,6 +464,14 @@ export class TypeScriptPlugin
         }
 
         return this.codeActionsProvider.getCodeActions(document, range, context, cancellationToken);
+    }
+
+    async resolveCodeAction(
+        document: Document,
+        codeAction: CodeAction,
+        cancellationToken?: CancellationToken | undefined
+    ): Promise<CodeAction> {
+        return this.codeActionsProvider.resolveCodeAction(document, codeAction, cancellationToken);
     }
 
     async executeCommand(
@@ -376,37 +504,67 @@ export class TypeScriptPlugin
         position: Position,
         context: ReferenceContext
     ): Promise<Location[] | null> {
-        if (!this.featureEnabled('findReferences')) {
-            return null;
-        }
-
         return this.findReferencesProvider.findReferences(document, position, context);
     }
 
+    async fileReferences(uri: string): Promise<Location[] | null> {
+        return this.findFileReferencesProvider.fileReferences(uri);
+    }
+
+    async findComponentReferences(uri: string): Promise<Location[] | null> {
+        return this.findComponentReferencesProvider.findComponentReferences(uri);
+    }
+
     async onWatchFileChanges(onWatchFileChangesParas: OnWatchFileChangesPara[]): Promise<void> {
-        let doneUpdateProjectFiles = false;
+        const newFiles: string[] = [];
 
         for (const { fileName, changeType } of onWatchFileChangesParas) {
             const pathParts = fileName.split(/\/|\\/);
             const dirPathParts = pathParts.slice(0, pathParts.length - 1);
-            if (ignoredBuildDirectories.some((dir) => dirPathParts.includes(dir))) {
+            const declarationExtensions = [ts.Extension.Dcts, ts.Extension.Dts, ts.Extension.Dmts];
+            const canSafelyIgnore =
+                declarationExtensions.every((ext) => !fileName.endsWith(ext)) &&
+                ignoredBuildDirectories.some((dir) => {
+                    const index = dirPathParts.indexOf(dir);
+
+                    return (
+                        // Files in .svelte-kit/types should always come through
+                        index > 0 && (dir !== '.svelte-kit' || dirPathParts[index + 1] !== 'types')
+                    );
+                });
+            if (canSafelyIgnore) {
                 continue;
             }
 
-            const scriptKind = getScriptKindFromFileName(fileName);
-            if (scriptKind === ts.ScriptKind.Unknown) {
-                // We don't deal with svelte files here
+            const isSvelteFile = isSvelteFilePath(fileName);
+            const isClientSvelteFile =
+                isSvelteFile && this.documentManager.get(pathToUrl(fileName))?.openedByClient;
+
+            if (changeType === FileChangeType.Deleted) {
+                if (!isClientSvelteFile) {
+                    await this.lsAndTsDocResolver.deleteSnapshot(fileName);
+                }
                 continue;
             }
 
-            if (changeType === FileChangeType.Created && !doneUpdateProjectFiles) {
-                doneUpdateProjectFiles = true;
-                await this.lsAndTsDocResolver.updateProjectFiles();
-            } else if (changeType === FileChangeType.Deleted) {
-                await this.lsAndTsDocResolver.deleteSnapshot(fileName);
-            } else {
-                await this.lsAndTsDocResolver.updateExistingTsOrJsFile(fileName);
+            if (changeType === FileChangeType.Created) {
+                newFiles.push(fileName);
+                continue;
             }
+
+            if (isSvelteFile) {
+                if (!isClientSvelteFile) {
+                    await this.lsAndTsDocResolver.updateExistingSvelteFile(fileName);
+                }
+                continue;
+            }
+
+            await this.lsAndTsDocResolver.updateExistingTsOrJsFile(fileName);
+        }
+
+        if (newFiles.length) {
+            await this.lsAndTsDocResolver.updateProjectFiles(newFiles);
+            await this.lsAndTsDocResolver.invalidateModuleCache(newFiles);
         }
     }
 
@@ -464,31 +622,70 @@ export class TypeScriptPlugin
         );
     }
 
-    async getImplementation(document: Document, position: Position): Promise<Location[] | null> {
-        if (!this.featureEnabled('implementation')) {
-            return null;
-        }
-
-        return this.implementationProvider.getImplementation(document, position);
+    async getImplementation(
+        document: Document,
+        position: Position,
+        cancellationToken?: CancellationToken
+    ): Promise<Location[] | null> {
+        return this.implementationProvider.getImplementation(document, position, cancellationToken);
     }
 
     async getTypeDefinition(document: Document, position: Position): Promise<Location[] | null> {
-        if (!this.featureEnabled('typeDefinition')) {
-            return null;
-        }
-
         return this.typeDefinitionProvider.getTypeDefinition(document, position);
     }
 
-    private async getLSAndTSDoc(document: Document) {
-        return this.lsAndTsDocResolver.getLSAndTSDoc(document);
+    async getInlayHints(
+        document: Document,
+        range: Range,
+        cancellationToken?: CancellationToken
+    ): Promise<InlayHint[] | null> {
+        if (!this.configManager.enabled('typescript.enable')) {
+            return null;
+        }
+
+        return this.inlayHintProvider.getInlayHints(document, range, cancellationToken);
     }
 
-    /**
-     * @internal Public for tests only
-     */
-    public getSnapshotManager(fileName: string) {
-        return this.lsAndTsDocResolver.getSnapshotManager(fileName);
+    prepareCallHierarchy(
+        document: Document,
+        position: Position,
+        cancellationToken?: CancellationToken
+    ): Promise<CallHierarchyItem[] | null> {
+        return this.callHierarchyProvider.prepareCallHierarchy(
+            document,
+            position,
+            cancellationToken
+        );
+    }
+
+    getIncomingCalls(
+        item: CallHierarchyItem,
+        cancellationToken?: CancellationToken | undefined
+    ): Promise<CallHierarchyIncomingCall[] | null> {
+        return this.callHierarchyProvider.getIncomingCalls(item, cancellationToken);
+    }
+
+    async getOutgoingCalls(
+        item: CallHierarchyItem,
+        cancellationToken?: CancellationToken | undefined
+    ): Promise<CallHierarchyOutgoingCall[] | null> {
+        return this.callHierarchyProvider.getOutgoingCalls(item, cancellationToken);
+    }
+
+    async getFoldingRanges(document: Document): Promise<FoldingRange[]> {
+        return this.foldingRangeProvider.getFoldingRanges(document);
+    }
+
+    getCodeLens(document: Document): Promise<CodeLens[] | null> {
+        return this.codLensProvider.getCodeLens(document);
+    }
+
+    resolveCodeLens(
+        document: Document,
+        codeLensToResolve: CodeLens,
+        cancellationToken?: CancellationToken
+    ): Promise<CodeLens> {
+        return this.codLensProvider.resolveCodeLens(document, codeLensToResolve, cancellationToken);
     }
 
     private featureEnabled(feature: keyof LSTypescriptConfig) {

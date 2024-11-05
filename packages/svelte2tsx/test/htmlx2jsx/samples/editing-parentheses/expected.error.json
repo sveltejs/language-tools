@@ -1,0 +1,16 @@
+{
+    "name": "ParseError",
+    "code": "parse-error",
+    "start": {
+        "line": 1,
+        "column": 16,
+        "character": 16
+    },
+    "end": {
+        "line": 1,
+        "column": 16,
+        "character": 16
+    },
+    "pos": 16,
+    "frame": "1: {console.log(''.)}\n                   ^\n2: \n3: {#await Promise.resolve(''.)}"
+}

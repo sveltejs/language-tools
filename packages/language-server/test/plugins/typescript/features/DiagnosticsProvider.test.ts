@@ -6,11 +6,15 @@ import { Document, DocumentManager } from '../../../../src/lib/documents';
 import { LSConfigManager } from '../../../../src/ls-config';
 import { DiagnosticsProviderImpl } from '../../../../src/plugins/typescript/features/DiagnosticsProvider';
 import { LSAndTSDocResolver } from '../../../../src/plugins/typescript/LSAndTSDocResolver';
+import { __resetCache } from '../../../../src/plugins/typescript/service';
 import { normalizePath, pathToUrl } from '../../../../src/utils';
+import { serviceWarmup } from '../test-utils';
 
 const testDir = path.join(__dirname, '..', 'testfiles', 'diagnostics');
 
-describe('DiagnosticsProvider', () => {
+describe('DiagnosticsProvider', function () {
+    serviceWarmup(this, testDir);
+
     function setup(filename: string) {
         const docManager = new DocumentManager(
             (textDocument) => new Document(textDocument.uri, textDocument.text)
@@ -20,9 +24,9 @@ describe('DiagnosticsProvider', () => {
             [pathToUrl(testDir)],
             new LSConfigManager()
         );
-        const plugin = new DiagnosticsProviderImpl(lsAndTsDocResolver);
+        const plugin = new DiagnosticsProviderImpl(lsAndTsDocResolver, new LSConfigManager());
         const filePath = path.join(testDir, filename);
-        const document = docManager.openDocument(<any>{
+        const document = docManager.openClientDocument(<any>{
             uri: pathToUrl(filePath),
             text: ts.sys.readFile(filePath) || ''
         });
@@ -39,7 +43,7 @@ describe('DiagnosticsProvider', () => {
         const newFilePath = normalizePath(path.join(testDir, 'doesntexistyet.js')) || '';
         writeFileSync(newFilePath, 'export default function foo() {}');
         assert.ok(existsSync(newFilePath));
-        await lsAndTsDocResolver.getSnapshot(newFilePath);
+        await lsAndTsDocResolver.invalidateModuleCache([newFilePath]);
 
         try {
             const diagnostics2 = await plugin.getDiagnostics(document);
@@ -51,7 +55,42 @@ describe('DiagnosticsProvider', () => {
 
         const diagnostics3 = await plugin.getDiagnostics(document);
         assert.deepStrictEqual(diagnostics3.length, 1);
-    }).timeout(5000);
+    }).timeout(this.timeout() * 2.5);
+
+    it('notices changes of module resolution because of new file', async () => {
+        const { plugin, document, lsAndTsDocResolver } = setup('unresolvedimport.svelte');
+
+        const diagnostics1 = await plugin.getDiagnostics(document);
+        assert.deepStrictEqual(diagnostics1.length, 1);
+
+        // back-and-forth-conversion normalizes slashes
+        const newFilePath = normalizePath(path.join(testDir, 'doesntexistyet.js')) || '';
+        const newTsFilePath = normalizePath(path.join(testDir, 'doesntexistyet.ts')) || '';
+        writeFileSync(newFilePath, 'export function foo() {}');
+        assert.ok(existsSync(newFilePath));
+        await lsAndTsDocResolver.invalidateModuleCache([newFilePath]);
+
+        try {
+            const diagnostics2 = await plugin.getDiagnostics(document);
+            assert.deepStrictEqual(diagnostics2[0].code, 2613);
+        } catch (e) {
+            unlinkSync(newFilePath);
+            throw e;
+        }
+
+        writeFileSync(newTsFilePath, 'export default function foo() {}');
+        assert.ok(existsSync(newTsFilePath));
+        await lsAndTsDocResolver.invalidateModuleCache([newTsFilePath]);
+
+        try {
+            const diagnostics3 = await plugin.getDiagnostics(document);
+            assert.deepStrictEqual(diagnostics3.length, 1);
+            await lsAndTsDocResolver.deleteSnapshot(newTsFilePath);
+        } finally {
+            unlinkSync(newTsFilePath);
+            unlinkSync(newFilePath);
+        }
+    }).timeout(this.timeout() * 2.5);
 
     it('notices update of imported module', async () => {
         const { plugin, document, lsAndTsDocResolver } = setup(
@@ -59,7 +98,7 @@ describe('DiagnosticsProvider', () => {
         );
 
         const newFilePath = normalizePath(path.join(testDir, 'empty-export.ts')) || '';
-        await lsAndTsDocResolver.getSnapshot(newFilePath);
+        await lsAndTsDocResolver.getOrCreateSnapshot(newFilePath);
 
         const diagnostics1 = await plugin.getDiagnostics(document);
         assert.deepStrictEqual(
@@ -77,9 +116,12 @@ describe('DiagnosticsProvider', () => {
         const diagnostics2 = await plugin.getDiagnostics(document);
         assert.deepStrictEqual(diagnostics2.length, 0);
         await lsAndTsDocResolver.deleteSnapshot(newFilePath);
-    }).timeout(5000);
+    }).timeout(this.timeout() * 2.5);
 
     it('notices file changes in all services that reference that file', async () => {
+        // Hacky but ensures that this tests is not interfered with by other tests
+        // which could make it fail.
+        __resetCache();
         const { plugin, document, docManager, lsAndTsDocResolver } = setup(
             'different-ts-service.svelte'
         );
@@ -88,14 +130,14 @@ describe('DiagnosticsProvider', () => {
             'different-ts-service',
             'different-ts-service.svelte'
         );
-        const otherDocument = docManager.openDocument(<any>{
+        const otherDocument = docManager.openClientDocument(<any>{
             uri: pathToUrl(otherFilePath),
             text: ts.sys.readFile(otherFilePath) || ''
         });
         // needed because tests have nasty dependencies between them. The ts service
         // is cached and knows the docs already
         const sharedFilePath = path.join(testDir, 'shared-comp.svelte');
-        docManager.openDocument(<any>{
+        docManager.openClientDocument(<any>{
             uri: pathToUrl(sharedFilePath),
             text: ts.sys.readFile(sharedFilePath) || ''
         });
@@ -127,5 +169,5 @@ describe('DiagnosticsProvider', () => {
         assert.deepStrictEqual(diagnostics3.length, 0);
         const diagnostics4 = await plugin.getDiagnostics(otherDocument);
         assert.deepStrictEqual(diagnostics4.length, 0);
-    }).timeout(5000);
+    }).timeout(this.timeout() * 2.5);
 });

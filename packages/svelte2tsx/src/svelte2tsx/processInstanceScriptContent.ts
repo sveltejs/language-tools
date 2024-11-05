@@ -1,11 +1,7 @@
 import MagicString from 'magic-string';
 import { Node } from 'estree-walker';
-import * as ts from 'typescript';
-import {
-    getBinaryAssignmentExpr,
-    isSafeToPrefixWithSemicolon,
-    isNotPropertyNameOfImport
-} from './utils/tsAst';
+import ts from 'typescript';
+import { getBinaryAssignmentExpr, isNotPropertyNameOfImport, moveNode } from './utils/tsAst';
 import { ExportedNames, is$$PropsDeclaration } from './nodes/ExportedNames';
 import { ImplicitTopLevelNames } from './nodes/ImplicitTopLevelNames';
 import { ComponentEvents, is$$EventsDeclaration } from './nodes/ComponentEvents';
@@ -15,7 +11,11 @@ import { ImplicitStoreValues } from './nodes/ImplicitStoreValues';
 import { Generics } from './nodes/Generics';
 import { is$$SlotsDeclaration } from './nodes/slot';
 import { preprendStr } from '../utils/magic-string';
-import { handleImportDeclaration } from './nodes/handleImportDeclaration';
+import {
+    handleFirstInstanceImport,
+    handleImportDeclaration
+} from './nodes/handleImportDeclaration';
+import { InterfacesAndTypes } from './nodes/InterfacesAndTypes';
 
 export interface InstanceScriptProcessResult {
     exportedNames: ExportedNames;
@@ -38,7 +38,12 @@ export function processInstanceScriptContent(
     script: Node,
     events: ComponentEvents,
     implicitStoreValues: ImplicitStoreValues,
-    mode: 'tsx' | 'dts'
+    mode: 'ts' | 'dts',
+    hasModuleScript: boolean,
+    isTSFile: boolean,
+    basename: string,
+    isSvelte5Plus: boolean,
+    isRunes: boolean
 ): InstanceScriptProcessResult {
     const htmlx = str.original;
     const scriptContent = htmlx.substring(script.content.start, script.content.end);
@@ -50,8 +55,16 @@ export function processInstanceScriptContent(
         ts.ScriptKind.TS
     );
     const astOffset = script.content.start;
-    const exportedNames = new ExportedNames(str, astOffset);
-    const generics = new Generics(str, astOffset);
+    const exportedNames = new ExportedNames(
+        str,
+        astOffset,
+        basename,
+        isTSFile,
+        isSvelte5Plus,
+        isRunes
+    );
+    const generics = new Generics(str, astOffset, script);
+    const interfacesAndTypes = new InterfacesAndTypes();
 
     const implicitTopLevelNames = new ImplicitTopLevelNames(str, astOffset);
     let uses$$props = false;
@@ -72,116 +85,8 @@ export function processInstanceScriptContent(
     const pushScope = () => (scope = new Scope(scope));
     const popScope = () => (scope = scope.parent);
 
-    const handleStore = (ident: ts.Identifier, parent: ts.Node) => {
-        // ignore "typeof $store"
-        if (parent && parent.kind === ts.SyntaxKind.TypeQuery) {
-            return;
-        }
-        // ignore break
-        if (parent && parent.kind === ts.SyntaxKind.BreakStatement) {
-            return;
-        }
-
-        const storename = ident.getText().slice(1); // drop the $
-        // handle assign to
-        if (
-            parent &&
-            ts.isBinaryExpression(parent) &&
-            parent.operatorToken.kind == ts.SyntaxKind.EqualsToken &&
-            parent.left == ident
-        ) {
-            //remove $
-            const dollar = str.original.indexOf('$', ident.getStart() + astOffset);
-            str.remove(dollar, dollar + 1);
-            // replace = with .set(
-            str.overwrite(ident.end + astOffset, parent.operatorToken.end + astOffset, '.set(');
-            // append )
-            str.appendLeft(parent.end + astOffset, ')');
-            return;
-        }
-
-        // handle Assignment operators ($store +=, -=, *=, /=, %=, **=, etc.)
-        // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Expressions_and_Operators#Assignment
-        const operators = {
-            [ts.SyntaxKind.PlusEqualsToken]: '+',
-            [ts.SyntaxKind.MinusEqualsToken]: '-',
-            [ts.SyntaxKind.AsteriskEqualsToken]: '*',
-            [ts.SyntaxKind.SlashEqualsToken]: '/',
-            [ts.SyntaxKind.PercentEqualsToken]: '%',
-            [ts.SyntaxKind.AsteriskAsteriskEqualsToken]: '**',
-            [ts.SyntaxKind.LessThanLessThanEqualsToken]: '<<',
-            [ts.SyntaxKind.GreaterThanGreaterThanEqualsToken]: '>>',
-            [ts.SyntaxKind.GreaterThanGreaterThanGreaterThanEqualsToken]: '>>>',
-            [ts.SyntaxKind.AmpersandEqualsToken]: '&',
-            [ts.SyntaxKind.CaretEqualsToken]: '^',
-            [ts.SyntaxKind.BarEqualsToken]: '|'
-        };
-        if (
-            ts.isBinaryExpression(parent) &&
-            parent.left == ident &&
-            Object.keys(operators).find((x) => x === String(parent.operatorToken.kind))
-        ) {
-            const operator = operators[parent.operatorToken.kind];
-            str.overwrite(
-                parent.getStart() + astOffset,
-                str.original.indexOf('=', ident.end + astOffset) + 1,
-                `${storename}.set( $${storename} ${operator}`
-            );
-            str.appendLeft(parent.end + astOffset, ')');
-            return;
-        }
-        // handle $store++, $store--, ++$store, --$store
-        if (
-            (ts.isPrefixUnaryExpression(parent) || ts.isPostfixUnaryExpression(parent)) &&
-            ![
-                ts.SyntaxKind.ExclamationToken, // !$store
-                ts.SyntaxKind.PlusToken, // +$store
-                ts.SyntaxKind.MinusToken, // -$store
-                ts.SyntaxKind.TildeToken // ~$store
-            ].includes(parent.operator) /* `!$store` etc does not need processing */
-        ) {
-            let simpleOperator: string;
-            if (parent.operator === ts.SyntaxKind.PlusPlusToken) {
-                simpleOperator = '+';
-            }
-            if (parent.operator === ts.SyntaxKind.MinusMinusToken) {
-                simpleOperator = '-';
-            }
-
-            if (simpleOperator) {
-                str.overwrite(
-                    parent.getStart() + astOffset,
-                    parent.end + astOffset,
-                    `${storename}.set( $${storename} ${simpleOperator} 1)`
-                );
-                return;
-            } else {
-                console.warn(
-                    `Warning - unrecognized UnaryExpression operator ${parent.operator}!
-                This is an edge case unaccounted for in svelte2tsx, please file an issue:
-                https://github.com/sveltejs/language-tools/issues/new/choose
-                `,
-                    parent.getText()
-                );
-            }
-        }
-
-        // we change "$store" references into "(__sveltets_1_store_get(store), $store)"
-        // - in order to get ts errors if store is not assignable to SvelteStore
-        // - use $store variable defined above to get ts flow control
-        const dollar = str.original.indexOf('$', ident.getStart() + astOffset);
-        const getPrefix = isSafeToPrefixWithSemicolon(ident)
-            ? ';'
-            : ts.isShorthandPropertyAssignment(parent)
-            ? // { $store } --> { $store: __sveltets_1_store_get(..)}
-              ident.text + ': '
-            : '';
-        str.overwrite(dollar, dollar + 1, getPrefix + '(__sveltets_1_store_get(');
-        str.prependLeft(ident.end + astOffset, `), $${storename})`);
-    };
-
     const resolveStore = (pending: PendingStoreResolution) => {
-        let { node, parent, scope } = pending;
+        let { node, scope } = pending;
         const name = (node as ts.Identifier).text;
         while (scope) {
             if (scope.declared.has(name)) {
@@ -190,8 +95,6 @@ export function processInstanceScriptContent(
             }
             scope = scope.parent;
         }
-        //We haven't been resolved, we must be a store read/write, handle it.
-        handleStore(node, parent);
         const storename = node.getText().slice(1);
         implicitStoreValues.addStoreAcess(storename);
     };
@@ -226,8 +129,9 @@ export function processInstanceScriptContent(
                 }
             }
         } else {
+            const text = ident.text;
             //track potential store usage to be resolved
-            if (ident.text.startsWith('$')) {
+            if (text.startsWith('$')) {
                 if (
                     (!ts.isPropertyAccessExpression(parent) || parent.expression == ident) &&
                     (!ts.isPropertyAssignment(parent) || parent.initializer == ident) &&
@@ -237,7 +141,15 @@ export function processInstanceScriptContent(
                     !ts.isTypeAliasDeclaration(parent) &&
                     !ts.isInterfaceDeclaration(parent)
                 ) {
-                    pendingStoreResolutions.push({ node: ident, parent, scope });
+                    // Handle the const { ...props } = $props() case
+                    const is_rune =
+                        (text === '$props' || text === '$derived' || text === '$state') &&
+                        ts.isCallExpression(parent) &&
+                        ts.isVariableDeclaration(parent.parent) &&
+                        parent.parent.name.getText().includes(text.slice(1));
+                    if (!is_rune) {
+                        pendingStoreResolutions.push({ node: ident, parent, scope });
+                    }
                 }
             }
         }
@@ -265,21 +177,13 @@ export function processInstanceScriptContent(
 
         if (ts.isFunctionDeclaration(node)) {
             exportedNames.handleExportFunctionOrClass(node);
-
-            pushScope();
-            onLeaveCallbacks.push(() => popScope());
         }
 
         if (ts.isClassDeclaration(node)) {
             exportedNames.handleExportFunctionOrClass(node);
         }
 
-        if (ts.isBlock(node)) {
-            pushScope();
-            onLeaveCallbacks.push(() => popScope());
-        }
-
-        if (ts.isArrowFunction(node)) {
+        if (ts.isBlock(node) || ts.isFunctionLike(node)) {
             pushScope();
             onLeaveCallbacks.push(() => popScope());
         }
@@ -289,7 +193,7 @@ export function processInstanceScriptContent(
         }
 
         if (ts.isImportDeclaration(node)) {
-            handleImportDeclaration(node, str, astOffset, script.start);
+            handleImportDeclaration(node, str, astOffset, script.start, tsAst);
 
             // Check if import is the event dispatcher
             events.checkIfImportIsEventDispatcher(node);
@@ -307,7 +211,10 @@ export function processInstanceScriptContent(
         if (ts.isVariableDeclaration(node)) {
             events.checkIfIsStringLiteralDeclaration(node);
             events.checkIfDeclarationInstantiatedEventDispatcher(node);
-            implicitStoreValues.addVariableDeclaration(node);
+            // Only top level declarations can be stores
+            if (node.parent?.parent?.parent === tsAst) {
+                implicitStoreValues.addVariableDeclaration(node);
+            }
         }
 
         if (ts.isCallExpression(node)) {
@@ -334,6 +241,12 @@ export function processInstanceScriptContent(
             implicitStoreValues.addImportStatement(node);
         }
 
+        if (ts.isTypeAliasDeclaration(node) || ts.isInterfaceDeclaration(node)) {
+            interfacesAndTypes.node = node;
+            interfacesAndTypes.add(node);
+            onLeaveCallbacks.push(() => (interfacesAndTypes.node = null));
+        }
+
         //handle stores etc
         if (ts.isIdentifier(node)) {
             handleIdentifier(node, parent);
@@ -356,7 +269,8 @@ export function processInstanceScriptContent(
 
         // Defensively call function (checking for undefined) because it got added only recently (TS 4.0)
         // and therefore might break people using older TS versions
-        if (ts.isTypeAssertionExpression?.(node)) {
+        // Don't transform in ts mode because <type>value type assertions are valid in this case
+        if (mode !== 'ts' && ts.isTypeAssertionExpression?.(node)) {
             handleTypeAssertion(str, node, astOffset);
         }
 
@@ -376,11 +290,13 @@ export function processInstanceScriptContent(
     implicitTopLevelNames.modifyCode(rootScope.declared);
     implicitStoreValues.modifyCode(astOffset, str);
 
-    const firstImport = tsAst.statements
-        .filter(ts.isImportDeclaration)
-        .sort((a, b) => a.end - b.end)[0];
-    if (firstImport) {
-        str.appendRight(firstImport.getStart() + astOffset, '\n');
+    handleFirstInstanceImport(tsAst, astOffset, hasModuleScript, str);
+
+    // move interfaces and types out of the render function if they are referenced
+    // by a $$Generic, otherwise it will be used before being defined after the transformation
+    const nodesToMove = interfacesAndTypes.getNodesWithNames(generics.getTypeReferences());
+    for (const node of nodesToMove) {
+        moveNode(node, str, astOffset, script.start, tsAst);
     }
 
     if (mode === 'dts') {
@@ -388,7 +304,7 @@ export function processInstanceScriptContent(
         // using interfaces inside the return type of a function is forbidden.
         // This is not a problem for intellisense/type inference but it will
         // break dts generation (file will not be generated).
-        transformInterfacesToTypes(tsAst, str, astOffset);
+        transformInterfacesToTypes(tsAst, str, astOffset, nodesToMove);
     }
 
     return {
@@ -402,32 +318,40 @@ export function processInstanceScriptContent(
     };
 }
 
-function transformInterfacesToTypes(tsAst: ts.SourceFile, str: MagicString, astOffset: any) {
-    tsAst.statements.filter(ts.isInterfaceDeclaration).forEach((node) => {
-        str.overwrite(
-            node.getStart() + astOffset,
-            node.getStart() + astOffset + 'interface'.length,
-            'type'
-        );
+function transformInterfacesToTypes(
+    tsAst: ts.SourceFile,
+    str: MagicString,
+    astOffset: any,
+    movedNodes: ts.Node[]
+) {
+    tsAst.statements
+        .filter(ts.isInterfaceDeclaration)
+        .filter((i) => !movedNodes.includes(i))
+        .forEach((node) => {
+            str.overwrite(
+                node.getStart() + astOffset,
+                node.getStart() + astOffset + 'interface'.length,
+                'type'
+            );
 
-        if (node.heritageClauses?.length) {
-            const extendsStart = node.heritageClauses[0].getStart() + astOffset;
-            str.overwrite(extendsStart, extendsStart + 'extends'.length, '=');
+            if (node.heritageClauses?.length) {
+                const extendsStart = node.heritageClauses[0].getStart() + astOffset;
+                str.overwrite(extendsStart, extendsStart + 'extends'.length, '=');
 
-            const extendsList = node.heritageClauses[0].types;
-            let prev = extendsList[0];
-            extendsList.slice(1).forEach((heritageClause) => {
-                str.overwrite(
-                    prev.getEnd() + astOffset,
-                    heritageClause.getStart() + astOffset,
-                    ' & '
-                );
-                prev = heritageClause;
-            });
+                const extendsList = node.heritageClauses[0].types;
+                let prev = extendsList[0];
+                extendsList.slice(1).forEach((heritageClause) => {
+                    str.overwrite(
+                        prev.getEnd() + astOffset,
+                        heritageClause.getStart() + astOffset,
+                        ' & '
+                    );
+                    prev = heritageClause;
+                });
 
-            str.appendLeft(node.heritageClauses[0].getEnd() + astOffset, ' & ');
-        } else {
-            str.prependLeft(str.original.indexOf('{', node.getStart() + astOffset), '=');
-        }
-    });
+                str.appendLeft(node.heritageClauses[0].getEnd() + astOffset, ' & ');
+            } else {
+                str.prependLeft(str.original.indexOf('{', node.getStart() + astOffset), '=');
+            }
+        });
 }

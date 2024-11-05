@@ -1,0 +1,1 @@
+ { svelteHTML.createElement("h1", { "on:click":undefined,});  }

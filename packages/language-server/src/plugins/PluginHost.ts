@@ -1,8 +1,13 @@
 import { flatten } from 'lodash';
+import { performance } from 'perf_hooks';
 import {
+    CallHierarchyIncomingCall,
+    CallHierarchyItem,
+    CallHierarchyOutgoingCall,
     CancellationToken,
     CodeAction,
     CodeActionContext,
+    CodeLens,
     Color,
     ColorInformation,
     ColorPresentation,
@@ -11,6 +16,7 @@ import {
     CompletionList,
     DefinitionLink,
     Diagnostic,
+    FoldingRange,
     FormattingOptions,
     Hover,
     LinkedEditingRanges,
@@ -26,11 +32,12 @@ import {
     TextDocumentContentChangeEvent,
     TextDocumentIdentifier,
     TextEdit,
-    WorkspaceEdit
+    WorkspaceEdit,
+    InlayHint
 } from 'vscode-languageserver';
-import { DocumentManager } from '../lib/documents';
+import { DocumentManager, getNodeIfIsInHTMLStartTag } from '../lib/documents';
 import { Logger } from '../logger';
-import { regexLastIndexOf } from '../utils';
+import { isNotNullOrUndefined, regexLastIndexOf } from '../utils';
 import {
     AppCompletionItem,
     FileRename,
@@ -54,6 +61,7 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         definitionLinkSupport: false
     };
     private deferredRequests: Record<string, [number, Promise<any>]> = {};
+    private requestTimings: Record<string, [time: number, lastExecuted: number]> = {};
 
     constructor(private documentsManager: DocumentManager) {}
 
@@ -69,7 +77,10 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         this.deferredRequests = {};
     }
 
-    async getDiagnostics(textDocument: TextDocumentIdentifier): Promise<Diagnostic[]> {
+    async getDiagnostics(
+        textDocument: TextDocumentIdentifier,
+        cancellationToken?: CancellationToken
+    ): Promise<Diagnostic[]> {
         const document = this.getDocument(textDocument.uri);
 
         if (
@@ -89,7 +100,7 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         return flatten(
             await this.execute<Diagnostic[]>(
                 'getDiagnostics',
-                [document],
+                [document, cancellationToken],
                 ExecuteMode.Collect,
                 'high'
             )
@@ -115,18 +126,72 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
     ): Promise<CompletionList> {
         const document = this.getDocument(textDocument.uri);
 
-        const completions = (
-            await this.execute<CompletionList>(
-                'getCompletions',
-                [document, position, completionContext, cancellationToken],
-                ExecuteMode.Collect,
-                'high'
-            )
-        ).filter((completion) => completion != null);
+        const completions = await Promise.all(
+            this.plugins.map(async (plugin) => {
+                const result = await this.tryExecutePlugin(
+                    plugin,
+                    'getCompletions',
+                    [document, position, completionContext, cancellationToken],
+                    null
+                );
+                if (result) {
+                    return { result: result as CompletionList, plugin: plugin.__name };
+                }
+            })
+        ).then((completions) => completions.filter(isNotNullOrUndefined));
 
-        let flattenedCompletions = flatten(completions.map((completion) => completion.items));
+        const html = completions.find((completion) => completion.plugin === 'html');
+        const ts = completions.find((completion) => completion.plugin === 'ts');
+        if (html && ts && getNodeIfIsInHTMLStartTag(document.html, document.offsetAt(position))) {
+            // Completion in a component or html start tag and both html and ts
+            // suggest something -> filter out all duplicates from TS completions
+            const htmlCompletions = new Set(html.result.items.map((item) => item.label));
+            ts.result.items = ts.result.items.filter((item) => {
+                const label = item.label;
+                if (htmlCompletions.has(label)) {
+                    return false;
+                }
+                if (label[0] === '"' && label[label.length - 1] === '"') {
+                    // this will result in a wrong completion regardless, remove the quotes
+                    item.label = item.label.slice(1, -1);
+                    if (htmlCompletions.has(item.label)) {
+                        // "aria-label" -> aria-label -> exists in html completions
+                        return false;
+                    }
+                }
+                if (label.startsWith('on')) {
+                    if (htmlCompletions.has('on:' + label.slice(2))) {
+                        // onclick -> on:click -> exists in html completions
+                        return false;
+                    }
+                }
+                // adjust sort text so it does appear after html completions
+                item.sortText = 'Z' + (item.sortText || '');
+                return true;
+            });
+        }
+
+        let itemDefaults: CompletionList['itemDefaults'];
+        if (completions.length === 1) {
+            itemDefaults = completions[0]?.result.itemDefaults;
+        } else {
+            // don't apply items default to the result of other plugins
+            for (const completion of completions) {
+                const itemDefaults = completion.result.itemDefaults;
+                if (!itemDefaults) {
+                    continue;
+                }
+                completion.result.items.forEach((item) => {
+                    item.commitCharacters ??= itemDefaults.commitCharacters;
+                });
+            }
+        }
+
+        let flattenedCompletions = flatten(
+            completions.map((completion) => completion.result.items)
+        );
         const isIncomplete = completions.reduce(
-            (incomplete, completion) => incomplete || completion.isIncomplete,
+            (incomplete, completion) => incomplete || completion.result.isIncomplete,
             false as boolean
         );
 
@@ -145,7 +210,10 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
             );
         }
 
-        return CompletionList.create(flattenedCompletions, isIncomplete);
+        const result = CompletionList.create(flattenedCompletions, isIncomplete);
+        result.itemDefaults = itemDefaults;
+
+        return result;
     }
 
     async resolveCompletion(
@@ -231,12 +299,18 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
     ): Promise<SymbolInformation[]> {
         const document = this.getDocument(textDocument.uri);
 
+        // VSCode requested document symbols twice for the outline view and the sticky scroll
+        // Manually delay here and don't use low priority as one of them will return no symbols
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        if (cancellationToken.isCancellationRequested) {
+            return [];
+        }
         return flatten(
             await this.execute<SymbolInformation[]>(
                 'getDocumentSymbols',
                 [document, cancellationToken],
                 ExecuteMode.Collect,
-                'low'
+                'high'
             )
         );
     }
@@ -273,7 +347,7 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
     ): Promise<CodeAction[]> {
         const document = this.getDocument(textDocument.uri);
 
-        return flatten(
+        const actions = flatten(
             await this.execute<CodeAction[]>(
                 'getCodeActions',
                 [document, range, context, cancellationToken],
@@ -281,6 +355,13 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
                 'high'
             )
         );
+        // Sort Svelte actions below other actions as they are often less relevant
+        actions.sort((a, b) => {
+            const aPrio = a.title.startsWith('(svelte)') ? 1 : 0;
+            const bPrio = b.title.startsWith('(svelte)') ? 1 : 0;
+            return aPrio - bPrio;
+        });
+        return actions;
     }
 
     async executeCommand(
@@ -296,6 +377,23 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
             ExecuteMode.FirstNonNull,
             'high'
         );
+    }
+
+    async resolveCodeAction(
+        textDocument: TextDocumentIdentifier,
+        codeAction: CodeAction,
+        cancellationToken: CancellationToken
+    ): Promise<CodeAction> {
+        const document = this.getDocument(textDocument.uri);
+
+        const result = await this.execute<CodeAction>(
+            'resolveCodeAction',
+            [document, codeAction, cancellationToken],
+            ExecuteMode.FirstNonNull,
+            'high'
+        );
+
+        return result ?? codeAction;
     }
 
     async updateImports(fileRename: FileRename): Promise<WorkspaceEdit | null> {
@@ -339,13 +437,27 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
     async findReferences(
         textDocument: TextDocumentIdentifier,
         position: Position,
-        context: ReferenceContext
+        context: ReferenceContext,
+        cancellationToken?: CancellationToken
     ): Promise<Location[] | null> {
         const document = this.getDocument(textDocument.uri);
 
         return await this.execute<any>(
             'findReferences',
-            [document, position, context],
+            [document, position, context, cancellationToken],
+            ExecuteMode.FirstNonNull,
+            'high'
+        );
+    }
+
+    async fileReferences(uri: string): Promise<Location[] | null> {
+        return await this.execute<any>('fileReferences', [uri], ExecuteMode.FirstNonNull, 'high');
+    }
+
+    async findComponentReferences(uri: string): Promise<Location[] | null> {
+        return await this.execute<any>(
+            'findComponentReferences',
+            [uri],
             ExecuteMode.FirstNonNull,
             'high'
         );
@@ -414,7 +526,7 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
             'getSemanticTokens',
             [document, range, cancellationToken],
             ExecuteMode.FirstNonNull,
-            'low'
+            'smart'
         );
     }
 
@@ -434,13 +546,14 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
 
     getImplementation(
         textDocument: TextDocumentIdentifier,
-        position: Position
+        position: Position,
+        cancellationToken?: CancellationToken
     ): Promise<Location[] | null> {
         const document = this.getDocument(textDocument.uri);
 
         return this.execute<Location[] | null>(
             'getImplementation',
-            [document, position],
+            [document, position, cancellationToken],
             ExecuteMode.FirstNonNull,
             'high'
         );
@@ -457,6 +570,109 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
             [document, position],
             ExecuteMode.FirstNonNull,
             'high'
+        );
+    }
+
+    getInlayHints(
+        textDocument: TextDocumentIdentifier,
+        range: Range,
+        cancellationToken?: CancellationToken
+    ): Promise<InlayHint[] | null> {
+        const document = this.getDocument(textDocument.uri);
+
+        return this.execute<InlayHint[] | null>(
+            'getInlayHints',
+            [document, range, cancellationToken],
+            ExecuteMode.FirstNonNull,
+            'smart'
+        );
+    }
+
+    prepareCallHierarchy(
+        textDocument: TextDocumentIdentifier,
+        position: Position,
+        cancellationToken?: CancellationToken
+    ): Promise<CallHierarchyItem[] | null> {
+        const document = this.getDocument(textDocument.uri);
+
+        return this.execute<CallHierarchyItem[] | null>(
+            'prepareCallHierarchy',
+            [document, position, cancellationToken],
+            ExecuteMode.FirstNonNull,
+            'high'
+        );
+    }
+
+    getIncomingCalls(
+        item: CallHierarchyItem,
+        cancellationToken?: CancellationToken | undefined
+    ): Promise<CallHierarchyIncomingCall[] | null> {
+        return this.execute<CallHierarchyIncomingCall[] | null>(
+            'getIncomingCalls',
+            [item, cancellationToken],
+            ExecuteMode.FirstNonNull,
+            'high'
+        );
+    }
+
+    getOutgoingCalls(
+        item: CallHierarchyItem,
+        cancellationToken?: CancellationToken | undefined
+    ): Promise<CallHierarchyOutgoingCall[] | null> {
+        return this.execute<CallHierarchyOutgoingCall[] | null>(
+            'getOutgoingCalls',
+            [item, cancellationToken],
+            ExecuteMode.FirstNonNull,
+            'high'
+        );
+    }
+
+    async getCodeLens(textDocument: TextDocumentIdentifier) {
+        const document = this.getDocument(textDocument.uri);
+        if (!document) {
+            throw new Error('Cannot call methods on an unopened document');
+        }
+
+        return await this.execute<CodeLens[]>(
+            'getCodeLens',
+            [document],
+            ExecuteMode.FirstNonNull,
+            'smart'
+        );
+    }
+
+    async getFoldingRanges(textDocument: TextDocumentIdentifier): Promise<FoldingRange[]> {
+        const document = this.getDocument(textDocument.uri);
+
+        const result = flatten(
+            await this.execute<FoldingRange[]>(
+                'getFoldingRanges',
+                [document],
+                ExecuteMode.Collect,
+                'high'
+            )
+        );
+
+        return result;
+    }
+
+    async resolveCodeLens(
+        textDocument: TextDocumentIdentifier,
+        codeLens: CodeLens,
+        cancellationToken: CancellationToken
+    ) {
+        const document = this.getDocument(textDocument.uri);
+        if (!document) {
+            throw new Error('Cannot call methods on an unopened document');
+        }
+
+        return (
+            (await this.execute<CodeLens>(
+                'resolveCodeLens',
+                [document, codeLens, cancellationToken],
+                ExecuteMode.FirstNonNull,
+                'smart'
+            )) ?? codeLens
         );
     }
 
@@ -484,27 +700,43 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         name: keyof LSProvider,
         args: any[],
         mode: ExecuteMode.FirstNonNull,
-        priority: 'low' | 'high'
+        priority: 'low' | 'high' | 'smart'
     ): Promise<T | null>;
     private execute<T>(
         name: keyof LSProvider,
         args: any[],
         mode: ExecuteMode.Collect,
-        priority: 'low' | 'high'
+        priority: 'low' | 'high' | 'smart'
     ): Promise<T[]>;
     private execute(
         name: keyof LSProvider,
         args: any[],
         mode: ExecuteMode.None,
-        priority: 'low' | 'high'
+        priority: 'low' | 'high' | 'smart'
     ): Promise<void>;
     private async execute<T>(
         name: keyof LSProvider,
         args: any[],
         mode: ExecuteMode,
-        priority: 'low' | 'high'
+        priority: 'low' | 'high' | 'smart'
     ): Promise<(T | null) | T[] | void> {
         const plugins = this.plugins.filter((plugin) => typeof plugin[name] === 'function');
+        // Priority 'smart' tries to aproximate how much time a method takes to execute,
+        // making it low priority if it takes too long or if it seems like other methods do.
+        const now = performance.now();
+        if (
+            priority === 'smart' &&
+            (this.requestTimings[name]?.[0] > 500 ||
+                Object.values(this.requestTimings).filter(
+                    (t) => t[0] > 400 && now - t[1] < 60 * 1000
+                ).length > 2)
+        ) {
+            Logger.debug(`Executing next invocation of "${name}" with low priority`);
+            priority = 'low';
+            if (this.requestTimings[name]) {
+                this.requestTimings[name][0] = this.requestTimings[name][0] / 2 + 150;
+            }
+        }
 
         if (priority === 'low') {
             // If a request doesn't have priority, we first wait 1 second to
@@ -525,7 +757,7 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
                                 resolve();
                             } else {
                                 // We should not get into this case. According to the spec,
-                                // the language client // does not send another request
+                                // the language client does not send another request
                                 // of the same type until the previous one is answered.
                                 reject();
                             }
@@ -548,6 +780,18 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
             }
         }
 
+        const startTime = performance.now();
+        const result = await this.executePlugins(name, args, mode, plugins);
+        this.requestTimings[name] = [performance.now() - startTime, startTime];
+        return result;
+    }
+
+    private async executePlugins(
+        name: keyof LSProvider,
+        args: any[],
+        mode: ExecuteMode,
+        plugins: Plugin[]
+    ) {
         switch (mode) {
             case ExecuteMode.FirstNonNull:
                 for (const plugin of plugins) {

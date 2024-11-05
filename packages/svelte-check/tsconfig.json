@@ -1,9 +1,14 @@
 {
-    "extends": "@tsconfig/node12/tsconfig.json",
     "compilerOptions": {
-        "moduleResolution": "node",
+        "lib": ["es2021"],
+        "module": "ES2022",
+        "target": "es2021",
+        "moduleResolution": "bundler",
+
         "strict": true,
-        "esModuleInterop": true
+        "esModuleInterop": true,
+        "skipLibCheck": true,
+        "forceConsistentCasingInFileNames": true
     },
     "include": ["src/**/*"]
 }

@@ -14,24 +14,32 @@ import { LSConfigManager } from '../../../../src/ls-config';
 import { UpdateImportsProviderImpl } from '../../../../src/plugins/typescript/features/UpdateImportsProvider';
 import { LSAndTSDocResolver } from '../../../../src/plugins/typescript/LSAndTSDocResolver';
 import { pathToUrl } from '../../../../src/utils';
+import { serviceWarmup } from '../test-utils';
 
 const testDir = join(__dirname, '..');
-const testFilesDir = join(testDir, 'testfiles');
+const updateImportTestDir = join(testDir, 'testfiles', 'update-imports');
 
-describe('UpdateImportsProviderImpl', () => {
-    async function setup(filename: string) {
+describe('UpdateImportsProviderImpl', function () {
+    serviceWarmup(this, updateImportTestDir, pathToUrl(testDir));
+
+    async function setup(filename: string, useCaseSensitiveFileNames: boolean) {
         const docManager = new DocumentManager(
-            (textDocument) => new Document(textDocument.uri, textDocument.text)
+            (textDocument) => new Document(textDocument.uri, textDocument.text),
+            { useCaseSensitiveFileNames }
         );
         const lsAndTsDocResolver = new LSAndTSDocResolver(
             docManager,
             [pathToUrl(testDir)],
-            new LSConfigManager()
+            new LSConfigManager(),
+            { tsSystem: { ...ts.sys, useCaseSensitiveFileNames } }
         );
-        const updateImportsProvider = new UpdateImportsProviderImpl(lsAndTsDocResolver);
-        const filePath = join(testFilesDir, filename);
+        const updateImportsProvider = new UpdateImportsProviderImpl(
+            lsAndTsDocResolver,
+            useCaseSensitiveFileNames
+        );
+        const filePath = join(updateImportTestDir, filename);
         const fileUri = pathToUrl(filePath);
-        const document = docManager.openDocument(<any>{
+        const document = docManager.openClientDocument(<any>{
             uri: fileUri,
             text: ts.sys.readFile(filePath) || ''
         });
@@ -42,21 +50,52 @@ describe('UpdateImportsProviderImpl', () => {
     afterEach(() => sinon.restore());
 
     it('updates imports', async () => {
-        const { updateImportsProvider, fileUri } = await setup('updateimports.svelte');
+        const { updateImportsProvider, fileUri } = await setup(
+            'updateimports.svelte',
+            ts.sys.useCaseSensitiveFileNames
+        );
 
         const workspaceEdit = await updateImportsProvider.updateImports({
-            // imported files both old and new have to actually exist, so we just use some other test files
-            oldUri: pathToUrl(join(testFilesDir, 'diagnostics', 'diagnostics.svelte')),
-            newUri: pathToUrl(join(testFilesDir, 'documentation.svelte'))
+            oldUri: pathToUrl(join(updateImportTestDir, 'imported.svelte')),
+            newUri: pathToUrl(join(updateImportTestDir, 'documentation.svelte'))
         });
 
         assert.deepStrictEqual(workspaceEdit?.documentChanges, [
             TextDocumentEdit.create(OptionalVersionedTextDocumentIdentifier.create(fileUri, null), [
                 TextEdit.replace(
-                    Range.create(Position.create(1, 17), Position.create(1, 49)),
+                    Range.create(Position.create(1, 17), Position.create(1, 34)),
                     './documentation.svelte'
                 )
             ])
         ]);
+    });
+
+    async function testUpdateForFileCasingChanges(useCaseSensitiveFileNames: boolean) {
+        const { updateImportsProvider, fileUri } = await setup(
+            'updateimports.svelte',
+            useCaseSensitiveFileNames
+        );
+
+        const workspaceEdit = await updateImportsProvider.updateImports({
+            oldUri: pathToUrl(join(updateImportTestDir, 'imported.svelte')),
+            newUri: pathToUrl(join(updateImportTestDir, 'Imported.svelte'))
+        });
+
+        assert.deepStrictEqual(workspaceEdit?.documentChanges, [
+            TextDocumentEdit.create(OptionalVersionedTextDocumentIdentifier.create(fileUri, null), [
+                TextEdit.replace(
+                    Range.create(Position.create(1, 17), Position.create(1, 34)),
+                    './Imported.svelte'
+                )
+            ])
+        ]);
+    }
+
+    it('updates imports for file casing changes (case-sensitive)', async () => {
+        await testUpdateForFileCasingChanges(true);
+    });
+
+    it('updates imports for file casing changes (case-insensitive)', async () => {
+        await testUpdateForFileCasingChanges(false);
     });
 });

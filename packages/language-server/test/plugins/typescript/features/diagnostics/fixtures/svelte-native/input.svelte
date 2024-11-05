@@ -4,7 +4,8 @@
             <span class="fas" text="&#xf135;" />
             <span text=" {message}" />
         </formattedString>
-    </label>    
+    </label>
+    <div asd="" />
 </page>
 
 <script lang="ts">

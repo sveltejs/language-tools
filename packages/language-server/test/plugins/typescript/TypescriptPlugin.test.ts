@@ -2,15 +2,27 @@ import * as assert from 'assert';
 import fs from 'fs';
 import * as path from 'path';
 import ts from 'typescript';
-import { CancellationTokenSource, FileChangeType, Position, Range } from 'vscode-languageserver';
+import {
+    CancellationTokenSource,
+    FileChangeType,
+    LocationLink,
+    Position,
+    Range
+} from 'vscode-languageserver';
 import { Document, DocumentManager } from '../../../src/lib/documents';
 import { LSConfigManager } from '../../../src/ls-config';
 import { LSAndTSDocResolver, TypeScriptPlugin } from '../../../src/plugins';
 import { INITIAL_VERSION } from '../../../src/plugins/typescript/DocumentSnapshot';
+import { __resetCache } from '../../../src/plugins/typescript/service';
 import { ignoredBuildDirectories } from '../../../src/plugins/typescript/SnapshotManager';
 import { pathToUrl } from '../../../src/utils';
+import { serviceWarmup } from './test-utils';
 
-describe('TypescriptPlugin', () => {
+const testDir = path.join(__dirname, 'testfiles');
+
+describe('TypescriptPlugin', function () {
+    serviceWarmup(this, testDir);
+
     function getUri(filename: string) {
         const filePath = path.join(__dirname, 'testfiles', filename);
         return pathToUrl(filePath);
@@ -21,82 +33,281 @@ describe('TypescriptPlugin', () => {
     }
 
     function setup(filename: string) {
-        const docManager = new DocumentManager(() => document);
-        const testDir = path.join(__dirname, 'testfiles');
+        const docManager = new DocumentManager((args) =>
+            args.uri.includes('.svelte')
+                ? new Document(args.uri, harmonizeNewLines(args.text))
+                : document
+        );
         const filePath = path.join(testDir, filename);
         const document = new Document(pathToUrl(filePath), ts.sys.readFile(filePath) || '');
-        const pluginManager = new LSConfigManager();
-        const plugin = new TypeScriptPlugin(
-            pluginManager,
-            new LSAndTSDocResolver(docManager, [pathToUrl(testDir)], pluginManager)
+        const lsConfigManager = new LSConfigManager();
+        const workspaceUris = [pathToUrl(testDir)];
+        const lsAndTsDocResolver = new LSAndTSDocResolver(
+            docManager,
+            workspaceUris,
+            lsConfigManager,
+            {
+                nonRecursiveWatchPattern: '**/*.{ts,js}'
+            }
         );
-        docManager.openDocument(<any>'some doc');
-        return { plugin, document };
+        const plugin = new TypeScriptPlugin(
+            lsConfigManager,
+            lsAndTsDocResolver,
+            workspaceUris,
+            docManager
+        );
+        docManager.openClientDocument(<any>'some doc');
+        return { plugin, document, lsAndTsDocResolver, docManager };
     }
 
     it('provides document symbols', async () => {
         const { plugin, document } = setup('documentsymbols.svelte');
-        const symbols = await plugin.getDocumentSymbols(document);
+        let symbols = await plugin.getDocumentSymbols(document);
+        symbols = symbols
+            .map((s) => ({ ...s, name: harmonizeNewLines(s.name) }))
+            .sort(
+                (s1, s2) =>
+                    s1.location.range.start.line * 100 +
+                    s1.location.range.start.character -
+                    (s2.location.range.start.line * 100 + s2.location.range.start.character)
+            );
 
-        assert.deepStrictEqual(
-            symbols.map((s) => ({ ...s, name: harmonizeNewLines(s.name) })),
-            [
-                {
-                    containerName: 'render',
-                    kind: 12,
-                    location: {
-                        range: {
-                            start: {
-                                line: 6,
-                                character: 3
-                            },
-                            end: {
-                                line: 8,
-                                character: 5
-                            }
+        assert.deepStrictEqual(symbols, [
+            {
+                name: 'bla',
+                kind: 12,
+                location: {
+                    uri: getUri('documentsymbols.svelte'),
+                    range: {
+                        start: {
+                            line: 1,
+                            character: 2
                         },
-                        uri: getUri('documentsymbols.svelte')
-                    },
-                    name: "$: if (hello) {\n        console.log('hi');\n    }"
+                        end: {
+                            line: 3,
+                            character: 3
+                        }
+                    }
                 },
-                {
-                    containerName: 'render',
-                    kind: 12,
-                    location: {
-                        range: {
-                            start: {
-                                line: 1,
-                                character: 4
-                            },
-                            end: {
-                                line: 3,
-                                character: 5
-                            }
+                containerName: 'render'
+            },
+            {
+                name: 'hello',
+                kind: 13,
+                location: {
+                    uri: getUri('documentsymbols.svelte'),
+                    range: {
+                        start: {
+                            line: 5,
+                            character: 5
                         },
-                        uri: getUri('documentsymbols.svelte')
-                    },
-                    name: 'bla'
+                        end: {
+                            line: 5,
+                            character: 14
+                        }
+                    }
                 },
-                {
-                    containerName: 'render',
-                    kind: 13,
-                    location: {
-                        range: {
-                            start: {
-                                line: 5,
-                                character: 7
-                            },
-                            end: {
-                                line: 5,
-                                character: 16
-                            }
+                containerName: 'render'
+            },
+            {
+                name: "$: if (hello) {\n    console.log('hi');\n  }",
+                kind: 12,
+                location: {
+                    uri: getUri('documentsymbols.svelte'),
+                    range: {
+                        start: {
+                            line: 6,
+                            character: 1
                         },
-                        uri: getUri('documentsymbols.svelte')
-                    },
-                    name: 'hello'
-                }
-            ]
-        );
+                        end: {
+                            line: 8,
+                            character: 3
+                        }
+                    }
+                },
+                containerName: 'render'
+            },
+            {
+                name: '$on("click") callback',
+                kind: 12,
+                location: {
+                    uri: getUri('documentsymbols.svelte'),
+                    range: {
+                        start: {
+                            line: 12,
+                            character: 39
+                        },
+                        end: {
+                            line: 12,
+                            character: 47
+                        }
+                    }
+                },
+                containerName: '<function>'
+            },
+            {
+                name: 'x',
+                kind: 14,
+                location: {
+                    uri: getUri('documentsymbols.svelte'),
+                    range: {
+                        start: {
+                            line: 13,
+                            character: 15
+                        },
+                        end: {
+                            line: 13,
+                            character: 16
+                        }
+                    }
+                },
+                containerName: '<function>'
+            },
+            {
+                name: 'b',
+                kind: 14,
+                location: {
+                    uri: getUri('documentsymbols.svelte'),
+                    range: {
+                        start: {
+                            line: 13,
+                            character: 21
+                        },
+                        end: {
+                            line: 13,
+                            character: 25
+                        }
+                    }
+                },
+                containerName: '<function>'
+            },
+            {
+                name: 'x',
+                kind: 14,
+                location: {
+                    uri: getUri('documentsymbols.svelte'),
+                    range: {
+                        start: {
+                            line: 14,
+                            character: 21
+                        },
+                        end: {
+                            line: 14,
+                            character: 22
+                        }
+                    }
+                },
+                containerName: '<function>'
+            },
+            {
+                name: 'b',
+                kind: 14,
+                location: {
+                    uri: getUri('documentsymbols.svelte'),
+                    range: {
+                        start: {
+                            line: 14,
+                            character: 27
+                        },
+                        end: {
+                            line: 14,
+                            character: 31
+                        }
+                    }
+                },
+                containerName: '<function>'
+            },
+            {
+                name: 'foo',
+                kind: 13,
+                location: {
+                    uri: getUri('documentsymbols.svelte'),
+                    range: {
+                        start: {
+                            line: 16,
+                            character: 17
+                        },
+                        end: {
+                            line: 16,
+                            character: 20
+                        }
+                    }
+                },
+                containerName: '<function>'
+            },
+            {
+                name: 'bar',
+                kind: 14,
+                location: {
+                    uri: getUri('documentsymbols.svelte'),
+                    range: {
+                        start: {
+                            line: 17,
+                            character: 10
+                        },
+                        end: {
+                            line: 17,
+                            character: 19
+                        }
+                    }
+                },
+                containerName: '<function>'
+            },
+            {
+                name: 'result',
+                kind: 14,
+                location: {
+                    uri: getUri('documentsymbols.svelte'),
+                    range: {
+                        start: {
+                            line: 20,
+                            character: 15
+                        },
+                        end: {
+                            line: 20,
+                            character: 21
+                        }
+                    }
+                },
+                containerName: '<function>'
+            },
+            {
+                name: 'bar',
+                kind: 14,
+                location: {
+                    uri: getUri('documentsymbols.svelte'),
+                    range: {
+                        start: {
+                            line: 21,
+                            character: 10
+                        },
+                        end: {
+                            line: 21,
+                            character: 22
+                        }
+                    }
+                },
+                containerName: '<function>'
+            },
+            {
+                name: 'error',
+                kind: 14,
+                location: {
+                    uri: getUri('documentsymbols.svelte'),
+                    range: {
+                        start: {
+                            line: 23,
+                            character: 8
+                        },
+                        end: {
+                            line: 23,
+                            character: 13
+                        }
+                    }
+                },
+                containerName: '<function>'
+            }
+        ]);
     });
 
     it('can cancel document symbols before promise resolved', async () => {
@@ -271,28 +482,28 @@ describe('TypescriptPlugin', () => {
         it('(within script simple)', async () => {
             await test$StoreDef(
                 Position.create(7, 1),
-                Range.create(Position.create(7, 1), Position.create(7, 6))
+                Range.create(Position.create(7, 0), Position.create(7, 6))
             );
         });
 
         it('(within script if)', async () => {
             await test$StoreDef(
                 Position.create(8, 7),
-                Range.create(Position.create(8, 5), Position.create(8, 10))
+                Range.create(Position.create(8, 4), Position.create(8, 10))
             );
         });
 
         it('(within template simple)', async () => {
             await test$StoreDef(
                 Position.create(13, 3),
-                Range.create(Position.create(13, 2), Position.create(13, 7))
+                Range.create(Position.create(13, 1), Position.create(13, 7))
             );
         });
 
         it('(within template if)', async () => {
             await test$StoreDef(
                 Position.create(14, 7),
-                Range.create(Position.create(14, 6), Position.create(14, 11))
+                Range.create(Position.create(14, 5), Position.create(14, 11))
             );
         });
     });
@@ -334,41 +545,90 @@ describe('TypescriptPlugin', () => {
         it('(within script simple)', async () => {
             await test$StoreDef(
                 Position.create(9, 1),
-                Range.create(Position.create(9, 1), Position.create(9, 6))
+                Range.create(Position.create(9, 0), Position.create(9, 6))
             );
         });
 
         it('(within script if)', async () => {
             await test$StoreDef(
                 Position.create(10, 7),
-                Range.create(Position.create(10, 5), Position.create(10, 10))
+                Range.create(Position.create(10, 4), Position.create(10, 10))
             );
         });
 
         it('(within template simple)', async () => {
             await test$StoreDef(
                 Position.create(16, 3),
-                Range.create(Position.create(16, 2), Position.create(16, 7))
+                Range.create(Position.create(16, 1), Position.create(16, 7))
             );
         });
 
         it('(within template if)', async () => {
             await test$StoreDef(
                 Position.create(17, 7),
-                Range.create(Position.create(17, 6), Position.create(17, 11))
+                Range.create(Position.create(17, 5), Position.create(17, 11))
             );
         });
     });
 
+    it('map definition of dts with declarationMap to source ', async () => {
+        const { plugin, document } = setup('declaration-map/importing.svelte');
+
+        const definition = await plugin.getDefinitions(document, { line: 1, character: 13 });
+        assert.deepStrictEqual(definition, [
+            <LocationLink>{
+                targetRange: {
+                    end: { line: 0, character: 18 },
+                    start: { line: 0, character: 16 }
+                },
+                targetSelectionRange: {
+                    start: { line: 0, character: 16 },
+                    end: { line: 0, character: 18 }
+                },
+                originSelectionRange: {
+                    start: { line: 1, character: 13 },
+                    end: { line: 1, character: 15 }
+                },
+                targetUri: getUri('declaration-map/declaration-map-project/index.ts')
+            }
+        ]);
+    });
+
+    it('map definition of dts with declarationMap (base64 data url) to source ', async () => {
+        const { plugin, document } = setup('declaration-map/import-from-base64-sourcemap.svelte');
+
+        const definition = await plugin.getDefinitions(document, { line: 1, character: 13 });
+        assert.deepStrictEqual(definition, [
+            <LocationLink>{
+                targetRange: {
+                    end: { line: 0, character: 18 },
+                    start: { line: 0, character: 16 }
+                },
+                targetSelectionRange: {
+                    start: { line: 0, character: 16 },
+                    end: { line: 0, character: 18 }
+                },
+                originSelectionRange: {
+                    start: { line: 1, character: 13 },
+                    end: { line: 1, character: 15 }
+                },
+                targetUri: getUri('declaration-map/declaration-map-project/index.ts')
+            }
+        ]);
+    });
+
     const setupForOnWatchedFileChanges = async () => {
-        const { plugin, document } = setup('empty.svelte');
+        const { plugin, document, lsAndTsDocResolver, docManager } = setup('empty.svelte');
         const targetSvelteFile = document.getFilePath()!;
-        const snapshotManager = await plugin.getSnapshotManager(targetSvelteFile);
+        const snapshotManager = (await lsAndTsDocResolver.getTSService(targetSvelteFile))
+            .snapshotManager;
 
         return {
             snapshotManager,
             plugin,
-            targetSvelteFile
+            targetSvelteFile,
+            lsAndTsDocResolver,
+            docManager
         };
     };
 
@@ -429,7 +689,8 @@ describe('TypescriptPlugin', () => {
     });
 
     const testForOnWatchedFileAdd = async (filePath: string, shouldExist: boolean) => {
-        const { snapshotManager, plugin, targetSvelteFile } = await setupForOnWatchedFileChanges();
+        const { snapshotManager, plugin, targetSvelteFile, lsAndTsDocResolver } =
+            await setupForOnWatchedFileChanges();
         const addFile = path.join(path.dirname(targetSvelteFile), filePath);
 
         const dir = path.dirname(addFile);
@@ -448,6 +709,8 @@ describe('TypescriptPlugin', () => {
                     changeType: FileChangeType.Created
                 }
             ]);
+
+            (await lsAndTsDocResolver.getTSService(targetSvelteFile)).getService();
 
             assert.equal(snapshotManager.has(addFile), shouldExist);
 
@@ -478,6 +741,10 @@ describe('TypescriptPlugin', () => {
         }
     });
 
+    it('should add declaration file snapshot when added to known build directory', async () => {
+        await testForOnWatchedFileAdd(path.join('.svelte-kit', 'ambient.d.ts'), true);
+    });
+
     it('should update ts/js file after document change', async () => {
         const { snapshotManager, projectJsFile, plugin } =
             await setupForOnWatchedFileUpdateOrDelete();
@@ -501,5 +768,53 @@ describe('TypescriptPlugin', () => {
             secondSnapshot?.getText(0, secondSnapshot?.getLength()),
             'const = "hello world";' + firstText
         );
+    });
+
+    it("shouldn't close svelte document when renamed", async () => {
+        const { plugin, docManager, targetSvelteFile } = await setupForOnWatchedFileChanges();
+        docManager.openClientDocument({
+            text: '',
+            uri: pathToUrl(targetSvelteFile)
+        });
+
+        const basename = path.basename(targetSvelteFile);
+        const newFileName = basename.replace('.svelte', '').toUpperCase() + '.svelte';
+        const newFilePath = path.join(path.dirname(targetSvelteFile), newFileName);
+        await plugin.onWatchFileChanges([
+            {
+                fileName: targetSvelteFile,
+                changeType: FileChangeType.Deleted
+            },
+            {
+                fileName: newFilePath,
+                changeType: FileChangeType.Created
+            }
+        ]);
+
+        const document = docManager.get(pathToUrl(targetSvelteFile));
+        assert.ok(document);
+    });
+
+    it("shouldn't mark client svelte document as close", async () => {
+        const { plugin, docManager, targetSvelteFile } = await setupForOnWatchedFileChanges();
+        docManager.openClientDocument({
+            text: '',
+            uri: pathToUrl(targetSvelteFile)
+        });
+
+        await plugin.onWatchFileChanges([
+            {
+                fileName: targetSvelteFile,
+                changeType: FileChangeType.Changed
+            }
+        ]);
+
+        const document = docManager.get(pathToUrl(targetSvelteFile));
+        assert.equal(document?.openedByClient, true);
+    });
+
+    // Hacky, but it works. Needed due to testing both new and old transformation
+    after(() => {
+        __resetCache();
     });
 });

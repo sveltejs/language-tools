@@ -19,6 +19,7 @@
         { "open": "<!--", "close": "-->", "notIn": ["comment", "string"] },
         { "open": "/**", "close": "*/", "notIn": ["string"] }
     ],
+    "autoCloseBefore": ";:.,=}])><`/ \n\t",
     "surroundingPairs": [
         { "open": "'", "close": "'" },
         { "open": "\"", "close": "\"" },
@@ -30,8 +31,8 @@
     ],
     "folding": {
         "markers": {
-            "start": "^\\s*//\\s*#?region\\b|^<(template|style|script)[^>]*>",
-            "end": "^\\s*//\\s*#?endregion\\b|^</(template|style|script)>"
+            "start": "^\\s*(//|/\\*\\*?)\\s*#?region\\b|^<(template|style|script)[^>]*>|^\\s*<!--\\s*#region\\b",
+            "end": "^\\s*(//|/\\*\\*?)\\s*#?endregion\\b|^</(template|style|script)>|^\\s*<!--\\s*#endregion\\b"
         }
     }
 }

@@ -1,0 +1,1 @@
+if(name == "world"){ }  for(let y of __sveltets_2_ensureArray(x)){ }   { const $$_value = await (x);{ const y = $$_value;  }}if(bla){ }

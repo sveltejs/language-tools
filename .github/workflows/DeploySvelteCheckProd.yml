@@ -7,19 +7,24 @@ on:
 
 jobs:
   deploy:
+    permissions:
+      id-token: write # OpenID Connect token needed for provenance
+
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v2
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: "12.x"
+          node-version: "18.x"
           registry-url: "https://registry.npmjs.org"
-          cache: yarn
+          cache: pnpm
 
       # Ensure everything is compiling
-      - run: "yarn install"
-      - run: "yarn build"
+      - run: "pnpm install"
+      - run: "pnpm build"
+      - run: "pnpm bootstrap"
 
       # Lets us use one-liner JSON manipulations the package.json files
       - run: "npm install -g json"
@@ -30,8 +35,8 @@ jobs:
       # Ship it
       - run: |
           cd packages/svelte-check
-          npm install
-          npm publish
+          pnpm install
+          pnpm publish --provenance --no-git-checks
 
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

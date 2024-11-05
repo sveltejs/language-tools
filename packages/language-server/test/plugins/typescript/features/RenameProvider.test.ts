@@ -2,17 +2,24 @@ import * as assert from 'assert';
 import * as path from 'path';
 import ts from 'typescript';
 import { Position } from 'vscode-languageserver';
+import { VERSION } from 'svelte/compiler';
 import { Document, DocumentManager } from '../../../../src/lib/documents';
 import { LSConfigManager } from '../../../../src/ls-config';
 import { RenameProviderImpl } from '../../../../src/plugins/typescript/features/RenameProvider';
 import { LSAndTSDocResolver } from '../../../../src/plugins/typescript/LSAndTSDocResolver';
+import { __resetCache } from '../../../../src/plugins/typescript/service';
 import { pathToUrl } from '../../../../src/utils';
+import { serviceWarmup } from '../test-utils';
 
 const testDir = path.join(__dirname, '..');
+const renameTestDir = path.join(testDir, 'testfiles', 'rename');
+const isSvelte5Plus = +VERSION.split('.')[0] >= 5;
 
-describe('RenameProvider', () => {
+describe('RenameProvider', function () {
+    serviceWarmup(this, renameTestDir, pathToUrl(testDir));
+
     function getFullPath(filename: string) {
-        return path.join(testDir, 'testfiles', 'rename', filename);
+        return path.join(renameTestDir, filename);
     }
 
     function getUri(filename: string) {
@@ -20,15 +27,16 @@ describe('RenameProvider', () => {
     }
 
     async function setup() {
+        const configManager = new LSConfigManager();
         const docManager = new DocumentManager(
             (textDocument) => new Document(textDocument.uri, textDocument.text)
         );
         const lsAndTsDocResolver = new LSAndTSDocResolver(
             docManager,
             [pathToUrl(testDir)],
-            new LSConfigManager()
+            configManager
         );
-        const provider = new RenameProviderImpl(lsAndTsDocResolver);
+        const provider = new RenameProviderImpl(lsAndTsDocResolver, configManager);
         const renameDoc1 = await openDoc('rename.svelte');
         const renameDoc2 = await openDoc('rename2.svelte');
         const renameDoc3 = await openDoc('rename3.svelte');
@@ -40,6 +48,8 @@ describe('RenameProvider', () => {
         const renameDocPropWithSlotEvents = await openDoc('rename-prop-with-slot-events.svelte');
         const renameDocShorthand = await openDoc('rename-shorthand.svelte');
         const renameSlotLet = await openDoc('rename-slot-let.svelte');
+        const renameRunes = await openDoc('rename-runes.svelte');
+        const renameRunesImporter = await openDoc('rename-runes-importer.svelte');
 
         return {
             provider,
@@ -54,12 +64,14 @@ describe('RenameProvider', () => {
             renameDocPropWithSlotEvents,
             renameDocShorthand,
             renameSlotLet,
+            renameRunes,
+            renameRunesImporter,
             docManager
         };
 
         async function openDoc(filename: string) {
             const filePath = getFullPath(filename);
-            const doc = docManager.openDocument(<any>{
+            const doc = docManager.openClientDocument(<any>{
                 uri: pathToUrl(filePath),
                 text: ts.sys.readFile(filePath) || ''
             });
@@ -270,6 +282,125 @@ describe('RenameProvider', () => {
         });
     });
 
+    it('should do rename of prop without type of component A in component A that is used with shorthands in component B', async () => {
+        const { provider, renameDoc3 } = await setup();
+        const result = await provider.rename(renameDoc3, Position.create(2, 20), 'newName');
+
+        assert.deepStrictEqual(result, {
+            changes: {
+                [getUri('rename3.svelte')]: [
+                    {
+                        newText: 'newName',
+                        range: {
+                            start: {
+                                line: 2,
+                                character: 15
+                            },
+                            end: {
+                                line: 2,
+                                character: 21
+                            }
+                        }
+                    }
+                ],
+                [getUri('rename-shorthand.svelte')]: [
+                    {
+                        newText: 'newName={props2}',
+                        range: {
+                            start: {
+                                line: 6,
+                                character: 12
+                            },
+                            end: {
+                                line: 6,
+                                character: 18
+                            }
+                        }
+                    },
+                    {
+                        newText: 'newName={props2',
+                        range: {
+                            start: {
+                                line: 7,
+                                character: 7
+                            },
+                            end: {
+                                line: 7,
+                                character: 14
+                            }
+                        }
+                    },
+                    {
+                        newText: 'newName',
+                        range: {
+                            start: {
+                                line: 8,
+                                character: 7
+                            },
+                            end: {
+                                line: 8,
+                                character: 13
+                            }
+                        }
+                    },
+                    {
+                        newText: 'newName',
+                        range: {
+                            start: {
+                                line: 9,
+                                character: 7
+                            },
+                            end: {
+                                line: 9,
+                                character: 13
+                            }
+                        }
+                    }
+                ]
+            }
+        });
+    });
+
+    it('should do rename of prop without type of component A in component B', async () => {
+        const { provider, renameDoc2 } = await setup();
+        const result = await provider.rename(renameDoc2, Position.create(6, 11), 'newName');
+
+        assert.deepStrictEqual(result, {
+            changes: {
+                [getUri('rename2.svelte')]: [
+                    {
+                        newText: 'newName',
+                        range: {
+                            start: {
+                                character: 9,
+                                line: 6
+                            },
+                            end: {
+                                character: 27,
+                                line: 6
+                            }
+                        }
+                    }
+                ],
+                [getUri('rename3.svelte')]: [
+                    {
+                        newText: 'newName',
+                        range: {
+                            start: {
+                                character: 15,
+                                line: 1
+                            },
+                            end: {
+                                character: 33,
+                                line: 1
+                            }
+                        }
+                    }
+                ]
+            }
+        });
+    });
+
     it('should do rename of svelte component', async () => {
         const { provider, renameDoc4 } = await setup();
         const result = await provider.rename(renameDoc4, Position.create(1, 12), 'ChildNew');
@@ -326,6 +457,9 @@ describe('RenameProvider', () => {
             const { provider, renameDoc5 } = await setup();
             const result = await provider.rename(renameDoc5, pos, 'store1');
 
+            result?.changes?.[getUri('rename5.svelte')].sort(
+                (c1, c2) => c1.range.start.line - c2.range.start.line
+            );
             assert.deepStrictEqual(result, {
                 changes: {
                     [getUri('rename5.svelte')]: [
@@ -343,11 +477,11 @@ describe('RenameProvider', () => {
                             }
                         },
                         {
-                            newText: 'store1',
+                            newText: '$store1',
                             range: {
                                 start: {
                                     line: 2,
-                                    character: 5
+                                    character: 4
                                 },
                                 end: {
                                     line: 2,
@@ -356,11 +490,11 @@ describe('RenameProvider', () => {
                             }
                         },
                         {
-                            newText: 'store1',
+                            newText: '$store1',
                             range: {
                                 start: {
                                     line: 3,
-                                    character: 8
+                                    character: 7
                                 },
                                 end: {
                                     line: 3,
@@ -369,27 +503,40 @@ describe('RenameProvider', () => {
                             }
                         },
                         {
-                            newText: 'store1',
+                            newText: '$store: $store1',
                             range: {
                                 start: {
-                                    line: 6,
-                                    character: 2
+                                    line: 4,
+                                    character: 18
                                 },
                                 end: {
-                                    line: 6,
+                                    line: 4,
+                                    character: 24
+                                }
+                            }
+                        },
+                        {
+                            newText: '$store1',
+                            range: {
+                                start: {
+                                    line: 7,
+                                    character: 1
+                                },
+                                end: {
+                                    line: 7,
                                     character: 7
                                 }
                             }
                         },
                         {
-                            newText: 'store1',
+                            newText: '$store1',
                             range: {
                                 start: {
-                                    line: 7,
-                                    character: 6
+                                    line: 8,
+                                    character: 5
                                 },
                                 end: {
-                                    line: 7,
+                                    line: 8,
                                     character: 11
                                 }
                             }
@@ -602,9 +749,17 @@ describe('RenameProvider', () => {
     });
 
     it('can rename shorthand props without breaking value-passing', async () => {
+        await testShorthand(Position.create(3, 16));
+    });
+
+    it('can rename shorthand props without breaking value-passing (triggers from shorthand)', async () => {
+        await testShorthand(Position.create(7, 9));
+    });
+
+    async function testShorthand(position: Position) {
         const { provider, renameDocShorthand } = await setup();
 
-        const result = await provider.rename(renameDocShorthand, Position.create(3, 16), 'newName');
+        const result = await provider.rename(renameDocShorthand, position, 'newName');
 
         assert.deepStrictEqual(result, {
             changes: {
@@ -623,11 +778,11 @@ describe('RenameProvider', () => {
                         }
                     },
                     {
-                        newText: 'bind:props2={newName}',
+                        newText: 'props2={newName}',
                         range: {
                             start: {
                                 line: 6,
-                                character: 7
+                                character: 12
                             },
                             end: {
                                 line: 6,
@@ -649,15 +804,15 @@ describe('RenameProvider', () => {
                         }
                     },
                     {
-                        newText: 'props2={newName}',
+                        newText: 'newName',
                         range: {
                             start: {
                                 line: 8,
-                                character: 7
+                                character: 15
                             },
                             end: {
                                 line: 8,
-                                character: 22
+                                character: 21
                             }
                         }
                     },
@@ -677,7 +832,7 @@ describe('RenameProvider', () => {
                 ]
             }
         });
-    });
+    }
 
     it('can rename slot let to an alias', async () => {
         const { provider, renameSlotLet } = await setup();
@@ -710,6 +865,234 @@ describe('RenameProvider', () => {
                             start: {
                                 character: 21,
                                 line: 4
+                            }
+                        }
+                    }
+                ]
+            }
+        });
+    });
+
+    after(() => {
+        // Hacky, but it works. Needed due to testing both new and old transformation
+        __resetCache();
+    });
+
+    // -------------------- put tests that only run in Svelte 5 below this line and everything else above --------------------
+    if (!isSvelte5Plus) return;
+
+    it('renames $props() prop from inside component', async () => {
+        const { provider, renameRunes } = await setup();
+
+        const result = await provider.rename(renameRunes, Position.create(1, 40), 'newName');
+
+        assert.deepStrictEqual(result, {
+            changes: {
+                [getUri('rename-runes.svelte')]: [
+                    {
+                        newText: 'newName',
+                        range: {
+                            start: {
+                                line: 1,
+                                character: 38
+                            },
+                            end: {
+                                line: 1,
+                                character: 41
+                            }
+                        }
+                    },
+                    {
+                        newText: 'newName: foo',
+                        range: {
+                            start: {
+                                line: 1,
+                                character: 10
+                            },
+                            end: {
+                                line: 1,
+                                character: 13
+                            }
+                        }
+                    }
+                ],
+                [getUri('rename-runes-importer.svelte')]: [
+                    {
+                        newText: 'newName={foo',
+                        range: {
+                            start: {
+                                line: 6,
+                                character: 13
+                            },
+                            end: {
+                                line: 6,
+                                character: 17
+                            }
+                        }
+                    },
+                    {
+                        newText: 'newName',
+                        range: {
+                            start: {
+                                line: 7,
+                                character: 13
+                            },
+                            end: {
+                                line: 7,
+                                character: 16
+                            }
+                        }
+                    }
+                ]
+            }
+        });
+    });
+
+    it('renames $props() binding from inside component', async () => {
+        const { provider, renameRunes } = await setup();
+
+        const result = await provider.rename(renameRunes, Position.create(1, 54), 'newName');
+
+        assert.deepStrictEqual(result, {
+            changes: {
+                [getUri('rename-runes.svelte')]: [
+                    {
+                        newText: 'newName',
+                        range: {
+                            start: {
+                                line: 1,
+                                character: 52
+                            },
+                            end: {
+                                line: 1,
+                                character: 55
+                            }
+                        }
+                    },
+                    {
+                        newText: 'newName: bar',
+                        range: {
+                            start: {
+                                line: 1,
+                                character: 15
+                            },
+                            end: {
+                                line: 1,
+                                character: 18
+                            }
+                        }
+                    }
+                ],
+                [getUri('rename-runes-importer.svelte')]: [
+                    {
+                        newText: 'newName={bar}',
+                        range: {
+                            start: {
+                                line: 6,
+                                character: 24
+                            },
+                            end: {
+                                line: 6,
+                                character: 27
+                            }
+                        }
+                    },
+                    {
+                        newText: 'newName',
+                        range: {
+                            start: {
+                                line: 7,
+                                character: 28
+                            },
+                            end: {
+                                line: 7,
+                                character: 31
+                            }
+                        }
+                    }
+                ]
+            }
+        });
+    });
+
+    // blocked by https://github.com/microsoft/TypeScript/pull/57201
+    it.skip('renames $props() prop inside consumer', async () => {
+        const { provider, renameRunes } = await setup();
+
+        const result = await provider.rename(renameRunes, Position.create(7, 15), 'newName');
+
+        assert.deepStrictEqual(result, {
+            changes: {
+                // TODO complete once test can be unskipped
+                [getUri('rename-runes.svelte')]: [],
+                [getUri('rename-runes-importer.svelte')]: []
+            }
+        });
+    });
+
+    it('renames $props() binding in consumer', async () => {
+        const { provider, renameRunesImporter } = await setup();
+
+        const result = await provider.rename(
+            renameRunesImporter,
+            Position.create(7, 30),
+            'newName'
+        );
+
+        assert.deepStrictEqual(result, {
+            changes: {
+                [getUri('rename-runes.svelte')]: [
+                    {
+                        newText: 'newName',
+                        range: {
+                            start: {
+                                line: 1,
+                                character: 52
+                            },
+                            end: {
+                                line: 1,
+                                character: 55
+                            }
+                        }
+                    },
+                    {
+                        newText: 'newName: bar',
+                        range: {
+                            start: {
+                                line: 1,
+                                character: 15
+                            },
+                            end: {
+                                line: 1,
+                                character: 18
+                            }
+                        }
+                    }
+                ],
+                [getUri('rename-runes-importer.svelte')]: [
+                    {
+                        newText: 'newName={bar}',
+                        range: {
+                            start: {
+                                line: 6,
+                                character: 24
+                            },
+                            end: {
+                                line: 6,
+                                character: 27
+                            }
+                        }
+                    },
+                    {
+                        newText: 'newName',
+                        range: {
+                            start: {
+                                line: 7,
+                                character: 28
+                            },
+                            end: {
+                                line: 7,
+                                character: 31
                             }
                         }
                     }

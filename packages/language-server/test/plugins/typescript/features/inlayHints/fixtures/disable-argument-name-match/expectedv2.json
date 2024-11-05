@@ -1,0 +1,26 @@
+[
+    {
+        "label": [{ "value": ": " }, { "value": "void" }],
+        "position": { "line": 1, "character": 33 },
+        "kind": 1,
+        "paddingLeft": true
+    },
+    {
+        "label": [
+            {
+                "value": "message",
+                "location": {
+                    "range": {
+                        "start": { "line": 1, "character": 17 },
+                        "end": { "line": 1, "character": 24 }
+                    },
+                    "uri": "<workspaceUri>/disable-argument-name-match/input.svelte"
+                }
+            },
+            { "value": ":" }
+        ],
+        "position": { "line": 5, "character": 8 },
+        "kind": 2,
+        "paddingRight": true
+    }
+]

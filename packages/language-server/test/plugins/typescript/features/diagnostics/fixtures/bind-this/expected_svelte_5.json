@@ -1,0 +1,98 @@
+[
+    {
+        "range": { "start": { "line": 9, "character": 6 }, "end": { "line": 9, "character": 13 } },
+        "severity": 4,
+        "source": "ts",
+        "message": "'element' is declared but its value is never read.",
+        "code": 6133,
+        "tags": [1]
+    },
+    {
+        "range": {
+            "start": { "line": 18, "character": 2 },
+            "end": { "line": 18, "character": 11 }
+        },
+        "severity": 1,
+        "source": "ts",
+        "message": "Variable 'component' is used before being assigned.",
+        "code": 2454,
+        "tags": []
+    },
+    {
+        "range": {
+            "start": { "line": 40, "character": 16 },
+            "end": { "line": 40, "character": 23 }
+        },
+        "severity": 1,
+        "source": "ts",
+        "message": "Type 'HTMLDivElement' is missing the following properties from type 'HTMLInputElement': accept, alt, autocomplete, capture, and 54 more.",
+        "code": 2740,
+        "tags": []
+    },
+    {
+        "range": {
+            "start": { "line": 41, "character": 34 },
+            "end": { "line": 41, "character": 48 }
+        },
+        "severity": 1,
+        "source": "ts",
+        "message": "Type 'Component' is not assignable to type 'OtherComponent'.\n  Type '{ prop: boolean; }' is not assignable to type '{ prop: string; }'.\n    Types of property 'prop' are incompatible.\n      Type 'boolean' is not assignable to type 'string'.",
+        "code": 2322,
+        "tags": []
+    },
+    {
+        "range": {
+            "start": { "line": 42, "character": 35 },
+            "end": { "line": 42, "character": 57 }
+        },
+        "severity": 1,
+        "source": "ts",
+        "message": "Type 'ComponentWithFunction1' is not assignable to type 'ComponentWithFunction2'.\n  Types of property 'action' are incompatible.\n    Type '(a: number) => string | number' is not assignable to type '() => string'.\n      Target signature provides too few arguments. Expected 1 or more, but got 0.",
+        "code": 2322,
+        "tags": []
+    },
+    {
+        "range": {
+            "start": { "line": 43, "character": 1 },
+            "end": { "line": 43, "character": 17 }
+        },
+        "severity": 1,
+        "source": "ts",
+        "message": "Type '{}' is not assignable to type 'Properties<{ prop: boolean; }, any> | undefined'.",
+        "code": 2322,
+        "tags": []
+    },
+    {
+        "range": {
+            "start": { "line": 43, "character": 46 },
+            "end": { "line": 43, "character": 60 }
+        },
+        "severity": 1,
+        "source": "ts",
+        "message": "Type 'Component' is not assignable to type 'OtherComponent'.\n  Type '{ prop: boolean; }' is not assignable to type '{ prop: string; }'.\n    Types of property 'prop' are incompatible.\n      Type 'boolean' is not assignable to type 'string'.",
+        "code": 2322,
+        "tags": []
+    },
+    {
+        "range": {
+            "start": { "line": 46, "character": 45 },
+            "end": { "line": 46, "character": 65 }
+        },
+        "severity": 1,
+        "source": "ts",
+        "message": "Type 'ComponentWithGeneric<boolean>' is not assignable to type 'ComponentWithGeneric<string>'.\n  Type 'boolean' is not assignable to type 'string'.",
+        "code": 2322,
+        "tags": []
+    },
+    {
+        "range": {
+            "start": { "line": 47, "character": 1 },
+            "end": { "line": 47, "character": 17 }
+        },
+        "severity": 1,
+        "source": "ts",
+        "message": "Type '{}' is not assignable to type 'Properties<{ prop: boolean; }, any> | undefined'.",
+        "code": 2322,
+        "tags": []
+    }
+]

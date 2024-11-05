@@ -1,16 +1,11 @@
 <script lang="ts">
-  import { SvelteComponentTyped } from 'svelte';
-  class Component extends SvelteComponentTyped<{prop: boolean}> {}
-  class OtherComponent extends SvelteComponentTyped<{prop: string}> {}
-  class ComponentWithFunction1 extends SvelteComponentTyped {
-      action(a: number): string | number {
-          return a;
-      }
-  }
-  class ComponentWithFunction2 extends SvelteComponentTyped {
-      action(): string { return ''; }
-  }
-  class ComponentWithGeneric<T> extends SvelteComponentTyped<{prop: T}> {}
+  import { 
+    Component,
+    OtherComponent,
+    ComponentWithFunction1,
+    ComponentWithFunction2,
+    ComponentWithGeneric
+  } from './components';
 
   let element: HTMLInputElement;
   let component: Component;
@@ -39,7 +34,8 @@
 <ComponentWithFunction1 bind:this={componentWithFunction1} />
 <ComponentWithFunction2 bind:this={componentWithFunction1} />
 <ComponentWithGeneric prop={''} bind:this={componentWithGeneric} />
-<svelte:component this={Component} bind:this={component} />
+<svelte:component this={Component} bind:this={component} prop={true} />
+<svelte:component this={Math.random() > 0.5 ? Component : null} bind:this={component} prop={true} />
 
 <!-- errors -->
 <div bind:this={element} />
@@ -47,5 +43,6 @@
 <ComponentWithFunction1 bind:this={componentWithFunction2} />
 <svelte:component this={Component} bind:this={otherComponent} />
 
-<!-- ideally throws an error, but for now the generated code isn't in a way which makes it throw an error -->
+<!-- only throws an error with new transformation -->
 <ComponentWithGeneric prop={true} bind:this={componentWithGeneric} />
+<svelte:component this={Component} bind:this={component} />

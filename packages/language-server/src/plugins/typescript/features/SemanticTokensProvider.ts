@@ -7,7 +7,7 @@ import {
 } from 'vscode-languageserver';
 import { Document, mapRangeToOriginal } from '../../../lib/documents';
 import { SemanticTokensProvider } from '../../interfaces';
-import { SvelteSnapshotFragment } from '../DocumentSnapshot';
+import { SvelteDocumentSnapshot } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { convertToTextSpan } from '../utils';
 import { isInGeneratedCode } from './utils';
@@ -23,11 +23,10 @@ export class SemanticTokensProviderImpl implements SemanticTokensProvider {
         cancellationToken?: CancellationToken
     ): Promise<SemanticTokens | null> {
         const { lang, tsDoc } = await this.lsAndTsDocResolver.getLSAndTSDoc(textDocument);
-        const fragment = await tsDoc.getFragment();
 
         // for better performance, don't do full-file semantic tokens when the file is too big
         if (
-            (!range && fragment.text.length > CONTENT_LENGTH_LIMIT) ||
+            (!range && tsDoc.getLength() > CONTENT_LENGTH_LIMIT) ||
             cancellationToken?.isCancellationRequested
         ) {
             return null;
@@ -39,13 +38,13 @@ export class SemanticTokensProviderImpl implements SemanticTokensProvider {
         }
 
         const textSpan = range
-            ? convertToTextSpan(range, fragment)
+            ? convertToTextSpan(range, tsDoc)
             : {
                   start: 0,
                   length: tsDoc.parserError
-                      ? fragment.text.length
+                      ? tsDoc.getLength()
                       : // This is appended by svelte2tsx, there's nothing mappable afterwards
-                        fragment.text.lastIndexOf('return { props:') || fragment.text.length
+                        tsDoc.getFullText().lastIndexOf('return { props:') || tsDoc.getLength()
               };
 
         const { spans } = lang.getEncodedSemanticClassifications(
@@ -67,28 +66,23 @@ export class SemanticTokensProviderImpl implements SemanticTokensProvider {
                 continue;
             }
 
-            const originalPosition = this.mapToOrigin(
+            const original = this.map(
                 textDocument,
-                fragment,
+                tsDoc,
                 generatedOffset,
-                generatedLength
+                generatedLength,
+                encodedClassification,
+                classificationType
             );
-            if (!originalPosition) {
-                continue;
-            }
-
-            const [line, character, length] = originalPosition;
 
             // remove identifiers whose start and end mapped to the same location,
             // like the svelte2tsx inserted render function,
             // or reversed like Component.$on
-            if (length <= 0) {
+            if (!original || original[2] <= 0) {
                 continue;
             }
 
-            const modifier = this.getTokenModifierFromClassification(encodedClassification);
-
-            data.push([line, character, length, classificationType, modifier]);
+            data.push(original);
         }
 
         const sorted = data.sort((a, b) => {
@@ -103,21 +97,30 @@ export class SemanticTokensProviderImpl implements SemanticTokensProvider {
         return builder.build();
     }
 
-    private mapToOrigin(
+    private map(
         document: Document,
-        fragment: SvelteSnapshotFragment,
+        snapshot: SvelteDocumentSnapshot,
         generatedOffset: number,
-        generatedLength: number
-    ): [line: number, character: number, length: number] | undefined {
-        if (isInGeneratedCode(fragment.text, generatedOffset, generatedOffset + generatedLength)) {
+        generatedLength: number,
+        encodedClassification: number,
+        classificationType: number
+    ):
+        | [line: number, character: number, length: number, token: number, modifier: number]
+        | undefined {
+        const text = snapshot.getFullText();
+        if (
+            isInGeneratedCode(text, generatedOffset, generatedOffset + generatedLength) ||
+            (encodedClassification === 2817 /* top level function */ &&
+                text.substring(generatedOffset, generatedOffset + generatedLength) === 'render')
+        ) {
             return;
         }
 
         const range = {
-            start: fragment.positionAt(generatedOffset),
-            end: fragment.positionAt(generatedOffset + generatedLength)
+            start: snapshot.positionAt(generatedOffset),
+            end: snapshot.positionAt(generatedOffset + generatedLength)
         };
-        const { start: startPosition, end: endPosition } = mapRangeToOriginal(fragment, range);
+        const { start: startPosition, end: endPosition } = mapRangeToOriginal(snapshot, range);
 
         if (startPosition.line < 0 || endPosition.line < 0) {
             return;
@@ -126,7 +129,26 @@ export class SemanticTokensProviderImpl implements SemanticTokensProvider {
         const startOffset = document.offsetAt(startPosition);
         const endOffset = document.offsetAt(endPosition);
 
-        return [startPosition.line, startPosition.character, endOffset - startOffset];
+        // Ensure components in the template get no semantic highlighting
+        if (
+            (classificationType === 0 ||
+                classificationType === 5 ||
+                classificationType === 7 ||
+                classificationType === 10) &&
+            snapshot.svelteNodeAt(startOffset)?.type === 'InlineComponent' &&
+            (document.getText().charCodeAt(startOffset - 1) === /* < */ 60 ||
+                document.getText().charCodeAt(startOffset - 1) === /* / */ 47)
+        ) {
+            return;
+        }
+
+        return [
+            startPosition.line,
+            startPosition.character,
+            endOffset - startOffset,
+            classificationType,
+            this.getTokenModifierFromClassification(encodedClassification)
+        ];
     }
 
     /**

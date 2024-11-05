@@ -1,8 +1,15 @@
 import { FSWatcher, watch } from 'chokidar';
 import { debounce } from 'lodash';
 import { join } from 'path';
-import { DidChangeWatchedFilesParams, FileChangeType, FileEvent } from 'vscode-languageserver';
+import {
+    DidChangeWatchedFilesParams,
+    FileChangeType,
+    FileEvent,
+    RelativePattern
+} from 'vscode-languageserver';
 import { pathToUrl } from '../utils';
+import { fileURLToPath } from 'url';
+import { Stats } from 'fs';
 
 type DidChangeHandler = (para: DidChangeWatchedFilesParams) => void;
 
@@ -14,23 +21,20 @@ export class FallbackWatcher {
 
     private undeliveredFileEvents: FileEvent[] = [];
 
-    constructor(glob: string, workspacePaths: string[]) {
+    constructor(watchExtensions: string[], workspacePaths: string[]) {
         const gitOrNodeModules = /\.git|node_modules/;
-        this.watcher = watch(
-            workspacePaths.map((workspacePath) => join(workspacePath, glob)),
-            {
-                ignored: (path: string) =>
-                    gitOrNodeModules.test(path) &&
-                    // Handle Sapper's alias mapping
-                    !path.includes('src/node_modules') &&
-                    !path.includes('src\\node_modules'),
-
-                // typescript would scan the project files on init.
-                // We only need to know what got updated.
-                ignoreInitial: true,
-                ignorePermissionErrors: true
-            }
-        );
+        const ignoredExtensions = (fileName: string, stats?: Stats) => {
+            return (
+                stats?.isFile() === true && !watchExtensions.some((ext) => fileName.endsWith(ext))
+            );
+        };
+        this.watcher = watch(workspacePaths, {
+            ignored: [gitOrNodeModules, ignoredExtensions],
+            // typescript would scan the project files on init.
+            // We only need to know what got updated.
+            ignoreInitial: true,
+            ignorePermissionErrors: true
+        });
 
         this.watcher
             .on('add', (path) => this.onFSEvent(path, FileChangeType.Created))
@@ -63,6 +67,18 @@ export class FallbackWatcher {
 
     onDidChangeWatchedFiles(callback: DidChangeHandler) {
         this.callbacks.push(callback);
+    }
+
+    watchDirectory(patterns: RelativePattern[]) {
+        for (const pattern of patterns) {
+            const basePath = fileURLToPath(
+                typeof pattern.baseUri === 'string' ? pattern.baseUri : pattern.baseUri.uri
+            );
+            if (!basePath) {
+                continue;
+            }
+            this.watcher.add(join(basePath, pattern.pattern));
+        }
     }
 
     dispose() {

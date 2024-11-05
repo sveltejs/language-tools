@@ -1,0 +1,24 @@
+[
+    {
+        "range": {
+            "start": { "line": 10, "character": 8 },
+            "end": { "line": 10, "character": 11 }
+        },
+        "severity": 1,
+        "source": "ts",
+        "message": "Object literal may only specify known properties, and '\"on:wat\"' does not exist in type 'HTMLProps<\"div\", HTMLAttributes<any>>'.",
+        "code": 2353,
+        "tags": []
+    },
+    {
+        "range": {
+            "start": { "line": 11, "character": 22 },
+            "end": { "line": 11, "character": 25 }
+        },
+        "severity": 1,
+        "source": "ts",
+        "message": "Property 'asd' does not exist on type 'MouseEvent & { currentTarget: EventTarget & HTMLDivElement; }'.",
+        "code": 2339,
+        "tags": []
+    }
+]

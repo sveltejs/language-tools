@@ -17,18 +17,19 @@ export function preprendStr(
 }
 
 /**
- * Overwrites a string at the given index but also keeps the other preprends from `prependStr`
- * if not explicitely told otherwise.
+ * Overwrites a string at the given range but also keeps the other preprends from `prependStr`
+ * if not explicitly told otherwise.
  */
 export function overwriteStr(
     str: MagicString,
-    index: number,
+    start: number,
+    end: number,
     toOverwrite: string,
     removeExisting?: boolean
 ): MagicString {
-    const prepends = updatePrepends(str, index, toOverwrite, removeExisting);
+    const prepends = updatePrepends(str, start, toOverwrite, removeExisting);
     toOverwrite = prepends.join('');
-    str.overwrite(index, index + 1, toOverwrite, { contentOnly: true });
+    str.overwrite(start, end, toOverwrite, { contentOnly: true });
     return str;
 }
 
@@ -37,10 +38,17 @@ function updatePrepends(
     index: number,
     toAppend: string,
     removeExisting?: boolean
-) {
-    (str as any).__prepends__ = (str as any).__prepends__ || new Map<string, string[]>();
+): string[] {
+    (str as any).__prepends__ = (str as any).__prepends__ || new Map<number, string[]>();
     const prepends = removeExisting ? [] : (str as any).__prepends__.get(index) || [];
     prepends.push(toAppend);
     (str as any).__prepends__.set(index, prepends);
     return prepends;
+}
+
+/**
+ * Returns the prepends that were added at the given index (if any).
+ */
+export function getCurrentPrepends(str: MagicString, index: number): string[] {
+    return (str as any).__prepends__?.get(index) || [];
 }

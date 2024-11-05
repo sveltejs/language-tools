@@ -1,2 +1,0 @@
-<><Component placeholder="'"  />{/*Ωignore_startΩ*/new Component({target: __sveltets_1_any(''), props: {'placeholder':"'"}})/*Ωignore_endΩ*/.$on('keydown', () => {})}
-<Component placeholder='"'  />{/*Ωignore_startΩ*/new Component({target: __sveltets_1_any(''), props: {'placeholder':'"'}})/*Ωignore_endΩ*/.$on('keydown', () => {})}</>

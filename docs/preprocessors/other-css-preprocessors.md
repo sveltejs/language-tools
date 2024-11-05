@@ -4,26 +4,61 @@ The svelte-language-server and therefore the VSCode extension can only handle CS
 
 ## PostCSS
 
-1. Setup you build and `svelte.config.js` ([general info](./in-general.md)) correctly and add a `postcss.config.cjs` (note the `cjs` ending; you need to write the config in CommonJS style currently, more on that below). We recommend using [svelte-preprocess](https://github.com/sveltejs/svelte-preprocess/blob/master/docs/preprocessing.md#postcss). For the `svelte.config.js`, this should be enough:
+1. Setup your build and `svelte.config.js` ([general info](./in-general.md)) correctly and add a `postcss.config.js`. We recommend using [vitePreprocess](https://github.com/sveltejs/vite-plugin-svelte/blob/main/docs/preprocess.md) or [svelte-preprocess](https://github.com/sveltejs/svelte-preprocess/blob/master/docs/preprocessing.md#postcss). For the `svelte.config.js`, this should be enough:
+
+```js
+import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
+export default { preprocess: [vitePreprocess()] };
+```
+
+Or:
 
 ```js
 import sveltePreprocess from 'svelte-preprocess';
 export default { preprocess: sveltePreprocess({ postcss: true }) };
 ```
 
-Note that this assumes that you have a ESM-style project, which means there's `"type": "module"` in your project's `package.json`. If not, you need to use CommonJS in your `svelte.config.js`, things like `import ...` or `export const ...` are not allowed. You then also switch the `postcss.config` `cjs` file ending to `js`.
+Note that this assumes that you have a ESM-style project, which means there's `"type": "module"` in your project's `package.json`. If not, you need to use CommonJS in your `svelte.config.js` and `postcss.config.js` as things like `import ...` or `export const ...` are not allowed.
+
+If your `svelte.config.js` is not in the workspace root (for example your `svelte.config.js` is within `/frontend`), you'll have to pass in the `configFilePath` config. This is because the relative path is resolved relative to the working directory of the node process.
+
+```js
+import sveltePreprocess from 'svelte-preprocess';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+export default {
+    preprocess: sveltePreprocess({
+        postcss: {
+            configFilePath: join(__dirname, 'postcss.config.cjs')
+        }
+    })
+};
+```
 
 2. Either add `lang="postcss"` to each of your `<style>` tags where you plan on using PostCSS, or disable CSS diagnostics completely by adding `"svelte.plugin.css.diagnostics.enable": false` within your settings. If you still want diagnostics, install the [Stylelint VSCode extension](https://marketplace.visualstudio.com/items?itemName=stylelint.vscode-stylelint). If you want better syntax highlighting, install the [PostCSS VSCode extension](https://marketplace.visualstudio.com/items?itemName=csstools.postcss).
 
 ## TailwindCSS
 
-We assume you already have setup TailwindCSS within your Svelte project. If not, [this article](https://dev.to/inalbant/a-simpler-way-to-add-tailwindcss-to-your-svelte-project-11ja) and [this article](https://dev.to/sarioglu/using-svelte-with-tailwindcss-a-better-approach-47ph) explain two approaches on how to do it.
+We assume you already have setup TailwindCSS within your Svelte project. If not, you can run `npx svelte-add tailwindcss` to set it up automatically or visit [the Tailwind docs](https://tailwindcss.com/docs/guides/sveltekit) which explain how to manually set it up.
 
 To use TailwindCSS with the VSCode extension:
 
 1. Setup the `svelte.config.js` the same way you would for PostCSS - see the section above (first point) for more details
 2. Install the [Tailwind CSS VSCode extension](https://marketplace.visualstudio.com/items?itemName=bradlc.vscode-tailwindcss)
 3. Either add `lang="postcss"` to each of your `<style>` tags where you plan on using the Tailwind CSS directives such as `@apply`, or disable CSS diagnostics completely by adding `"svelte.plugin.css.diagnostics.enable": false` within your settings. If you still want diagnostics, install the [Stylelint VSCode extension](https://marketplace.visualstudio.com/items?itemName=stylelint.vscode-stylelint) and [configure it accordingly](https://scottspence.com/2021/03/15/stylelint-configuration-for-tailwindcss/). Note that within your config files you can only use node-syntax, things like `import ...` or `export const ...` are not allowed. To disable css checks for `svelte-check`, use the option `--diagnostic-sources "js,svelte"`.
+4. If your `tailwind.config.js` is not in the workspace root. Or if your project is not in the workspace root. Make sure you pass in the path to your tailwind config file in your `postcss` [config file](https://github.com/postcss/postcss-load-config#postcssrcjs-or-postcssconfigjs).
+
+```js
+const path = require('path');
+const tailwindcss = require('tailwindcss');
+
+module.exports = {
+    plugins: [tailwindcss(path.resolve(__dirname, './tailwind.config.cjs'))]
+};
+```
 
 ## SASS
 

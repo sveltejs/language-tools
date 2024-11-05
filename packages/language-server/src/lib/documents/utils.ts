@@ -3,6 +3,7 @@ import { Position, Range } from 'vscode-languageserver';
 import { Node, HTMLDocument } from 'vscode-html-languageservice';
 import * as path from 'path';
 import { parseHtml } from './parseHtml';
+import { Document } from './Document';
 
 export interface TagInformation {
     content: string;
@@ -39,19 +40,18 @@ function parseAttributes(
     }
 }
 
-const regexIf = new RegExp('{#if\\s.*?}', 'gms');
-const regexIfEnd = new RegExp('{/if}', 'gms');
-const regexEach = new RegExp('{#each\\s.*?}', 'gms');
-const regexEachEnd = new RegExp('{/each}', 'gms');
-const regexAwait = new RegExp('{#await\\s.*?}', 'gms');
-const regexAwaitEnd = new RegExp('{/await}', 'gms');
-const regexHtml = new RegExp('{@html\\s.*?', 'gms');
+const regexIf = new RegExp('{\\s*#if\\s.*?}', 'gms');
+const regexIfEnd = new RegExp('{\\s*/if}', 'gms');
+const regexEach = new RegExp('{\\s*#each\\s.*?}', 'gms');
+const regexEachEnd = new RegExp('{\\s*/each}', 'gms');
+const regexAwait = new RegExp('{\\s*#await\\s.*?}', 'gms');
+const regexAwaitEnd = new RegExp('{\\s*/await}', 'gms');
+const regexHtml = new RegExp('{\\s*@html\\s.*?', 'gms');
 
 /**
  * Extracts a tag (style or script) from the given text
  * and returns its start, end and the attributes on that tag.
- *
- * @param source text content to extract tag from
+ * @param text text content to extract tag from
  * @param tag the tag to extract
  */
 function extractTags(
@@ -143,8 +143,12 @@ export function extractScriptTags(
         return null;
     }
 
-    const script = scripts.find((s) => s.attributes['context'] !== 'module');
-    const moduleScript = scripts.find((s) => s.attributes['context'] === 'module');
+    const script = scripts.find(
+        (s) => s.attributes['context'] !== 'module' && !('module' in s.attributes)
+    );
+    const moduleScript = scripts.find(
+        (s) => s.attributes['context'] === 'module' || 'module' in s.attributes
+    );
     return { script, moduleScript };
 }
 
@@ -345,6 +349,19 @@ export function getNodeIfIsInStartTag(html: HTMLDocument, offset: number): Node 
 }
 
 /**
+ * Returns `true` if `offset` is a html tag and within the name of the start tag or end tag
+ */
+export function isInHTMLTagRange(html: HTMLDocument, offset: number): boolean {
+    const node = html.findNodeAt(offset);
+    return (
+        !!node.tag &&
+        node.tag[0] === node.tag[0].toLowerCase() &&
+        (node.start + node.tag.length + 1 >= offset ||
+            (!!node.endTagStart && node.endTagStart <= offset))
+    );
+}
+
+/**
  * Gets word range at position.
  * Delimiter is by default a whitespace, but can be adjusted.
  */
@@ -384,8 +401,14 @@ export function getWordAt(
 /**
  * Returns start/end offset of a text into a range
  */
-export function toRange(str: string, start: number, end: number): Range {
-    return Range.create(positionAt(start, str), positionAt(end, str));
+export function toRange(str: string, start: number, end: number): Range;
+export function toRange(str: Document, start: number, end: number): Range;
+export function toRange(str: string | Document, start: number, end: number): Range {
+    if (typeof str === 'string') {
+        return Range.create(positionAt(start, str), positionAt(end, str));
+    }
+
+    return Range.create(str.positionAt(start), str.positionAt(end));
 }
 
 /**
@@ -420,7 +443,8 @@ export function isInsideMoustacheTag(html: string, tagStart: number | null, posi
                 // TODO make this just check for '{'?
                 // Theoretically, someone could do {a < b} in a simple moustache tag
                 charactersBeforePosition.lastIndexOf('{#'),
-                charactersBeforePosition.lastIndexOf('{:')
+                charactersBeforePosition.lastIndexOf('{:'),
+                charactersBeforePosition.lastIndexOf('{@')
             ) > charactersBeforePosition.lastIndexOf('}')
         );
     } else {

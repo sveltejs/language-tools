@@ -1,0 +1,2 @@
+ { const $$_olleH0C = __sveltets_2_ensureComponent(Hello); new $$_olleH0C({ target: __sveltets_2_any(), props: { "|-wtf":`foo`,}}); Hello}
+ { svelteHTML.createElement("div", { "--custom-prop":`foo`,}); }

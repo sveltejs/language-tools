@@ -1,7 +1,9 @@
-import { SourceMapConsumer } from 'source-map';
+import { TraceMap } from '@jridgewell/trace-mapping';
 import type { compile } from 'svelte/compiler';
+// @ts-ignore
 import { CompileOptions } from 'svelte/types/compiler/interfaces';
-import { PreprocessorGroup, Processed } from 'svelte/types/compiler/preprocess/types';
+// @ts-ignore
+import { PreprocessorGroup, Processed } from 'svelte/types/compiler/preprocess';
 import { Position } from 'vscode-languageserver';
 import { getPackageInfo, importSvelte } from '../../importPackage';
 import {
@@ -35,6 +37,7 @@ type PositionMapper = Pick<DocumentMapper, 'getGeneratedPosition' | 'getOriginal
 export class SvelteDocument {
     private transpiledDoc: ITranspiledSvelteDocument | undefined;
     private compileResult: SvelteCompileResult | undefined;
+    private svelteVersion: [number, number] | undefined;
 
     public script: TagInformation | null;
     public moduleScript: TagInformation | null;
@@ -44,6 +47,9 @@ export class SvelteDocument {
     public uri = this.parent.uri;
     public get config() {
         return this.parent.configPromise;
+    }
+    public get isSvelte5() {
+        return this.getSvelteVersion()[0] > 4;
     }
 
     constructor(private parent: Document) {
@@ -67,9 +73,7 @@ export class SvelteDocument {
 
     async getTranspiled(): Promise<ITranspiledSvelteDocument> {
         if (!this.transpiledDoc) {
-            const {
-                version: { major, minor }
-            } = getPackageInfo('svelte', this.getFilePath());
+            const [major, minor] = this.getSvelteVersion();
 
             if (major > 3 || (major === 3 && minor >= 32)) {
                 this.transpiledDoc = await TranspiledSvelteDocument.create(
@@ -79,9 +83,7 @@ export class SvelteDocument {
             } else {
                 this.transpiledDoc = await FallbackTranspiledSvelteDocument.create(
                     this.parent,
-                    (
-                        await this.config
-                    )?.preprocess
+                    (await this.config)?.preprocess
                 );
             }
         }
@@ -101,20 +103,17 @@ export class SvelteDocument {
         return svelte.compile((await this.getTranspiled()).getText(), options);
     }
 
-    /**
-     * Needs to be called before cleanup to prevent source map memory leaks.
-     */
-    destroyTranspiled() {
-        if (this.transpiledDoc) {
-            this.transpiledDoc.destroy();
-            this.transpiledDoc = undefined;
+    private getSvelteVersion() {
+        if (!this.svelteVersion) {
+            const { major, minor } = getPackageInfo('svelte', this.getFilePath()).version;
+            this.svelteVersion = [major, minor];
         }
+        return this.svelteVersion;
     }
 }
 
 export interface ITranspiledSvelteDocument extends PositionMapper {
     getText(): string;
-    destroy(): void;
 }
 
 export class TranspiledSvelteDocument implements ITranspiledSvelteDocument {
@@ -141,7 +140,7 @@ export class TranspiledSvelteDocument implements ITranspiledSvelteDocument {
             preprocessed.code,
             preprocessed.map
                 ? new SourceMapDocumentMapper(
-                      await createSourceMapConsumer(preprocessed.map),
+                      createTraceMap(preprocessed.map),
                       // The "sources" array only contains the Svelte filename, not its path.
                       // For getting generated positions, the sourcemap consumer wants an exact match
                       // of the source filepath. Therefore only pass in the filename here.
@@ -151,7 +150,10 @@ export class TranspiledSvelteDocument implements ITranspiledSvelteDocument {
         );
     }
 
-    constructor(private code: string, private mapper?: SourceMapDocumentMapper) {}
+    constructor(
+        private code: string,
+        private mapper?: SourceMapDocumentMapper
+    ) {}
 
     getOriginalPosition(generatedPosition: Position): Position {
         return this.mapper?.getOriginalPosition(generatedPosition) || generatedPosition;
@@ -163,10 +165,6 @@ export class TranspiledSvelteDocument implements ITranspiledSvelteDocument {
 
     getGeneratedPosition(originalPosition: Position): Position {
         return this.mapper?.getGeneratedPosition(originalPosition) || originalPosition;
-    }
-
-    destroy() {
-        this.mapper?.destroy();
     }
 }
 
@@ -185,16 +183,12 @@ export class FallbackTranspiledSvelteDocument implements ITranspiledSvelteDocume
             document,
             preprocessors
         );
-        const scriptMapper = await SvelteFragmentMapper.createScript(
+        const scriptMapper = SvelteFragmentMapper.createScript(
             document,
             transpiled,
             processedScripts
         );
-        const styleMapper = await SvelteFragmentMapper.createStyle(
-            document,
-            transpiled,
-            processedStyles
-        );
+        const styleMapper = SvelteFragmentMapper.createStyle(document, transpiled, processedStyles);
 
         return new FallbackTranspiledSvelteDocument(
             document,
@@ -262,18 +256,10 @@ export class FallbackTranspiledSvelteDocument implements ITranspiledSvelteDocume
 
         return positionAt(offset, this.getText());
     }
-
-    /**
-     * Needs to be called before cleanup to prevent source map memory leaks.
-     */
-    destroy() {
-        this.scriptMapper?.destroy();
-        this.styleMapper?.destroy();
-    }
 }
 
 export class SvelteFragmentMapper implements PositionMapper {
-    static async createStyle(originalDoc: Document, transpiled: string, processed: Processed[]) {
+    static createStyle(originalDoc: Document, transpiled: string, processed: Processed[]) {
         return SvelteFragmentMapper.create(
             originalDoc,
             transpiled,
@@ -283,7 +269,7 @@ export class SvelteFragmentMapper implements PositionMapper {
         );
     }
 
-    static async createScript(originalDoc: Document, transpiled: string, processed: Processed[]) {
+    static createScript(originalDoc: Document, transpiled: string, processed: Processed[]) {
         const scriptInfo = originalDoc.scriptInfo || originalDoc.moduleScriptInfo;
         const maybeScriptTag = extractScriptTags(transpiled);
         const maybeScriptTagInfo =
@@ -298,7 +284,7 @@ export class SvelteFragmentMapper implements PositionMapper {
         );
     }
 
-    private static async create(
+    private static create(
         originalDoc: Document,
         transpiled: string,
         originalTagInfo: TagInformation | null,
@@ -307,7 +293,7 @@ export class SvelteFragmentMapper implements PositionMapper {
     ) {
         const sourceMapper =
             processed.length > 0
-                ? await SvelteFragmentMapper.createSourceMapper(processed, originalDoc)
+                ? SvelteFragmentMapper.createSourceMapper(processed, originalDoc)
                 : new IdentityMapper(originalDoc.uri);
 
         if (originalTagInfo && transpiledTagInfo) {
@@ -327,17 +313,17 @@ export class SvelteFragmentMapper implements PositionMapper {
         return null;
     }
 
-    private static async createSourceMapper(processed: Processed[], originalDoc: Document) {
+    private static createSourceMapper(processed: Processed[], originalDoc: Document) {
         return processed.reduce(
-            async (parent, processedSingle) =>
+            (parent, processedSingle) =>
                 processedSingle?.map
                     ? new SourceMapDocumentMapper(
-                          await createSourceMapConsumer(processedSingle.map),
+                          createTraceMap(processedSingle.map),
                           originalDoc.uri,
-                          await parent
+                          parent
                       )
-                    : new IdentityMapper(originalDoc.uri, await parent),
-            Promise.resolve<DocumentMapper>(<any>undefined)
+                    : new IdentityMapper(originalDoc.uri, parent),
+            <DocumentMapper>(<any>undefined)
         );
     }
 
@@ -387,15 +373,6 @@ export class SvelteFragmentMapper implements PositionMapper {
         );
         return this.transpiledFragmentMapper.getOriginalPosition(positionInTranspiledFragment);
     }
-
-    /**
-     * Needs to be called before cleanup to prevent source map memory leaks.
-     */
-    destroy() {
-        if (this.sourceMapper.destroy) {
-            this.sourceMapper.destroy();
-        }
-    }
 }
 
 /**
@@ -403,7 +380,7 @@ export class SvelteFragmentMapper implements PositionMapper {
  */
 function wrapPreprocessors(preprocessors: PreprocessorGroup | PreprocessorGroup[] = []) {
     preprocessors = Array.isArray(preprocessors) ? preprocessors : [preprocessors];
-    return preprocessors.map((preprocessor) => {
+    return preprocessors.map((preprocessor: any) => {
         const wrappedPreprocessor: PreprocessorGroup = { markup: preprocessor.markup };
 
         if (preprocessor.script) {
@@ -440,7 +417,7 @@ async function transpile(
     const processedScripts: Processed[] = [];
     const processedStyles: Processed[] = [];
 
-    const wrappedPreprocessors = preprocessors.map((preprocessor) => {
+    const wrappedPreprocessors = preprocessors.map((preprocessor: any) => {
         const wrappedPreprocessor: PreprocessorGroup = { markup: preprocessor.markup };
 
         if (preprocessor.script) {
@@ -485,8 +462,8 @@ async function transpile(
     return { transpiled, processedScripts, processedStyles };
 }
 
-async function createSourceMapConsumer(map: any): Promise<SourceMapConsumer> {
-    return new SourceMapConsumer(normalizeMap(map));
+function createTraceMap(map: any): TraceMap {
+    return new TraceMap(normalizeMap(map));
 
     function normalizeMap(map: any) {
         // We don't know what we get, could be a stringified sourcemap,

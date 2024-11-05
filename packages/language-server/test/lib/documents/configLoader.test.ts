@@ -19,6 +19,29 @@ describe('ConfigLoader', () => {
         return path.join(...filePath.split('/'));
     }
 
+    function mockFdir(results: string[] | (() => string[])): any {
+        return class {
+            withPathSeparator() {
+                return this;
+            }
+            exclude() {
+                return this;
+            }
+            filter() {
+                return this;
+            }
+            withRelativePaths() {
+                return this;
+            }
+            crawl() {
+                return this;
+            }
+            sync() {
+                return typeof results === 'function' ? results() : results;
+            }
+        };
+    }
+
     async function assertFindsConfig(
         configLoader: ConfigLoader,
         filePath: string,
@@ -32,7 +55,7 @@ describe('ConfigLoader', () => {
 
     it('should load all config files below and the one inside/above given directory', async () => {
         const configLoader = new ConfigLoader(
-            (() => ['svelte.config.js', 'below/svelte.config.js']) as any,
+            mockFdir(['svelte.config.js', 'below/svelte.config.js']),
             { existsSync: () => true },
             path,
             (module: URL) => Promise.resolve({ default: { preprocess: module.toString() } })
@@ -63,7 +86,7 @@ describe('ConfigLoader', () => {
 
     it('finds first above if none found inside/below directory', async () => {
         const configLoader = new ConfigLoader(
-            () => [],
+            mockFdir([]),
             {
                 existsSync: (p) =>
                     typeof p === 'string' && p.endsWith(path.join('some', 'svelte.config.js'))
@@ -78,7 +101,7 @@ describe('ConfigLoader', () => {
 
     it('adds fallback if no config found', async () => {
         const configLoader = new ConfigLoader(
-            () => [],
+            mockFdir([]),
             { existsSync: () => false },
             path,
             (module: URL) => Promise.resolve({ default: { preprocess: module.toString() } })
@@ -87,11 +110,10 @@ describe('ConfigLoader', () => {
 
         assert.deepStrictEqual(
             // Can't do the equal-check directly, instead check if it's the expected object props
-            // of svelte-preprocess
             Object.keys(
                 configLoader.getConfig(normalizePath('/some/path/comp.svelte'))?.preprocess || {}
             ).sort(),
-            ['defaultLanguages', 'markup', 'script', 'style'].sort()
+            ['name', 'script'].sort()
         );
     });
 
@@ -99,14 +121,14 @@ describe('ConfigLoader', () => {
         let firstGlobCall = true;
         let nrImportCalls = 0;
         const configLoader = new ConfigLoader(
-            (() => {
+            mockFdir(() => {
                 if (firstGlobCall) {
                     firstGlobCall = false;
                     return ['svelte.config.js'];
                 } else {
                     return [];
                 }
-            }) as any,
+            }),
             {
                 existsSync: (p) =>
                     typeof p === 'string' &&
@@ -140,11 +162,8 @@ describe('ConfigLoader', () => {
     });
 
     it('can deal with missing config', () => {
-        const configLoader = new ConfigLoader(
-            () => [],
-            { existsSync: () => false },
-            path,
-            () => Promise.resolve('unimportant')
+        const configLoader = new ConfigLoader(mockFdir([]), { existsSync: () => false }, path, () =>
+            Promise.resolve('unimportant')
         );
         assert.deepStrictEqual(
             configLoader.getConfig(normalizePath('/some/file.svelte')),
@@ -154,7 +173,7 @@ describe('ConfigLoader', () => {
 
     it('should await config', async () => {
         const configLoader = new ConfigLoader(
-            () => [],
+            mockFdir([]),
             { existsSync: () => true },
             path,
             (module: URL) => Promise.resolve({ default: { preprocess: module.toString() } })
@@ -168,7 +187,7 @@ describe('ConfigLoader', () => {
     it('should not load config when disabled', async () => {
         const moduleLoader = spy();
         const configLoader = new ConfigLoader(
-            () => [],
+            mockFdir([]),
             { existsSync: () => true },
             path,
             moduleLoader

@@ -11,7 +11,7 @@ export interface Writer {
         fileCount: number,
         errorCount: number,
         warningCount: number,
-        hintCount: number
+        fileCountWithProblems: number
     ) => void;
     failure: (err: Error) => void;
 }
@@ -24,11 +24,12 @@ export class HumanFriendlyWriter implements Writer {
         private stream: Writable,
         private isVerbose = true,
         private isWatchMode = false,
+        private clearScreen = true,
         private diagnosticFilter: DiagnosticFilter = DEFAULT_FILTER
     ) {}
 
     start(workspaceDir: string) {
-        if (process.stdout.isTTY && this.isWatchMode) {
+        if (process.stdout.isTTY && this.isWatchMode && this.clearScreen) {
             // Clear screen
             const blank = '\n'.repeat(process.stdout.rows);
             this.stream.write(blank);
@@ -52,19 +53,13 @@ export class HumanFriendlyWriter implements Writer {
 
             // Display location in a format that IDEs will turn into file links
             const { line, character } = diagnostic.range.start;
-            // eslint-disable-next-line max-len
             this.stream.write(
                 `${workspaceDir}${sep}${pc.green(filename)}:${line + 1}:${character + 1}\n`
             );
 
-            // Show some context around diagnostic range
-            const codePrevLine = this.getLine(diagnostic.range.start.line - 1, text);
-            const codeLine = this.getCodeLine(diagnostic, text);
-            const codeNextLine = this.getLine(diagnostic.range.end.line + 1, text);
-            const code = codePrevLine + codeLine + codeNextLine;
-
             let msg;
             if (this.isVerbose) {
+                const code = this.formatRelatedCode(diagnostic, text);
                 msg = `${diagnostic.message} ${source}\n${pc.cyan(code)}`;
             } else {
                 msg = `${diagnostic.message} ${source}`;
@@ -74,12 +69,24 @@ export class HumanFriendlyWriter implements Writer {
                 this.stream.write(`${pc.red('Error')}: ${msg}\n`);
             } else if (diagnostic.severity === DiagnosticSeverity.Warning) {
                 this.stream.write(`${pc.yellow('Warn')}: ${msg}\n`);
-            } else {
-                this.stream.write(`${pc.gray('Hint')}: ${msg}\n`);
             }
 
             this.stream.write('\n');
         });
+    }
+
+    private formatRelatedCode(diagnostic: Diagnostic, text: string) {
+        if (!text) {
+            return '';
+        }
+
+        // Show some context around diagnostic range
+        const codePrevLine = this.getLine(diagnostic.range.start.line - 1, text);
+        const codeLine = this.getCodeLine(diagnostic, text);
+        const codeNextLine = this.getLine(diagnostic.range.end.line + 1, text);
+        const code = codePrevLine + codeLine + codeNextLine;
+
+        return code;
     }
 
     private getCodeLine(diagnostic: Diagnostic, text: string) {
@@ -104,20 +111,28 @@ export class HumanFriendlyWriter implements Writer {
         );
     }
 
-    completion(_f: number, errorCount: number, warningCount: number, hintCount: number) {
+    completion(
+        _f: number,
+        errorCount: number,
+        warningCount: number,
+        fileCountWithProblems: number
+    ) {
         this.stream.write('====================================\n');
         const message = [
             'svelte-check found ',
-            `${errorCount} ${errorCount === 1 ? 'error' : 'errors'}, `,
-            `${warningCount} ${warningCount === 1 ? 'warning' : 'warnings'}, and `,
-            `${hintCount} ${hintCount === 1 ? 'hint' : 'hints'}\n`
+            `${errorCount} ${errorCount === 1 ? 'error' : 'errors'} and `,
+            `${warningCount} ${warningCount === 1 ? 'warning' : 'warnings'}`,
+            `${
+                fileCountWithProblems
+                    ? // prettier-ignore
+                      ` in ${fileCountWithProblems} ${fileCountWithProblems === 1 ? 'file' : 'files'}`
+                    : ''
+            }\n`
         ].join('');
         if (errorCount !== 0) {
             this.stream.write(pc.red(message));
         } else if (warningCount !== 0) {
             this.stream.write(pc.yellow(message));
-        } else if (hintCount !== 0) {
-            this.stream.write(pc.gray(message));
         } else {
             this.stream.write(pc.green(message));
         }
@@ -132,7 +147,11 @@ export class HumanFriendlyWriter implements Writer {
 }
 
 export class MachineFriendlyWriter implements Writer {
-    constructor(private stream: Writable, private diagnosticFilter = DEFAULT_FILTER) {}
+    constructor(
+        private stream: Writable,
+        private isVerbose = false,
+        private diagnosticFilter = DEFAULT_FILTER
+    ) {}
 
     private log(msg: string) {
         this.stream.write(`${new Date().getTime()} ${msg}\n`);
@@ -144,31 +163,51 @@ export class MachineFriendlyWriter implements Writer {
 
     file(diagnostics: Diagnostic[], workspaceDir: string, filename: string, _text: string) {
         diagnostics.filter(this.diagnosticFilter).forEach((d) => {
-            const { message, severity, range } = d;
+            const { message, severity, range, code, codeDescription, source } = d;
             const type =
                 severity === DiagnosticSeverity.Error
                     ? 'ERROR'
                     : severity === DiagnosticSeverity.Warning
-                    ? 'WARNING'
-                    : null;
+                      ? 'WARNING'
+                      : null;
 
             if (type) {
-                const { line, character } = range.start;
-                const fn = JSON.stringify(filename);
-                const msg = JSON.stringify(message);
-                this.log(`${type} ${fn} ${line + 1}:${character + 1} ${msg}`);
+                const { start, end } = range;
+                if (this.isVerbose) {
+                    this.log(
+                        JSON.stringify({
+                            type,
+                            filename,
+                            start,
+                            end,
+                            message,
+                            code,
+                            codeDescription,
+                            source
+                        })
+                    );
+                } else {
+                    const fn = JSON.stringify(filename);
+                    const msg = JSON.stringify(message);
+                    this.log(`${type} ${fn} ${start.line + 1}:${start.character + 1} ${msg}`);
+                }
             }
         });
     }
 
-    completion(fileCount: number, errorCount: number, warningCount: number, hintCount: number) {
+    completion(
+        fileCount: number,
+        errorCount: number,
+        warningCount: number,
+        fileCountWithProblems: number
+    ) {
         this.log(
             [
                 'COMPLETED',
                 `${fileCount} FILES`,
                 `${errorCount} ERRORS`,
                 `${warningCount} WARNINGS`,
-                `${hintCount} HINTS`
+                `${fileCountWithProblems} FILES_WITH_PROBLEMS`
             ].join(' ')
         );
     }

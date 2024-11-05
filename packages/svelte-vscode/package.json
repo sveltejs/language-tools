@@ -7,9 +7,9 @@
         "build:grammar": "npx js-yaml syntaxes/svelte.tmLanguage.src.yaml > syntaxes/svelte.tmLanguage.json && npx js-yaml syntaxes/postcss.src.yaml > syntaxes/postcss.json",
         "build:ts": "tsc -p ./",
         "build": "npm run build:ts && npm run build:grammar",
-        "vscode:prepublish": "npm run build && npm prune --production",
+        "vscode:prepublish": "npm install && npm run build && npm prune --production",
         "watch": "npm run build:grammar && tsc -w -p ./",
-        "test": "echo 'NOOP'"
+        "test": "npm run build:grammar && node test/grammar/test.js"
     },
     "repository": {
         "type": "git",
@@ -37,20 +37,27 @@
         "Formatters"
     ],
     "engines": {
-        "vscode": "^1.52.0"
+        "vscode": "^1.82.0"
     },
     "activationEvents": [
         "onLanguage:svelte",
-        "onCommand:svelte.restartLanguageServer"
+        "onCommand:svelte.restartLanguageServer",
+        "onLanguage:javascript",
+        "onLanguage:typescript"
     ],
     "capabilities": {
         "untrustedWorkspaces": {
             "supported": "limited",
+            "restrictedConfigurations": [
+                "svelte.language-server.runtime",
+                "svelte.language-server.ls-path",
+                "svelte.language-server.runtime-args"
+            ],
             "description": "The extension requires workspace trust because it executes code specified by the workspace. Loading the user's node_modules and loading svelte config files is disabled when untrusted"
         }
     },
     "contributes": {
-        "typescriptServerPlugins-disabled": [
+        "typescriptServerPlugins": [
             {
                 "name": "typescript-svelte-plugin",
                 "enableForWorkspaceTypeScriptVersions": true
@@ -73,22 +80,30 @@
                     "description": "Ask on startup to enable the TypeScript plugin."
                 },
                 "svelte.language-server.runtime": {
-                    "scope": "application",
                     "type": "string",
                     "title": "Language Server Runtime",
                     "description": "- You normally don't need this - Path to the node executable to use to spawn the language server. This is useful when you depend on native modules such as node-sass as without this they will run in the context of vscode, meaning node version mismatch is likely. Minimum required node version is 12.17. This setting can only be changed in user settings for security reasons."
                 },
                 "svelte.language-server.ls-path": {
-                    "scope": "application",
                     "type": "string",
                     "title": "Language Server Path",
                     "description": "- You normally don't set this - Path to the language server executable. If you installed the \"svelte-language-server\" npm package, it's within there at \"bin/server.js\". Path can be either relative to your workspace root or absolute. Set this only if you want to use a custom version of the language server. This will then also use the workspace version of TypeScript. This setting can only be changed in user settings for security reasons."
+                },
+                "svelte.language-server.runtime-args": {
+                    "type": "array",
+                    "title": "Language Server Runtime Args",
+                    "description": "You normally don't set this. Additional arguments to pass to the node executable when spawning the language server. This is useful when you use something like Yarn PnP and need its loader arguments `[\"--loader\", \".pnp.loader.mjs\"]`."
                 },
                 "svelte.language-server.port": {
                     "type": "number",
                     "title": "Language Server Port",
                     "description": "- You normally don't set this - At which port to spawn the language server. Can be used for attaching to the process for debugging / profiling. If you experience crashes due to \"port already in use\", try setting the port. -1 = default port is used.",
                     "default": -1
+                },
+                "svelte.language-server.debug": {
+                    "type": "boolean",
+                    "title": "Language Server Debug Mode",
+                    "description": "- You normally don't set this - Enable more verbose logging for the language server useful for debugging language server execution."
                 },
                 "svelte.trace.server": {
                     "type": "string",
@@ -99,6 +114,16 @@
                     ],
                     "default": "off",
                     "description": "Traces the communication between VS Code and the Svelte Language Server."
+                },
+                "svelte.ui.svelteKitFilesContextMenu.enable": {
+                    "type": "string",
+                    "default": "auto",
+                    "enum": [
+                        "auto",
+                        "never",
+                        "always"
+                    ],
+                    "description": "Show a context menu to generate SvelteKit files. \"always\" to always show it. \"never\" to always disable it. \"auto\" to show it when in a SvelteKit project. "
                 },
                 "svelte.plugin.typescript.enable": {
                     "type": "boolean",
@@ -130,18 +155,6 @@
                     "title": "TypeScript: Completions",
                     "description": "Enable completions for TypeScript"
                 },
-                "svelte.plugin.typescript.findReferences.enable": {
-                    "type": "boolean",
-                    "default": true,
-                    "title": "TypeScript: Find References",
-                    "description": "Enable find-references for TypeScript"
-                },
-                "svelte.plugin.typescript.definitions.enable": {
-                    "type": "boolean",
-                    "default": true,
-                    "title": "TypeScript: Go to Definition",
-                    "description": "Enable go to definition for TypeScript"
-                },
                 "svelte.plugin.typescript.codeActions.enable": {
                     "type": "boolean",
                     "default": true,
@@ -160,29 +173,11 @@
                     "title": "TypeScript: Signature Help",
                     "description": "Enable signature help (parameter hints) for TypeScript"
                 },
-                "svelte.plugin.typescript.rename.enable": {
-                    "type": "boolean",
-                    "default": true,
-                    "title": "TypeScript: Rename",
-                    "description": "Enable rename functionality for JS/TS variables inside Svelte files"
-                },
                 "svelte.plugin.typescript.semanticTokens.enable": {
                     "type": "boolean",
                     "default": true,
                     "title": "TypeScript: Semantic Tokens",
                     "description": "Enable semantic tokens (semantic highlight) for TypeScript."
-                },
-                "svelte.plugin.typescript.implementation.enable": {
-                    "type": "boolean",
-                    "default": true,
-                    "title": "Typescript: Go to Implementation",
-                    "description": "Enable go to implementation for Typescript"
-                },
-                "svelte.plugin.typescript.typeDefinition.enable": {
-                    "type": "boolean",
-                    "default": true,
-                    "title": "Typescript: Go to Type Definition",
-                    "description": "Enable go to Type Definition for Typescript"
                 },
                 "svelte.plugin.css.enable": {
                     "type": "boolean",
@@ -285,12 +280,6 @@
                     "default": true,
                     "title": "HTML: Linked Editing",
                     "description": "Enable Linked Editing for HTML"
-                },
-                "svelte.plugin.html.renameTags.enable": {
-                    "type": "boolean",
-                    "default": true,
-                    "title": "HTML: Rename tags",
-                    "description": "Enable rename for the opening/closing tag pairs in HTML"
                 },
                 "svelte.plugin.svelte.enable": {
                     "type": "boolean",
@@ -458,7 +447,14 @@
                     "source.js": "javascript",
                     "source.ts": "typescript",
                     "source.coffee": "coffeescript"
-                }
+                },
+                "unbalancedBracketScopes": [
+                    "keyword.operator.relational",
+                    "storage.type.function.arrow",
+                    "keyword.operator.bitwise.shift",
+                    "meta.brace.angle",
+                    "punctuation.definition.tag"
+                ]
             },
             {
                 "scopeName": "svelte.pug",
@@ -496,11 +492,28 @@
                 "scopeName": "markdown.svelte.codeblock",
                 "path": "./syntaxes/markdown-svelte.json",
                 "injectTo": [
-                    "text.html.markdown"
+                    "text.html.markdown",
+                    "source.mdx"
                 ],
                 "embeddedLanguages": {
                     "meta.embedded.block.svelte": "svelte"
                 }
+            },
+            {
+                "scopeName": "markdown.svelte.codeblock.script",
+                "path": "./syntaxes/markdown-svelte-js.json",
+                "injectTo": [
+                    "text.html.markdown",
+                    "source.mdx"
+                ]
+            },
+            {
+                "scopeName": "markdown.svelte.codeblock.style",
+                "path": "./syntaxes/markdown-svelte-css.json",
+                "injectTo": [
+                    "text.html.markdown",
+                    "source.mdx"
+                ]
             },
             {
                 "scopeName": "source.css.postcss",
@@ -526,6 +539,54 @@
             {
                 "command": "svelte.extractComponent",
                 "title": "Svelte: Extract Component"
+            },
+            {
+                "command": "svelte.migrate_to_svelte_5",
+                "title": "Svelte: Migrate Component to Svelte 5 Syntax"
+            },
+            {
+                "command": "svelte.typescript.findAllFileReferences",
+                "title": "Svelte: Find File References"
+            },
+            {
+                "command": "svelte.typescript.findComponentReferences",
+                "title": "Svelte: Find Component References"
+            },
+            {
+                "command": "svelte.kit.generateMultipleFiles",
+                "title": "SvelteKit: Create route"
+            },
+            {
+                "command": "svelte.kit.generatePage",
+                "title": "SvelteKit: Create +page.svelte"
+            },
+            {
+                "command": "svelte.kit.generatePageLoad",
+                "title": "SvelteKit: Create +page.js/ts"
+            },
+            {
+                "command": "svelte.kit.generatePageServerLoad",
+                "title": "SvelteKit: Create +page.server.js/ts"
+            },
+            {
+                "command": "svelte.kit.generateLayout",
+                "title": "SvelteKit: Create +layout.svelte"
+            },
+            {
+                "command": "svelte.kit.generateLayoutLoad",
+                "title": "SvelteKit: Create +layout.js/ts"
+            },
+            {
+                "command": "svelte.kit.generateLayoutServerLoad",
+                "title": "SvelteKit: Create +layout.server.js/ts"
+            },
+            {
+                "command": "svelte.kit.generateServer",
+                "title": "SvelteKit: Create +server.js/ts"
+            },
+            {
+                "command": "svelte.kit.generateError",
+                "title": "SvelteKit: Create +error.svelte"
             }
         ],
         "menus": {
@@ -533,6 +594,14 @@
                 {
                     "command": "svelte.showCompiledCodeToSide",
                     "when": "editorLangId == svelte"
+                },
+                {
+                    "command": "svelte.typescript.findAllFileReferences",
+                    "when": "editorLangId == svelte && resourceScheme == file"
+                },
+                {
+                    "command": "svelte.typescript.findComponentReferences",
+                    "when": "editorLangId == svelte && resourceScheme == file"
                 }
             ],
             "editor/title": [
@@ -542,32 +611,129 @@
                     "group": "navigation"
                 }
             ],
+            "editor/title/context": [
+                {
+                    "command": "svelte.typescript.findAllFileReferences",
+                    "when": "resourceLangId == svelte && resourceScheme == file"
+                },
+                {
+                    "command": "svelte.typescript.findComponentReferences",
+                    "when": "resourceLangId == svelte && resourceScheme == file"
+                }
+            ],
             "editor/context": [
                 {
                     "command": "svelte.extractComponent",
                     "when": "editorLangId == svelte",
                     "group": "1_modification"
+                },
+                {
+                    "command": "svelte.typescript.findAllFileReferences",
+                    "when": "editorLangId == svelte",
+                    "group": "4_search"
+                },
+                {
+                    "command": "svelte.typescript.findComponentReferences",
+                    "when": "editorLangId == svelte",
+                    "group": "4_search"
+                }
+            ],
+            "explorer/context": [
+                {
+                    "command": "svelte.typescript.findAllFileReferences",
+                    "when": "resourceLangId == svelte",
+                    "group": "4_search"
+                },
+                {
+                    "command": "svelte.typescript.findComponentReferences",
+                    "when": "resourceLangId == svelte",
+                    "group": "4_search"
+                },
+                {
+                    "when": "explorerResourceIsFolder && config.svelte.ui.svelteKitFilesContextMenu.enable == always || explorerResourceIsFolder && svelte.uiContext.svelteKitFilesContextMenu.enable",
+                    "submenu": "sveltekit2files",
+                    "group": "1_SvelteKit2files"
+                }
+            ],
+            "sveltekit2files": [
+                {
+                    "command": "svelte.kit.generateMultipleFiles",
+                    "group": "0_SvelteKit_Multiple"
+                },
+                {
+                    "command": "svelte.kit.generatePage",
+                    "group": "1_SvelteKit_Page"
+                },
+                {
+                    "command": "svelte.kit.generatePageLoad",
+                    "group": "1_SvelteKit_Page"
+                },
+                {
+                    "command": "svelte.kit.generatePageServerLoad",
+                    "group": "1_SvelteKit_Page"
+                },
+                {
+                    "command": "svelte.kit.generateLayout",
+                    "group": "3_SvelteKit_Layout"
+                },
+                {
+                    "command": "svelte.kit.generateLayoutLoad",
+                    "group": "3_SvelteKit_Layout"
+                },
+                {
+                    "command": "svelte.kit.generateLayoutServerLoad",
+                    "group": "3_SvelteKit_Layout"
+                },
+                {
+                    "command": "svelte.kit.generateServer",
+                    "group": "2_SvelteKit_Server"
+                },
+                {
+                    "command": "svelte.kit.generateError",
+                    "group": "4_SvelteKit_Error"
                 }
             ]
         },
+        "submenus": [
+            {
+                "id": "sveltekit2files",
+                "label": "SvelteKit Files"
+            }
+        ],
         "breakpoints": [
             {
                 "language": "svelte"
             }
+        ],
+        "snippets": [
+            {
+                "language": "svelte",
+                "path": "./snippets/svelte.json"
+            },
+            {
+                "language": "javascript",
+                "path": "./snippets/javascript.json"
+            },
+            {
+                "language": "typescript",
+                "path": "./snippets/typescript.json"
+            }
         ]
     },
     "devDependencies": {
-        "@tsconfig/node12": "^1.0.0",
         "@types/lodash": "^4.14.116",
-        "@types/node": "^13.9.0",
-        "@types/vscode": "*",
+        "@types/node": "^18.0.0",
+        "@types/vscode": "^1.67",
         "js-yaml": "^3.14.0",
-        "typescript": "*"
+        "tslib": "^2.4.0",
+        "typescript": "^5.6.3",
+        "vscode-tmgrammar-test": "^0.0.11"
     },
     "dependencies": {
         "lodash": "^4.17.21",
-        "svelte-language-server": "*",
-        "vscode-languageclient": "^7.0.0",
-        "typescript-svelte-plugin": "*"
+        "svelte-language-server": "workspace:*",
+        "typescript-svelte-plugin": "workspace:*",
+        "vscode-languageclient": "^9.0.1",
+        "vscode-languageserver-protocol": "3.17.5"
     }
 }

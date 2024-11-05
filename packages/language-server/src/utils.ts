@@ -1,6 +1,8 @@
-import { Node } from 'vscode-html-languageservice';
+import { isEqual, sum, uniqWith } from 'lodash';
+import { FoldingRange, Node } from 'vscode-html-languageservice';
 import { Position, Range } from 'vscode-languageserver';
 import { URI } from 'vscode-uri';
+import { Document, TagInformation } from './lib/documents';
 
 type Predicate<T> = (x: T) => boolean;
 
@@ -14,6 +16,10 @@ export function or<T>(...predicates: Array<Predicate<T>>) {
 
 export function and<T>(...predicates: Array<Predicate<T>>) {
     return (x: T) => predicates.every((predicate) => predicate(x));
+}
+
+export function unique<T>(array: T[]): T[] {
+    return uniqWith(array, isEqual);
 }
 
 export function clamp(num: number, min: number, max: number): number {
@@ -81,6 +87,10 @@ export function isInRange(range: Range, positionToTest: Position): boolean {
     );
 }
 
+export function isZeroLengthRange(range: Range): boolean {
+    return isPositionEqual(range.start, range.end);
+}
+
 export function isRangeStartAfterEnd(range: Range): boolean {
     return (
         range.end.line < range.start.line ||
@@ -109,6 +119,10 @@ export function isBeforeOrEqualToPosition(position: Position, positionToTest: Po
         positionToTest.line < position.line ||
         (positionToTest.line === position.line && positionToTest.character <= position.character)
     );
+}
+
+export function isPositionEqual(position1: Position, position2: Position): boolean {
+    return position1.line === position2.line && position1.character === position2.character;
 }
 
 export function isNotNullOrUndefined<T>(val: T | undefined | null): val is T {
@@ -149,28 +163,28 @@ export function debounceSameArg<T>(
  * the next invocation. This avoids needless calls when a synchronous call (like diagnostics)
  * took too long and the whole timeout of the next call was eaten up already.
  *
- * @param fn The function with it's argument
+ * @param fn The function
  * @param miliseconds Number of miliseconds to debounce/throttle
  */
-export function debounceThrottle<T extends (...args: any) => void>(fn: T, miliseconds: number): T {
+export function debounceThrottle(fn: () => void, miliseconds: number): () => void {
     let timeout: any;
     let lastInvocation = Date.now() - miliseconds;
 
-    function maybeCall(...args: any) {
+    function maybeCall() {
         clearTimeout(timeout);
 
         timeout = setTimeout(() => {
             if (Date.now() - lastInvocation < miliseconds) {
-                maybeCall(...args);
+                maybeCall();
                 return;
             }
 
-            fn(...args);
+            fn();
             lastInvocation = Date.now();
         }, miliseconds);
     }
 
-    return maybeCall as any;
+    return maybeCall;
 }
 
 /**
@@ -264,8 +278,12 @@ export function getIndent(text: string) {
  * Also, svelte directives like action and event modifier only work
  * with element not component
  */
-export function possiblyComponent(node: Node): boolean {
-    return !!node.tag?.[0].match(/[A-Z]/);
+export function possiblyComponent(node: Node): boolean;
+export function possiblyComponent(tagName: string): boolean;
+export function possiblyComponent(nodeOrTagName: Node | string): boolean {
+    return !!(typeof nodeOrTagName === 'object' ? nodeOrTagName.tag : nodeOrTagName)?.[0].match(
+        /[A-Z]/
+    );
 }
 
 /**
@@ -275,4 +293,93 @@ export function returnObjectIfHasKeys<T>(obj: T | undefined): T | undefined {
     if (Object.keys(obj || {}).length > 0) {
         return obj;
     }
+}
+
+const fileNameLowerCaseRegExp = /[^\u0130\u0131\u00DFa-z0-9\\/:\-_\. ]+/g;
+
+/**
+ * adopted from https://github.com/microsoft/TypeScript/blob/8192d550496d884263e292488e325ae96893dc78/src/compiler/core.ts#L1769-L1807
+ * see the comment there about why we can't just use String.prototype.toLowerCase() here
+ */
+export function toFileNameLowerCase(x: string) {
+    return fileNameLowerCaseRegExp.test(x) ? x.replace(fileNameLowerCaseRegExp, toLowerCase) : x;
+}
+
+function toLowerCase(x: string) {
+    return x.toLowerCase();
+}
+
+export type GetCanonicalFileName = (fileName: string) => string;
+/**
+ * adopted from https://github.com/microsoft/TypeScript/blob/8192d550496d884263e292488e325ae96893dc78/src/compiler/core.ts#L2312
+ */
+export function createGetCanonicalFileName(
+    useCaseSensitiveFileNames: boolean
+): GetCanonicalFileName {
+    return useCaseSensitiveFileNames ? identity : toFileNameLowerCase;
+}
+
+function identity<T>(x: T) {
+    return x;
+}
+
+export function memoize<T>(callback: () => T): () => T {
+    let value: T;
+    let callbackInner: typeof callback | undefined = callback;
+
+    return () => {
+        if (callbackInner) {
+            value = callback();
+            callbackInner = undefined;
+        }
+        return value;
+    };
+}
+
+export function removeLineWithString(str: string, keyword: string) {
+    const lines = str.split('\n');
+    const filteredLines = lines.filter((line) => !line.includes(keyword));
+    return filteredLines.join('\n');
+}
+
+/**
+ * Traverses a string and returns the index of the end character, taking into account quotes, curlies and generic tags.
+ */
+export function traverseTypeString(str: string, start: number, endChar: string): number {
+    let singleQuoteOpen = false;
+    let doubleQuoteOpen = false;
+    let countCurlyBrace = 0;
+    let countAngleBracket = 0;
+
+    for (let i = start; i < str.length; i++) {
+        const char = str[i];
+
+        if (!doubleQuoteOpen && char === "'") {
+            singleQuoteOpen = !singleQuoteOpen;
+        } else if (!singleQuoteOpen && char === '"') {
+            doubleQuoteOpen = !doubleQuoteOpen;
+        } else if (!doubleQuoteOpen && !singleQuoteOpen) {
+            if (char === '{') {
+                countCurlyBrace++;
+            } else if (char === '}') {
+                countCurlyBrace--;
+            } else if (char === '<') {
+                countAngleBracket++;
+            } else if (char === '>') {
+                countAngleBracket--;
+            }
+        }
+
+        if (
+            !singleQuoteOpen &&
+            !doubleQuoteOpen &&
+            countCurlyBrace === 0 &&
+            countAngleBracket === 0 &&
+            char === endChar
+        ) {
+            return i;
+        }
+    }
+
+    return -1;
 }

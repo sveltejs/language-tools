@@ -1,0 +1,1 @@
+ { svelteHTML.createElement("h1", {   "on:click-outside":undefined,"on:click-outside2":() => 'hi',});  }

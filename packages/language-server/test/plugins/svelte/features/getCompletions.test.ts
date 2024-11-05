@@ -52,11 +52,18 @@ describe('SveltePlugin#getCompletions', () => {
     });
 
     it('should return completions for #', () => {
-        expectCompletionsFor('{#').toEqual(['if', 'each', 'await :then', 'await then', 'key']);
+        expectCompletionsFor('{#').toEqual([
+            'if',
+            'each',
+            'await :then',
+            'await then',
+            'key',
+            'snippet'
+        ]);
     });
 
     it('should return completions for @', () => {
-        expectCompletionsFor('{@').toEqual(['html', 'debug']);
+        expectCompletionsFor('{@').toEqual(['html', 'debug', 'const', 'render']);
     });
 
     describe('should return no completions for :', () => {

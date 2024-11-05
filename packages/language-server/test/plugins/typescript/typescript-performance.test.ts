@@ -15,11 +15,14 @@ describe('TypeScript Plugin Performance Tests', () => {
         const uri = pathToUrl(filePath);
         const document = new Document(uri, ts.sys.readFile(filePath) || '');
         const pluginManager = new LSConfigManager();
+        const workspaceUris = [pathToUrl(testDir)];
         const plugin = new TypeScriptPlugin(
             pluginManager,
-            new LSAndTSDocResolver(docManager, [pathToUrl(testDir)], pluginManager)
+            new LSAndTSDocResolver(docManager, workspaceUris, pluginManager),
+            workspaceUris,
+            docManager
         );
-        docManager.openDocument({ uri, text: document.getText() });
+        docManager.openClientDocument({ uri, text: document.getText() });
         const append = (newText: string) =>
             docManager.updateDocument({ uri, version: 1 }, [
                 { range: Range.create(Position.create(9, 0), Position.create(9, 0)), text: newText }
@@ -31,8 +34,22 @@ describe('TypeScript Plugin Performance Tests', () => {
         return { plugin, document, append, prepend };
     }
 
-    it('should be fast enough', async () => {
+    it('should be fast enough', async function () {
+        // allow to set a higher timeout for slow machines from cli flag
+        const performanceTimeout = Math.max(this.timeout(), 25_000);
+        this.timeout(performanceTimeout);
+
         const { document, plugin, append, prepend } = setup('performance.svelte');
+
+        const benchmarkElapse = Math.ceil(await benchmark());
+        // it usually takes around 5-6 times of the benchmark result
+        // plus 1 for the benchmark itself
+        const newTimeout = benchmarkElapse * 7;
+
+        if (newTimeout < performanceTimeout) {
+            console.log(`Benchmark took ${benchmarkElapse}ms. Setting timeout to ${newTimeout}ms`);
+            this.timeout(newTimeout);
+        }
 
         const start = performance.now();
         for (let i = 0; i < 100; i++) {
@@ -54,5 +71,18 @@ describe('TypeScript Plugin Performance Tests', () => {
         const end = performance.now();
 
         console.log(`Performance test took ${end - start}ms`);
-    }).timeout(15000);
+
+        async function benchmark() {
+            const start = performance.now();
+            for (let i = 0; i < 5; i++) {
+                ts.createProgram({
+                    options: {},
+                    rootNames: [document.getFilePath()!]
+                });
+            }
+            const end = performance.now();
+
+            return end - start;
+        }
+    });
 });

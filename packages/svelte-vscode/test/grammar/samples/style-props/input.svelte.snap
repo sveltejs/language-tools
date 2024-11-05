@@ -1,0 +1,14 @@
+><Component --rail-color="black"></Component>
+#^ source.svelte meta.scope.tag.Component.svelte meta.tag.start.svelte punctuation.definition.tag.begin.svelte
+# ^^^^^^^^^ source.svelte meta.scope.tag.Component.svelte meta.tag.start.svelte support.class.component.svelte
+#          ^ source.svelte meta.scope.tag.Component.svelte meta.tag.start.svelte
+#           ^^^^^^^^^^^^ source.svelte meta.scope.tag.Component.svelte meta.tag.start.svelte meta.attribute.--rail-color.svelte support.type.property-name.svelte
+#                       ^ source.svelte meta.scope.tag.Component.svelte meta.tag.start.svelte meta.attribute.--rail-color.svelte punctuation.separator.key-value.svelte
+#                        ^ source.svelte meta.scope.tag.Component.svelte meta.tag.start.svelte meta.attribute.--rail-color.svelte string.quoted.svelte punctuation.definition.string.begin.svelte
+#                         ^^^^^ source.svelte meta.scope.tag.Component.svelte meta.tag.start.svelte meta.attribute.--rail-color.svelte string.quoted.svelte
+#                              ^ source.svelte meta.scope.tag.Component.svelte meta.tag.start.svelte meta.attribute.--rail-color.svelte string.quoted.svelte punctuation.definition.string.end.svelte
+#                               ^ source.svelte meta.scope.tag.Component.svelte meta.tag.start.svelte punctuation.definition.tag.end.svelte
+#                                ^^ source.svelte meta.scope.tag.Component.svelte meta.tag.end.svelte punctuation.definition.tag.begin.svelte
+#                                  ^^^^^^^^^ source.svelte meta.scope.tag.Component.svelte meta.tag.end.svelte support.class.component.svelte
+#                                           ^ source.svelte meta.scope.tag.Component.svelte meta.tag.end.svelte punctuation.definition.tag.end.svelte
+>

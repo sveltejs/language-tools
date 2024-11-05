@@ -1,0 +1,1 @@
+ {const $$action_0 = __sveltets_2_ensureAction(blink(svelteHTML.mapElementTag('h1')));{ svelteHTML.createElement("h1", __sveltets_2_union($$action_0), { });  }}

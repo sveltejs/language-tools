@@ -8,7 +8,8 @@ import {
     ITranspiledSvelteDocument
 } from '../../../src/plugins/svelte/SvelteDocument';
 import { configLoader, SvelteConfig } from '../../../src/lib/documents/configLoader';
-import { Preprocessor } from 'svelte/types/compiler/preprocess/types';
+// @ts-ignore
+import { Preprocessor } from 'svelte/types/compiler/preprocess';
 
 describe('Svelte Document', () => {
     function getSourceCode(transpiled: boolean): string {
@@ -97,6 +98,7 @@ describe('Svelte Document', () => {
             sinon
                 .stub(importPackage, 'getPackageInfo')
                 .returns({ path: '', version: { full: '', major: 3, minor: 31, patch: 0 } });
+            // @ts-ignore
             sinon.stub(importPackage, 'importSvelte').returns({
                 preprocess: (text, preprocessor) => {
                     preprocessor = Array.isArray(preprocessor) ? preprocessor : [preprocessor];
@@ -108,7 +110,6 @@ describe('Svelte Document', () => {
                         map: <any>null
                     });
                 },
-                walk: <any>null,
                 VERSION: <any>'',
                 compile: <any>null,
                 parse: <any>null

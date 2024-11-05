@@ -1,0 +1,57 @@
+[
+    {
+        "range": {
+            "start": { "line": 19, "character": 1 },
+            "end": { "line": 19, "character": 11 }
+        },
+        "severity": 1,
+        "source": "ts",
+        "message": "Argument of type 'typeof DoesntWork' is not assignable to parameter of type 'ConstructorOfATypedSvelteComponent | Component<any, any, any> | null | undefined'.\n  Type 'typeof DoesntWork' is not assignable to type 'ConstructorOfATypedSvelteComponent'.\n    Type 'DoesntWork' is missing the following properties from type 'ATypedSvelteComponent': $$prop_def, $$events_def, $$slot_def, $on\n\nPossible causes:\n- You use the instance type of a component where you should use the constructor type\n- Type definitions are missing for this Svelte Component. ",
+        "code": 2345,
+        "tags": []
+    },
+    {
+        "range": {
+            "start": { "line": 20, "character": 10 },
+            "end": { "line": 20, "character": 25 }
+        },
+        "severity": 1,
+        "source": "ts",
+        "message": "Type 'boolean' is not assignable to type 'never'.",
+        "code": 2322,
+        "tags": []
+    },
+    {
+        "range": {
+            "start": { "line": 21, "character": 24 },
+            "end": { "line": 21, "character": 34 }
+        },
+        "severity": 1,
+        "source": "ts",
+        "message": "Argument of type 'typeof DoesntWork' is not assignable to parameter of type 'ConstructorOfATypedSvelteComponent | Component<any, any, any> | null | undefined'.\n  Type 'typeof DoesntWork' is not assignable to type 'ConstructorOfATypedSvelteComponent'.\n    Type 'DoesntWork' is missing the following properties from type 'ATypedSvelteComponent': $$prop_def, $$events_def, $$slot_def, $on\n\nPossible causes:\n- You use the instance type of a component where you should use the constructor type\n- Type definitions are missing for this Svelte Component. ",
+        "code": 2345,
+        "tags": []
+    },
+    {
+        "range": {
+            "start": { "line": 24, "character": 1 },
+            "end": { "line": 24, "character": 11 }
+        },
+        "severity": 1,
+        "source": "ts",
+        "message": "Argument of type 'typeof DoesntWork' is not assignable to parameter of type 'ConstructorOfATypedSvelteComponent | Component<any, any, any> | null | undefined'.\n  Type 'typeof DoesntWork' is not assignable to type 'ConstructorOfATypedSvelteComponent'.\n    Type 'DoesntWork' is missing the following properties from type 'ATypedSvelteComponent': $$prop_def, $$events_def, $$slot_def, $on\n\nPossible causes:\n- You use the instance type of a component where you should use the constructor type\n- Type definitions are missing for this Svelte Component. ",
+        "code": 2345,
+        "tags": []
+    },
+    {
+        "range": {
+            "start": { "line": 27, "character": 24 },
+            "end": { "line": 27, "character": 34 }
+        },
+        "severity": 1,
+        "source": "ts",
+        "message": "Argument of type 'typeof DoesntWork' is not assignable to parameter of type 'ConstructorOfATypedSvelteComponent | Component<any, any, any> | null | undefined'.\n  Type 'typeof DoesntWork' is not assignable to type 'ConstructorOfATypedSvelteComponent'.\n    Type 'DoesntWork' is missing the following properties from type 'ATypedSvelteComponent': $$prop_def, $$events_def, $$slot_def, $on\n\nPossible causes:\n- You use the instance type of a component where you should use the constructor type\n- Type definitions are missing for this Svelte Component. ",
+        "code": 2345,
+        "tags": []
+    }
+]

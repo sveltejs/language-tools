@@ -1,0 +1,1 @@
+ { const $$_tnenopmoc_etlevs0C = __sveltets_2_ensureComponent(A); const $$_tnenopmoc_etlevs0 = new $$_tnenopmoc_etlevs0C({ target: __sveltets_2_any(), props: {   }});element = $$_tnenopmoc_etlevs0;}

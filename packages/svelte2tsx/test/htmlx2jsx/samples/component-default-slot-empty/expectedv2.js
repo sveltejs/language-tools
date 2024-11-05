@@ -1,0 +1,1 @@
+ { const $$_tnenopmoC0C = __sveltets_2_ensureComponent(Component); const $$_tnenopmoC0 = new $$_tnenopmoC0C({ target: __sveltets_2_any(), props: {   }});{const {/*Ωignore_startΩ*/$$_$$/*Ωignore_endΩ*/,var:new_var,other_var,} = $$_tnenopmoC0.$$slot_def.default;$$_$$; }Component}

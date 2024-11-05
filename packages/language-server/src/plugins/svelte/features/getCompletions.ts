@@ -124,7 +124,9 @@ function getCompletionsWithRegardToTriggerCharacter(
     if (triggerCharacter === '@') {
         return createCompletionItems([
             { tag: 'html', label: 'html' },
-            { tag: 'debug', label: 'debug' }
+            { tag: 'debug', label: 'debug' },
+            { tag: 'const', label: 'const' },
+            { tag: 'render', label: 'render' }
         ]);
     }
 
@@ -142,7 +144,8 @@ function getCompletionsWithRegardToTriggerCharacter(
                 label: 'await then',
                 insertText: 'await $1 then $2}\n\t$3\n{/await'
             },
-            { tag: 'key', label: 'key', insertText: 'key $1}\n\t$2\n{/key' }
+            { tag: 'key', label: 'key', insertText: 'key $1}\n\t$2\n{/key' },
+            { tag: 'snippet', label: 'snippet', insertText: 'snippet $1($2)}\n\t$3\n{/snippet' }
         ]);
     }
 
@@ -206,6 +209,7 @@ function showCompletionWithRegardsToOpenedTags(
         ifOpen: CompletionList;
         awaitOpen: CompletionList;
         keyOpen?: CompletionList;
+        snippetOpen?: CompletionList;
     },
     svelteDoc: SvelteDocument,
     offset: number
@@ -219,6 +223,8 @@ function showCompletionWithRegardsToOpenedTags(
             return on.awaitOpen;
         case 'key':
             return on?.keyOpen ?? null;
+        case 'snippet':
+            return on.snippetOpen ?? null;
         default:
             return null;
     }

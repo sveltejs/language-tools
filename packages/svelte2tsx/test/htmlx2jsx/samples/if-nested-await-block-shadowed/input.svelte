@@ -4,6 +4,12 @@
     {:catch}
         {hello}
     {/await}
+    {#await aPromise then foo}
+        {@const hello = foo}
+        {hello}
+    {:catch}
+        {hello}
+    {/await}
     {#await aPromise then hi}
         {hello}
     {:catch hello}
@@ -21,6 +27,12 @@
                 {hello}
             {/await}
             {#await x then hello}
+                {#if hello}
+                    {hello}
+                {/if}
+            {/await}
+            {#await x then foo}
+                {@const hello = foo}
                 {#if hello}
                     {hello}
                 {/if}

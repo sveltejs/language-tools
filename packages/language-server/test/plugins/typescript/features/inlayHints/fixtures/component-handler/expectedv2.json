@@ -1,0 +1,44 @@
+[
+    {
+        "label": [{ "value": ": " }, { "value": "void" }],
+        "position": { "line": 5, "character": 30 },
+        "kind": 1,
+        "paddingLeft": true
+    },
+    {
+        "label": [
+            { "value": ": " },
+            {
+                "value": "MouseEvent",
+                "location": {
+                    "range": {
+                        "start": { "line": 15340, "character": 10 },
+                        "end": { "line": 15340, "character": 20 }
+                    },
+                    "uri": "<node_modules>/typescript/lib/lib.dom.d.ts"
+                }
+            }
+        ],
+        "position": { "line": 9, "character": 22 },
+        "kind": 1,
+        "paddingLeft": true
+    },
+    {
+        "label": [
+            {
+                "value": "message",
+                "location": {
+                    "range": {
+                        "start": { "line": 5, "character": 17 },
+                        "end": { "line": 5, "character": 24 }
+                    },
+                    "uri": "<workspaceUri>/component-handler/input.svelte"
+                }
+            },
+            { "value": ":" }
+        ],
+        "position": { "line": 9, "character": 30 },
+        "kind": 2,
+        "paddingRight": true
+    }
+]

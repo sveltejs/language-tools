@@ -1,13 +1,11 @@
 <script lang="ts">
   import { writable } from 'svelte/store';
-  import { SvelteComponentTyped } from 'svelte';
+  import { Component } from './components'
 
   const storeNr = writable(1);
   const storeBool = writable(true);
   const storeObjNr = writable({foo: 1});
   const storeObjBool = writable({foo: true});
-
-  class Component extends SvelteComponentTyped<{prop: number}> {}
 </script>
 
 <!-- valid -->

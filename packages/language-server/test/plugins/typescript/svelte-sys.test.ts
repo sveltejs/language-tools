@@ -1,7 +1,6 @@
 import * as assert from 'assert';
 import sinon from 'sinon';
 import ts from 'typescript';
-import { DocumentSnapshot } from '../../../src/plugins/typescript/DocumentSnapshot';
 import { createSvelteSys } from '../../../src/plugins/typescript/svelte-sys';
 
 describe('Svelte Sys', () => {
@@ -14,58 +13,40 @@ describe('Svelte Sys', () => {
         const svelteFile = 'const a = "svelte file";';
 
         const fileExistsStub = sinon.stub().returns(true);
-        const getSnapshotStub = sinon.stub().callsFake(
-            (path: string) =>
-                <Partial<DocumentSnapshot>>{
-                    getText: () => (path.endsWith('.svelte.ts') ? svelteFile : tsFile),
-                    getLength: () =>
-                        path.endsWith('.svelte.ts') ? svelteFile.length : tsFile.length
-                }
-        );
 
-        sinon.replace(ts.sys, 'fileExists', fileExistsStub);
-        const loader = createSvelteSys(getSnapshotStub);
+        // sinon.replace(ts.sys, 'fileExists', fileExistsStub);
+        const loader = createSvelteSys({
+            ...ts.sys,
+            fileExists: fileExistsStub
+        });
 
         return {
             tsFile,
             svelteFile,
             fileExistsStub,
-            getSnapshotStub,
             loader
         };
     }
 
     describe('#fileExists', () => {
-        it('should leave files with no .svelte.ts-ending as is', async () => {
+        it('should leave files with no .d.svelte.ts-ending as is', async () => {
             const { loader, fileExistsStub } = setupLoader();
             loader.fileExists('../file.ts');
 
             assert.strictEqual(fileExistsStub.getCall(0).args[0], '../file.ts');
         });
 
-        it('should convert .svelte.ts-endings', async () => {
+        it('should convert .d.svelte.ts-endings', async () => {
             const { loader, fileExistsStub } = setupLoader();
-            loader.fileExists('../file.svelte.ts');
+            fileExistsStub.onCall(0).returns(false);
+            fileExistsStub.onCall(1).returns(false);
+            fileExistsStub.onCall(2).returns(true);
 
-            assert.strictEqual(fileExistsStub.getCall(0).args[0], '../file.svelte');
-        });
-    });
+            loader.fileExists('../file.d.svelte.ts');
 
-    describe('#readFile', () => {
-        it('should invoke getSnapshot for ts/js files', async () => {
-            const { loader, getSnapshotStub, tsFile } = setupLoader();
-            const code = loader.readFile('../file.ts')!;
-
-            assert.strictEqual(getSnapshotStub.called, true);
-            assert.strictEqual(code, tsFile);
-        });
-
-        it('should invoke getSnapshot for svelte files', async () => {
-            const { loader, getSnapshotStub, svelteFile } = setupLoader();
-            const code = loader.readFile('../file.svelte.ts')!;
-
-            assert.strictEqual(getSnapshotStub.called, true);
-            assert.strictEqual(code, svelteFile);
+            assert.strictEqual(fileExistsStub.getCall(0).args[0], '../file.svelte.d.ts');
+            assert.strictEqual(fileExistsStub.getCall(1).args[0], '../file.d.svelte.ts');
+            assert.strictEqual(fileExistsStub.getCall(2).args[0], '../file.svelte');
         });
     });
 });

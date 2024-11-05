@@ -1,0 +1,57 @@
+>{#if abc}
+#^ source.svelte meta.special.if.svelte meta.special.start.svelte punctuation.definition.block.begin.svelte
+# ^ source.svelte meta.special.if.svelte meta.special.start.svelte punctuation.definition.keyword.svelte
+#  ^^ source.svelte meta.special.if.svelte meta.special.start.svelte keyword.control.conditional.svelte
+#    ^^^^ source.svelte meta.special.if.svelte meta.special.start.svelte meta.embedded.expression.svelte source.ts
+#        ^ source.svelte meta.special.if.svelte meta.special.start.svelte punctuation.definition.block.end.svelte
+>    <div>{abc}</div>
+#^^^^ source.svelte text.svelte
+#    ^ source.svelte meta.scope.tag.div.svelte meta.tag.start.svelte punctuation.definition.tag.begin.svelte
+#     ^^^ source.svelte meta.scope.tag.div.svelte meta.tag.start.svelte entity.name.tag.svelte
+#        ^ source.svelte meta.scope.tag.div.svelte meta.tag.start.svelte punctuation.definition.tag.end.svelte
+#         ^ source.svelte punctuation.section.embedded.begin.svelte
+#          ^^^ source.svelte meta.embedded.expression.svelte source.ts
+#             ^ source.svelte punctuation.section.embedded.end.svelte
+#              ^^ source.svelte meta.scope.tag.div.svelte meta.tag.end.svelte punctuation.definition.tag.begin.svelte
+#                ^^^ source.svelte meta.scope.tag.div.svelte meta.tag.end.svelte entity.name.tag.svelte
+#                   ^ source.svelte meta.scope.tag.div.svelte meta.tag.end.svelte punctuation.definition.tag.end.svelte
+>{:else if 1}
+#^ source.svelte meta.special.else if.svelte punctuation.definition.block.begin.svelte
+# ^ source.svelte meta.special.else if.svelte punctuation.definition.keyword.svelte
+#  ^^^^^^^ source.svelte meta.special.else if.svelte keyword.control.conditional.svelte
+#         ^^ source.svelte meta.special.else if.svelte meta.embedded.expression.svelte source.ts
+#           ^ source.svelte meta.special.else if.svelte punctuation.definition.block.end.svelte
+>{:else}
+#^ source.svelte meta.special.else.svelte punctuation.definition.block.begin.svelte
+# ^ source.svelte meta.special.else.svelte punctuation.definition.keyword.svelte
+#  ^^^^ source.svelte meta.special.else.svelte keyword.control.conditional.svelte
+#      ^ source.svelte meta.special.else.svelte punctuation.definition.block.end.svelte
+>{/if}
+#^ source.svelte meta.special.if.svelte meta.special.end.svelte punctuation.definition.block.begin.svelte
+# ^ source.svelte meta.special.if.svelte meta.special.end.svelte punctuation.definition.keyword.svelte
+#  ^^ source.svelte meta.special.if.svelte meta.special.end.svelte keyword.control.conditional.svelte
+#    ^ source.svelte meta.special.if.svelte meta.special.end.svelte punctuation.definition.block.end.svelte
+>
+>
+>{#if asd}
+#^ source.svelte meta.special.if.svelte meta.special.start.svelte punctuation.definition.block.begin.svelte
+# ^ source.svelte meta.special.if.svelte meta.special.start.svelte punctuation.definition.keyword.svelte
+#  ^^ source.svelte meta.special.if.svelte meta.special.start.svelte keyword.control.conditional.svelte
+#    ^^^^ source.svelte meta.special.if.svelte meta.special.start.svelte meta.embedded.expression.svelte source.ts
+#        ^ source.svelte meta.special.if.svelte meta.special.start.svelte punctuation.definition.block.end.svelte
+>  asdddddddddddddddd
+#^^^^^^^^^^^^^^^^^^^^^ source.svelte text.svelte
+>  dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.svelte text.svelte
+>{:else if asd}dddddd{/if}
+#^ source.svelte meta.special.else if.svelte punctuation.definition.block.begin.svelte
+# ^ source.svelte meta.special.else if.svelte punctuation.definition.keyword.svelte
+#  ^^^^^^^ source.svelte meta.special.else if.svelte keyword.control.conditional.svelte
+#         ^^^^ source.svelte meta.special.else if.svelte meta.embedded.expression.svelte source.ts
+#             ^ source.svelte meta.special.else if.svelte punctuation.definition.block.end.svelte
+#              ^^^^^^ source.svelte text.svelte
+#                    ^ source.svelte meta.special.if.svelte meta.special.end.svelte punctuation.definition.block.begin.svelte
+#                     ^ source.svelte meta.special.if.svelte meta.special.end.svelte punctuation.definition.keyword.svelte
+#                      ^^ source.svelte meta.special.if.svelte meta.special.end.svelte keyword.control.conditional.svelte
+#                        ^ source.svelte meta.special.if.svelte meta.special.end.svelte punctuation.definition.block.end.svelte
+>

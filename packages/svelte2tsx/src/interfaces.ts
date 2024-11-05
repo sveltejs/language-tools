@@ -1,4 +1,5 @@
 import { ArrayPattern, Identifier, ObjectPattern, Node } from 'estree';
+// @ts-ignore
 import { DirectiveType, TemplateNode } from 'svelte/types/compiler/interfaces';
 
 export interface NodeRange {
@@ -17,6 +18,11 @@ export interface WithName {
     name: string;
 }
 
+export interface ConstTag extends NodeRange {
+    type: 'ConstTag';
+    expression: any;
+}
+
 // Copied from the Svelte type definitions
 export interface BaseNode {
     start: number;
@@ -28,11 +34,15 @@ export interface BaseNode {
 
 export interface BaseDirective extends BaseNode {
     type: DirectiveType;
-    expression: null | Node;
+    expression: null | (Node & BaseNode);
     name: string;
     modifiers: string[];
 }
 
 export interface Attribute extends BaseNode {
+    value: BaseNode[] | true;
+}
+
+export interface StyleDirective extends BaseNode {
     value: BaseNode[] | true;
 }

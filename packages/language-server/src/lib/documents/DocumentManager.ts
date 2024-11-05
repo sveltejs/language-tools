@@ -6,6 +6,8 @@ import {
 } from 'vscode-languageserver';
 import { Document } from './Document';
 import { normalizeUri } from '../../utils';
+import ts from 'typescript';
+import { FileMap, FileSet } from './fileCollection';
 
 export type DocumentEvent = 'documentOpen' | 'documentChange' | 'documentClose';
 
@@ -14,24 +16,43 @@ export type DocumentEvent = 'documentOpen' | 'documentChange' | 'documentClose';
  */
 export class DocumentManager {
     private emitter = new EventEmitter();
-    private openedInClient = new Set<string>();
-    private documents: Map<string, Document> = new Map();
-    private locked = new Set<string>();
-    private deleteCandidates = new Set<string>();
+    private documents: FileMap<Document>;
+    private locked: FileSet;
+    private deleteCandidates: FileSet;
 
     constructor(
-        private createDocument: (textDocument: Pick<TextDocumentItem, 'text' | 'uri'>) => Document
-    ) {}
+        private createDocument: (textDocument: Pick<TextDocumentItem, 'text' | 'uri'>) => Document,
+        options: { useCaseSensitiveFileNames: boolean } = {
+            useCaseSensitiveFileNames: ts.sys.useCaseSensitiveFileNames
+        }
+    ) {
+        this.documents = new FileMap(options.useCaseSensitiveFileNames);
+        this.locked = new FileSet(options.useCaseSensitiveFileNames);
+        this.deleteCandidates = new FileSet(options.useCaseSensitiveFileNames);
+    }
 
-    openDocument(textDocument: Pick<TextDocumentItem, 'text' | 'uri'>): Document {
-        textDocument = { ...textDocument, uri: normalizeUri(textDocument.uri) };
+    openClientDocument(textDocument: Pick<TextDocumentItem, 'text' | 'uri'>): Document {
+        return this.openDocument(textDocument, /**openedByClient */ true);
+    }
+
+    openDocument(
+        textDocument: Pick<TextDocumentItem, 'text' | 'uri'>,
+        openedByClient: boolean
+    ): Document {
+        textDocument = {
+            ...textDocument,
+            uri: normalizeUri(textDocument.uri)
+        };
 
         let document: Document;
         if (this.documents.has(textDocument.uri)) {
             document = this.documents.get(textDocument.uri)!;
+            // open state should only be updated when the document is closed
+            document.openedByClient ||= openedByClient;
             document.setText(textDocument.text);
         } else {
             document = this.createDocument(textDocument);
+            document.openedByClient = openedByClient;
             this.documents.set(textDocument.uri, document);
             this.notify('documentOpen', document);
         }
@@ -46,20 +67,29 @@ export class DocumentManager {
     }
 
     markAsOpenedInClient(uri: string): void {
-        this.openedInClient.add(normalizeUri(uri));
+        const document = this.documents.get(normalizeUri(uri));
+        if (document) {
+            document.openedByClient = true;
+        }
     }
 
     getAllOpenedByClient() {
-        return Array.from(this.documents.entries()).filter((doc) =>
-            this.openedInClient.has(doc[0])
-        );
+        return Array.from(this.documents.entries()).filter((doc) => doc[1].openedByClient);
+    }
+
+    isOpenedInClient(uri: string) {
+        const document = this.documents.get(normalizeUri(uri));
+        return !!document?.openedByClient;
     }
 
     releaseDocument(uri: string): void {
         uri = normalizeUri(uri);
 
         this.locked.delete(uri);
-        this.openedInClient.delete(uri);
+        const document = this.documents.get(uri);
+        if (document) {
+            document.openedByClient = false;
+        }
         if (this.deleteCandidates.has(uri)) {
             this.deleteCandidates.delete(uri);
             this.closeDocument(uri);
@@ -83,7 +113,7 @@ export class DocumentManager {
             this.deleteCandidates.add(uri);
         }
 
-        this.openedInClient.delete(uri);
+        document.openedByClient = false;
     }
 
     updateDocument(
