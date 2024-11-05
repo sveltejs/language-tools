@@ -288,7 +288,11 @@ export class ExportedNames {
                                       ? 'boolean'
                                       : ts.isIdentifier(element.initializer)
                                         ? `typeof ${element.initializer.text}`
-                                        : 'unknown';
+                                        : ts.isObjectLiteralExpression(element.initializer)
+                                          ? 'Record<string, unknown>'
+                                          : ts.isArrayLiteralExpression(element.initializer)
+                                            ? 'unknown[]'
+                                            : 'unknown';
                             props.push(`${name}?: ${type}`);
                         } else {
                             props.push(`${name}: unknown`);
