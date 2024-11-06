@@ -134,6 +134,13 @@ export function emitDts(config: EmitDtsConfig): Promise<void>;
  * static top level `ts` namespace, it must be passed as a parameter.
  */
 export const internalHelpers: {
+    get_global_types: (
+        tsSystem: ts.System,
+        isSvelte3: boolean,
+        sveltePath: string,
+        typesPath: string,
+        hiddenFolderPath?: string,
+    ) => string[],
     isKitFile: (
         fileName: string,
         options: InternalHelpers.KitFilesSettings
