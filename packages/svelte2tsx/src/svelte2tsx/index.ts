@@ -16,7 +16,7 @@ import { SlotHandler } from './nodes/slot';
 import { Stores } from './nodes/Stores';
 import TemplateScope from './nodes/TemplateScope';
 import { processInstanceScriptContent } from './processInstanceScriptContent';
-import { processModuleScriptTag } from './processModuleScriptTag';
+import { createModuleAst, ModuleAst, processModuleScriptTag } from './processModuleScriptTag';
 import { ScopeStack } from './utils/Scope';
 import { Generics } from './nodes/Generics';
 import { addComponentExport } from './addComponentExport';
@@ -362,7 +362,11 @@ export function svelte2tsx(
      */
     let instanceScriptTarget = 0;
 
+    let moduleAst: ModuleAst | undefined;
+
     if (moduleScriptTag) {
+        moduleAst = createModuleAst(str, moduleScriptTag);
+
         if (moduleScriptTag.start != 0) {
             //move our module tag to the top
             str.move(moduleScriptTag.start, moduleScriptTag.end, 0);
@@ -398,7 +402,7 @@ export function svelte2tsx(
             events,
             implicitStoreValues,
             options.mode,
-            /**hasModuleScripts */ !!moduleScriptTag,
+            moduleAst,
             options?.isTsFile,
             basename,
             svelte5Plus,
@@ -443,7 +447,8 @@ export function svelte2tsx(
                 implicitStoreValues.getAccessedStores(),
                 renderFunctionStart,
                 scriptTag || options.mode === 'ts' ? undefined : (input) => `</>;${input}<>`
-            )
+            ),
+            moduleAst
         );
     }
 
