@@ -333,7 +333,12 @@ export class HTMLPlugin
             return null;
         }
 
-        return { ranges };
+        // Note that `.` is excluded from the word pattern. This is intentional to support property access in Svelte component tags.
+        return {
+            ranges,
+            wordPattern:
+                '(-?\\d*\\.\\d\\w*)|([^\\`\\~\\!\\@\\#\\^\\&\\*\\(\\)\\=\\+\\[\\{\\]\\}\\\\\\|\\;\\:\\\'\\"\\,\\<\\>\\/\\s]+)'
+        };
     }
 
     getFoldingRanges(document: Document): FoldingRange[] {
