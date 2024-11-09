@@ -277,22 +277,33 @@ export class ExportedNames {
                                 props.push(`form: import('./$types.js').ActionData`);
                             }
                         } else if (element.initializer) {
-                            const type = ts.isAsExpression(element.initializer)
-                                ? element.initializer.type.getText()
-                                : ts.isStringLiteral(element.initializer)
-                                  ? 'string'
-                                  : ts.isNumericLiteral(element.initializer)
-                                    ? 'number'
-                                    : element.initializer.kind === ts.SyntaxKind.TrueKeyword ||
-                                        element.initializer.kind === ts.SyntaxKind.FalseKeyword
-                                      ? 'boolean'
-                                      : ts.isIdentifier(element.initializer)
-                                        ? `typeof ${element.initializer.text}`
-                                        : ts.isObjectLiteralExpression(element.initializer)
-                                          ? 'Record<string, unknown>'
-                                          : ts.isArrayLiteralExpression(element.initializer)
-                                            ? 'unknown[]'
-                                            : 'unknown';
+                            const initializer =
+                                ts.isCallExpression(element.initializer) &&
+                                ts.isIdentifier(element.initializer.expression) &&
+                                element.initializer.expression.text === '$bindable'
+                                    ? element.initializer.arguments[0]
+                                    : element.initializer;
+                            const type = !initializer
+                                ? 'unknown'
+                                : ts.isAsExpression(initializer)
+                                  ? initializer.type.getText()
+                                  : ts.isStringLiteral(initializer)
+                                    ? 'string'
+                                    : ts.isNumericLiteral(initializer)
+                                      ? 'number'
+                                      : initializer.kind === ts.SyntaxKind.TrueKeyword ||
+                                          initializer.kind === ts.SyntaxKind.FalseKeyword
+                                        ? 'boolean'
+                                        : ts.isIdentifier(initializer) &&
+                                            initializer.text !== 'undefined'
+                                          ? `typeof ${initializer.text}`
+                                          : ts.isArrowFunction(initializer)
+                                            ? 'Function'
+                                            : ts.isObjectLiteralExpression(initializer)
+                                              ? 'Record<string, unknown>'
+                                              : ts.isArrayLiteralExpression(initializer)
+                                                ? 'unknown[]'
+                                                : 'unknown';
                             props.push(`${name}?: ${type}`);
                         } else {
                             props.push(`${name}: unknown`);
