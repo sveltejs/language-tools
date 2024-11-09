@@ -633,12 +633,13 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
             throw new Error('Cannot call methods on an unopened document');
         }
 
-        return await this.execute<CodeLens[]>(
+        const result = await this.execute<CodeLens[]>(
             'getCodeLens',
             [document],
-            ExecuteMode.FirstNonNull,
+            ExecuteMode.Collect,
             'smart'
         );
+        return flatten(result.filter(Boolean));
     }
 
     async getFoldingRanges(textDocument: TextDocumentIdentifier): Promise<FoldingRange[]> {
