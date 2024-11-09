@@ -51,6 +51,8 @@ export class SveltePlugin
     constructor(private configManager: LSConfigManager) {}
 
     async getCodeLens(document: Document): Promise<CodeLens[] | null> {
+        if (!this.featureEnabled('runesLegacyModeCodeLens')) return null;
+
         const doc = await this.getSvelteDoc(document);
         if (!doc.isSvelte5) return null;
 
