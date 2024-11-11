@@ -10,22 +10,22 @@ const defaultScriptTemplate = `
 const tsSv5ScriptTemplate = `
 <script lang="ts">
     import type { LayoutData } from './$types';
-    
-    let { data }: LayoutData = $props();
+
+    let { data }: { data: LayoutData } = $props();
 </script>
 `;
 
 const tsScriptTemplate = `
 <script lang="ts">
     import type { LayoutData } from './$types';
-    
+
     export let data: LayoutData;
 </script>
 `;
 
 const jsSv5ScriptTemplate = `
 <script>
-    /** @type {import('./$types').LayoutData} */
+    /** @type {{ data: import('./$types').LayoutData }} */
     let { data } = $props();
 </script>
 `;
