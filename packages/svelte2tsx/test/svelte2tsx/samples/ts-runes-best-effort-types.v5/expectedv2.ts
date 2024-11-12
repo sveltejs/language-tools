@@ -1,6 +1,6 @@
 ///<reference types="svelte" />
 ;function render() {
-/*Ωignore_startΩ*/;type $$ComponentProps = { a: unknown, b?: boolean, c?: number, d?: string, e?: unknown, f?: Record<string, unknown>, g?: typeof foo, h?: Bar, i?: Baz, j?: unknown[], k?: unknown, l?: unknown, m?: number, n?: Function };/*Ωignore_endΩ*/
+/*Ωignore_startΩ*/;type $$ComponentProps = { a: any, b?: boolean, c?: number, d?: string, e?: any, f?: Record<string, any>, g?: typeof foo, h?: Bar, i?: Baz, j?: any[], k?: any, l?: any, m?: number, n?: Function };/*Ωignore_endΩ*/
     let { a, b = true, c = 1, d = '', e = null, f = {}, g = foo, h = null as Bar, i = null as any as Baz, j = [], k = undefined, l = $bindable(), m = $bindable(1), n = () => {} }: $$ComponentProps = $props(); 
 ;
 async () => {};

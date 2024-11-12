@@ -284,7 +284,7 @@ export class ExportedNames {
                                     ? element.initializer.arguments[0]
                                     : element.initializer;
                             const type = !initializer
-                                ? 'unknown'
+                                ? 'any'
                                 : ts.isAsExpression(initializer)
                                   ? initializer.type.getText()
                                   : ts.isStringLiteral(initializer)
@@ -300,13 +300,13 @@ export class ExportedNames {
                                           : ts.isArrowFunction(initializer)
                                             ? 'Function'
                                             : ts.isObjectLiteralExpression(initializer)
-                                              ? 'Record<string, unknown>'
+                                              ? 'Record<string, any>'
                                               : ts.isArrayLiteralExpression(initializer)
-                                                ? 'unknown[]'
-                                                : 'unknown';
+                                                ? 'any[]'
+                                                : 'any';
                             props.push(`${name}?: ${type}`);
                         } else {
-                            props.push(`${name}: unknown`);
+                            props.push(`${name}: any`);
                         }
                     }
                 }
@@ -317,15 +317,14 @@ export class ExportedNames {
 
                 if (props.length > 0) {
                     propsStr =
-                        `{ ${props.join(', ')} }` +
-                        (withUnknown ? ' & Record<string, unknown>' : '');
+                        `{ ${props.join(', ')} }` + (withUnknown ? ' & Record<string, any>' : '');
                 } else if (withUnknown) {
-                    propsStr = 'Record<string, unknown>';
+                    propsStr = 'Record<string, any>';
                 } else {
                     propsStr = 'Record<string, never>';
                 }
             } else {
-                propsStr = 'Record<string, unknown>';
+                propsStr = 'Record<string, any>';
             }
 
             // Create a virtual type alias for the unnamed generic and reuse it for the props return type
