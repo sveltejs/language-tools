@@ -29,7 +29,7 @@ export class HoistableInterfaces {
             ) {
                 node.importClause.namedBindings.elements.forEach((element) => {
                     const import_name = element.name.text;
-                    if (is_type_only) {
+                    if (is_type_only || element.isTypeOnly) {
                         this.import_type_set.add(import_name);
                     } else {
                         this.import_value_set.add(import_name);
@@ -149,6 +149,21 @@ export class HoistableInterfaces {
                         value_dependencies,
                         generics
                     );
+                } else if (ts.isIndexSignatureDeclaration(member)) {
+                    this.collectTypeDependencies(
+                        member.type,
+                        type_dependencies,
+                        value_dependencies,
+                        generics
+                    );
+                    member.parameters.forEach((param) => {
+                        this.collectTypeDependencies(
+                            param.type,
+                            type_dependencies,
+                            value_dependencies,
+                            generics
+                        );
+                    });
                 }
             });
 
