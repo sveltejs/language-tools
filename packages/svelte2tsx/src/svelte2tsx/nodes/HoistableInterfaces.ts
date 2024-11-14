@@ -317,7 +317,7 @@ export class HoistableInterfaces {
             ts.forEachChild(node, walk);
         };
 
-        type_node.forEachChild(walk);
+        walk(type_node);
     }
 
     /**
