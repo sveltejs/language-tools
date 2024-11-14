@@ -35,8 +35,8 @@ type PositionMapper = Pick<DocumentMapper, 'getGeneratedPosition' | 'getOriginal
  * Represents a text document that contains a svelte component.
  */
 export class SvelteDocument {
-    private transpiledDoc: ITranspiledSvelteDocument | undefined;
-    private compileResult: SvelteCompileResult | undefined;
+    private transpiledDoc: Promise<ITranspiledSvelteDocument> | undefined;
+    private compileResult: Promise<SvelteCompileResult> | undefined;
     private svelteVersion: [number, number] | undefined;
 
     public script: TagInformation | null;
@@ -76,12 +76,12 @@ export class SvelteDocument {
             const [major, minor] = this.getSvelteVersion();
 
             if (major > 3 || (major === 3 && minor >= 32)) {
-                this.transpiledDoc = await TranspiledSvelteDocument.create(
+                this.transpiledDoc = TranspiledSvelteDocument.create(
                     this.parent,
                     await this.config
                 );
             } else {
-                this.transpiledDoc = await FallbackTranspiledSvelteDocument.create(
+                this.transpiledDoc = FallbackTranspiledSvelteDocument.create(
                     this.parent,
                     (await this.config)?.preprocess
                 );
@@ -92,7 +92,7 @@ export class SvelteDocument {
 
     async getCompiled(): Promise<SvelteCompileResult> {
         if (!this.compileResult) {
-            this.compileResult = await this.getCompiledWith((await this.config)?.compilerOptions);
+            this.compileResult = this.getCompiledWith((await this.config)?.compilerOptions);
         }
 
         return this.compileResult;
