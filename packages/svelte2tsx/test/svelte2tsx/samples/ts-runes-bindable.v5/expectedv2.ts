@@ -1,6 +1,6 @@
 ///<reference types="svelte" />
 ;function render() {
-/*Ωignore_startΩ*/;type $$ComponentProps = { a: unknown, b?: unknown, c?: number };/*Ωignore_endΩ*/
+/*Ωignore_startΩ*/;type $$ComponentProps = { a: any, b?: any, c?: number };/*Ωignore_endΩ*/
     let { a, b = $bindable(), c = $bindable(0) as number }: $$ComponentProps = $props();
 ;
 async () => {};

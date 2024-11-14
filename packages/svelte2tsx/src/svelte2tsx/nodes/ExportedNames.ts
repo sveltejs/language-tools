@@ -277,25 +277,36 @@ export class ExportedNames {
                                 props.push(`form: import('./$types.js').ActionData`);
                             }
                         } else if (element.initializer) {
-                            const type = ts.isAsExpression(element.initializer)
-                                ? element.initializer.type.getText()
-                                : ts.isStringLiteral(element.initializer)
-                                  ? 'string'
-                                  : ts.isNumericLiteral(element.initializer)
-                                    ? 'number'
-                                    : element.initializer.kind === ts.SyntaxKind.TrueKeyword ||
-                                        element.initializer.kind === ts.SyntaxKind.FalseKeyword
-                                      ? 'boolean'
-                                      : ts.isIdentifier(element.initializer)
-                                        ? `typeof ${element.initializer.text}`
-                                        : ts.isObjectLiteralExpression(element.initializer)
-                                          ? 'Record<string, unknown>'
-                                          : ts.isArrayLiteralExpression(element.initializer)
-                                            ? 'unknown[]'
-                                            : 'unknown';
+                            const initializer =
+                                ts.isCallExpression(element.initializer) &&
+                                ts.isIdentifier(element.initializer.expression) &&
+                                element.initializer.expression.text === '$bindable'
+                                    ? element.initializer.arguments[0]
+                                    : element.initializer;
+                            const type = !initializer
+                                ? 'any'
+                                : ts.isAsExpression(initializer)
+                                  ? initializer.type.getText()
+                                  : ts.isStringLiteral(initializer)
+                                    ? 'string'
+                                    : ts.isNumericLiteral(initializer)
+                                      ? 'number'
+                                      : initializer.kind === ts.SyntaxKind.TrueKeyword ||
+                                          initializer.kind === ts.SyntaxKind.FalseKeyword
+                                        ? 'boolean'
+                                        : ts.isIdentifier(initializer) &&
+                                            initializer.text !== 'undefined'
+                                          ? `typeof ${initializer.text}`
+                                          : ts.isArrowFunction(initializer)
+                                            ? 'Function'
+                                            : ts.isObjectLiteralExpression(initializer)
+                                              ? 'Record<string, any>'
+                                              : ts.isArrayLiteralExpression(initializer)
+                                                ? 'any[]'
+                                                : 'any';
                             props.push(`${name}?: ${type}`);
                         } else {
-                            props.push(`${name}: unknown`);
+                            props.push(`${name}: any`);
                         }
                     }
                 }
@@ -306,15 +317,14 @@ export class ExportedNames {
 
                 if (props.length > 0) {
                     propsStr =
-                        `{ ${props.join(', ')} }` +
-                        (withUnknown ? ' & Record<string, unknown>' : '');
+                        `{ ${props.join(', ')} }` + (withUnknown ? ' & Record<string, any>' : '');
                 } else if (withUnknown) {
-                    propsStr = 'Record<string, unknown>';
+                    propsStr = 'Record<string, any>';
                 } else {
                     propsStr = 'Record<string, never>';
                 }
             } else {
-                propsStr = 'Record<string, unknown>';
+                propsStr = 'Record<string, any>';
             }
 
             // Create a virtual type alias for the unnamed generic and reuse it for the props return type
