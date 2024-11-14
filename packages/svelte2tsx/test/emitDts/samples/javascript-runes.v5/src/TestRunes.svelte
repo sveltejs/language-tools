@@ -1,5 +1,6 @@
-<script lang="ts">
-    let { foo, bar = $bindable() }: { foo: string, bar?: number } = $props();
+<script>
+    /** @type {{ foo: string, bar?: number }} */
+    let { foo, bar = $bindable() } = $props();
 
     export function baz() {}
 </script>
