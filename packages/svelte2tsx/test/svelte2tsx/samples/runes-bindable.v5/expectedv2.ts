@@ -1,7 +1,7 @@
 ///<reference types="svelte" />
 ;function render() {
 
-    let/** @typedef {{ a: unknown, b?: unknown }} $$ComponentProps *//** @type {$$ComponentProps} */ { a, b = $bindable() } = $props();
+    let/** @typedef {{ a: any, b?: any }} $$ComponentProps *//** @type {$$ComponentProps} */ { a, b = $bindable() } = $props();
 ;
 async () => {};
 return { props: /** @type {$$ComponentProps} */({}), exports: {}, bindings: __sveltets_$$bindings('b'), slots: {}, events: {} }}

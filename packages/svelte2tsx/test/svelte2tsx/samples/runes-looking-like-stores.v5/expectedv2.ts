@@ -1,7 +1,7 @@
 ///<reference types="svelte" />
 ;function render() {
 
-    let/** @typedef {{ props: unknown }} $$ComponentProps *//** @type {$$ComponentProps} */ { props } = $props();
+    let/** @typedef {{ props: any }} $$ComponentProps *//** @type {$$ComponentProps} */ { props } = $props();
     let state = $state(0);
     let derived = $derived(state * 2);
 ;

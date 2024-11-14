@@ -384,6 +384,12 @@
                     "title": "Svelte: Rename",
                     "description": "Enable rename/move Svelte files functionality"
                 },
+                "svelte.plugin.svelte.runesLegacyModeCodeLens.enable": {
+                    "type": "boolean",
+                    "default": true,
+                    "title": "Svelte: Legacy/Runes mode Code Lens",
+                    "description": "Show a code lens at the top of Svelte files indicating if they are in runes mode or legacy mode. Only visible in Svelte 5 projects."
+                },
                 "svelte.plugin.svelte.defaultScriptLanguage": {
                     "type": "string",
                     "default": "none",
