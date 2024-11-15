@@ -16,6 +16,7 @@ import {
     handleImportDeclaration
 } from './nodes/handleImportDeclaration';
 import { InterfacesAndTypes } from './nodes/InterfacesAndTypes';
+import { ModuleAst } from './processModuleScriptTag';
 
 export interface InstanceScriptProcessResult {
     exportedNames: ExportedNames;
@@ -39,7 +40,7 @@ export function processInstanceScriptContent(
     events: ComponentEvents,
     implicitStoreValues: ImplicitStoreValues,
     mode: 'ts' | 'dts',
-    hasModuleScript: boolean,
+    moduleAst: ModuleAst | undefined,
     isTSFile: boolean,
     basename: string,
     isSvelte5Plus: boolean,
@@ -65,6 +66,12 @@ export function processInstanceScriptContent(
     );
     const generics = new Generics(str, astOffset, script);
     const interfacesAndTypes = new InterfacesAndTypes();
+
+    if (moduleAst) {
+        moduleAst.tsAst.forEachChild((n) =>
+            exportedNames.hoistableInterfaces.analyzeModuleScriptNode(n)
+        );
+    }
 
     const implicitTopLevelNames = new ImplicitTopLevelNames(str, astOffset);
     let uses$$props = false;
@@ -158,6 +165,10 @@ export function processInstanceScriptContent(
     const walk = (node: ts.Node, parent: ts.Node) => {
         type onLeaveCallback = () => void;
         const onLeaveCallbacks: onLeaveCallback[] = [];
+
+        if (parent === tsAst) {
+            exportedNames.hoistableInterfaces.analyzeInstanceScriptNode(node);
+        }
 
         generics.addIfIsGeneric(node);
 
@@ -290,7 +301,7 @@ export function processInstanceScriptContent(
     implicitTopLevelNames.modifyCode(rootScope.declared);
     implicitStoreValues.modifyCode(astOffset, str);
 
-    handleFirstInstanceImport(tsAst, astOffset, hasModuleScript, str);
+    handleFirstInstanceImport(tsAst, astOffset, !!moduleAst, str);
 
     // move interfaces and types out of the render function if they are referenced
     // by a $$Generic, otherwise it will be used before being defined after the transformation
@@ -306,6 +317,8 @@ export function processInstanceScriptContent(
         // break dts generation (file will not be generated).
         transformInterfacesToTypes(tsAst, str, astOffset, nodesToMove);
     }
+
+    exportedNames.hoistableInterfaces.moveHoistableInterfaces(str, astOffset, script.start);
 
     return {
         exportedNames,
