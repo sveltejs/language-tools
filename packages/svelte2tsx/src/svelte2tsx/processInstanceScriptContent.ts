@@ -318,7 +318,12 @@ export function processInstanceScriptContent(
         transformInterfacesToTypes(tsAst, str, astOffset, nodesToMove);
     }
 
-    exportedNames.hoistableInterfaces.moveHoistableInterfaces(str, astOffset, script.start);
+    exportedNames.hoistableInterfaces.moveHoistableInterfaces(
+        str,
+        astOffset,
+        script.start,
+        generics.getReferences()
+    );
 
     return {
         exportedNames,

@@ -167,11 +167,16 @@ export class HoistableInterfaces {
                 }
             });
 
-            this.interface_map.set(interface_name, {
-                type_deps: type_dependencies,
-                value_deps: value_dependencies,
-                node
-            });
+            if (this.import_type_set.has(interface_name)) {
+                // shadowed; delete because we can't hoist
+                this.import_type_set.delete(interface_name);
+            } else {
+                this.interface_map.set(interface_name, {
+                    type_deps: type_dependencies,
+                    value_deps: value_dependencies,
+                    node
+                });
+            }
         }
 
         // Handle Type Alias Declarations
@@ -188,11 +193,45 @@ export class HoistableInterfaces {
                 generics
             );
 
-            this.interface_map.set(alias_name, {
-                type_deps: type_dependencies,
-                value_deps: value_dependencies,
-                node
+            if (this.import_type_set.has(alias_name)) {
+                // shadowed; delete because we can't hoist
+                this.import_type_set.delete(alias_name);
+            } else {
+                this.interface_map.set(alias_name, {
+                    type_deps: type_dependencies,
+                    value_deps: value_dependencies,
+                    node
+                });
+            }
+        }
+
+        // Handle top-level declarations: They could shadow module declarations; delete them from the set of allowed import values
+        if (ts.isVariableStatement(node)) {
+            node.declarationList.declarations.forEach((declaration) => {
+                if (ts.isIdentifier(declaration.name)) {
+                    this.import_value_set.delete(declaration.name.text);
+                }
             });
+        }
+
+        if (ts.isFunctionDeclaration(node) && node.name) {
+            this.import_value_set.delete(node.name.text);
+        }
+
+        if (ts.isClassDeclaration(node) && node.name) {
+            this.import_value_set.delete(node.name.text);
+        }
+
+        if (ts.isEnumDeclaration(node)) {
+            this.import_value_set.delete(node.name.text);
+        }
+
+        if (ts.isTypeAliasDeclaration(node)) {
+            this.import_type_set.delete(node.name.text);
+        }
+
+        if (ts.isInterfaceDeclaration(node)) {
+            this.import_type_set.delete(node.name.text);
         }
     }
 
@@ -280,8 +319,17 @@ export class HoistableInterfaces {
     /**
      * Moves all interfaces that can be hoisted to the top of the script, if the $props rune's type is hoistable.
      */
-    moveHoistableInterfaces(str: MagicString, astOffset: number, scriptStart: number) {
+    moveHoistableInterfaces(
+        str: MagicString,
+        astOffset: number,
+        scriptStart: number,
+        generics: string[]
+    ) {
         if (!this.props_interface.name) return;
+
+        for (const generic of generics) {
+            this.import_type_set.delete(generic);
+        }
 
         const hoistable = this.determineHoistableInterfaces();
         if (hoistable.has(this.props_interface.name)) {
