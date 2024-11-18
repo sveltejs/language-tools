@@ -377,7 +377,7 @@ async function createLanguageService(
             : undefined;
 
     const changedFilesForExportCache = new Set<string>();
-    const svelteTsxFiles = getSvelteShimFiles();
+    const svelteTsxFilesToOriginalCasing = getSvelteShimFiles();
 
     let languageServiceReducedMode = false;
     let projectVersion = 0;
@@ -700,7 +700,7 @@ async function createLanguageService(
                 ...clientFiles.filter(
                     (file) => !canonicalProjectFileNames.has(getCanonicalFileName(file))
                 ),
-                ...svelteTsxFiles
+                ...svelteTsxFilesToOriginalCasing.values()
             ])
         );
     }
@@ -1220,14 +1220,17 @@ async function createLanguageService(
             svelteTsPath,
             docContext.isSvelteCheck ? undefined : tsconfigPath || workspacePath
         );
-        const result = new FileSet(tsSystem.useCaseSensitiveFileNames);
+        const pathToOriginalCasing = new Map<string, string>();
+        for (const file of svelteTsxFiles) {
+            const normalizedPath = normalizePath(file);
+            pathToOriginalCasing.set(getCanonicalFileName(normalizedPath), normalizedPath);
+        }
 
-        svelteTsxFiles.forEach((f) => result.add(normalizePath(f)));
-        return result;
+        return pathToOriginalCasing;
     }
 
     function isShimFiles(filePath: string) {
-        return svelteTsxFiles.has(normalizePath(filePath));
+        return svelteTsxFilesToOriginalCasing.has(getCanonicalFileName(normalizePath(filePath)));
     }
 }
 
