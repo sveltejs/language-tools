@@ -310,20 +310,29 @@ export function processInstanceScriptContent(
         moveNode(node, str, astOffset, script.start, tsAst);
     }
 
+    const hoisted = exportedNames.hoistableInterfaces.moveHoistableInterfaces(
+        str,
+        astOffset,
+        script.start + 1, // +1 because imports are also moved at that position, and we want to move interfaces after imports
+        generics.getReferences()
+    );
+
     if (mode === 'dts') {
         // Transform interface declarations to type declarations because indirectly
         // using interfaces inside the return type of a function is forbidden.
         // This is not a problem for intellisense/type inference but it will
         // break dts generation (file will not be generated).
-        transformInterfacesToTypes(tsAst, str, astOffset, nodesToMove);
+        if (hoisted) {
+            transformInterfacesToTypes(
+                tsAst,
+                str,
+                astOffset,
+                [...hoisted.values()].concat(nodesToMove)
+            );
+        } else {
+            transformInterfacesToTypes(tsAst, str, astOffset, nodesToMove);
+        }
     }
-
-    exportedNames.hoistableInterfaces.moveHoistableInterfaces(
-        str,
-        astOffset,
-        script.start,
-        generics.getReferences()
-    );
 
     return {
         exportedNames,

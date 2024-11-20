@@ -332,6 +332,7 @@ export class HoistableInterfaces {
         }
 
         const hoistable = this.determineHoistableInterfaces();
+
         if (hoistable.has(this.props_interface.name)) {
             for (const [name, node] of hoistable) {
                 let pos = node.pos + astOffset;
@@ -343,12 +344,17 @@ export class HoistableInterfaces {
                     }
                     if (/\s/.test(str.original[pos])) {
                         pos++;
-                        str.prependRight(pos, '\n');
                     }
+
+                    // jsdoc comments would be ignored if they are on the same line as the ;, so we add a newline, too
+                    str.prependRight(pos, ';\n');
+                    str.appendLeft(node.end + astOffset, ';');
                 }
 
                 str.move(pos, node.end + astOffset, scriptStart);
             }
+
+            return hoistable;
         }
     }
 
