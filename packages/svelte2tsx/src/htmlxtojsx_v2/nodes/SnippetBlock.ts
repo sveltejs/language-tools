@@ -160,7 +160,7 @@ export function handleImplicitChildren(componentNode: BaseNode, component: Inlin
 }
 
 export function hoistSnippetBlock(str: MagicString, blockOrEl: BaseNode) {
-    if (blockOrEl.type === 'InlineComponent') {
+    if (blockOrEl.type === 'InlineComponent' || blockOrEl.type === 'SvelteBoundary') {
         // implicit props, handled in InlineComponent
         return;
     }
