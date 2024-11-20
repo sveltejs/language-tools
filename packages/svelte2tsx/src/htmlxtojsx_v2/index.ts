@@ -88,8 +88,10 @@ export function convertHtmlxToJsx(
                         handleSnippet(
                             str,
                             node,
-                            element instanceof InlineComponent &&
-                                estreeTypedParent.type === 'InlineComponent'
+                            (element instanceof InlineComponent &&
+                                estreeTypedParent.type === 'InlineComponent') ||
+                                (element instanceof Element &&
+                                    element.tagName === 'svelte:boundary')
                                 ? element
                                 : undefined
                         );
@@ -133,6 +135,7 @@ export function convertHtmlxToJsx(
                     case 'Title':
                     case 'Document':
                     case 'Body':
+                    case 'SvelteBoundary':
                     case 'Slot':
                     case 'SlotTemplate':
                         if (node.name !== '!DOCTYPE') {
@@ -236,6 +239,7 @@ export function convertHtmlxToJsx(
                     case 'Head':
                     case 'Title':
                     case 'Body':
+                    case 'SvelteBoundary':
                     case 'Document':
                     case 'Slot':
                     case 'SlotTemplate':

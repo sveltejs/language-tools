@@ -296,6 +296,17 @@ const svelteTags: ITagData[] = [
                     'Named slots allow consumers to target specific areas. They can also have fallback content.'
             }
         ]
+    },
+    {
+        name: 'svelte:boundary',
+        description:
+            'Represents a boundary in the application. Can catch errors and show fallback UI',
+        attributes: [
+            {
+                name: 'onerror',
+                description: 'Called when an error occured within the boundary'
+            }
+        ]
     }
 ];
 
@@ -418,6 +429,17 @@ export const svelteHtmlDataProvider = newHTMLDataProvider('svelte-builtin', {
             values: unique(set.values)
         })) ?? []
 });
+
+const originalProvideAttributes =
+    svelteHtmlDataProvider.provideAttributes.bind(svelteHtmlDataProvider);
+
+svelteHtmlDataProvider.provideAttributes = (tag: string) => {
+    if (tag === 'svelte:boundary' || tag === 'svelte:options') {
+        return svelteTags.find((t) => t.name === tag)?.attributes ?? [];
+    }
+
+    return originalProvideAttributes(tag);
+};
 
 function isEvent(attr: IAttributeData) {
     return attr.name.startsWith('on');
