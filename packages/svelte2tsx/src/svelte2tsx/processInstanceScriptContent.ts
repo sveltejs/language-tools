@@ -310,7 +310,7 @@ export function processInstanceScriptContent(
         moveNode(node, str, astOffset, script.start, tsAst);
     }
 
-    const hoistable = exportedNames.hoistableInterfaces.moveHoistableInterfaces(
+    const hoisted = exportedNames.hoistableInterfaces.moveHoistableInterfaces(
         str,
         astOffset,
         script.start + 1, // +1 because imports are also moved at that position, and we want to move interfaces after imports
@@ -322,12 +322,12 @@ export function processInstanceScriptContent(
         // using interfaces inside the return type of a function is forbidden.
         // This is not a problem for intellisense/type inference but it will
         // break dts generation (file will not be generated).
-        if (hoistable) {
+        if (hoisted) {
             transformInterfacesToTypes(
                 tsAst,
                 str,
                 astOffset,
-                [...hoistable.values()].concat(nodesToMove)
+                [...hoisted.values()].concat(nodesToMove)
             );
         } else {
             transformInterfacesToTypes(tsAst, str, astOffset, nodesToMove);
