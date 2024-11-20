@@ -8,6 +8,7 @@
     };type $$ComponentProps =  { a: Dependency, b: string };;function render() {
 
 
+
     let { a, b }:/*Ωignore_startΩ*/$$ComponentProps/*Ωignore_endΩ*/ = $props();
 ;
 async () => {
