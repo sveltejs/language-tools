@@ -9,6 +9,8 @@
     };function render() {
 
 
+
+
     let { foo }: Props = $props();
 ;
 async () => {};
