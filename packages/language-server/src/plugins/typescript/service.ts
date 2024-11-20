@@ -700,6 +700,9 @@ async function createLanguageService(
                 ...clientFiles.filter(
                     (file) => !canonicalProjectFileNames.has(getCanonicalFileName(file))
                 ),
+                // Use original casing here, too: people could have their VS Code extensions in a case insensitive
+                // folder but their project in a case sensitive one; and if we copy the shims into the case sensitive
+                // part it would break when canonicalizing it.
                 ...svelteTsxFilesToOriginalCasing.values()
             ])
         );
