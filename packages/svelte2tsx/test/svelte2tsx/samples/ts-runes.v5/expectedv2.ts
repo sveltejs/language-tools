@@ -1,5 +1,5 @@
 ///<reference types="svelte" />
-;type $$ComponentProps =  { a: number, b: string };;function render() {
+;;type $$ComponentProps =  { a: number, b: string };function render() {
 
     let { a, b }:/*Ωignore_startΩ*/$$ComponentProps/*Ωignore_endΩ*/ = $props();
     let x = $state(0);

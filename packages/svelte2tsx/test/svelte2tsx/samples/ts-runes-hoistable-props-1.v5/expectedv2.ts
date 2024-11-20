@@ -1,13 +1,13 @@
 ///<reference types="svelte" />
 ;
     let value = 1;
-;
-    type NoComma = true
+;;;
+    type NoComma = true;;
     type Dependency = {
         a: number;
         b: typeof value;
         c: NoComma
-    }
+    };;
 
     /** A comment */
     interface Props<T> {

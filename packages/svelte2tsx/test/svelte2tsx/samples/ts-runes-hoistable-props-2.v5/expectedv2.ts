@@ -1,11 +1,11 @@
 ///<reference types="svelte" />
 ;
     let value = 1;
-;
+;;;
     interface Dependency {
         a: number;
         b: typeof value;
-    };type $$ComponentProps =  { a: Dependency, b: string };;function render() {
+    };;type $$ComponentProps =  { a: Dependency, b: string };function render() {
 
 
 

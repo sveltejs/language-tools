@@ -1,5 +1,5 @@
 ///<reference types="svelte" />
-;type $$ComponentProps =  {form: boolean, data: true };;function render() {
+;;type $$ComponentProps =  {form: boolean, data: true };function render() {
 
      const snapshot: any = {};
     let { form, data }:/*Ωignore_startΩ*/$$ComponentProps/*Ωignore_endΩ*/ = $props();

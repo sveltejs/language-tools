@@ -1,19 +1,27 @@
 ///<reference types="svelte" />
+;
+    import X from './X';
 ;;
-    interface Dependency {
-        a: number;
-    };;
 
+import { readable } from 'svelte/store';
+;
+ 
+    /** I should not be sandwitched between the imports */
     interface Props {
-        [k: string]: Dependency;
+        foo?: string;
     };function render() {
 
+    
+    
+    const store = readable(1)/*Ωignore_startΩ*/;let $store = __sveltets_2_store_get(store);/*Ωignore_endΩ*/
 
-
-
-    let { foo }: Props = $props();
+    let { foo }: Props = $props()
 ;
-async () => {};
+async () => {
+
+
+
+$store;};
 return { props: {} as any as Props, exports: {}, bindings: __sveltets_$$bindings(''), slots: {}, events: {} }}
 const Input__SvelteComponent_ = __sveltets_2_fn_component(render());
 type Input__SvelteComponent_ = ReturnType<typeof Input__SvelteComponent_>;
