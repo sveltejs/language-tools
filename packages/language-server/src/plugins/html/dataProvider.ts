@@ -435,6 +435,7 @@ const originalProvideAttributes =
 
 svelteHtmlDataProvider.provideAttributes = (tag: string) => {
     if (tag === 'svelte:boundary' || tag === 'svelte:options') {
+        // We don't want the global attributes for these tags
         return svelteTags.find((t) => t.name === tag)?.attributes ?? [];
     }
 
