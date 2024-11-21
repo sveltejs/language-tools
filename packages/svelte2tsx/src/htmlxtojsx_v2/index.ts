@@ -40,6 +40,7 @@ import {
 } from '../svelte2tsx/nodes/handleScopeAndResolveForSlot';
 import { EventHandler } from '../svelte2tsx/nodes/event-handler';
 import { ComponentEvents } from '../svelte2tsx/nodes/ComponentEvents';
+import { analyze } from 'periscopic';
 
 export interface TemplateProcessResult {
     /**
@@ -53,7 +54,7 @@ export interface TemplateProcessResult {
     scriptTag: BaseNode;
     moduleScriptTag: BaseNode;
     /** Start/end positions of snippets that should be moved to the instance script or possibly even module script */
-    rootSnippets: Array<[number, number]>;
+    rootSnippets: Array<[start: number, end: number, globals: Map<string, any>]>;
     /** To be added later as a comment on the default class export */
     componentDocumentation: ComponentDocumentation;
     events: ComponentEvents;
@@ -92,7 +93,7 @@ export function convertHtmlxToJsx(
 
     stripDoctype(str);
 
-    const rootSnippets: Array<[number, number]> = [];
+    const rootSnippets: Array<[number, number, Map<string, any>]> = [];
     let element: Element | InlineComponent | undefined;
 
     const pendingSnippetHoistCheck = new Set<BaseNode>();
@@ -249,7 +250,21 @@ export function convertHtmlxToJsx(
                         );
                         if (parent === ast) {
                             // root snippet -> move to instance script or possibly even module script
-                            rootSnippets.push([node.start, node.end]);
+                            const result = analyze({
+                                type: 'FunctionDeclaration',
+                                start: -1,
+                                end: -1,
+                                id: node.expression,
+                                params: node.parameters ?? [],
+                                body: {
+                                    type: 'BlockStatement',
+                                    start: -1,
+                                    end: -1,
+                                    body: node.children as any[] // wrong AST, but periscopic doesn't care
+                                }
+                            });
+
+                            rootSnippets.push([node.start, node.end, result.globals]);
                         } else {
                             pendingSnippetHoistCheck.add(parent);
                         }

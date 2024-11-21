@@ -358,6 +358,10 @@ export class HoistableInterfaces {
         }
     }
 
+    getAllowedValues() {
+        return this.import_value_set;
+    }
+
     /**
      * Collects type and value dependencies from a given TypeNode.
      * @param type_node The TypeNode to analyze.
