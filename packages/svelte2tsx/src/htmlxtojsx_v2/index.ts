@@ -260,7 +260,7 @@ export function convertHtmlxToJsx(
                                     type: 'BlockStatement',
                                     start: -1,
                                     end: -1,
-                                    body: node.children
+                                    body: node.children as any[] // wrong AST, but periscopic doesn't care
                                 }
                             });
 
