@@ -32,7 +32,6 @@ import { ComponentDocumentation } from '../svelte2tsx/nodes/ComponentDocumentati
 import { ScopeStack } from '../svelte2tsx/utils/Scope';
 import { Stores } from '../svelte2tsx/nodes/Stores';
 import { Scripts } from '../svelte2tsx/nodes/Scripts';
-import { Node } from 'estree';
 import { SlotHandler } from '../svelte2tsx/nodes/slot';
 import TemplateScope from '../svelte2tsx/nodes/TemplateScope';
 import {
@@ -116,7 +115,7 @@ export function convertHtmlxToJsx(
     const stores = new Stores(scopeStack, isDeclaration);
     const scripts = new Scripts(ast);
 
-    const handleSvelteOptions = (node: Node) => {
+    const handleSvelteOptions = (node: BaseNode) => {
         for (let i = 0; i < node.attributes.length; i++) {
             const optionName = node.attributes[i].name;
             const optionValue = node.attributes[i].value;
@@ -138,7 +137,7 @@ export function convertHtmlxToJsx(
         }
     };
 
-    const handleIdentifier = (node: Node) => {
+    const handleIdentifier = (node: BaseNode) => {
         if (node.name === '$$props') {
             uses$$props = true;
             return;
@@ -154,14 +153,14 @@ export function convertHtmlxToJsx(
         }
     };
 
-    const handleStyleTag = (node: Node) => {
+    const handleStyleTag = (node: BaseNode) => {
         str.remove(node.start, node.end);
     };
 
     const slotHandler = new SlotHandler(str.original);
     let templateScope = new TemplateScope();
 
-    const handleComponentLet = (component: Node) => {
+    const handleComponentLet = (component: BaseNode) => {
         templateScope = templateScope.child();
         const lets = slotHandler.getSlotConsumerOfComponent(component);
 
@@ -177,9 +176,9 @@ export function convertHtmlxToJsx(
     };
 
     const handleScopeAndResolveForSlotInner = (
-        identifierDef: Node,
-        initExpression: Node,
-        owner: Node
+        identifierDef: BaseNode,
+        initExpression: BaseNode,
+        owner: BaseNode
     ) => {
         handleScopeAndResolveForSlot({
             identifierDef,
