@@ -49,8 +49,8 @@ importers:
         specifier: ~3.3.3
         version: 3.3.3
       prettier-plugin-svelte:
-        specifier: ^3.2.8
-        version: 3.2.8(prettier@3.3.3)(svelte@4.2.19)
+        specifier: ^3.3.0
+        version: 3.3.0(prettier@3.3.3)(svelte@4.2.19)
       svelte:
         specifier: ^4.2.19
         version: 4.2.19
@@ -1100,8 +1100,8 @@ packages:
     resolution: {integrity: sha512-JU3teHTNjmE2VCGFzuY8EXzCDVwEqB2a8fsIvwaStHhAWJEeVd1o1QD80CU6+ZdEXXSLbSsuLwJjkCBWqRQUVA==}
     engines: {node: '>=8.6'}
 
-  prettier-plugin-svelte@3.2.8:
-    resolution: {integrity: sha512-PAHmmU5cGZdnhW4mWhmvxuG2PVbbHIxUuPOdUKvfE+d4Qt2d29iU5VWrPdsaW5YqVEE0nqhlvN4eoKmVMpIF3Q==}
+  prettier-plugin-svelte@3.3.0:
+    resolution: {integrity: sha512-iNoYiQUx4zwqbQDW/bk0WR75w+QiY4fHJQpGQ5v8Yr7X5m7YoSvs2buUnhoYFXNAL32ULVmrjPSc0vVOHJsO0Q==}
     peerDependencies:
       prettier: ^3.0.0
       svelte: ^3.2.0 || ^4.0.0-next.0 || ^5.0.0-next.0
@@ -2168,7 +2168,7 @@ snapshots:
 
   picomatch@2.3.1: {}
 
-  prettier-plugin-svelte@3.2.8(prettier@3.3.3)(svelte@4.2.19):
+  prettier-plugin-svelte@3.3.0(prettier@3.3.3)(svelte@4.2.19):
     dependencies:
       prettier: 3.3.3
       svelte: 4.2.19
