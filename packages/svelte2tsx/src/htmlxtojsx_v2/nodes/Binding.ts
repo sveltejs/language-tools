@@ -114,12 +114,7 @@ export function handleBinding(
             ? // HTML typings - preserve the bind: prefix
               isShorthand
                 ? [`"${str.original.substring(attr.start, attr.end)}"`]
-                : [
-                      `"${str.original.substring(
-                          attr.start,
-                          str.original.lastIndexOf('=', attr.expression.start)
-                      )}"`
-                  ]
+                : ['"', [attr.start, str.original.lastIndexOf('=', attr.expression.start)], '"']
             : // Other typings - remove the bind: prefix
               isShorthand
               ? [[attr.expression.start, attr.expression.end]]
