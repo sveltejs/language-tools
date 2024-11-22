@@ -54,7 +54,7 @@
         "rollup-plugin-copy": "^3.4.0",
         "svelte": "^4.2.19",
         "svelte-language-server": "workspace:*",
-        "typescript": "^5.6.3",
+        "typescript": "~5.6.3",
         "vscode-languageserver": "8.0.2",
         "vscode-languageserver-protocol": "3.17.2",
         "vscode-languageserver-types": "3.17.2",

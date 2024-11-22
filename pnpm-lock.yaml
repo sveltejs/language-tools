@@ -9,7 +9,7 @@ importers:
   .:
     dependencies:
       typescript:
-        specifier: ^5.6.3
+        specifier: ~5.6.3
         version: 5.6.3
     devDependencies:
       cross-env:
@@ -58,7 +58,7 @@ importers:
         specifier: workspace:~
         version: link:../svelte2tsx
       typescript:
-        specifier: ^5.6.3
+        specifier: ~5.6.3
         version: 5.6.3
       typescript-auto-import-cache:
         specifier: ^0.3.5
@@ -168,7 +168,7 @@ importers:
         specifier: workspace:*
         version: link:../language-server
       typescript:
-        specifier: ^5.6.3
+        specifier: ~5.6.3
         version: 5.6.3
       vscode-languageserver:
         specifier: 8.0.2
@@ -217,7 +217,7 @@ importers:
         specifier: ^2.4.0
         version: 2.5.2
       typescript:
-        specifier: ^5.6.3
+        specifier: ~5.6.3
         version: 5.6.3
       vscode-tmgrammar-test:
         specifier: ^0.0.11
@@ -299,7 +299,7 @@ importers:
         specifier: ^2.4.0
         version: 2.5.2
       typescript:
-        specifier: ^5.6.3
+        specifier: ~5.6.3
         version: 5.6.3
 
   packages/typescript-plugin:
@@ -318,7 +318,7 @@ importers:
         specifier: ^4.2.19
         version: 4.2.19
       typescript:
-        specifier: ^5.6.3
+        specifier: ~5.6.3
         version: 5.6.3
 
 packages:
