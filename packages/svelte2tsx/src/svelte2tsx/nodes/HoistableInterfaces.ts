@@ -337,8 +337,11 @@ export class HoistableInterfaces {
             for (const [name, node] of hoistable) {
                 let pos = node.pos + astOffset;
 
-                // node.pos includes preceeding whitespace, which could mean we accidentally also move stuff appended to a previous node
-                if (name !== '$$ComponentProps') {
+                if (name === '$$ComponentProps') {
+                    // So that organize imports doesn't mess with the types
+                    str.prependRight(pos, '\n');
+                } else {
+                    // node.pos includes preceeding whitespace, which could mean we accidentally also move stuff appended to a previous node
                     if (str.original[pos] === '\r') {
                         pos++;
                     }
@@ -346,7 +349,8 @@ export class HoistableInterfaces {
                         pos++;
                     }
 
-                    // jsdoc comments would be ignored if they are on the same line as the ;, so we add a newline, too
+                    // jsdoc comments would be ignored if they are on the same line as the ;, so we add a newline, too.
+                    // Also helps with organize imports not messing with the types
                     str.prependRight(pos, ';\n');
                     str.appendLeft(node.end + astOffset, ';');
                 }
