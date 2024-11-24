@@ -732,7 +732,7 @@
         "@types/vscode": "^1.67",
         "js-yaml": "^3.14.0",
         "tslib": "^2.4.0",
-        "typescript": "^5.7.1-rc",
+        "typescript": "^5.7.2",
         "vscode-tmgrammar-test": "^0.0.11"
     },
     "dependencies": {
