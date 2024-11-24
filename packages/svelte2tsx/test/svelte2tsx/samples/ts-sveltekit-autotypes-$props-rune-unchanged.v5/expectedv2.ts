@@ -1,7 +1,7 @@
 ///<reference types="svelte" />
-;function render() {
+;;type $$ComponentProps =  {form: boolean, data: true };function render() {
 
-     const snapshot: any = {};;type $$ComponentProps =  {form: boolean, data: true };
+     const snapshot: any = {};
     let { form, data }:/*Ωignore_startΩ*/$$ComponentProps/*Ωignore_endΩ*/ = $props();
 ;
 async () => {};

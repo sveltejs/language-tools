@@ -12,17 +12,17 @@ export function get_global_types(
     typesPath: string,
     hiddenFolderPath?: string
 ): string[] {
-    const svelteHtmlPath = isSvelte3 ? undefined : join(sveltePath, 'svelte-html.d.ts');
-    const svelteHtmlPathExists = svelteHtmlPath && tsSystem.fileExists(svelteHtmlPath);
-    const svelteHtmlFile = svelteHtmlPathExists ? svelteHtmlPath : './svelte-jsx-v4.d.ts';
+    let svelteHtmlPath = isSvelte3 ? undefined : join(sveltePath, 'svelte-html.d.ts');
+    svelteHtmlPath =
+        svelteHtmlPath && tsSystem.fileExists(svelteHtmlPath) ? svelteHtmlPath : undefined;
 
     let svelteTsxFiles: string[];
     if (isSvelte3) {
         svelteTsxFiles = ['./svelte-shims.d.ts', './svelte-jsx.d.ts', './svelte-native-jsx.d.ts'];
     } else {
         svelteTsxFiles = ['./svelte-shims-v4.d.ts', './svelte-native-jsx.d.ts'];
-        if (!svelteHtmlPathExists) {
-            svelteTsxFiles.push(svelteHtmlPath);
+        if (!svelteHtmlPath) {
+            svelteTsxFiles.push('./svelte-jsx-v4.d.ts');
         }
     }
     svelteTsxFiles = svelteTsxFiles.map((f) => tsSystem.resolvePath(resolve(typesPath, f)));
@@ -53,10 +53,20 @@ export function get_global_types(
                 for (const f of svelteTsxFiles) {
                     const hiddenFile = resolve(hiddenPath, basename(f));
                     const existing = tsSystem.readFile(hiddenFile);
-                    const toWrite = tsSystem.readFile(f) || '';
+                    const toWrite = tsSystem.readFile(f);
+
+                    if (!toWrite) {
+                        throw new Error(`Could not read file: ${f}`);
+                    }
+
                     if (existing !== toWrite) {
                         tsSystem.writeFile(hiddenFile, toWrite);
+                        // TS doesn't throw an error if the file wasn't written
+                        if (!tsSystem.fileExists(hiddenFile)) {
+                            throw new Error(`Could not write file: ${hiddenFile}`);
+                        }
                     }
+
                     newFiles.push(hiddenFile);
                 }
                 svelteTsxFiles = newFiles;
@@ -64,8 +74,8 @@ export function get_global_types(
         } catch (e) {}
     }
 
-    if (svelteHtmlPathExists) {
-        svelteTsxFiles.push(tsSystem.resolvePath(resolve(typesPath, svelteHtmlFile)));
+    if (svelteHtmlPath) {
+        svelteTsxFiles.push(tsSystem.resolvePath(resolve(typesPath, svelteHtmlPath)));
     }
 
     return svelteTsxFiles;

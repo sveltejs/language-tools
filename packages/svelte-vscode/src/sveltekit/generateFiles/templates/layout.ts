@@ -5,29 +5,38 @@ const defaultScriptTemplate = `
     /** @type {import('./$types').LayoutData} */
     export let data;
 </script>
+
+<slot />
 `;
 
 const tsSv5ScriptTemplate = `
 <script lang="ts">
+    import type { Snippet } from 'svelte';
     import type { LayoutData } from './$types';
-    
-    let { data }: LayoutData = $props();
+
+    let { data, children }: { data: LayoutData, children: Snippet } = $props();
 </script>
+
+{@render children()}
 `;
 
 const tsScriptTemplate = `
 <script lang="ts">
     import type { LayoutData } from './$types';
-    
+
     export let data: LayoutData;
 </script>
+
+<slot />
 `;
 
 const jsSv5ScriptTemplate = `
 <script>
-    /** @type {import('./$types').LayoutData} */
-    let { data } = $props();
+    /** @type {{ data: import('./$types').LayoutData, children: import('svelte').Snippet }} */
+    let { data, children } = $props();
 </script>
+
+{@render children()}
 `;
 
 const scriptTemplate: ReadonlyMap<ProjectType, string> = new Map([

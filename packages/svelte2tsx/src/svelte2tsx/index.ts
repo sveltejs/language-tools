@@ -1,51 +1,15 @@
-import { Node } from 'estree-walker';
 import MagicString from 'magic-string';
-import { convertHtmlxToJsx } from '../htmlxtojsx_v2';
+import { convertHtmlxToJsx, TemplateProcessResult } from '../htmlxtojsx_v2';
 import { parseHtmlx } from '../utils/htmlxparser';
-import { ComponentDocumentation } from './nodes/ComponentDocumentation';
-import { ComponentEvents } from './nodes/ComponentEvents';
-import { EventHandler } from './nodes/event-handler';
-import { ExportedNames } from './nodes/ExportedNames';
-import {
-    handleScopeAndResolveForSlot,
-    handleScopeAndResolveLetVarForSlot
-} from './nodes/handleScopeAndResolveForSlot';
-import { ImplicitStoreValues } from './nodes/ImplicitStoreValues';
-import { Scripts } from './nodes/Scripts';
-import { SlotHandler } from './nodes/slot';
-import { Stores } from './nodes/Stores';
-import TemplateScope from './nodes/TemplateScope';
-import { processInstanceScriptContent } from './processInstanceScriptContent';
-import { processModuleScriptTag } from './processModuleScriptTag';
-import { ScopeStack } from './utils/Scope';
-import { Generics } from './nodes/Generics';
 import { addComponentExport } from './addComponentExport';
 import { createRenderFunction } from './createRenderFunction';
-// @ts-ignore
-import { TemplateNode } from 'svelte/types/compiler/interfaces';
+import { ExportedNames } from './nodes/ExportedNames';
+import { Generics } from './nodes/Generics';
+import { ImplicitStoreValues } from './nodes/ImplicitStoreValues';
+import { processInstanceScriptContent } from './processInstanceScriptContent';
+import { createModuleAst, ModuleAst, processModuleScriptTag } from './processModuleScriptTag';
 import path from 'path';
-import { VERSION, parse } from 'svelte/compiler';
-
-type TemplateProcessResult = {
-    /**
-     * The HTML part of the Svelte AST.
-     */
-    htmlAst: TemplateNode;
-    uses$$props: boolean;
-    uses$$restProps: boolean;
-    uses$$slots: boolean;
-    slots: Map<string, Map<string, string>>;
-    scriptTag: Node;
-    moduleScriptTag: Node;
-    /** Start/end positions of snippets that should be moved to the instance script */
-    rootSnippets: Array<[number, number]>;
-    /** To be added later as a comment on the default class export */
-    componentDocumentation: ComponentDocumentation;
-    events: ComponentEvents;
-    resolvedStores: string[];
-    usesAccessors: boolean;
-    isRunes: boolean;
-};
+import { parse, VERSION } from 'svelte/compiler';
 
 function processSvelteTemplate(
     str: MagicString,
@@ -60,257 +24,7 @@ function processSvelteTemplate(
     }
 ): TemplateProcessResult {
     const { htmlxAst, tags } = parseHtmlx(str.original, parse, options);
-
-    let uses$$props = false;
-    let uses$$restProps = false;
-    let uses$$slots = false;
-    let usesAccessors = !!options.accessors;
-    let isRunes = false;
-
-    const componentDocumentation = new ComponentDocumentation();
-
-    //track if we are in a declaration scope
-    const isDeclaration = { value: false };
-
-    //track $store variables since we are only supposed to give top level scopes special treatment, and users can declare $blah variables at higher scopes
-    //which prevents us just changing all instances of Identity that start with $
-
-    const scopeStack = new ScopeStack();
-    const stores = new Stores(scopeStack, isDeclaration);
-    const scripts = new Scripts(htmlxAst);
-
-    const handleSvelteOptions = (node: Node) => {
-        for (let i = 0; i < node.attributes.length; i++) {
-            const optionName = node.attributes[i].name;
-            const optionValue = node.attributes[i].value;
-
-            switch (optionName) {
-                case 'accessors':
-                    if (Array.isArray(optionValue)) {
-                        if (optionValue[0].type === 'MustacheTag') {
-                            usesAccessors = optionValue[0].expression.value;
-                        }
-                    } else {
-                        usesAccessors = true;
-                    }
-                    break;
-                case 'runes':
-                    isRunes = true;
-                    break;
-            }
-        }
-    };
-
-    const handleIdentifier = (node: Node) => {
-        if (node.name === '$$props') {
-            uses$$props = true;
-            return;
-        }
-        if (node.name === '$$restProps') {
-            uses$$restProps = true;
-            return;
-        }
-
-        if (node.name === '$$slots') {
-            uses$$slots = true;
-            return;
-        }
-    };
-
-    const handleStyleTag = (node: Node) => {
-        str.remove(node.start, node.end);
-    };
-
-    const slotHandler = new SlotHandler(str.original);
-    let templateScope = new TemplateScope();
-
-    const handleEach = (node: Node) => {
-        templateScope = templateScope.child();
-
-        if (node.context) {
-            handleScopeAndResolveForSlotInner(node.context, node.expression, node);
-        }
-    };
-
-    const handleAwait = (node: Node) => {
-        templateScope = templateScope.child();
-        if (node.value) {
-            handleScopeAndResolveForSlotInner(node.value, node.expression, node.then);
-        }
-        if (node.error) {
-            handleScopeAndResolveForSlotInner(node.error, node.expression, node.catch);
-        }
-    };
-
-    const handleComponentLet = (component: Node) => {
-        templateScope = templateScope.child();
-        const lets = slotHandler.getSlotConsumerOfComponent(component);
-
-        for (const { letNode, slotName } of lets) {
-            handleScopeAndResolveLetVarForSlot({
-                letNode,
-                slotName,
-                slotHandler,
-                templateScope,
-                component
-            });
-        }
-    };
-
-    const handleScopeAndResolveForSlotInner = (
-        identifierDef: Node,
-        initExpression: Node,
-        owner: Node
-    ) => {
-        handleScopeAndResolveForSlot({
-            identifierDef,
-            initExpression,
-            slotHandler,
-            templateScope,
-            owner
-        });
-    };
-
-    const eventHandler = new EventHandler();
-
-    const onHtmlxWalk = (node: Node, parent: Node, prop: string) => {
-        if (
-            prop == 'params' &&
-            (parent.type == 'FunctionDeclaration' || parent.type == 'ArrowFunctionExpression')
-        ) {
-            isDeclaration.value = true;
-        }
-        if (prop == 'id' && parent.type == 'VariableDeclarator') {
-            isDeclaration.value = true;
-        }
-
-        switch (node.type) {
-            case 'Comment':
-                componentDocumentation.handleComment(node);
-                break;
-            case 'Options':
-                handleSvelteOptions(node);
-                break;
-            case 'Identifier':
-                handleIdentifier(node);
-                stores.handleIdentifier(node, parent, prop);
-                eventHandler.handleIdentifier(node, parent, prop);
-                break;
-            case 'Transition':
-            case 'Action':
-            case 'Animation':
-                stores.handleDirective(node, str);
-                break;
-            case 'Slot':
-                slotHandler.handleSlot(node, templateScope);
-                break;
-            case 'Style':
-                handleStyleTag(node);
-                break;
-            case 'Element':
-                scripts.checkIfElementIsScriptTag(node, parent);
-                break;
-            case 'RawMustacheTag':
-                scripts.checkIfContainsScriptTag(node);
-                break;
-            case 'BlockStatement':
-                scopeStack.push();
-                break;
-            case 'FunctionDeclaration':
-                scopeStack.push();
-                break;
-            case 'ArrowFunctionExpression':
-                scopeStack.push();
-                break;
-            case 'EventHandler':
-                eventHandler.handleEventHandler(node, parent);
-                break;
-            case 'VariableDeclarator':
-                isDeclaration.value = true;
-                break;
-            case 'EachBlock':
-                handleEach(node);
-                break;
-            case 'AwaitBlock':
-                handleAwait(node);
-                break;
-            case 'InlineComponent':
-                handleComponentLet(node);
-                break;
-        }
-    };
-
-    const onHtmlxLeave = (node: Node, parent: Node, prop: string, _index: number) => {
-        if (
-            prop == 'params' &&
-            (parent.type == 'FunctionDeclaration' || parent.type == 'ArrowFunctionExpression')
-        ) {
-            isDeclaration.value = false;
-        }
-
-        if (prop == 'id' && parent.type == 'VariableDeclarator') {
-            isDeclaration.value = false;
-        }
-        const onTemplateScopeLeave = () => {
-            templateScope = templateScope.parent;
-        };
-
-        switch (node.type) {
-            case 'BlockStatement':
-                scopeStack.pop();
-                break;
-            case 'FunctionDeclaration':
-                scopeStack.pop();
-                break;
-            case 'ArrowFunctionExpression':
-                scopeStack.pop();
-                break;
-            case 'EachBlock':
-                onTemplateScopeLeave();
-                break;
-            case 'AwaitBlock':
-                onTemplateScopeLeave();
-                break;
-            case 'InlineComponent':
-                onTemplateScopeLeave();
-                break;
-        }
-    };
-
-    const rootSnippets = convertHtmlxToJsx(str, htmlxAst, onHtmlxWalk, onHtmlxLeave, {
-        preserveAttributeCase: options?.namespace == 'foreign',
-        typingsNamespace: options.typingsNamespace,
-        svelte5Plus: options.svelte5Plus
-    });
-
-    // resolve scripts
-    const { scriptTag, moduleScriptTag } = scripts.getTopLevelScriptTags();
-    if (options.mode !== 'ts') {
-        scripts.blankOtherScriptTags(str);
-    }
-
-    //resolve stores
-    const resolvedStores = stores.getStoreNames();
-
-    return {
-        htmlAst: htmlxAst,
-        moduleScriptTag,
-        scriptTag,
-        rootSnippets,
-        slots: slotHandler.getSlotDef(),
-        events: new ComponentEvents(
-            eventHandler,
-            tags.some((tag) => tag.attributes?.some((a) => a.name === 'strictEvents')),
-            str
-        ),
-        uses$$props,
-        uses$$restProps,
-        uses$$slots,
-        componentDocumentation,
-        resolvedStores,
-        usesAccessors,
-        isRunes
-    };
+    return convertHtmlxToJsx(str, htmlxAst, tags, options);
 }
 
 export function svelte2tsx(
@@ -362,7 +76,11 @@ export function svelte2tsx(
      */
     let instanceScriptTarget = 0;
 
+    let moduleAst: ModuleAst | undefined;
+
     if (moduleScriptTag) {
+        moduleAst = createModuleAst(str, moduleScriptTag);
+
         if (moduleScriptTag.start != 0) {
             //move our module tag to the top
             str.move(moduleScriptTag.start, moduleScriptTag.end, 0);
@@ -398,7 +116,7 @@ export function svelte2tsx(
             events,
             implicitStoreValues,
             options.mode,
-            /**hasModuleScripts */ !!moduleScriptTag,
+            moduleAst,
             options?.isTsFile,
             basename,
             svelte5Plus,
@@ -421,7 +139,6 @@ export function svelte2tsx(
         str,
         scriptTag,
         scriptDestination: instanceScriptTarget,
-        rootSnippets,
         slots,
         events,
         exportedNames,
@@ -443,8 +160,35 @@ export function svelte2tsx(
                 implicitStoreValues.getAccessedStores(),
                 renderFunctionStart,
                 scriptTag || options.mode === 'ts' ? undefined : (input) => `</>;${input}<>`
-            )
+            ),
+            moduleAst
         );
+        if (!scriptTag) {
+            moduleAst.tsAst.forEachChild((node) =>
+                exportedNames.hoistableInterfaces.analyzeModuleScriptNode(node)
+            );
+        }
+    }
+
+    if (moduleScriptTag || scriptTag) {
+        const allowed = exportedNames.hoistableInterfaces.getAllowedValues();
+        for (const [start, end, globals] of rootSnippets) {
+            const hoist_to_module =
+                moduleScriptTag &&
+                (globals.size === 0 || [...globals.keys()].every((id) => allowed.has(id)));
+
+            if (hoist_to_module) {
+                str.move(
+                    start,
+                    end,
+                    scriptTag
+                        ? scriptTag.start + 1 // +1 because imports are also moved at that position, and we want to move interfaces after imports
+                        : moduleScriptTag.end
+                );
+            } else if (scriptTag) {
+                str.move(start, end, renderFunctionStart);
+            }
+        }
     }
 
     addComponentExport({

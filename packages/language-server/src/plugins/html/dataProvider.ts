@@ -201,6 +201,12 @@ const svelteTags: ITagData[] = [
         ]
     },
     {
+        name: 'svelte:html',
+        description:
+            'This element allows you to add properties and listeners to events on `document.documentElement`. This is useful for attributes such as `lang` which influence how the browser interprets the content.',
+        attributes: []
+    },
+    {
         name: 'svelte:document',
         description:
             "As with <svelte:window>, this element allows you to add listeners to events on document, such as visibilitychange, which don't fire on window.",
@@ -294,6 +300,17 @@ const svelteTags: ITagData[] = [
                 name: 'name',
                 description:
                     'Named slots allow consumers to target specific areas. They can also have fallback content.'
+            }
+        ]
+    },
+    {
+        name: 'svelte:boundary',
+        description:
+            'Represents a boundary in the application. Can catch errors and show fallback UI',
+        attributes: [
+            {
+                name: 'onerror',
+                description: 'Called when an error occured within the boundary'
             }
         ]
     }
@@ -418,6 +435,18 @@ export const svelteHtmlDataProvider = newHTMLDataProvider('svelte-builtin', {
             values: unique(set.values)
         })) ?? []
 });
+
+const originalProvideAttributes =
+    svelteHtmlDataProvider.provideAttributes.bind(svelteHtmlDataProvider);
+
+svelteHtmlDataProvider.provideAttributes = (tag: string) => {
+    if (tag === 'svelte:boundary' || tag === 'svelte:options') {
+        // We don't want the global attributes for these tags
+        return svelteTags.find((t) => t.name === tag)?.attributes ?? [];
+    }
+
+    return originalProvideAttributes(tag);
+};
 
 function isEvent(attr: IAttributeData) {
     return attr.name.startsWith('on');

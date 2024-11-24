@@ -9,6 +9,7 @@ import { BaseDirective, BaseNode } from '../../interfaces';
 import { Element } from './Element';
 import { InlineComponent } from './InlineComponent';
 import { surroundWithIgnoreComments } from '../../utils/ignore';
+import { SequenceExpression } from 'estree';
 
 /**
  * List of binding names that are transformed to sth like `binding = variable`.
@@ -58,46 +59,53 @@ export function handleBinding(
     preserveBind: boolean,
     isSvelte5Plus: boolean
 ): void {
-    // bind group on input
-    if (element instanceof Element && attr.name == 'group' && parent.name == 'input') {
+    const isGetSetBinding = attr.expression.type === 'SequenceExpression';
+
+    if (!isGetSetBinding) {
+        // bind group on input
+        if (element instanceof Element && attr.name == 'group' && parent.name == 'input') {
+            // add reassignment to force TS to widen the type of the declaration (in case it's never reassigned anywhere else)
+            appendOneWayBinding(attr, ' = __sveltets_2_any(null)', element);
+            return;
+        }
+
+        // bind this
+        if (attr.name === 'this' && supportsBindThis.includes(parent.type)) {
+            // bind:this is effectively only works bottom up - the variable is updated by the element, not
+            // the other way round. So we check if the instance is assignable to the variable.
+            // Note: If the component unmounts (it's inside an if block, or svelte:component this={null},
+            // the value becomes null, but we don't add it to the clause because it would introduce
+            // worse DX for the 99% use case, and because null !== undefined which others might use to type the declaration.
+            appendOneWayBinding(attr, ` = ${element.name}`, element);
+            return;
+        }
+
+        // one way binding
+        if (oneWayBindingAttributes.has(attr.name) && element instanceof Element) {
+            appendOneWayBinding(attr, `= ${element.name}.${attr.name}`, element);
+            return;
+        }
+
+        // one way binding whose property is not on the element
+        if (oneWayBindingAttributesNotOnElement.has(attr.name) && element instanceof Element) {
+            element.appendToStartEnd([
+                [attr.expression.start, getEnd(attr.expression)],
+                `= ${surroundWithIgnoreComments(
+                    `null as ${oneWayBindingAttributesNotOnElement.get(attr.name)}`
+                )};`
+            ]);
+            return;
+        }
+
         // add reassignment to force TS to widen the type of the declaration (in case it's never reassigned anywhere else)
-        appendOneWayBinding(attr, ' = __sveltets_2_any(null)', element);
-        return;
-    }
-
-    // bind this
-    if (attr.name === 'this' && supportsBindThis.includes(parent.type)) {
-        // bind:this is effectively only works bottom up - the variable is updated by the element, not
-        // the other way round. So we check if the instance is assignable to the variable.
-        // Note: If the component unmounts (it's inside an if block, or svelte:component this={null},
-        // the value becomes null, but we don't add it to the clause because it would introduce
-        // worse DX for the 99% use case, and because null !== undefined which others might use to type the declaration.
-        appendOneWayBinding(attr, ` = ${element.name}`, element);
-        return;
-    }
-
-    // one way binding
-    if (oneWayBindingAttributes.has(attr.name) && element instanceof Element) {
-        appendOneWayBinding(attr, `= ${element.name}.${attr.name}`, element);
-        return;
-    }
-
-    // one way binding whose property is not on the element
-    if (oneWayBindingAttributesNotOnElement.has(attr.name) && element instanceof Element) {
+        const expressionStr = str.original.substring(
+            attr.expression.start,
+            getEnd(attr.expression)
+        );
         element.appendToStartEnd([
-            [attr.expression.start, getEnd(attr.expression)],
-            `= ${surroundWithIgnoreComments(
-                `null as ${oneWayBindingAttributesNotOnElement.get(attr.name)}`
-            )};`
+            surroundWithIgnoreComments(`() => ${expressionStr} = __sveltets_2_any(null);`)
         ]);
-        return;
     }
-
-    // add reassignment to force TS to widen the type of the declaration (in case it's never reassigned anywhere else)
-    const expressionStr = str.original.substring(attr.expression.start, getEnd(attr.expression));
-    element.appendToStartEnd([
-        surroundWithIgnoreComments(`() => ${expressionStr} = __sveltets_2_any(null);`)
-    ]);
 
     // other bindings which are transformed to normal attributes/props
     const isShorthand = attr.expression.start === attr.start + 'bind:'.length;
@@ -106,12 +114,7 @@ export function handleBinding(
             ? // HTML typings - preserve the bind: prefix
               isShorthand
                 ? [`"${str.original.substring(attr.start, attr.end)}"`]
-                : [
-                      `"${str.original.substring(
-                          attr.start,
-                          str.original.lastIndexOf('=', attr.expression.start)
-                      )}"`
-                  ]
+                : ['"', [attr.start, str.original.lastIndexOf('=', attr.expression.start)], '"']
             : // Other typings - remove the bind: prefix
               isShorthand
               ? [[attr.expression.start, attr.expression.end]]
@@ -122,11 +125,20 @@ export function handleBinding(
                     ]
                 ];
 
+    const [get, set] = isGetSetBinding ? (attr.expression as SequenceExpression).expressions : [];
     const value: TransformationArray | undefined = isShorthand
         ? preserveBind && element instanceof Element
             ? [rangeWithTrailingPropertyAccess(str.original, attr.expression)]
             : undefined
-        : [rangeWithTrailingPropertyAccess(str.original, attr.expression)];
+        : isGetSetBinding
+          ? [
+                '__sveltets_2_get_set_binding(',
+                [get.start, get.end],
+                ',',
+                rangeWithTrailingPropertyAccess(str.original, set),
+                ')'
+            ]
+          : [rangeWithTrailingPropertyAccess(str.original, attr.expression)];
 
     if (isSvelte5Plus && element instanceof InlineComponent) {
         // To check if property is actually bindable
