@@ -368,9 +368,9 @@ s                                              ↲
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
   { svelteHTML.createElement("svelte:window", { "bind:innerWidth":width,});/*Ωignore_startΩ*/() => width = __sveltets_2_any(null);/*Ωignore_endΩ*/}   {/**
 ••{•svelteHTML.createElement("svelte:window",•{•"bind:innerWidth":width,});/*Ωignore_startΩ*/()•=>•width•=•__sveltets_2_any(null);/*Ωignore_endΩ*/}↲    [generated] line 133
-<>                                             ib                 width}                                                                           ↲    
- #=============================================#                                                                                                        Order-breaking mappings
-<              bi               width} >↲                                                                                                               
+<>                                             { bind:innerWidth= width}                                                                           ↲    
+ #=============================================#=                                                                                                       Order-breaking mappings
+<              bind:innerWidth={width} >↲                                                                                                               
 <svelte:window•bind:innerWidth={width}/>↲                                                                                                               [original] line 269 (rest generated at line 134)
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                                                                                                                                                       {/**

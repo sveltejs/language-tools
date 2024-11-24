@@ -3,6 +3,7 @@ import { BaseNode } from '../../interfaces';
 import { transform, TransformationArray } from '../utils/node-utils';
 import { InlineComponent } from './InlineComponent';
 import { IGNORE_POSITION_COMMENT, surroundWithIgnoreComments } from '../../utils/ignore';
+import { Element } from './Element';
 
 /**
  * Transform #snippet into a function
@@ -28,7 +29,7 @@ import { IGNORE_POSITION_COMMENT, surroundWithIgnoreComments } from '../../utils
 export function handleSnippet(
     str: MagicString,
     snippetBlock: BaseNode,
-    component?: InlineComponent
+    component?: InlineComponent | Element
 ): void {
     const isImplicitProp = component !== undefined;
     const endSnippet = str.original.lastIndexOf('{', snippetBlock.end - 1);
@@ -64,6 +65,7 @@ export function handleSnippet(
     if (isImplicitProp) {
         str.overwrite(snippetBlock.start, snippetBlock.expression.start, '', { contentOnly: true });
         const transforms: TransformationArray = ['('];
+
         if (parameters) {
             transforms.push(parameters);
             const [start, end] = parameters;
@@ -74,12 +76,21 @@ export function handleSnippet(
         } else {
             str.overwrite(snippetBlock.expression.end, startEnd, '', { contentOnly: true });
         }
+
         transforms.push(')' + afterParameters);
         transforms.push([startEnd, snippetBlock.end]);
-        component.addImplicitSnippetProp(
-            [snippetBlock.expression.start, snippetBlock.expression.end],
-            transforms
-        );
+
+        if (component instanceof InlineComponent) {
+            component.addImplicitSnippetProp(
+                [snippetBlock.expression.start, snippetBlock.expression.end],
+                transforms
+            );
+        } else {
+            component.addAttribute(
+                [[snippetBlock.expression.start, snippetBlock.expression.end]],
+                transforms
+            );
+        }
     } else {
         const transforms: TransformationArray = [
             'const ',
@@ -149,7 +160,7 @@ export function handleImplicitChildren(componentNode: BaseNode, component: Inlin
 }
 
 export function hoistSnippetBlock(str: MagicString, blockOrEl: BaseNode) {
-    if (blockOrEl.type === 'InlineComponent') {
+    if (blockOrEl.type === 'InlineComponent' || blockOrEl.type === 'SvelteBoundary') {
         // implicit props, handled in InlineComponent
         return;
     }
