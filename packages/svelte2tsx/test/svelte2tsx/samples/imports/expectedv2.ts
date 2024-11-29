@@ -2,7 +2,7 @@
 ;
 import { a as b } from "./test.svelte"
 
-import * as c from "b.ts"
+import * as c from "b.ts";
 function render() {
 
     
