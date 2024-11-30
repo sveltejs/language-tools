@@ -2,7 +2,7 @@
 ;// non-leading comment
 /**@typedef {{ a: string }} Foo */
 
-import ''
+import '';
 function render() {
 
     
