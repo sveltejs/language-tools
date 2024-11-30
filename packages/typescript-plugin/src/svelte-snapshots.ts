@@ -16,13 +16,18 @@ export class SvelteSnapshot {
         private svelteCode: string,
         private mapper: SourceMapper,
         private logger: Logger,
-        public readonly isTsFile: boolean
+        public isTsFile: boolean
     ) {}
 
-    update(svelteCode: string, mapper: SourceMapper) {
+    update(svelteCode: string, mapper: SourceMapper, isTsFile: boolean) {
         this.svelteCode = svelteCode;
         this.mapper = mapper;
         this.lineOffsets = undefined;
+        this.isTsFile = isTsFile;
+        // @ts-expect-error
+        this.scriptInfo!.scriptKind = this.isTsFile
+            ? this.typescript.ScriptKind.TS
+            : this.typescript.ScriptKind.JS;
         this.log('Updated Snapshot');
     }
 
@@ -107,7 +112,9 @@ export class SvelteSnapshot {
 
     setAndPatchScriptInfo(scriptInfo: ts.server.ScriptInfo) {
         // @ts-expect-error
-        scriptInfo.scriptKind = this.typescript.ScriptKind.TS;
+        scriptInfo.scriptKind = this.isTsFile
+            ? this.typescript.ScriptKind.TS
+            : this.typescript.ScriptKind.JS;
 
         const positionToLineOffset = scriptInfo.positionToLineOffset.bind(scriptInfo);
         scriptInfo.positionToLineOffset = (position) => {
@@ -366,7 +373,17 @@ export class SvelteSnapshotManager {
                 } else if (isSvelteFilePath(path)) {
                     this.logger.debug('Read Svelte file:', path);
                     const svelteCode = readFile(path) || '';
-                    const isTsFile = true; // TODO check file contents? TS might be okay with importing ts into js.
+                    const version = this.svelteCompiler?.VERSION ?? '4.2.0'; // built-in one is 4.x
+                    const isTsFile =
+                        // At some point we supported a default language of TS, but that was removed.
+                        // Assume that people using Svelte 5 are always using the attribute
+                        Number(version.split('.')[0]) >= 5
+                            ? svelteCode.includes('lang="ts"') ||
+                              svelteCode.includes('lang=ts') ||
+                              // Additional measures to prevent each file to start out with JS and then switch to TS
+                              !svelteCode.includes('<script') ||
+                              !svelteCode.includes('@type')
+                            : true;
                     let code: string;
                     let mapper: SourceMapper;
 
@@ -378,7 +395,7 @@ export class SvelteSnapshotManager {
                             typingsNamespace: this.svelteOptions.namespace,
                             // Don't search for compiler from current path - could be a different one from which we have loaded the svelte2tsx globals
                             parse: this.svelteCompiler?.parse,
-                            version: this.svelteCompiler?.VERSION
+                            version
                         });
                         code = result.code;
                         mapper = new SourceMapper(result.map.mappings);
@@ -410,7 +427,7 @@ export class SvelteSnapshotManager {
                 const canonicalFilePath = this.projectService.toCanonicalFileName(path);
                 const existingSnapshot = this.snapshots.get(canonicalFilePath);
                 if (existingSnapshot) {
-                    existingSnapshot.update(svelteCode, mapper);
+                    existingSnapshot.update(svelteCode, mapper, isTsFile);
                 } else {
                     this.snapshots.set(
                         canonicalFilePath,
