@@ -60,7 +60,7 @@ describe('CompletionProviderImpl', function () {
             uri: pathToUrl(filePath),
             text: ts.sys.readFile(filePath) || ''
         });
-        return { completionProvider, document, docManager };
+        return { completionProvider, document, docManager, lsConfigManager };
     }
 
     it('provides completions', async () => {
@@ -170,6 +170,34 @@ describe('CompletionProviderImpl', function () {
         });
     }
 
+    it('provide completion with items default when supported', async () => {
+        const { completionProvider, document, lsConfigManager } = setup('completions.svelte');
+
+        lsConfigManager.updateClientCapabilities({
+            textDocument: {
+                completion: {
+                    completionList: {
+                        itemDefaults: ['commitCharacters']
+                    }
+                }
+            }
+        });
+
+        const completions = await completionProvider.getCompletions(
+            document,
+            Position.create(0, 49),
+            {
+                triggerKind: CompletionTriggerKind.TriggerCharacter,
+                triggerCharacter: '.'
+            }
+        );
+
+        assert.deepStrictEqual(completions?.itemDefaults?.commitCharacters, ['.', ',', ';', '(']);
+
+        const first = completions!.items[0];
+        assert.strictEqual(first.commitCharacters, undefined);
+    });
+
     it('provides event completions', async () => {
         const { completionProvider, document } = setup('component-events-completion.svelte');
 
@@ -191,6 +219,7 @@ describe('CompletionProviderImpl', function () {
 
         assert.deepStrictEqual(eventCompletions, <CompletionItem[]>[
             {
+                commitCharacters: [],
                 detail: 'aa: CustomEvent<boolean>',
                 documentation: '',
                 label: 'on:aa',
@@ -199,6 +228,7 @@ describe('CompletionProviderImpl', function () {
                 textEdit: undefined
             },
             {
+                commitCharacters: [],
                 detail: 'ab: MouseEvent',
                 documentation: {
                     kind: 'markdown',
@@ -210,6 +240,7 @@ describe('CompletionProviderImpl', function () {
                 textEdit: undefined
             },
             {
+                commitCharacters: [],
                 detail: 'ac: any',
                 documentation: '',
                 label: 'on:ac',
@@ -309,6 +340,7 @@ describe('CompletionProviderImpl', function () {
 
         assert.deepStrictEqual(eventCompletions, <CompletionItem[]>[
             {
+                commitCharacters: [],
                 detail: 'aa: CustomEvent<boolean>',
                 documentation: '',
                 label: 'on:aa',
@@ -329,6 +361,7 @@ describe('CompletionProviderImpl', function () {
                 }
             },
             {
+                commitCharacters: [],
                 detail: 'ab: MouseEvent',
                 documentation: {
                     kind: 'markdown',
@@ -352,6 +385,7 @@ describe('CompletionProviderImpl', function () {
                 }
             },
             {
+                commitCharacters: [],
                 detail: 'ac: any',
                 documentation: '',
                 label: 'on:ac',
@@ -389,6 +423,7 @@ describe('CompletionProviderImpl', function () {
 
         assert.deepStrictEqual(eventCompletions, <CompletionItem[]>[
             {
+                commitCharacters: [],
                 detail: 'c: CustomEvent<boolean>',
                 documentation: {
                     kind: 'markdown',
@@ -417,6 +452,7 @@ describe('CompletionProviderImpl', function () {
 
         assert.deepStrictEqual(eventCompletions, <CompletionItem[]>[
             {
+                commitCharacters: [],
                 detail: 'event1: CustomEvent<null>',
                 documentation: '',
                 label: 'on:event1',
@@ -437,6 +473,7 @@ describe('CompletionProviderImpl', function () {
                 }
             },
             {
+                commitCharacters: [],
                 detail: 'event2: CustomEvent<string>',
                 documentation: {
                     kind: 'markdown',
@@ -477,6 +514,7 @@ describe('CompletionProviderImpl', function () {
 
         assert.deepStrictEqual(eventCompletions, <CompletionItem[]>[
             {
+                commitCharacters: [],
                 detail: 'event1: CustomEvent<string> | CustomEvent<number>',
                 label: 'on:event1',
                 sortText: '-1',
@@ -1101,6 +1139,7 @@ describe('CompletionProviderImpl', function () {
 
         assert.deepStrictEqual(slotLetCompletions, <CompletionItem[]>[
             {
+                commitCharacters: [],
                 detail: 'let1: boolean',
                 documentation: '',
                 label: 'let:let1',
@@ -1121,6 +1160,7 @@ describe('CompletionProviderImpl', function () {
                 }
             },
             {
+                commitCharacters: [],
                 detail: 'let2: string',
                 documentation: {
                     kind: 'markdown',
@@ -1290,7 +1330,7 @@ describe('CompletionProviderImpl', function () {
             insertText: undefined,
             insertTextFormat: undefined,
             labelDetails: undefined,
-            commitCharacters: ['.', ',', ';', '('],
+            commitCharacters: [],
             textEdit: {
                 newText: '@hi',
                 range: {

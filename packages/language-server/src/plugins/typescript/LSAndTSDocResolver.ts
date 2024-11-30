@@ -113,6 +113,7 @@ export class LSAndTSDocResolver {
         }
 
         this.lsDocumentContext = {
+            isSvelteCheck: !!this.options?.isSvelteCheck,
             ambientTypesSource: this.options?.isSvelteCheck ? 'svelte-check' : 'svelte2tsx',
             createDocument: this.createDocument,
             transformOnTemplateError: !this.options?.isSvelteCheck,

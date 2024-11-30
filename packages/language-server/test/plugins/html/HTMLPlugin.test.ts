@@ -258,7 +258,9 @@ describe('HTML Plugin', () => {
             ranges: [
                 { start: { line: 0, character: 1 }, end: { line: 0, character: 4 } },
                 { start: { line: 0, character: 7 }, end: { line: 0, character: 10 } }
-            ]
+            ],
+            wordPattern:
+                '(-?\\d*\\.\\d\\w*)|([^\\`\\~\\!\\@\\#\\^\\&\\*\\(\\)\\=\\+\\[\\{\\]\\}\\\\\\|\\;\\:\\\'\\"\\,\\<\\>\\/\\s]+)'
         });
     });
 

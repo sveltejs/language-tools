@@ -133,24 +133,25 @@ async•()•=>•{•{•svelteHTML.createElement("element",•{"foo":true,});}
   ↲                                                                                                                                                   
 />↲    [original] line 21 (rest generated at line 13)                                                                                                 
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
- { svelteHTML.createElement("element", {  "bind:foo":bar,});/*Ωignore_startΩ*/() => bar = __sveltets_2_any(null);/*Ωignore_endΩ*/}};                  {/**
-•{•svelteHTML.createElement("element",•{••"bind:foo":bar,});/*Ωignore_startΩ*/()•=>•bar•=•__sveltets_2_any(null);/*Ωignore_endΩ*/}};↲    [generated] line 15
-•{•svelteHTML.createElement("element",•{  "bind:foo":                                                                                    [generated] subset
-<                            element      ↲                                                                                                           
+ { svelteHTML.createElement("element", {   "bind:foo":bar,});/*Ωignore_startΩ*/() => bar = __sveltets_2_any(null);/*Ωignore_endΩ*/}};                 {/**
+•{•svelteHTML.createElement("element",•{•••"bind:foo":bar,});/*Ωignore_startΩ*/()•=>•bar•=•__sveltets_2_any(null);/*Ωignore_endΩ*/}};↲    [generated] line 15
+•{•svelteHTML.createElement("element",•{   "                                                                                              [generated] subset
+<                            element       ↲                                                                                                          
 <element ↲                                                                                                                                            
-<element•↲                                                                                                                               [original] line 23 
+<element•↲                                                                                                                                [original] line 23 
                                                                                                                                                       
-•{•svelteHTML.createElement("element",•{••"bind:foo":bar,});/*Ωignore_startΩ*/()•=>•bar•=•__sveltets_2_any(null);/*Ωignore_endΩ*/}};↲    [generated] line 15
-                                        •            bar,});/*Ωignore_startΩ*/()•=>•bar•=•__sveltets_2_any(null);/*Ωignore_endΩ*/}};↲    [generated] subset
-                                        •            bar}                                                                                             
-•             bar}                                                                                                                                    
-••••bind:foo={bar}↲                                                                                                                      [original] line 24 
+•{•svelteHTML.createElement("element",•{•••"bind:foo":bar,});/*Ωignore_startΩ*/()•=>•bar•=•__sveltets_2_any(null);/*Ωignore_endΩ*/}};↲    [generated] line 15
+                                        ••  bind:foo":bar,});/*Ωignore_startΩ*/()•=>•bar•=•__sveltets_2_any(null);/*Ωignore_endΩ*/}};↲    [generated] subset
+                                        •{  bind:foo= bar}                                                                                            
+                                         #==                                                                                              Order-breaking mappings
+•   bind:foo={bar}                                                                                                                                    
+••••bind:foo={bar}↲                                                                                                                       [original] line 24 
                                                                                                                                                       
-•{•svelteHTML.createElement("element",•{••"bind:foo":bar,});/*Ωignore_startΩ*/()•=>•bar•=•__sveltets_2_any(null);/*Ωignore_endΩ*/}};↲    [generated] line 15
-                                         •                                                                                               [generated] subset
-                                         /                                                                                                            
+•{•svelteHTML.createElement("element",•{•••"bind:foo":bar,});/*Ωignore_startΩ*/()•=>•bar•=•__sveltets_2_any(null);/*Ωignore_endΩ*/}};↲    [generated] line 15
+                                          •                                                                                               [generated] subset
+                                          /                                                                                                           
 /                                                                                                                                                     
-/>                                                                                                                                       [original] line 25 
+/>                                                                                                                                        [original] line 25 
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
 return { props: /** @type {Record<string, never>} */ ({}), slots: {}, events: {} }}
 

@@ -263,6 +263,8 @@ type __sveltets_2_PropsWithChildren<Props, Slots> = Props &
         : {});
 declare function __sveltets_2_runes_constructor<Props extends {}>(render: {props: Props }): import("svelte").ComponentConstructorOptions<Props>;
 
+declare function __sveltets_2_get_set_binding<T>(get: (() => T) | null | undefined, set: (t: T) => void): T;
+
 declare function __sveltets_$$bindings<Bindings extends string[]>(...bindings: Bindings): Bindings[number];
 
 declare function __sveltets_2_fn_component<

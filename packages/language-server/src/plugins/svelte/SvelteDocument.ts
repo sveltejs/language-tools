@@ -35,8 +35,8 @@ type PositionMapper = Pick<DocumentMapper, 'getGeneratedPosition' | 'getOriginal
  * Represents a text document that contains a svelte component.
  */
 export class SvelteDocument {
-    private transpiledDoc: ITranspiledSvelteDocument | undefined;
-    private compileResult: SvelteCompileResult | undefined;
+    private transpiledDoc: Promise<ITranspiledSvelteDocument> | undefined;
+    private compileResult: Promise<SvelteCompileResult> | undefined;
     private svelteVersion: [number, number] | undefined;
 
     public script: TagInformation | null;
@@ -47,6 +47,9 @@ export class SvelteDocument {
     public uri = this.parent.uri;
     public get config() {
         return this.parent.configPromise;
+    }
+    public get isSvelte5() {
+        return this.getSvelteVersion()[0] > 4;
     }
 
     constructor(private parent: Document) {
@@ -70,19 +73,15 @@ export class SvelteDocument {
 
     async getTranspiled(): Promise<ITranspiledSvelteDocument> {
         if (!this.transpiledDoc) {
-            if (!this.svelteVersion) {
-                const { major, minor } = getPackageInfo('svelte', this.getFilePath()).version;
-                this.svelteVersion = [major, minor];
-            }
-            const [major, minor] = this.svelteVersion;
+            const [major, minor] = this.getSvelteVersion();
 
             if (major > 3 || (major === 3 && minor >= 32)) {
-                this.transpiledDoc = await TranspiledSvelteDocument.create(
+                this.transpiledDoc = TranspiledSvelteDocument.create(
                     this.parent,
                     await this.config
                 );
             } else {
-                this.transpiledDoc = await FallbackTranspiledSvelteDocument.create(
+                this.transpiledDoc = FallbackTranspiledSvelteDocument.create(
                     this.parent,
                     (await this.config)?.preprocess
                 );
@@ -93,7 +92,7 @@ export class SvelteDocument {
 
     async getCompiled(): Promise<SvelteCompileResult> {
         if (!this.compileResult) {
-            this.compileResult = await this.getCompiledWith((await this.config)?.compilerOptions);
+            this.compileResult = this.getCompiledWith((await this.config)?.compilerOptions);
         }
 
         return this.compileResult;
@@ -102,6 +101,14 @@ export class SvelteDocument {
     async getCompiledWith(options: CompileOptions = {}): Promise<SvelteCompileResult> {
         const svelte = importSvelte(this.getFilePath());
         return svelte.compile((await this.getTranspiled()).getText(), options);
+    }
+
+    private getSvelteVersion() {
+        if (!this.svelteVersion) {
+            const { major, minor } = getPackageInfo('svelte', this.getFilePath()).version;
+            this.svelteVersion = [major, minor];
+        }
+        return this.svelteVersion;
     }
 }
 

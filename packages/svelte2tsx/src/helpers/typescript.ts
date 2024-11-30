@@ -70,7 +70,8 @@ export function findExports(ts: _ts, source: ts.SourceFile, isTsFile: boolean) {
                     node,
                     hasTypeDefinition: hasTypeDefinition || hasTypedParameter(ts, node, isTsFile)
                 });
-            } else {
+            } else if (ts.isIdentifier(declaration.name)) {
+                // TODO support `export const { x, y } = ...` ?
                 exports.set(declaration.name.getText(), {
                     type: 'var',
                     node: declaration,

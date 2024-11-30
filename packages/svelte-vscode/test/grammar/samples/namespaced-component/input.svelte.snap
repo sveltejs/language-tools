@@ -1,11 +1,82 @@
 ><Hi.Input></Hi.Input>
 #^ source.svelte meta.scope.tag.Hi.Input.svelte meta.tag.start.svelte punctuation.definition.tag.begin.svelte
 # ^^ source.svelte meta.scope.tag.Hi.Input.svelte meta.tag.start.svelte support.class.component.svelte
-#   ^ source.svelte meta.scope.tag.Hi.Input.svelte meta.tag.start.svelte
+#   ^ source.svelte meta.scope.tag.Hi.Input.svelte meta.tag.start.svelte punctuation.definition.keyword.svelte
 #    ^^^^^ source.svelte meta.scope.tag.Hi.Input.svelte meta.tag.start.svelte support.class.component.svelte
 #         ^ source.svelte meta.scope.tag.Hi.Input.svelte meta.tag.start.svelte punctuation.definition.tag.end.svelte
 #          ^^ source.svelte meta.scope.tag.Hi.Input.svelte meta.tag.end.svelte punctuation.definition.tag.begin.svelte
 #            ^^ source.svelte meta.scope.tag.Hi.Input.svelte meta.tag.end.svelte support.class.component.svelte
-#              ^ source.svelte meta.scope.tag.Hi.Input.svelte meta.tag.end.svelte
+#              ^ source.svelte meta.scope.tag.Hi.Input.svelte meta.tag.end.svelte punctuation.definition.keyword.svelte
 #               ^^^^^ source.svelte meta.scope.tag.Hi.Input.svelte meta.tag.end.svelte support.class.component.svelte
 #                    ^ source.svelte meta.scope.tag.Hi.Input.svelte meta.tag.end.svelte punctuation.definition.tag.end.svelte
+><Hello.World.Input></Hello.World.Input>
+#^ source.svelte meta.scope.tag.Hello.World.Input.svelte meta.tag.start.svelte punctuation.definition.tag.begin.svelte
+# ^^^^^ source.svelte meta.scope.tag.Hello.World.Input.svelte meta.tag.start.svelte support.class.component.svelte
+#      ^ source.svelte meta.scope.tag.Hello.World.Input.svelte meta.tag.start.svelte punctuation.definition.keyword.svelte
+#       ^^^^^ source.svelte meta.scope.tag.Hello.World.Input.svelte meta.tag.start.svelte support.class.component.svelte
+#            ^ source.svelte meta.scope.tag.Hello.World.Input.svelte meta.tag.start.svelte punctuation.definition.keyword.svelte
+#             ^^^^^ source.svelte meta.scope.tag.Hello.World.Input.svelte meta.tag.start.svelte support.class.component.svelte
+#                  ^ source.svelte meta.scope.tag.Hello.World.Input.svelte meta.tag.start.svelte punctuation.definition.tag.end.svelte
+#                   ^^ source.svelte meta.scope.tag.Hello.World.Input.svelte meta.tag.end.svelte punctuation.definition.tag.begin.svelte
+#                     ^^^^^ source.svelte meta.scope.tag.Hello.World.Input.svelte meta.tag.end.svelte support.class.component.svelte
+#                          ^ source.svelte meta.scope.tag.Hello.World.Input.svelte meta.tag.end.svelte punctuation.definition.keyword.svelte
+#                           ^^^^^ source.svelte meta.scope.tag.Hello.World.Input.svelte meta.tag.end.svelte support.class.component.svelte
+#                                ^ source.svelte meta.scope.tag.Hello.World.Input.svelte meta.tag.end.svelte punctuation.definition.keyword.svelte
+#                                 ^^^^^ source.svelte meta.scope.tag.Hello.World.Input.svelte meta.tag.end.svelte support.class.component.svelte
+#                                      ^ source.svelte meta.scope.tag.Hello.World.Input.svelte meta.tag.end.svelte punctuation.definition.tag.end.svelte
+><Hello._World123.Input></Hello._World123.Input>
+#^ source.svelte meta.scope.tag.Hello._World123.Input.svelte meta.tag.start.svelte punctuation.definition.tag.begin.svelte
+# ^^^^^ source.svelte meta.scope.tag.Hello._World123.Input.svelte meta.tag.start.svelte support.class.component.svelte
+#      ^ source.svelte meta.scope.tag.Hello._World123.Input.svelte meta.tag.start.svelte punctuation.definition.keyword.svelte
+#       ^^^^^^^^^ source.svelte meta.scope.tag.Hello._World123.Input.svelte meta.tag.start.svelte support.class.component.svelte
+#                ^ source.svelte meta.scope.tag.Hello._World123.Input.svelte meta.tag.start.svelte punctuation.definition.keyword.svelte
+#                 ^^^^^ source.svelte meta.scope.tag.Hello._World123.Input.svelte meta.tag.start.svelte support.class.component.svelte
+#                      ^ source.svelte meta.scope.tag.Hello._World123.Input.svelte meta.tag.start.svelte punctuation.definition.tag.end.svelte
+#                       ^^ source.svelte meta.scope.tag.Hello._World123.Input.svelte meta.tag.end.svelte punctuation.definition.tag.begin.svelte
+#                         ^^^^^ source.svelte meta.scope.tag.Hello._World123.Input.svelte meta.tag.end.svelte support.class.component.svelte
+#                              ^ source.svelte meta.scope.tag.Hello._World123.Input.svelte meta.tag.end.svelte punctuation.definition.keyword.svelte
+#                               ^^^^^^^^^ source.svelte meta.scope.tag.Hello._World123.Input.svelte meta.tag.end.svelte support.class.component.svelte
+#                                        ^ source.svelte meta.scope.tag.Hello._World123.Input.svelte meta.tag.end.svelte punctuation.definition.keyword.svelte
+#                                         ^^^^^ source.svelte meta.scope.tag.Hello._World123.Input.svelte meta.tag.end.svelte support.class.component.svelte
+#                                              ^ source.svelte meta.scope.tag.Hello._World123.Input.svelte meta.tag.end.svelte punctuation.definition.tag.end.svelte
+><hi.input></hi.input>
+#^ source.svelte meta.scope.tag.hi.input.svelte meta.tag.start.svelte punctuation.definition.tag.begin.svelte
+# ^^ source.svelte meta.scope.tag.hi.input.svelte meta.tag.start.svelte support.class.component.svelte
+#   ^ source.svelte meta.scope.tag.hi.input.svelte meta.tag.start.svelte punctuation.definition.keyword.svelte
+#    ^^^^^ source.svelte meta.scope.tag.hi.input.svelte meta.tag.start.svelte support.class.component.svelte
+#         ^ source.svelte meta.scope.tag.hi.input.svelte meta.tag.start.svelte punctuation.definition.tag.end.svelte
+#          ^^ source.svelte meta.scope.tag.hi.input.svelte meta.tag.end.svelte punctuation.definition.tag.begin.svelte
+#            ^^ source.svelte meta.scope.tag.hi.input.svelte meta.tag.end.svelte support.class.component.svelte
+#              ^ source.svelte meta.scope.tag.hi.input.svelte meta.tag.end.svelte punctuation.definition.keyword.svelte
+#               ^^^^^ source.svelte meta.scope.tag.hi.input.svelte meta.tag.end.svelte support.class.component.svelte
+#                    ^ source.svelte meta.scope.tag.hi.input.svelte meta.tag.end.svelte punctuation.definition.tag.end.svelte
+><hello.world.input></hello.world.input>
+#^ source.svelte meta.scope.tag.hello.world.input.svelte meta.tag.start.svelte punctuation.definition.tag.begin.svelte
+# ^^^^^ source.svelte meta.scope.tag.hello.world.input.svelte meta.tag.start.svelte support.class.component.svelte
+#      ^ source.svelte meta.scope.tag.hello.world.input.svelte meta.tag.start.svelte punctuation.definition.keyword.svelte
+#       ^^^^^ source.svelte meta.scope.tag.hello.world.input.svelte meta.tag.start.svelte support.class.component.svelte
+#            ^ source.svelte meta.scope.tag.hello.world.input.svelte meta.tag.start.svelte punctuation.definition.keyword.svelte
+#             ^^^^^ source.svelte meta.scope.tag.hello.world.input.svelte meta.tag.start.svelte support.class.component.svelte
+#                  ^ source.svelte meta.scope.tag.hello.world.input.svelte meta.tag.start.svelte punctuation.definition.tag.end.svelte
+#                   ^^ source.svelte meta.scope.tag.hello.world.input.svelte meta.tag.end.svelte punctuation.definition.tag.begin.svelte
+#                     ^^^^^ source.svelte meta.scope.tag.hello.world.input.svelte meta.tag.end.svelte support.class.component.svelte
+#                          ^ source.svelte meta.scope.tag.hello.world.input.svelte meta.tag.end.svelte punctuation.definition.keyword.svelte
+#                           ^^^^^ source.svelte meta.scope.tag.hello.world.input.svelte meta.tag.end.svelte support.class.component.svelte
+#                                ^ source.svelte meta.scope.tag.hello.world.input.svelte meta.tag.end.svelte punctuation.definition.keyword.svelte
+#                                 ^^^^^ source.svelte meta.scope.tag.hello.world.input.svelte meta.tag.end.svelte support.class.component.svelte
+#                                      ^ source.svelte meta.scope.tag.hello.world.input.svelte meta.tag.end.svelte punctuation.definition.tag.end.svelte
+><hello._world123.input></hello._world123.input>
+#^ source.svelte meta.scope.tag.hello._world123.input.svelte meta.tag.start.svelte punctuation.definition.tag.begin.svelte
+# ^^^^^ source.svelte meta.scope.tag.hello._world123.input.svelte meta.tag.start.svelte support.class.component.svelte
+#      ^ source.svelte meta.scope.tag.hello._world123.input.svelte meta.tag.start.svelte punctuation.definition.keyword.svelte
+#       ^^^^^^^^^ source.svelte meta.scope.tag.hello._world123.input.svelte meta.tag.start.svelte support.class.component.svelte
+#                ^ source.svelte meta.scope.tag.hello._world123.input.svelte meta.tag.start.svelte punctuation.definition.keyword.svelte
+#                 ^^^^^ source.svelte meta.scope.tag.hello._world123.input.svelte meta.tag.start.svelte support.class.component.svelte
+#                      ^ source.svelte meta.scope.tag.hello._world123.input.svelte meta.tag.start.svelte punctuation.definition.tag.end.svelte
+#                       ^^ source.svelte meta.scope.tag.hello._world123.input.svelte meta.tag.end.svelte punctuation.definition.tag.begin.svelte
+#                         ^^^^^ source.svelte meta.scope.tag.hello._world123.input.svelte meta.tag.end.svelte support.class.component.svelte
+#                              ^ source.svelte meta.scope.tag.hello._world123.input.svelte meta.tag.end.svelte punctuation.definition.keyword.svelte
+#                               ^^^^^^^^^ source.svelte meta.scope.tag.hello._world123.input.svelte meta.tag.end.svelte support.class.component.svelte
+#                                        ^ source.svelte meta.scope.tag.hello._world123.input.svelte meta.tag.end.svelte punctuation.definition.keyword.svelte
+#                                         ^^^^^ source.svelte meta.scope.tag.hello._world123.input.svelte meta.tag.end.svelte support.class.component.svelte
+#                                              ^ source.svelte meta.scope.tag.hello._world123.input.svelte meta.tag.end.svelte punctuation.definition.tag.end.svelte

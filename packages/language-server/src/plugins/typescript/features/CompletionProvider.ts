@@ -66,6 +66,12 @@ type LastCompletion = {
     completionList: AppCompletionList<CompletionResolveInfo> | null;
 };
 
+interface CommitCharactersOptions {
+    checkCommitCharacters: boolean;
+    defaultCommitCharacters?: string[];
+    isNewIdentifierLocation?: boolean;
+}
+
 export class CompletionsProviderImpl implements CompletionsProvider<CompletionResolveInfo> {
     constructor(
         private readonly lsAndTsDocResolver: LSAndTSDocResolver,
@@ -237,10 +243,8 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
             },
             formatSettings
         );
-        const addCommitCharacters =
-            // replicating VS Code behavior https://github.com/microsoft/vscode/blob/main/extensions/typescript-language-features/src/languageFeatures/completions.ts
-            response?.isNewIdentifierLocation !== true &&
-            (!tsDoc.parserError || isInScript(position, tsDoc));
+
+        const commitCharactersOptions = this.getCommitCharactersOptions(response, tsDoc, position);
         let completions = response?.entries || [];
 
         const customCompletions = eventAndSlotLetCompletions.concat(tagCompletions ?? []);
@@ -289,7 +293,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
                     fileUrl,
                     position,
                     isCompletionInTag,
-                    addCommitCharacters,
+                    commitCharactersOptions,
                     asStore,
                     existingImports
                 );
@@ -376,6 +380,27 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
         }
 
         const completionList = CompletionList.create(completionItems, !!tsDoc.parserError);
+        if (
+            commitCharactersOptions.checkCommitCharacters &&
+            commitCharactersOptions.defaultCommitCharacters?.length
+        ) {
+            const clientSupportsItemsDefault = this.configManager
+                .getClientCapabilities()
+                ?.textDocument?.completion?.completionList?.itemDefaults?.includes(
+                    'commitCharacters'
+                );
+
+            if (clientSupportsItemsDefault) {
+                completionList.itemDefaults = {
+                    commitCharacters: commitCharactersOptions.defaultCommitCharacters
+                };
+            } else {
+                completionList.items.forEach((item) => {
+                    item.commitCharacters ??= commitCharactersOptions.defaultCommitCharacters;
+                });
+            }
+        }
+
         this.lastCompletion = { key: document.getFilePath() || '', position, completionList };
 
         return completionList;
@@ -578,6 +603,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
             sortText: '-1',
             detail: info.name + ': ' + info.type,
             documentation: info.doc && { kind: MarkupKind.Markdown, value: info.doc },
+            commitCharacters: [],
             textEdit: defaultTextEditRange
                 ? TextEdit.replace(this.cloneRange(defaultTextEditRange), name)
                 : undefined
@@ -623,7 +649,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
         uri: string,
         position: Position,
         isCompletionInTag: boolean,
-        addCommitCharacters: boolean,
+        commitCharactersOptions: CommitCharactersOptions,
         asStore: boolean,
         existingImports: Set<string>
     ): AppCompletionItem<CompletionResolveInfo> | null {
@@ -669,7 +695,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
             label,
             insertText,
             kind: scriptElementKindToCompletionItemKind(comp.kind),
-            commitCharacters: addCommitCharacters ? this.commitCharacters : undefined,
+            commitCharacters: this.getCommitCharacters(comp, commitCharactersOptions, isSvelteComp),
             // Make sure svelte component and runes take precedence
             sortText: isRunesCompletion || isSvelteComp ? '-1' : comp.sortText,
             preselect: isRunesCompletion || isSvelteComp ? true : comp.isRecommended,
@@ -732,6 +758,71 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
             isSvelteComp,
             isRunesCompletion
         };
+    }
+
+    private getCommitCharactersOptions(
+        response: ts.CompletionInfo | undefined,
+        tsDoc: SvelteDocumentSnapshot,
+        position: Position
+    ): CommitCharactersOptions {
+        if ((!isInScript(position, tsDoc) && tsDoc.parserError) || !response) {
+            return {
+                checkCommitCharacters: false
+            };
+        }
+
+        const isNewIdentifierLocation = response.isNewIdentifierLocation;
+        let defaultCommitCharacters = response.defaultCommitCharacters;
+        if (!isNewIdentifierLocation) {
+            // This actually always exists although it's optional in the type, at least in ts 5.6,
+            // so our commit characters are mostly fallback for older ts versions
+            if (defaultCommitCharacters) {
+                // this is controlled by a vscode setting that isn't available in the ts server so it isn't added to the language service
+                defaultCommitCharacters?.push('(');
+            } else {
+                defaultCommitCharacters = this.commitCharacters;
+            }
+        }
+
+        return {
+            checkCommitCharacters: true,
+            defaultCommitCharacters,
+            isNewIdentifierLocation
+        };
+    }
+
+    private getCommitCharacters(
+        entry: ts.CompletionEntry,
+        options: CommitCharactersOptions,
+        isSvelteComp: boolean
+    ) {
+        // Because Svelte components take precedence, we leave out commit characters to not auto complete
+        // in weird places (e.g. when you have foo.filter(a => a)) and get autocomplete for component A,
+        // then a commit character of `.` would auto import the component which is not what we want
+        if (isSvelteComp) {
+            return ['>'];
+        }
+
+        // https://github.com/microsoft/vscode/blob/d012408e88ffabd6456c367df4d343654da2eb10/extensions/typescript-language-features/src/languageFeatures/completions.ts#L504
+        if (!options.checkCommitCharacters) {
+            return undefined;
+        }
+
+        const commitCharacters = entry.commitCharacters;
+        // Ambient JS word based suggestions
+        const skipCommitCharacters =
+            entry.kind === ts.ScriptElementKind.warning ||
+            entry.kind === ts.ScriptElementKind.string;
+
+        if (commitCharacters) {
+            if (!options.isNewIdentifierLocation && !skipCommitCharacters) {
+                return commitCharacters.concat('(');
+            }
+
+            return commitCharacters;
+        }
+
+        return skipCommitCharacters ? [] : undefined;
     }
 
     private isExistingSvelteComponentImport(

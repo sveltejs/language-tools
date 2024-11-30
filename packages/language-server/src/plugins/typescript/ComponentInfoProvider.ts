@@ -76,7 +76,11 @@ export class JsOrTsComponentInfoProvider implements ComponentInfoProvider {
             .getProperties()
             .map((prop) => {
                 // type would still be correct when there're multiple declarations
-                const declaration = prop.valueDeclaration ?? prop.declarations?.[0];
+                const declaration =
+                    prop.valueDeclaration ??
+                    prop.declarations?.[0] ??
+                    // very complex types are hidden on this thing for some reason
+                    (prop as any)?.links?.mappedType?.declaration;
                 if (!declaration) {
                     return;
                 }

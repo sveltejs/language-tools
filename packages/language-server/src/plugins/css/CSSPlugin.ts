@@ -53,6 +53,7 @@ import { getDocumentContext } from '../documentContext';
 import { FoldingRange, FoldingRangeKind } from 'vscode-languageserver-types';
 import { indentBasedFoldingRangeForTag } from '../../lib/foldingRange/indentFolding';
 import { wordHighlightForTag } from '../../lib/documentHighlight/wordHighlight';
+import { isNotNullOrUndefined, urlToPath } from '../../utils';
 
 // https://github.com/microsoft/vscode/blob/c6f507deeb99925e713271b1048f21dbaab4bd54/extensions/css/language-configuration.json#L34
 const wordPattern = /(#?-?\d*\.\d\w*%?)|(::?[\w-]*(?=[^,{;]*[,{]))|(([@#.!])?[\w-?]+%?|[@#!.])/g;
@@ -75,7 +76,7 @@ export class CSSPlugin
     private cssLanguageServices: CSSLanguageServices;
     private workspaceFolders: WorkspaceFolder[];
     private triggerCharacters = ['.', ':', '-', '/'];
-    private globalVars = new GlobalVars();
+    private globalVars: GlobalVars;
 
     constructor(
         docManager: DocumentManager,
@@ -87,6 +88,10 @@ export class CSSPlugin
         this.workspaceFolders = workspaceFolders;
         this.configManager = configManager;
         this.updateConfigs();
+        const workspacePaths = workspaceFolders
+            .map((folder) => urlToPath(folder.uri))
+            .filter(isNotNullOrUndefined);
+        this.globalVars = new GlobalVars(workspacePaths);
 
         this.globalVars.watchFiles(this.configManager.get('css.globals'));
         this.configManager.onChange((config) => {

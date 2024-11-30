@@ -80,7 +80,8 @@ describe('ts user preferences', function () {
             importModuleSpecifier: 'non-relative',
             importModuleSpecifierEnding: undefined,
             quoteStyle: 'single',
-            includePackageJsonAutoImports: undefined
+            includePackageJsonAutoImports: undefined,
+            organizeImports: undefined
         };
     }
 

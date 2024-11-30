@@ -3,6 +3,7 @@ import {
     CancellationToken,
     CodeAction,
     CodeActionContext,
+    CodeLens,
     CompletionContext,
     CompletionList,
     Diagnostic,
@@ -49,6 +50,47 @@ export class SveltePlugin
 
     constructor(private configManager: LSConfigManager) {}
 
+    async getCodeLens(document: Document): Promise<CodeLens[] | null> {
+        if (!this.featureEnabled('runesLegacyModeCodeLens')) return null;
+
+        const doc = await this.getSvelteDoc(document);
+        if (!doc.isSvelte5) return null;
+
+        try {
+            const result = await doc.getCompiled();
+            // @ts-ignore
+            const runes = result.metadata.runes as boolean;
+
+            return [
+                {
+                    range: {
+                        start: { line: 0, character: 0 },
+                        end: { line: 0, character: 0 }
+                    },
+                    command: {
+                        title: runes ? 'Runes mode' : 'Legacy mode',
+                        command: 'svelte.openLink',
+                        arguments: ['https://svelte.dev/docs/svelte/legacy-overview']
+                    }
+                }
+            ];
+        } catch (e) {
+            // show an empty code lens in case of a compilation error to prevent code from jumping around
+            return [
+                {
+                    range: {
+                        start: { line: 0, character: 0 },
+                        end: { line: 0, character: 0 }
+                    },
+                    command: {
+                        title: '',
+                        command: ''
+                    }
+                }
+            ];
+        }
+    }
+
     async getDiagnostics(
         document: Document,
         cancellationToken?: CancellationToken
@@ -85,11 +127,9 @@ export class SveltePlugin
         /**
          * Prettier v2 can't use v3 plugins and vice versa. Therefore, we need to check
          * which version of prettier is used in the workspace and import the correct
-         * version of the Svelte plugin. If user uses Prettier >= 3 and has no Svelte plugin
-         * then fall back to our built-in versions which are both v2 and compatible with
+         * version of the Svelte plugin. If user uses Prettier < 3 and has no Svelte plugin
+         * then fall back to our built-in versions which are both v3 and compatible with
          * each other.
-         * TODO switch this around at some point to load Prettier v3 by default because it's
-         * more likely that users have that installed.
          */
         const importFittingPrettier = async () => {
             const getConfig = async (p: any) => {
@@ -162,6 +202,15 @@ export class SveltePlugin
         if (fileInfo.ignored) {
             Logger.debug('File is ignored, formatting skipped');
             return [];
+        }
+
+        if (isFallback || !(await hasSveltePluginLoaded(prettier, resolvedPlugins))) {
+            // If the user uses Svelte 5 but doesn't have prettier installed, we need to provide
+            // the compiler path to the plugin so it can use its parser method; else it will crash.
+            const svelteCompilerInfo = getPackageInfo('svelte', filePath);
+            if (svelteCompilerInfo.version.major >= 5) {
+                config.svelte5CompilerPath = svelteCompilerInfo.path + '/compiler';
+            }
         }
 
         // Prettier v3 format is async, v2 is not

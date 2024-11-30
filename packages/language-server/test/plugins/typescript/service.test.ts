@@ -21,6 +21,7 @@ describe('service', () => {
 
         const rootUris = [pathToUrl(testDir)];
         const lsDocumentContext: LanguageServiceDocumentContext = {
+            isSvelteCheck: false,
             ambientTypesSource: 'svelte2tsx',
             createDocument(fileName, content) {
                 return new Document(pathToUrl(fileName), content);

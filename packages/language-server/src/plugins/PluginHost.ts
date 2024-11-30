@@ -172,6 +172,22 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
             });
         }
 
+        let itemDefaults: CompletionList['itemDefaults'];
+        if (completions.length === 1) {
+            itemDefaults = completions[0]?.result.itemDefaults;
+        } else {
+            // don't apply items default to the result of other plugins
+            for (const completion of completions) {
+                const itemDefaults = completion.result.itemDefaults;
+                if (!itemDefaults) {
+                    continue;
+                }
+                completion.result.items.forEach((item) => {
+                    item.commitCharacters ??= itemDefaults.commitCharacters;
+                });
+            }
+        }
+
         let flattenedCompletions = flatten(
             completions.map((completion) => completion.result.items)
         );
@@ -195,7 +211,10 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
             );
         }
 
-        return CompletionList.create(flattenedCompletions, isIncomplete);
+        const result = CompletionList.create(flattenedCompletions, isIncomplete);
+        result.itemDefaults = itemDefaults;
+
+        return result;
     }
 
     async resolveCompletion(
@@ -615,12 +634,13 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
             throw new Error('Cannot call methods on an unopened document');
         }
 
-        return await this.execute<CodeLens[]>(
+        const result = await this.execute<CodeLens[]>(
             'getCodeLens',
             [document],
-            ExecuteMode.FirstNonNull,
+            ExecuteMode.Collect,
             'smart'
         );
+        return flatten(result.filter(Boolean));
     }
 
     async getFoldingRanges(textDocument: TextDocumentIdentifier): Promise<FoldingRange[]> {
