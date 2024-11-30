@@ -28,13 +28,16 @@ export function clamp(num: number, min: number, max: number): number {
 
 export function urlToPath(stringUrl: string): string | null {
     const url = URI.parse(stringUrl);
-    if (url.scheme !== 'file') {
+    if (url.scheme === 'http' || url.scheme === 'https') {
         return null;
     }
     return url.fsPath.replace(/\\/g, '/');
 }
 
-export function pathToUrl(path: string) {
+export function pathToUrl(path: string, scheme?: string) {
+    const baseUri = URI.file(path);
+    if (scheme)
+        return baseUri.with({ scheme: scheme }).toString();
     return URI.file(path).toString();
 }
 
