@@ -260,11 +260,11 @@ repository:
       patterns:
       # Start expression.
       - begin: \G\s*?(?=\S)
-        end: (?=(?:^\s*|\s+)(as))
+        end: (?=(?:(?:^\s*|\s+)(as))|\s*(}|,))
         contentName: meta.embedded.expression.svelte source.ts
         patterns: [ include: source.ts ]
       # 'as' token and onwards.
-      - begin: (as)
+      - begin: (as)|(?=}|,)
         beginCaptures: { 1: { name: keyword.control.as.svelte } }
         end: (?=})
         patterns:
