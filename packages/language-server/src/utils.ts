@@ -36,9 +36,10 @@ export function urlToPath(stringUrl: string): string | null {
 
 export function pathToUrl(path: string, scheme?: string) {
     const baseUri = URI.file(path);
-    if (scheme)
+    if (scheme) {
         return baseUri.with({ scheme: scheme }).toString();
-    return URI.file(path).toString();
+    }
+    return baseUri.toString();
 }
 
 /**
