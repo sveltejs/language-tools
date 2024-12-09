@@ -98,9 +98,15 @@ export class SvelteDocument {
         return this.compileResult;
     }
 
-    async getCompiledWith(options: CompileOptions = {}): Promise<SvelteCompileResult> {
+    async getCompiledWith(options: SvelteConfig['compilerOptions']): Promise<SvelteCompileResult> {
         const svelte = importSvelte(this.getFilePath());
-        return svelte.compile((await this.getTranspiled()).getText(), options);
+        const code = (await this.getTranspiled()).getText();
+        return svelte.compile(
+            code,
+            typeof options === 'function'
+                ? options({ filename: this.getFilePath(), code })
+                : (options ?? {})
+        );
     }
 
     private getSvelteVersion() {
