@@ -48,6 +48,7 @@ export function svelte2tsx(
     const str = new MagicString(svelte);
     const basename = path.basename(options.filename || '');
     const svelte5Plus = Number(options.version![0]) > 4;
+    const isTsFile = options?.isTsFile;
 
     // process the htmlx as a svelte template
     let {
@@ -95,14 +96,7 @@ export function svelte2tsx(
         : instanceScriptTarget;
     const implicitStoreValues = new ImplicitStoreValues(resolvedStores, renderFunctionStart);
     //move the instance script and process the content
-    let exportedNames = new ExportedNames(
-        str,
-        0,
-        basename,
-        options?.isTsFile,
-        svelte5Plus,
-        isRunes
-    );
+    let exportedNames = new ExportedNames(str, 0, basename, isTsFile, svelte5Plus, isRunes);
     let generics = new Generics(str, 0, { attributes: [] } as any);
     let uses$$SlotsInterface = false;
     if (scriptTag) {
@@ -117,7 +111,7 @@ export function svelte2tsx(
             implicitStoreValues,
             options.mode,
             moduleAst,
-            options?.isTsFile,
+            isTsFile,
             basename,
             svelte5Plus,
             isRunes
@@ -148,6 +142,7 @@ export function svelte2tsx(
         uses$$SlotsInterface,
         generics,
         svelte5Plus,
+        isTsFile,
         mode: options.mode
     });
 
@@ -195,7 +190,7 @@ export function svelte2tsx(
         str,
         canHaveAnyProp: !exportedNames.uses$$Props && (uses$$props || uses$$restProps),
         events,
-        isTsFile: options?.isTsFile,
+        isTsFile,
         exportedNames,
         usesAccessors,
         usesSlots: slots.size > 0,
