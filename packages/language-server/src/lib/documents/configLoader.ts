@@ -23,7 +23,9 @@ export type InternalPreprocessorGroup = PreprocessorGroup & {
 };
 
 export interface SvelteConfig {
-    compilerOptions?: CompileOptions;
+    compilerOptions?:
+        | CompileOptions
+        | ((input: { filename: string; code: string }) => CompileOptions);
     preprocess?: InternalPreprocessorGroup | InternalPreprocessorGroup[];
     loadConfigError?: any;
     isFallbackConfig?: boolean;

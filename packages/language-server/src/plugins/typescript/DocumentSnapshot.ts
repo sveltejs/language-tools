@@ -200,6 +200,16 @@ function preprocessSvelteFile(document: Document, options: SvelteSnapshotOptions
         : ts.ScriptKind.JS;
 
     try {
+        const compilerOptions =
+            typeof document.config?.compilerOptions === 'function'
+                ? document.config.compilerOptions({
+                      filename: document.getFilePath() ?? '',
+                      // Ideally we could pass the preprocessed text here, but we have to be synchronous here
+                      // and the preprocessed text is only available asynchronously. Most people will only
+                      // branch on filename anyway.
+                      code: text
+                  })
+                : document.config?.compilerOptions;
         const tsx = svelte2tsx(text, {
             parse: options.parse,
             version: options.version,
@@ -208,10 +218,8 @@ function preprocessSvelteFile(document: Document, options: SvelteSnapshotOptions
             mode: 'ts',
             typingsNamespace: options.typingsNamespace,
             emitOnTemplateError: options.transformOnTemplateError,
-            namespace: document.config?.compilerOptions?.namespace,
-            accessors:
-                document.config?.compilerOptions?.accessors ??
-                document.config?.compilerOptions?.customElement
+            namespace: compilerOptions?.namespace,
+            accessors: compilerOptions?.accessors ?? compilerOptions?.customElement
         });
         text = tsx.code;
         tsxMap = tsx.map as EncodedSourceMap;
