@@ -10,6 +10,6 @@
     $: c.abc = a.abc = ao.abc = '';
 </script>
 
-<CustomElement />
-<Accessors />
-<AccessorsAndOption />
+<CustomElement bind:this={c} />
+<Accessors bind:this={a} />
+<AccessorsAndOption bind:this={ao} />
