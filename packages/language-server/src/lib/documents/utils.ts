@@ -453,3 +453,11 @@ export function isInsideMoustacheTag(html: string, tagStart: number | null, posi
         return charactersInNode.lastIndexOf('{') > charactersInNode.lastIndexOf('}');
     }
 }
+
+export function inStyleOrScript(document: Document, position: Position) {
+    return (
+        isInTag(position, document.styleInfo) ||
+        isInTag(position, document.scriptInfo) ||
+        isInTag(position, document.moduleScriptInfo)
+    );
+}

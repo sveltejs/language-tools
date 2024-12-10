@@ -9,7 +9,9 @@ import {
     CompletionContext,
     SelectionRange,
     CompletionTriggerKind,
-    FoldingRangeKind
+    FoldingRangeKind,
+    DocumentHighlight,
+    DocumentHighlightKind
 } from 'vscode-languageserver';
 import { DocumentManager, Document } from '../../../src/lib/documents';
 import { CSSPlugin } from '../../../src/plugins';
@@ -498,6 +500,87 @@ describe('CSS Plugin', () => {
                 { startLine: 1, endLine: 6, kind: FoldingRangeKind.Region },
                 { startLine: 2, endLine: 3 },
                 { startLine: 4, endLine: 5 }
+            ]);
+        });
+    });
+
+    describe('document highlight', () => {
+        it('provide document highlight', () => {
+            const { plugin, document } = setup('<style>.hi {} button.hi {}</style>');
+
+            const highlight = plugin.findDocumentHighlight(document, Position.create(0, 9));
+
+            assert.deepStrictEqual(highlight, <DocumentHighlight[]>[
+                {
+                    range: {
+                        start: {
+                            line: 0,
+                            character: 7
+                        },
+                        end: {
+                            line: 0,
+                            character: 10
+                        }
+                    },
+                    kind: DocumentHighlightKind.Write
+                },
+                {
+                    range: {
+                        start: {
+                            line: 0,
+                            character: 20
+                        },
+                        end: {
+                            line: 0,
+                            character: 23
+                        }
+                    },
+                    kind: DocumentHighlightKind.Read
+                }
+            ]);
+        });
+
+        it('provide document highlight for style attribute', () => {
+            const { plugin, document } = setup('<div style="position: relative"></div>');
+
+            const highlight = plugin.findDocumentHighlight(document, Position.create(0, 13));
+
+            assert.deepStrictEqual(highlight, <DocumentHighlight[]>[
+                {
+                    range: {
+                        start: {
+                            line: 0,
+                            character: 12
+                        },
+                        end: {
+                            line: 0,
+                            character: 20
+                        }
+                    },
+                    kind: DocumentHighlightKind.Read
+                }
+            ]);
+        });
+
+        it('provide word highlight for unsupported languages', () => {
+            const { plugin, document } = setup('<style lang="postcss">.hi {}</style>');
+
+            const highlight = plugin.findDocumentHighlight(document, Position.create(0, 25));
+
+            assert.deepStrictEqual(highlight, <DocumentHighlight[]>[
+                {
+                    range: {
+                        start: {
+                            line: 0,
+                            character: 22
+                        },
+                        end: {
+                            line: 0,
+                            character: 25
+                        }
+                    },
+                    kind: DocumentHighlightKind.Text
+                }
             ]);
         });
     });

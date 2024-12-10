@@ -289,6 +289,10 @@ Whether or not to show a code lens at the top of Svelte files indicating if they
 
 The default language to use when generating new script tags in Svelte. _Default_: `none`
 
+#### `svelte.experimental.documentHighlight.enable`
+
+Enable experimental document highlight support. Require restart. _Default_: `false`
+
 ## Credits
 
 -   [James Birtles](https://github.com/jamesbirtles) for creating the foundation which this language server is built on
