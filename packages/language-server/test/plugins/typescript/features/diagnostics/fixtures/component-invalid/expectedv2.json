@@ -17,7 +17,7 @@
         },
         "severity": 1,
         "source": "ts",
-        "message": "Type 'boolean' is not assignable to type 'never'.",
+        "message": "Type 'true' is not assignable to type 'never'.",
         "code": 2322,
         "tags": []
     },
