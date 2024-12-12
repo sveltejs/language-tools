@@ -189,7 +189,20 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
             return null;
         }
 
+        const inScript = isInScript(position, tsDoc);
         const wordInfo = this.getWordAtPosition(document, originalOffset);
+
+        if (
+            !inScript &&
+            wordInfo.word[0] === '{' &&
+            (wordInfo.word[1] === '#' ||
+                wordInfo.word[1] === '@' ||
+                wordInfo.word[1] === ':' ||
+                wordInfo.word[1] === '/')
+        ) {
+            // Typing something like {/if}
+            return null;
+        }
 
         const componentInfo = getComponentAtPosition(lang, document, tsDoc, position);
         const attributeContext = componentInfo && getAttributeContextAtPosition(document, position);
@@ -289,7 +302,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
         const isCompletionInTag = svelteIsInTag(svelteNode, originalOffset);
         const isHandlerCompletion =
             svelteNode?.type === 'EventHandler' && svelteNode.parent?.type === 'Element';
-        const preferComponents = wordInfo.word[0] === '<' || isInScript(position, tsDoc);
+        const preferComponents = wordInfo.word[0] === '<' || inScript;
 
         const completionItems: CompletionItem[] = customCompletions;
         const isValidCompletion = createIsValidCompletion(document, position, !!tsDoc.parserError);
