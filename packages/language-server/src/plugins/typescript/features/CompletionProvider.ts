@@ -168,9 +168,16 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
         if (
             // Cursor is somewhere in regular HTML text
             (svelteNode?.type === 'Text' &&
-                ['Element', 'InlineComponent', 'Fragment', 'SlotTemplate'].includes(
-                    svelteNode.parent?.type as any
-                )) ||
+                [
+                    'Element',
+                    'InlineComponent',
+                    'Fragment',
+                    'SlotTemplate',
+                    'SnippetBlock',
+                    'IfBlock',
+                    'EachBlock',
+                    'AwaitBlock'
+                ].includes(svelteNode.parent?.type as any)) ||
             // Cursor is at <div>|</div> in which case there's no TextNode inbetween
             document.getText().substring(originalOffset - 1, originalOffset + 2) === '></'
         ) {
@@ -282,6 +289,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
         const isCompletionInTag = svelteIsInTag(svelteNode, originalOffset);
         const isHandlerCompletion =
             svelteNode?.type === 'EventHandler' && svelteNode.parent?.type === 'Element';
+        const preferComponents = wordInfo.word[0] === '<' || isInScript(position, tsDoc);
 
         const completionItems: CompletionItem[] = customCompletions;
         const isValidCompletion = createIsValidCompletion(document, position, !!tsDoc.parserError);
@@ -295,7 +303,8 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
                     isCompletionInTag,
                     commitCharactersOptions,
                     asStore,
-                    existingImports
+                    existingImports,
+                    preferComponents
                 );
                 if (completion) {
                     completionItems.push(
@@ -651,7 +660,8 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
         isCompletionInTag: boolean,
         commitCharactersOptions: CommitCharactersOptions,
         asStore: boolean,
-        existingImports: Set<string>
+        existingImports: Set<string>,
+        preferComponents: boolean
     ): AppCompletionItem<CompletionResolveInfo> | null {
         const completionLabelAndInsert = this.getCompletionLabelAndInsert(snapshot, comp);
         if (!completionLabelAndInsert) {
@@ -697,8 +707,10 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
             kind: scriptElementKindToCompletionItemKind(comp.kind),
             commitCharacters: this.getCommitCharacters(comp, commitCharactersOptions, isSvelteComp),
             // Make sure svelte component and runes take precedence
-            sortText: isRunesCompletion || isSvelteComp ? '-1' : comp.sortText,
-            preselect: isRunesCompletion || isSvelteComp ? true : comp.isRecommended,
+            sortText:
+                preferComponents && (isRunesCompletion || isSvelteComp) ? '-1' : comp.sortText,
+            preselect:
+                preferComponents && (isRunesCompletion || isSvelteComp) ? true : comp.isRecommended,
             insertTextFormat: comp.isSnippet ? InsertTextFormat.Snippet : undefined,
             labelDetails,
             textEdit,
