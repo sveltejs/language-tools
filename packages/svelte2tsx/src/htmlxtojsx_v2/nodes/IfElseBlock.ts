@@ -1,6 +1,6 @@
 import MagicString from 'magic-string';
 import { Node } from 'estree-walker';
-import { withTrailingPropertyAccess } from '../utils/node-utils';
+import { isImplicitlyClosedBlock, withTrailingPropertyAccess } from '../utils/node-utils';
 
 /**
  * Transforms #if and :else if to a regular if control block.
@@ -18,9 +18,13 @@ export function handleIf(str: MagicString, ifBlock: Node): void {
     const end = str.original.indexOf('}', expressionEnd);
     str.overwrite(expressionEnd, end + 1, '){');
 
-    // {/if} -> }
     const endif = str.original.lastIndexOf('{', ifBlock.end - 1);
-    str.overwrite(endif, ifBlock.end, '}');
+    if (isImplicitlyClosedBlock(endif, ifBlock)) {
+        str.prependLeft(ifBlock.end, '}');
+    } else {
+        // {/if} -> }
+        str.overwrite(endif, ifBlock.end, '}');
+    }
 }
 
 /**
