@@ -1,6 +1,11 @@
 import MagicString from 'magic-string';
 import { BaseNode } from '../../interfaces';
-import { getEnd, transform, TransformationArray } from '../utils/node-utils';
+import {
+    getEnd,
+    isImplicitlyClosedBlock,
+    transform,
+    TransformationArray
+} from '../utils/node-utils';
 
 /**
  * Transform #each into a for-of loop
@@ -75,10 +80,18 @@ export function handleEach(str: MagicString, eachBlock: BaseNode): void {
         str.overwrite(elseStart, elseEnd + 1, '}' + (arrayAndItemVarTheSame ? '}' : ''), {
             contentOnly: true
         });
-        str.remove(endEach, eachBlock.end);
+
+        if (!isImplicitlyClosedBlock(endEach, eachBlock)) {
+            str.remove(endEach, eachBlock.end);
+        }
     } else {
-        str.overwrite(endEach, eachBlock.end, '}' + (arrayAndItemVarTheSame ? '}' : ''), {
-            contentOnly: true
-        });
+        const closing = '}' + (arrayAndItemVarTheSame ? '}' : '');
+        if (isImplicitlyClosedBlock(endEach, eachBlock)) {
+            str.prependLeft(eachBlock.end, closing);
+        } else {
+            str.overwrite(endEach, eachBlock.end, closing, {
+                contentOnly: true
+            });
+        }
     }
 }

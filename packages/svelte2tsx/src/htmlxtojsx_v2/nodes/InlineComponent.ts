@@ -221,11 +221,18 @@ export class InlineComponent {
                 ...this.endTransformation
             ]);
         } else {
-            const endStart =
-                this.str.original
-                    .substring(this.node.start, this.node.end)
-                    .lastIndexOf(`</${this.node.name}`) + this.node.start;
-            if (!this.node.name.startsWith('svelte:')) {
+            let endStart = this.str.original
+                .substring(this.node.start, this.node.end)
+                .lastIndexOf(`</${this.node.name}`);
+            if (endStart === -1) {
+                // Can happen in loose parsing mode when there's no closing tag
+                endStart = this.node.end;
+                this.startTagEnd = this.node.end - 1;
+            } else {
+                endStart += this.node.start;
+            }
+
+            if (!this.node.name.startsWith('svelte:') && endStart !== this.node.end) {
                 // Ensure the end tag is mapped, too. </Component> -> Component}
                 this.endTransformation.push([endStart + 2, endStart + this.node.name.length + 2]);
             }

@@ -243,3 +243,19 @@ export function isTypescriptNode(node: any) {
         node.type === 'TSNonNullExpression'
     );
 }
+
+/**
+ * Returns `true` if the given block is implicitly closed, which could be the case in loose parsing mode.
+ * E.g.:
+ * ```html
+ * <div>
+ *   {#if x}
+ * </div>
+ * ```
+ * @param end
+ * @param block
+ * @returns
+ */
+export function isImplicitlyClosedBlock(end: number, block: Node) {
+    return end < (block.children[block.children.length - 1]?.end ?? block.expression.end);
+}
