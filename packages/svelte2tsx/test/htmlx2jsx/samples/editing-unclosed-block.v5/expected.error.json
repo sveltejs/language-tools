@@ -1,0 +1,20 @@
+{
+    "code": "element_invalid_closing_tag",
+    "message": "`</div>` attempted to close an element that was not open\nhttps://svelte.dev/e/element_invalid_closing_tag",
+    "filename": "(unknown)",
+    "start": {
+        "line": 3,
+        "column": 0,
+        "character": 20
+    },
+    "end": {
+        "line": 3,
+        "column": 0,
+        "character": 20
+    },
+    "position": [
+        20,
+        20
+    ],
+    "frame": "1: <div>\n2:     {#if foo}\n3: </div>\n   ^\n4: \n5: <div>"
+}
