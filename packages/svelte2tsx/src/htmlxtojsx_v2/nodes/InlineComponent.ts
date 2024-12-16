@@ -207,7 +207,7 @@ export class InlineComponent {
 
         if (this.isSelfclosing) {
             this.endTransformation.push('}');
-            transform(this.str, this.startTagStart, this.startTagEnd, this.startTagEnd, [
+            transform(this.str, this.startTagStart, this.startTagEnd, [
                 // Named slot transformations go first inside a outer block scope because
                 // <Comp let:xx {x} /> means "use the x of let:x", and without a separate
                 // block scope this would give a "used before defined" error
@@ -238,7 +238,7 @@ export class InlineComponent {
             }
             this.endTransformation.push('}');
 
-            transform(this.str, this.startTagStart, this.startTagEnd, this.startTagEnd, [
+            transform(this.str, this.startTagStart, this.startTagEnd, [
                 // See comment above why this goes first
                 ...namedSlotLetTransformation,
                 ...this.startTransformation,
@@ -248,7 +248,7 @@ export class InlineComponent {
                 snippetPropVariablesDeclaration,
                 ...defaultSlotLetTransformation
             ]);
-            transform(this.str, endStart, this.node.end, this.node.end, this.endTransformation);
+            transform(this.str, endStart, this.node.end, this.endTransformation);
         }
     }
 

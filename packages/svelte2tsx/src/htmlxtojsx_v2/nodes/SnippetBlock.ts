@@ -129,7 +129,7 @@ export function handleSnippet(
             afterParameters
         );
 
-        transform(str, snippetBlock.start, startEnd, startEnd, transforms);
+        transform(str, snippetBlock.start, startEnd, transforms);
     }
 }
 

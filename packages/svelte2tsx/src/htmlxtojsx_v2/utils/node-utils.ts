@@ -27,7 +27,6 @@ export function transform(
     str: MagicString,
     start: number,
     end: number,
-    _xxx: number, // TODO
     transformations: TransformationArray
 ) {
     const moves: Array<[number, number]> = [];
@@ -128,6 +127,10 @@ export function transform(
     }
 
     for (let i = deletePos; i < moves.length; i++) {
+        // Can happen when there's not enough space left at the end of an unfininished element/component tag.
+        // Better to leave potentially slightly disarranged code than fail loudly
+        if (moves[i][1] >= end && moves[i][0] <= end) break;
+
         str.move(moves[i][0], moves[i][1], end);
     }
 }
