@@ -158,7 +158,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
         }
 
         const originalOffset = document.offsetAt(position);
-        const offset = tsDoc.offsetAt(tsDoc.getGeneratedPosition(position));
+        let offset = tsDoc.offsetAt(tsDoc.getGeneratedPosition(position));
 
         if (isJsDocTriggerCharacter) {
             return getJsDocTemplateCompletion(tsDoc, langForSyntheticOperations, filePath, offset);
@@ -202,6 +202,16 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
         ) {
             // Typing something like {/if}
             return null;
+        }
+
+        // Special case: completion at `<Comp.` -> mapped one character too short -> adjust
+        if (
+            !inScript &&
+            wordInfo.word === '' &&
+            document.getText()[originalOffset - 1] === '.' &&
+            tsDoc.getFullText()[offset] === '.'
+        ) {
+            offset++;
         }
 
         const componentInfo = getComponentAtPosition(lang, document, tsDoc, position);
