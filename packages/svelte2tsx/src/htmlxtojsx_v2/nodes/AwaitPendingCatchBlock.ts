@@ -78,5 +78,5 @@ export function handleAwait(str: MagicString, awaitBlock: BaseNode): void {
         transforms.push('}');
     }
     transforms.push('}');
-    transform(str, awaitBlock.start, awaitBlock.end, awaitBlock.end, transforms);
+    transform(str, awaitBlock.start, awaitBlock.end, transforms);
 }
