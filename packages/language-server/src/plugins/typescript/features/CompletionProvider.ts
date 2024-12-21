@@ -158,7 +158,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
         }
 
         const originalOffset = document.offsetAt(position);
-        const offset = tsDoc.offsetAt(tsDoc.getGeneratedPosition(position));
+        let offset = tsDoc.offsetAt(tsDoc.getGeneratedPosition(position));
 
         if (isJsDocTriggerCharacter) {
             return getJsDocTemplateCompletion(tsDoc, langForSyntheticOperations, filePath, offset);
@@ -168,9 +168,16 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
         if (
             // Cursor is somewhere in regular HTML text
             (svelteNode?.type === 'Text' &&
-                ['Element', 'InlineComponent', 'Fragment', 'SlotTemplate'].includes(
-                    svelteNode.parent?.type as any
-                )) ||
+                [
+                    'Element',
+                    'InlineComponent',
+                    'Fragment',
+                    'SlotTemplate',
+                    'SnippetBlock',
+                    'IfBlock',
+                    'EachBlock',
+                    'AwaitBlock'
+                ].includes(svelteNode.parent?.type as any)) ||
             // Cursor is at <div>|</div> in which case there's no TextNode inbetween
             document.getText().substring(originalOffset - 1, originalOffset + 2) === '></'
         ) {
@@ -182,7 +189,30 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
             return null;
         }
 
+        const inScript = isInScript(position, tsDoc);
         const wordInfo = this.getWordAtPosition(document, originalOffset);
+
+        if (
+            !inScript &&
+            wordInfo.word[0] === '{' &&
+            (wordInfo.word[1] === '#' ||
+                wordInfo.word[1] === '@' ||
+                wordInfo.word[1] === ':' ||
+                wordInfo.word[1] === '/')
+        ) {
+            // Typing something like {/if}
+            return null;
+        }
+
+        // Special case: completion at `<Comp.` -> mapped one character too short -> adjust
+        if (
+            !inScript &&
+            wordInfo.word === '' &&
+            document.getText()[originalOffset - 1] === '.' &&
+            tsDoc.getFullText()[offset] === '.'
+        ) {
+            offset++;
+        }
 
         const componentInfo = getComponentAtPosition(lang, document, tsDoc, position);
         const attributeContext = componentInfo && getAttributeContextAtPosition(document, position);
@@ -282,6 +312,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
         const isCompletionInTag = svelteIsInTag(svelteNode, originalOffset);
         const isHandlerCompletion =
             svelteNode?.type === 'EventHandler' && svelteNode.parent?.type === 'Element';
+        const preferComponents = wordInfo.word[0] === '<' || inScript;
 
         const completionItems: CompletionItem[] = customCompletions;
         const isValidCompletion = createIsValidCompletion(document, position, !!tsDoc.parserError);
@@ -295,7 +326,8 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
                     isCompletionInTag,
                     commitCharactersOptions,
                     asStore,
-                    existingImports
+                    existingImports,
+                    preferComponents
                 );
                 if (completion) {
                     completionItems.push(
@@ -651,7 +683,8 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
         isCompletionInTag: boolean,
         commitCharactersOptions: CommitCharactersOptions,
         asStore: boolean,
-        existingImports: Set<string>
+        existingImports: Set<string>,
+        preferComponents: boolean
     ): AppCompletionItem<CompletionResolveInfo> | null {
         const completionLabelAndInsert = this.getCompletionLabelAndInsert(snapshot, comp);
         if (!completionLabelAndInsert) {
@@ -697,8 +730,10 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
             kind: scriptElementKindToCompletionItemKind(comp.kind),
             commitCharacters: this.getCommitCharacters(comp, commitCharactersOptions, isSvelteComp),
             // Make sure svelte component and runes take precedence
-            sortText: isRunesCompletion || isSvelteComp ? '-1' : comp.sortText,
-            preselect: isRunesCompletion || isSvelteComp ? true : comp.isRecommended,
+            sortText:
+                preferComponents && (isRunesCompletion || isSvelteComp) ? '-1' : comp.sortText,
+            preselect:
+                preferComponents && (isRunesCompletion || isSvelteComp) ? true : comp.isRecommended,
             insertTextFormat: comp.isSnippet ? InsertTextFormat.Snippet : undefined,
             labelDetails,
             textEdit,

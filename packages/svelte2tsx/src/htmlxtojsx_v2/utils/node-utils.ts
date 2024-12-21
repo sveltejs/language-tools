@@ -27,7 +27,6 @@ export function transform(
     str: MagicString,
     start: number,
     end: number,
-    _xxx: number, // TODO
     transformations: TransformationArray
 ) {
     const moves: Array<[number, number]> = [];
@@ -128,6 +127,10 @@ export function transform(
     }
 
     for (let i = deletePos; i < moves.length; i++) {
+        // Can happen when there's not enough space left at the end of an unfininished element/component tag.
+        // Better to leave potentially slightly disarranged code than fail loudly
+        if (moves[i][1] >= end && moves[i][0] <= end) break;
+
         str.move(moves[i][0], moves[i][1], end);
     }
 }
@@ -242,4 +245,20 @@ export function isTypescriptNode(node: any) {
         node.type === 'TSSatisfiesExpression' ||
         node.type === 'TSNonNullExpression'
     );
+}
+
+/**
+ * Returns `true` if the given block is implicitly closed, which could be the case in loose parsing mode.
+ * E.g.:
+ * ```html
+ * <div>
+ *   {#if x}
+ * </div>
+ * ```
+ * @param end
+ * @param block
+ * @returns
+ */
+export function isImplicitlyClosedBlock(end: number, block: Node) {
+    return end < (block.children[block.children.length - 1]?.end ?? block.expression.end);
 }
