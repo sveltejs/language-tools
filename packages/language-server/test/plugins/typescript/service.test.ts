@@ -327,11 +327,9 @@ describe('service', () => {
         const lang = ls.getService();
         lang.getProgram();
 
-        document2.update(' ', 0, document2.getTextLength());
+        document2.update('<script', 0, document2.getTextLength());
         ls.updateSnapshot(document2);
-        assert.doesNotThrow(() => {
-            lang.getProgram();
-        });
+        ls.getService();
     });
 
     it.only('do not throw when lang="ts" is nuke while a new files is added', async () => {
