@@ -1406,7 +1406,7 @@ function getOrCreateDocumentRegistry(
                 compilationSettings
             );
 
-            // sourceFileOptions.impliedNodeFormat = format;
+            sourceFileOptions.impliedNodeFormat = format;
         }
 
         return acquireDocumentWithKey(
