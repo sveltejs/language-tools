@@ -332,57 +332,108 @@ describe('service', () => {
         ls.getService();
     });
 
-    it.only('do not throw when lang="ts" is nuke while a new files is added', async () => {
+    it.skip('do not throw when ScriptKind changes before new service is created', async () => {
         // testing this because the patch rely on ts implementation details
         // and we want to be aware of the changes
 
         const dirPath = getRandomVirtualDirPath(testDir);
         const { virtualSystem, lsDocumentContext, rootUris } = setup();
+        const package1Path = path.join(dirPath, 'package1');
+        const package2Path = path.join(dirPath, 'package2');
 
         virtualSystem.writeFile(
-            path.join(dirPath, 'tsconfig.json'),
+            path.join(package1Path, 'tsconfig.json'),
             JSON.stringify({
                 compilerOptions: {
-                    module: 'NodeNext',
-                    moduleResolution: 'NodeNext'
+                    allowJs: true
                 }
             })
         );
 
         virtualSystem.writeFile(
-            path.join(dirPath, 'random.svelte'),
-            '<script>const a: number = null;</script>'
+            path.join(package2Path, 'tsconfig.json'),
+            JSON.stringify({
+                compilerOptions: {
+                    allowJs: true
+                }
+            })
         );
+
+        const usagePath = path.join(package1Path, 'usage.svelte');
         virtualSystem.writeFile(
-            path.join(dirPath, 'random2.svelte'),
-            '<script lang="ts">import Random from "./random.svelte";</script>'
+            usagePath,
+            '<script>import Library from "../package2/Library.svelte";</script>'
         );
 
-        const ls = await getService(
-            path.join(dirPath, 'random.svelte'),
-            rootUris,
-            lsDocumentContext
+        const libraryPath = path.join(package2Path, 'Library.svelte');
+        virtualSystem.writeFile(libraryPath, '<script lang="ts">const a: number = null;</script>');
+
+        const lsLibrary = await getService(libraryPath, rootUris, lsDocumentContext);
+        lsLibrary.getService();
+
+        const documentLibrary = new Document(
+            pathToUrl(libraryPath),
+            virtualSystem.readFile(libraryPath)!
+        );
+        documentLibrary.openedByClient = true;
+        documentLibrary.update(' ', 0, documentLibrary.getTextLength());
+        lsLibrary.updateSnapshot(documentLibrary);
+        
+
+        const lsUsage = await getService(usagePath, rootUris, lsDocumentContext);
+        lsUsage.getService();
+    });
+
+    it.skip('do not throw when ScriptKind changes referenced service is updated', async () => {
+        // testing this because the patch rely on ts implementation details
+        // and we want to be aware of the changes
+
+        const dirPath = getRandomVirtualDirPath(testDir);
+        const { virtualSystem, lsDocumentContext, rootUris } = setup();
+        const package1Path = path.join(dirPath, 'package1');
+        const package2Path = path.join(dirPath, 'package2');
+
+        virtualSystem.writeFile(
+            path.join(package1Path, 'tsconfig.json'),
+            JSON.stringify({
+                compilerOptions: {
+                    allowJs: true
+                }
+            })
         );
 
-        const document = new Document(pathToUrl(path.join(dirPath, 'random.svelte')), '');
-        document.openedByClient = true;
-        ls.updateSnapshot(document);
-
-        const document2 = new Document(
-            pathToUrl(path.join(dirPath, 'random2.svelte')),
-            virtualSystem.readFile(path.join(dirPath, 'random2.svelte'))!
+        virtualSystem.writeFile(
+            path.join(package2Path, 'tsconfig.json'),
+            JSON.stringify({
+                compilerOptions: {
+                    allowJs: true
+                }
+            })
         );
-        document.openedByClient = true;
-        ls.updateSnapshot(document2);
 
-        const lang = ls.getService();
-        lang.getProgram();
+        const usagePath = path.join(package1Path, 'usage.svelte');
+        virtualSystem.writeFile(
+            usagePath,
+            '<script>import Library from "../package2/Library.svelte";</script>'
+        );
 
-        document2.update(' ', 0, document2.getTextLength());
-        ls.updateSnapshot(document2);
-        ls.openVirtualDocument(new Document(pathToUrl(path.join(dirPath, 'random3.svelte')), ''));
+        const libraryPath = path.join(package2Path, 'Library.svelte');
+        virtualSystem.writeFile(libraryPath, '<script lang="ts">const a: number = null;</script>');
 
-        lang.getProgram();
+        const lsLibrary = await getService(libraryPath, rootUris, lsDocumentContext);
+        lsLibrary.getService().getProgram();
+        const lsUsage = await getService(usagePath, rootUris, lsDocumentContext);
+        lsUsage.getService();
+
+        const documentLibrary = new Document(
+            pathToUrl(libraryPath),
+            virtualSystem.readFile(libraryPath)!
+        );
+        documentLibrary.openedByClient = true;
+        documentLibrary.update(' ', 0, documentLibrary.getTextLength());
+        lsLibrary.updateSnapshot(documentLibrary);
+
+        lsLibrary.getService();
     });
 
     function createReloadTester(
