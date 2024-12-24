@@ -1388,6 +1388,54 @@ function getOrCreateDocumentRegistry(
         scriptKind?: ts.ScriptKind,
         sourceFileOptions?: ts.CreateSourceFileOptions | ts.ScriptTarget
     ) => {
+        ensureImpliedNodeFormat(compilationSettingsOrHost, fileName, sourceFileOptions);
+
+        return acquireDocumentWithKey(
+            fileName,
+            path,
+            compilationSettingsOrHost,
+            key,
+            scriptSnapshot,
+            version,
+            scriptKind,
+            sourceFileOptions
+        );
+    };
+
+    const updateDocumentWithKey = registry.updateDocumentWithKey;
+    registry.updateDocumentWithKey = (
+        fileName: string,
+        path: ts.Path,
+        compilationSettingsOrHost: ts.CompilerOptions | ts.MinimalResolutionCacheHost,
+        key: ts.DocumentRegistryBucketKey,
+        scriptSnapshot: ts.IScriptSnapshot,
+        version: string,
+        scriptKind?: ts.ScriptKind,
+        sourceFileOptions?: ts.CreateSourceFileOptions | ts.ScriptTarget
+    ) => {
+        ensureImpliedNodeFormat(compilationSettingsOrHost, fileName, sourceFileOptions);
+
+        return updateDocumentWithKey(
+            fileName,
+            path,
+            compilationSettingsOrHost,
+            key,
+            scriptSnapshot,
+            version,
+            scriptKind,
+            sourceFileOptions
+        );
+    };
+
+    documentRegistries.set(key, registry);
+
+    return registry;
+
+    function ensureImpliedNodeFormat(
+        compilationSettingsOrHost: ts.CompilerOptions | ts.MinimalResolutionCacheHost,
+        fileName: string,
+        sourceFileOptions: ts.CreateSourceFileOptions | ts.ScriptTarget | undefined
+    ) {
         const compilationSettings = getCompilationSettings(compilationSettingsOrHost);
         const host: ts.MinimalResolutionCacheHost | undefined =
             compilationSettingsOrHost === compilationSettings
@@ -1408,22 +1456,7 @@ function getOrCreateDocumentRegistry(
 
             sourceFileOptions.impliedNodeFormat = format;
         }
-
-        return acquireDocumentWithKey(
-            fileName,
-            path,
-            compilationSettingsOrHost,
-            key,
-            scriptSnapshot,
-            version,
-            scriptKind,
-            sourceFileOptions
-        );
-    };
-
-    documentRegistries.set(key, registry);
-
-    return registry;
+    }
 
     function getCompilationSettings(
         settingsOrHost: ts.CompilerOptions | ts.MinimalResolutionCacheHost
