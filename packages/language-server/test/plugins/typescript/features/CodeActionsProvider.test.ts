@@ -1755,20 +1755,9 @@ describe('CodeActionsProvider', function () {
                                             line: 1
                                         }
                                     }
-                                },
-                                {
-                                    newText: "import { } from './somepng.png';\n",
-                                    range: {
-                                        end: {
-                                            character: 0,
-                                            line: 4
-                                        },
-                                        start: {
-                                            character: 4,
-                                            line: 3
-                                        }
-                                    }
                                 }
+                                // Because the generated code adds a ; after the last import, the
+                                // second import is not appearing in the edits here
                             ],
                             textDocument: {
                                 uri: getUri('organize-imports-leading-comment.svelte'),

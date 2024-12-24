@@ -1,6 +1,6 @@
 import MagicString from 'magic-string';
 import { BaseNode } from '../../interfaces';
-import { transform, TransformationArray } from '../utils/node-utils';
+import { isImplicitlyClosedBlock, transform, TransformationArray } from '../utils/node-utils';
 import { InlineComponent } from './InlineComponent';
 import { IGNORE_POSITION_COMMENT, surroundWithIgnoreComments } from '../../utils/ignore';
 import { Element } from './Element';
@@ -38,9 +38,13 @@ export function handleSnippet(
         ? `};return __sveltets_2_any(0)}`
         : `};return __sveltets_2_any(0)};`;
 
-    str.overwrite(endSnippet, snippetBlock.end, afterSnippet, {
-        contentOnly: true
-    });
+    if (isImplicitlyClosedBlock(endSnippet, snippetBlock)) {
+        str.prependLeft(snippetBlock.end, afterSnippet);
+    } else {
+        str.overwrite(endSnippet, snippetBlock.end, afterSnippet, {
+            contentOnly: true
+        });
+    }
 
     const lastParameter = snippetBlock.parameters?.at(-1);
 
@@ -63,7 +67,23 @@ export function handleSnippet(
     const afterParameters = ` => { async ()${IGNORE_POSITION_COMMENT} => {`;
 
     if (isImplicitProp) {
-        str.overwrite(snippetBlock.start, snippetBlock.expression.start, '', { contentOnly: true });
+        /** Can happen in loose parsing mode, e.g. code is currently `{#snippet }` */
+        const emptyId = snippetBlock.expression.start === snippetBlock.expression.end;
+
+        if (emptyId) {
+            // Give intellisense a way to map into the right position for implicit prop completion
+            str.overwrite(snippetBlock.start, snippetBlock.expression.start - 1, '', {
+                contentOnly: true
+            });
+            str.overwrite(snippetBlock.expression.start - 1, snippetBlock.expression.start, ' ', {
+                contentOnly: true
+            });
+        } else {
+            str.overwrite(snippetBlock.start, snippetBlock.expression.start, '', {
+                contentOnly: true
+            });
+        }
+
         const transforms: TransformationArray = ['('];
 
         if (parameters) {
@@ -82,12 +102,12 @@ export function handleSnippet(
 
         if (component instanceof InlineComponent) {
             component.addImplicitSnippetProp(
-                [snippetBlock.expression.start, snippetBlock.expression.end],
+                [snippetBlock.expression.start - (emptyId ? 1 : 0), snippetBlock.expression.end],
                 transforms
             );
         } else {
             component.addAttribute(
-                [[snippetBlock.expression.start, snippetBlock.expression.end]],
+                [[snippetBlock.expression.start - (emptyId ? 1 : 0), snippetBlock.expression.end]],
                 transforms
             );
         }
@@ -109,7 +129,7 @@ export function handleSnippet(
             afterParameters
         );
 
-        transform(str, snippetBlock.start, startEnd, startEnd, transforms);
+        transform(str, snippetBlock.start, startEnd, transforms);
     }
 }
 

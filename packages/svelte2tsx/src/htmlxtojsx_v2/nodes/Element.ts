@@ -205,7 +205,7 @@ export class Element {
         }
 
         if (this.isSelfclosing) {
-            transform(this.str, this.startTagStart, this.startTagEnd, this.startTagEnd, [
+            transform(this.str, this.startTagStart, this.startTagEnd, [
                 // Named slot transformations go first inside a outer block scope because
                 // <div let:xx {x} /> means "use the x of let:x", and without a separate
                 // block scope this would give a "used before defined" error
@@ -217,7 +217,7 @@ export class Element {
                 ...this.endTransformation
             ]);
         } else {
-            transform(this.str, this.startTagStart, this.startTagEnd, this.startTagEnd, [
+            transform(this.str, this.startTagStart, this.startTagEnd, [
                 ...slotLetTransformation,
                 ...this.actionsTransformation,
                 ...this.getStartTransformation(),
@@ -230,7 +230,7 @@ export class Element {
                 .lastIndexOf(`</${this.node.name}`);
             // tagEndIdx === -1 happens in situations of unclosed tags like `<p>fooo <p>anothertag</p>`
             const endStart = tagEndIdx === -1 ? this.node.end : tagEndIdx + this.node.start;
-            transform(this.str, endStart, this.node.end, this.node.end, this.endTransformation);
+            transform(this.str, endStart, this.node.end, this.endTransformation);
         }
     }
 

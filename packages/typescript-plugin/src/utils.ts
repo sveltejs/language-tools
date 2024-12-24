@@ -255,6 +255,14 @@ export function hasNodeModule(startPath: string, module: string) {
 }
 
 export function isSvelteProject(project: ts.server.Project) {
+    // internal api, the way to check requires checking the files config in tsconfig.json
+    // so we can't reimplement it without reading the tsconfig.json again
+    // The solution project is mostly just a container we don't need to patch it
+    // and having any files in this project cause TSServer to send config error while it originally won't
+    if ((project as any).isSolution?.()) {
+        return false;
+    }
+
     const projectDirectory = getProjectDirectory(project);
     if (projectDirectory) {
         return hasNodeModule(projectDirectory, 'svelte');

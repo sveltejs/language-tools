@@ -1,4 +1,4 @@
-import { dirname, join, resolve, basename } from 'path';
+import { dirname, basename } from 'path';
 import ts from 'typescript';
 import {
     DiagnosticSeverity,
