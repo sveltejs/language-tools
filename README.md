@@ -45,7 +45,7 @@ This repo contains the tools which provide editor integrations for Svelte files 
 
 ## Packages
 
-This repo uses [`pnpm workspaces`](https://pnpm.io/workspaces/), which TLDR means if you want to run a commands in each project then you can either `cd` to that directory and run the command, or use `pnpm -r [command]`.
+This repo uses [`pnpm workspaces`](https://pnpm.io/workspaces/), which TLDR means if you want to run a command in each project then you can either `cd` to that directory and run the command, or use `pnpm -r [command]`.
 
 For example `pnpm -r test`.
 
