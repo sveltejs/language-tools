@@ -166,6 +166,7 @@ export class HTMLPlugin
                 : null;
 
         const svelteStrictMode = prettierConfig?.svelteStrictMode;
+
         items.forEach((item) => {
             const startQuote = svelteStrictMode ? '"{' : '{';
             const endQuote = svelteStrictMode ? '}"' : '}';
@@ -178,6 +179,10 @@ export class HTMLPlugin
                     ...item.textEdit,
                     newText: item.textEdit.newText.replace('="$1"', `$2=${startQuote}$1${endQuote}`)
                 };
+                // In Svelte 5, people should use `onclick` instead of `on:click`
+                if (document.isSvelte5) {
+                    item.sortText = 'z' + (item.sortText ?? item.label);
+                }
             }
 
             if (item.label.startsWith('bind:')) {
@@ -189,11 +194,7 @@ export class HTMLPlugin
         });
 
         return CompletionList.create(
-            [
-                ...this.toCompletionItems(items),
-                ...this.getLangCompletions(items),
-                ...emmetResults.items
-            ],
+            [...items, ...this.getLangCompletions(items), ...emmetResults.items],
             // Emmet completions change on every keystroke, so they are never complete
             emmetResults.items.length > 0
         );

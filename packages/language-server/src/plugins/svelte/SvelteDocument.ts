@@ -5,7 +5,6 @@ import { CompileOptions } from 'svelte/types/compiler/interfaces';
 // @ts-ignore
 import { PreprocessorGroup, Processed } from 'svelte/types/compiler/preprocess';
 import { Position } from 'vscode-languageserver';
-import { getPackageInfo, importSvelte } from '../../importPackage';
 import {
     Document,
     DocumentMapper,
@@ -37,7 +36,6 @@ type PositionMapper = Pick<DocumentMapper, 'getGeneratedPosition' | 'getOriginal
 export class SvelteDocument {
     private transpiledDoc: Promise<ITranspiledSvelteDocument> | undefined;
     private compileResult: Promise<SvelteCompileResult> | undefined;
-    private svelteVersion: [number, number] | undefined;
 
     public script: TagInformation | null;
     public moduleScript: TagInformation | null;
@@ -47,9 +45,6 @@ export class SvelteDocument {
     public uri = this.parent.uri;
     public get config() {
         return this.parent.configPromise;
-    }
-    public get isSvelte5() {
-        return this.getSvelteVersion()[0] > 4;
     }
 
     constructor(private parent: Document) {
@@ -73,7 +68,7 @@ export class SvelteDocument {
 
     async getTranspiled(): Promise<ITranspiledSvelteDocument> {
         if (!this.transpiledDoc) {
-            const [major, minor] = this.getSvelteVersion();
+            const [major, minor] = this.parent.getSvelteVersion();
 
             if (major > 3 || (major === 3 && minor >= 32)) {
                 this.transpiledDoc = TranspiledSvelteDocument.create(
@@ -99,16 +94,7 @@ export class SvelteDocument {
     }
 
     async getCompiledWith(options: CompileOptions = {}): Promise<SvelteCompileResult> {
-        const svelte = importSvelte(this.getFilePath());
-        return svelte.compile((await this.getTranspiled()).getText(), options);
-    }
-
-    private getSvelteVersion() {
-        if (!this.svelteVersion) {
-            const { major, minor } = getPackageInfo('svelte', this.getFilePath()).version;
-            this.svelteVersion = [major, minor];
-        }
-        return this.svelteVersion;
+        return this.parent.compiler.compile((await this.getTranspiled()).getText(), options);
     }
 }
 
@@ -123,8 +109,7 @@ export class TranspiledSvelteDocument implements ITranspiledSvelteDocument {
         }
 
         const filename = document.getFilePath() || '';
-        const svelte = importSvelte(filename);
-        const preprocessed = await svelte.preprocess(
+        const preprocessed = await document.compiler.preprocess(
             document.getText(),
             wrapPreprocessors(config?.preprocess),
             {
@@ -453,8 +438,7 @@ async function transpile(
         return wrappedPreprocessor;
     });
 
-    const svelte = importSvelte(document.getFilePath() || '');
-    const result = await svelte.preprocess(document.getText(), wrappedPreprocessors, {
+    const result = await document.compiler.preprocess(document.getText(), wrappedPreprocessors, {
         filename: document.getFilePath() || ''
     });
     const transpiled = result.code || result.toString?.() || '';

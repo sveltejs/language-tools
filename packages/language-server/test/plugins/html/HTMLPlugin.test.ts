@@ -15,6 +15,9 @@ import { HTMLPlugin } from '../../../src/plugins';
 import { DocumentManager, Document } from '../../../src/lib/documents';
 import { LSConfigManager } from '../../../src/ls-config';
 import { DocumentHighlight } from 'vscode-languageserver-types';
+import { VERSION } from 'svelte/compiler';
+
+const isSvelte5Plus = Number(VERSION.split('.')[0]) >= 5;
 
 describe('HTML Plugin', () => {
     function setup(content: string) {
@@ -69,7 +72,7 @@ describe('HTML Plugin', () => {
         const completions = await plugin.getCompletions(document, Position.create(0, 7));
         const onClick = completions?.items.find((item) => item.label === 'on:click');
 
-        assert.deepStrictEqual(onClick, <CompletionItem>{
+        const expected: CompletionItem = {
             label: 'on:click',
             kind: CompletionItemKind.Value,
             documentation: {
@@ -82,7 +85,13 @@ describe('HTML Plugin', () => {
             ),
             insertTextFormat: InsertTextFormat.Snippet,
             command: undefined
-        });
+        };
+
+        if (isSvelte5Plus) {
+            expected.sortText = 'zon:click';
+        }
+
+        assert.deepStrictEqual(onClick, expected);
     });
 
     it('provide event handler completions in svelte strict mode', async () => {

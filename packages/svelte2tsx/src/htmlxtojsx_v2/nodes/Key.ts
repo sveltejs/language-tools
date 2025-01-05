@@ -1,6 +1,6 @@
 import MagicString from 'magic-string';
 import { BaseNode } from '../../interfaces';
-import { withTrailingPropertyAccess } from '../utils/node-utils';
+import { isImplicitlyClosedBlock, withTrailingPropertyAccess } from '../utils/node-utils';
 
 /**
  * {#key expr}content{/key}   --->   expr; content
@@ -14,5 +14,7 @@ export function handleKey(str: MagicString, keyBlock: BaseNode): void {
 
     // {/key}   ->
     const endKey = str.original.lastIndexOf('{', keyBlock.end - 1);
-    str.overwrite(endKey, keyBlock.end, '', { contentOnly: true });
+    if (!isImplicitlyClosedBlock(endKey, keyBlock)) {
+        str.overwrite(endKey, keyBlock.end, '', { contentOnly: true });
+    }
 }
