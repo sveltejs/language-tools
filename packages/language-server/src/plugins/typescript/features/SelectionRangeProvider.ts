@@ -1,6 +1,6 @@
 import ts from 'typescript';
 import { Position, Range, SelectionRange } from 'vscode-languageserver';
-import { Document, mapSelectionRangeToParent } from '../../../lib/documents';
+import { Document, mapRangeToOriginal } from '../../../lib/documents';
 import { SelectionRangeProvider } from '../../interfaces';
 import { SvelteDocumentSnapshot } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
@@ -20,7 +20,7 @@ export class SelectionRangeProviderImpl implements SelectionRangeProvider {
             tsDoc.offsetAt(tsDoc.getGeneratedPosition(position))
         );
         const selectionRange = this.toSelectionRange(tsDoc, tsSelectionRange);
-        const mappedRange = mapSelectionRangeToParent(tsDoc, selectionRange);
+        const mappedRange = this.mapSelectionRangeToParent(tsDoc, document, selectionRange);
 
         return this.filterOutUnmappedRange(mappedRange);
     }
@@ -33,6 +33,35 @@ export class SelectionRangeProviderImpl implements SelectionRangeProvider {
             range: convertRange(snapshot, textSpan),
             parent: parent && this.toSelectionRange(snapshot, parent)
         };
+    }
+
+    private mapSelectionRangeToParent(
+        tsDoc: SvelteDocumentSnapshot,
+        document: Document,
+        selectionRange: SelectionRange
+    ): SelectionRange {
+        const { range, parent } = selectionRange;
+        const originalRange = mapRangeToOriginal(tsDoc, range);
+
+        const originalLength = originalRange.end.character - originalRange.start.character;
+        const generatedLength = range.end.character - range.start.character;
+
+        // sourcemap off by one character issue + a generated semicolon
+        if (
+            originalLength === generatedLength - 2 &&
+            tsDoc.getFullText()[tsDoc.offsetAt(range.end) - 1] === ';'
+        ) {
+            originalRange.end.character += 1;
+        }
+
+        if (!parent) {
+            return SelectionRange.create(originalRange);
+        }
+
+        return SelectionRange.create(
+            originalRange,
+            this.mapSelectionRangeToParent(tsDoc, document, parent)
+        );
     }
 
     private filterOutUnmappedRange(selectionRange: SelectionRange): SelectionRange | null {

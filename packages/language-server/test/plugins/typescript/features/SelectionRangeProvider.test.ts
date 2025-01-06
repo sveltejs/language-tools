@@ -15,16 +15,11 @@ const selectionRangeTestDir = path.join(testDir, 'testfiles', 'selection-range')
 describe('SelectionRangeProvider', function () {
     serviceWarmup(this, selectionRangeTestDir, pathToUrl(testDir));
 
-    function setup() {
+    function setup(fileName: string) {
         const docManager = new DocumentManager(
             (textDocument) => new Document(textDocument.uri, textDocument.text)
         );
-        const filePath = path.join(
-            testDir,
-            'testfiles',
-            'selection-range',
-            'selection-range.svelte'
-        );
+        const filePath = path.join(testDir, 'testfiles', 'selection-range', fileName);
         const lsAndTsDocResolver = new LSAndTSDocResolver(
             docManager,
             [pathToUrl(testDir)],
@@ -39,7 +34,7 @@ describe('SelectionRangeProvider', function () {
     }
 
     it('provides selection range', async () => {
-        const { provider, document } = setup();
+        const { provider, document } = setup('selection-range.svelte');
 
         const selectionRange = await provider.getSelectionRange(document, Position.create(1, 9));
 
@@ -72,8 +67,67 @@ describe('SelectionRangeProvider', function () {
         });
     });
 
+    it('provides selection range for import without semicolon', async () => {
+        const { provider, document } = setup('selection-range-import.svelte');
+
+        const selectionRange = await provider.getSelectionRange(document, Position.create(2, 28));
+
+        assert.deepStrictEqual(selectionRange, <SelectionRange>{
+            parent: {
+                parent: {
+                    parent: {
+                        parent: undefined,
+                        range: {
+                            end: {
+                                character: 34,
+                                line: 2
+                            },
+                            start: {
+                                character: 4,
+                                line: 1
+                            }
+                        }
+                    },
+                    // import {onMount} from 'svelte';
+                    range: {
+                        end: {
+                            character: 34,
+                            line: 2
+                        },
+                        start: {
+                            character: 4,
+                            line: 2
+                        }
+                    }
+                },
+                // 'svelte';
+                range: {
+                    end: {
+                        character: 34,
+                        line: 2
+                    },
+                    start: {
+                        character: 26,
+                        line: 2
+                    }
+                }
+            },
+            // svelte
+            range: {
+                end: {
+                    character: 33,
+                    line: 2
+                },
+                start: {
+                    character: 27,
+                    line: 2
+                }
+            }
+        });
+    });
+
     it('return null when in style', async () => {
-        const { provider, document } = setup();
+        const { provider, document } = setup('selection-range.svelte');
 
         const selectionRange = await provider.getSelectionRange(document, Position.create(5, 0));
 
