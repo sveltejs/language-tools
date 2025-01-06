@@ -46,7 +46,7 @@ export class TsPlugin {
             return;
         }
 
-        const answers = ['Ask again later', "Don't show this message again", 'Enable Plugin'];
+        const answers = ['Enable', 'Later', 'Do not show again'];
         const response = await window.showInformationMessage(
             'The Svelte for VS Code extension now contains a TypeScript plugin. ' +
                 'Enabling it will provide intellisense for Svelte files from TS/JS files. ' +
@@ -55,9 +55,9 @@ export class TsPlugin {
             ...answers
         );
 
-        if (response === answers[2]) {
+        if (response === answers[0]) {
             workspace.getConfiguration('svelte').update('enable-ts-plugin', true, true);
-        } else if (response === answers[1]) {
+        } else if (response === answers[2]) {
             workspace.getConfiguration('svelte').update('ask-to-enable-ts-plugin', false, true);
         }
     }

@@ -1,5 +1,9 @@
 <script lang="ts">
     let value: string | number | boolean;
+
+    function handleClick() {
+        value = 'hello';
+    }
 </script>
 
 <!-- valid -->
@@ -9,7 +13,7 @@
 
     <div>{valueStr.substring(0)}{valueStr2.substring(0)}</div>
 
-    <button on:click={() => {valueStr.substring(0)}}></button>
+    <button on:click={() => {valueStr.substring(0) && handleClick()}}></button>
 {:else if typeof value === 'number'}
     {value.toFixed()}
 {/if}

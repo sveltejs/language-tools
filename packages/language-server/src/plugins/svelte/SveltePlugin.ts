@@ -16,7 +16,7 @@ import {
     WorkspaceEdit
 } from 'vscode-languageserver';
 import { Plugin } from 'prettier';
-import { getPackageInfo, importPrettier, importSvelte } from '../../importPackage';
+import { getPackageInfo, importPrettier } from '../../importPackage';
 import { Document } from '../../lib/documents';
 import { Logger } from '../../logger';
 import { LSConfigManager, LSSvelteConfig } from '../../ls-config';
@@ -52,9 +52,9 @@ export class SveltePlugin
 
     async getCodeLens(document: Document): Promise<CodeLens[] | null> {
         if (!this.featureEnabled('runesLegacyModeCodeLens')) return null;
+        if (!document.isSvelte5) return null;
 
         const doc = await this.getSvelteDoc(document);
-        if (!doc.isSvelte5) return null;
 
         try {
             const result = await doc.getCompiled();
@@ -355,7 +355,7 @@ export class SveltePlugin
 
     private migrate(document: Document): WorkspaceEdit | string {
         try {
-            const compiler = importSvelte(document.getFilePath() ?? '') as any;
+            const compiler = document.compiler as any;
             if (!compiler.migrate) {
                 return 'Your installed Svelte version does not support migration';
             }
