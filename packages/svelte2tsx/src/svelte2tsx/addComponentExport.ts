@@ -49,6 +49,7 @@ function addGenericsComponentExport({
     fileName,
     mode,
     usesAccessors,
+    isTsFile,
     str,
     generics,
     usesSlots,
@@ -65,6 +66,8 @@ function addGenericsComponentExport({
         return `ReturnType<__sveltets_Render${genericsRef}['${forPart}']>`;
     }
 
+    // TODO once Svelte 4 compatibility is dropped, we can simplify this, because since TS 4.7 it is possible to use generics
+    // like this: `typeof render<T>` - which wasn't possibly before, hence the class + methods workaround.
     let statement = `
 class __sveltets_Render${genericsDef} {
     props() {
@@ -76,14 +79,23 @@ class __sveltets_Render${genericsDef} {
     slots() {
         return render${genericsRef}().slots;
     }
-${
-    isSvelte5
+`;
+
+    // For Svelte 5+ we assume TS > 4.7
+    if (isSvelte5 && !isTsFile && exportedNames.usesRunes()) {
+        statement = `
+class __sveltets_Render${genericsDef} {
+    props(): ReturnType<typeof render${genericsRef}>['props'] { return null as any; }
+    events(): ReturnType<typeof render${genericsRef}>['events'] { return null as any; }
+    slots(): ReturnType<typeof render${genericsRef}>['slots'] { return null as any; }
+`;
+    }
+
+    statement += isSvelte5
         ? `    bindings() { return ${exportedNames.createBindingsStr()}; }
     exports() { return ${exportedNames.hasExports() ? `render${genericsRef}().exports` : '{}'}; }
-}`
-        : '}'
-}
-`;
+}\n`
+        : '}\n';
 
     const svelteComponentClass = noSvelteComponentTyped
         ? 'SvelteComponent'

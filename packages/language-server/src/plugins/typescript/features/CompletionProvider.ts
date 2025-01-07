@@ -807,7 +807,11 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
         }
 
         const isNewIdentifierLocation = response.isNewIdentifierLocation;
-        let defaultCommitCharacters = response.defaultCommitCharacters;
+        // TypeScript 5.7+ reused the same array for different completions
+        let defaultCommitCharacters = response.defaultCommitCharacters
+            ? Array.from(response.defaultCommitCharacters)
+            : undefined;
+
         if (!isNewIdentifierLocation) {
             // This actually always exists although it's optional in the type, at least in ts 5.6,
             // so our commit characters are mostly fallback for older ts versions
