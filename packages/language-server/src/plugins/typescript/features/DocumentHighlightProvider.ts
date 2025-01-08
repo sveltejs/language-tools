@@ -108,14 +108,22 @@ export class DocumentHighlightProviderImpl implements DocumentHighlightProvider 
         let candidate: TemplateNode | undefined;
 
         tsDoc.walkSvelteAst({
-            enter(node, _, key) {
+            enter(node, parent, key) {
                 if (node.type === 'Fragment') {
                     return;
                 }
 
                 const templateNode = node as TemplateNode;
                 const isWithin = templateNode.start <= offset && templateNode.end >= offset;
-                if (!isWithin || key !== 'children') {
+
+                const canSkip =
+                    !isWithin ||
+                    key === 'expression' ||
+                    key === 'context' ||
+                    ((parent.type === 'InlineComponent' || parent.type === 'Element') &&
+                        key !== 'children');
+
+                if (canSkip) {
                     this.skip();
                     return;
                 }
@@ -208,10 +216,10 @@ export class DocumentHighlightProviderImpl implements DocumentHighlightProvider 
             return [];
         }
 
-        const ranges: RangeTupleArray = [];
+        const ranges = new Map<number, RangeTupleArray[number]>();
 
         walkSvelteAst(candidate.else, {
-            enter(node, _, key) {
+            enter(node) {
                 const templateNode = node as TemplateNode;
                 if (templateNode.type === 'IfBlock' && templateNode.elseif) {
                     const elseIfStart = content.lastIndexOf(
@@ -220,24 +228,24 @@ export class DocumentHighlightProviderImpl implements DocumentHighlightProvider 
                     );
 
                     if (elseIfStart > 0) {
-                        ranges.push([elseIfStart, elseIfStart + ':else if'.length]);
+                        ranges.set(elseIfStart, [elseIfStart, elseIfStart + ':else if'.length]);
                     }
                 }
 
-                if (templateNode.type === 'ElseBlock' && key === 'else') {
+                if (templateNode.type === 'ElseBlock') {
                     const elseStart = content.lastIndexOf(':else', templateNode.start);
 
                     if (
                         elseStart > 0 &&
                         content.slice(elseStart, elseStart + ':else if'.length) !== ':else if'
                     ) {
-                        ranges.push([elseStart, elseStart + ':else'.length]);
+                        ranges.set(elseStart, [elseStart, elseStart + ':else'.length]);
                     }
                 }
             }
         });
 
-        return ranges;
+        return Array.from(ranges.values());
     }
 
     private getAwaitBlockHighlight(candidate: TemplateNode, content: string): RangeTupleArray {

@@ -177,6 +177,18 @@ describe('DocumentHighlightProvider', function () {
 
         it('get highlight for if block', async () => {
             await testSameHighlight(
+                '{#if expression}{:else}{/if}',
+                [2, 18, 25],
+                [
+                    [1, 4],
+                    [17, 22],
+                    [24, 27]
+                ]
+            );
+        });
+
+        it('get highlight for if block with else if', async () => {
+            await testSameHighlight(
                 '{#if expression}{:else if foo}{:else}{/if}',
                 [2, 18, 32, 39],
                 [
@@ -194,6 +206,14 @@ describe('DocumentHighlightProvider', function () {
                 [1, 4],
                 [17, 25],
                 [43, 46]
+            ]);
+        });
+
+        it('highlight nested if block', async () => {
+            const { provider, document } = setup('{#if expression}{:else if hi}{#if hi}{/if}{/if}');
+            await testOne(document, provider, 31, [
+                [30, 33],
+                [38, 41]
             ]);
         });
 
