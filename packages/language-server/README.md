@@ -291,7 +291,7 @@ The default language to use when generating new script tags in Svelte. _Default_
 
 #### `svelte.experimental.documentHighlight.enable`
 
-Enable experimental document highlight support. Require restart. _Default_: `false`
+Enable experimental document highlight support. Requires a restart. _Default_: `false`
 
 ## Credits
 
