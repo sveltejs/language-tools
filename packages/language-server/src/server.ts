@@ -321,8 +321,8 @@ export function startServer(options?: LSOptions) {
                     resolveProvider: true
                 },
                 documentHighlightProvider:
-                    !!evt.initializationOptions?.configuration?.svelte?.experimental
-                        ?.documentHighlight?.enable
+                    evt.initializationOptions?.configuration?.svelte.plugin.svelte
+                        ?.documentHighlight?.enable === false
             }
         };
     });
