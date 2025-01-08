@@ -693,7 +693,7 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
                 [document, position],
                 ExecuteMode.FirstNonNull,
                 'high'
-            ) ?? []
+            ) ?? [] // fall back to empty array to prevent fallback to word-based highlighting
         );
     }
 
