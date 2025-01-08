@@ -203,6 +203,10 @@ export class DocumentHighlightProviderImpl implements DocumentHighlightProvider 
         const endTag = '/' + name;
         const endTagStart = content.lastIndexOf(endTag, candidate.end);
 
+        if (endTagStart < startTagStart) {
+            return null; // can happen in loose parser mode for unclosed tags
+        }
+
         ranges.push([endTagStart, endTagStart + endTag.length]);
 
         if (candidate.type === 'EachBlock' && candidate.else) {
