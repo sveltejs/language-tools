@@ -321,7 +321,7 @@ export function startServer(options?: LSOptions) {
                     resolveProvider: true
                 },
                 documentHighlightProvider:
-                    evt.initializationOptions?.configuration?.svelte.plugin.svelte
+                    evt.initializationOptions?.configuration?.svelte?.plugin?.svelte
                         ?.documentHighlight?.enable ?? true
             }
         };
