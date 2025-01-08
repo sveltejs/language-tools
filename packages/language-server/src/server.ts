@@ -322,7 +322,7 @@ export function startServer(options?: LSOptions) {
                 },
                 documentHighlightProvider:
                     evt.initializationOptions?.configuration?.svelte.plugin.svelte
-                        ?.documentHighlight?.enable === true
+                        ?.documentHighlight?.enable ?? true
             }
         };
     });
