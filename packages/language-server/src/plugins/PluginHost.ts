@@ -687,11 +687,13 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
             throw new Error('Cannot call methods on an unopened document');
         }
 
-        return this.execute<DocumentHighlight[] | null>(
-            'findDocumentHighlight',
-            [document, position],
-            ExecuteMode.FirstNonNull,
-            'high'
+        return (
+            this.execute<DocumentHighlight[] | null>(
+                'findDocumentHighlight',
+                [document, position],
+                ExecuteMode.FirstNonNull,
+                'high'
+            ) ?? []
         );
     }
 
