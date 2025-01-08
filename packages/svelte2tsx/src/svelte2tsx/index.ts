@@ -180,7 +180,7 @@ export function svelte2tsx(
                     end,
                     scriptTag
                         ? scriptTag.start + 1 // +1 because imports are also moved at that position, and we want to move interfaces after imports
-                        : moduleScriptTag.end
+                        : instanceScriptTarget
                 );
             } else if (scriptTag) {
                 str.move(start, end, renderFunctionStart);
