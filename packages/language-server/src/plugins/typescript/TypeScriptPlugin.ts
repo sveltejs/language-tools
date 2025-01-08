@@ -11,6 +11,7 @@ import {
     CompletionList,
     DefinitionLink,
     Diagnostic,
+    DocumentHighlight,
     FileChangeType,
     FoldingRange,
     Hover,
@@ -46,6 +47,7 @@ import {
     CompletionsProvider,
     DefinitionsProvider,
     DiagnosticsProvider,
+    DocumentHighlightProvider,
     DocumentSymbolsProvider,
     FileReferencesProvider,
     FileRename,
@@ -89,6 +91,7 @@ import {
     is$storeVariableIn$storeDeclaration,
     isTextSpanInGeneratedCode
 } from './features/utils';
+import { DocumentHighlightProviderImpl } from './features/DocumentHighlightProvider';
 import { isAttributeName, isAttributeShorthand, isEventHandler } from './svelte-ast-utils';
 import {
     convertToLocationForReferenceOrDefinition,
@@ -116,6 +119,7 @@ export class TypeScriptPlugin
         SelectionRangeProvider,
         SignatureHelpProvider,
         SemanticTokensProvider,
+        DocumentHighlightProvider,
         ImplementationProvider,
         TypeDefinitionProvider,
         InlayHintProvider,
@@ -149,6 +153,7 @@ export class TypeScriptPlugin
     private readonly foldingRangeProvider: FoldingRangeProviderImpl;
     private readonly callHierarchyProvider: CallHierarchyProviderImpl;
     private readonly codLensProvider: CodeLensProviderImpl;
+    private readonly documentHeightProvider: DocumentHighlightProviderImpl;
 
     constructor(
         configManager: LSConfigManager,
@@ -208,6 +213,7 @@ export class TypeScriptPlugin
             this.implementationProvider,
             this.configManager
         );
+        this.documentHeightProvider = new DocumentHighlightProviderImpl(this.lsAndTsDocResolver);
     }
 
     async getDiagnostics(
@@ -686,6 +692,13 @@ export class TypeScriptPlugin
         cancellationToken?: CancellationToken
     ): Promise<CodeLens> {
         return this.codLensProvider.resolveCodeLens(document, codeLensToResolve, cancellationToken);
+    }
+
+    async findDocumentHighlight(
+        document: Document,
+        position: Position
+    ): Promise<DocumentHighlight[] | null> {
+        return this.documentHeightProvider.findDocumentHighlight(document, position);
     }
 
     private featureEnabled(feature: keyof LSTypescriptConfig) {

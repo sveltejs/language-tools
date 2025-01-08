@@ -399,6 +399,12 @@
                         "none",
                         "ts"
                     ]
+                },
+                "svelte.plugin.svelte.documentHighlight.enable": {
+                    "type": "boolean",
+                    "default": true,
+                    "title": "Svelte: Document Highlight",
+                    "description": "Enable document highlight support. Requires a restart."
                 }
             }
         },
