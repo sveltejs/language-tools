@@ -18,6 +18,11 @@ import { imported } from './x';
      { svelteHTML.createElement("div", {});module; }
 };return __sveltets_2_any(0)};  const hoistable7/*Ωignore_positionΩ*/ = ()/*Ωignore_startΩ*/: ReturnType<import('svelte').Snippet>/*Ωignore_endΩ*/ => { async ()/*Ωignore_positionΩ*/ => {
      { svelteHTML.createElement("div", {});imported; }
+};return __sveltets_2_any(0)};  const hoistable8/*Ωignore_positionΩ*/ = ()/*Ωignore_startΩ*/: ReturnType<import('svelte').Snippet>/*Ωignore_endΩ*/ => { async ()/*Ωignore_positionΩ*/ => {
+     { svelteHTML.createElement("div", {});global; }
+};return __sveltets_2_any(0)}; const hoistable9/*Ωignore_positionΩ*/ = (props: HTMLAttributes<HTMLDivElement>)/*Ωignore_startΩ*/: ReturnType<import('svelte').Snippet>/*Ωignore_endΩ*/ => { async ()/*Ωignore_positionΩ*/ => {  };return __sveltets_2_any(0)}; const hoistable10/*Ωignore_positionΩ*/ = (foo)/*Ωignore_startΩ*/: ReturnType<import('svelte').Snippet>/*Ωignore_endΩ*/ => { async ()/*Ωignore_positionΩ*/ => {
+  const bar = foo;
+  bar;
 };return __sveltets_2_any(0)};function render() {
   const not_hoistable/*Ωignore_positionΩ*/ = ()/*Ωignore_startΩ*/: ReturnType<import('svelte').Snippet>/*Ωignore_endΩ*/ => { async ()/*Ωignore_positionΩ*/ => {
      { svelteHTML.createElement("div", {});foo; }
@@ -26,6 +31,12 @@ import { imported } from './x';
     let foo = true;
 ;
 async () => {
+
+
+
+
+
+
 
 
 

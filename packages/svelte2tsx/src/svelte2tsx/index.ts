@@ -166,11 +166,13 @@ export function svelte2tsx(
     }
 
     if (moduleScriptTag || scriptTag) {
-        const allowed = exportedNames.hoistableInterfaces.getAllowedValues();
         for (const [start, end, globals] of rootSnippets) {
             const hoist_to_module =
                 moduleScriptTag &&
-                (globals.size === 0 || [...globals.keys()].every((id) => allowed.has(id)));
+                (globals.size === 0 ||
+                    [...globals.keys()].every((id) =>
+                        exportedNames.hoistableInterfaces.isAllowedReference(id)
+                    ));
 
             if (hoist_to_module) {
                 str.move(
