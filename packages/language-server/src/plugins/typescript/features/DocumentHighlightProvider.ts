@@ -106,6 +106,7 @@ export class DocumentHighlightProviderImpl implements DocumentHighlightProvider 
 
     private findCandidateSvelteTag(tsDoc: SvelteDocumentSnapshot, offset: number) {
         let candidate: TemplateNode | undefined;
+        const subBlocks = ['ThenBlock', 'CatchBlock', 'PendingBlock', 'ElseBlock'];
 
         tsDoc.walkSvelteAst({
             enter(node, parent, key) {
@@ -128,7 +129,21 @@ export class DocumentHighlightProviderImpl implements DocumentHighlightProvider 
                     return;
                 }
 
-                if (node.type.endsWith('Block') || node.type.endsWith('Tag')) {
+                if (node.type.endsWith('Tag')) {
+                    candidate = templateNode;
+                    return;
+                }
+
+                // don't use sub-blocks so we can highlight the whole block
+                if (node.type.endsWith('Block') && !subBlocks.includes(node.type)) {
+                    if (
+                        // else if
+                        node.type === 'IfBlock' &&
+                        parent.type === 'ElseBlock' &&
+                        parent.start === node.start
+                    ) {
+                        return;
+                    }
                     candidate = templateNode;
                     return;
                 }
