@@ -179,6 +179,19 @@ export class HoistableInterfaces {
             node.declarationList.declarations.forEach((declaration) => {
                 if (ts.isIdentifier(declaration.name)) {
                     this.disallowed_values.add(declaration.name.text);
+                } else {
+                    const walk = (node: ts.Node) => {
+                        if (
+                            ts.isIdentifier(node) &&
+                            ts.isBindingElement(node.parent) &&
+                            node.parent.name === node
+                        ) {
+                            this.disallowed_values.add(node.text);
+                        }
+                        ts.forEachChild(node, walk);
+                    };
+
+                    walk(declaration.name);
                 }
             });
         }
@@ -256,7 +269,7 @@ export class HoistableInterfaces {
                 }
 
                 for (const dep of deps.value_deps) {
-                    if (this.disallowed_values.has(dep)) {
+                    if (!this.isAllowedReference(dep)) {
                         this.disallowed_types.add(interface_name);
                         can_hoist = false;
                         break;
@@ -275,7 +288,7 @@ export class HoistableInterfaces {
                 ...this.props_interface.type_deps,
                 ...this.props_interface.value_deps
             ].every((dep) => {
-                return !this.disallowed_types.has(dep) && !this.disallowed_values.has(dep);
+                return !this.disallowed_types.has(dep) && this.isAllowedReference(dep);
             });
 
             if (can_hoist) {
@@ -333,7 +346,16 @@ export class HoistableInterfaces {
     }
 
     isAllowedReference(reference: string) {
-        return !this.disallowed_values.has(reference);
+        return !(
+            this.disallowed_values.has(reference) ||
+            reference === '$$props' ||
+            reference === '$$restProps' ||
+            reference === '$$slots' ||
+            // could be a $store reference
+            (reference[0] === '$' &&
+                reference[1] !== '$' &&
+                this.disallowed_values.has(reference.slice(1)))
+        );
     }
 
     /**
