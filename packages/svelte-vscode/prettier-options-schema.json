@@ -33,7 +33,7 @@
                         "styles-options-scripts-markup",
                         "styles-scripts-markup-options",
                         "styles-scripts-options-markup",
-                        "none",
+                        "none"
                     ]
                 },
                 "svelteStrictMode": {
