@@ -60,7 +60,8 @@ export class ExportedNames {
         private basename: string,
         private isTsFile: boolean,
         private isSvelte5Plus: boolean,
-        private isRunes: boolean
+        private isRunes: boolean,
+        private renderName: string
     ) {}
 
     handleVariableStatement(node: ts.VariableStatement, parent: ts.Node): void {
@@ -506,7 +507,10 @@ export class ExportedNames {
         if (this.usesRunes()) {
             // In runes mode, exports are no longer part of props
             return Array.from(this.getters)
-                .map((name) => `\n    get ${name}() { return render${generics}().exports.${name} }`)
+                .map(
+                    (name) =>
+                        `\n    get ${name}() { return ${this.renderName}${generics}().exports.${name} }`
+                )
                 .join('');
         } else {
             return Array.from(this.getters)

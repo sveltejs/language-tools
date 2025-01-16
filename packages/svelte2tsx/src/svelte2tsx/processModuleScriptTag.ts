@@ -13,6 +13,7 @@ export interface ModuleAst {
     htmlx: string;
     tsAst: ts.SourceFile;
     astOffset: number;
+    renderName: string;
 }
 
 export function createModuleAst(str: MagicString, script: Node): ModuleAst {
@@ -25,9 +26,27 @@ export function createModuleAst(str: MagicString, script: Node): ModuleAst {
         true,
         ts.ScriptKind.TS
     );
+
+    const identifiers = new Set<string>();
+
+    const walk = (node: ts.Node) => {
+        if (ts.isIdentifier(node)) {
+            identifiers.add(node.getText());
+        }
+        ts.forEachChild(node, (n) => walk(n));
+    };
+
+    walk(tsAst);
+
+    let renderName = 'render';
+    let i = 0;
+    while (identifiers.has(renderName)) {
+        renderName = `render_${i++}`;
+    }
+
     const astOffset = script.content.start;
 
-    return { htmlx, tsAst, astOffset };
+    return { htmlx, tsAst, astOffset, renderName };
 }
 
 export function processModuleScriptTag(

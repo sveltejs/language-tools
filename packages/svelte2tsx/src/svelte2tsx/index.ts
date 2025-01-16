@@ -96,7 +96,15 @@ export function svelte2tsx(
         : instanceScriptTarget;
     const implicitStoreValues = new ImplicitStoreValues(resolvedStores, renderFunctionStart);
     //move the instance script and process the content
-    let exportedNames = new ExportedNames(str, 0, basename, isTsFile, svelte5Plus, isRunes);
+    let exportedNames = new ExportedNames(
+        str,
+        0,
+        basename,
+        isTsFile,
+        svelte5Plus,
+        isRunes,
+        moduleAst.renderName
+    );
     let generics = new Generics(str, 0, { attributes: [] } as any);
     let uses$$SlotsInterface = false;
     if (scriptTag) {
@@ -114,7 +122,8 @@ export function svelte2tsx(
             isTsFile,
             basename,
             svelte5Plus,
-            isRunes
+            isRunes,
+            moduleAst.renderName
         );
         uses$$props = uses$$props || res.uses$$props;
         uses$$restProps = uses$$restProps || res.uses$$restProps;
@@ -143,7 +152,8 @@ export function svelte2tsx(
         generics,
         svelte5Plus,
         isTsFile,
-        mode: options.mode
+        mode: options.mode,
+        renderName: moduleAst.renderName
     });
 
     // we need to process the module script after the instance script has moved otherwise we get warnings about moving edited items
@@ -201,7 +211,8 @@ export function svelte2tsx(
         mode: options.mode,
         generics,
         isSvelte5: svelte5Plus,
-        noSvelteComponentTyped: options.noSvelteComponentTyped
+        noSvelteComponentTyped: options.noSvelteComponentTyped,
+        renderName: moduleAst.renderName
     });
 
     if (options.mode === 'dts') {
