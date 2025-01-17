@@ -195,3 +195,5 @@ export namespace InternalHelpers {
         paramsPath: string;
     }
 }
+
+export const RENDER_NAME:string;

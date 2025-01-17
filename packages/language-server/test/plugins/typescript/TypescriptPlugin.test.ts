@@ -17,6 +17,7 @@ import { __resetCache } from '../../../src/plugins/typescript/service';
 import { ignoredBuildDirectories } from '../../../src/plugins/typescript/SnapshotManager';
 import { pathToUrl } from '../../../src/utils';
 import { serviceWarmup } from './test-utils';
+import { RENDER_NAME } from 'svelte2tsx';
 
 const testDir = path.join(__dirname, 'testfiles');
 
@@ -89,7 +90,7 @@ describe('TypescriptPlugin', function () {
                         }
                     }
                 },
-                containerName: 'render'
+                containerName: RENDER_NAME
             },
             {
                 name: 'hello',
@@ -107,7 +108,7 @@ describe('TypescriptPlugin', function () {
                         }
                     }
                 },
-                containerName: 'render'
+                containerName: RENDER_NAME
             },
             {
                 name: "$: if (hello) {\n    console.log('hi');\n  }",
@@ -125,7 +126,7 @@ describe('TypescriptPlugin', function () {
                         }
                     }
                 },
-                containerName: 'render'
+                containerName: RENDER_NAME
             },
             {
                 name: '$on("click") callback',

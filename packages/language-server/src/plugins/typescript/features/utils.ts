@@ -13,6 +13,7 @@ import { or } from '../../../utils';
 import { FileMap } from '../../../lib/documents/fileCollection';
 import { LSConfig } from '../../../ls-config';
 import { LanguageServiceContainer } from '../service';
+import { RENDER_NAME } from 'svelte2tsx';
 
 type NodePredicate = (node: ts.Node) => boolean;
 
@@ -299,7 +300,10 @@ function nodeAndParentsSatisfyRespectivePredicates<T extends ts.Node>(
 
 const isRenderFunction = nodeAndParentsSatisfyRespectivePredicates<
     ts.FunctionDeclaration & { name: ts.Identifier }
->((node) => ts.isFunctionDeclaration(node) && node?.name?.getText() === 'render', ts.isSourceFile);
+>(
+    (node) => ts.isFunctionDeclaration(node) && node?.name?.getText() === RENDER_NAME,
+    ts.isSourceFile
+);
 
 const isRenderFunctionBody = nodeAndParentsSatisfyRespectivePredicates(
     ts.isBlock,
@@ -309,11 +313,11 @@ const isRenderFunctionBody = nodeAndParentsSatisfyRespectivePredicates(
 export const isReactiveStatement = nodeAndParentsSatisfyRespectivePredicates<ts.LabeledStatement>(
     (node) => ts.isLabeledStatement(node) && node.label.getText() === '$',
     or(
-        // function render() {
+        // function $$render() {
         //     $: x2 = __sveltets_2_invalidate(() => x * x)
         // }
         isRenderFunctionBody,
-        // function render() {
+        // function $$render() {
         //     ;() => {$: x, update();
         // }
         nodeAndParentsSatisfyRespectivePredicates(
