@@ -19,6 +19,28 @@ export class HoistableInterfaces {
         value_deps: new Set<string>()
     };
 
+    analyzeSnippets(
+        rootSnippets: [start: number, end: number, globals: Map<string, any>, string][]
+    ) {
+        let prev_disallowed_values_size;
+        // we need to recalculate the disallowed values until they are stable because
+        // one snippet might depend on another snippet which was previously hoistable
+        while (
+            prev_disallowed_values_size == null ||
+            this.disallowed_values.size !== prev_disallowed_values_size
+        ) {
+            prev_disallowed_values_size = this.disallowed_values.size;
+            for (const [, , globals, name] of rootSnippets) {
+                const hoist_to_module =
+                    globals.size === 0 ||
+                    [...globals.keys()].every((id) => this.isAllowedReference(id));
+                if (!hoist_to_module) {
+                    this.disallowed_values.add(name);
+                }
+            }
+        }
+    }
+
     /** should be called before analyzeInstanceScriptNode */
     analyzeModuleScriptNode(node: ts.Node) {
         // Handle Import Declarations
