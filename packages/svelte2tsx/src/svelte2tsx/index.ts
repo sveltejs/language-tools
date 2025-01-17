@@ -11,6 +11,8 @@ import { createModuleAst, ModuleAst, processModuleScriptTag } from './processMod
 import path from 'path';
 import { parse, VERSION } from 'svelte/compiler';
 
+const RENDER_NAME = '$$render';
+
 function processSvelteTemplate(
     str: MagicString,
     parse: typeof import('svelte/compiler').parse,
@@ -103,7 +105,7 @@ export function svelte2tsx(
         isTsFile,
         svelte5Plus,
         isRunes,
-        moduleAst?.renderName ?? 'render'
+        RENDER_NAME
     );
     let generics = new Generics(str, 0, { attributes: [] } as any);
     let uses$$SlotsInterface = false;
@@ -123,7 +125,7 @@ export function svelte2tsx(
             basename,
             svelte5Plus,
             isRunes,
-            moduleAst?.renderName ?? 'render'
+            RENDER_NAME
         );
         uses$$props = uses$$props || res.uses$$props;
         uses$$restProps = uses$$restProps || res.uses$$restProps;
@@ -153,7 +155,7 @@ export function svelte2tsx(
         svelte5Plus,
         isTsFile,
         mode: options.mode,
-        renderName: moduleAst?.renderName ?? 'render'
+        renderName: RENDER_NAME
     });
 
     // we need to process the module script after the instance script has moved otherwise we get warnings about moving edited items
@@ -212,7 +214,7 @@ export function svelte2tsx(
         generics,
         isSvelte5: svelte5Plus,
         noSvelteComponentTyped: options.noSvelteComponentTyped,
-        renderName: moduleAst?.renderName ?? 'render'
+        renderName: RENDER_NAME
     });
 
     if (options.mode === 'dts') {
