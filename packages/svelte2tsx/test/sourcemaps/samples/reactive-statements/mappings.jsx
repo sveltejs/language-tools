@@ -1,9 +1,9 @@
 ///<reference types="svelte" />
 //----------------------------------------------------------------------------------------------------------------------------------------------------
-;function $$render() {                                                                                                                                  {/**
-;function•$$render()•{↲    [generated] line 2                                                                                                           
+;function $$render() {                                                                                                                                {/**
+;function•$$render()•{↲    [generated] line 2                                                                                                         
 <s                                                                                                                                                    
-<script>↲                [original] line 1 (rest generated at line 3)                                                                                 
+<script>↲                  [original] line 1 (rest generated at line 3)                                                                               
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                                                                                                                                                       {/**
 ↲            [generated] line 3                                                                                                                       

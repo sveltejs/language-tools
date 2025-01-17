@@ -78,11 +78,11 @@ import•{↲     [generated] line 23
    ╚}•from•'../../../config';                                                                                                                         
    ╚}•from•'../../../config';↲    [original] line 27 (rest generated at line 36)                                                                      
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
-function $$render() {                                                                                                                                   {/**
-function•$$render()•{↲    [generated] line 28                                                                                                           
+function $$render() {                                                                                                                                 {/**
+function•$$render()•{↲    [generated] line 28                                                                                                         
 s                                                                                                                                                     
  s                                                                                                                                                    
-<script>↲               [original] line 16 (rest generated at lines 15, 29)                                                                           
+<script>↲                 [original] line 16 (rest generated at lines 15, 29)                                                                         
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                                                                                                                                                       {/**
 ↲            [generated] line 29                                                                                                                      

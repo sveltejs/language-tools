@@ -1,5 +1,5 @@
 ///<reference types="svelte" />
-;function $$render() {                                                                                                                                  {/**
+;function $$render() {                                                                                                                                {/**
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
 async () => {   { const $$_value = await (promise);{ const value = $$_value;                                                                          {/**
 ============#                                                                     Originless mappings                                                 

@@ -1,5 +1,5 @@
 ///<reference types="svelte" />
-;function $$render() {                                                                                                                                  {/**
+;function $$render() {                                                                                                                                {/**
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
 async () => { { svelteHTML.createElement("element", {"foo":true,});}                                                                                  {/**
 ============#                                                            Originless mappings                                                          

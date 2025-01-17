@@ -1,5 +1,5 @@
 ///<reference types="svelte" />
-;function $$render() {                                                                                                                                  {/**
+;function $$render() {                                                                                                                                {/**
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
 async () => { { svelteHTML.createElement("button", {count,});  }};                                                                                    {/**
 ============#                                                          Originless mappings                                                            
