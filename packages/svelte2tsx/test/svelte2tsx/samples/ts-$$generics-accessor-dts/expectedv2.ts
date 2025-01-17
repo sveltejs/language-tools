@@ -1,6 +1,6 @@
 import { SvelteComponentTyped } from "svelte"
 
-;function render/*Ωignore_startΩ*/<A>/*Ωignore_endΩ*/() {
+;function $$render/*Ωignore_startΩ*/<A>/*Ωignore_endΩ*/() {
 
     
 
@@ -12,13 +12,13 @@ async () => {
 return { props: {a: a} as {a: A}, slots: {}, events: {} }}
 class __sveltets_Render<A> {
     props() {
-        return render<A>().props;
+        return $$render<A>().props;
     }
     events() {
-        return __sveltets_2_with_any_event(render<A>()).events;
+        return __sveltets_2_with_any_event($$render<A>()).events;
     }
     slots() {
-        return render<A>().slots;
+        return $$render<A>().slots;
     }
 }
 export type InputProps<A> = ReturnType<__sveltets_Render<A>['props']>;

@@ -1,5 +1,5 @@
 ///<reference types="svelte" />
-;function render() {
+;function $$render() {
 
      let data/*Ωignore_startΩ*/: import('./$types.js').PageData;data = __sveltets_2_any(data);/*Ωignore_endΩ*/;
      let form/*Ωignore_startΩ*/: import('./$types.js').ActionData;form = __sveltets_2_any(form);/*Ωignore_endΩ*/;
@@ -11,6 +11,6 @@
 ;
 async () => {};
 return { props: {data: data , form: form , snapshot: snapshot , nope: nope}, exports: /** @type {{snapshot: typeof snapshot}} */ ({}), bindings: "", slots: {}, events: {} }}
-const Page__SvelteComponent_ = __sveltets_2_isomorphic_component(__sveltets_2_partial(['form','snapshot'], __sveltets_2_with_any_event(render())));
+const Page__SvelteComponent_ = __sveltets_2_isomorphic_component(__sveltets_2_partial(['form','snapshot'], __sveltets_2_with_any_event($$render())));
 /*Ωignore_startΩ*/type Page__SvelteComponent_ = InstanceType<typeof Page__SvelteComponent_>;
 /*Ωignore_endΩ*/export default Page__SvelteComponent_;

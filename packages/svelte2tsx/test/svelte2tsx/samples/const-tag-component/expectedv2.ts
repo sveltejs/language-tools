@@ -1,7 +1,7 @@
 ///<reference types="svelte" />
 ;
 import Component from './Component.svelte';
-function render() {
+function $$render() {
 
 	
 	 let box = {width: 3, height: 4};
@@ -65,5 +65,5 @@ async () => {
  }Component}};
 return { props: {box: box , constant: constant}, slots: {}, events: {} }}
 
-export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial(['box','constant'], __sveltets_2_with_any_event(render()))) {
+export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial(['box','constant'], __sveltets_2_with_any_event($$render()))) {
 }

@@ -1,5 +1,5 @@
 ///<reference types="svelte" />
-;function render() {
+;function $$render() {
 
 	 let promise1 = {width: 3, height: 4};
 	 let promise2 = {width: 5, height: 7};
@@ -26,5 +26,5 @@ async () => {
 }}};
 return { props: {promise1: promise1 , promise2: promise2 , constant: constant}, slots: {}, events: {} }}
 
-export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial(['promise1','promise2','constant'], __sveltets_2_with_any_event(render()))) {
+export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial(['promise1','promise2','constant'], __sveltets_2_with_any_event($$render()))) {
 }

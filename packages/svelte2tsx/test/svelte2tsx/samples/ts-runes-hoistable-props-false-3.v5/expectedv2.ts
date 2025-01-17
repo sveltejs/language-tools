@@ -2,7 +2,7 @@
 ;
     type SomeType<T extends boolean> = T;
     type T = unknown;
-;;function render<T extends boolean>() {
+;;function $$render<T extends boolean>() {
 ;type $$ComponentProps =  { someProp: SomeType<T>; };
     let { someProp }:/*Ωignore_startΩ*/$$ComponentProps/*Ωignore_endΩ*/ = $props();
 ;
@@ -12,13 +12,13 @@ async () => {
 return { props: {} as any as $$ComponentProps, exports: {}, bindings: __sveltets_$$bindings(''), slots: {}, events: {} }}
 class __sveltets_Render<T extends boolean> {
     props() {
-        return render<T>().props;
+        return $$render<T>().props;
     }
     events() {
-        return render<T>().events;
+        return $$render<T>().events;
     }
     slots() {
-        return render<T>().slots;
+        return $$render<T>().slots;
     }
     bindings() { return __sveltets_$$bindings(''); }
     exports() { return {}; }

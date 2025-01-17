@@ -1,5 +1,5 @@
 ///<reference types="svelte" />
-;function render() {
+;function $$render() {
 
 
     interface $$Props {
@@ -33,5 +33,5 @@
 async () => {};
 return { props: { ...__sveltets_2_ensureRightProps<{exported1: string,exported2?: string,name1?: string,name2: string,renamed1?: string,renamed2: string}>(__sveltets_2_any("") as $$Props)} as {Foo?: typeof Foo,bar?: typeof bar,baz?: string,RenamedFoo?: typeof RenameFoo,renamedbar?: typeof renamebar,renamedbaz?: string} & $$Props, slots: {}, events: {} }}
 
-export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_with_any_event(render())) {
+export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_with_any_event($$render())) {
 }

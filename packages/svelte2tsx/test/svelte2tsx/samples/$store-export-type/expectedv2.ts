@@ -1,7 +1,7 @@
 ///<reference types="svelte" />
 ;
 import type { Writable } from "svelte/store";
-function render() {
+function $$render() {
 
     
     
@@ -14,5 +14,5 @@ function render() {
 async () => {};
 return { props: {store: store}, slots: {}, events: {} }}
 
-export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial(['store'], __sveltets_2_with_any_event(render()))) {
+export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial(['store'], __sveltets_2_with_any_event($$render()))) {
 }

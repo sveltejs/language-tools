@@ -1,5 +1,5 @@
 ///<reference types="svelte" />
-;function render</*Ωignore_startΩ*/A, B extends keyof A, C extends boolean>/*Ωignore_endΩ*/() {
+;function $$render</*Ωignore_startΩ*/A, B extends keyof A, C extends boolean>/*Ωignore_endΩ*/() {
 
     /** @typedef {{ a: A; b: B; c: C }}  $$ComponentProps *//** @type {$$ComponentProps} */
     const { a, b, c } = $props();
@@ -11,11 +11,11 @@
 async () => {};
 return { props: /** @type {$$ComponentProps} */({}), exports: /** @type {{getA: typeof getA}} */ ({}), bindings: __sveltets_$$bindings(''), slots: {}, events: {} }}
 class __sveltets_Render<A,B extends keyof A,C extends boolean> {
-    props(): ReturnType<typeof render<A,B,C>>['props'] { return null as any; }
-    events(): ReturnType<typeof render<A,B,C>>['events'] { return null as any; }
-    slots(): ReturnType<typeof render<A,B,C>>['slots'] { return null as any; }
+    props(): ReturnType<typeof $$render<A,B,C>>['props'] { return null as any; }
+    events(): ReturnType<typeof $$render<A,B,C>>['events'] { return null as any; }
+    slots(): ReturnType<typeof $$render<A,B,C>>['slots'] { return null as any; }
     bindings() { return __sveltets_$$bindings(''); }
-    exports() { return render<A,B,C>().exports; }
+    exports() { return $$render<A,B,C>().exports; }
 }
 
 interface $$IsomorphicComponent {
