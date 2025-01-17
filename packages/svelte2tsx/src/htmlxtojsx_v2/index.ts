@@ -54,7 +54,7 @@ export interface TemplateProcessResult {
     scriptTag: BaseNode;
     moduleScriptTag: BaseNode;
     /** Start/end positions of snippets that should be moved to the instance script or possibly even module script */
-    rootSnippets: Array<[start: number, end: number, globals: Map<string, any>]>;
+    rootSnippets: Array<[start: number, end: number, globals: Map<string, any>, string]>;
     /** To be added later as a comment on the default class export */
     componentDocumentation: ComponentDocumentation;
     events: ComponentEvents;
@@ -93,7 +93,7 @@ export function convertHtmlxToJsx(
 
     stripDoctype(str);
 
-    const rootSnippets: Array<[number, number, Map<string, any>]> = [];
+    const rootSnippets: Array<[number, number, Map<string, any>, string]> = [];
     let element: Element | InlineComponent | undefined;
 
     const pendingSnippetHoistCheck = new Set<BaseNode>();
@@ -264,7 +264,12 @@ export function convertHtmlxToJsx(
                                 }
                             });
 
-                            rootSnippets.push([node.start, node.end, result.globals]);
+                            rootSnippets.push([
+                                node.start,
+                                node.end,
+                                result.globals,
+                                node.expression.name
+                            ]);
                         } else {
                             pendingSnippetHoistCheck.add(parent);
                         }
