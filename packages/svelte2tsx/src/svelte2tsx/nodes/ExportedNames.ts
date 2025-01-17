@@ -5,6 +5,7 @@ import { surroundWithIgnoreComments } from '../../utils/ignore';
 import { preprendStr, overwriteStr } from '../../utils/magic-string';
 import { findExportKeyword, getLastLeadingDoc, isInterfaceOrTypeDeclaration } from '../utils/tsAst';
 import { HoistableInterfaces } from './HoistableInterfaces';
+import { RENDER_NAME } from '..';
 
 export function is$$PropsDeclaration(
     node: ts.Node
@@ -60,8 +61,7 @@ export class ExportedNames {
         private basename: string,
         private isTsFile: boolean,
         private isSvelte5Plus: boolean,
-        private isRunes: boolean,
-        private renderName: string
+        private isRunes: boolean
     ) {}
 
     handleVariableStatement(node: ts.VariableStatement, parent: ts.Node): void {
@@ -509,7 +509,7 @@ export class ExportedNames {
             return Array.from(this.getters)
                 .map(
                     (name) =>
-                        `\n    get ${name}() { return ${this.renderName}${generics}().exports.${name} }`
+                        `\n    get ${name}() { return ${RENDER_NAME}${generics}().exports.${name} }`
                 )
                 .join('');
         } else {

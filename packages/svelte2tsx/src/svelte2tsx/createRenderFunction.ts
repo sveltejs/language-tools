@@ -7,6 +7,7 @@ import {
     IGNORE_START_COMMENT,
     surroundWithIgnoreComments
 } from '../utils/ignore';
+import { RENDER_NAME } from '.';
 
 export interface CreateRenderFunctionPara extends InstanceScriptProcessResult {
     str: MagicString;
@@ -18,7 +19,6 @@ export interface CreateRenderFunctionPara extends InstanceScriptProcessResult {
     svelte5Plus: boolean;
     isTsFile: boolean;
     mode?: 'ts' | 'dts';
-    renderName: string;
 }
 
 export function createRenderFunction({
@@ -34,8 +34,7 @@ export function createRenderFunction({
     uses$$SlotsInterface,
     generics,
     isTsFile,
-    mode,
-    renderName
+    mode
 }: CreateRenderFunctionPara) {
     const htmlx = str.original;
     let propsDecl = '';
@@ -78,7 +77,7 @@ export function createRenderFunction({
                 end--;
             }
 
-            str.overwrite(scriptTag.start + 1, start - 1, `function ${renderName}`);
+            str.overwrite(scriptTag.start + 1, start - 1, `function ${RENDER_NAME}`);
             str.overwrite(start - 1, start, isTsFile ? '<' : `<${IGNORE_START_COMMENT}`); // if the generics are unused, only this char is colored opaque
             str.overwrite(
                 end,
@@ -89,7 +88,7 @@ export function createRenderFunction({
             str.overwrite(
                 scriptTag.start + 1,
                 scriptTagEnd,
-                `function ${renderName}${generics.toDefinitionString(true)}() {${propsDecl}\n`
+                `function ${RENDER_NAME}${generics.toDefinitionString(true)}() {${propsDecl}\n`
             );
         }
 
@@ -101,7 +100,7 @@ export function createRenderFunction({
     } else {
         str.prependRight(
             scriptDestination,
-            `;function ${renderName}() {` + `${propsDecl}${slotsDeclaration}\nasync () => {`
+            `;function ${RENDER_NAME}() {` + `${propsDecl}${slotsDeclaration}\nasync () => {`
         );
     }
 

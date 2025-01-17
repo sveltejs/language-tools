@@ -44,8 +44,7 @@ export function processInstanceScriptContent(
     isTSFile: boolean,
     basename: string,
     isSvelte5Plus: boolean,
-    isRunes: boolean,
-    renderName: string
+    isRunes: boolean
 ): InstanceScriptProcessResult {
     const htmlx = str.original;
     const scriptContent = htmlx.substring(script.content.start, script.content.end);
@@ -63,8 +62,7 @@ export function processInstanceScriptContent(
         basename,
         isTSFile,
         isSvelte5Plus,
-        isRunes,
-        renderName
+        isRunes
     );
     const generics = new Generics(str, astOffset, script);
     const interfacesAndTypes = new InterfacesAndTypes();
