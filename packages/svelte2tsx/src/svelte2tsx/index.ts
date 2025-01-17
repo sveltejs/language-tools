@@ -165,6 +165,10 @@ export function svelte2tsx(
         }
     }
 
+    if (moduleScriptTag && rootSnippets.length > 0) {
+        exportedNames.hoistableInterfaces.analyzeSnippets(rootSnippets);
+    }
+
     if (moduleScriptTag || scriptTag) {
         for (const [start, end, globals] of rootSnippets) {
             const hoist_to_module =
