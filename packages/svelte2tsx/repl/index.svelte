@@ -1,8 +1,11 @@
-<input bind:value={get, set} />
-<input bind:value={() => v, new_v => v = new_v} />
+<script module lang="ts">
+    let foo = true;
+</script>
 
-<div bind:clientWidth={null, set} />
-<div bind:contentRect={null, set} />
+{#snippet hoistable1()}
+    <div>hello</div>
+{/snippet}
 
-<Input bind:value={get, set} />
-<Input bind:value={() => v, new_v => v = new_v} />
+{#snippet hoistable2()}
+    <div>{foo}</div>
+{/snippet}
