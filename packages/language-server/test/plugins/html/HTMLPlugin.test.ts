@@ -8,11 +8,13 @@ import {
     CompletionItemKind,
     InsertTextFormat,
     CompletionTriggerKind,
-    FoldingRange
+    FoldingRange,
+    DocumentHighlightKind
 } from 'vscode-languageserver';
 import { HTMLPlugin } from '../../../src/plugins';
 import { DocumentManager, Document } from '../../../src/lib/documents';
 import { LSConfigManager } from '../../../src/ls-config';
+import { DocumentHighlight } from 'vscode-languageserver-types';
 import { VERSION } from 'svelte/compiler';
 
 const isSvelte5Plus = Number(VERSION.split('.')[0]) >= 5;
@@ -292,6 +294,63 @@ describe('HTML Plugin', () => {
         assert.deepStrictEqual(ranges, <FoldingRange[]>[
             { startLine: 0, endLine: 2 },
             { startLine: 1, endLine: 2 }
+        ]);
+    });
+
+    it('provide document highlight', () => {
+        const { plugin, document } = setup('<div></div>');
+
+        const highlight = plugin.findDocumentHighlight(document, Position.create(0, 1));
+
+        assert.deepStrictEqual(highlight, <DocumentHighlight[]>[
+            {
+                range: {
+                    start: {
+                        line: 0,
+                        character: 1
+                    },
+                    end: {
+                        line: 0,
+                        character: 4
+                    }
+                },
+                kind: DocumentHighlightKind.Read
+            },
+            {
+                range: {
+                    start: {
+                        line: 0,
+                        character: 7
+                    },
+                    end: {
+                        line: 0,
+                        character: 10
+                    }
+                },
+                kind: DocumentHighlightKind.Read
+            }
+        ]);
+    });
+
+    it('provide word highlight for unsupported languages', () => {
+        const { plugin, document } = setup('<template lang="pug">\n  div\n  p</template>');
+
+        const highlight = plugin.findDocumentHighlight(document, Position.create(1, 5));
+
+        assert.deepStrictEqual(highlight, <DocumentHighlight[]>[
+            {
+                range: {
+                    start: {
+                        line: 1,
+                        character: 2
+                    },
+                    end: {
+                        line: 1,
+                        character: 5
+                    }
+                },
+                kind: DocumentHighlightKind.Text
+            }
         ]);
     });
 });

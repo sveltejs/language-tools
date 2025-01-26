@@ -7,18 +7,8 @@ export function decorateNavigateToItems(
     snapshotManager: SvelteSnapshotManager
 ): void {
     const getNavigateToItems = ls.getNavigateToItems;
-    ls.getNavigateToItems = (
-        searchValue: string,
-        maxResultCount?: number,
-        fileName?: string,
-        excludeDtsFiles?: boolean
-    ) => {
-        const navigationToItems = getNavigateToItems(
-            searchValue,
-            maxResultCount,
-            fileName,
-            excludeDtsFiles
-        );
+    ls.getNavigateToItems = (...args) => {
+        const navigationToItems = getNavigateToItems(...args);
 
         return navigationToItems
             .map((item) => {

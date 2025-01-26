@@ -5,8 +5,9 @@ import MagicString from 'magic-string';
  * Collects all imports and module-level declarations to then find out which interfaces/types are hoistable.
  */
 export class HoistableInterfaces {
-    private import_value_set: Set<string> = new Set();
-    private import_type_set: Set<string> = new Set();
+    private module_types: Set<string> = new Set();
+    private disallowed_types = new Set<string>();
+    private disallowed_values = new Set<string>();
     private interface_map: Map<
         string,
         { type_deps: Set<string>; value_deps: Set<string>; node: ts.Node }
@@ -18,6 +19,29 @@ export class HoistableInterfaces {
         value_deps: new Set<string>()
     };
 
+    analyzeSnippets(
+        rootSnippets: [start: number, end: number, globals: Map<string, any>, string][]
+    ) {
+        let prev_disallowed_values_size;
+        // we need to recalculate the disallowed values until they are stable because
+        // one snippet might depend on another snippet which was previously hoistable
+        while (
+            prev_disallowed_values_size == null ||
+            this.disallowed_values.size !== prev_disallowed_values_size
+        ) {
+            prev_disallowed_values_size = this.disallowed_values.size;
+            for (const [, , globals, name] of rootSnippets) {
+                const hoist_to_module =
+                    globals.size === 0 ||
+                    [...globals.keys()].every((id) => this.isAllowedReference(id));
+                if (!hoist_to_module) {
+                    this.disallowed_values.add(name);
+                }
+            }
+        }
+    }
+
+    /** should be called before analyzeInstanceScriptNode */
     analyzeModuleScriptNode(node: ts.Node) {
         // Handle Import Declarations
         if (ts.isImportDeclaration(node) && node.importClause) {
@@ -30,9 +54,7 @@ export class HoistableInterfaces {
                 node.importClause.namedBindings.elements.forEach((element) => {
                     const import_name = element.name.text;
                     if (is_type_only || element.isTypeOnly) {
-                        this.import_type_set.add(import_name);
-                    } else {
-                        this.import_value_set.add(import_name);
+                        this.module_types.add(import_name);
                     }
                 });
             }
@@ -41,9 +63,7 @@ export class HoistableInterfaces {
             if (node.importClause.name) {
                 const default_import = node.importClause.name.text;
                 if (is_type_only) {
-                    this.import_type_set.add(default_import);
-                } else {
-                    this.import_value_set.add(default_import);
+                    this.module_types.add(default_import);
                 }
             }
 
@@ -54,40 +74,17 @@ export class HoistableInterfaces {
             ) {
                 const namespace_import = node.importClause.namedBindings.name.text;
                 if (is_type_only) {
-                    this.import_type_set.add(namespace_import);
-                } else {
-                    this.import_value_set.add(namespace_import);
+                    this.module_types.add(namespace_import);
                 }
             }
         }
 
-        // Handle top-level declarations
-        if (ts.isVariableStatement(node)) {
-            node.declarationList.declarations.forEach((declaration) => {
-                if (ts.isIdentifier(declaration.name)) {
-                    this.import_value_set.add(declaration.name.text);
-                }
-            });
-        }
-
-        if (ts.isFunctionDeclaration(node) && node.name) {
-            this.import_value_set.add(node.name.text);
-        }
-
-        if (ts.isClassDeclaration(node) && node.name) {
-            this.import_value_set.add(node.name.text);
-        }
-
-        if (ts.isEnumDeclaration(node)) {
-            this.import_value_set.add(node.name.text);
-        }
-
         if (ts.isTypeAliasDeclaration(node)) {
-            this.import_type_set.add(node.name.text);
+            this.module_types.add(node.name.text);
         }
 
         if (ts.isInterfaceDeclaration(node)) {
-            this.import_type_set.add(node.name.text);
+            this.module_types.add(node.name.text);
         }
     }
 
@@ -103,9 +100,7 @@ export class HoistableInterfaces {
                 node.importClause.namedBindings.elements.forEach((element) => {
                     const import_name = element.name.text;
                     if (is_type_only) {
-                        this.import_type_set.add(import_name);
-                    } else {
-                        this.import_value_set.add(import_name);
+                        this.module_types.add(import_name);
                     }
                 });
             }
@@ -114,9 +109,7 @@ export class HoistableInterfaces {
             if (node.importClause.name) {
                 const default_import = node.importClause.name.text;
                 if (is_type_only) {
-                    this.import_type_set.add(default_import);
-                } else {
-                    this.import_value_set.add(default_import);
+                    this.module_types.add(default_import);
                 }
             }
 
@@ -127,9 +120,7 @@ export class HoistableInterfaces {
             ) {
                 const namespace_import = node.importClause.namedBindings.name.text;
                 if (is_type_only) {
-                    this.import_type_set.add(namespace_import);
-                } else {
-                    this.import_value_set.add(namespace_import);
+                    this.module_types.add(namespace_import);
                 }
             }
         }
@@ -167,9 +158,9 @@ export class HoistableInterfaces {
                 }
             });
 
-            if (this.import_type_set.has(interface_name)) {
-                // shadowed; delete because we can't hoist
-                this.import_type_set.delete(interface_name);
+            if (this.module_types.has(interface_name)) {
+                // shadowed; we can't hoist
+                this.disallowed_types.add(interface_name);
             } else {
                 this.interface_map.set(interface_name, {
                     type_deps: type_dependencies,
@@ -193,9 +184,9 @@ export class HoistableInterfaces {
                 generics
             );
 
-            if (this.import_type_set.has(alias_name)) {
-                // shadowed; delete because we can't hoist
-                this.import_type_set.delete(alias_name);
+            if (this.module_types.has(alias_name)) {
+                // shadowed; we can't hoist
+                this.disallowed_types.add(alias_name);
             } else {
                 this.interface_map.set(alias_name, {
                     type_deps: type_dependencies,
@@ -209,29 +200,34 @@ export class HoistableInterfaces {
         if (ts.isVariableStatement(node)) {
             node.declarationList.declarations.forEach((declaration) => {
                 if (ts.isIdentifier(declaration.name)) {
-                    this.import_value_set.delete(declaration.name.text);
+                    this.disallowed_values.add(declaration.name.text);
+                } else {
+                    const walk = (node: ts.Node) => {
+                        if (
+                            ts.isIdentifier(node) &&
+                            ts.isBindingElement(node.parent) &&
+                            node.parent.name === node
+                        ) {
+                            this.disallowed_values.add(node.text);
+                        }
+                        ts.forEachChild(node, walk);
+                    };
+
+                    walk(declaration.name);
                 }
             });
         }
 
         if (ts.isFunctionDeclaration(node) && node.name) {
-            this.import_value_set.delete(node.name.text);
+            this.disallowed_values.add(node.name.text);
         }
 
         if (ts.isClassDeclaration(node) && node.name) {
-            this.import_value_set.delete(node.name.text);
+            this.disallowed_values.add(node.name.text);
         }
 
         if (ts.isEnumDeclaration(node)) {
-            this.import_value_set.delete(node.name.text);
-        }
-
-        if (ts.isTypeAliasDeclaration(node)) {
-            this.import_type_set.delete(node.name.text);
-        }
-
-        if (ts.isInterfaceDeclaration(node)) {
-            this.import_type_set.delete(node.name.text);
+            this.disallowed_values.add(node.name.text);
         }
     }
 
@@ -281,13 +277,26 @@ export class HoistableInterfaces {
                     continue;
                 }
 
-                const can_hoist = [...deps.type_deps, ...deps.value_deps].every((dep) => {
-                    return (
-                        this.import_type_set.has(dep) ||
-                        this.import_value_set.has(dep) ||
-                        hoistable_interfaces.has(dep)
-                    );
-                });
+                let can_hoist = true;
+
+                for (const dep of deps.type_deps) {
+                    if (this.disallowed_types.has(dep)) {
+                        this.disallowed_types.add(interface_name);
+                        can_hoist = false;
+                        break;
+                    }
+                    if (this.interface_map.has(dep) && !hoistable_interfaces.has(dep)) {
+                        can_hoist = false;
+                    }
+                }
+
+                for (const dep of deps.value_deps) {
+                    if (!this.isAllowedReference(dep)) {
+                        this.disallowed_types.add(interface_name);
+                        can_hoist = false;
+                        break;
+                    }
+                }
 
                 if (can_hoist) {
                     hoistable_interfaces.set(interface_name, deps.node);
@@ -301,11 +310,7 @@ export class HoistableInterfaces {
                 ...this.props_interface.type_deps,
                 ...this.props_interface.value_deps
             ].every((dep) => {
-                return (
-                    this.import_type_set.has(dep) ||
-                    this.import_value_set.has(dep) ||
-                    hoistable_interfaces.has(dep)
-                );
+                return !this.disallowed_types.has(dep) && this.isAllowedReference(dep);
             });
 
             if (can_hoist) {
@@ -328,7 +333,7 @@ export class HoistableInterfaces {
         if (!this.props_interface.name) return;
 
         for (const generic of generics) {
-            this.import_type_set.delete(generic);
+            this.disallowed_types.add(generic);
         }
 
         const hoistable = this.determineHoistableInterfaces();
@@ -362,8 +367,17 @@ export class HoistableInterfaces {
         }
     }
 
-    getAllowedValues() {
-        return this.import_value_set;
+    isAllowedReference(reference: string) {
+        return !(
+            this.disallowed_values.has(reference) ||
+            reference === '$$props' ||
+            reference === '$$restProps' ||
+            reference === '$$slots' ||
+            // could be a $store reference
+            (reference[0] === '$' &&
+                reference[1] !== '$' &&
+                this.disallowed_values.has(reference.slice(1)))
+        );
     }
 
     /**

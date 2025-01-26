@@ -165,12 +165,18 @@ export function svelte2tsx(
         }
     }
 
+    if (moduleScriptTag && rootSnippets.length > 0) {
+        exportedNames.hoistableInterfaces.analyzeSnippets(rootSnippets);
+    }
+
     if (moduleScriptTag || scriptTag) {
-        const allowed = exportedNames.hoistableInterfaces.getAllowedValues();
         for (const [start, end, globals] of rootSnippets) {
             const hoist_to_module =
                 moduleScriptTag &&
-                (globals.size === 0 || [...globals.keys()].every((id) => allowed.has(id)));
+                (globals.size === 0 ||
+                    [...globals.keys()].every((id) =>
+                        exportedNames.hoistableInterfaces.isAllowedReference(id)
+                    ));
 
             if (hoist_to_module) {
                 str.move(
@@ -178,7 +184,7 @@ export function svelte2tsx(
                     end,
                     scriptTag
                         ? scriptTag.start + 1 // +1 because imports are also moved at that position, and we want to move interfaces after imports
-                        : moduleScriptTag.end
+                        : instanceScriptTarget
                 );
             } else if (scriptTag) {
                 str.move(start, end, renderFunctionStart);

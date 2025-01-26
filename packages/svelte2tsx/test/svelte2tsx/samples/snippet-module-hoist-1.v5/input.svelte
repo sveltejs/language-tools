@@ -35,6 +35,19 @@
     <div>{imported}</div>
 {/snippet}
 
+{#snippet hoistable8()}
+    <div>{global}</div>
+{/snippet}
+
+{#snippet hoistable9(props: HTMLAttributes<HTMLDivElement>)}
+    Referencing global types
+{/snippet}
+
+{#snippet hoistable10(foo)}
+  {@const bar = foo}
+  {bar}
+{/snippet}
+
 {#snippet not_hoistable()}
     <div>{foo}</div>
 {/snippet}
