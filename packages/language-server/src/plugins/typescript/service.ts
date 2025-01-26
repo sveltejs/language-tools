@@ -974,10 +974,14 @@ async function createLanguageService(
             return;
         }
 
-        // mark as clean first so that even if the update fails, we can still try again next time
-        dirty = false;
         const oldProgram = project?.program;
-        const program = languageService.getProgram();
+        let program: ts.Program | undefined;
+        try {
+            program = languageService.getProgram();
+        } finally {
+            // mark as clean even if the update fails, at least we can still try again next time there is a change
+            dirty = false;
+        }
         svelteModuleLoader.clearPendingInvalidations();
 
         if (project) {
