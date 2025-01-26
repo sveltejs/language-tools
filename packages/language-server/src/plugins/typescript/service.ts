@@ -974,6 +974,8 @@ async function createLanguageService(
             return;
         }
 
+        // mark as clean first so that even if the update fails, we can still try again next time
+        dirty = false;
         const oldProgram = project?.program;
         const program = languageService.getProgram();
         svelteModuleLoader.clearPendingInvalidations();
@@ -982,7 +984,6 @@ async function createLanguageService(
             project.program = program;
         }
 
-        dirty = false;
         compilerHost = undefined;
 
         if (!skipSvelteInputCheck) {
