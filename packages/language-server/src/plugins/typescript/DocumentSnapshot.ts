@@ -266,7 +266,7 @@ function preprocessSvelteFile(document: Document, options: SvelteSnapshotOptions
 export class SvelteDocumentSnapshot implements DocumentSnapshot {
     private mapper?: DocumentMapper;
     private lineOffsets?: number[];
-    private url = pathToUrl(this.filePath);
+    private url = this.fileUrl;
 
     version = this.parent.version;
     isSvelte5Plus = Number(this.svelteVersion?.split('.')[0]) >= 5;
@@ -281,7 +281,11 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
         private readonly exportedNames: IExportedNames,
         private readonly tsxMap?: EncodedSourceMap,
         private readonly htmlAst?: TemplateNode
-    ) {}
+    ) { }
+
+    get fileUrl() {
+        return this.parent.getURL() || '';
+    }
 
     get filePath() {
         return this.parent.getFilePath() || '';
