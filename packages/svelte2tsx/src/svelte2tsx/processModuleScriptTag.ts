@@ -25,6 +25,7 @@ export function createModuleAst(str: MagicString, script: Node): ModuleAst {
         true,
         ts.ScriptKind.TS
     );
+
     const astOffset = script.content.start;
 
     return { htmlx, tsAst, astOffset };

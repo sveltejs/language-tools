@@ -1,5 +1,5 @@
 ///<reference types="svelte" />
-;function render() {
+;function $$render() {
 
     const uid = readable('')/*Ωignore_startΩ*/;let $uid = __sveltets_2_store_get(uid);/*Ωignore_endΩ*/
     let  foo1 = __sveltets_2_invalidate(() => getFoo1($uid));/*Ωignore_startΩ*/;let $foo1 = __sveltets_2_store_get(foo1);/*Ωignore_endΩ*/
@@ -17,5 +17,5 @@
 async () => {};
 return { props: /** @type {Record<string, never>} */ ({}), slots: {}, events: {} }}
 
-export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial(__sveltets_2_with_any_event(render()))) {
+export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial(__sveltets_2_with_any_event($$render()))) {
 }

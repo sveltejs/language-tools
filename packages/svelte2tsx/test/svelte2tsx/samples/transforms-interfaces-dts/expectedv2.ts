@@ -2,7 +2,7 @@ import { SvelteComponentTyped } from "svelte"
 
 ;
 import type { Foo } from './foo';
-function render() {
+function $$render() {
 
     
      let foo: Foo/*Ωignore_startΩ*/;foo = __sveltets_2_any(foo);/*Ωignore_endΩ*/;
@@ -22,10 +22,10 @@ function render() {
 ;
 async () => {};
 return { props: {foo: foo , bar: bar}, slots: {}, events: {} }}
-const __propDef = __sveltets_2_partial(__sveltets_2_with_any_event(render()));
+const __propDef = __sveltets_2_partial(__sveltets_2_with_any_event($$render()));
 /** @typedef {typeof __propDef.props}  InputProps */
 /** @typedef {typeof __propDef.events}  InputEvents */
 /** @typedef {typeof __propDef.slots}  InputSlots */
 
-export default class Input extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial(__sveltets_2_with_any_event(render()))) {
+export default class Input extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial(__sveltets_2_with_any_event($$render()))) {
 }
