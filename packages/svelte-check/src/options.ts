@@ -65,6 +65,8 @@ export function parseOptions(cb: (opts: SvelteCheckCliOptions) => any) {
             'Filters the diagnostics to display. `error` will output only errors while `warning` will output warnings and errors.',
             'warning'
         )
+        .option('--color', 'Force enabling of color output', false)
+        .option('--no-color', 'Force disabling of color output', false)
         .action((opts) => {
             const workspaceUri = getWorkspaceUri(opts);
             const tsconfig = getTsconfig(opts, workspaceUri.fsPath);
