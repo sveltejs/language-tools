@@ -2,7 +2,7 @@ import { SvelteComponentTyped } from "svelte"
 
 ;
 import type { Foo } from './foo';
-function render() {
+function $$render() {
 
     
      let foo: Foo/*Ωignore_startΩ*/;foo = __sveltets_2_any(foo);/*Ωignore_endΩ*/;
@@ -31,6 +31,6 @@ interface $$__sveltets_2_IsomorphicComponent<Props extends Record<string, any> =
 declare function $$__sveltets_2_isomorphic_component<
     Props extends Record<string, any>, Events extends Record<string, any>, Slots extends Record<string, any>, Exports extends Record<string, any>, Bindings extends string
 >(klass: {props: Props, events: Events, slots: Slots, exports?: Exports, bindings?: Bindings }): $$__sveltets_2_IsomorphicComponent<Props, Events, Slots, Exports, Bindings>;
-const Input = $$__sveltets_2_isomorphic_component(__sveltets_2_partial(__sveltets_2_with_any_event(render())));
+const Input = $$__sveltets_2_isomorphic_component(__sveltets_2_partial(__sveltets_2_with_any_event($$render())));
 /*Ωignore_startΩ*/type Input = InstanceType<typeof Input>;
 /*Ωignore_endΩ*/export default Input;

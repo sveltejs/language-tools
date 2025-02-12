@@ -1,5 +1,5 @@
 ///<reference types="svelte" />
-;function render<const T extends readonly string[]>() {
+;function $$render<const T extends readonly string[]>() {
 
  let items: T/*Ωignore_startΩ*/;items = __sveltets_2_any(items);/*Ωignore_endΩ*/;
 ;
@@ -7,13 +7,13 @@ async () => {};
 return { props: {items: items} as {items: T}, slots: {}, events: {} }}
 class __sveltets_Render<const T extends readonly string[]> {
     props() {
-        return render<T>().props;
+        return $$render<T>().props;
     }
     events() {
-        return __sveltets_2_with_any_event(render<T>()).events;
+        return __sveltets_2_with_any_event($$render<T>()).events;
     }
     slots() {
-        return render<T>().slots;
+        return $$render<T>().slots;
     }
 }
 

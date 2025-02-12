@@ -25,5 +25,6 @@ export const internalHelpers = {
     toVirtualPos,
     toOriginalPos,
     findExports,
-    get_global_types
+    get_global_types,
+    renderName: '$$render'
 };
