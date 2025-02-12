@@ -24,7 +24,7 @@ import {
 import { not, flatten, passMap, swapRangeStartEndIfNecessary, memoize } from '../../../utils';
 import { LSConfigManager } from '../../../ls-config';
 import { isAttributeName, isEventHandler } from '../svelte-ast-utils';
-import { RENDER_NAME } from 'svelte2tsx';
+import { internalHelpers } from 'svelte2tsx';
 
 export enum DiagnosticCode {
     MODIFIERS_CANNOT_APPEAR_HERE = 1184, // "Modifiers cannot appear here."
@@ -547,7 +547,8 @@ function get$$PropsDef(lang: ts.LanguageService, snapshot: SvelteDocumentSnapsho
 
     const renderFunction = sourceFile.statements.find(
         (statement): statement is ts.FunctionDeclaration =>
-            ts.isFunctionDeclaration(statement) && statement.name?.getText() === RENDER_NAME
+            ts.isFunctionDeclaration(statement) &&
+            statement.name?.getText() === internalHelpers.renderName
     );
     return renderFunction?.body?.statements.find(
         (node): node is ts.TypeAliasDeclaration | ts.InterfaceDeclaration =>

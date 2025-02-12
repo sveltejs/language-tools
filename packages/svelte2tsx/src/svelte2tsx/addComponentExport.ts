@@ -6,7 +6,7 @@ import { ComponentDocumentation } from './nodes/ComponentDocumentation';
 import { Generics } from './nodes/Generics';
 import { surroundWithIgnoreComments } from '../utils/ignore';
 import { ComponentEvents } from './nodes/ComponentEvents';
-import { RENDER_NAME } from '.';
+import { internalHelpers } from '../helpers';
 
 export interface AddComponentExportPara {
     str: MagicString;
@@ -72,13 +72,13 @@ function addGenericsComponentExport({
     let statement = `
 class __sveltets_Render${genericsDef} {
     props() {
-        return ${props(true, canHaveAnyProp, exportedNames, `${RENDER_NAME}${genericsRef}()`)}.props;
+        return ${props(true, canHaveAnyProp, exportedNames, `${internalHelpers.renderName}${genericsRef}()`)}.props;
     }
     events() {
-        return ${_events(events.hasStrictEvents() || exportedNames.usesRunes(), `${RENDER_NAME}${genericsRef}()`)}.events;
+        return ${_events(events.hasStrictEvents() || exportedNames.usesRunes(), `${internalHelpers.renderName}${genericsRef}()`)}.events;
     }
     slots() {
-        return ${RENDER_NAME}${genericsRef}().slots;
+        return ${internalHelpers.renderName}${genericsRef}().slots;
     }
 `;
 
@@ -86,15 +86,15 @@ class __sveltets_Render${genericsDef} {
     if (isSvelte5 && !isTsFile && exportedNames.usesRunes()) {
         statement = `
 class __sveltets_Render${genericsDef} {
-    props(): ReturnType<typeof ${RENDER_NAME}${genericsRef}>['props'] { return null as any; }
-    events(): ReturnType<typeof ${RENDER_NAME}${genericsRef}>['events'] { return null as any; }
-    slots(): ReturnType<typeof ${RENDER_NAME}${genericsRef}>['slots'] { return null as any; }
+    props(): ReturnType<typeof ${internalHelpers.renderName}${genericsRef}>['props'] { return null as any; }
+    events(): ReturnType<typeof ${internalHelpers.renderName}${genericsRef}>['events'] { return null as any; }
+    slots(): ReturnType<typeof ${internalHelpers.renderName}${genericsRef}>['slots'] { return null as any; }
 `;
     }
 
     statement += isSvelte5
         ? `    bindings() { return ${exportedNames.createBindingsStr()}; }
-    exports() { return ${exportedNames.hasExports() ? `${RENDER_NAME}${genericsRef}().exports` : '{}'}; }
+    exports() { return ${exportedNames.hasExports() ? `${internalHelpers.renderName}${genericsRef}().exports` : '{}'}; }
 }\n`
         : '}\n';
 
@@ -182,7 +182,7 @@ function addSimpleComponentExport({
         isTsFile,
         canHaveAnyProp,
         exportedNames,
-        _events(events.hasStrictEvents(), `${RENDER_NAME}()`)
+        _events(events.hasStrictEvents(), `${internalHelpers.renderName}()`)
     );
 
     const doc = componentDocumentation.getFormatted();
@@ -193,7 +193,7 @@ function addSimpleComponentExport({
     if (mode === 'dts') {
         if (isSvelte5 && exportedNames.usesRunes() && !usesSlots && !events.hasEvents()) {
             statement =
-                `\n${doc}const ${componentName} = __sveltets_2_fn_component(${RENDER_NAME}());\n` +
+                `\n${doc}const ${componentName} = __sveltets_2_fn_component(${internalHelpers.renderName}());\n` +
                 `type ${componentName} = ReturnType<typeof ${componentName}>;\n` +
                 `export default ${componentName};`;
         } else if (isSvelte5) {
@@ -259,7 +259,7 @@ declare function $$__sveltets_2_isomorphic_component<
         if (isSvelte5) {
             if (exportedNames.usesRunes() && !usesSlots && !events.hasEvents()) {
                 statement =
-                    `\n${doc}const ${componentName} = __sveltets_2_fn_component(${RENDER_NAME}());\n` +
+                    `\n${doc}const ${componentName} = __sveltets_2_fn_component(${internalHelpers.renderName}());\n` +
                     `type ${componentName} = ReturnType<typeof ${componentName}>;\n` +
                     `export default ${componentName};`;
             } else {

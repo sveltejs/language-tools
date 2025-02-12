@@ -11,8 +11,6 @@ import { createModuleAst, ModuleAst, processModuleScriptTag } from './processMod
 import path from 'path';
 import { parse, VERSION } from 'svelte/compiler';
 
-export const RENDER_NAME = '$$render';
-
 function processSvelteTemplate(
     str: MagicString,
     parse: typeof import('svelte/compiler').parse,

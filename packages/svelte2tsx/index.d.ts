@@ -174,6 +174,7 @@ export const internalHelpers: {
             hasTypeDefinition: boolean;
         }
     >,
+	renderName: string
 };
 
 /**
@@ -195,5 +196,3 @@ export namespace InternalHelpers {
         paramsPath: string;
     }
 }
-
-export const RENDER_NAME:string;

@@ -56,7 +56,7 @@ import {
 import { DiagnosticCode } from './DiagnosticsProvider';
 import { createGetCanonicalFileName } from '../../../utils';
 import { LanguageServiceContainer } from '../service';
-import { RENDER_NAME } from 'svelte2tsx';
+import { internalHelpers } from 'svelte2tsx';
 
 /**
  * TODO change this to protocol constant if it's part of the protocol
@@ -1320,11 +1320,11 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                     ...refactor,
                     title: refactor.title
                         .replace(
-                            `Extract to inner function in function '${RENDER_NAME}'`,
+                            `Extract to inner function in function '${internalHelpers.renderName}'`,
                             'Extract to function'
                         )
                         .replace(
-                            `Extract to constant in function '${RENDER_NAME}'`,
+                            `Extract to constant in function '${internalHelpers.renderName}'`,
                             'Extract to constant'
                         )
                 }))

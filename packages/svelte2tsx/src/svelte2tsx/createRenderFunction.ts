@@ -7,7 +7,7 @@ import {
     IGNORE_START_COMMENT,
     surroundWithIgnoreComments
 } from '../utils/ignore';
-import { RENDER_NAME } from '.';
+import { internalHelpers } from '../helpers';
 
 export interface CreateRenderFunctionPara extends InstanceScriptProcessResult {
     str: MagicString;
@@ -77,7 +77,7 @@ export function createRenderFunction({
                 end--;
             }
 
-            str.overwrite(scriptTag.start + 1, start - 1, `function ${RENDER_NAME}`);
+            str.overwrite(scriptTag.start + 1, start - 1, `function ${internalHelpers.renderName}`);
             str.overwrite(start - 1, start, isTsFile ? '<' : `<${IGNORE_START_COMMENT}`); // if the generics are unused, only this char is colored opaque
             str.overwrite(
                 end,
@@ -88,7 +88,7 @@ export function createRenderFunction({
             str.overwrite(
                 scriptTag.start + 1,
                 scriptTagEnd,
-                `function ${RENDER_NAME}${generics.toDefinitionString(true)}() {${propsDecl}\n`
+                `function ${internalHelpers.renderName}${generics.toDefinitionString(true)}() {${propsDecl}\n`
             );
         }
 
@@ -100,7 +100,8 @@ export function createRenderFunction({
     } else {
         str.prependRight(
             scriptDestination,
-            `;function ${RENDER_NAME}() {` + `${propsDecl}${slotsDeclaration}\nasync () => {`
+            `;function ${internalHelpers.renderName}() {` +
+                `${propsDecl}${slotsDeclaration}\nasync () => {`
         );
     }
 

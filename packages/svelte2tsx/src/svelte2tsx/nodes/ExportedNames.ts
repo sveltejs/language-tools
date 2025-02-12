@@ -5,7 +5,6 @@ import { surroundWithIgnoreComments } from '../../utils/ignore';
 import { preprendStr, overwriteStr } from '../../utils/magic-string';
 import { findExportKeyword, getLastLeadingDoc, isInterfaceOrTypeDeclaration } from '../utils/tsAst';
 import { HoistableInterfaces } from './HoistableInterfaces';
-import { RENDER_NAME } from '..';
 
 export function is$$PropsDeclaration(
     node: ts.Node
@@ -509,7 +508,7 @@ export class ExportedNames {
             return Array.from(this.getters)
                 .map(
                     (name) =>
-                        `\n    get ${name}() { return ${RENDER_NAME}${generics}().exports.${name} }`
+                        `\n    get ${name}() { return ${internalHelpers.renderName}${generics}().exports.${name} }`
                 )
                 .join('');
         } else {

@@ -22,7 +22,7 @@ import { pathToUrl } from '../../../../src/utils';
 import { recursiveServiceWarmup } from '../test-utils';
 import { DiagnosticCode } from '../../../../src/plugins/typescript/features/DiagnosticsProvider';
 import { VERSION } from 'svelte/compiler';
-import { RENDER_NAME } from 'svelte2tsx';
+import { internalHelpers } from 'svelte2tsx';
 
 const testDir = path.join(__dirname, '..');
 const indent = ' '.repeat(4);
@@ -2035,7 +2035,7 @@ describe('CodeActionsProvider', function () {
                     }
                 ],
                 command: 'function_scope_0',
-                title: `Extract to inner function in function '${RENDER_NAME}'`
+                title: `Extract to inner function in function '${internalHelpers.renderName}'`
             },
             title: 'Extract to function'
         });

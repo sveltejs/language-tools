@@ -13,7 +13,7 @@ import { or } from '../../../utils';
 import { FileMap } from '../../../lib/documents/fileCollection';
 import { LSConfig } from '../../../ls-config';
 import { LanguageServiceContainer } from '../service';
-import { RENDER_NAME } from 'svelte2tsx';
+import { internalHelpers } from 'svelte2tsx';
 
 type NodePredicate = (node: ts.Node) => boolean;
 
@@ -301,7 +301,8 @@ function nodeAndParentsSatisfyRespectivePredicates<T extends ts.Node>(
 const isRenderFunction = nodeAndParentsSatisfyRespectivePredicates<
     ts.FunctionDeclaration & { name: ts.Identifier }
 >(
-    (node) => ts.isFunctionDeclaration(node) && node?.name?.getText() === RENDER_NAME,
+    (node) =>
+        ts.isFunctionDeclaration(node) && node?.name?.getText() === internalHelpers.renderName,
     ts.isSourceFile
 );
 
