@@ -41,7 +41,7 @@ export function getComponentAtPosition(
         return null;
     }
 
-    const node = getNodeIfIsInComponentStartTag(doc.html, doc.offsetAt(originalPosition));
+    const node = getNodeIfIsInComponentStartTag(doc.html, doc, doc.offsetAt(originalPosition));
     if (!node) {
         return null;
     }
@@ -80,7 +80,7 @@ export function isComponentAtPosition(
         return false;
     }
 
-    return !!getNodeIfIsInComponentStartTag(doc.html, doc.offsetAt(originalPosition));
+    return !!getNodeIfIsInComponentStartTag(doc.html, doc, doc.offsetAt(originalPosition));
 }
 
 export const IGNORE_START_COMMENT = '/*Ωignore_startΩ*/';
