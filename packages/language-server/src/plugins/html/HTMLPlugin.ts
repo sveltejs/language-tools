@@ -217,7 +217,7 @@ export class HTMLPlugin
     }
 
     private isInComponentTag(html: HTMLDocument, document: Document, position: Position) {
-        return !!getNodeIfIsInComponentStartTag(html, document.offsetAt(position));
+        return !!getNodeIfIsInComponentStartTag(html, document, document.offsetAt(position));
     }
 
     private getLangCompletions(completions: CompletionItem[]): CompletionItem[] {
