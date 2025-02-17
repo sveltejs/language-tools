@@ -225,11 +225,19 @@ export class Element {
                 ...this.startEndTransformation
             ]);
 
+            const closingTag = this.str.original.substring(
+                this.str.original.lastIndexOf('</', this.node.end - 1) + 2,
+                this.node.end - 1
+            );
+
             const tagEndIdx = this.str.original
                 .substring(this.node.start, this.node.end)
                 .lastIndexOf(`</${this.node.name}`);
             // tagEndIdx === -1 happens in situations of unclosed tags like `<p>fooo <p>anothertag</p>`
-            const endStart = tagEndIdx === -1 ? this.node.end : tagEndIdx + this.node.start;
+            const endStart =
+                tagEndIdx === -1 || closingTag.trim() !== this.node.name
+                    ? this.node.end
+                    : tagEndIdx + this.node.start;
             transform(this.str, endStart, this.node.end, this.endTransformation);
         }
     }
