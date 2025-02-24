@@ -1,6 +1,6 @@
 import MagicString from 'magic-string';
 import { Node } from 'estree-walker';
-import ts from 'typescript';
+import ts, { VariableDeclaration } from 'typescript';
 import { getBinaryAssignmentExpr, isNotPropertyNameOfImport, moveNode } from './utils/tsAst';
 import { ExportedNames, is$$PropsDeclaration } from './nodes/ExportedNames';
 import { ImplicitTopLevelNames } from './nodes/ImplicitTopLevelNames';
@@ -32,6 +32,7 @@ interface PendingStoreResolution {
     node: ts.Identifier;
     parent: ts.Node;
     scope: Scope;
+    isPropsId: boolean;
 }
 
 export function processInstanceScriptContent(
@@ -82,12 +83,17 @@ export function processInstanceScriptContent(
     //track if we are in a declaration scope
     let isDeclaration = false;
 
+    //track the variable declaration node
+    let variableDeclarationNode: VariableDeclaration | null = null;
+
     //track $store variables since we are only supposed to give top level scopes special treatment, and users can declare $blah variables at higher scopes
     //which prevents us just changing all instances of Identity that start with $
-    const pendingStoreResolutions: PendingStoreResolution[] = [];
+    let pendingStoreResolutions: PendingStoreResolution[] = [];
 
     let scope = new Scope();
     const rootScope = scope;
+
+    let isPropsDeclarationRune = false;
 
     const pushScope = () => (scope = new Scope(scope));
     const popScope = () => (scope = scope.parent);
@@ -124,6 +130,16 @@ export function processInstanceScriptContent(
             return;
         }
 
+        if (
+            ident.text === 'props' &&
+            variableDeclarationNode &&
+            variableDeclarationNode.initializer &&
+            ts.isCallExpression(variableDeclarationNode.initializer) &&
+            variableDeclarationNode.initializer.getText() === '$props()'
+        ) {
+            isPropsDeclarationRune = true;
+        }
+
         if (isDeclaration || ts.isParameter(parent)) {
             if (
                 isNotPropertyNameOfImport(ident) &&
@@ -148,6 +164,17 @@ export function processInstanceScriptContent(
                     !ts.isTypeAliasDeclaration(parent) &&
                     !ts.isInterfaceDeclaration(parent)
                 ) {
+                    let isPropsId = false;
+                    if (
+                        text === '$props' &&
+                        ts.isPropertyAccessExpression(parent) &&
+                        parent.parent &&
+                        ts.isCallExpression(parent.parent) &&
+                        parent.parent.arguments.length === 0
+                    ) {
+                        const text = parent.getText();
+                        isPropsId = text === '$props.id';
+                    }
                     // Handle the const { ...props } = $props() case
                     const is_rune =
                         (text === '$props' || text === '$derived' || text === '$state') &&
@@ -155,7 +182,7 @@ export function processInstanceScriptContent(
                         ts.isVariableDeclaration(parent.parent) &&
                         parent.parent.name.getText().includes(text.slice(1));
                     if (!is_rune) {
-                        pendingStoreResolutions.push({ node: ident, parent, scope });
+                        pendingStoreResolutions.push({ node: ident, parent, scope, isPropsId });
                     }
                 }
             }
@@ -234,7 +261,11 @@ export function processInstanceScriptContent(
 
         if (ts.isVariableDeclaration(parent) && parent.name == node) {
             isDeclaration = true;
-            onLeaveCallbacks.push(() => (isDeclaration = false));
+            variableDeclarationNode = parent;
+            onLeaveCallbacks.push(() => {
+                isDeclaration = false;
+                variableDeclarationNode = null;
+            });
         }
 
         if (ts.isBindingElement(parent) && parent.name == node) {
@@ -295,6 +326,9 @@ export function processInstanceScriptContent(
     tsAst.forEachChild((n) => walk(n, tsAst));
 
     //resolve stores
+    if (isPropsDeclarationRune) {
+        pendingStoreResolutions = pendingStoreResolutions.filter(({ isPropsId }) => !isPropsId);
+    }
     pendingStoreResolutions.map(resolveStore);
 
     // declare implicit reactive variables we found in the script
