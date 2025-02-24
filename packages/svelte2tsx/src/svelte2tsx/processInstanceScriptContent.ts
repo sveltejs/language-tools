@@ -93,6 +93,7 @@ export function processInstanceScriptContent(
     let scope = new Scope();
     const rootScope = scope;
 
+    //track is the variable declared as `props` comes from `$props()`
     let isPropsDeclarationRune = false;
 
     const pushScope = () => (scope = new Scope(scope));
@@ -130,6 +131,7 @@ export function processInstanceScriptContent(
             return;
         }
 
+        //if we are in a variable declaration and the identifier is `props` we check the initializer
         if (
             ident.text === 'props' &&
             variableDeclarationNode &&
@@ -327,6 +329,7 @@ export function processInstanceScriptContent(
 
     //resolve stores
     if (isPropsDeclarationRune) {
+        //we filter out every pendingStore resolution that `isPropsId` if the variable names `props` comes from `$props()`
         pendingStoreResolutions = pendingStoreResolutions.filter(({ isPropsId }) => !isPropsId);
     }
     pendingStoreResolutions.map(resolveStore);
