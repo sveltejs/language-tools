@@ -26,7 +26,8 @@ import {
     findTsConfigPath,
     getNearestWorkspaceUri,
     hasTsExtensions,
-    isSvelteFilePath
+    isSvelteFilePath,
+    toVirtualSvelteFilePath
 } from './utils';
 import { createProject, ProjectService } from './serviceCache';
 import { internalHelpers } from 'svelte2tsx';
@@ -974,14 +975,19 @@ async function createLanguageService(
         }
 
         const oldProgram = project?.program;
-        const program = languageService.getProgram();
+        let program: ts.Program | undefined;
+        try {
+            program = languageService.getProgram();
+        } finally {
+            // mark as clean even if the update fails, at least we can still try again next time there is a change
+            dirty = false;
+        }
         svelteModuleLoader.clearPendingInvalidations();
 
         if (project) {
             project.program = program;
         }
 
-        dirty = false;
         compilerHost = undefined;
 
         if (!skipSvelteInputCheck) {
@@ -1376,38 +1382,93 @@ function getOrCreateDocumentRegistry(
 
     registry = ts.createDocumentRegistry(useCaseSensitiveFileNames, currentDirectory);
 
-    // impliedNodeFormat is always undefined when the svelte source file is created
-    // We might patched it later but the registry doesn't know about it
-    const releaseDocumentWithKey = registry.releaseDocumentWithKey;
-    registry.releaseDocumentWithKey = (
+    const acquireDocumentWithKey = registry.acquireDocumentWithKey;
+    registry.acquireDocumentWithKey = (
+        fileName: string,
         path: ts.Path,
+        compilationSettingsOrHost: ts.CompilerOptions | ts.MinimalResolutionCacheHost,
         key: ts.DocumentRegistryBucketKey,
-        scriptKind: ts.ScriptKind,
-        impliedNodeFormat?: ts.ResolutionMode
+        scriptSnapshot: ts.IScriptSnapshot,
+        version: string,
+        scriptKind?: ts.ScriptKind,
+        sourceFileOptions?: ts.CreateSourceFileOptions | ts.ScriptTarget
     ) => {
-        if (isSvelteFilePath(path)) {
-            releaseDocumentWithKey(path, key, scriptKind, undefined);
-            return;
-        }
+        ensureImpliedNodeFormat(compilationSettingsOrHost, fileName, sourceFileOptions);
 
-        releaseDocumentWithKey(path, key, scriptKind, impliedNodeFormat);
+        return acquireDocumentWithKey(
+            fileName,
+            path,
+            compilationSettingsOrHost,
+            key,
+            scriptSnapshot,
+            version,
+            scriptKind,
+            sourceFileOptions
+        );
     };
 
-    registry.releaseDocument = (
+    const updateDocumentWithKey = registry.updateDocumentWithKey;
+    registry.updateDocumentWithKey = (
         fileName: string,
-        compilationSettings: ts.CompilerOptions,
-        scriptKind: ts.ScriptKind,
-        impliedNodeFormat?: ts.ResolutionMode
+        path: ts.Path,
+        compilationSettingsOrHost: ts.CompilerOptions | ts.MinimalResolutionCacheHost,
+        key: ts.DocumentRegistryBucketKey,
+        scriptSnapshot: ts.IScriptSnapshot,
+        version: string,
+        scriptKind?: ts.ScriptKind,
+        sourceFileOptions?: ts.CreateSourceFileOptions | ts.ScriptTarget
     ) => {
-        if (isSvelteFilePath(fileName)) {
-            registry?.releaseDocument(fileName, compilationSettings, scriptKind, undefined);
-            return;
-        }
+        ensureImpliedNodeFormat(compilationSettingsOrHost, fileName, sourceFileOptions);
 
-        registry?.releaseDocument(fileName, compilationSettings, scriptKind, impliedNodeFormat);
+        return updateDocumentWithKey(
+            fileName,
+            path,
+            compilationSettingsOrHost,
+            key,
+            scriptSnapshot,
+            version,
+            scriptKind,
+            sourceFileOptions
+        );
     };
 
     documentRegistries.set(key, registry);
 
     return registry;
+
+    function ensureImpliedNodeFormat(
+        compilationSettingsOrHost: ts.CompilerOptions | ts.MinimalResolutionCacheHost,
+        fileName: string,
+        sourceFileOptions: ts.CreateSourceFileOptions | ts.ScriptTarget | undefined
+    ) {
+        const compilationSettings = getCompilationSettings(compilationSettingsOrHost);
+        const host: ts.MinimalResolutionCacheHost | undefined =
+            compilationSettingsOrHost === compilationSettings
+                ? undefined
+                : (compilationSettingsOrHost as ts.MinimalResolutionCacheHost);
+        if (
+            host &&
+            isSvelteFilePath(fileName) &&
+            typeof sourceFileOptions === 'object' &&
+            !sourceFileOptions.impliedNodeFormat
+        ) {
+            const format = ts.getImpliedNodeFormatForFile(
+                toVirtualSvelteFilePath(fileName),
+                host?.getCompilerHost?.()?.getModuleResolutionCache?.()?.getPackageJsonInfoCache(),
+                host,
+                compilationSettings
+            );
+
+            sourceFileOptions.impliedNodeFormat = format;
+        }
+    }
+
+    function getCompilationSettings(
+        settingsOrHost: ts.CompilerOptions | ts.MinimalResolutionCacheHost
+    ) {
+        if (typeof settingsOrHost.getCompilationSettings === 'function') {
+            return (settingsOrHost as ts.MinimalResolutionCacheHost).getCompilationSettings();
+        }
+        return settingsOrHost as ts.CompilerOptions;
+    }
 }
