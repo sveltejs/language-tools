@@ -246,8 +246,13 @@ repository:
       - include: '#destructuring-const'
       # Variable.
       - begin: \G\s*([_$[:alpha:]][_$[:alnum:]]+)\s*
-        end: (?=\=)
+        end: (?=[:=])
         beginCaptures: { 1: { name: variable.other.constant.svelte } }
+      # Type annotation (starting with ":").
+      - begin: (?=:)
+        end: (?=\=)
+        name: meta.type.annotation.svelte
+        patterns: [ include: source.ts ]
       # Expression (starting with "=").
       - begin: (?=\=)
         name: meta.embedded.expression.svelte source.ts
