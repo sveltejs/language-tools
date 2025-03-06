@@ -599,6 +599,54 @@ describe('service', () => {
         assert.deepStrictEqual(getSemanticDiagnosticsMessages(ls, importing), []);
     });
 
+    it('resolve module with source project reference redirect having different module resolution', async () => {
+        const dirPath = getRandomVirtualDirPath(testDir);
+        const { virtualSystem, lsDocumentContext, rootUris } = setup();
+
+        const package1 = path.join(dirPath, 'package1');
+
+        virtualSystem.writeFile(
+            path.join(package1, 'tsconfig.json'),
+            JSON.stringify({
+                references: [{ path: '../package2' }],
+                files: ['index.ts'],
+                compilerOptions: {
+                    moduleResolution: 'Bundler',
+                    module: 'ESNext',
+                    paths: {
+                        package2: ['../package2']
+                    }
+                }
+            })
+        );
+
+        const package2 = path.join(dirPath, 'package2');
+        virtualSystem.writeFile(
+            path.join(package2, 'tsconfig.json'),
+            JSON.stringify({
+                compilerOptions: {
+                    composite: true,
+                    strict: true,
+                    moduleResolution: 'NodeNext'
+                },
+                files: ['index.ts']
+            })
+        );
+
+        const importing = path.join(package1, 'index.ts');
+        virtualSystem.writeFile(importing, 'import { hi } from "package2"; hi((a) => `${a}`);');
+
+        const reExport = path.join(package2, 'index.ts');
+        virtualSystem.writeFile(reExport, 'export * from "./foo"');
+
+        const exportFile = path.join(package2, 'foo.ts');
+        virtualSystem.writeFile(exportFile, 'export function hi(cb: (num: number) => string) {}');
+
+        const ls = await getService(importing, rootUris, lsDocumentContext);
+
+        assert.deepStrictEqual(getSemanticDiagnosticsMessages(ls, importing), []);
+    });
+
     it('skip directory watching if directory is root', async () => {
         const dirPath = getRandomVirtualDirPath(path.join(testDir, 'Test'));
         const { virtualSystem, lsDocumentContext } = setup();
