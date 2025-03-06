@@ -160,7 +160,7 @@ export function handleAttribute(
     const attributeValue: TransformationArray = [];
 
     if (attr.value === true) {
-        attributeValue.push('true');
+        attributeValue.push(attr.name === 'popover' ? '""' : 'true');
         addAttribute(attributeName, attributeValue);
         return;
     }
