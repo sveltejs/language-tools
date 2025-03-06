@@ -11,6 +11,7 @@ import { SvelteDocumentSnapshot } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { convertToTextSpan } from '../utils';
 import { isInGeneratedCode } from './utils';
+import { internalHelpers } from 'svelte2tsx';
 
 const CONTENT_LENGTH_LIMIT = 50000;
 
@@ -111,7 +112,8 @@ export class SemanticTokensProviderImpl implements SemanticTokensProvider {
         if (
             isInGeneratedCode(text, generatedOffset, generatedOffset + generatedLength) ||
             (encodedClassification === 2817 /* top level function */ &&
-                text.substring(generatedOffset, generatedOffset + generatedLength) === 'render')
+                text.substring(generatedOffset, generatedOffset + generatedLength) ===
+                    internalHelpers.renderName)
         ) {
             return;
         }

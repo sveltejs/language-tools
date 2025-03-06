@@ -174,6 +174,7 @@ export const internalHelpers: {
             hasTypeDefinition: boolean;
         }
     >,
+	renderName: string
 };
 
 /**

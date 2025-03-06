@@ -312,12 +312,14 @@ export function updateRelativeImport(oldPath: string, newPath: string, relativeI
  */
 export function getNodeIfIsInComponentStartTag(
     html: HTMLDocument,
+    document: Document,
     offset: number
 ): Node | undefined {
     const node = html.findNodeAt(offset);
     if (
         !!node.tag &&
-        node.tag[0] === node.tag[0].toUpperCase() &&
+        (node.tag[0] === node.tag[0].toUpperCase() ||
+            (document.isSvelte5 && node.tag.includes('.'))) &&
         (!node.startTagEnd || offset < node.startTagEnd)
     ) {
         return node;

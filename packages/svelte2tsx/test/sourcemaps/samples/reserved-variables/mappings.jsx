@@ -1,9 +1,9 @@
 ///<reference types="svelte" />
 //----------------------------------------------------------------------------------------------------------------------------------------------------
-;function render() { let $$props = __sveltets_2_allPropsType(); let $$restProps = __sveltets_2_restPropsType(); let $$slots = __sveltets_2_slotsType({});{/**
-;function•render()•{•let•$$props•=•__sveltets_2_allPropsType();•let•$$restProps•=•__sveltets_2_restPropsType();•let•$$slots•=•__sveltets_2_slotsType({});↲    [generated] line 2
-<s                                                                                                                                                            
-<script>↲                                                                                                                                                     [original] line 1 (rest generated at line 3)
+;function $$render() { let $$props = __sveltets_2_allPropsType(); let $$restProps = __sveltets_2_restPropsType(); let $$slots = __sveltets_2_slotsType({});{/**
+;function•$$render()•{•let•$$props•=•__sveltets_2_allPropsType();•let•$$restProps•=•__sveltets_2_restPropsType();•let•$$slots•=•__sveltets_2_slotsType({});↲    [generated] line 2
+<s                                                                                                                                                              
+<script>↲                                                                                                                                                       [original] line 1 (rest generated at line 3)
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                                                                                                                                                       {/**
 ↲            [generated] line 3                                                                                                                       
@@ -80,5 +80,5 @@ if($$slots.foo){↲     [generated] line 11
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
 return { props: {}, slots: {}, events: {} }}
 
-export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial_with_any(__sveltets_2_with_any_event(render()))) {
+export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial_with_any(__sveltets_2_with_any_event($$render()))) {
 }

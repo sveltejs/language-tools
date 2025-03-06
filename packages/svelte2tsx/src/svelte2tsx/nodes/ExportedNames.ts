@@ -506,7 +506,10 @@ export class ExportedNames {
         if (this.usesRunes()) {
             // In runes mode, exports are no longer part of props
             return Array.from(this.getters)
-                .map((name) => `\n    get ${name}() { return render${generics}().exports.${name} }`)
+                .map(
+                    (name) =>
+                        `\n    get ${name}() { return ${internalHelpers.renderName}${generics}().exports.${name} }`
+                )
                 .join('');
         } else {
             return Array.from(this.getters)

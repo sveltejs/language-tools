@@ -7,8 +7,7 @@ import {
     ensureRealSvelteFilePath,
     getExtensionFromScriptKind,
     isSvelteFilePath,
-    isVirtualSvelteFilePath,
-    toVirtualSvelteFilePath
+    isVirtualSvelteFilePath
 } from './utils';
 
 const CACHE_KEY_SEPARATOR = ':::';
@@ -89,8 +88,6 @@ class ModuleResolutionCache {
 }
 
 class ImpliedNodeFormatResolver {
-    private alreadyResolved = new FileMap<ReturnType<typeof ts.getModeForResolutionAtIndex>>();
-
     constructor(private readonly tsSystem: ts.System) {}
 
     resolve(
@@ -106,39 +103,17 @@ class ImpliedNodeFormatResolver {
 
         let mode: ReturnType<typeof ts.getModeForResolutionAtIndex> = undefined;
         if (sourceFile) {
-            this.cacheImpliedNodeFormat(sourceFile, compilerOptions);
             mode = ts.getModeForResolutionAtIndex(sourceFile, importIdxInFile, compilerOptions);
         }
         return mode;
     }
 
-    private cacheImpliedNodeFormat(sourceFile: ts.SourceFile, compilerOptions: ts.CompilerOptions) {
-        if (!sourceFile.impliedNodeFormat && isSvelteFilePath(sourceFile.fileName)) {
-            // impliedNodeFormat is not set for Svelte files, because the TS function which
-            // calculates this works with a fixed set of file extensions,
-            // which .svelte is obv not part of. Make it work by faking a TS file.
-            if (!this.alreadyResolved.has(sourceFile.fileName)) {
-                sourceFile.impliedNodeFormat = ts.getImpliedNodeFormatForFile(
-                    toVirtualSvelteFilePath(sourceFile.fileName) as any,
-                    undefined,
-                    this.tsSystem,
-                    compilerOptions
-                );
-                this.alreadyResolved.set(sourceFile.fileName, sourceFile.impliedNodeFormat);
-            } else {
-                sourceFile.impliedNodeFormat = this.alreadyResolved.get(sourceFile.fileName);
-            }
-        }
-    }
-
     resolveForTypeReference(
         entry: string | ts.FileReference,
-        sourceFile: ts.SourceFile | undefined,
-        compilerOptions: ts.CompilerOptions
+        sourceFile: ts.SourceFile | undefined
     ) {
         let mode = undefined;
         if (sourceFile) {
-            this.cacheImpliedNodeFormat(sourceFile, compilerOptions);
             mode = ts.getModeForFileReference(entry, sourceFile?.impliedNodeFormat);
         }
         return mode;
@@ -322,8 +297,7 @@ export function createSvelteModuleLoader(
             const entry = getTypeReferenceResolutionName(typeDirectiveName);
             const mode = impliedNodeFormatResolver.resolveForTypeReference(
                 entry,
-                containingSourceFile,
-                options
+                containingSourceFile
             );
 
             const key = `${entry}|${mode}`;

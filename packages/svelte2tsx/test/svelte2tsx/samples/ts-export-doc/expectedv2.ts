@@ -1,5 +1,5 @@
 ///<reference types="svelte" />
-;function render() {
+;function $$render() {
 
     /**
      * DOCS!
@@ -23,5 +23,5 @@ return { props: {a: a , b: b , c: c , d: d} as {
      * MORE DOCS!
      */b?: typeof b, c: typeof c, d: typeof d}, slots: {}, events: {} }}
 
-export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_with_any_event(render())) {
+export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_with_any_event($$render())) {
 }

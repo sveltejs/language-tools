@@ -1,6 +1,6 @@
 {
     "name": "svelte2tsx",
-    "version": "0.7.25",
+    "version": "0.7.35",
     "description": "Convert Svelte components to TSX for type checking",
     "author": "David Pershouse",
     "license": "MIT",
