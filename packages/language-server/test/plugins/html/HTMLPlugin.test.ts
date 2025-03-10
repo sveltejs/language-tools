@@ -353,4 +353,19 @@ describe('HTML Plugin', () => {
             }
         ]);
     });
+
+    it('provide directive completions', async () => {
+        const { plugin, document } = setup('<div t');
+
+        const completions = await plugin.getCompletions(document, Position.create(0, 6));
+        const item = completions?.items.find((item) => item.label === 'transition:');
+        assert.equal(item?.kind, CompletionItemKind.Keyword);
+        assert.deepStrictEqual(item?.textEdit, {
+            newText: 'transition:',
+            range: {
+                start: { line: 0, character: 5 },
+                end: { line: 0, character: 6 }
+            }
+        });
+    });
 });
