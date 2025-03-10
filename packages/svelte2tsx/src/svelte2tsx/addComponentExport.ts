@@ -142,7 +142,8 @@ class __sveltets_Render${genericsDef} {
             `export type ${PropsName}${genericsDef} = ${returnType('props')};\n` +
             `export type ${EventsName}${genericsDef} = ${returnType('events')};\n` +
             `export type ${SlotsName}${genericsDef} = ${returnType('slots')};\n` +
-            `\n${doc}export default class${className ? ` ${className}` : ''
+            `\n${doc}export default class${
+                className ? ` ${className}` : ''
             }${genericsDef} extends ${svelteComponentClass}<${PropsName}${genericsRef}, ${EventsName}${genericsRef}, ${SlotsName}${genericsRef}> {` +
             exportedNames.createClassGetters(genericsRef) +
             (usesAccessors ? exportedNames.createClassAccessors() : '') +
@@ -150,7 +151,8 @@ class __sveltets_Render${genericsDef} {
     } else {
         statement +=
             `\n\nimport { ${svelteComponentClass} as __SvelteComponentTyped__ } from "svelte" \n` +
-            `${doc}export default class${className ? ` ${className}` : ''
+            `${doc}export default class${
+                className ? ` ${className}` : ''
             }${genericsDef} extends __SvelteComponentTyped__<${returnType('props')}, ${returnType(
                 'events'
             )}, ${returnType('slots')}> {` +
@@ -234,7 +236,8 @@ declare function $$__sveltets_2_isomorphic_component<
                 PropsExport +
                 EventsExport +
                 SlotsExport +
-                `\n${doc}export default class${className ? ` ${className}` : ''
+                `\n${doc}export default class${
+                    className ? ` ${className}` : ''
                 } extends ${svelteComponentClass}<${PropsName}, ${EventsName}, ${SlotsName}> {` +
                 exportedNames.createClassGetters() +
                 (usesAccessors ? exportedNames.createClassAccessors() : '') +
@@ -245,7 +248,8 @@ declare function $$__sveltets_2_isomorphic_component<
                 `/** @typedef {typeof __propDef.props}  ${className}Props */\n` +
                 `/** @typedef {typeof __propDef.events}  ${className}Events */\n` +
                 `/** @typedef {typeof __propDef.slots}  ${className}Slots */\n` +
-                `\n${doc}export default class${className ? ` ${className}` : ''
+                `\n${doc}export default class${
+                    className ? ` ${className}` : ''
                 } extends __sveltets_2_createSvelte2TsxComponent(${propDef}) {` +
                 exportedNames.createClassGetters() +
                 (usesAccessors ? exportedNames.createClassAccessors() : '') +
@@ -268,7 +272,8 @@ declare function $$__sveltets_2_isomorphic_component<
             }
         } else {
             statement =
-                `\n\n${doc}export default class${className ? ` ${className}` : ''
+                `\n\n${doc}export default class${
+                    className ? ` ${className}` : ''
                 } extends __sveltets_2_createSvelte2TsxComponent(${propDef}) {` +
                 exportedNames.createClassGetters() +
                 (usesAccessors ? exportedNames.createClassAccessors() : '') +
