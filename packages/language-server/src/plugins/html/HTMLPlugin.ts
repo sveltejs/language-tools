@@ -47,6 +47,7 @@ import { wordHighlightForTag } from '../../lib/documentHighlight/wordHighlight';
 
 // https://github.com/microsoft/vscode/blob/c6f507deeb99925e713271b1048f21dbaab4bd54/extensions/html/language-configuration.json#L34
 const wordPattern = /(-?\d*\.\d\w*)|([^`~!@$^&*()=+[{\]}\|;:'",.<>\/\s]+)/g;
+const attributeValuePlaceHolder = '="$1"';
 
 export class HTMLPlugin
     implements
@@ -166,10 +167,21 @@ export class HTMLPlugin
                 : null;
 
         const svelteStrictMode = prettierConfig?.svelteStrictMode;
+        const startQuote = svelteStrictMode ? '"{' : '{';
+        const endQuote = svelteStrictMode ? '}"' : '}';
 
         items.forEach((item) => {
-            const startQuote = svelteStrictMode ? '"{' : '{';
-            const endQuote = svelteStrictMode ? '}"' : '}';
+            if (item.label.endsWith(':')) {
+                item.kind = CompletionItemKind.Keyword;
+
+                if (item.textEdit) {
+                    item.textEdit.newText = item.textEdit.newText.replace(
+                        attributeValuePlaceHolder,
+                        ''
+                    );
+                }
+            }
+
             if (!item.textEdit) {
                 return;
             }
@@ -177,7 +189,10 @@ export class HTMLPlugin
             if (item.label.startsWith('on:')) {
                 item.textEdit = {
                     ...item.textEdit,
-                    newText: item.textEdit.newText.replace('="$1"', `$2=${startQuote}$1${endQuote}`)
+                    newText: item.textEdit.newText.replace(
+                        attributeValuePlaceHolder,
+                        `$2=${startQuote}$1${endQuote}`
+                    )
                 };
                 // In Svelte 5, people should use `onclick` instead of `on:click`
                 if (document.isSvelte5) {
@@ -188,7 +203,10 @@ export class HTMLPlugin
             if (item.label.startsWith('bind:')) {
                 item.textEdit = {
                     ...item.textEdit,
-                    newText: item.textEdit.newText.replace('="$1"', `=${startQuote}$1${endQuote}`)
+                    newText: item.textEdit.newText.replace(
+                        attributeValuePlaceHolder,
+                        `=${startQuote}$1${endQuote}`
+                    )
                 };
             }
         });
