@@ -1,0 +1,10 @@
+[
+    {
+        "range": { "start": { "line": 3, "character": 8 }, "end": { "line": 3, "character": 12 } },
+        "severity": 4,
+        "source": "ts",
+        "message": "'foo2' is declared but its value is never read.",
+        "code": 6133,
+        "tags": [1]
+    }
+]
