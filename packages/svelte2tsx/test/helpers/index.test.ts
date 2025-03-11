@@ -1,6 +1,7 @@
 import * as assert from 'assert';
 import ts from 'typescript';
 import { internalHelpers } from '../../src';
+import { describe, it } from 'vitest';
 
 describe('Internal Helpers - upsertKitFile', () => {
     function upsert(file: string, source: string, expected: string) {

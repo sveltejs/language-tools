@@ -253,9 +253,6 @@ importers:
       '@types/estree':
         specifier: ^0.0.42
         version: 0.0.42
-      '@types/mocha':
-        specifier: ^9.1.0
-        version: 9.1.1
       '@types/node':
         specifier: ^18.0.0
         version: 18.19.46
@@ -274,9 +271,6 @@ importers:
       magic-string:
         specifier: ^0.30.11
         version: 0.30.11
-      mocha:
-        specifier: ^9.2.0
-        version: 9.2.2
       periscopic:
         specifier: ^2.0.2
         version: 2.0.3

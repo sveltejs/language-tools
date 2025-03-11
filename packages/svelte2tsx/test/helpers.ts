@@ -1,10 +1,9 @@
 import fs from 'fs';
 import assert, { AssertionError } from 'assert';
-import { TestFunction } from 'mocha';
 import { htmlx2jsx, svelte2tsx } from './build';
 import path from 'path';
 import { VERSION, parse } from 'svelte/compiler';
-import { describe, it } from 'vitest';
+import { it, afterEach } from 'vitest';
 
 let update_count = 0;
 let all_tests_skipped = false;
@@ -114,15 +113,17 @@ export class Sample {
             } catch (err) {
                 if (sample.on_error) sample.on_error(sample.generate.bind(sample), err);
                 if (sample.skipped) this.skip();
-                this.test.title = sample.cmd('');
+                console.log(`sample.cmd('')`, sample.cmd(''))
+                // TODO JYC
+                // this.test.title = sample.cmd('');
                 throw err;
             }
         });
     }
 
     log(...arr: string[]) {
-        after(function () {
-            after(function () {
+        afterEach(function () {
+            afterEach(function () {
                 console.log(...arr);
             });
         });
@@ -191,7 +192,7 @@ export class Sample {
                 if (action === 'updated' && !can_auto_update()) return;
                 this.skipped = true;
             }
-            after(() => {
+            afterEach(() => {
                 console.log(`\t[${action}] ${color.cyan(file)} ${color.grey(this.cmd(file))}`);
                 writeFileSync(this.at(file), content);
             });
