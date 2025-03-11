@@ -113,9 +113,9 @@ export class Sample {
             } catch (err) {
                 if (sample.on_error) sample.on_error(sample.generate.bind(sample), err);
                 if (sample.skipped) this.skip();
-                console.log(`sample.cmd('')`, sample.cmd(''))
-                // TODO JYC
-                // this.test.title = sample.cmd('');
+                if (err instanceof Error) {
+                    err.message = `${sample.cmd('')}\n${err.message}`;
+                }
                 throw err;
             }
         });
