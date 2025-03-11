@@ -1,0 +1,11 @@
+{
+    "compilerOptions": {
+        "types": ["@types/node", "vitest/globals"],
+        "target": "es6",
+        "module": "commonjs",
+        "moduleResolution": "node",
+        "esModuleInterop": true
+    },
+    "exclude": ["samples/**"],
+    "include": ["**/*.ts"]
+}
