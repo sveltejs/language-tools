@@ -379,7 +379,7 @@ export function get_svelte2tsx_config(base: BaseConfig, sampleName: string): Sve
         accessors: sampleName.startsWith('accessors-config'),
         version: VERSION,
         parse,
-        noSvelteComponentTyped: true
+        noSvelteComponentTyped: false
     };
 }
 
