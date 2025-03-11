@@ -3,6 +3,7 @@ import * as fs from 'fs';
 import { join } from 'path';
 import { emitDts } from '../../src';
 import { VERSION } from 'svelte/compiler';
+import { describe, it } from 'vitest';
 
 function rimraf(path: string) {
     ((fs as any).rmSync || fs.rmdirSync)(path, { recursive: true, force: true });
@@ -36,9 +37,9 @@ async function testEmitDts(sample: string) {
             actual_files.length,
             expectedFiles.length,
             'Contains a different number of files. Expected ' +
-                expectedFiles.join(',') +
-                ' , got ' +
-                actual_files.join(',')
+            expectedFiles.join(',') +
+            ' , got ' +
+            actual_files.join(',')
         );
 
         for (const file of actual_files) {
@@ -69,6 +70,6 @@ describe('emitDts', async () => {
     let samplesToTest = samples.filter((s) => s.endsWith('.solo'));
     samplesToTest = samplesToTest.length ? samplesToTest : samples;
     for (const sample of samplesToTest) {
-        it(sample, async () => await testEmitDts(sample)).timeout(10000);
+        it(sample, { timeout: 10000 }, async () => await testEmitDts(sample));
     }
 });
