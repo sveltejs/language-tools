@@ -37,9 +37,9 @@ async function testEmitDts(sample: string) {
             actual_files.length,
             expectedFiles.length,
             'Contains a different number of files. Expected ' +
-            expectedFiles.join(',') +
-            ' , got ' +
-            actual_files.join(',')
+                expectedFiles.join(',') +
+                ' , got ' +
+                actual_files.join(',')
         );
 
         for (const file of actual_files) {

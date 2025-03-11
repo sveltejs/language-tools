@@ -48,10 +48,10 @@ const isSvelte5Plus = Number(VERSION[0]) >= 5;
                 function (ranges) {
                     throw new Error(
                         `Could not find the following snippets in generated output\n` +
-                        ranges.map((range) => `\t"${print_string(range[2])}"`).join('\n') +
-                        (process.env.CI
-                            ? ''
-                            : `\nTo edit ranges : ${sample.cmd('test.edit.jsx')}`)
+                            ranges.map((range) => `\t"${print_string(range[2])}"`).join('\n') +
+                            (process.env.CI
+                                ? ''
+                                : `\nTo edit ranges : ${sample.cmd('test.edit.jsx')}`)
                     );
                 }
             );
@@ -115,9 +115,9 @@ function maybe_generate(sample: Sample, regenerate: (generate: GenerateFn) => vo
                 const err = edit_changed ? 'apply changes made to' : 'generate "test.jsx" from';
                 throw new Error(
                     '' +
-                    `Failed to ${err} "test.edit.jsx" as it is based on a stale output.\n` +
-                    `\tEither reverse output changes or delete "test.edit.jsx" manually before running tests again\n` +
-                    `\tcmd-click : ${sample.cmd('test.edit.jsx')}\n`
+                        `Failed to ${err} "test.edit.jsx" as it is based on a stale output.\n` +
+                        `\tEither reverse output changes or delete "test.edit.jsx" manually before running tests again\n` +
+                        `\tcmd-click : ${sample.cmd('test.edit.jsx')}\n`
                 );
             });
         }
@@ -147,9 +147,9 @@ function maybe_generate(sample: Sample, regenerate: (generate: GenerateFn) => vo
             }
             throw new Error(
                 '' +
-                `Test input at "${svelteFile}" changed, thus making "test.jsx" invalid.\n` +
-                `\tEither manually re-select all tested ranges in the newly generated "test.edit.jsx", delete "test.jsx" or undo input changes.\n` +
-                `\tcmd-click : ${sample.cmd('test.edit.jsx')}\n`
+                    `Test input at "${svelteFile}" changed, thus making "test.jsx" invalid.\n` +
+                    `\tEither manually re-select all tested ranges in the newly generated "test.edit.jsx", delete "test.jsx" or undo input changes.\n` +
+                    `\tcmd-click : ${sample.cmd('test.edit.jsx')}\n`
             );
         });
     }

@@ -101,24 +101,28 @@ export class Sample {
     }
 
     it(fn: () => void) {
-        let skip = this.name.startsWith('.')
-        let only = this.name.endsWith('.solo')
+        let skip = this.name.startsWith('.');
+        let only = this.name.endsWith('.solo');
 
         const sample = this;
 
-        it(this.name + (this.emitOnTemplateError ? ' (loose parser mode)' : ''), { skip, only }, function () {
-            try {
-                fn();
-                if (sample.skipped) this.skip();
-            } catch (err) {
-                if (sample.on_error) sample.on_error(sample.generate.bind(sample), err);
-                if (sample.skipped) this.skip();
-                if (err instanceof Error) {
-                    err.message = `${sample.cmd('')}\n${err.message}`;
+        it(
+            this.name + (this.emitOnTemplateError ? ' (loose parser mode)' : ''),
+            { skip, only },
+            function () {
+                try {
+                    fn();
+                    if (sample.skipped) this.skip();
+                } catch (err) {
+                    if (sample.on_error) sample.on_error(sample.generate.bind(sample), err);
+                    if (sample.skipped) this.skip();
+                    if (err instanceof Error) {
+                        err.message = `${sample.cmd('')}\n${err.message}`;
+                    }
+                    throw err;
                 }
-                throw err;
             }
-        });
+        );
     }
 
     log(...arr: string[]) {
