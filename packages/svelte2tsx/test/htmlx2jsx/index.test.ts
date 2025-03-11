@@ -1,6 +1,7 @@
 import { VERSION, parse } from 'svelte/compiler';
 import { htmlx2jsx } from '../build';
 import { test_samples } from '../helpers';
+import { describe } from 'vitest';
 
 describe('htmlx2jsx', () => {
     test_samples(

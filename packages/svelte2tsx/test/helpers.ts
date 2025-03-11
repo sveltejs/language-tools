@@ -3,7 +3,8 @@ import assert, { AssertionError } from 'assert';
 import { TestFunction } from 'mocha';
 import { htmlx2jsx, svelte2tsx } from './build';
 import path from 'path';
-import { VERSION } from 'svelte/compiler';
+import { VERSION, parse } from 'svelte/compiler';
+import { describe, it } from 'vitest';
 
 let update_count = 0;
 let all_tests_skipped = false;
@@ -101,17 +102,12 @@ export class Sample {
     }
 
     it(fn: () => void) {
-        let _it = it;
-
-        if (this.name.startsWith('.')) {
-            _it = it.skip as TestFunction;
-        } else if (this.name.endsWith('.solo')) {
-            _it = it.only as TestFunction;
-        }
+        let skip = this.name.startsWith('.')
+        let only = this.name.endsWith('.solo')
 
         const sample = this;
 
-        _it(this.name + (this.emitOnTemplateError ? ' (loose parser mode)' : ''), function () {
+        it(this.name + (this.emitOnTemplateError ? ' (loose parser mode)' : ''), { skip, only }, function () {
             try {
                 fn();
                 if (sample.skipped) this.skip();
@@ -276,11 +272,11 @@ export function test_samples(dir: string, transform: TransformSampleFn, js: 'js'
                 const { message, actual } = err;
                 switch (message) {
                     case TestError.WrongExpected: {
-                        generate(expectedFile, actual);
+                        generate(expectedFile, actual as string);
                         break;
                     }
                     case TestError.WrongError: {
-                        generate('expected.error.json', print_error(actual));
+                        generate('expected.error.json', print_error(actual as Error));
                         break;
                     }
                 }
@@ -376,7 +372,9 @@ export function get_svelte2tsx_config(base: BaseConfig, sampleName: string): Sve
         typingsNamespace: 'svelteHTML',
         mode: sampleName.endsWith('-dts') ? 'dts' : 'ts',
         accessors: sampleName.startsWith('accessors-config'),
-        version: VERSION
+        version: VERSION,
+        parse,
+        noSvelteComponentTyped: true
     };
 }
 
