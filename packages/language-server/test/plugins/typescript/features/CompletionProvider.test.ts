@@ -1246,6 +1246,66 @@ describe('CompletionProviderImpl', function () {
         });
     });
 
+    it('provides import statement completion with brackets', async () => {
+        const { completionProvider, document } = setup('importstatementcompletions2.svelte');
+
+        const completions = await completionProvider.getCompletions(
+            document,
+            {
+                line: 1,
+                character: 15
+            },
+            {
+                triggerKind: CompletionTriggerKind.Invoked
+            }
+        );
+
+        const item = completions?.items.find((item) => item.label === 'blubb');
+
+        delete item?.data;
+
+        assert.deepStrictEqual(item, {
+            additionalTextEdits: [
+                {
+                    newText: 'import ',
+                    range: {
+                        end: {
+                            character: 11,
+                            line: 1
+                        },
+                        start: {
+                            character: 4,
+                            line: 1
+                        }
+                    }
+                }
+            ],
+            label: 'blubb',
+            insertText: 'import { blubb$1 } from "../definitions";',
+            insertTextFormat: 2,
+            kind: CompletionItemKind.Function,
+            sortText: '11',
+            commitCharacters: undefined,
+            preselect: undefined,
+            labelDetails: {
+                description: '../definitions'
+            },
+            textEdit: {
+                newText: '{ blubb$1 } from "../definitions";',
+                range: {
+                    end: {
+                        character: 16,
+                        line: 1
+                    },
+                    start: {
+                        character: 11,
+                        line: 1
+                    }
+                }
+            }
+        });
+    });
+
     it('provides optional chaining completion', async () => {
         const { completionProvider, document } = setup('completions-auto-optional-chain.svelte');
 

@@ -42,6 +42,7 @@ import {
 } from '../utils';
 import { getJsDocTemplateCompletion } from './getJsDocTemplateCompletion';
 import {
+    checkRangeMappingWithGeneratedSemi,
     getComponentAtPosition,
     getFormatCodeBasis,
     getNewScriptStartTag,
@@ -334,7 +335,9 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
                         this.fixTextEditRange(
                             wordInfo.range,
                             mapCompletionItemToOriginal(tsDoc, completion),
-                            isHandlerCompletion
+                            isHandlerCompletion,
+                            completion.textEdit,
+                            tsDoc
                         )
                     );
                 }
@@ -876,7 +879,9 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
     private fixTextEditRange(
         wordRange: Range,
         completionItem: CompletionItem,
-        isHandlerCompletion: boolean
+        isHandlerCompletion: boolean,
+        generatedTextEdit: CompletionItem['textEdit'] | undefined,
+        tsDoc: SvelteDocumentSnapshot
     ) {
         if (isHandlerCompletion && completionItem.label.startsWith('on:')) {
             completionItem.textEdit = TextEdit.replace(
@@ -890,6 +895,10 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
         const { textEdit } = completionItem;
         if (!textEdit || !TextEdit.is(textEdit)) {
             return completionItem;
+        }
+
+        if (TextEdit.is(generatedTextEdit)) {
+            checkRangeMappingWithGeneratedSemi(textEdit.range, generatedTextEdit.range, tsDoc);
         }
 
         const {
