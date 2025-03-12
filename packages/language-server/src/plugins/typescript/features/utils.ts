@@ -1,5 +1,5 @@
 import ts from 'typescript';
-import { Position } from 'vscode-languageserver';
+import { Position, Range } from 'vscode-languageserver';
 import {
     Document,
     getLineAtPosition,
@@ -433,4 +433,21 @@ export function getNewScriptStartTag(lsConfig: Readonly<LSConfig>) {
     const lang = lsConfig.svelte.defaultScriptLanguage;
     const scriptLang = lang === 'none' ? '' : ` lang="${lang}"`;
     return `<script${scriptLang}>${ts.sys.newLine}`;
+}
+
+export function checkRangeMappingWithGeneratedSemi(
+    originalRange: Range,
+    generatedRange: Range,
+    tsDoc: SvelteDocumentSnapshot
+) {
+    const originalLength = originalRange.end.character - originalRange.start.character;
+    const generatedLength = generatedRange.end.character - generatedRange.start.character;
+
+    // sourcemap off by one character issue + a generated semicolon
+    if (
+        originalLength === generatedLength - 2 &&
+        tsDoc.getFullText()[tsDoc.offsetAt(generatedRange.end) - 1] === ';'
+    ) {
+        originalRange.end.character += 1;
+    }
 }

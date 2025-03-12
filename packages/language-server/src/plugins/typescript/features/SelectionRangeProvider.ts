@@ -5,6 +5,7 @@ import { SelectionRangeProvider } from '../../interfaces';
 import { SvelteDocumentSnapshot } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { convertRange } from '../utils';
+import { checkRangeMappingWithGeneratedSemi } from './utils';
 
 export class SelectionRangeProviderImpl implements SelectionRangeProvider {
     constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
@@ -43,16 +44,7 @@ export class SelectionRangeProviderImpl implements SelectionRangeProvider {
         const { range, parent } = selectionRange;
         const originalRange = mapRangeToOriginal(tsDoc, range);
 
-        const originalLength = originalRange.end.character - originalRange.start.character;
-        const generatedLength = range.end.character - range.start.character;
-
-        // sourcemap off by one character issue + a generated semicolon
-        if (
-            originalLength === generatedLength - 2 &&
-            tsDoc.getFullText()[tsDoc.offsetAt(range.end) - 1] === ';'
-        ) {
-            originalRange.end.character += 1;
-        }
+        checkRangeMappingWithGeneratedSemi(originalRange, range, tsDoc);
 
         if (!parent) {
             return SelectionRange.create(originalRange);
