@@ -177,6 +177,15 @@ export class ExportedNames {
             }
         }
 
+        if (this.$props.bindings.length > 0) {
+            this.str.appendLeft(
+                node.end + this.astOffset,
+                surroundWithIgnoreComments(
+                    ';' + this.$props.bindings.map((prop) => prop + ';').join('')
+                )
+            );
+        }
+
         // Easy mode: User uses TypeScript and typed the $props() rune
         if (node.initializer.typeArguments?.length > 0 || node.type) {
             this.hoistableInterfaces.analyze$propsRune(node);
