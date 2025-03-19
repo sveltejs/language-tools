@@ -758,18 +758,17 @@ export class ExportedNames {
             let str = '';
 
             if (others.length > 0 || this.usesRunes() || needsAccessors) {
+                const exports = needsAccessors ? names : others;
+
                 if (others.length > 0 || needsAccessors) {
                     if (this.isTsFile) {
                         str +=
-                            ', exports: {} as any as { ' +
-                            this.createReturnElementsType(
-                                needsAccessors ? names : others,
-                                undefined,
-                                true
-                            ).join(',') +
+                            // Reference imports that have a type, else they are marked as unused if nothing in the component references them
+                            `, exports: {${this.createReturnElements(this.usesRunes() ? others : [], false, true)}} as any as { ` +
+                            this.createReturnElementsType(exports, undefined, true).join(',') +
                             ' }';
                     } else {
-                        str += `, exports: /** @type {{${this.createReturnElementsType(needsAccessors ? names : others, false, true)}}} */ ({})`;
+                        str += `, exports: /** @type {{${this.createReturnElementsType(exports, false, true)}}} */ ({})`;
                     }
                 } else {
                     // Always add that, in TS5.5+ the type for Exports is infered to never when this is not present, which breaks types.
@@ -791,14 +790,18 @@ export class ExportedNames {
 
     private createReturnElements(
         names: Array<[string, ExportedName]>,
-        dontAddTypeDef: boolean
+        dontAddTypeDef: boolean,
+        omitTyped = false
     ): string[] {
-        return names.map(([key, value]) => {
-            // Important to not use shorthand props for rename functionality
-            return `${dontAddTypeDef && value.doc ? `\n${value.doc}` : ''}${
-                value.identifierText || key
-            }: ${key}`;
-        });
+        return names
+            .map(([key, value]) => {
+                if (omitTyped && value.type) return;
+                // Important to not use shorthand props for rename functionality
+                return `${dontAddTypeDef && value.doc ? `\n${value.doc}` : ''}${
+                    value.identifierText || key
+                }: ${key}`;
+            })
+            .filter(Boolean);
     }
 
     private createReturnElementsType(
