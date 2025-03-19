@@ -20,7 +20,7 @@
 ;
 async () => {  { svelteHTML.createElement("svelte:options", {"runes":true,});}
 };
-return { props: {} as Record<string, never>, exports: {} as any as { name1: string,name2: string,name3: string,name4: string,renamed1: string,renamed2: string,Foo: typeof Foo,bar: typeof bar,baz: string,RenamedFoo: typeof RenameFoo,renamedbar: typeof renamebar,renamedbaz: string }, bindings: __sveltets_$$bindings(''), slots: {}, events: {} }}
+return { props: {} as Record<string, never>, exports: {Foo: Foo,bar: bar,RenamedFoo: RenameFoo,renamedbar: renamebar} as any as { name1: string,name2: string,name3: string,name4: string,renamed1: string,renamed2: string,Foo: typeof Foo,bar: typeof bar,baz: string,RenamedFoo: typeof RenameFoo,renamedbar: typeof renamebar,renamedbaz: string }, bindings: __sveltets_$$bindings(''), slots: {}, events: {} }}
 const Input__SvelteComponent_ = __sveltets_2_fn_component($$render());
 type Input__SvelteComponent_ = ReturnType<typeof Input__SvelteComponent_>;
 export default Input__SvelteComponent_;
