@@ -77,7 +77,7 @@ describe('HTML Plugin', () => {
             kind: CompletionItemKind.Value,
             documentation: {
                 kind: 'markdown',
-                value: 'A pointing device button has been pressed and released on an element.'
+                value: 'A pointing device button has been pressed and released on an element.\n\n[Svelte Reference](https://svelte.dev/docs/element-directives#on-eventname)'
             },
             textEdit: TextEdit.replace(
                 Range.create(Position.create(0, 5), Position.create(0, 7)),
