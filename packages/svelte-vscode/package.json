@@ -19,7 +19,7 @@
         "svelte",
         "vscode"
     ],
-    "author": "James Birtles <jameshbirtles@gmail.com> & the Svelte Core Team",
+    "author": "The Svelte Community",
     "license": "MIT",
     "bugs": {
         "url": "https://github.com/sveltejs/language-tools/issues"

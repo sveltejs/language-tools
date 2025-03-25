@@ -29,7 +29,7 @@
         "editor",
         "language-server"
     ],
-    "author": "James Birtles <jameshbirtles@gmail.com> and the Svelte Language Tools contributors",
+    "author": "The Svelte Community",
     "license": "MIT",
     "bugs": {
         "url": "https://github.com/sveltejs/language-tools/issues"
