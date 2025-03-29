@@ -1,11 +1,10 @@
 {
     "compilerOptions": {
-        "types": ["@types/node", "@types/mocha"],
+        "types": ["@types/node", "vitest"],
         "target": "es6",
         "module": "commonjs",
         "moduleResolution": "node",
         "esModuleInterop": true
     },
-    "exclude": ["samples/**"],
     "include": ["*.ts"]
 }
