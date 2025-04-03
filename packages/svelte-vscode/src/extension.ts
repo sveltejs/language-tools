@@ -151,7 +151,7 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
     }
 
     const clientOptions: LanguageClientOptions = {
-        documentSelector: [{ scheme: 'file', language: 'svelte' }],
+        documentSelector: [{ scheme: '*', language: 'svelte' }],
         revealOutputChannelOn: RevealOutputChannelOn.Never,
         synchronize: {
             // TODO deprecated, rework upon next VS Code minimum version bump
