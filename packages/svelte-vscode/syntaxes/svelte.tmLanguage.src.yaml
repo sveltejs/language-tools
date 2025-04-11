@@ -523,7 +523,7 @@ repository:
     # Slot.
     - { match: 'slot', name: keyword.control.svelte }
     # Components (either Namespaced.Component, namespaced.component or PascalCase).
-    - match: '([\w]+(?:\.[\w]+)+)|([A-Z][\w]+)'
+    - match: '([\w]+(?:\.[\w]+)+)|([A-Z][\w]*)'
       captures:
         1: { patterns: [
            { match: '\w+', name: support.class.component.svelte },
