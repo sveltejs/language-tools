@@ -880,6 +880,91 @@ describe('CodeActionsProvider', function () {
         assert.deepStrictEqual(codeActions, []);
     });
 
+    it('provides quickfix to add async to a function', async () => {
+        const { provider, document } = setup('fix-add-async.svelte');
+
+        const codeActions = await provider.getCodeActions(
+            document,
+            Range.create(Position.create(6, 8), Position.create(6, 9)),
+            {
+                diagnostics: [
+                    {
+                        code: 1308,
+                        message:
+                            "'await' expressions are only allowed within async functions and at the top levels of modules.",
+                        range: Range.create(Position.create(6, 8), Position.create(6, 13)),
+                        source: 'ts'
+                    }
+                ],
+                only: [CodeActionKind.QuickFix]
+            }
+        );
+
+        assert.deepStrictEqual(codeActions, [
+            {
+                edit: {
+                    documentChanges: [
+                        {
+                            edits: [
+                                {
+                                    newText: 'async ',
+                                    range: {
+                                        end: {
+                                            character: 4,
+                                            line: 5
+                                        },
+                                        start: {
+                                            character: 4,
+                                            line: 5
+                                        }
+                                    }
+                                }
+                            ],
+                            textDocument: {
+                                uri: getUri('fix-add-async.svelte'),
+                                version: null
+                            }
+                        }
+                    ]
+                },
+                kind: 'quickfix',
+                title: 'Add async modifier to containing function'
+            },
+            {
+                data: {
+                    fixId: 'fixAwaitInSyncFunction',
+                    fixName: 'fixAwaitInSyncFunction',
+                    uri: getUri('fix-add-async.svelte')
+                },
+                kind: 'quickfix',
+                title: "Add all missing 'async' modifiers"
+            }
+        ]);
+    });
+
+    it("don't provides quickfix to add async to the script tag", async () => {
+        const { provider, document } = setup('fix-add-async.svelte');
+
+        const codeActions = await provider.getCodeActions(
+            document,
+            Range.create(Position.create(2, 8), Position.create(2, 9)),
+            {
+                diagnostics: [
+                    {
+                        code: 1308,
+                        message:
+                            "'await' expressions are only allowed within async functions and at the top levels of modules.",
+                        range: Range.create(Position.create(2, 8), Position.create(2, 13)),
+                        source: 'ts'
+                    }
+                ],
+                only: [CodeActionKind.QuickFix]
+            }
+        );
+
+        assert.deepStrictEqual(codeActions, []);
+    });
+
     it('provide quick fix to fix all errors when possible', async () => {
         const { provider, document } = setup('codeactions.svelte');
 

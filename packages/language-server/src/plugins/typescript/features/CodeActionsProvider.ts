@@ -722,6 +722,18 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                             );
                         }
 
+                        if (fix.fixName === 'fixAwaitInSyncFunction' && document.scriptInfo) {
+                            const scriptStartTagStart = document.scriptInfo.container.start;
+                            const scriptStartTagEnd = document.scriptInfo.start;
+                            const withinStartTag =
+                                document.offsetAt(originalRange.start) < scriptStartTagEnd &&
+                                document.offsetAt(originalRange.end) > scriptStartTagStart;
+
+                            if (withinStartTag) {
+                                return undefined;
+                            }
+                        }
+
                         if (fix.fixName === 'fixMissingFunctionDeclaration') {
                             const position = 'position' in fix ? fix.position : undefined;
                             const checkRange = position
