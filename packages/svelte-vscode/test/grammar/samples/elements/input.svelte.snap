@@ -57,4 +57,10 @@
 #              ^^ source.svelte meta.scope.tag.p.svelte meta.tag.end.svelte punctuation.definition.tag.begin.svelte
 #                ^ source.svelte meta.scope.tag.p.svelte meta.tag.end.svelte entity.name.tag.svelte
 #                 ^ source.svelte meta.scope.tag.p.svelte meta.tag.end.svelte punctuation.definition.tag.end.svelte
->
+><A></A>
+#^ source.svelte meta.scope.tag.A.svelte meta.tag.start.svelte punctuation.definition.tag.begin.svelte
+# ^ source.svelte meta.scope.tag.A.svelte meta.tag.start.svelte support.class.component.svelte
+#  ^ source.svelte meta.scope.tag.A.svelte meta.tag.start.svelte punctuation.definition.tag.end.svelte
+#   ^^ source.svelte meta.scope.tag.A.svelte meta.tag.end.svelte punctuation.definition.tag.begin.svelte
+#     ^ source.svelte meta.scope.tag.A.svelte meta.tag.end.svelte support.class.component.svelte
+#      ^ source.svelte meta.scope.tag.A.svelte meta.tag.end.svelte punctuation.definition.tag.end.svelte
