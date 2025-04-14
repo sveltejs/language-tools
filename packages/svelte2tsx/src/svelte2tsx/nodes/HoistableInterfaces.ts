@@ -158,6 +158,24 @@ export class HoistableInterfaces {
                 }
             });
 
+            node.heritageClauses?.forEach((clause) => {
+                clause.types.forEach((type) => {
+                    if (ts.isIdentifier(type.expression)) {
+                        const type_name = type.expression.text;
+                        if (!generics.includes(type_name)) {
+                            type_dependencies.add(type_name);
+                        }
+                    }
+
+                    this.collectTypeDependencies(
+                        type,
+                        type_dependencies,
+                        value_dependencies,
+                        generics
+                    );
+                });
+            });
+
             if (this.module_types.has(interface_name)) {
                 // shadowed; we can't hoist
                 this.disallowed_types.add(interface_name);
