@@ -86,6 +86,14 @@ export class HoistableInterfaces {
         if (ts.isInterfaceDeclaration(node)) {
             this.module_types.add(node.name.text);
         }
+
+        if (ts.isEnumDeclaration(node)) {
+            this.module_types.add(node.name.text);
+        }
+
+        if (ts.isModuleDeclaration(node) && ts.isIdentifier(node.name)) {
+            this.module_types.add(node.name.text);
+        }
     }
 
     analyzeInstanceScriptNode(node: ts.Node) {
@@ -156,6 +164,24 @@ export class HoistableInterfaces {
                         );
                     });
                 }
+            });
+
+            node.heritageClauses?.forEach((clause) => {
+                clause.types.forEach((type) => {
+                    if (ts.isIdentifier(type.expression)) {
+                        const type_name = type.expression.text;
+                        if (!generics.includes(type_name)) {
+                            type_dependencies.add(type_name);
+                        }
+                    }
+
+                    this.collectTypeDependencies(
+                        type,
+                        type_dependencies,
+                        value_dependencies,
+                        generics
+                    );
+                });
             });
 
             if (this.module_types.has(interface_name)) {
@@ -229,6 +255,14 @@ export class HoistableInterfaces {
         if (ts.isEnumDeclaration(node)) {
             this.disallowed_values.add(node.name.text);
         }
+
+        // namespace declaration should not be in the instance script.
+        // Only adding the top-level name to the disallowed list,
+        // so that at least there won't a confusing error message of "can't find namespace Foo"
+        if (ts.isModuleDeclaration(node) && ts.isIdentifier(node.name)) {
+            this.disallowed_types.add(node.name.text);
+            this.disallowed_values.add(node.name.text);
+        }
     }
 
     analyze$propsRune(
@@ -239,7 +273,7 @@ export class HoistableInterfaces {
         if (node.initializer.typeArguments?.length > 0 || node.type) {
             const generic_arg = node.initializer.typeArguments?.[0] || node.type;
             if (ts.isTypeReferenceNode(generic_arg)) {
-                const name = this.getEntityNameText(generic_arg.typeName);
+                const name = this.getEntityNameRoot(generic_arg.typeName);
                 const interface_node = this.interface_map.get(name);
                 if (interface_node) {
                     this.props_interface.name = name;
@@ -394,13 +428,13 @@ export class HoistableInterfaces {
     ) {
         const walk = (node: ts.Node) => {
             if (ts.isTypeReferenceNode(node)) {
-                const type_name = this.getEntityNameText(node.typeName);
+                const type_name = this.getEntityNameRoot(node.typeName);
                 if (!generics.includes(type_name)) {
                     type_dependencies.add(type_name);
                 }
             } else if (ts.isTypeQueryNode(node)) {
                 // Handle 'typeof' expressions: e.g., foo: typeof bar
-                value_dependencies.add(this.getEntityNameText(node.exprName));
+                value_dependencies.add(this.getEntityNameRoot(node.exprName));
             }
 
             ts.forEachChild(node, walk);
@@ -410,15 +444,16 @@ export class HoistableInterfaces {
     }
 
     /**
-     * Retrieves the full text of an EntityName (handles nested names).
+     * Retrieves the top-level variable/namespace of an EntityName (handles nested names).
+     * ex: `foo.bar.baz` -> `foo`
      * @param entity_name The EntityName to extract text from.
-     * @returns The full name as a string.
+     * @returns The top-level name as a string.
      */
-    private getEntityNameText(entity_name: ts.EntityName): string {
+    private getEntityNameRoot(entity_name: ts.EntityName): string {
         if (ts.isIdentifier(entity_name)) {
             return entity_name.text;
         } else {
-            return this.getEntityNameText(entity_name.left) + '.' + entity_name.right.text;
+            return this.getEntityNameRoot(entity_name.left);
         }
     }
 }
