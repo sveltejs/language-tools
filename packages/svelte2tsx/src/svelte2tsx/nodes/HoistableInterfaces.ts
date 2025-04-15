@@ -86,6 +86,14 @@ export class HoistableInterfaces {
         if (ts.isInterfaceDeclaration(node)) {
             this.module_types.add(node.name.text);
         }
+
+        if (ts.isEnumDeclaration(node)) {
+            this.module_types.add(node.name.text);
+        }
+
+        if (ts.isModuleDeclaration(node) && ts.isIdentifier(node.name)) {
+            this.module_types.add(node.name.text);
+        }
     }
 
     analyzeInstanceScriptNode(node: ts.Node) {
@@ -245,6 +253,14 @@ export class HoistableInterfaces {
         }
 
         if (ts.isEnumDeclaration(node)) {
+            this.disallowed_values.add(node.name.text);
+        }
+
+        // namespace declaration should not be in the instance script.
+        // Only adding the top-level name to the disallowed list,
+        // so that at least there won't a confusing error message of "can't find namespace Foo"
+        if (ts.isModuleDeclaration(node) && ts.isIdentifier(node.name)) {
+            this.disallowed_types.add(node.name.text);
             this.disallowed_values.add(node.name.text);
         }
     }
