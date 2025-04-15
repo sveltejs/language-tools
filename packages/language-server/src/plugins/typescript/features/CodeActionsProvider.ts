@@ -515,20 +515,19 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         snapshot: DocumentSnapshot,
         range: Range
     ) {
+        if (!(snapshot instanceof SvelteDocumentSnapshot)) {
+            return range;
+        }
         // Handle svelte2tsx wrong import mapping:
         // The character after the last import maps to the start of the script
         // TODO find a way to fix this in svelte2tsx and then remove this
         if (
             (range.end.line === 0 && range.end.character === 1) ||
-            range.end.line < range.start.line
+            range.end.line < range.start.line ||
+            (isInScript(range.start, snapshot) && !isInScript(range.end, snapshot))
         ) {
             edit.span.length -= 1;
             range = mapRangeToOriginal(snapshot, convertRange(snapshot, edit.span));
-
-            if (!(snapshot instanceof SvelteDocumentSnapshot)) {
-                range.end.character += 1;
-                return range;
-            }
 
             const line = getLineAtPosition(range.end, snapshot.getOriginalText());
             // remove-import code action will removes the
@@ -542,6 +541,10 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             if (isAtEndOfLine(line, range.end.character)) {
                 range.end.line += 1;
                 range.end.character = 0;
+                const startOfLine = { line: range.start.line, character: 0 };
+                // if (!snapshot.getOriginalText({ start: startOfLine, end: range.start }).trim()) {
+                //     range.start.character = 0;
+                // }
             }
         }
 

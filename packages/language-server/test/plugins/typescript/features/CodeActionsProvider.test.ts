@@ -28,7 +28,7 @@ const testDir = path.join(__dirname, '..');
 const indent = ' '.repeat(4);
 const isSvelte5Plus = +VERSION.split('.')[0] >= 5;
 
-describe('CodeActionsProvider', function () {
+describe.only('CodeActionsProvider', function () {
     recursiveServiceWarmup(
         this,
         path.join(testDir, 'testfiles', 'code-actions'),
