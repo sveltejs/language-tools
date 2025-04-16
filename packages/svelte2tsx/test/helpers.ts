@@ -1,9 +1,9 @@
 import fs from 'fs';
 import assert, { AssertionError } from 'assert';
-import { TestFunction } from 'mocha';
 import { htmlx2jsx, svelte2tsx } from './build';
 import path from 'path';
-import { VERSION } from 'svelte/compiler';
+import { VERSION, parse } from 'svelte/compiler';
+import { it, afterEach } from 'vitest';
 
 let update_count = 0;
 let all_tests_skipped = false;
@@ -101,32 +101,33 @@ export class Sample {
     }
 
     it(fn: () => void) {
-        let _it = it;
-
-        if (this.name.startsWith('.')) {
-            _it = it.skip as TestFunction;
-        } else if (this.name.endsWith('.solo')) {
-            _it = it.only as TestFunction;
-        }
+        let skip = this.name.startsWith('.');
+        let only = this.name.endsWith('.solo');
 
         const sample = this;
 
-        _it(this.name + (this.emitOnTemplateError ? ' (loose parser mode)' : ''), function () {
-            try {
-                fn();
-                if (sample.skipped) this.skip();
-            } catch (err) {
-                if (sample.on_error) sample.on_error(sample.generate.bind(sample), err);
-                if (sample.skipped) this.skip();
-                this.test.title = sample.cmd('');
-                throw err;
+        it(
+            this.name + (this.emitOnTemplateError ? ' (loose parser mode)' : ''),
+            { skip, only },
+            function () {
+                try {
+                    fn();
+                    if (sample.skipped) this.skip();
+                } catch (err) {
+                    if (sample.on_error) sample.on_error(sample.generate.bind(sample), err);
+                    if (sample.skipped) this.skip();
+                    if (err instanceof Error) {
+                        err.message = `${sample.cmd('')}\n${err.message}`;
+                    }
+                    throw err;
+                }
             }
-        });
+        );
     }
 
     log(...arr: string[]) {
-        after(function () {
-            after(function () {
+        afterEach(function () {
+            afterEach(function () {
                 console.log(...arr);
             });
         });
@@ -195,7 +196,7 @@ export class Sample {
                 if (action === 'updated' && !can_auto_update()) return;
                 this.skipped = true;
             }
-            after(() => {
+            afterEach(() => {
                 console.log(`\t[${action}] ${color.cyan(file)} ${color.grey(this.cmd(file))}`);
                 writeFileSync(this.at(file), content);
             });
@@ -276,11 +277,11 @@ export function test_samples(dir: string, transform: TransformSampleFn, js: 'js'
                 const { message, actual } = err;
                 switch (message) {
                     case TestError.WrongExpected: {
-                        generate(expectedFile, actual);
+                        generate(expectedFile, actual as string);
                         break;
                     }
                     case TestError.WrongError: {
-                        generate('expected.error.json', print_error(actual));
+                        generate('expected.error.json', print_error(actual as Error));
                         break;
                     }
                 }
@@ -376,7 +377,9 @@ export function get_svelte2tsx_config(base: BaseConfig, sampleName: string): Sve
         typingsNamespace: 'svelteHTML',
         mode: sampleName.endsWith('-dts') ? 'dts' : 'ts',
         accessors: sampleName.startsWith('accessors-config'),
-        version: VERSION
+        version: VERSION,
+        parse,
+        noSvelteComponentTyped: false
     };
 }
 

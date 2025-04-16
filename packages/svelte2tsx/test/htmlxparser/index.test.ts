@@ -2,7 +2,7 @@ import { htmlx2jsx } from '../build';
 import assert from 'assert';
 import { benchmark } from '../helpers';
 import { parse } from 'svelte/compiler';
-
+import { describe, it } from 'vitest';
 describe('htmlxparser', () => {
     it('parses in a reasonable time', () => {
         let random = '';
