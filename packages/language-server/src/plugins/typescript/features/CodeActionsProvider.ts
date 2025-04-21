@@ -1,3 +1,4 @@
+import { internalHelpers } from 'svelte2tsx';
 import ts from 'typescript';
 import {
     CancellationToken,
@@ -24,6 +25,7 @@ import {
 } from '../../../lib/documents';
 import { LSConfigManager } from '../../../ls-config';
 import {
+    createGetCanonicalFileName,
     flatten,
     getIndent,
     isNotNullOrUndefined,
@@ -37,6 +39,7 @@ import {
 import { CodeActionsProvider } from '../../interfaces';
 import { DocumentSnapshot, SvelteDocumentSnapshot } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
+import { LanguageServiceContainer } from '../service';
 import {
     changeSvelteComponentName,
     convertRange,
@@ -44,6 +47,7 @@ import {
     toGeneratedSvelteComponentName
 } from '../utils';
 import { CompletionsProviderImpl } from './CompletionProvider';
+import { DiagnosticCode } from './DiagnosticsProvider';
 import {
     findClosestContainingNode,
     FormatCodeBasis,
@@ -53,15 +57,12 @@ import {
     isTextSpanInGeneratedCode,
     SnapshotMap
 } from './utils';
-import { DiagnosticCode } from './DiagnosticsProvider';
-import { createGetCanonicalFileName } from '../../../utils';
-import { LanguageServiceContainer } from '../service';
-import { internalHelpers } from 'svelte2tsx';
 
 /**
  * TODO change this to protocol constant if it's part of the protocol
  */
 export const SORT_IMPORT_CODE_ACTION_KIND = 'source.sortImports';
+export const ADD_MISSING_IMPORTS_CODE_ACTION_KIND = 'source.addMissingImports';
 
 interface RefactorArgs {
     type: 'refactor';
@@ -121,6 +122,10 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             );
         }
 
+        if (context.only?.[0] === ADD_MISSING_IMPORTS_CODE_ACTION_KIND) {
+            return await this.addMissingImports(document, cancellationToken);
+        }
+
         // for source action command (all source.xxx)
         // vscode would show different source code action kinds to choose from
         if (context.only?.[0] === CodeActionKind.Source) {
@@ -130,7 +135,8 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                     document,
                     cancellationToken,
                     /**skipDestructiveCodeActions */ true
-                ))
+                )),
+                ...(await this.addMissingImports(document, cancellationToken))
             ];
         }
 
@@ -1552,5 +1558,49 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
 
     private async getLSAndTSDoc(document: Document) {
         return this.lsAndTsDocResolver.getLSAndTSDoc(document);
+    }
+
+    private async addMissingImports(
+        document: Document,
+        cancellationToken?: CancellationToken
+    ): Promise<CodeAction[]> {
+        // Re-introduce LS/TSDoc resolution and diagnostic check
+        const { lang, tsDoc } = await this.getLSAndTSDoc(document);
+        if (cancellationToken?.isCancellationRequested) {
+            return [];
+        }
+
+        // Check if there are any relevant "cannot find name" diagnostics
+        const diagnostics = lang.getSemanticDiagnostics(tsDoc.filePath);
+        const hasMissingImports = diagnostics.some(
+            (diag) =>
+                (diag.code === DiagnosticCode.CANNOT_FIND_NAME ||
+                    diag.code === DiagnosticCode.CANNOT_FIND_NAME_X_DID_YOU_MEAN_Y) &&
+                // Ensure the diagnostic is not in generated code
+                !isTextSpanInGeneratedCode(tsDoc.getFullText(), {
+                    start: diag.start ?? 0,
+                    length: diag.length ?? 0
+                })
+        );
+
+        // Only return the action if there are potential imports to add
+        if (!hasMissingImports) {
+            return [];
+        }
+
+        // If imports might be needed, create the deferred action
+        const codeAction = CodeAction.create(
+            FIX_IMPORT_FIX_DESCRIPTION,
+            ADD_MISSING_IMPORTS_CODE_ACTION_KIND
+        );
+
+        const data: QuickFixAllResolveInfo = {
+            uri: document.uri,
+            fixName: FIX_IMPORT_FIX_NAME,
+            fixId: FIX_IMPORT_FIX_ID
+        };
+        codeAction.data = data;
+
+        return [codeAction];
     }
 }
