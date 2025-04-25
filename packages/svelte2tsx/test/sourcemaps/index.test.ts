@@ -14,6 +14,7 @@ import {
     validate_test_file
 } from './process';
 import { VERSION } from 'svelte/compiler';
+import { describe } from 'vitest';
 
 // TODO figure out what to do with those now that we have the new transformation
 const isSvelte5Plus = Number(VERSION[0]) >= 5;
