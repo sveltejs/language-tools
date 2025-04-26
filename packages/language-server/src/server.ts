@@ -45,7 +45,10 @@ import { debounceThrottle, isNotNullOrUndefined, normalizeUri, urlToPath } from 
 import { FallbackWatcher } from './lib/FallbackWatcher';
 import { configLoader } from './lib/documents/configLoader';
 import { setIsTrusted } from './importPackage';
-import { SORT_IMPORT_CODE_ACTION_KIND,ADD_MISSING_IMPORTS_CODE_ACTION_KIND } from './plugins/typescript/features/CodeActionsProvider';
+import {
+    SORT_IMPORT_CODE_ACTION_KIND,
+    ADD_MISSING_IMPORTS_CODE_ACTION_KIND
+} from './plugins/typescript/features/CodeActionsProvider';
 import { createLanguageServices } from './plugins/css/service';
 import { FileSystemProvider } from './plugins/css/FileSystemProvider';
 
