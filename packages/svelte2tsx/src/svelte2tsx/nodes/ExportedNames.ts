@@ -791,11 +791,11 @@ export class ExportedNames {
     private createReturnElements(
         names: Array<[string, ExportedName]>,
         dontAddTypeDef: boolean,
-        omitTyped = false
+        onlyTyped = false
     ): string[] {
         return names
             .map(([key, value]) => {
-                if (omitTyped && value.type) return;
+                if (onlyTyped && !value.type) return;
                 // Important to not use shorthand props for rename functionality
                 return `${dontAddTypeDef && value.doc ? `\n${value.doc}` : ''}${
                     value.identifierText || key
