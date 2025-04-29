@@ -429,10 +429,10 @@ export function findChildOfKind(node: ts.Node, kind: ts.SyntaxKind): ts.Node | u
     }
 }
 
-export function getNewScriptStartTag(lsConfig: Readonly<LSConfig>) {
+export function getNewScriptStartTag(lsConfig: Readonly<LSConfig>, newLine: string) {
     const lang = lsConfig.svelte.defaultScriptLanguage;
     const scriptLang = lang === 'none' ? '' : ` lang="${lang}"`;
-    return `<script${scriptLang}>${ts.sys.newLine}`;
+    return `<script${scriptLang}>${newLine}`;
 }
 
 export function checkRangeMappingWithGeneratedSemi(

@@ -298,6 +298,7 @@ describe('CompletionProviderImpl', function () {
         assert.deepStrictEqual(item, <CompletionItem>{
             label: 'custom-element',
             kind: CompletionItemKind.Property,
+            commitCharacters: [],
             textEdit: {
                 range: { start: { line: 0, character: 1 }, end: { line: 0, character: 2 } },
                 newText: 'custom-element'

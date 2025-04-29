@@ -377,7 +377,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         if (editForThisFile?.edits.length) {
             const [first] = editForThisFile.edits;
             first.newText =
-                getNewScriptStartTag(this.configManager.getConfig()) +
+                getNewScriptStartTag(this.configManager.getConfig(), formatCodeBasis.newLine) +
                 formatCodeBasis.baseIndent +
                 first.newText.trimStart();
 

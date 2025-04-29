@@ -1,0 +1,20 @@
+{
+    "code": "expected_token",
+    "message": "Expected token >\nhttps://svelte.dev/e/expected_token",
+    "filename": "(unknown)",
+    "start": {
+        "line": 7,
+        "column": 2,
+        "character": 138
+    },
+    "end": {
+        "line": 7,
+        "column": 2,
+        "character": 138
+    },
+    "position": [
+        138,
+        138
+    ],
+    "frame": " 5: <div>\n 6:     <Comp\n 7: </div>\n      ^\n 8: \n 9: <Comp"
+}
