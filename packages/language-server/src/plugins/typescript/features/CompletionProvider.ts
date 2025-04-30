@@ -1134,9 +1134,10 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
             const config = this.configManager.getConfig();
             // Remove the empty line after the script tag because getNewScriptStartTag will always add one
             let newText = change.newText;
-            if (newText.startsWith('\r\n')) {
-                newText = newText.substring(2);
-            } else if (newText.startsWith('\n')) {
+            if (newText[0] === '\r') {
+                newText = newText.substring(1);
+            }
+            if (newText[0] === '\n') {
                 newText = newText.substring(1);
             }
             return TextEdit.replace(
