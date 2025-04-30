@@ -1,11 +1,12 @@
 ///<reference types="svelte" />
 ;
-    let foo = true;
-;  const hoistable1/*Ωignore_positionΩ*/ = ()/*Ωignore_startΩ*/: ReturnType<import('svelte').Snippet>/*Ωignore_endΩ*/ => { async ()/*Ωignore_positionΩ*/ => {
+  const hoistable1/*Ωignore_positionΩ*/ = ()/*Ωignore_startΩ*/: ReturnType<import('svelte').Snippet>/*Ωignore_endΩ*/ => { async ()/*Ωignore_positionΩ*/ => {
      { svelteHTML.createElement("div", {});  }
 };return __sveltets_2_any(0)};  const hoistable2/*Ωignore_positionΩ*/ = ()/*Ωignore_startΩ*/: ReturnType<import('svelte').Snippet>/*Ωignore_endΩ*/ => { async ()/*Ωignore_positionΩ*/ => {
      { svelteHTML.createElement("div", {});foo; }
-};return __sveltets_2_any(0)};;function $$render() {
+};return __sveltets_2_any(0)};
+    let foo = true;
+;;function $$render() {
 async () => {
 
 
