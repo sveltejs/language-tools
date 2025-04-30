@@ -208,7 +208,7 @@ export class Element {
         if (this.isSelfclosing) {
             // The transformation is the whole start tag + <, ex: <span
             // To avoid the end tag transform being moved to before the tag name,
-            // manually remove the first character and don't add let the `transform` function remove/move any ranges
+            // manually remove the first character and let the `transform` function skip removing unused
             let transformEnd = this.startTagEnd;
             if (
                 this.str.original[transformEnd - 1] !== '>' &&

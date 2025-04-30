@@ -243,7 +243,7 @@ export class InlineComponent {
 
             // The transformation is the whole start tag + <, ex: <Comp
             // To avoid the "cannot move inside itself" error,
-            // manually remove the first character and don't add let the `transform` function remove/move any ranges
+            // manually remove the first character and let the transform function skip removing unused
             if (transformationEnd === this.tagNameEnd) {
                 transformationEnd = this.startTagStart;
                 this.str.remove(this.startTagStart, this.startTagStart + 1);
