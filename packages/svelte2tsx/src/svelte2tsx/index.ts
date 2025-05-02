@@ -10,6 +10,7 @@ import { processInstanceScriptContent } from './processInstanceScriptContent';
 import { createModuleAst, ModuleAst, processModuleScriptTag } from './processModuleScriptTag';
 import path from 'path';
 import { parse, VERSION } from 'svelte/compiler';
+import { getTopLevelImports } from './utils/tsAst';
 
 function processSvelteTemplate(
     str: MagicString,
@@ -170,6 +171,20 @@ export function svelte2tsx(
     }
 
     if (moduleScriptTag || scriptTag) {
+        let snippetHoistTargetForModule = 0;
+        if (rootSnippets.length) {
+            if (scriptTag) {
+                snippetHoistTargetForModule = scriptTag.start + 1; // +1 because imports are also moved at that position, and we want to move interfaces after imports
+            } else {
+                const imports = getTopLevelImports(moduleAst.tsAst);
+                const lastImport = imports[imports.length - 1];
+                snippetHoistTargetForModule = lastImport
+                    ? lastImport.end + moduleAst.astOffset
+                    : moduleAst.astOffset;
+                str.appendLeft(snippetHoistTargetForModule, '\n');
+            }
+        }
+
         for (const [start, end, globals] of rootSnippets) {
             const hoist_to_module =
                 moduleScriptTag &&
@@ -179,13 +194,7 @@ export function svelte2tsx(
                     ));
 
             if (hoist_to_module) {
-                str.move(
-                    start,
-                    end,
-                    scriptTag
-                        ? scriptTag.start + 1 // +1 because imports are also moved at that position, and we want to move interfaces after imports
-                        : instanceScriptTarget
-                );
+                str.move(start, end, snippetHoistTargetForModule);
             } else if (scriptTag) {
                 str.move(start, end, renderFunctionStart);
             }
