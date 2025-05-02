@@ -89,10 +89,10 @@ declare module 'typescript' {
         resolutionDiagnostics?: ts.Diagnostic[];
         /**
          * @internal
-         * Used to issue a diagnostic if typings for a non-relative import couldn't be found
-         * while respecting package.json `exports`, but were found when disabling `exports`.
+         * Used to issue a better diagnostic when an unresolvable module may
+         * have been resolvable under different module resolution settings.
          */
-        node10Result?: string;
+        alternateResult?: string;
     }
 }
 
@@ -527,10 +527,11 @@ async function createLanguageService(
 
     function invalidateModuleCache(filePaths: string[]) {
         for (const filePath of filePaths) {
-            svelteModuleLoader.deleteFromModuleCache(filePath);
-            svelteModuleLoader.deleteUnresolvedResolutionsFromCache(filePath);
+            const normalizedPath = normalizePath(filePath);
+            svelteModuleLoader.deleteFromModuleCache(normalizedPath);
+            svelteModuleLoader.deleteUnresolvedResolutionsFromCache(normalizedPath);
 
-            scheduleUpdate(filePath);
+            scheduleUpdate(normalizedPath);
         }
     }
 
@@ -974,6 +975,7 @@ async function createLanguageService(
             return;
         }
 
+        svelteModuleLoader.invalidateFailedLocationResolution();
         const oldProgram = project?.program;
         let program: ts.Program | undefined;
         try {
@@ -981,14 +983,13 @@ async function createLanguageService(
         } finally {
             // mark as clean even if the update fails, at least we can still try again next time there is a change
             dirty = false;
+            compilerHost = undefined;
+            svelteModuleLoader.clearPendingInvalidations();
         }
-        svelteModuleLoader.clearPendingInvalidations();
 
         if (project) {
             project.program = program;
         }
-
-        compilerHost = undefined;
 
         if (!skipSvelteInputCheck) {
             const svelteConfigDiagnostics = checkSvelteInput(program, projectConfig);
