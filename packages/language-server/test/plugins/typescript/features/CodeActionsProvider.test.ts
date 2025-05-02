@@ -1,5 +1,7 @@
 import * as assert from 'assert';
 import * as path from 'path';
+import { VERSION } from 'svelte/compiler';
+import { internalHelpers } from 'svelte2tsx';
 import ts from 'typescript';
 import {
     CancellationTokenSource,
@@ -12,17 +14,16 @@ import {
 import { Document, DocumentManager } from '../../../../src/lib/documents';
 import { LSConfigManager } from '../../../../src/ls-config';
 import {
+    ADD_MISSING_IMPORTS_CODE_ACTION_KIND,
     CodeActionsProviderImpl,
     SORT_IMPORT_CODE_ACTION_KIND
 } from '../../../../src/plugins/typescript/features/CodeActionsProvider';
 import { CompletionsProviderImpl } from '../../../../src/plugins/typescript/features/CompletionProvider';
+import { DiagnosticCode } from '../../../../src/plugins/typescript/features/DiagnosticsProvider';
 import { LSAndTSDocResolver } from '../../../../src/plugins/typescript/LSAndTSDocResolver';
 import { __resetCache } from '../../../../src/plugins/typescript/service';
 import { pathToUrl } from '../../../../src/utils';
 import { recursiveServiceWarmup } from '../test-utils';
-import { DiagnosticCode } from '../../../../src/plugins/typescript/features/DiagnosticsProvider';
-import { VERSION } from 'svelte/compiler';
-import { internalHelpers } from 'svelte2tsx';
 
 const testDir = path.join(__dirname, '..');
 const indent = ' '.repeat(4);
@@ -2228,5 +2229,85 @@ describe('CodeActionsProvider', function () {
     // Hacky, but it works. Needed due to testing both new and old transformation
     after(() => {
         __resetCache();
+    });
+
+    it('provides source action for adding all missing imports', async () => {
+        const { provider, document } = setup('codeaction-custom-fix-all-component5.svelte');
+
+        const range = Range.create(Position.create(4, 1), Position.create(4, 15));
+
+        // Request the specific source action
+        const codeActions = await provider.getCodeActions(document, range, {
+            diagnostics: [], // Diagnostics might not be needed here if we only want the source action by kind
+            only: [ADD_MISSING_IMPORTS_CODE_ACTION_KIND]
+        });
+
+        assert.ok(codeActions.length > 0, 'No code actions found');
+
+        // Find the action by its kind
+        const addImportsAction = codeActions.find((action) => action.data);
+
+        // Ensure the action was found and has data (as it's now deferred)
+        assert.ok(addImportsAction, 'Add missing imports action should be found');
+        assert.ok(
+            addImportsAction.data,
+            'Add missing imports action should have data for resolution'
+        );
+
+        // Resolve the action to get the edits
+        const resolvedAction = await provider.resolveCodeAction(document, addImportsAction);
+
+        // Assert the edits on the resolved action
+        assert.ok(resolvedAction.edit, 'Resolved action should have an edit');
+        (<TextDocumentEdit>resolvedAction.edit?.documentChanges?.[0])?.edits.forEach(
+            (edit) => (edit.newText = harmonizeNewLines(edit.newText))
+        );
+
+        assert.deepStrictEqual(resolvedAction.edit, {
+            documentChanges: [
+                {
+                    edits: [
+                        {
+                            newText:
+                                `\n${indent}import FixAllImported from \"./importing/FixAllImported.svelte\";\n` +
+                                `${indent}import FixAllImported2 from \"./importing/FixAllImported2.svelte\";\n`,
+                            range: {
+                                start: {
+                                    character: 18,
+                                    line: 0
+                                },
+                                end: {
+                                    character: 18,
+                                    line: 0
+                                }
+                            }
+                        }
+                    ],
+                    textDocument: {
+                        uri: getUri('codeaction-custom-fix-all-component5.svelte'),
+                        version: null
+                    }
+                }
+            ]
+        });
+
+        // Optional: Verify the kind and title remain correct on the resolved action
+        assert.strictEqual(resolvedAction.kind, ADD_MISSING_IMPORTS_CODE_ACTION_KIND);
+        assert.strictEqual(resolvedAction.title, 'Add all missing imports');
+    });
+
+    it('provides source action for adding all missing imports only when imports are missing', async () => {
+        const { provider, document } = setup('codeaction-custom-fix-all-component6.svelte');
+
+        const codeActions = await provider.getCodeActions(
+            document,
+            Range.create(Position.create(1, 4), Position.create(1, 5)),
+            {
+                diagnostics: [], // No diagnostics = no missing imports
+                only: [ADD_MISSING_IMPORTS_CODE_ACTION_KIND]
+            }
+        );
+
+        assert.deepStrictEqual(codeActions, []);
     });
 });
