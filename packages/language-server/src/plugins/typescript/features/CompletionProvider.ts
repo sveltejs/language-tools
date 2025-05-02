@@ -595,7 +595,8 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
         return tagNames.map((name) => ({
             label: name,
             kind: CompletionItemKind.Property,
-            textEdit: TextEdit.replace(this.cloneRange(replacementRange), name)
+            textEdit: TextEdit.replace(this.cloneRange(replacementRange), name),
+            commitCharacters: []
         }));
     }
 
@@ -1131,9 +1132,17 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
             }
 
             const config = this.configManager.getConfig();
+            // Remove the empty line after the script tag because getNewScriptStartTag will always add one
+            let newText = change.newText;
+            if (newText[0] === '\r') {
+                newText = newText.substring(1);
+            }
+            if (newText[0] === '\n') {
+                newText = newText.substring(1);
+            }
             return TextEdit.replace(
                 beginOfDocumentRange,
-                `${getNewScriptStartTag(config)}${change.newText}</script>${newLine}`
+                `${getNewScriptStartTag(config, newLine)}${newText}</script>${newLine}`
             );
         }
 
