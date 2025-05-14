@@ -8,7 +8,7 @@ export type SvelteLogicTag = 'each' | 'if' | 'await' | 'key' | 'snippet';
 /**
  * Special svelte syntax tags.
  */
-export type SvelteTag = SvelteLogicTag | 'html' | 'debug' | 'const' | 'render';
+export type SvelteTag = SvelteLogicTag | 'html' | 'debug' | 'const' | 'render' | 'attach';
 
 /**
  * For each tag, a documentation in markdown format.
@@ -95,11 +95,19 @@ It accepts a comma-separated list of variable names (not arbitrary expressions).
 https://svelte.dev/docs/svelte/@debug
 `,
     const: `\`{@const ...}\`\\
-Defines a local constant}\\
+Defines a local constant\\
 #### Usage:
 \`{@const a = b + c}\`\\
 \\
 https://svelte.dev/docs/svelte/@const
+`,
+    attach: `\`{@attach ...}\`\\
+Defines an attachment that is attached to an element or component\\
+#### Usage:
+\`<div {@attach (node) => {...}}></div>\`\\
+\`<Component {@attach namedAttachment} />\`\\
+\\
+https://svelte.dev/docs/svelte/@attach
 `
 };
 

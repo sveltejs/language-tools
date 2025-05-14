@@ -360,7 +360,16 @@ repository:
     patterns:
     - include: '#attributes-directives'
     - include: '#attributes-keyvalue'
+    - include: '#attributes-attach'
     - include: '#attributes-interpolated'
+
+  # Attachments
+  attributes-attach:
+    begin: (?<!:|=)\s*({@attach\s)
+    end: (\})
+    captures: { 1: { name: entity.other.attribute-name.svelte } }
+    contentName: meta.embedded.expression.svelte source.ts
+    patterns: [ include: source.ts ]
 
   # Interpolated shorthand attributes, like `{variable}` sitting by itself.
   attributes-interpolated:

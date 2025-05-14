@@ -41,6 +41,7 @@ import {
 import { EventHandler } from '../svelte2tsx/nodes/event-handler';
 import { ComponentEvents } from '../svelte2tsx/nodes/ComponentEvents';
 import { analyze } from 'periscopic';
+import { handleAttachTag } from './nodes/AttachTag';
 
 export interface TemplateProcessResult {
     /**
@@ -289,6 +290,9 @@ export function convertHtmlxToJsx(
                         break;
                     case 'RenderTag':
                         handleRenderTag(str, node);
+                        break;
+                    case 'AttachTag':
+                        handleAttachTag(node, element);
                         break;
                     case 'InlineComponent':
                         if (element) {
