@@ -8,8 +8,8 @@ import { InlineComponent } from './InlineComponent';
 export function handleAttachTag(tag: BaseNode, element: Element | InlineComponent): void {
     // element.addAttachment(attr);
     if (element instanceof InlineComponent) {
-        element.addProp(['[Symbol()]'], [[tag.expression.start, tag.expression.end]]);
+        element.addProp(['[Symbol("@attach")]'], [[tag.expression.start, tag.expression.end]]);
     } else {
-        element.addAttribute(['[Symbol()]'], [[tag.expression.start, tag.expression.end]]);
+        element.addAttribute(['[Symbol("@attach")]'], [[tag.expression.start, tag.expression.end]]);
     }
 }
