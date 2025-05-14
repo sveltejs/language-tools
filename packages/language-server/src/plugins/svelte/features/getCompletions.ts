@@ -122,7 +122,8 @@ function getCompletionsWithRegardToTriggerCharacter(
             { tag: 'html', label: 'html' },
             { tag: 'debug', label: 'debug' },
             { tag: 'const', label: 'const' },
-            { tag: 'render', label: 'render' }
+            { tag: 'render', label: 'render' },
+            { tag: 'attach', label: 'attach' }
         ]);
     }
 
