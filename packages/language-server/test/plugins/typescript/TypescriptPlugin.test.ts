@@ -18,6 +18,7 @@ import { ignoredBuildDirectories } from '../../../src/plugins/typescript/Snapsho
 import { pathToUrl } from '../../../src/utils';
 import { serviceWarmup } from './test-utils';
 import { internalHelpers } from 'svelte2tsx';
+import { VERSION } from 'svelte/compiler';
 
 const testDir = path.join(__dirname, 'testfiles');
 
@@ -817,5 +818,52 @@ describe('TypescriptPlugin', function () {
     // Hacky, but it works. Needed due to testing both new and old transformation
     after(() => {
         __resetCache();
+    });
+
+    const isSvelte5Plus = Number(VERSION.split('.')[0]) >= 5;
+    if (!isSvelte5Plus) {
+        return;
+    }
+
+    it('provides definitions from svelte to rune-mode svelte doc', async () => {
+        const { plugin, document } = setup('definition/definition-rune.svelte');
+
+        const definitions = await plugin.getDefinitions(document, Position.create(4, 3));
+
+        assert.deepStrictEqual(definitions, [
+            {
+                originSelectionRange: {
+                    start: {
+                        character: 1,
+                        line: 4
+                    },
+                    end: {
+                        character: 13,
+                        line: 4
+                    }
+                },
+                targetRange: {
+                    start: {
+                        character: 1,
+                        line: 0
+                    },
+                    end: {
+                        character: 1,
+                        line: 0
+                    }
+                },
+                targetSelectionRange: {
+                    start: {
+                        character: 1,
+                        line: 0
+                    },
+                    end: {
+                        character: 1,
+                        line: 0
+                    }
+                },
+                targetUri: getUri('definition/imported-rune.svelte')
+            }
+        ]);
     });
 });

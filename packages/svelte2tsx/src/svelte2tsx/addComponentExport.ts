@@ -260,7 +260,9 @@ declare function $$__sveltets_2_isomorphic_component<
             if (exportedNames.usesRunes() && !usesSlots && !events.hasEvents()) {
                 statement =
                     `\n${doc}const ${componentName} = __sveltets_2_fn_component(${internalHelpers.renderName}());\n` +
-                    `type ${componentName} = ReturnType<typeof ${componentName}>;\n` +
+                    surroundWithIgnoreComments(
+                        `type ${componentName} = ReturnType<typeof ${componentName}>;\n`
+                    ) +
                     `export default ${componentName};`;
             } else {
                 statement =
