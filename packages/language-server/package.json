@@ -59,7 +59,7 @@
         "globrex": "^0.1.2",
         "lodash": "^4.17.21",
         "prettier": "~3.3.3",
-        "prettier-plugin-svelte": "^3.3.0",
+        "prettier-plugin-svelte": "^3.4.0",
         "svelte": "^4.2.19",
         "svelte2tsx": "workspace:~",
         "typescript": "^5.8.2",
@@ -69,6 +69,6 @@
         "vscode-languageserver": "9.0.1",
         "vscode-languageserver-protocol": "3.17.5",
         "vscode-languageserver-types": "3.17.5",
-        "vscode-uri": "~3.0.0"
+        "vscode-uri": "~3.1.0"
     }
 }
