@@ -22,5 +22,5 @@ async () => {  { svelteHTML.createElement("svelte:options", {"runes":true,});}
 };
 return { props: {} as Record<string, never>, exports: {name1: name1,name2: name2,name3: name3,name4: name4,renamed1: rename1,renamed2: rename2,baz: baz,renamedbaz: renamebaz} as any as { name1: string,name2: string,name3: string,name4: string,renamed1: string,renamed2: string,Foo: typeof Foo,bar: typeof bar,baz: string,RenamedFoo: typeof RenameFoo,renamedbar: typeof renamebar,renamedbaz: string }, bindings: __sveltets_$$bindings(''), slots: {}, events: {} }}
 const Input__SvelteComponent_ = __sveltets_2_fn_component($$render());
-type Input__SvelteComponent_ = ReturnType<typeof Input__SvelteComponent_>;
-export default Input__SvelteComponent_;
+/*Ωignore_startΩ*/type Input__SvelteComponent_ = ReturnType<typeof Input__SvelteComponent_>;
+/*Ωignore_endΩ*/export default Input__SvelteComponent_;
