@@ -63,7 +63,7 @@ describe('SveltePlugin#getCompletions', () => {
     });
 
     it('should return completions for @', () => {
-        expectCompletionsFor('{@').toEqual(['html', 'debug', 'const', 'render']);
+        expectCompletionsFor('{@').toEqual(['html', 'debug', 'const', 'render', 'attach']);
     });
 
     describe('should return no completions for :', () => {
