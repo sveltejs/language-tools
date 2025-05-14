@@ -7,8 +7,8 @@ import type ts from 'typescript/lib/tsserverlibrary';
 import { ConfigManager, Configuration } from './config-manager';
 import { ProjectSvelteFilesManager } from './project-svelte-files';
 import {
-    getConfigPathForProject,
     getProjectDirectory,
+    getProjectParsedCommandLine,
     importSvelteCompiler,
     isSvelteProject
 } from './utils';
@@ -47,11 +47,7 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
             logger.log(info.config);
         }
 
-        // This call the ConfiguredProject.getParsedCommandLine
-        // where it'll try to load the cached version of the parsedCommandLine
-        const parsedCommandLine = info.languageServiceHost.getParsedCommandLine?.(
-            getConfigPathForProject(info.project)
-        );
+        const parsedCommandLine = getProjectParsedCommandLine(info.project);
 
         // For some reason it's no longer enough to patch this at the projectService level, so we do it here, too
         // TODO investigate if we can use the script snapshot for all Svelte files, too, enabling Svelte file
