@@ -31,7 +31,6 @@ export function handleSnippet(
     snippetBlock: BaseNode,
     component?: InlineComponent | Element
 ): void {
-    console.log({ snippetBlock });
     const isImplicitProp = component !== undefined;
     const endSnippet = str.original.lastIndexOf('{', snippetBlock.end - 1);
 
