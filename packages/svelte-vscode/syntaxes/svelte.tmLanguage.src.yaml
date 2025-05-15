@@ -234,10 +234,37 @@ repository:
   special-tags-modes:
     patterns:
     # Expressions or simple values.
-    - begin: (?<=(if|key|then|catch|snippet|html|render).*?)\G
+    - begin: (?<=(if|key|then|catch|html|render).*?)\G
       end: (?=})
       name: meta.embedded.expression.svelte source.ts
       patterns: [ include: source.ts ]
+
+    # Snippet blocks - special because of how source.ts will parse generics: If it realizes "oh this is a function definition" it will
+    # go into arrow function parsing mode and not stop until it finds a `=>`, which means it will go past the `}` snippet open boundary
+    # and fuck up the rest of the file syntax highlighting
+    - begin: (?<=snippet.*?)\G
+      end: (?=})
+      name: meta.embedded.expression.svelte source.ts
+      patterns:
+        # Match an identifier, but only if it is before a generic
+        - match: \G\s*([_$[:alpha:]][_$[:alnum:]]*)\s*(?=<)
+          captures:
+            1: { name: entity.name.function.ts }
+        # Match optional `<` ... `>` with inner as source.ts
+        - begin: (?<=<)
+          end: (?=>)
+          contentName: meta.type.parameters.ts
+          patterns: [ include: source.ts ]
+        # Match the `(...)` but not starting at `(` because then TS would see it as an arrow function and parse past our snippet open boundary
+        - begin: (?<=>\s*\()
+          end: (?=})
+          name: meta.embedded.expression.svelte source.ts
+          patterns: [ include: source.ts ]
+        # If the above three don't match (because there's no generic) then this one kicks in
+        - begin: \G
+          end: (?=})
+          name: meta.embedded.expression.svelte source.ts
+          patterns: [ include: source.ts ]
 
     # Const.
     - begin: (?<=const.*?)\G
