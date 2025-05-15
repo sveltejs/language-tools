@@ -25,6 +25,7 @@ import {
     isSvelteFilePath,
     getTsCheckComment
 } from './utils';
+import { performance } from 'perf_hooks';
 import { Logger } from '../../logger';
 import { dirname, resolve } from 'path';
 import { URI } from 'vscode-uri';
@@ -200,6 +201,7 @@ function preprocessSvelteFile(document: Document, options: SvelteSnapshotOptions
         : ts.ScriptKind.JS;
 
     try {
+        performance.mark('svelte2tsx');
         const tsx = svelte2tsx(text, {
             parse: options.parse,
             version: options.version,
@@ -213,6 +215,8 @@ function preprocessSvelteFile(document: Document, options: SvelteSnapshotOptions
                 document.config?.compilerOptions?.accessors ??
                 document.config?.compilerOptions?.customElement
         });
+        performance.mark('svelte2tsx-end');
+        performance.measure('svelte2tsx', 'svelte2tsx', 'svelte2tsx-end');
         text = tsx.code;
         tsxMap = tsx.map as EncodedSourceMap;
         exportedNames = tsx.exportedNames;
@@ -311,8 +315,15 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
         return this.text;
     }
 
-    getChangeRange() {
-        return undefined;
+    getChangeRange(oldSnapshot: SvelteDocumentSnapshot) {
+        if (
+            (oldSnapshot.parserError && !this.parserError) ||
+            (!oldSnapshot.parserError && this.parserError)
+        ) {
+            return undefined;
+        }
+
+        return getChangeRange(oldSnapshot, this);
     }
 
     positionAt(offset: number) {
@@ -476,8 +487,8 @@ export class JSOrTSDocumentSnapshot extends IdentityMapper implements DocumentSn
         return this.text;
     }
 
-    getChangeRange() {
-        return undefined;
+    getChangeRange(oldSnapshot: JSOrTSDocumentSnapshot) {
+        return getChangeRange(oldSnapshot, this);
     }
 
     positionAt(offset: number) {
@@ -785,4 +796,43 @@ function tryParseRawSourceMap(text: string) {
     }
 
     return undefined;
+}
+
+function getChangeRange(oldSnapshot: DocumentSnapshot, currentSnapshot: DocumentSnapshot) {
+    try {
+        if (oldSnapshot.version >= currentSnapshot.version) {
+            return undefined;
+        }
+
+        const oldText = oldSnapshot.getFullText();
+        const currentText = currentSnapshot.getFullText();
+
+        let diffStart = oldText.length - 1;
+        for (let i = 0; i < currentText.length; i++) {
+            if (oldText.charAt(i) !== currentText.charAt(i)) {
+                diffStart = i;
+                break;
+            }
+        }
+
+        let lengthDiff = currentText.length - oldText.length;
+        let diffEnd = diffStart + 1;
+        for (let i = currentText.length - 1; i > diffStart; i--) {
+            if (oldText.charAt(i - lengthDiff) !== currentText.charAt(i)) {
+                diffEnd = i + 1;
+                break;
+            }
+        }
+
+        if (diffStart === 0 && diffEnd >= currentText.length - 1) {
+            return undefined;
+        } else {
+            return ts.createTextChangeRange(
+                ts.createTextSpan(diffStart, diffEnd - diffStart - lengthDiff),
+                diffEnd - diffStart
+            );
+        }
+    } catch (e) {
+        return undefined;
+    }
 }
