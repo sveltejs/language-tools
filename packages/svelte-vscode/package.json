@@ -458,7 +458,8 @@
                     "source.stylus": "stylus",
                     "source.js": "javascript",
                     "source.ts": "typescript",
-                    "source.coffee": "coffeescript"
+                    "source.coffee": "coffeescript",
+                    "source.civet": "civet"
                 },
                 "unbalancedBracketScopes": [
                     "keyword.operator.relational",
