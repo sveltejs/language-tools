@@ -165,7 +165,7 @@ This means it's easy to write tests for your changes:
 pnpm test
 ```
 
-For tricker issues, you can run the tests with a debugger in VSCode by setting a breakpoint (or adding `debugger` in the code) and launching the task: "Run tests with debugger".
+For trickier issues, you can run the tests with a debugger in VSCode by setting a breakpoint (or adding `debugger` in the code) and launching the test in the [JavaScript Debug Terminal](https://code.visualstudio.com/docs/nodejs/nodejs-debugging#_javascript-debug-terminal).
 
 ## Supporting Svelte
 
