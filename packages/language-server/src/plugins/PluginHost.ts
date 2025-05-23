@@ -34,7 +34,8 @@ import {
     TextDocumentIdentifier,
     TextEdit,
     WorkspaceEdit,
-    InlayHint
+    InlayHint,
+    WorkspaceSymbol
 } from 'vscode-languageserver';
 import { DocumentManager, getNodeIfIsInHTMLStartTag } from '../lib/documents';
 import { Logger } from '../logger';
@@ -694,6 +695,18 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
                 ExecuteMode.FirstNonNull,
                 'high'
             ) ?? [] // fall back to empty array to prevent fallback to word-based highlighting
+        );
+    }
+
+    async getWorkspaceSymbols(
+        query: string,
+        token: CancellationToken
+    ): Promise<WorkspaceSymbol[] | null> {
+        return await this.execute<WorkspaceSymbol[]>(
+            'getWorkspaceSymbols',
+            [query, token],
+            ExecuteMode.FirstNonNull,
+            'high'
         );
     }
 

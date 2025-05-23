@@ -35,7 +35,8 @@ import {
     SymbolInformation,
     TextDocumentIdentifier,
     TextEdit,
-    WorkspaceEdit
+    WorkspaceEdit,
+    WorkspaceSymbol
 } from 'vscode-languageserver-types';
 import { Document } from '../lib/documents';
 
@@ -251,6 +252,13 @@ export interface DocumentHighlightProvider {
     ): Resolvable<DocumentHighlight[] | null>;
 }
 
+export interface WorkspaceSymbolsProvider {
+    getWorkspaceSymbols(
+        query: string,
+        cancellationToken?: CancellationToken
+    ): Resolvable<WorkspaceSymbol[] | null>;
+}
+
 export interface OnWatchFileChanges {
     onWatchFileChanges(onWatchFileChangesParas: OnWatchFileChangesPara[]): void;
 }
@@ -282,7 +290,8 @@ type ProviderBase = DiagnosticsProvider &
     CallHierarchyProvider &
     FoldingRangeProvider &
     CodeLensProvider &
-    DocumentHighlightProvider;
+    DocumentHighlightProvider &
+    WorkspaceSymbolsProvider;
 
 export type LSProvider = ProviderBase & BackwardsCompatibleDefinitionsProvider;
 

@@ -135,6 +135,10 @@ Enable signature help (parameter hints) for JS/TS. _Default_: `true`
 
 Enable semantic tokens (semantic highlight) for TypeScript. _Default_: `true`
 
+#### `svelte.plugin.typescript.workspaceSymbols.enable`
+
+Enable workspace symbols for TypeScript. You can disable this if the language server client you're using doesn't deduplicate results from the TSServer. _Default_: `true`.
+
 ##### `svelte.plugin.css.enable`
 
 Enable the CSS plugin. _Default_: `true`
