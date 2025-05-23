@@ -290,6 +290,16 @@ export class SnapshotManager {
         }
     }
 
+    allFilesAreJsOrDts() {
+        for (const doc of this.documents.values()) {
+            if (doc.scriptKind === ts.ScriptKind.TS || doc.scriptKind === ts.ScriptKind.TSX) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     dispose() {
         this.globalSnapshotsManager.removeChangeListener(this.onSnapshotChange);
     }

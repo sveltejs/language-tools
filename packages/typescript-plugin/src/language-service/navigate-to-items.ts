@@ -1,6 +1,12 @@
 import type ts from 'typescript/lib/tsserverlibrary';
-import { isGeneratedSvelteComponentName, isNotNullOrUndefined, isSvelteFilePath } from '../utils';
+import {
+    isGeneratedSvelteComponentName,
+    isNotNullOrUndefined,
+    isSvelteFilePath,
+    isNoTextSpanInGeneratedCode
+} from '../utils';
 import { SvelteSnapshotManager } from '../svelte-snapshots';
+import { internalHelpers } from 'svelte2tsx';
 
 export function decorateNavigateToItems(
     ls: ts.LanguageService,
@@ -18,15 +24,18 @@ export function decorateNavigateToItems(
 
                 if (
                     item.name.startsWith('__sveltets_') ||
-                    (item.name === 'render' && !item.containerName)
+                    item.name === internalHelpers.renderName ||
+                    item.name.startsWith('$$')
                 ) {
                     return;
                 }
 
-                let textSpan = snapshotManager
-                    .get(item.fileName)
-                    ?.getOriginalTextSpan(item.textSpan);
+                const snapshot = snapshotManager.get(item.fileName);
+                if (!snapshot || !isNoTextSpanInGeneratedCode(snapshot.getText(), item.textSpan)) {
+                    return;
+                }
 
+                let textSpan = snapshot.getOriginalTextSpan(item.textSpan);
                 if (!textSpan) {
                     if (isGeneratedSvelteComponentName(item.name)) {
                         textSpan = { start: 0, length: 1 };
@@ -35,11 +44,27 @@ export function decorateNavigateToItems(
                     }
                 }
 
+                const containerName =
+                    item.containerName === internalHelpers.renderName || !item.containerName
+                        ? isInScript(textSpan.start, snapshot.getOriginalText())
+                            ? 'script'
+                            : ''
+                        : item.containerName;
+
                 return {
                     ...item,
+                    containerName,
                     textSpan
                 };
             })
             .filter(isNotNullOrUndefined);
     };
+}
+
+function isInScript(offset: number, originalText: string): boolean {
+    const text = originalText.slice(0, offset);
+    const lastScriptTag = text.lastIndexOf('<script');
+    const lastCloseTag = text.lastIndexOf('</script>');
+
+    return lastScriptTag > lastCloseTag;
 }
