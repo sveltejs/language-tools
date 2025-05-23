@@ -130,7 +130,15 @@ describe('WorkspaceSymbolsProvider', function () {
         await lsAndTsDocResolver.getLSAndTSDoc(document);
 
         const symbols = await provider.getWorkspaceSymbols('_');
-        assert.deepStrictEqual(onlyInWorkspaceSymbolsDir(symbols), []);
+        assert.deepStrictEqual(
+            // Filter out the generated component class/const/type.
+            // The unfiltered result is slightly different in svelte 4 and svelte 5, 
+            // and there is a maxResultCount limit, so it's not always present.
+            onlyInWorkspaceSymbolsDir(symbols)?.filter(
+                (v) => v.name !== 'WorkspaceSymbols__SvelteComponent_'
+            ),
+            []
+        );
 
         const symbols2 = await provider.getWorkspaceSymbols('$');
         assert.deepStrictEqual(onlyInWorkspaceSymbolsDir(symbols2), []);
