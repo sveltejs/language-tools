@@ -1,8 +1,9 @@
-value; 
+value; {
      { svelteHTML.createElement("p", {});  }
-
-$store; 
+}
+$store; {
      { svelteHTML.createElement("p", {});  }
-
-expr.obj; 
+}
+expr.obj; {
      { svelteHTML.createElement("p", {});  }
+}

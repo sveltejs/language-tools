@@ -8,10 +8,10 @@ if(true){
     
 }
 
-key; 
+key; {
       const foo/*Ωignore_positionΩ*/ = ()/*Ωignore_startΩ*/: ReturnType<import('svelte').Snippet>/*Ωignore_endΩ*/ => { async ()/*Ωignore_positionΩ*/ => {};return __sveltets_2_any(0)};;__sveltets_2_ensureSnippet(foo());
     
-
+}
 
   const snippetBlock/*Ωignore_positionΩ*/ = ()/*Ωignore_startΩ*/: ReturnType<import('svelte').Snippet>/*Ωignore_endΩ*/ => { async ()/*Ωignore_positionΩ*/ => {
       const foo/*Ωignore_positionΩ*/ = ()/*Ωignore_startΩ*/: ReturnType<import('svelte').Snippet>/*Ωignore_endΩ*/ => { async ()/*Ωignore_positionΩ*/ => {};return __sveltets_2_any(0)};  const foo2/*Ωignore_positionΩ*/ = ()/*Ωignore_startΩ*/: ReturnType<import('svelte').Snippet>/*Ωignore_endΩ*/ => { async ()/*Ωignore_positionΩ*/ => {};return __sveltets_2_any(0)};;__sveltets_2_ensureSnippet(foo());
