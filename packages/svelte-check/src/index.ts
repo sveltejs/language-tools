@@ -191,8 +191,16 @@ class DiagnosticsWatcher {
     }
 
     private async updateDocument(path: string, isNew: boolean) {
-        const text = fs.readFileSync(path, 'utf-8');
-        await this.svelteCheck.upsertDocument({ text, uri: URI.file(path).toString() }, isNew);
+        await this.svelteCheck.upsertDocument(
+            {
+                // delay reading until we actually need the text
+                get text() {
+                    return fs.existsSync(path) ? fs.readFileSync(path, 'utf-8') : '';
+                },
+                uri: URI.file(path).toString()
+            },
+            isNew
+        );
         this.scheduleDiagnostics();
     }
 

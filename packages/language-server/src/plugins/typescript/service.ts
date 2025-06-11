@@ -716,7 +716,14 @@ async function createLanguageService(
 
     function fileBelongsToProject(filePath: string, isNew: boolean): boolean {
         filePath = normalizePath(filePath);
-        return hasFile(filePath) || (isNew && getParsedConfig().fileNames.includes(filePath));
+        if (hasFile(filePath)) {
+            return true;
+        }
+        if (!isNew) {
+            return false;
+        }
+        ensureProjectFileUpdates(filePath);
+        return snapshotManager.isProjectFile(filePath);
     }
 
     function updateTsOrJsFile(fileName: string, changes?: TextDocumentContentChangeEvent[]): void {
