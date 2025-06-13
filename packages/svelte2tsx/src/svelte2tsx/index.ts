@@ -95,7 +95,11 @@ export function svelte2tsx(
     const renderFunctionStart = scriptTag
         ? str.original.lastIndexOf('>', scriptTag.content.start) + 1
         : instanceScriptTarget;
-    const implicitStoreValues = new ImplicitStoreValues(resolvedStores, renderFunctionStart);
+    const implicitStoreValues = new ImplicitStoreValues(
+        resolvedStores,
+        renderFunctionStart,
+        svelte5Plus
+    );
     //move the instance script and process the content
     let exportedNames = new ExportedNames(str, 0, basename, isTsFile, svelte5Plus, isRunes);
     let generics = new Generics(str, 0, { attributes: [] } as any);
@@ -155,6 +159,7 @@ export function svelte2tsx(
             new ImplicitStoreValues(
                 implicitStoreValues.getAccessedStores(),
                 renderFunctionStart,
+                svelte5Plus,
                 scriptTag || options.mode === 'ts' ? undefined : (input) => `</>;${input}<>`
             ),
             moduleAst

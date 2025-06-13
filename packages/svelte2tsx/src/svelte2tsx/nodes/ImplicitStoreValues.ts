@@ -24,6 +24,7 @@ export class ImplicitStoreValues {
     constructor(
         storesResolvedInTemplate: string[] = [],
         private renderFunctionStart: number,
+        private isSvelte5Plus: boolean,
         private storeFromImportsWrapper = (input: string) => input
     ) {
         storesResolvedInTemplate.forEach(this.addStoreAcess);
@@ -125,7 +126,7 @@ export class ImplicitStoreValues {
             .filter(
                 (declaration) =>
                     declaration.name &&
-                    !this.isSvelteStoreDerivedImport(declaration) &&
+                    (!this.isSvelte5Plus || !this.isSvelteStoreDerivedImport(declaration)) &&
                     this.accessedStores.has(declaration.name.getText())
             )
             .map(({ name }) => name.getText());
