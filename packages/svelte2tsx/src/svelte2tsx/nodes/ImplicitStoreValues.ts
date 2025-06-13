@@ -24,6 +24,7 @@ export class ImplicitStoreValues {
     constructor(
         storesResolvedInTemplate: string[] = [],
         private renderFunctionStart: number,
+        private isSvelte5Plus: boolean,
         private storeFromImportsWrapper = (input: string) => input
     ) {
         storesResolvedInTemplate.forEach(this.addStoreAcess);
@@ -122,7 +123,12 @@ export class ImplicitStoreValues {
 
     private attachStoreValueDeclarationOfImportsToRenderFn(str: MagicString) {
         const storeNames = this.importStatements
-            .filter(({ name }) => name && this.accessedStores.has(name.getText()))
+            .filter(
+                (declaration) =>
+                    declaration.name &&
+                    (!this.isSvelte5Plus || !this.isSvelteStoreDerivedImport(declaration)) &&
+                    this.accessedStores.has(declaration.name.getText())
+            )
             .map(({ name }) => name.getText());
         if (!storeNames.length) {
             return;
@@ -133,6 +139,20 @@ export class ImplicitStoreValues {
         );
 
         str.appendRight(this.renderFunctionStart, storeDeclarations);
+    }
+
+    private isSvelteStoreDerivedImport(declaration: ts.ImportClause | ts.ImportSpecifier): boolean {
+        // named import of 'derived' from 'svelte/store'
+        if (!ts.isImportSpecifier(declaration) || declaration.name.text !== 'derived') {
+            return false;
+        }
+        const importDeclaration = declaration.parent.parent.parent;
+        return (
+            ts.isImportDeclaration(importDeclaration) &&
+            importDeclaration.moduleSpecifier &&
+            ts.isStringLiteral(importDeclaration.moduleSpecifier) &&
+            importDeclaration.moduleSpecifier.text === 'svelte/store'
+        );
     }
 
     private createStoreDeclarations(storeNames: string[]): string {
