@@ -179,6 +179,12 @@
                     "title": "TypeScript: Semantic Tokens",
                     "description": "Enable semantic tokens (semantic highlight) for TypeScript."
                 },
+                "svelte.plugin.typescript.workspaceSymbols.enable": {
+                    "type": "boolean",
+                    "default": true,
+                    "title": "TypeScript: Workspace Symbols",
+                    "description": "Enable workspace symbols for TypeScript."
+                },
                 "svelte.plugin.css.enable": {
                     "type": "boolean",
                     "default": true,
