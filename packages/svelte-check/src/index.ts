@@ -194,6 +194,7 @@ class DiagnosticsWatcher {
         await this.svelteCheck.upsertDocument(
             {
                 // delay reading until we actually need the text
+                // prevents race conditions from crashing svelte-check when something is created and deleted immediately afterwards
                 get text() {
                     return fs.existsSync(path) ? fs.readFileSync(path, 'utf-8') : '';
                 },
