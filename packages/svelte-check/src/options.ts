@@ -14,6 +14,7 @@ export interface SvelteCheckCliOptions {
     compilerWarnings: Record<string, 'error' | 'ignore'>;
     diagnosticSources: DiagnosticSource[];
     threshold: Threshold;
+    respectTsconfigExcludes: boolean;
 }
 
 export function parseOptions(cb: (opts: SvelteCheckCliOptions) => any) {
@@ -65,6 +66,11 @@ export function parseOptions(cb: (opts: SvelteCheckCliOptions) => any) {
             'Filters the diagnostics to display. `error` will output only errors while `warning` will output warnings and errors.',
             'warning'
         )
+        .option(
+            '--ignore-tsconfig-excludes',
+            'Disable respecting tsconfig exclude patterns for file watching. By default, svelte-check respects tsconfig excludes to prevent watching unnecessary files.',
+            false
+        )
         // read by sade and preprocessor like sass
         .option('--color', 'Force enabling of color output', false)
         .option('--no-color', 'Force disabling of color output', false)
@@ -86,7 +92,8 @@ export function parseOptions(cb: (opts: SvelteCheckCliOptions) => any) {
                 failOnWarnings: !!opts['fail-on-warnings'],
                 compilerWarnings: getCompilerWarnings(opts),
                 diagnosticSources: getDiagnosticSources(opts),
-                threshold: getThreshold(opts)
+                threshold: getThreshold(opts),
+                respectTsconfigExcludes: !opts['ignore-tsconfig-excludes']
             });
         });
 
