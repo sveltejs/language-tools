@@ -32,5 +32,6 @@ export default async function (config: GenerateConfig): ReturnType<Resource['gen
     } else if (withTs && !withSatisfies) {
         template = tsScriptTemplate;
     }
+
     return template.trim();
 }
