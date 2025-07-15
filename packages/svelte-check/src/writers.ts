@@ -114,6 +114,9 @@ export class HumanFriendlyWriter implements Writer {
         warningCount: number,
         fileCountWithProblems: number
     ) {
+        if (fileCountWithProblems) {
+            this.stream.write('====================================\n');
+        }
         const message = [
             'svelte-check found ',
             `${errorCount} ${errorCount === 1 ? 'error' : 'errors'} and `,
