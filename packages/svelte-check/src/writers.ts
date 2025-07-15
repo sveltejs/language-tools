@@ -38,10 +38,7 @@ export class HumanFriendlyWriter implements Writer {
         }
 
         if (this.isVerbose) {
-            this.stream.write('\n');
-            this.stream.write('====================================\n');
-            this.stream.write(`Loading svelte-check in workspace: ${workspaceDir}`);
-            this.stream.write('\n');
+            this.stream.write(`Loading svelte-check in workspace: ${workspaceDir}\n`);
             this.stream.write('Getting Svelte diagnostics...\n');
             this.stream.write('\n');
         }
@@ -60,7 +57,7 @@ export class HumanFriendlyWriter implements Writer {
             let msg;
             if (this.isVerbose) {
                 const code = this.formatRelatedCode(diagnostic, text);
-                msg = `${diagnostic.message} ${source}\n${pc.cyan(code)}`;
+                msg = `${diagnostic.message} ${source}\n${pc.cyan(code.trimEnd())}`;
             } else {
                 msg = `${diagnostic.message} ${source}`;
             }
@@ -117,7 +114,9 @@ export class HumanFriendlyWriter implements Writer {
         warningCount: number,
         fileCountWithProblems: number
     ) {
-        this.stream.write('====================================\n');
+        if (fileCountWithProblems) {
+            this.stream.write('====================================\n');
+        }
         const message = [
             'svelte-check found ',
             `${errorCount} ${errorCount === 1 ? 'error' : 'errors'} and `,
