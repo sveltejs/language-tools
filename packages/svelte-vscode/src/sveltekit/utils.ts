@@ -31,10 +31,10 @@ export async function checkProjectKind(path: string): Promise<GenerateConfig['ki
     const jsconfig = await findFile(path, 'jsconfig.json');
 
     const svelteVersion = await getVersionFromPackageJson('svelte');
-    const withRunes = versionAtLeast(svelteVersion ?? '0.0', 5);
+    const withRunes = svelteVersion ? versionAtLeast(svelteVersion, 5) : true;
 
     const svelteKitVersion = await getVersionFromPackageJson('@sveltejs/kit');
-    let withProps = versionAtLeast(svelteKitVersion ?? '0.0', 2, 16);
+    let withProps = svelteKitVersion ? versionAtLeast(svelteKitVersion, 2, 16) : true;
 
     const withTs = !!tsconfig && (!jsconfig || tsconfig.length >= jsconfig.length);
     let withSatisfies = false;
@@ -44,8 +44,10 @@ export async function checkProjectKind(path: string): Promise<GenerateConfig['ki
                 paths: [tsconfig]
             });
             const { version } = require(packageJSONPath);
-            withSatisfies = versionAtLeast(version, 4, 9);
-        } catch (e) {}
+            withSatisfies = version ? versionAtLeast(version, 4, 9) : true;
+        } catch (e) {
+            withSatisfies = true;
+        }
     }
 
     return {

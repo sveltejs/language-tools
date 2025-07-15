@@ -9,7 +9,8 @@
         "build": "npm run build:ts && npm run build:grammar",
         "vscode:prepublish": "npm install && npm run build && npm prune --production",
         "watch": "npm run build:grammar && tsc -w -p ./",
-        "test": "npm run build:grammar && node test/grammar/test.js"
+        "test": "npm run build:grammar && node test/grammar/test.js",
+        "test:2": "vitest"
     },
     "repository": {
         "type": "git",
@@ -745,6 +746,7 @@
         "js-yaml": "^3.14.0",
         "tslib": "^2.4.0",
         "typescript": "^5.8.2",
+        "vitest": "^3.2.4",
         "vscode-tmgrammar-test": "^0.0.11"
     },
     "dependencies": {
