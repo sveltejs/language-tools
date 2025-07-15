@@ -287,6 +287,7 @@ export class ExportedNames {
                         ? (element.propertyName as ts.Identifier).text
                         : element.name.text;
                     if (isKitRouteFile) {
+                        // TODO once we know we can assume SvelteKit 2.16+, simplify this to always using LayoutProps/PageProps
                         if (name === 'data') {
                             props.push(
                                 `data: import('./$types.js').${
@@ -296,6 +297,13 @@ export class ExportedNames {
                         }
                         if (name === 'form' && !isKitLayoutFile) {
                             props.push(`form: import('./$types.js').ActionData`);
+                        }
+                        if (name === 'params') {
+                            props.push(
+                                `params: import('./$types.js').${
+                                    isKitLayoutFile ? 'LayoutProps' : 'PageProps'
+                                }['params']`
+                            );
                         }
                     } else if (element.initializer) {
                         const initializer =

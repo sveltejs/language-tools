@@ -1,7 +1,7 @@
 ///<reference types="svelte" />
 ;function $$render() {
 
-    let/** @typedef {{ form: import('./$types.js').ActionData, data: import('./$types.js').PageData }} $$ComponentProps *//** @type {$$ComponentProps} */ { form, data } = $props();
+    let/** @typedef {{ form: import('./$types.js').ActionData, data: import('./$types.js').PageData, params: import('./$types.js').PageProps['params'] }} $$ComponentProps *//** @type {$$ComponentProps} */ { form, data, params } = $props();
      const snapshot/*Ωignore_startΩ*/: import('./$types.js').Snapshot/*Ωignore_endΩ*/ = {};
 ;
 async () => {};
