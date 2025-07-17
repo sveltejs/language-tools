@@ -64,14 +64,6 @@ export interface TemplateProcessResult {
     isRunes: boolean;
 }
 
-function stripDoctype(str: MagicString): void {
-    const regex = /<!doctype(.+?)>(\n)?/i;
-    const result = regex.exec(str.original);
-    if (result) {
-        str.remove(result.index, result.index + result[0].length);
-    }
-}
-
 /**
  * Walks the HTMLx part of the Svelte component
  * and converts it to JSX
@@ -91,8 +83,6 @@ export function convertHtmlxToJsx(
 ): TemplateProcessResult {
     options.typingsNamespace = options.typingsNamespace || 'svelteHTML';
     const preserveAttributeCase = options.namespace === 'foreign';
-
-    stripDoctype(str);
 
     const rootSnippets: Array<[number, number, Map<string, any>, string]> = [];
     let element: Element | InlineComponent | undefined;
@@ -325,7 +315,9 @@ export function convertHtmlxToJsx(
                             slotHandler.handleSlot(node, templateScope);
                         }
 
-                        if (node.name !== '!DOCTYPE') {
+                        if (node.name === '!DOCTYPE') {
+                            str.remove(node.start, node.end);
+                        } else {
                             if (element) {
                                 element.child = new Element(
                                     str,
