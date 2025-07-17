@@ -104,6 +104,7 @@ export function svelte2tsx(
     let exportedNames = new ExportedNames(str, 0, basename, isTsFile, svelte5Plus, isRunes);
     let generics = new Generics(str, 0, { attributes: [] } as any);
     let uses$$SlotsInterface = false;
+    let hasTopLevelAwait = false;
     if (scriptTag) {
         //ensure it is between the module script and the rest of the template (the variables need to be declared before the jsx template)
         if (scriptTag.start != instanceScriptTarget) {
@@ -125,12 +126,15 @@ export function svelte2tsx(
         uses$$restProps = uses$$restProps || res.uses$$restProps;
         uses$$slots = uses$$slots || res.uses$$slots;
 
-        ({ exportedNames, events, generics, uses$$SlotsInterface } = res);
+        ({ exportedNames, events, generics, uses$$SlotsInterface, hasTopLevelAwait } = res);
     }
 
     exportedNames.usesAccessors = usesAccessors;
     if (svelte5Plus) {
         exportedNames.checkGlobalsForRunes(implicitStoreValues.getGlobals());
+        if (hasTopLevelAwait) {
+            exportedNames.enterRunesMode();
+        }
     }
 
     //wrap the script tag and template content in a function returning the slot and exports
@@ -146,6 +150,7 @@ export function svelte2tsx(
         uses$$slots,
         uses$$SlotsInterface,
         generics,
+        hasTopLevelAwait,
         svelte5Plus,
         isTsFile,
         mode: options.mode
@@ -219,6 +224,7 @@ export function svelte2tsx(
         mode: options.mode,
         generics,
         isSvelte5: svelte5Plus,
+        hasTopLevelAwait,
         noSvelteComponentTyped: options.noSvelteComponentTyped
     });
 

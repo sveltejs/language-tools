@@ -30,34 +30,42 @@ async function testEmitDts(sample: string) {
             ...config,
             libRoot: config.libRoot ? join(cwd, config.libRoot) : join(cwd, 'src')
         });
-        const expectedFiles = fs.readdirSync(join(cwd, 'expected'));
         const actual_files = fs.readdirSync(join(cwd, 'package'));
-        assert.strictEqual(
-            actual_files.length,
-            expectedFiles.length,
-            'Contains a different number of files. Expected ' +
-                expectedFiles.join(',') +
-                ' , got ' +
-                actual_files.join(',')
-        );
 
-        for (const file of actual_files) {
+        if (!fs.existsSync(join(cwd, 'expected'))) {
+            fs.mkdirSync(join(cwd, 'expected'), { recursive: true });
+            for (const file of actual_files) {
+                fs.copyFileSync(join(cwd, 'package', file), join(cwd, 'expected', file));
+            }
+        } else {
+            const expectedFiles = fs.readdirSync(join(cwd, 'expected'));
             assert.strictEqual(
-                expectedFiles.includes(file),
-                true,
-                `Did not expect file or folder ${file}`
+                actual_files.length,
+                expectedFiles.length,
+                'Contains a different number of files. Expected ' +
+                    expectedFiles.join(',') +
+                    ' , got ' +
+                    actual_files.join(',')
             );
-            const expectedContent = fs
-                .readFileSync(join(cwd, 'expected', file), 'utf-8')
-                .replace(/\r\n/g, '\n');
-            const actualContent = fs
-                .readFileSync(join(cwd, 'package', file), 'utf-8')
-                .replace(/\r\n/g, '\n');
-            assert.strictEqual(
-                actualContent,
-                expectedContent,
-                `Expected equal file contents for ${file}`
-            );
+
+            for (const file of actual_files) {
+                assert.strictEqual(
+                    expectedFiles.includes(file),
+                    true,
+                    `Did not expect file or folder ${file}`
+                );
+                const expectedContent = fs
+                    .readFileSync(join(cwd, 'expected', file), 'utf-8')
+                    .replace(/\r\n/g, '\n');
+                const actualContent = fs
+                    .readFileSync(join(cwd, 'package', file), 'utf-8')
+                    .replace(/\r\n/g, '\n');
+                assert.strictEqual(
+                    actualContent,
+                    expectedContent,
+                    `Expected equal file contents for ${file}`
+                );
+            }
         }
     } finally {
         rimraf(join(cwd, 'package'));
