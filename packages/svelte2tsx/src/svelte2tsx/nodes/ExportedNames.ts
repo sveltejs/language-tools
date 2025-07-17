@@ -520,7 +520,7 @@ export class ExportedNames {
     }
 
     createClassGetters(generics = ''): string {
-        if (this.usesRunes()) {
+        if (this.isRunesMode()) {
             // In runes mode, exports are no longer part of props
             return Array.from(this.getters)
                 .map(
@@ -675,7 +675,7 @@ export class ExportedNames {
     createPropsStr(uses$$propsOr$$restProps: boolean): string {
         const names = Array.from(this.exports.entries());
 
-        if (this.usesRunes()) {
+        if (this.isRunesMode()) {
             if (this.$props.type) {
                 return '{} as any as ' + this.$props.type;
             }
@@ -733,7 +733,7 @@ export class ExportedNames {
     }
 
     hasNoProps() {
-        if (this.usesRunes()) {
+        if (this.isRunesMode()) {
             return !this.$props.type && !this.$props.comment;
         }
 
@@ -742,7 +742,7 @@ export class ExportedNames {
     }
 
     createBindingsStr(): string {
-        if (this.usesRunes()) {
+        if (this.isRunesMode()) {
             // will be just the empty strings for zero bindings, which is impossible to create a binding for, so it works out fine
             return `__sveltets_$$bindings('${this.$props.bindings.join("', '")}')`;
         } else {
@@ -758,21 +758,21 @@ export class ExportedNames {
     createExportsStr(): string {
         const names = Array.from(this.exports.entries());
         const others = names.filter(
-            ([, { isLet, isNamedExport }]) => !isLet || (this.usesRunes() && isNamedExport)
+            ([, { isLet, isNamedExport }]) => !isLet || (this.isRunesMode() && isNamedExport)
         );
-        const needsAccessors = this.usesAccessors && names.length > 0 && !this.usesRunes(); // runes mode doesn't support accessors
+        const needsAccessors = this.usesAccessors && names.length > 0 && !this.isRunesMode(); // runes mode doesn't support accessors
 
         if (this.isSvelte5Plus) {
             let str = '';
 
-            if (others.length > 0 || this.usesRunes() || needsAccessors) {
+            if (others.length > 0 || this.isRunesMode() || needsAccessors) {
                 const exports = needsAccessors ? names : others;
 
                 if (others.length > 0 || needsAccessors) {
                     if (this.isTsFile) {
                         str +=
                             // Reference imports that have a type, else they are marked as unused if nothing in the component references them
-                            `, exports: {${this.createReturnElements(this.usesRunes() ? others : [], false, true)}} as any as { ` +
+                            `, exports: {${this.createReturnElements(this.isRunesMode() ? others : [], false, true)}} as any as { ` +
                             this.createReturnElementsType(exports, undefined, true).join(',') +
                             ' }';
                     } else {
@@ -830,7 +830,7 @@ export class ExportedNames {
     }
 
     createOptionalPropsArray(): string[] {
-        if (this.usesRunes()) {
+        if (this.isRunesMode()) {
             return [];
         } else {
             return Array.from(this.exports.entries())
@@ -858,7 +858,14 @@ export class ExportedNames {
             this.isSvelte5Plus && globals.some((global) => runes.includes(global));
     }
 
-    usesRunes() {
+    enterRunesMode() {
+        this.isRunes = true;
+    }
+
+    /**
+     * True if uses runes or top level await or await in template expressions
+     */
+    isRunesMode() {
         return this.hasRunesGlobals || this.hasPropsRune() || this.isRunes;
     }
 }

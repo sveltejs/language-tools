@@ -33,6 +33,7 @@ export function createRenderFunction({
     uses$$slots,
     uses$$SlotsInterface,
     generics,
+    hasTopLevelAwait,
     isTsFile,
     mode
 }: CreateRenderFunctionPara) {
@@ -77,7 +78,11 @@ export function createRenderFunction({
                 end--;
             }
 
-            str.overwrite(scriptTag.start + 1, start - 1, `function ${internalHelpers.renderName}`);
+            str.overwrite(
+                scriptTag.start + 1,
+                start - 1,
+                `${hasTopLevelAwait ? 'async ' : ''}function ${internalHelpers.renderName}`
+            );
             str.overwrite(start - 1, start, isTsFile ? '<' : `<${IGNORE_START_COMMENT}`); // if the generics are unused, only this char is colored opaque
             str.overwrite(
                 end,
@@ -88,7 +93,7 @@ export function createRenderFunction({
             str.overwrite(
                 scriptTag.start + 1,
                 scriptTagEnd,
-                `function ${internalHelpers.renderName}${generics.toDefinitionString(true)}() {${propsDecl}\n`
+                `${hasTopLevelAwait ? 'async ' : ''}function ${internalHelpers.renderName}${generics.toDefinitionString(true)}() {${propsDecl}\n`
             );
         }
 
@@ -100,7 +105,7 @@ export function createRenderFunction({
     } else {
         str.prependRight(
             scriptDestination,
-            `;function ${internalHelpers.renderName}() {` +
+            `;${hasTopLevelAwait ? 'async ' : ''}function ${internalHelpers.renderName}() {` +
                 `${propsDecl}${slotsDeclaration}\nasync () => {`
         );
     }

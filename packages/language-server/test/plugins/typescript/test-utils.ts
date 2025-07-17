@@ -271,10 +271,6 @@ export async function updateSnapshotIfFailedOrEmpty({
 }
 
 export async function createJsonSnapshotFormatter(dir: string) {
-    if (!process.argv.includes('--auto')) {
-        return (_obj: any) => '';
-    }
-
     const prettierOptions = await resolveConfig(dir);
 
     return (obj: any) =>

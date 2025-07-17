@@ -192,11 +192,14 @@ export function convertHtmlxToJsx(
     };
 
     const eventHandler = new EventHandler();
+    const path: BaseNode[] = [];
 
     walk(ast as any, {
         enter: (estreeTypedNode, estreeTypedParent, prop: string) => {
             const node = estreeTypedNode as TemplateNode;
             const parent = estreeTypedParent as BaseNode;
+
+            path.push(node);
 
             if (
                 prop == 'params' &&
@@ -424,6 +427,13 @@ export function convertHtmlxToJsx(
                             );
                         }
                         break;
+                    case 'AwaitExpression':
+                        isRunes ||= path.every(
+                            ({ type }) =>
+                                type !== 'ArrowFunctionExpression' &&
+                                type !== 'FunctionExpression' &&
+                                type !== 'FunctionDeclaration'
+                        );
                 }
             } catch (e) {
                 console.error('Error walking node ', node, e);
@@ -434,6 +444,8 @@ export function convertHtmlxToJsx(
         leave: (estreeTypedNode, estreeTypedParent, prop: string) => {
             const node = estreeTypedNode as TemplateNode;
             const parent = estreeTypedParent as BaseNode;
+
+            path.pop();
 
             if (
                 prop == 'params' &&

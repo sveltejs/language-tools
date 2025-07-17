@@ -26,6 +26,8 @@ export interface InstanceScriptProcessResult {
     uses$$slots: boolean;
     uses$$SlotsInterface: boolean;
     generics: Generics;
+    /** Can only be true in Svelte 5 */
+    hasTopLevelAwait: boolean;
 }
 
 interface PendingStoreResolution {
@@ -79,6 +81,7 @@ export function processInstanceScriptContent(
     let uses$$restProps = false;
     let uses$$slots = false;
     let uses$$SlotsInterface = false;
+    let hasTopLevelAwait = false;
 
     //track if we are in a declaration scope
     let isDeclaration = false;
@@ -311,6 +314,11 @@ export function processInstanceScriptContent(
             implicitTopLevelNames.handleReactiveStatement(node, binaryExpression);
         }
 
+        // Check for top-level await expressions
+        if (isSvelte5Plus && ts.isAwaitExpression(node) && scope === rootScope) {
+            hasTopLevelAwait = true;
+        }
+
         // Defensively call function (checking for undefined) because it got added only recently (TS 4.0)
         // and therefore might break people using older TS versions
         // Don't transform in ts mode because <type>value type assertions are valid in this case
@@ -378,7 +386,8 @@ export function processInstanceScriptContent(
         uses$$restProps,
         uses$$slots,
         uses$$SlotsInterface,
-        generics
+        generics,
+        hasTopLevelAwait
     };
 }
 
