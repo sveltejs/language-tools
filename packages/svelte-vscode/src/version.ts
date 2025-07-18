@@ -1,3 +1,5 @@
+import { minVersion, valid, gt, gte, lt, lte, coerce } from 'semver';
+
 type Version = {
     isValid: boolean;
 
@@ -94,10 +96,23 @@ function versionUnsupportedBelow(version_str: string, below_str: string): boolea
  * @example
  * const unsupported = minimumRequirement('18.3').for(process.versions.node);
  */
-export function minimumRequirement(version: string): {
-    for: (target: string) => boolean | undefined;
+export function minimumRequirement(versionMin: string): {
+    for: (versionToCheck: string) => boolean | undefined;
 } {
     return {
-        for: (target: string) => versionUnsupportedBelow(target, version)
+        for: (versionToCheck: string) => {
+            if (versionToCheck === undefined) return undefined;
+            if (versionToCheck === '') return undefined;
+            try {
+                const vMin = coerce(versionMin);
+                const vToCheck = coerce(minVersion(versionToCheck));
+                if (vMin && vToCheck) {
+                    return lt(vToCheck, vMin);
+                }
+            } catch (error) {}
+            return undefined;
+
+            return versionUnsupportedBelow(versionToCheck, versionMin);
+        }
     };
 }

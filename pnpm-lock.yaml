@@ -207,12 +207,18 @@ importers:
       '@types/node':
         specifier: ^18.0.0
         version: 18.19.46
+      '@types/semver':
+        specifier: ^7.7.0
+        version: 7.7.0
       '@types/vscode':
         specifier: ^1.67
         version: 1.78.0
       js-yaml:
         specifier: ^3.14.0
         version: 3.14.1
+      semver:
+        specifier: ^7.7.2
+        version: 7.7.2
       tslib:
         specifier: ^2.4.0
         version: 2.5.2
@@ -770,6 +776,9 @@ packages:
 
   '@types/sade@1.7.4':
     resolution: {integrity: sha512-6ys13kmtlY0aIOz4KtMdeBD9BHs6vSE3aRcj4vAZqXjypT2el8WZt6799CMjElVgh1cbOH/t3vrpQ4IpwytcPA==}
+
+  '@types/semver@7.7.0':
+    resolution: {integrity: sha512-k107IF4+Xr7UHjwDc7Cfd6PRQfbdkiRabXGRjo07b4WyPahFBZCZ1sE+BNxYIJPPg73UkfOsVOLwqVc/6ETrIA==}
 
   '@types/sinon@7.5.2':
     resolution: {integrity: sha512-T+m89VdXj/eidZyejvmoP9jivXgBDdkOSBVQjU9kF349NEx10QdPNGxHeZUaj1IlJ32/ewdyXJjnJxyxJroYwg==}
@@ -1561,6 +1570,11 @@ packages:
     engines: {node: '>=10'}
     hasBin: true
 
+  semver@7.7.2:
+    resolution: {integrity: sha512-RF0Fw+rO5AMf9MAyaRXI4AV0Ulj5lMHqVxxdSgiVbixSCXoEmmX/jk0CuJw4+3SqroYO9VoUh+HcuJivvtJemA==}
+    engines: {node: '>=10'}
+    hasBin: true
+
   serialize-javascript@6.0.0:
     resolution: {integrity: sha512-Qr3TosvguFt8ePWqsvRfrKyQXIiW+nGbYpy8XK24NQHE83caxWt+mIymTT19DGFbNWNLfEwsrkSmN64lVWB9ag==}
 
@@ -2226,6 +2240,8 @@ snapshots:
   '@types/sade@1.7.4':
     dependencies:
       '@types/mri': 1.1.1
+
+  '@types/semver@7.7.0': {}
 
   '@types/sinon@7.5.2': {}
 
@@ -3037,6 +3053,8 @@ snapshots:
     dependencies:
       lru-cache: 6.0.0
 
+  semver@7.7.2: {}
+
   serialize-javascript@6.0.0:
     dependencies:
       randombytes: 2.1.0
@@ -3290,7 +3308,7 @@ snapshots:
   vscode-languageclient@9.0.1:
     dependencies:
       minimatch: 5.1.6
-      semver: 7.5.1
+      semver: 7.7.2
       vscode-languageserver-protocol: 3.17.5
 
   vscode-languageserver-protocol@3.17.2:

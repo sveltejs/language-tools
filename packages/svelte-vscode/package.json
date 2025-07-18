@@ -741,8 +741,10 @@
     "devDependencies": {
         "@types/lodash": "^4.14.116",
         "@types/node": "^18.0.0",
+        "@types/semver": "^7.7.0",
         "@types/vscode": "^1.67",
         "js-yaml": "^3.14.0",
+        "semver": "^7.7.2",
         "tslib": "^2.4.0",
         "typescript": "^5.8.2",
         "vitest": "^3.2.4",

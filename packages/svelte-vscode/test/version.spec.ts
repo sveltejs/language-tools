@@ -123,30 +123,36 @@ describe('versionSplit', () => {
     });
 });
 
-describe('minimumRequirement', () => {
+describe.only('minimumRequirement', () => {
     const combinationsMinimumRequirement = [
-        { version: '17', below: '18.3.0', expected: true },
-        { version: '18.2', below: '18.3.0', expected: true },
-        { version: '18.3.0', below: '18.3.1', expected: true },
-        { version: '18.3.1', below: '18.3.0', expected: false },
-        { version: '18.3.0', below: '18.3.0', expected: false },
-        { version: '18.3.0', below: '18.3', expected: false },
-        { version: '18.3.1', below: '18.3', expected: false },
-        { version: '18.3.1', below: '18', expected: false },
-        { version: '18', below: '18', expected: false },
-        { version: 'a', below: 'b', expected: undefined },
-        { version: '18.3', below: '18.3', expected: false },
-        { version: '18.4', below: '18.3', expected: false },
-        { version: '18.2', below: '18.3', expected: true },
+        // strict
+        { min: '18.3.0', version: '17', unsupported: true },
+        { min: '18.3.0', version: '18.2', unsupported: true },
+        { min: '18.3.1', version: '18.3.0', unsupported: true },
+        { min: '18.3.0', version: '18.3.1', unsupported: false },
+        { min: '18.3.0', version: '18.3.0', unsupported: false },
+        { min: '18.3', version: '18.3.0', unsupported: false },
+        { min: '18.3', version: '18.3.1', unsupported: false },
+        { min: '18', version: '18.3.1', unsupported: false },
+        { min: '18', version: '18', unsupported: false },
+        { min: 'b', version: 'a', unsupported: undefined },
+        { min: '18.3', version: '18.3', unsupported: false },
+        { min: '18.3', version: '18.4', unsupported: false },
+        { min: '18.3', version: '18.2', unsupported: true },
 
         // if it's undefined, we can't say anything...
-        { version: undefined!, below: '18.3', expected: undefined },
-        { version: '', below: '18.3', expected: undefined }
+        { min: '18.3', version: undefined!, unsupported: undefined },
+        { min: '18.3', version: '', unsupported: undefined },
+
+        // more fun stuff
+        { min: '7', version: 'latest', unsupported: undefined },
+        { min: '7', version: '>=7', unsupported: false },
+        { min: '7', version: '>7', unsupported: true }
     ] as const;
     it.each(combinationsMinimumRequirement)(
-        '($version below $below) should be $expected',
-        ({ version, below, expected }) => {
-            expect(minimumRequirement(below).for(version)).toEqual(expected);
+        '(min $min, version $version) => unsupported: $unsupported',
+        ({ min, version, unsupported }) => {
+            expect(minimumRequirement(min).for(version)).toEqual(unsupported);
         }
     );
 });
