@@ -49,18 +49,3 @@ export function atLeast(o: {
     } catch (error) {}
     return fallback;
 }
-
-// const res1 = atLeast({
-//     packageName: 'myPkg',
-//     versionMin: '1',
-//     versionToCheck: '2'
-//     // fallback
-// });
-// //
-
-// const res2 = atLeast({
-//     packageName: 'myPkg',
-//     versionMin: '1',
-//     versionToCheck: '2',
-//     fallback: true
-// });
