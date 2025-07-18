@@ -12,19 +12,30 @@ describe.only('atLeast', () => {
         { min: '5', version: '', supported: undefined },
         { min: '5', version: 'catalog:', supported: undefined },
         { min: '5', version: 'latest', supported: undefined },
-        { min: '5', version: 'latest', supported: true, fallback: true }
+        { min: '5', version: 'latest', fallback: true, supported: true },
+        { min: '5', version: 'latest', fallback: false, supported: false }
     ];
     it.each(combinationsAtLeast)(
-        '(min $min, version $version) => supported: $supported',
+        '(min $min, $version, $fallback) => $supported',
         ({ min, version, supported, fallback }) => {
-            expect(
-                atLeast({
-                    packageName: 'myPkg',
-                    versionMin: min,
-                    versionToCheck: version,
-                    fallback
-                })
-            ).toEqual(supported);
+            if (fallback !== undefined) {
+                expect(
+                    atLeast({
+                        packageName: 'myPkg',
+                        versionMin: min,
+                        versionToCheck: version,
+                        fallback
+                    })
+                ).toEqual(supported);
+            } else {
+                expect(
+                    atLeast({
+                        packageName: 'myPkg',
+                        versionMin: min,
+                        versionToCheck: version
+                    })
+                ).toEqual(supported);
+            }
         }
     );
 });

@@ -13,12 +13,30 @@ export function atLeast(o: {
     packageName: string;
     versionMin: string;
     versionToCheck: string;
+    fallback: boolean;
+}): boolean;
+export function atLeast(o: {
+    packageName: string;
+    versionMin: string;
+    versionToCheck: string;
+    fallback?: undefined;
+}): boolean | undefined;
+
+// Implementation
+export function atLeast(o: {
+    packageName: string;
+    versionMin: string;
+    versionToCheck: string;
     fallback?: boolean;
 }): boolean | undefined {
     const { packageName, versionMin, versionToCheck, fallback } = o;
     if (versionToCheck === undefined || versionToCheck === '') return fallback;
 
-    if (versionToCheck.includes('catalog:') || versionToCheck.includes('http')) {
+    if (
+        versionToCheck.includes('latest') ||
+        versionToCheck.includes('catalog:') ||
+        versionToCheck.includes('http')
+    ) {
         console.warn(`Version '${versionToCheck}' for '${packageName}' is not supported`);
         return fallback;
     }
@@ -32,17 +50,17 @@ export function atLeast(o: {
     return fallback;
 }
 
-const res1 = atLeast({
-    packageName: 'myPkg',
-    versionMin: '1',
-    versionToCheck: '2'
-    // fallback
-});
-//
+// const res1 = atLeast({
+//     packageName: 'myPkg',
+//     versionMin: '1',
+//     versionToCheck: '2'
+//     // fallback
+// });
+// //
 
-const res2 = atLeast({
-    packageName: 'myPkg',
-    versionMin: '1',
-    versionToCheck: '2',
-    fallback: true
-});
+// const res2 = atLeast({
+//     packageName: 'myPkg',
+//     versionMin: '1',
+//     versionToCheck: '2',
+//     fallback: true
+// });
