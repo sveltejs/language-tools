@@ -2,21 +2,125 @@ import { expect, describe, it } from 'vitest';
 import { versionSplit, minimumRequirement } from '../src/version';
 
 describe('versionSplit', () => {
-    const combinationsVersionSplit = [
-        { version: '18.13.0', expected: { major: 18, minor: 13, patch: 0 } },
-        { version: 'x.13.0', expected: { major: undefined, minor: 13, patch: 0 } },
-        { version: '18.y.0', expected: { major: 18, minor: undefined, patch: 0 } },
-        { version: '18.13.z', expected: { major: 18, minor: 13, patch: undefined } },
-        { version: '18', expected: { major: 18, minor: undefined, patch: undefined } },
-        { version: '18.13', expected: { major: 18, minor: 13, patch: undefined } },
-        { version: 'invalid', expected: { major: undefined, minor: undefined, patch: undefined } }
-    ];
-    it.each(combinationsVersionSplit)(
-        'should return the correct version for $version',
-        ({ version, expected }) => {
-            expect(versionSplit(version)).toEqual(expected);
+    const combinationsVersionSplit: {
+        version: string;
+        focus?: keyof ReturnType<typeof versionSplit>;
+        expected: ReturnType<typeof versionSplit>;
+    }[] = [
+        {
+            version: '18.13.0',
+            expected: {
+                major: 18,
+                minor: 13,
+                patch: 0,
+                info: 'equal',
+                specifier: 'patch',
+                isValid: true
+            }
+        },
+        {
+            version: 'x.13.0',
+            focus: 'isValid',
+            expected: { isValid: false }
+        },
+        {
+            version: '18.y.0',
+            focus: 'isValid',
+            expected: { isValid: false }
+        },
+        {
+            version: '18.13.z',
+            expected: {
+                major: 18,
+                minor: 13,
+                info: 'equal',
+                specifier: 'minor',
+                isValid: true
+            }
+        },
+        {
+            version: '18',
+            expected: {
+                major: 18,
+                info: 'equal',
+                specifier: 'major',
+                isValid: true
+            }
+        },
+        {
+            version: '18.13',
+            expected: {
+                major: 18,
+                minor: 13,
+                info: 'equal',
+                specifier: 'minor',
+                isValid: true
+            }
+        },
+        {
+            version: 'invalid',
+            focus: 'isValid',
+            expected: { isValid: false }
+        },
+        {
+            version: '>=18',
+            expected: {
+                major: 18,
+                info: 'gte',
+                specifier: 'major',
+                isValid: true
+            }
+        },
+        {
+            version: '>=18.7',
+            expected: {
+                major: 18,
+                minor: 7,
+                info: 'gte',
+                specifier: 'minor',
+                isValid: true
+            }
+        },
+        {
+            version: '>18',
+            expected: {
+                major: 18,
+                info: 'gt',
+                specifier: 'major',
+                isValid: true
+            }
+        },
+        {
+            version: '>18.7',
+            expected: {
+                major: 18,
+                minor: 7,
+                info: 'gt',
+                specifier: 'minor',
+                isValid: true
+            }
+        },
+        {
+            version: '1.1.1-beta.1',
+            expected: {
+                major: 1,
+                minor: 1,
+                patch: 1,
+                beta: 'beta.1',
+                info: 'is-patch-beta',
+                specifier: 'patch',
+                isValid: true
+            }
         }
-    );
+    ];
+    it.each(combinationsVersionSplit)('should handle $version', ({ version, expected, focus }) => {
+        const res = versionSplit(version);
+        if (focus) {
+            expect(res[focus]).toEqual(expected[focus]);
+        } else {
+            expect(res).toEqual(expected);
+        }
+    });
 });
 
 describe('minimumRequirement', () => {
