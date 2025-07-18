@@ -2,6 +2,7 @@ import { TextDecoder } from 'util';
 import * as path from 'path';
 import { Uri, workspace } from 'vscode';
 import type { GenerateConfig } from './generateFiles/types';
+import { atLeast } from '../version';
 
 export async function fileExists(file: string) {
     try {
@@ -31,10 +32,20 @@ export async function checkProjectKind(path: string): Promise<GenerateConfig['ki
     const jsconfig = await findFile(path, 'jsconfig.json');
 
     const svelteVersion = await getVersionFromPackageJson('svelte');
-    const withRunes = svelteVersion ? versionAtLeast(svelteVersion, 5) : true;
+    const withRunes = atLeast({
+        packageName: 'svelte',
+        versionMin: '5',
+        versionToCheck: svelteVersion ?? '',
+        fallback: true
+    });
 
     const svelteKitVersion = await getVersionFromPackageJson('@sveltejs/kit');
-    let withProps = svelteKitVersion ? versionAtLeast(svelteKitVersion, 2, 16) : true;
+    let withProps = atLeast({
+        packageName: '@sveltejs/kit',
+        versionMin: '2.16',
+        versionToCheck: svelteKitVersion ?? '',
+        fallback: true
+    });
 
     const withTs = !!tsconfig && (!jsconfig || tsconfig.length >= jsconfig.length);
     let withSatisfies = false;
@@ -44,7 +55,12 @@ export async function checkProjectKind(path: string): Promise<GenerateConfig['ki
                 paths: [tsconfig]
             });
             const { version } = require(packageJSONPath);
-            withSatisfies = version ? versionAtLeast(version, 4, 9) : true;
+            withSatisfies = atLeast({
+                packageName: 'typescript',
+                versionMin: '4.9',
+                versionToCheck: version,
+                fallback: true
+            });
         } catch (e) {
             withSatisfies = true;
         }
@@ -56,14 +72,6 @@ export async function checkProjectKind(path: string): Promise<GenerateConfig['ki
         withRunes,
         withProps
     };
-}
-
-function versionAtLeast(version: string, major: number, minor?: number): boolean {
-    const [majorVersion, minorVersion] = version.split('.');
-    return (
-        (Number(majorVersion) === major && Number(minorVersion) >= (minor ?? 0)) ||
-        Number(majorVersion) > major
-    );
 }
 
 export async function getVersionFromPackageJson(packageName: string): Promise<string | undefined> {
