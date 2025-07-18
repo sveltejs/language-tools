@@ -1,7 +1,7 @@
 import { expect, describe, it } from 'vitest';
 import { atLeast } from '../src/version';
 
-describe.only('atLeast', () => {
+describe('atLeast', () => {
     const combinationsAtLeast = [
         { min: '5', version: '>=5', supported: true },
         { min: '5', version: '>=5.0.0', supported: true },
