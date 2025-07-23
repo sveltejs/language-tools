@@ -33,7 +33,11 @@ import { addFindComponentReferencesListener } from './typescript/findComponentRe
 import { addFindFileReferencesListener } from './typescript/findFileReferences';
 import { setupSvelteKit } from './sveltekit';
 import { resolveCodeLensMiddleware } from './middlewares';
-
+import { versions } from 'node:process';
+const [node_major, node_minor] = (versions?.node ?? '0.0.0-unknown').split('.', 3).map(Number);
+const add_experimental_strip_types_flag =
+    (node_major === 22 && node_minor > 5) || // added behind flag in 22.6.0
+    (node_major === 23 && node_minor < 6); // unflagged in 23.6
 namespace TagCloseRequest {
     export const type: RequestType<TextDocumentPositionParams, string, any> = new RequestType(
         'html/tag'
@@ -123,7 +127,9 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
     // Add --experimental-modules flag for people using node 12 < version < 12.17
     // Remove this in mid 2022 and bump vs code minimum required version to 1.55
     const runExecArgv: string[] = ['--experimental-modules'];
-
+    if (add_experimental_strip_types_flag) {
+        runExecArgv.push('--experimental-strip-types');
+    }
     const runtimeArgs = runtimeConfig.get<string[]>('runtime-args');
     if (runtimeArgs !== undefined) {
         runExecArgv.push(...runtimeArgs);

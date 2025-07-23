@@ -47,10 +47,10 @@ const _dynamicImport = new Function('modulePath', 'return import(modulePath)') a
     modulePath: URL
 ) => Promise<any>;
 
-const configRegex = /\/svelte\.config\.(js|cjs|mjs)$/;
+const configRegex = /\/svelte\.config\.(js|ts|cjs|mjs|mts)$/;
 
 /**
- * Loads svelte.config.{js,cjs,mjs} files. Provides both a synchronous and asynchronous
+ * Loads svelte.config.{js,ts,cjs,mjs,mts} files. Provides both a synchronous and asynchronous
  * interface to get a config file because snapshots need access to it synchronously.
  * This means that another instance (the ts service host on startup) should make
  * sure that all config files are loaded before snapshots are retrieved.
@@ -143,7 +143,11 @@ export class ConfigLoader {
                 return this.fs.existsSync(path) ? path : undefined;
             };
             const configPath =
-                tryFindConfigPath('js') || tryFindConfigPath('cjs') || tryFindConfigPath('mjs');
+                tryFindConfigPath('js') ||
+                tryFindConfigPath('ts') ||
+                tryFindConfigPath('cjs') ||
+                tryFindConfigPath('mjs') ||
+                tryFindConfigPath('mts');
             if (configPath) {
                 return configPath;
             }
