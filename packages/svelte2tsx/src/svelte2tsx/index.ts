@@ -10,6 +10,7 @@ import { processInstanceScriptContent } from './processInstanceScriptContent';
 import { createModuleAst, ModuleAst, processModuleScriptTag } from './processModuleScriptTag';
 import path from 'path';
 import { parse, VERSION } from 'svelte/compiler';
+import { getTopLevelImports } from './utils/tsAst';
 
 function processSvelteTemplate(
     str: MagicString,
@@ -94,11 +95,16 @@ export function svelte2tsx(
     const renderFunctionStart = scriptTag
         ? str.original.lastIndexOf('>', scriptTag.content.start) + 1
         : instanceScriptTarget;
-    const implicitStoreValues = new ImplicitStoreValues(resolvedStores, renderFunctionStart);
+    const implicitStoreValues = new ImplicitStoreValues(
+        resolvedStores,
+        renderFunctionStart,
+        svelte5Plus
+    );
     //move the instance script and process the content
     let exportedNames = new ExportedNames(str, 0, basename, isTsFile, svelte5Plus, isRunes);
     let generics = new Generics(str, 0, { attributes: [] } as any);
     let uses$$SlotsInterface = false;
+    let hasTopLevelAwait = false;
     if (scriptTag) {
         //ensure it is between the module script and the rest of the template (the variables need to be declared before the jsx template)
         if (scriptTag.start != instanceScriptTarget) {
@@ -120,12 +126,15 @@ export function svelte2tsx(
         uses$$restProps = uses$$restProps || res.uses$$restProps;
         uses$$slots = uses$$slots || res.uses$$slots;
 
-        ({ exportedNames, events, generics, uses$$SlotsInterface } = res);
+        ({ exportedNames, events, generics, uses$$SlotsInterface, hasTopLevelAwait } = res);
     }
 
     exportedNames.usesAccessors = usesAccessors;
     if (svelte5Plus) {
         exportedNames.checkGlobalsForRunes(implicitStoreValues.getGlobals());
+        if (hasTopLevelAwait) {
+            exportedNames.enterRunesMode();
+        }
     }
 
     //wrap the script tag and template content in a function returning the slot and exports
@@ -141,6 +150,7 @@ export function svelte2tsx(
         uses$$slots,
         uses$$SlotsInterface,
         generics,
+        hasTopLevelAwait,
         svelte5Plus,
         isTsFile,
         mode: options.mode
@@ -154,6 +164,7 @@ export function svelte2tsx(
             new ImplicitStoreValues(
                 implicitStoreValues.getAccessedStores(),
                 renderFunctionStart,
+                svelte5Plus,
                 scriptTag || options.mode === 'ts' ? undefined : (input) => `</>;${input}<>`
             ),
             moduleAst
@@ -170,6 +181,20 @@ export function svelte2tsx(
     }
 
     if (moduleScriptTag || scriptTag) {
+        let snippetHoistTargetForModule = 0;
+        if (rootSnippets.length) {
+            if (scriptTag) {
+                snippetHoistTargetForModule = scriptTag.start + 1; // +1 because imports are also moved at that position, and we want to move interfaces after imports
+            } else {
+                const imports = getTopLevelImports(moduleAst.tsAst);
+                const lastImport = imports[imports.length - 1];
+                snippetHoistTargetForModule = lastImport
+                    ? lastImport.end + moduleAst.astOffset
+                    : moduleAst.astOffset;
+                str.appendLeft(snippetHoistTargetForModule, '\n');
+            }
+        }
+
         for (const [start, end, globals] of rootSnippets) {
             const hoist_to_module =
                 moduleScriptTag &&
@@ -179,13 +204,7 @@ export function svelte2tsx(
                     ));
 
             if (hoist_to_module) {
-                str.move(
-                    start,
-                    end,
-                    scriptTag
-                        ? scriptTag.start + 1 // +1 because imports are also moved at that position, and we want to move interfaces after imports
-                        : instanceScriptTarget
-                );
+                str.move(start, end, snippetHoistTargetForModule);
             } else if (scriptTag) {
                 str.move(start, end, renderFunctionStart);
             }
@@ -205,6 +224,7 @@ export function svelte2tsx(
         mode: options.mode,
         generics,
         isSvelte5: svelte5Plus,
+        hasTopLevelAwait,
         noSvelteComponentTyped: options.noSvelteComponentTyped
     });
 

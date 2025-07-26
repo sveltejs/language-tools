@@ -41,6 +41,7 @@ import {
 import { EventHandler } from '../svelte2tsx/nodes/event-handler';
 import { ComponentEvents } from '../svelte2tsx/nodes/ComponentEvents';
 import { analyze } from 'periscopic';
+import { handleAttachTag } from './nodes/AttachTag';
 
 export interface TemplateProcessResult {
     /**
@@ -63,14 +64,6 @@ export interface TemplateProcessResult {
     isRunes: boolean;
 }
 
-function stripDoctype(str: MagicString): void {
-    const regex = /<!doctype(.+?)>(\n)?/i;
-    const result = regex.exec(str.original);
-    if (result) {
-        str.remove(result.index, result.index + result[0].length);
-    }
-}
-
 /**
  * Walks the HTMLx part of the Svelte component
  * and converts it to JSX
@@ -90,8 +83,6 @@ export function convertHtmlxToJsx(
 ): TemplateProcessResult {
     options.typingsNamespace = options.typingsNamespace || 'svelteHTML';
     const preserveAttributeCase = options.namespace === 'foreign';
-
-    stripDoctype(str);
 
     const rootSnippets: Array<[number, number, Map<string, any>, string]> = [];
     let element: Element | InlineComponent | undefined;
@@ -191,11 +182,14 @@ export function convertHtmlxToJsx(
     };
 
     const eventHandler = new EventHandler();
+    const path: BaseNode[] = [];
 
     walk(ast as any, {
         enter: (estreeTypedNode, estreeTypedParent, prop: string) => {
             const node = estreeTypedNode as TemplateNode;
             const parent = estreeTypedParent as BaseNode;
+
+            path.push(node);
 
             if (
                 prop == 'params' &&
@@ -290,6 +284,9 @@ export function convertHtmlxToJsx(
                     case 'RenderTag':
                         handleRenderTag(str, node);
                         break;
+                    case 'AttachTag':
+                        handleAttachTag(node, element);
+                        break;
                     case 'InlineComponent':
                         if (element) {
                             element.child = new InlineComponent(str, node, element);
@@ -321,7 +318,9 @@ export function convertHtmlxToJsx(
                             slotHandler.handleSlot(node, templateScope);
                         }
 
-                        if (node.name !== '!DOCTYPE') {
+                        if (node.name === '!DOCTYPE') {
+                            str.remove(node.start, node.end);
+                        } else {
                             if (element) {
                                 element.child = new Element(
                                     str,
@@ -420,6 +419,13 @@ export function convertHtmlxToJsx(
                             );
                         }
                         break;
+                    case 'AwaitExpression':
+                        isRunes ||= path.every(
+                            ({ type }) =>
+                                type !== 'ArrowFunctionExpression' &&
+                                type !== 'FunctionExpression' &&
+                                type !== 'FunctionDeclaration'
+                        );
                 }
             } catch (e) {
                 console.error('Error walking node ', node, e);
@@ -430,6 +436,8 @@ export function convertHtmlxToJsx(
         leave: (estreeTypedNode, estreeTypedParent, prop: string) => {
             const node = estreeTypedNode as TemplateNode;
             const parent = estreeTypedParent as BaseNode;
+
+            path.pop();
 
             if (
                 prop == 'params' &&

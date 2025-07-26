@@ -21,7 +21,8 @@ const defaultLSConfig: LSConfig = {
         codeActions: { enable: true },
         selectionRange: { enable: true },
         signatureHelp: { enable: true },
-        semanticTokens: { enable: true }
+        semanticTokens: { enable: true },
+        workspaceSymbols: { enable: true }
     },
     css: {
         enable: true,
@@ -103,6 +104,9 @@ export interface LSTypescriptConfig {
         enable: boolean;
     };
     semanticTokens: {
+        enable: boolean;
+    };
+    workspaceSymbols: {
         enable: boolean;
     };
 }
@@ -205,6 +209,7 @@ export interface TSUserConfig {
     inlayHints?: TsInlayHintsConfig;
     referencesCodeLens?: TsReferenceCodeLensConfig;
     implementationsCodeLens?: TsImplementationCodeLensConfig;
+    workspaceSymbols?: TsWorkspaceSymbolsConfig;
 }
 
 /**
@@ -278,6 +283,10 @@ export interface TsReferenceCodeLensConfig {
 export interface TsImplementationCodeLensConfig {
     enabled: boolean;
     showOnInterfaceMethods?: boolean | undefined;
+}
+
+export interface TsWorkspaceSymbolsConfig {
+    excludeLibrarySymbols?: boolean;
 }
 
 export type TsUserConfigLang = 'typescript' | 'javascript';
@@ -509,7 +518,9 @@ export class LSConfigManager {
             organizeImportsTypeOrder: this.withDefaultAsUndefined(
                 config.preferences?.organizeImports?.typeOrder,
                 'auto'
-            )
+            ),
+
+            excludeLibrarySymbolsInNavTo: config.workspaceSymbols?.excludeLibrarySymbols ?? true
         };
     }
 

@@ -25,6 +25,7 @@ export interface AddComponentExportPara {
     generics: Generics;
     usesSlots: boolean;
     isSvelte5: boolean;
+    hasTopLevelAwait: boolean;
     noSvelteComponentTyped?: boolean;
 }
 
@@ -50,12 +51,12 @@ function addGenericsComponentExport({
     fileName,
     mode,
     usesAccessors,
-    isTsFile,
     str,
     generics,
     usesSlots,
     isSvelte5,
-    noSvelteComponentTyped
+    noSvelteComponentTyped,
+    hasTopLevelAwait
 }: AddComponentExportPara) {
     const genericsDef = generics.toDefinitionString();
     const genericsRef = generics.toReferencesString();
@@ -67,34 +68,41 @@ function addGenericsComponentExport({
         return `ReturnType<__sveltets_Render${genericsRef}['${forPart}']>`;
     }
 
+    const renderCall = hasTopLevelAwait
+        ? `(await ${internalHelpers.renderName}${genericsRef}())`
+        : `${internalHelpers.renderName}${genericsRef}()`;
+
     // TODO once Svelte 4 compatibility is dropped, we can simplify this, because since TS 4.7 it is possible to use generics
     // like this: `typeof render<T>` - which wasn't possibly before, hence the class + methods workaround.
     let statement = `
 class __sveltets_Render${genericsDef} {
     props() {
-        return ${props(true, canHaveAnyProp, exportedNames, `${internalHelpers.renderName}${genericsRef}()`)}.props;
+        return ${props(true, canHaveAnyProp, exportedNames, renderCall)}.props;
     }
     events() {
-        return ${_events(events.hasStrictEvents() || exportedNames.usesRunes(), `${internalHelpers.renderName}${genericsRef}()`)}.events;
+        return ${_events(events.hasStrictEvents() || exportedNames.isRunesMode(), renderCall)}.events;
     }
     slots() {
-        return ${internalHelpers.renderName}${genericsRef}().slots;
+        return ${renderCall}.slots;
     }
 `;
 
     // For Svelte 5+ we assume TS > 4.7
-    if (isSvelte5 && !isTsFile && exportedNames.usesRunes()) {
+    if (isSvelte5 && exportedNames.isRunesMode()) {
+        const renderType = hasTopLevelAwait
+            ? `Awaited<ReturnType<typeof ${internalHelpers.renderName}${genericsRef}>>`
+            : `ReturnType<typeof ${internalHelpers.renderName}${genericsRef}>`;
         statement = `
 class __sveltets_Render${genericsDef} {
-    props(): ReturnType<typeof ${internalHelpers.renderName}${genericsRef}>['props'] { return null as any; }
-    events(): ReturnType<typeof ${internalHelpers.renderName}${genericsRef}>['events'] { return null as any; }
-    slots(): ReturnType<typeof ${internalHelpers.renderName}${genericsRef}>['slots'] { return null as any; }
+    props(): ${renderType}['props'] { return null as any; }
+    events(): ${renderType}['events'] { return null as any; }
+    slots(): ${renderType}['slots'] { return null as any; }
 `;
     }
 
     statement += isSvelte5
         ? `    bindings() { return ${exportedNames.createBindingsStr()}; }
-    exports() { return ${exportedNames.hasExports() ? `${internalHelpers.renderName}${genericsRef}().exports` : '{}'}; }
+    ${hasTopLevelAwait ? 'async ' : ''}exports() { return ${exportedNames.hasExports() ? `${renderCall}.exports` : '{}'}; }
 }\n`
         : '}\n';
 
@@ -109,7 +117,7 @@ class __sveltets_Render${genericsDef} {
         // Don't add props/events/slots type exports in dts mode for now, maybe someone asks for it to be back,
         // but it's safer to not do it for now to have more flexibility in the future.
         let eventsSlotsType = [];
-        if (events.hasEvents() || !exportedNames.usesRunes()) {
+        if (events.hasEvents() || !exportedNames.isRunesMode()) {
             eventsSlotsType.push(`$$events?: ${returnType('events')}`);
         }
         if (usesSlots) {
@@ -176,13 +184,24 @@ function addSimpleComponentExport({
     str,
     usesSlots,
     noSvelteComponentTyped,
-    isSvelte5
+    isSvelte5,
+    hasTopLevelAwait
 }: AddComponentExportPara) {
+    const renderCall = hasTopLevelAwait
+        ? `$${internalHelpers.renderName}`
+        : `${internalHelpers.renderName}()`;
+    const awaitDeclaration = hasTopLevelAwait
+        ? // tsconfig could disallow top-level await, so we need to wrap it in ignore
+          surroundWithIgnoreComments(
+              `const $${internalHelpers.renderName} = await ${internalHelpers.renderName}();`
+          ) + '\n'
+        : '';
+
     const propDef = props(
         isTsFile,
         canHaveAnyProp,
         exportedNames,
-        _events(events.hasStrictEvents(), `${internalHelpers.renderName}()`)
+        _events(events.hasStrictEvents(), renderCall)
     );
 
     const doc = componentDocumentation.getFormatted();
@@ -191,9 +210,9 @@ function addSimpleComponentExport({
 
     let statement: string;
     if (mode === 'dts') {
-        if (isSvelte5 && exportedNames.usesRunes() && !usesSlots && !events.hasEvents()) {
+        if (isSvelte5 && exportedNames.isRunesMode() && !usesSlots && !events.hasEvents()) {
             statement =
-                `\n${doc}const ${componentName} = __sveltets_2_fn_component(${internalHelpers.renderName}());\n` +
+                `\n${awaitDeclaration}${doc}const ${componentName} = __sveltets_2_fn_component(${renderCall});\n` +
                 `type ${componentName} = ReturnType<typeof ${componentName}>;\n` +
                 `export default ${componentName};`;
         } else if (isSvelte5) {
@@ -218,7 +237,7 @@ function addSimpleComponentExport({
 declare function $$__sveltets_2_isomorphic_component<
     Props extends Record<string, any>, Events extends Record<string, any>, Slots extends Record<string, any>, Exports extends Record<string, any>, Bindings extends string
 >(klass: {props: Props, events: Events, slots: Slots, exports?: Exports, bindings?: Bindings }): $$__sveltets_2_IsomorphicComponent<Props, Events, Slots, Exports, Bindings>;\n`) +
-                `${doc}const ${componentName} = $$__sveltets_2_isomorphic_component${usesSlots ? '_slots' : ''}(${propDef});\n` +
+                `${awaitDeclaration}${doc}const ${componentName} = $$__sveltets_2_isomorphic_component${usesSlots ? '_slots' : ''}(${propDef});\n` +
                 surroundWithIgnoreComments(
                     `type ${componentName} = InstanceType<typeof ${componentName}>;\n`
                 ) +
@@ -257,14 +276,18 @@ declare function $$__sveltets_2_isomorphic_component<
         }
     } else {
         if (isSvelte5) {
-            if (exportedNames.usesRunes() && !usesSlots && !events.hasEvents()) {
+            if (exportedNames.isRunesMode() && !usesSlots && !events.hasEvents()) {
                 statement =
-                    `\n${doc}const ${componentName} = __sveltets_2_fn_component(${internalHelpers.renderName}());\n` +
-                    `type ${componentName} = ReturnType<typeof ${componentName}>;\n` +
+                    `\n${awaitDeclaration}${doc}const ${componentName} = __sveltets_2_fn_component(${renderCall});\n` +
+                    // Surround the type with ignore comments so it is filtered out from go-to-definition etc,
+                    // which for some editors can cause duplicates
+                    surroundWithIgnoreComments(
+                        `type ${componentName} = ReturnType<typeof ${componentName}>;\n`
+                    ) +
                     `export default ${componentName};`;
             } else {
                 statement =
-                    `\n${doc}const ${componentName} = __sveltets_2_isomorphic_component${usesSlots ? '_slots' : ''}(${propDef});\n` +
+                    `\n${awaitDeclaration}${doc}const ${componentName} = __sveltets_2_isomorphic_component${usesSlots ? '_slots' : ''}(${propDef});\n` +
                     surroundWithIgnoreComments(
                         `type ${componentName} = InstanceType<typeof ${componentName}>;\n`
                     ) +
@@ -332,7 +355,7 @@ function props(
     exportedNames: ExportedNames,
     renderStr: string
 ) {
-    if (exportedNames.usesRunes()) {
+    if (exportedNames.isRunesMode()) {
         return renderStr;
     } else if (isTsFile) {
         return canHaveAnyProp ? `__sveltets_2_with_any(${renderStr})` : renderStr;

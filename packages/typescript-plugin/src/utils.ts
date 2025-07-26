@@ -260,7 +260,12 @@ export function isSvelteProject(project: ts.server.Project) {
     // The solution project is mostly just a container we don't need to patch it
     // and having any files in this project cause TSServer to send config error while it originally won't
     if ((project as any).isSolution?.()) {
-        return false;
+        // In TypeScript before 5.7, the project files were added later than plugin loading
+        // so we need to also check if the parsedCommandLine includes any files
+        const parsedCommandLine = getProjectParsedCommandLine(project);
+        if (parsedCommandLine?.fileNames.length === 0) {
+            return false;
+        }
     }
 
     const projectDirectory = getProjectDirectory(project);
@@ -312,4 +317,17 @@ export function importSvelteCompiler(
     } catch (e) {
         // ignore
     }
+}
+
+/**
+ * This call the ConfiguredProject.getParsedCommandLine
+ * where it'll try to load the cached version of the parsedCommandLine
+ */
+export function getProjectParsedCommandLine(project: ts.server.Project) {
+    const configPath = getConfigPathForProject(project);
+    const parsedCommandLine = (project as ts.LanguageServiceHost).getParsedCommandLine?.(
+        configPath
+    );
+
+    return parsedCommandLine;
 }

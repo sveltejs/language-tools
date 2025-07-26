@@ -9,7 +9,7 @@
         "build": "npm run build:ts && npm run build:grammar",
         "vscode:prepublish": "npm install && npm run build && npm prune --production",
         "watch": "npm run build:grammar && tsc -w -p ./",
-        "test": "npm run build:grammar && node test/grammar/test.js"
+        "test": "npm run build:grammar && node test/grammar/test.js && vitest --run"
     },
     "repository": {
         "type": "git",
@@ -178,6 +178,12 @@
                     "default": true,
                     "title": "TypeScript: Semantic Tokens",
                     "description": "Enable semantic tokens (semantic highlight) for TypeScript."
+                },
+                "svelte.plugin.typescript.workspaceSymbols.enable": {
+                    "type": "boolean",
+                    "default": true,
+                    "title": "TypeScript: Workspace Symbols",
+                    "description": "Enable workspace symbols for TypeScript."
                 },
                 "svelte.plugin.css.enable": {
                     "type": "boolean",
@@ -735,10 +741,13 @@
     "devDependencies": {
         "@types/lodash": "^4.14.116",
         "@types/node": "^18.0.0",
+        "@types/semver": "^7.7.0",
         "@types/vscode": "^1.67",
         "js-yaml": "^3.14.0",
+        "semver": "^7.7.2",
         "tslib": "^2.4.0",
         "typescript": "^5.8.2",
+        "vitest": "^3.2.4",
         "vscode-tmgrammar-test": "^0.0.11"
     },
     "dependencies": {

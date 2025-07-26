@@ -60,23 +60,28 @@ export function handleBinding(
     isSvelte5Plus: boolean
 ): void {
     const isGetSetBinding = attr.expression.type === 'SequenceExpression';
+    const [get, set] = isGetSetBinding ? (attr.expression as SequenceExpression).expressions : [];
+
+    // bind this
+    if (attr.name === 'this' && supportsBindThis.includes(parent.type)) {
+        // bind:this is effectively only works bottom up - the variable is updated by the element, not
+        // the other way round. So we check if the instance is assignable to the variable.
+        // Note: If the component unmounts (it's inside an if block, or svelte:component this={null},
+        // the value becomes null, but we don't add it to the clause because it would introduce
+        // worse DX for the 99% use case, and because null !== undefined which others might use to type the declaration.
+        if (isGetSetBinding) {
+            element.appendToStartEnd(['(', [set.start, getEnd(set)], `)(${element.name});`]);
+        } else {
+            appendOneWayBinding(attr, ` = ${element.name}`, element);
+        }
+        return;
+    }
 
     if (!isGetSetBinding) {
         // bind group on input
         if (element instanceof Element && attr.name == 'group' && parent.name == 'input') {
             // add reassignment to force TS to widen the type of the declaration (in case it's never reassigned anywhere else)
             appendOneWayBinding(attr, ' = __sveltets_2_any(null)', element);
-            return;
-        }
-
-        // bind this
-        if (attr.name === 'this' && supportsBindThis.includes(parent.type)) {
-            // bind:this is effectively only works bottom up - the variable is updated by the element, not
-            // the other way round. So we check if the instance is assignable to the variable.
-            // Note: If the component unmounts (it's inside an if block, or svelte:component this={null},
-            // the value becomes null, but we don't add it to the clause because it would introduce
-            // worse DX for the 99% use case, and because null !== undefined which others might use to type the declaration.
-            appendOneWayBinding(attr, ` = ${element.name}`, element);
             return;
         }
 
@@ -125,7 +130,6 @@ export function handleBinding(
                     ]
                 ];
 
-    const [get, set] = isGetSetBinding ? (attr.expression as SequenceExpression).expressions : [];
     const value: TransformationArray | undefined = isShorthand
         ? preserveBind && element instanceof Element
             ? [rangeWithTrailingPropertyAccess(str.original, attr.expression)]

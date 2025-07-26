@@ -84,7 +84,7 @@ describe('DiagnosticsProvider', function () {
 
         try {
             const diagnostics3 = await plugin.getDiagnostics(document);
-            assert.deepStrictEqual(diagnostics3.length, 1);
+            assert.deepStrictEqual(diagnostics3.length, 0);
             await lsAndTsDocResolver.deleteSnapshot(newTsFilePath);
         } finally {
             unlinkSync(newTsFilePath);

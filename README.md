@@ -22,18 +22,17 @@ A `.svelte` file would look something like this:
 
 ```html
 <script>
-    let count = 1;
+    let count = $state(1);
 
-    // the `$:` means 're-run whenever these values change'
-    $: doubled = count * 2;
-    $: quadrupled = doubled * 2;
+    let doubled = $derived(count * 2);
+    let quadrupled = $derived(doubled * 2);
 
     function handleClick() {
         count += 1;
     }
 </script>
 
-<button on:click="{handleClick}">Count: {count}</button>
+<button onclick="{handleClick}">Count: {count}</button>
 
 <p>{count} * 2 = {doubled}</p>
 <p>{doubled} * 2 = {quadrupled}</p>
@@ -165,7 +164,7 @@ This means it's easy to write tests for your changes:
 pnpm test
 ```
 
-For tricker issues, you can run the tests with a debugger in VSCode by setting a breakpoint (or adding `debugger` in the code) and launching the task: "Run tests with debugger".
+For trickier issues, you can run the tests with a debugger in VSCode by setting a breakpoint (or adding `debugger` in the code) and launching the test in the [JavaScript Debug Terminal](https://code.visualstudio.com/docs/nodejs/nodejs-debugging#_javascript-debug-terminal).
 
 ## Supporting Svelte
 

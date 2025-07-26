@@ -164,8 +164,13 @@ export function createSvelteModuleLoader(
     >();
 
     const impliedNodeFormatResolver = new ImpliedNodeFormatResolver(tsSystem);
-    const failedPathToContainingFile = new FileMap<FileSet>();
-    const failedLocationInvalidated = new FileSet();
+    const resolutionWithFailedLookup = new Set<
+        ts.ResolvedModuleWithFailedLookupLocations & {
+            files?: Set<string>;
+        }
+    >();
+    const failedLocationInvalidated = new FileSet(tsSystem.useCaseSensitiveFileNames);
+    const pendingFailedLocationCheck = new FileSet(tsSystem.useCaseSensitiveFileNames);
 
     return {
         svelteFileExists: svelteSys.svelteFileExists,
@@ -179,16 +184,7 @@ export function createSvelteModuleLoader(
         deleteUnresolvedResolutionsFromCache: (path: string) => {
             svelteSys.deleteFromCache(path);
             moduleCache.deleteUnresolvedResolutionsFromCache(path);
-
-            const previousTriedButFailed = failedPathToContainingFile.get(path);
-
-            if (!previousTriedButFailed) {
-                return;
-            }
-
-            for (const containingFile of previousTriedButFailed) {
-                failedLocationInvalidated.add(containingFile);
-            }
+            pendingFailedLocationCheck.add(path);
 
             tsModuleCache.clear();
             typeReferenceCache.clear();
@@ -197,7 +193,8 @@ export function createSvelteModuleLoader(
         resolveTypeReferenceDirectiveReferences,
         mightHaveInvalidatedResolutions,
         clearPendingInvalidations,
-        getModuleResolutionCache: () => tsModuleCache
+        getModuleResolutionCache: () => tsModuleCache,
+        invalidateFailedLocationResolution
     };
 
     function resolveModuleNames(
@@ -222,11 +219,7 @@ export function createSvelteModuleLoader(
                 options
             );
 
-            resolvedModule?.failedLookupLocations?.forEach((failedLocation) => {
-                const failedPaths = failedPathToContainingFile.get(failedLocation) ?? new FileSet();
-                failedPaths.add(containingFile);
-                failedPathToContainingFile.set(failedLocation, failedPaths);
-            });
+            cacheResolutionWithFailedLookup(resolvedModule, containingFile);
 
             moduleCache.set(moduleName, containingFile, resolvedModule?.resolvedModule);
             return resolvedModule?.resolvedModule;
@@ -333,5 +326,46 @@ export function createSvelteModuleLoader(
     function clearPendingInvalidations() {
         moduleCache.clearPendingInvalidations();
         failedLocationInvalidated.clear();
+        pendingFailedLocationCheck.clear();
+    }
+
+    function cacheResolutionWithFailedLookup(
+        resolvedModule: ts.ResolvedModuleWithFailedLookupLocations & {
+            files?: Set<string>;
+        },
+        containingFile: string
+    ) {
+        if (!resolvedModule.failedLookupLocations?.length) {
+            return;
+        }
+
+        // The resolvedModule object will be reused in different files. A bit hacky, but TypeScript also does this.
+        // https://github.com/microsoft/TypeScript/blob/11e79327598db412a161616849041487673fadab/src/compiler/resolutionCache.ts#L1103
+        resolvedModule.files ??= new Set();
+        resolvedModule.files.add(containingFile);
+        resolutionWithFailedLookup.add(resolvedModule);
+    }
+
+    function invalidateFailedLocationResolution() {
+        resolutionWithFailedLookup.forEach((resolvedModule) => {
+            if (
+                !resolvedModule.resolvedModule ||
+                !resolvedModule.files ||
+                !resolvedModule.failedLookupLocations
+            ) {
+                return;
+            }
+            for (const location of resolvedModule.failedLookupLocations) {
+                if (pendingFailedLocationCheck.has(location)) {
+                    moduleCache.delete(resolvedModule.resolvedModule.resolvedFileName);
+                    resolvedModule.files?.forEach((file) => {
+                        failedLocationInvalidated.add(file);
+                    });
+                    break;
+                }
+            }
+        });
+
+        pendingFailedLocationCheck.clear();
     }
 }

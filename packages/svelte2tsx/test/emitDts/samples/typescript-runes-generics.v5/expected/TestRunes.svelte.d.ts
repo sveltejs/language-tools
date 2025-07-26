@@ -1,10 +1,19 @@
-declare class __sveltets_Render<T extends Record<string, any>, K extends keyof T> {
-    props(): {
+declare function $$render<T extends Record<string, any>, K extends keyof T>(): {
+    props: {
         foo: T;
         bar?: K;
     };
-    events(): {};
-    slots(): {};
+    exports: {
+        baz: () => T;
+    };
+    bindings: "bar";
+    slots: {};
+    events: {};
+};
+declare class __sveltets_Render<T extends Record<string, any>, K extends keyof T> {
+    props(): ReturnType<typeof $$render<T, K>>['props'];
+    events(): ReturnType<typeof $$render<T, K>>['events'];
+    slots(): ReturnType<typeof $$render<T, K>>['slots'];
     bindings(): "bar";
     exports(): {
         baz: () => T;

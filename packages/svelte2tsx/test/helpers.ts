@@ -274,7 +274,7 @@ export function test_samples(dir: string, transform: TransformSampleFn, js: 'js'
             sample.onError(function (generate, err: AssertionError) {
                 if (!err || err.code !== 'ERR_ASSERTION') return;
                 const { message, actual } = err;
-                switch (message) {
+                switch (message.split('\n')[0]) {
                     case TestError.WrongExpected: {
                         generate(expectedFile, actual);
                         break;

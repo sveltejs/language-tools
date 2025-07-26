@@ -38,6 +38,7 @@ export class InlineComponent {
     private startTagStart: number;
     private startTagEnd: number;
     private isSelfclosing: boolean;
+    private tagNameEnd: number;
     public child?: any;
 
     // Add const $$xxx = ... only if the variable name is actually used
@@ -64,7 +65,7 @@ export class InlineComponent {
         this.startTagStart = this.node.start;
         this.startTagEnd = this.computeStartTagEnd();
 
-        const tagEnd = this.startTagStart + this.node.name.length + 1;
+        const tagEnd = (this.tagNameEnd = this.startTagStart + this.node.name.length + 1);
         // Ensure deleted characters are mapped to the attributes object so we
         // get autocompletion when triggering it on a whitespace.
         if (/\s/.test(str.original.charAt(tagEnd))) {
@@ -227,7 +228,7 @@ export class InlineComponent {
             if (endStart === -1) {
                 // Can happen in loose parsing mode when there's no closing tag
                 endStart = this.node.end;
-                this.startTagEnd = this.node.end - 1;
+                this.startTagEnd = Math.max(this.node.end - 1, this.tagNameEnd);
             } else {
                 endStart += this.node.start;
             }
@@ -238,7 +239,17 @@ export class InlineComponent {
             }
             this.endTransformation.push('}');
 
-            transform(this.str, this.startTagStart, this.startTagEnd, [
+            let transformationEnd = this.startTagEnd;
+
+            // The transformation is the whole start tag + <, ex: <Comp
+            // To avoid the "cannot move inside itself" error,
+            // manually remove the first character and let the transform function skip removing unused
+            if (transformationEnd === this.tagNameEnd) {
+                transformationEnd = this.startTagStart;
+                this.str.remove(this.startTagStart, this.startTagStart + 1);
+            }
+
+            transform(this.str, this.startTagStart, transformationEnd, [
                 // See comment above why this goes first
                 ...namedSlotLetTransformation,
                 ...this.startTransformation,

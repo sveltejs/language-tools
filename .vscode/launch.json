@@ -31,23 +31,6 @@
         },
         {
             "type": "node",
-            "request": "launch",
-            "name": "Run tests with debugger",
-            "program": "${workspaceFolder}/node_modules/mocha/bin/_mocha",
-            "args": [
-                "-r",
-                "ts-node/register",
-                "--colors",
-                "${workspaceFolder}/packages/*/test/**/*.ts"
-            ],
-            "env": {
-                "TS_NODE_COMPILER_OPTIONS": "{\"esModuleInterop\":true}"
-            },
-            "console": "integratedTerminal",
-            "internalConsoleOptions": "neverOpen"
-        },
-        {
-            "type": "node",
             "request": "attach",
             "name": "Attach debugger to language server",
             "port": 6009,

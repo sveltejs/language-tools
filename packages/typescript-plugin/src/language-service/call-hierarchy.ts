@@ -8,6 +8,7 @@ import {
     isSvelteFilePath,
     offsetOfGeneratedComponentExport
 } from '../utils';
+import { internalHelpers } from 'svelte2tsx';
 
 const ENSURE_COMPONENT_HELPER = '__sveltets_2_ensureComponent';
 
@@ -76,7 +77,7 @@ export function decorateCallHierarchy(
                       .find(
                           (statement): statement is ts.FunctionDeclaration =>
                               typescript.isFunctionDeclaration(statement) &&
-                              statement.name?.getText() === 'render'
+                              statement.name?.getText() === internalHelpers.renderName
                       )
                       ?.name?.getStart()
                 : -1;
@@ -181,7 +182,7 @@ export function decorateCallHierarchy(
             return toComponentCallHierarchyItem(snapshot, item.file);
         }
 
-        if (item.name === 'render') {
+        if (item.name === internalHelpers.renderName) {
             const end = item.selectionSpan.start + item.selectionSpan.length;
             const renderFunction = sourceFile.statements.find(
                 (statement) =>

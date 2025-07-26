@@ -1,4 +1,4 @@
-import { GenerateConfig, ProjectType, Resource } from '../types';
+import { GenerateConfig, Resource } from '../types';
 
 const defaultScriptTemplate = `
 /** @type {import('./$types').RequestHandler} */
@@ -15,15 +15,13 @@ export const GET: RequestHandler = async () => {
 };
 `;
 
-const scriptTemplate: ReadonlyMap<ProjectType, string> = new Map([
-    [ProjectType.TS_SV5, tsScriptTemplate],
-    [ProjectType.TS_SATISFIES_SV5, tsScriptTemplate],
-    [ProjectType.JS_SV5, defaultScriptTemplate],
-    [ProjectType.TS, tsScriptTemplate],
-    [ProjectType.TS_SATISFIES, tsScriptTemplate],
-    [ProjectType.JS, defaultScriptTemplate]
-]);
-
 export default async function (config: GenerateConfig): ReturnType<Resource['generate']> {
-    return (scriptTemplate.get(config.type) ?? defaultScriptTemplate).trim();
+    const { withTs } = config.kind;
+    let template = defaultScriptTemplate;
+
+    if (withTs) {
+        template = tsScriptTemplate;
+    }
+
+    return template.trim();
 }

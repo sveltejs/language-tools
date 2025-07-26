@@ -45,7 +45,10 @@ import { debounceThrottle, isNotNullOrUndefined, normalizeUri, urlToPath } from 
 import { FallbackWatcher } from './lib/FallbackWatcher';
 import { configLoader } from './lib/documents/configLoader';
 import { setIsTrusted } from './importPackage';
-import { SORT_IMPORT_CODE_ACTION_KIND } from './plugins/typescript/features/CodeActionsProvider';
+import {
+    SORT_IMPORT_CODE_ACTION_KIND,
+    ADD_MISSING_IMPORTS_CODE_ACTION_KIND
+} from './plugins/typescript/features/CodeActionsProvider';
 import { createLanguageServices } from './plugins/css/service';
 import { FileSystemProvider } from './plugins/css/FileSystemProvider';
 
@@ -120,7 +123,7 @@ export function startServer(options?: LSOptions) {
             Logger.error('No workspace path set');
         }
 
-        if (!evt.capabilities.workspace?.didChangeWatchedFiles) {
+        if (!evt.capabilities.workspace?.didChangeWatchedFiles?.dynamicRegistration) {
             const workspacePaths = workspaceUris.map(urlToPath).filter(isNotNullOrUndefined);
             watcher = new FallbackWatcher(watchExtensions, workspacePaths);
             watcher.onDidChangeWatchedFiles(onDidChangeWatchedFiles);
@@ -270,6 +273,7 @@ export function startServer(options?: LSOptions) {
                               CodeActionKind.QuickFix,
                               CodeActionKind.SourceOrganizeImports,
                               SORT_IMPORT_CODE_ACTION_KIND,
+                              ADD_MISSING_IMPORTS_CODE_ACTION_KIND,
                               ...(clientSupportApplyEditCommand ? [CodeActionKind.Refactor] : [])
                           ].filter(
                               clientSupportedCodeActionKinds &&
@@ -322,7 +326,8 @@ export function startServer(options?: LSOptions) {
                 },
                 documentHighlightProvider:
                     evt.initializationOptions?.configuration?.svelte?.plugin?.svelte
-                        ?.documentHighlight?.enable ?? true
+                        ?.documentHighlight?.enable ?? true,
+                workspaceSymbolProvider: true
             }
         };
     });
@@ -495,6 +500,8 @@ export function startServer(options?: LSOptions) {
     connection.onDocumentHighlight((evt) =>
         pluginHost.findDocumentHighlight(evt.textDocument, evt.position)
     );
+
+    connection.onWorkspaceSymbol((evt, token) => pluginHost.getWorkspaceSymbols(evt.query, token));
 
     const diagnosticsManager = new DiagnosticsManager(
         connection.sendDiagnostics,

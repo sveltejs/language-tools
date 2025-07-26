@@ -43,6 +43,7 @@ export class Element {
     private isSelfclosing: boolean;
     public tagName: string;
     public child?: any;
+    private tagNameEnd: number;
 
     // Add const $$xxx = ... only if the variable name is actually used
     // in order to prevent "$$xxx is defined but never used" TS hints
@@ -74,7 +75,7 @@ export class Element {
         this.startTagStart = this.node.start;
         this.startTagEnd = this.computeStartTagEnd();
 
-        const tagEnd = this.startTagStart + this.node.name.length + 1;
+        const tagEnd = (this.tagNameEnd = this.startTagStart + this.node.name.length + 1);
         // Ensure deleted characters are mapped to the attributes object so we
         // get autocompletion when triggering it on a whitespace.
         if (/\s/.test(str.original.charAt(tagEnd))) {
@@ -205,7 +206,19 @@ export class Element {
         }
 
         if (this.isSelfclosing) {
-            transform(this.str, this.startTagStart, this.startTagEnd, [
+            // The transformation is the whole start tag + <, ex: <span
+            // To avoid the end tag transform being moved to before the tag name,
+            // manually remove the first character and let the `transform` function skip removing unused
+            let transformEnd = this.startTagEnd;
+            if (
+                this.str.original[transformEnd - 1] !== '>' &&
+                (transformEnd === this.tagNameEnd || transformEnd === this.tagNameEnd + 1)
+            ) {
+                transformEnd = this.startTagStart;
+                this.str.remove(this.startTagStart, this.startTagStart + 1);
+            }
+
+            transform(this.str, this.startTagStart, transformEnd, [
                 // Named slot transformations go first inside a outer block scope because
                 // <div let:xx {x} /> means "use the x of let:x", and without a separate
                 // block scope this would give a "used before defined" error
@@ -295,7 +308,7 @@ export class Element {
             default: {
                 createElementStatement = [
                     `${createElement}("`,
-                    [this.node.start + 1, this.node.start + 1 + this.node.name.length],
+                    [this.node.start + 1, this.tagNameEnd],
                     `"${addActions()}, {`
                 ];
                 break;

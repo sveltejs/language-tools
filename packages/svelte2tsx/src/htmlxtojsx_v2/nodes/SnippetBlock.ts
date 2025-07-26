@@ -116,7 +116,7 @@ export function handleSnippet(
             'const ',
             [snippetBlock.expression.start, snippetBlock.expression.end],
             IGNORE_POSITION_COMMENT,
-            ' = ('
+            ` = ${snippetBlock.typeParams ? `<${snippetBlock.typeParams}>` : ''}(`
         ];
 
         if (parameters) {

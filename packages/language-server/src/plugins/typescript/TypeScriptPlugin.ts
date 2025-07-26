@@ -28,7 +28,8 @@ import {
     SymbolInformation,
     SymbolKind,
     TextDocumentContentChangeEvent,
-    WorkspaceEdit
+    WorkspaceEdit,
+    WorkspaceSymbol
 } from 'vscode-languageserver';
 import {
     Document,
@@ -65,7 +66,8 @@ import {
     SignatureHelpProvider,
     TypeDefinitionProvider,
     UpdateImportsProvider,
-    UpdateTsOrJsFile
+    UpdateTsOrJsFile,
+    WorkspaceSymbolsProvider
 } from '../interfaces';
 import { LSAndTSDocResolver } from './LSAndTSDocResolver';
 import { ignoredBuildDirectories } from './SnapshotManager';
@@ -103,6 +105,7 @@ import {
 } from './utils';
 import { CallHierarchyProviderImpl } from './features/CallHierarchyProvider';
 import { CodeLensProviderImpl } from './features/CodeLensProvider';
+import { WorkspaceSymbolsProviderImpl } from './features/WorkspaceSymbolProvider';
 
 export class TypeScriptPlugin
     implements
@@ -126,6 +129,7 @@ export class TypeScriptPlugin
         CallHierarchyProvider,
         FoldingRangeProvider,
         CodeLensProvider,
+        WorkspaceSymbolsProvider,
         OnWatchFileChanges,
         CompletionsProvider<CompletionResolveInfo>,
         UpdateTsOrJsFile
@@ -154,6 +158,7 @@ export class TypeScriptPlugin
     private readonly callHierarchyProvider: CallHierarchyProviderImpl;
     private readonly codLensProvider: CodeLensProviderImpl;
     private readonly documentHeightProvider: DocumentHighlightProviderImpl;
+    private readonly workspaceSymbolsProvider: WorkspaceSymbolsProvider;
 
     constructor(
         configManager: LSConfigManager,
@@ -214,6 +219,10 @@ export class TypeScriptPlugin
             this.configManager
         );
         this.documentHeightProvider = new DocumentHighlightProviderImpl(this.lsAndTsDocResolver);
+        this.workspaceSymbolsProvider = new WorkspaceSymbolsProviderImpl(
+            this.lsAndTsDocResolver,
+            configManager
+        );
     }
 
     async getDiagnostics(
@@ -699,6 +708,16 @@ export class TypeScriptPlugin
         position: Position
     ): Promise<DocumentHighlight[] | null> {
         return this.documentHeightProvider.findDocumentHighlight(document, position);
+    }
+
+    async getWorkspaceSymbols(
+        query: string,
+        cancellationToken?: CancellationToken
+    ): Promise<WorkspaceSymbol[] | null> {
+        if (!this.featureEnabled('workspaceSymbols')) {
+            return null;
+        }
+        return this.workspaceSymbolsProvider.getWorkspaceSymbols(query, cancellationToken);
     }
 
     private featureEnabled(feature: keyof LSTypescriptConfig) {
