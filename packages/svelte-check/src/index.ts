@@ -158,7 +158,6 @@ class DiagnosticsWatcher {
         const userIgnored = createIgnored(filePathsToIgnore);
         const offset = workspaceUri.fsPath.length + 1;
 
-        // Setup watcher based on tsconfig if available
         this.setupWatcher(fileEnding, viteConfigRegex, userIgnored, offset, ignoreInitialAdd);
     }
 
@@ -186,9 +185,12 @@ class DiagnosticsWatcher {
                     }
 
                     if (userIgnored.length !== 0) {
-                        const relativePath = path.slice(this.workspaceUri.fsPath.length + 1);
+                        // Make path relative to workspace for user ignores
+                        const workspaceRelative = path.startsWith(this.workspaceUri.fsPath)
+                            ? path.slice(this.workspaceUri.fsPath.length + 1)
+                            : path;
                         for (const i of userIgnored) {
-                            if (i(relativePath)) {
+                            if (i(workspaceRelative)) {
                                 return true;
                             }
                         }
