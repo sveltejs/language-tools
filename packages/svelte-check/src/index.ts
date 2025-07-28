@@ -158,32 +158,53 @@ class DiagnosticsWatcher {
         const userIgnored = createIgnored(filePathsToIgnore);
         const offset = workspaceUri.fsPath.length + 1;
 
-        watch(workspaceUri.fsPath, {
-            ignored: (path, stats) => {
-                if (
-                    path.includes('node_modules') ||
-                    path.includes('.git') ||
-                    (stats?.isFile() && (!fileEnding.test(path) || viteConfigRegex.test(path)))
-                ) {
-                    return true;
-                }
+        this.setupWatcher(fileEnding, viteConfigRegex, userIgnored, offset, ignoreInitialAdd);
+    }
 
-                if (userIgnored.length !== 0) {
-                    path = path.slice(offset);
-                    for (const i of userIgnored) {
-                        if (i(path)) {
-                            return true;
+    private async setupWatcher(
+        fileEnding: RegExp,
+        viteConfigRegex: RegExp,
+        userIgnored: Array<(path: string) => boolean>,
+        offset: number,
+        ignoreInitialAdd: boolean
+    ) {
+        const watchDirs = await this.svelteCheck.getWatchDirectories();
+        const dirsToWatch = watchDirs?.length
+            ? watchDirs
+            : [{ path: this.workspaceUri.fsPath, recursive: true }];
+
+        for (const dir of dirsToWatch) {
+            watch(dir.path, {
+                ignored: (path, stats) => {
+                    if (
+                        path.includes('node_modules') ||
+                        path.includes('.git') ||
+                        (stats?.isFile() && (!fileEnding.test(path) || viteConfigRegex.test(path)))
+                    ) {
+                        return true;
+                    }
+
+                    if (userIgnored.length !== 0) {
+                        // Make path relative to workspace for user ignores
+                        const workspaceRelative = path.startsWith(this.workspaceUri.fsPath)
+                            ? path.slice(this.workspaceUri.fsPath.length + 1)
+                            : path;
+                        for (const i of userIgnored) {
+                            if (i(workspaceRelative)) {
+                                return true;
+                            }
                         }
                     }
-                }
 
-                return false;
-            },
-            ignoreInitial: ignoreInitialAdd
-        })
-            .on('add', (path) => this.updateDocument(path, true))
-            .on('unlink', (path) => this.removeDocument(path))
-            .on('change', (path) => this.updateDocument(path, false));
+                    return false;
+                },
+                ignoreInitial: ignoreInitialAdd,
+                depth: dir.recursive ? undefined : 0
+            })
+                .on('add', (path) => this.updateDocument(path, true))
+                .on('unlink', (path) => this.removeDocument(path))
+                .on('change', (path) => this.updateDocument(path, false));
+        }
 
         if (ignoreInitialAdd) {
             this.scheduleDiagnostics();

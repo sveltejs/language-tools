@@ -353,4 +353,16 @@ export class SvelteCheck {
         }
         return this.lsAndTSDocResolver.getTSService(tsconfigPath);
     }
+
+    /**
+     * Gets the directories that should be watched based on the tsconfig include patterns.
+     * Returns null if no tsconfig is specified.
+     */
+    async getWatchDirectories(): Promise<{ path: string; recursive: boolean }[] | null> {
+        if (!this.options.tsconfig) {
+            return null;
+        }
+        const lsContainer = await this.getLSContainer(this.options.tsconfig);
+        return lsContainer.getWatchDirectories();
+    }
 }
