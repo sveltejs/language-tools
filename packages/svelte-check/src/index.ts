@@ -2,7 +2,7 @@
  * This code's groundwork is taken from https://github.com/vuejs/vetur/tree/master/vti
  */
 
-import { watch, FSWatcher } from 'chokidar';
+import { watch } from 'chokidar';
 import * as fs from 'fs';
 import { fdir } from 'fdir';
 import * as path from 'path';
@@ -145,7 +145,6 @@ async function getDiagnostics(
 
 class DiagnosticsWatcher {
     private updateDiagnostics: any;
-    private watchers: FSWatcher[] = [];
 
     constructor(
         private workspaceUri: URI,
@@ -159,61 +158,24 @@ class DiagnosticsWatcher {
         const userIgnored = createIgnored(filePathsToIgnore);
         const offset = workspaceUri.fsPath.length + 1;
 
-        this.initializeWatching(
-            filePathsToIgnore,
-            ignoreInitialAdd,
-            fileEnding,
-            viteConfigRegex,
-            userIgnored,
-            offset
-        );
+        // Setup watcher based on tsconfig if available
+        this.setupWatcher(fileEnding, viteConfigRegex, userIgnored, offset, ignoreInitialAdd);
     }
 
-    private async initializeWatching(
-        filePathsToIgnore: string[],
-        ignoreInitialAdd: boolean,
+    private async setupWatcher(
         fileEnding: RegExp,
         viteConfigRegex: RegExp,
         userIgnored: Array<(path: string) => boolean>,
-        offset: number
+        offset: number,
+        ignoreInitialAdd: boolean
     ) {
         const watchDirs = await this.svelteCheck.getWatchDirectories();
+        const dirsToWatch = watchDirs?.length
+            ? watchDirs
+            : [{ path: this.workspaceUri.fsPath, recursive: true }];
 
-        if (watchDirs && watchDirs.length > 0) {
-            for (const dir of watchDirs) {
-                const watcher = watch(dir.path, {
-                    ignored: (path, stats) => {
-                        if (
-                            path.includes('node_modules') ||
-                            path.includes('.git') ||
-                            (stats?.isFile() &&
-                                (!fileEnding.test(path) || viteConfigRegex.test(path)))
-                        ) {
-                            return true;
-                        }
-
-                        if (userIgnored.length !== 0) {
-                            const relativePath = path.slice(this.workspaceUri.fsPath.length + 1);
-                            for (const i of userIgnored) {
-                                if (i(relativePath)) {
-                                    return true;
-                                }
-                            }
-                        }
-
-                        return false;
-                    },
-                    ignoreInitial: ignoreInitialAdd,
-                    depth: dir.recursive ? undefined : 0
-                })
-                    .on('add', (path) => this.updateDocument(path, true))
-                    .on('unlink', (path) => this.removeDocument(path))
-                    .on('change', (path) => this.updateDocument(path, false));
-
-                this.watchers.push(watcher);
-            }
-        } else {
-            const watcher = watch(this.workspaceUri.fsPath, {
+        for (const dir of dirsToWatch) {
+            watch(dir.path, {
                 ignored: (path, stats) => {
                     if (
                         path.includes('node_modules') ||
@@ -224,9 +186,9 @@ class DiagnosticsWatcher {
                     }
 
                     if (userIgnored.length !== 0) {
-                        path = path.slice(offset);
+                        const relativePath = path.slice(this.workspaceUri.fsPath.length + 1);
                         for (const i of userIgnored) {
-                            if (i(path)) {
+                            if (i(relativePath)) {
                                 return true;
                             }
                         }
@@ -234,13 +196,12 @@ class DiagnosticsWatcher {
 
                     return false;
                 },
-                ignoreInitial: ignoreInitialAdd
+                ignoreInitial: ignoreInitialAdd,
+                depth: dir.recursive ? undefined : 0
             })
                 .on('add', (path) => this.updateDocument(path, true))
                 .on('unlink', (path) => this.removeDocument(path))
                 .on('change', (path) => this.updateDocument(path, false));
-
-            this.watchers.push(watcher);
         }
 
         if (ignoreInitialAdd) {
@@ -274,14 +235,6 @@ class DiagnosticsWatcher {
             () => getDiagnostics(this.workspaceUri, this.writer, this.svelteCheck),
             1000
         );
-    }
-
-    dispose() {
-        clearTimeout(this.updateDiagnostics);
-        for (const watcher of this.watchers) {
-            watcher.close();
-        }
-        this.watchers = [];
     }
 }
 
