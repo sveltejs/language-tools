@@ -60,6 +60,7 @@ export interface LanguageServiceContainer {
     getResolvedProjectReferences(): TsConfigInfo[];
     openVirtualDocument(document: Document): void;
     isShimFiles(filePath: string): boolean;
+    getWatchDirectories(): { path: string; recursive: boolean }[];
     dispose(): void;
 }
 
@@ -458,6 +459,7 @@ async function createLanguageService(
         getResolvedProjectReferences,
         openVirtualDocument,
         isShimFiles,
+        getWatchDirectories,
         dispose
     };
 
@@ -1248,6 +1250,28 @@ async function createLanguageService(
 
     function isShimFiles(filePath: string) {
         return svelteTsxFilesToOriginalCasing.has(getCanonicalFileName(normalizePath(filePath)));
+    }
+
+    function getWatchDirectories(): { path: string; recursive: boolean }[] {
+        const directories: { path: string; recursive: boolean }[] = [];
+
+        if (projectConfig.wildcardDirectories) {
+            Object.entries(projectConfig.wildcardDirectories).forEach(([dir, flags]) => {
+                directories.push({
+                    path: dir,
+                    recursive: !!(flags & ts.WatchDirectoryFlags.Recursive)
+                });
+            });
+        }
+
+        if (directories.length === 0) {
+            directories.push({
+                path: workspacePath,
+                recursive: true
+            });
+        }
+
+        return directories;
     }
 }
 

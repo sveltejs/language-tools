@@ -2,7 +2,7 @@
  * This code's groundwork is taken from https://github.com/vuejs/vetur/tree/master/vti
  */
 
-import { watch } from 'chokidar';
+import { watch, FSWatcher } from 'chokidar';
 import * as fs from 'fs';
 import { fdir } from 'fdir';
 import * as path from 'path';
@@ -145,92 +145,103 @@ async function getDiagnostics(
 
 class DiagnosticsWatcher {
     private updateDiagnostics: any;
-    private tsconfigCache: Map<string, { excludes: string[], mtime: number }> = new Map();
-    private tsconfigExcludes: string[] = [];
-    private svelteConfigPath?: string;
-    private svelteConfigMtime?: number;
-    private lastConfigCheck: number = 0;
-    private configCheckInterval: number = 5000; // Check every 5 seconds max
+    private watchers: FSWatcher[] = [];
 
     constructor(
         private workspaceUri: URI,
         private svelteCheck: SvelteCheck,
         private writer: Writer,
         filePathsToIgnore: string[],
-        ignoreInitialAdd: boolean,
-        private tsconfigPath?: string,
-        private respectTsconfigExcludes: boolean = true
+        ignoreInitialAdd: boolean
     ) {
         const fileEnding = /\.(svelte|d\.ts|ts|js|jsx|tsx|mjs|cjs|mts|cts)$/;
         const viteConfigRegex = /vite\.config\.(js|ts)\.timestamp-/;
         const userIgnored = createIgnored(filePathsToIgnore);
         const offset = workspaceUri.fsPath.length + 1;
-        
-        // Look for svelte config
-        const possibleSvelteConfigs = ['svelte.config.js', 'svelte.config.mjs', 'svelte.config.cjs'];
-        for (const configName of possibleSvelteConfigs) {
-            const configPath = path.join(workspaceUri.fsPath, configName);
-            if (fs.existsSync(configPath)) {
-                this.svelteConfigPath = configPath;
-                this.svelteConfigMtime = fs.statSync(configPath).mtimeMs;
-                break;
+
+        this.initializeWatching(
+            filePathsToIgnore,
+            ignoreInitialAdd,
+            fileEnding,
+            viteConfigRegex,
+            userIgnored,
+            offset
+        );
+    }
+
+    private async initializeWatching(
+        filePathsToIgnore: string[],
+        ignoreInitialAdd: boolean,
+        fileEnding: RegExp,
+        viteConfigRegex: RegExp,
+        userIgnored: Array<(path: string) => boolean>,
+        offset: number
+    ) {
+        const watchDirs = await this.svelteCheck.getWatchDirectories();
+
+        if (watchDirs && watchDirs.length > 0) {
+            for (const dir of watchDirs) {
+                const watcher = watch(dir.path, {
+                    ignored: (path, stats) => {
+                        if (
+                            path.includes('node_modules') ||
+                            path.includes('.git') ||
+                            (stats?.isFile() &&
+                                (!fileEnding.test(path) || viteConfigRegex.test(path)))
+                        ) {
+                            return true;
+                        }
+
+                        if (userIgnored.length !== 0) {
+                            const relativePath = path.slice(this.workspaceUri.fsPath.length + 1);
+                            for (const i of userIgnored) {
+                                if (i(relativePath)) {
+                                    return true;
+                                }
+                            }
+                        }
+
+                        return false;
+                    },
+                    ignoreInitial: ignoreInitialAdd,
+                    depth: dir.recursive ? undefined : 0
+                })
+                    .on('add', (path) => this.updateDocument(path, true))
+                    .on('unlink', (path) => this.removeDocument(path))
+                    .on('change', (path) => this.updateDocument(path, false));
+
+                this.watchers.push(watcher);
             }
-        }
-        
-        // Load initial tsconfig excludes
-        if (respectTsconfigExcludes && tsconfigPath) {
-            this.loadTsconfigExcludes();
-        }
-
-        watch(workspaceUri.fsPath, {
-            ignored: (path, stats) => {
-                if (
-                    path.includes('node_modules') ||
-                    path.includes('.git') ||
-                    (stats?.isFile() && (!fileEnding.test(path) || viteConfigRegex.test(path)))
-                ) {
-                    return true;
-                }
-
-                const relativePath = path.slice(offset);
-
-                // Check user-specified ignores
-                if (userIgnored.length !== 0) {
-                    for (const i of userIgnored) {
-                        if (i(relativePath)) {
-                            return true;
-                        }
-                    }
-                }
-
-                
-                for (const exclude of this.tsconfigExcludes) {
-                    if (exclude.endsWith('/**')) {
-                        const dir = exclude.slice(0, -3);
-                        if (relativePath.startsWith(dir + '/')) {
-                            return true;
-                        }
-                    } else if (exclude.includes('*')) {
-                        const regexPattern = exclude
-                            .replace(/\*\*/g, '.*')
-                            .replace(/\*/g, '[^/]*')
-                            .replace(/\./g, '\\.');
-                        const regex = new RegExp('^' + regexPattern + '$');
-                        if (regex.test(relativePath)) {
-                            return true;
-                        }
-                    } else if (relativePath.startsWith(exclude)) {
+        } else {
+            const watcher = watch(this.workspaceUri.fsPath, {
+                ignored: (path, stats) => {
+                    if (
+                        path.includes('node_modules') ||
+                        path.includes('.git') ||
+                        (stats?.isFile() && (!fileEnding.test(path) || viteConfigRegex.test(path)))
+                    ) {
                         return true;
                     }
-                }
 
-                return false;
-            },
-            ignoreInitial: ignoreInitialAdd
-        })
-            .on('add', (path) => this.updateDocument(path, true))
-            .on('unlink', (path) => this.removeDocument(path))
-            .on('change', (path) => this.updateDocument(path, false));
+                    if (userIgnored.length !== 0) {
+                        path = path.slice(offset);
+                        for (const i of userIgnored) {
+                            if (i(path)) {
+                                return true;
+                            }
+                        }
+                    }
+
+                    return false;
+                },
+                ignoreInitial: ignoreInitialAdd
+            })
+                .on('add', (path) => this.updateDocument(path, true))
+                .on('unlink', (path) => this.removeDocument(path))
+                .on('change', (path) => this.updateDocument(path, false));
+
+            this.watchers.push(watcher);
+        }
 
         if (ignoreInitialAdd) {
             this.scheduleDiagnostics();
@@ -260,110 +271,17 @@ class DiagnosticsWatcher {
     scheduleDiagnostics() {
         clearTimeout(this.updateDiagnostics);
         this.updateDiagnostics = setTimeout(
-            () => {
-                this.checkConfigReload(); // Check config periodically
-                getDiagnostics(this.workspaceUri, this.writer, this.svelteCheck);
-            },
+            () => getDiagnostics(this.workspaceUri, this.writer, this.svelteCheck),
             1000
         );
     }
-    
-    private async loadTsconfigExcludes(): Promise<void> {
-        if (!this.tsconfigPath || !fs.existsSync(this.tsconfigPath)) {
-            return;
+
+    dispose() {
+        clearTimeout(this.updateDiagnostics);
+        for (const watcher of this.watchers) {
+            watcher.close();
         }
-        
-        try {
-            // Try to use TypeScript if available
-            const ts = await import('typescript');
-            const excludes = await this.parseWithTypeScript(ts, this.tsconfigPath);
-            this.tsconfigExcludes = excludes;
-        } catch (e) {
-            console.warn(`[svelte-check] Warning: Could not parse tsconfig excludes. TypeScript may not be installed or config may be invalid.`);
-            console.warn(`[svelte-check] Continuing without respecting tsconfig excludes.`);
-            this.tsconfigExcludes = [];
-        }
-    }
-    
-    private async parseWithTypeScript(ts: typeof import('typescript'), configPath: string): Promise<string[]> {
-        const excludes: string[] = [];
-        const visited = new Set<string>();
-        
-        const parseConfig = (filePath: string) => {
-            if (visited.has(filePath)) return;
-            visited.add(filePath);
-            
-            try {
-                const stat = fs.statSync(filePath);
-                this.tsconfigCache.set(filePath, { excludes: [], mtime: stat.mtimeMs });
-                
-                const configFile = ts.readConfigFile(filePath, ts.sys.readFile);
-                if (configFile.error) {
-                    console.warn(`[svelte-check] Warning: Error reading ${filePath}: ${configFile.error.messageText}`);
-                    return;
-                }
-                
-                const config = configFile.config;
-                
-                // Handle extends
-                if (config.extends) {
-                    const extendedPath = path.resolve(path.dirname(filePath), config.extends);
-                    if (fs.existsSync(extendedPath)) {
-                        parseConfig(extendedPath);
-                    } else if (fs.existsSync(extendedPath + '.json')) {
-                        parseConfig(extendedPath + '.json');
-                    }
-                }
-                
-                // Collect excludes
-                if (config.exclude && Array.isArray(config.exclude)) {
-                    excludes.push(...config.exclude);
-                }
-            } catch (e) {
-                console.warn(`[svelte-check] Warning: Error parsing ${filePath}:`, e);
-            }
-        };
-        
-        parseConfig(configPath);
-        return excludes;
-    }
-    
-    private checkConfigReload(): void {
-        if (!this.respectTsconfigExcludes || !this.tsconfigPath) {
-            return;
-        }
-        
-        const now = Date.now();
-        if (now - this.lastConfigCheck < this.configCheckInterval) {
-            return; // Skip check if we checked recently
-        }
-        this.lastConfigCheck = now;
-        
-        // Check if svelte config changed
-        if (this.svelteConfigPath && fs.existsSync(this.svelteConfigPath)) {
-            const currentMtime = fs.statSync(this.svelteConfigPath).mtimeMs;
-            if (currentMtime !== this.svelteConfigMtime) {
-                this.svelteConfigMtime = currentMtime;
-                this.tsconfigCache.clear();
-                this.loadTsconfigExcludes();
-                return;
-            }
-        }
-        
-        // Check if any cached config changed
-        for (const [filePath, cache] of this.tsconfigCache) {
-            if (!fs.existsSync(filePath)) {
-                this.tsconfigCache.clear();
-                this.loadTsconfigExcludes();
-                return;
-            }
-            const currentMtime = fs.statSync(filePath).mtimeMs;
-            if (currentMtime !== cache.mtime) {
-                this.tsconfigCache.clear();
-                this.loadTsconfigExcludes();
-                return;
-            }
-        }
+        this.watchers = [];
     }
 }
 
@@ -418,9 +336,7 @@ parseOptions(async (opts) => {
                 new SvelteCheck(opts.workspaceUri.fsPath, svelteCheckOptions),
                 writer,
                 opts.filePathsToIgnore,
-                !!opts.tsconfig,
-                opts.tsconfig,
-                opts.respectTsconfigExcludes
+                !!opts.tsconfig
             );
         } else {
             const svelteCheck = new SvelteCheck(opts.workspaceUri.fsPath, svelteCheckOptions);
