@@ -4,7 +4,7 @@
 export default class TestNoScript extends SvelteComponentTyped<{
     [x: string]: never;
 }, {
-    click: MouseEvent;
+    click: PointerEvent;
 } & {
     [evt: string]: CustomEvent<any>;
 }, {
@@ -20,7 +20,7 @@ declare const __propDef: {
         [x: string]: never;
     };
     events: {
-        click: MouseEvent;
+        click: PointerEvent;
     } & {
         [evt: string]: CustomEvent<any>;
     };
