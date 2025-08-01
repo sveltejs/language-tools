@@ -212,6 +212,10 @@ export interface TSUserConfig {
     workspaceSymbols?: TsWorkspaceSymbolsConfig;
 }
 
+interface TsJsSharedConfig {
+    hover?: { maximumLength?: number };
+}
+
 /**
  * A subset of the JS/TS VS Code settings which
  * are transformed to ts.UserPreferences.
@@ -290,6 +294,12 @@ export interface TsWorkspaceSymbolsConfig {
 }
 
 export type TsUserConfigLang = 'typescript' | 'javascript';
+
+interface TsUserConfigLangMap {
+    typescript?: TSUserConfig;
+    javascript?: TSUserConfig;
+    'js/ts'?: TsJsSharedConfig;
+}
 
 /**
  * The config as the vscode-css-languageservice understands it
@@ -434,10 +444,11 @@ export class LSConfigManager {
         );
     }
 
-    updateTsJsUserPreferences(config: Record<TsUserConfigLang, TSUserConfig>): void {
+    updateTsJsUserPreferences(config: TsUserConfigLangMap): void {
+        const shared = config['js/ts'];
         (['typescript', 'javascript'] as const).forEach((lang) => {
             if (config[lang]) {
-                this._updateTsUserPreferences(lang, config[lang]);
+                this._updateTsUserPreferences(lang, config[lang], shared);
                 this.rawTsUserConfig[lang] = config[lang];
             }
         });
@@ -458,7 +469,11 @@ export class LSConfigManager {
         this.notifyListeners();
     }
 
-    private _updateTsUserPreferences(lang: TsUserConfigLang, config: TSUserConfig) {
+    private _updateTsUserPreferences(
+        lang: TsUserConfigLang,
+        config: TSUserConfig,
+        shared?: TsJsSharedConfig
+    ) {
         const { inlayHints } = config;
 
         this.tsUserPreferences[lang] = {
@@ -482,6 +497,7 @@ export class LSConfigManager {
             includeCompletionsWithObjectLiteralMethodSnippets:
                 config.suggest?.objectLiteralMethodSnippets?.enabled ?? true,
             preferTypeOnlyAutoImports: config.preferences?.preferTypeOnlyAutoImports,
+            maximumHoverLength: shared?.hover?.maximumLength,
 
             // Although we don't support incompletion cache.
             // But this will make ts resolve the module specifier more aggressively
@@ -618,7 +634,7 @@ export class LSConfigManager {
         return this.htmlConfig;
     }
 
-    updateTsJsFormateConfig(config: Record<TsUserConfigLang, TSUserConfig>): void {
+    updateTsJsFormateConfig(config: TsUserConfigLangMap): void {
         (['typescript', 'javascript'] as const).forEach((lang) => {
             if (config[lang]) {
                 this._updateTsFormatConfig(lang, config[lang]);
