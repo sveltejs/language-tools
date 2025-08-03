@@ -29,6 +29,7 @@ import {
     flatten,
     getIndent,
     isNotNullOrUndefined,
+    isPositionEqual,
     memoize,
     modifyLines,
     normalizePath,
@@ -42,6 +43,7 @@ import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { LanguageServiceContainer } from '../service';
 import {
     changeSvelteComponentName,
+    cloneRange,
     convertRange,
     isInScript,
     toGeneratedSvelteComponentName
@@ -469,6 +471,10 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             })
         );
 
+        for (const change of documentChanges) {
+            this.checkIndentLeftover(change, document);
+        }
+
         return [
             CodeAction.create(
                 skipDestructiveCodeActions ? 'Sort Imports' : 'Organize Imports',
@@ -521,20 +527,19 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         snapshot: DocumentSnapshot,
         range: Range
     ) {
+        if (!(snapshot instanceof SvelteDocumentSnapshot)) {
+            return range;
+        }
         // Handle svelte2tsx wrong import mapping:
         // The character after the last import maps to the start of the script
         // TODO find a way to fix this in svelte2tsx and then remove this
         if (
             (range.end.line === 0 && range.end.character === 1) ||
-            range.end.line < range.start.line
+            range.end.line < range.start.line ||
+            (isInScript(range.start, snapshot) && !isInScript(range.end, snapshot))
         ) {
             edit.span.length -= 1;
             range = mapRangeToOriginal(snapshot, convertRange(snapshot, edit.span));
-
-            if (!(snapshot instanceof SvelteDocumentSnapshot)) {
-                range.end.character += 1;
-                return range;
-            }
 
             const line = getLineAtPosition(range.end, snapshot.getOriginalText());
             // remove-import code action will removes the
@@ -552,6 +557,67 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         }
 
         return range;
+    }
+
+    private checkIndentLeftover(change: TextDocumentEdit, document: Document) {
+        if (!change.edits.length) {
+            return;
+        }
+        const orderedByStart = change.edits.sort((a, b) => {
+            if (a.range.start.line !== b.range.start.line) {
+                return a.range.start.line - b.range.start.line;
+            }
+            return a.range.start.character - b.range.start.character;
+        });
+
+        let current: TextEdit | undefined;
+        let groups: TextEdit[] = [];
+        for (let i = 0; i < orderedByStart.length; i++) {
+            const edit = orderedByStart[i];
+            if (!current) {
+                current = { range: cloneRange(edit.range), newText: edit.newText };
+                continue;
+            }
+            if (isPositionEqual(current.range.end, edit.range.start)) {
+                current.range.end = edit.range.end;
+                current.newText += edit.newText;
+            } else {
+                groups.push(current);
+                current = { range: cloneRange(edit.range), newText: edit.newText };
+            }
+        }
+        if (current) {
+            groups.push(current);
+        }
+
+        for (const edit of groups) {
+            if (edit.newText) {
+                continue;
+            }
+            const range = edit.range;
+            const lineContentBeforeRemove = document.getText({
+                start: { line: range.start.line, character: 0 },
+                end: range.start
+            });
+
+            const onlyIndentLeft = !lineContentBeforeRemove.trim();
+            if (!onlyIndentLeft) {
+                continue;
+            }
+
+            const lineContentAfterRemove = document.getText({
+                start: range.end,
+                end: { line: range.end.line, character: Number.MAX_VALUE }
+            });
+            const emptyAfterRemove =
+                !lineContentAfterRemove.trim() || lineContentAfterRemove.startsWith('</script>');
+            if (emptyAfterRemove) {
+                change.edits.push({
+                    range: { start: { line: range.start.line, character: 0 }, end: range.start },
+                    newText: ''
+                });
+            }
+        }
     }
 
     private async applyQuickfix(

@@ -377,3 +377,10 @@ export function hasTsExtensions(fileName: string) {
 export function isSvelte2tsxShimFile(fileName: string | undefined) {
     return fileName?.endsWith('svelte-shims.d.ts') || fileName?.endsWith('svelte-shims-v4.d.ts');
 }
+
+export function cloneRange(range: Range): Range {
+    return Range.create(
+        Position.create(range.start.line, range.start.character),
+        Position.create(range.end.line, range.end.character)
+    );
+}
