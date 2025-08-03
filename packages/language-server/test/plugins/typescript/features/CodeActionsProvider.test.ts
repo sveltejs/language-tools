@@ -29,7 +29,7 @@ const testDir = path.join(__dirname, '..');
 const indent = ' '.repeat(4);
 const isSvelte5Plus = +VERSION.split('.')[0] >= 5;
 
-describe.only('CodeActionsProvider', function () {
+describe('CodeActionsProvider', function () {
     recursiveServiceWarmup(
         this,
         path.join(testDir, 'testfiles', 'code-actions'),
@@ -67,7 +67,7 @@ describe.only('CodeActionsProvider', function () {
         const filePath = getFullPath(filename);
         const document = docManager.openClientDocument(<any>{
             uri: pathToUrl(filePath),
-            text: harmonizeNewLines(ts.sys.readFile(filePath) || '')
+            text: ts.sys.readFile(filePath) || ''
         });
         return { provider, document, docManager, lsAndTsDocResolver };
     }
@@ -2086,6 +2086,116 @@ describe.only('CodeActionsProvider', function () {
         ]);
     });
 
+    it('organize imports without leftover indentation', async () => {
+        const { provider, document } = setup('organize-import-all-remove.svelte');
+
+        const codeActions = await provider.getCodeActions(
+            document,
+            Range.create(Position.create(1, 4), Position.create(1, 5)),
+            {
+                diagnostics: [],
+                only: [CodeActionKind.SourceOrganizeImports]
+            }
+        );
+
+        assert.deepStrictEqual(codeActions, [
+            {
+                title: 'Organize Imports',
+                edit: {
+                    documentChanges: [
+                        {
+                            textDocument: {
+                                uri: getUri('organize-import-all-remove.svelte'),
+                                version: null
+                            },
+                            edits: [
+                                {
+                                    range: {
+                                        start: {
+                                            line: 1,
+                                            character: 4
+                                        },
+                                        end: {
+                                            line: 2,
+                                            character: 4
+                                        }
+                                    },
+                                    newText: ''
+                                },
+                                {
+                                    range: {
+                                        start: {
+                                            line: 2,
+                                            character: 4
+                                        },
+                                        end: {
+                                            line: 3,
+                                            character: 0
+                                        }
+                                    },
+                                    newText: ''
+                                },
+                                {
+                                    range: {
+                                        start: {
+                                            line: 4,
+                                            character: 4
+                                        },
+                                        end: {
+                                            line: 5,
+                                            character: 4
+                                        }
+                                    },
+                                    newText: ''
+                                },
+                                {
+                                    range: {
+                                        start: {
+                                            line: 5,
+                                            character: 4
+                                        },
+                                        end: {
+                                            line: 6,
+                                            character: 0
+                                        }
+                                    },
+                                    newText: ''
+                                },
+                                {
+                                    range: {
+                                        start: {
+                                            line: 1,
+                                            character: 0
+                                        },
+                                        end: {
+                                            line: 1,
+                                            character: 4
+                                        }
+                                    },
+                                    newText: ''
+                                },
+                                {
+                                    range: {
+                                        start: {
+                                            line: 4,
+                                            character: 0
+                                        },
+                                        end: {
+                                            line: 4,
+                                            character: 4
+                                        }
+                                    },
+                                    newText: ''
+                                }
+                            ]
+                        }
+                    ]
+                },
+                kind: 'source.organizeImports'
+            }
+        ]);
+    });
+
     it('should do extract into function refactor', async () => {
         const { provider, document } = setup('codeactions.svelte');
 
@@ -2309,5 +2419,71 @@ describe.only('CodeActionsProvider', function () {
         );
 
         assert.deepStrictEqual(codeActions, []);
+    });
+
+    if (!isSvelte5Plus) {
+        return;
+    }
+
+    it('organizes imports with top-level snippets', async () => {
+        const { provider, document } = setup('organize-imports-snippet.svelte');
+
+        const codeActions = await provider.getCodeActions(
+            document,
+            Range.create(Position.create(4, 15), Position.create(4, 15)),
+            {
+                diagnostics: [],
+                only: [CodeActionKind.SourceOrganizeImports]
+            }
+        );
+
+        (<TextDocumentEdit>codeActions[0]?.edit?.documentChanges?.[0])?.edits.forEach(
+            (edit) => (edit.newText = harmonizeNewLines(edit.newText))
+        );
+
+        assert.deepStrictEqual(codeActions, [
+            {
+                edit: {
+                    documentChanges: [
+                        {
+                            edits: [
+                                {
+                                    newText: '',
+                                    range: {
+                                        end: {
+                                            character: 0,
+                                            line: 5
+                                        },
+                                        start: {
+                                            character: 4,
+                                            line: 4
+                                        }
+                                    }
+                                },
+                                {
+                                    newText: '',
+                                    range: {
+                                        end: {
+                                            character: 4,
+                                            line: 4
+                                        },
+                                        start: {
+                                            character: 0,
+                                            line: 4
+                                        }
+                                    }
+                                }
+                            ],
+                            textDocument: {
+                                uri: getUri('organize-imports-snippet.svelte'),
+                                version: null
+                            }
+                        }
+                    ]
+                },
+                kind: 'source.organizeImports',
+                title: 'Organize Imports'
+            }
+        ]);
     });
 });
