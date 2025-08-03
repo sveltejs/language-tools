@@ -2,18 +2,18 @@ import { GenerateConfig, Resource } from '../types';
 
 const defaultScriptTemplate = `
 <script>
-    import { page } from '$app/stores';
+    import { page } from '$app/state';
 </script>
 
-<h1>{$page.status}: {$page.error.message}</h1>
+<h1>{page.status}: {page.error.message}</h1>
 `;
 
 const tsScriptTemplate = `
 <script lang="ts">
-    import { page } from '$app/stores';
+    import { page } from '$app/state';
 </script>
 
-<h1>{$page.status}: {$page.error?.message}</h1>
+<h1>{page.status}: {page.error?.message}</h1>
 `;
 
 export default async function (config: GenerateConfig): ReturnType<Resource['generate']> {
