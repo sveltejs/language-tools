@@ -143,35 +143,42 @@ async function getDiagnostics(
     }
 }
 
+const FILE_ENDING_REGEX = /\.(svelte|d\.ts|ts|js|jsx|tsx|mjs|cjs|mts|cts)$/;
+const VITE_CONFIG_REGEX = /vite\.config\.(js|ts)\.timestamp-/;
+
 class DiagnosticsWatcher {
     private updateDiagnostics: any;
+    private watcher: any;
+    private currentWatchedDirs = new Set<string>();
+    private userIgnored: Array<(path: string) => boolean>;
 
     constructor(
         private workspaceUri: URI,
         private svelteCheck: SvelteCheck,
         private writer: Writer,
         filePathsToIgnore: string[],
-        ignoreInitialAdd: boolean
+        private ignoreInitialAdd: boolean
     ) {
-        const fileEnding = /\.(svelte|d\.ts|ts|js|jsx|tsx|mjs|cjs|mts|cts)$/;
-        const viteConfigRegex = /vite\.config\.(js|ts)\.timestamp-/;
-        const userIgnored = createIgnored(filePathsToIgnore);
-        const offset = workspaceUri.fsPath.length + 1;
+        this.userIgnored = createIgnored(filePathsToIgnore);
 
-        watch(workspaceUri.fsPath, {
+        // Create watcher with initial paths
+        this.watcher = watch([], {
             ignored: (path, stats) => {
                 if (
                     path.includes('node_modules') ||
                     path.includes('.git') ||
-                    (stats?.isFile() && (!fileEnding.test(path) || viteConfigRegex.test(path)))
+                    (stats?.isFile() && (!FILE_ENDING_REGEX.test(path) || VITE_CONFIG_REGEX.test(path)))
                 ) {
                     return true;
                 }
 
-                if (userIgnored.length !== 0) {
-                    path = path.slice(offset);
-                    for (const i of userIgnored) {
-                        if (i(path)) {
+                if (this.userIgnored.length !== 0) {
+                    // Make path relative to workspace for user ignores
+                    const workspaceRelative = path.startsWith(this.workspaceUri.fsPath)
+                        ? path.slice(this.workspaceUri.fsPath.length + 1)
+                        : path;
+                    for (const i of this.userIgnored) {
+                        if (i(workspaceRelative)) {
                             return true;
                         }
                     }
@@ -179,13 +186,38 @@ class DiagnosticsWatcher {
 
                 return false;
             },
-            ignoreInitial: ignoreInitialAdd
+            ignoreInitial: this.ignoreInitialAdd
         })
             .on('add', (path) => this.updateDocument(path, true))
             .on('unlink', (path) => this.removeDocument(path))
             .on('change', (path) => this.updateDocument(path, false));
 
-        if (ignoreInitialAdd) {
+        this.updateWatchedDirectories();
+    }
+
+    private async updateWatchedDirectories() {
+        const watchDirs = await this.svelteCheck.getWatchDirectories();
+        const dirsToWatch = watchDirs || [{ path: this.workspaceUri.fsPath, recursive: true }];
+        const newDirs = new Set(dirsToWatch.map(d => d.path));
+
+        // Fast diff: find directories to add and remove
+        const toAdd = [...newDirs].filter(dir => !this.currentWatchedDirs.has(dir));
+        const toRemove = [...this.currentWatchedDirs].filter(dir => !newDirs.has(dir));
+
+        // Add new directories
+        if (toAdd.length > 0) {
+            this.watcher.add(toAdd);
+        }
+
+        // Remove old directories
+        if (toRemove.length > 0) {
+            this.watcher.unwatch(toRemove);
+        }
+
+        // Update current set
+        this.currentWatchedDirs = newDirs;
+
+        if (this.ignoreInitialAdd) {
             this.scheduleDiagnostics();
         }
     }
@@ -210,10 +242,15 @@ class DiagnosticsWatcher {
         this.scheduleDiagnostics();
     }
 
-    scheduleDiagnostics() {
+    scheduleDiagnostics(updateWatchers = false) {
         clearTimeout(this.updateDiagnostics);
         this.updateDiagnostics = setTimeout(
-            () => getDiagnostics(this.workspaceUri, this.writer, this.svelteCheck),
+            async () => {
+                if (updateWatchers) {
+                    await this.updateWatchedDirectories();
+                }
+                getDiagnostics(this.workspaceUri, this.writer, this.svelteCheck);
+            },
             1000
         );
     }
@@ -264,7 +301,7 @@ parseOptions(async (opts) => {
         };
 
         if (opts.watch) {
-            svelteCheckOptions.onProjectReload = () => watcher.scheduleDiagnostics();
+            svelteCheckOptions.onProjectReload = () => watcher.scheduleDiagnostics(true);
             const watcher = new DiagnosticsWatcher(
                 opts.workspaceUri,
                 new SvelteCheck(opts.workspaceUri.fsPath, svelteCheckOptions),

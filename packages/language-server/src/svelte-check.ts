@@ -353,4 +353,25 @@ export class SvelteCheck {
         }
         return this.lsAndTSDocResolver.getTSService(tsconfigPath);
     }
+
+    /**
+     * Gets the watch directories based on the tsconfig include patterns.
+     * Returns null if no tsconfig is specified.
+     */
+    async getWatchDirectories(): Promise<{ path: string; recursive: boolean }[] | null> {
+        if (!this.options.tsconfig) {
+            return null;
+        }
+        const lsContainer = await this.getLSContainer(this.options.tsconfig);
+        const projectConfig = lsContainer.getProjectConfig();
+        
+        if (!projectConfig.wildcardDirectories) {
+            return null;
+        }
+        
+        return Object.entries(projectConfig.wildcardDirectories).map(([dir, flags]) => ({
+            path: dir,
+            recursive: !!(flags & ts.WatchDirectoryFlags.Recursive)
+        }));
+    }
 }
