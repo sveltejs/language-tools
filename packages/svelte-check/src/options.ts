@@ -87,17 +87,37 @@ function showHelp() {
     console.log('Options:');
     console.log('  -h, --help                          Show help');
     console.log('  -v, --version                       Show version');
-    console.log('  --workspace <path>                  Path to your workspace. All subdirectories except node_modules and those listed in `--ignore` are checked. Defaults to current working directory.');
-    console.log('  --output <format>                   What output format to use. Options are human, human-verbose, machine, machine-verbose. (default: "human-verbose")');
-    console.log('  --watch                             Will not exit after one pass but keep watching files for changes and rerun diagnostics');
+    console.log(
+        '  --workspace <path>                  Path to your workspace. All subdirectories except node_modules and those listed in `--ignore` are checked. Defaults to current working directory.'
+    );
+    console.log(
+        '  --output <format>                   What output format to use. Options are human, human-verbose, machine, machine-verbose. (default: "human-verbose")'
+    );
+    console.log(
+        '  --watch                             Will not exit after one pass but keep watching files for changes and rerun diagnostics'
+    );
     console.log('  --preserveWatchOutput               Do not clear the screen in watch mode');
-    console.log('  --tsconfig <path>                   Pass a path to a tsconfig or jsconfig file. The path can be relative to the workspace path or absolute.');
-    console.log('  --no-tsconfig                       Use this if you only want to check the Svelte files found in the current directory and below and ignore any JS/TS files');
-    console.log('  --ignore <patterns>                 Only has an effect when using `--no-tsconfig` option. Files/folders to ignore - relative to workspace root, comma-separated, inside quotes.');
-    console.log('  --fail-on-warnings                  Will also exit with error code when there are warnings');
-    console.log('  --compiler-warnings <list>          A list of Svelte compiler warning codes. Each entry defines whether that warning should be ignored or treated as an error.');
-    console.log('  --diagnostic-sources <list>         A list of diagnostic sources which should run diagnostics on your code. Possible values are `js` (includes TS), `svelte`, `css`.');
-    console.log('  --threshold <level>                 Filters the diagnostics to display. `error` will output only errors while `warning` will output warnings and errors. (default: "warning")');
+    console.log(
+        '  --tsconfig <path>                   Pass a path to a tsconfig or jsconfig file. The path can be relative to the workspace path or absolute.'
+    );
+    console.log(
+        '  --no-tsconfig                       Use this if you only want to check the Svelte files found in the current directory and below and ignore any JS/TS files'
+    );
+    console.log(
+        '  --ignore <patterns>                 Only has an effect when using `--no-tsconfig` option. Files/folders to ignore - relative to workspace root, comma-separated, inside quotes.'
+    );
+    console.log(
+        '  --fail-on-warnings                  Will also exit with error code when there are warnings'
+    );
+    console.log(
+        '  --compiler-warnings <list>          A list of Svelte compiler warning codes. Each entry defines whether that warning should be ignored or treated as an error.'
+    );
+    console.log(
+        '  --diagnostic-sources <list>         A list of diagnostic sources which should run diagnostics on your code. Possible values are `js` (includes TS), `svelte`, `css`.'
+    );
+    console.log(
+        '  --threshold <level>                 Filters the diagnostics to display. `error` will output only errors while `warning` will output warnings and errors. (default: "warning")'
+    );
     console.log('  --color                             Force enabling of color output');
     console.log('  --no-color                          Force disabling of color output');
 }
