@@ -38,7 +38,8 @@ import {
     convertRange,
     isInScript,
     isGeneratedSvelteComponentName,
-    scriptElementKindToCompletionItemKind
+    scriptElementKindToCompletionItemKind,
+    cloneRange
 } from '../utils';
 import { getJsDocTemplateCompletion } from './getJsDocTemplateCompletion';
 import {
@@ -595,7 +596,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
         return tagNames.map((name) => ({
             label: name,
             kind: CompletionItemKind.Property,
-            textEdit: TextEdit.replace(this.cloneRange(replacementRange), name),
+            textEdit: TextEdit.replace(cloneRange(replacementRange), name),
             commitCharacters: []
         }));
     }
@@ -641,16 +642,9 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
             documentation: info.doc && { kind: MarkupKind.Markdown, value: info.doc },
             commitCharacters: [],
             textEdit: defaultTextEditRange
-                ? TextEdit.replace(this.cloneRange(defaultTextEditRange), name)
+                ? TextEdit.replace(cloneRange(defaultTextEditRange), name)
                 : undefined
         };
-    }
-
-    private cloneRange(range: Range) {
-        return Range.create(
-            Position.create(range.start.line, range.start.character),
-            Position.create(range.end.line, range.end.character)
-        );
     }
 
     private getCompletionListForDirectiveOrProps(
@@ -885,10 +879,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
         tsDoc: SvelteDocumentSnapshot
     ) {
         if (isHandlerCompletion && completionItem.label.startsWith('on:')) {
-            completionItem.textEdit = TextEdit.replace(
-                this.cloneRange(wordRange),
-                completionItem.label
-            );
+            completionItem.textEdit = TextEdit.replace(cloneRange(wordRange), completionItem.label);
 
             return completionItem;
         }
