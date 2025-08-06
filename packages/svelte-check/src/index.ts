@@ -2,7 +2,7 @@
  * This code's groundwork is taken from https://github.com/vuejs/vetur/tree/master/vti
  */
 
-import { watch } from 'chokidar';
+import { watch, FSWatcher } from 'chokidar';
 import * as fs from 'fs';
 import { fdir } from 'fdir';
 import * as path from 'path';
@@ -148,9 +148,10 @@ const VITE_CONFIG_REGEX = /vite\.config\.(js|ts)\.timestamp-/;
 
 class DiagnosticsWatcher {
     private updateDiagnostics: any;
-    private watcher: any;
+    private watcher: FSWatcher;
     private currentWatchedDirs = new Set<string>();
     private userIgnored: Array<(path: string) => boolean>;
+    private pendingWatcherUpdate: any;
 
     constructor(
         private workspaceUri: URI,
@@ -167,7 +168,8 @@ class DiagnosticsWatcher {
                 if (
                     path.includes('node_modules') ||
                     path.includes('.git') ||
-                    (stats?.isFile() && (!FILE_ENDING_REGEX.test(path) || VITE_CONFIG_REGEX.test(path)))
+                    (stats?.isFile() &&
+                        (!FILE_ENDING_REGEX.test(path) || VITE_CONFIG_REGEX.test(path)))
                 ) {
                     return true;
                 }
@@ -198,11 +200,11 @@ class DiagnosticsWatcher {
     private async updateWatchedDirectories() {
         const watchDirs = await this.svelteCheck.getWatchDirectories();
         const dirsToWatch = watchDirs || [{ path: this.workspaceUri.fsPath, recursive: true }];
-        const newDirs = new Set(dirsToWatch.map(d => d.path));
+        const newDirs = new Set(dirsToWatch.map((d) => d.path));
 
         // Fast diff: find directories to add and remove
-        const toAdd = [...newDirs].filter(dir => !this.currentWatchedDirs.has(dir));
-        const toRemove = [...this.currentWatchedDirs].filter(dir => !newDirs.has(dir));
+        const toAdd = [...newDirs].filter((dir) => !this.currentWatchedDirs.has(dir));
+        const toRemove = [...this.currentWatchedDirs].filter((dir) => !newDirs.has(dir));
 
         // Add new directories
         if (toAdd.length > 0) {
@@ -242,15 +244,15 @@ class DiagnosticsWatcher {
         this.scheduleDiagnostics();
     }
 
-    scheduleDiagnostics(updateWatchers = false) {
+    updateWatchers() {
+        clearTimeout(this.pendingWatcherUpdate);
+        this.pendingWatcherUpdate = setTimeout(() => this.updateWatchedDirectories(), 1000);
+    }
+
+    scheduleDiagnostics() {
         clearTimeout(this.updateDiagnostics);
         this.updateDiagnostics = setTimeout(
-            async () => {
-                if (updateWatchers) {
-                    await this.updateWatchedDirectories();
-                }
-                getDiagnostics(this.workspaceUri, this.writer, this.svelteCheck);
-            },
+            () => getDiagnostics(this.workspaceUri, this.writer, this.svelteCheck),
             1000
         );
     }
@@ -301,7 +303,10 @@ parseOptions(async (opts) => {
         };
 
         if (opts.watch) {
-            svelteCheckOptions.onProjectReload = () => watcher.scheduleDiagnostics(true);
+            svelteCheckOptions.onProjectReload = () => {
+                watcher.updateWatchers();
+                watcher.scheduleDiagnostics();
+            };
             const watcher = new DiagnosticsWatcher(
                 opts.workspaceUri,
                 new SvelteCheck(opts.workspaceUri.fsPath, svelteCheckOptions),
