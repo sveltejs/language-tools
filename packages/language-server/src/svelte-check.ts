@@ -364,11 +364,11 @@ export class SvelteCheck {
         }
         const lsContainer = await this.getLSContainer(this.options.tsconfig);
         const projectConfig = lsContainer.getProjectConfig();
-        
+
         if (!projectConfig.wildcardDirectories) {
             return null;
         }
-        
+
         return Object.entries(projectConfig.wildcardDirectories).map(([dir, flags]) => ({
             path: dir,
             recursive: !!(flags & ts.WatchDirectoryFlags.Recursive)
