@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import sade from 'sade';
+import { parseArgs } from 'node:util';
 import { URI } from 'vscode-uri';
 
 export interface SvelteCheckCliOptions {
@@ -17,82 +17,89 @@ export interface SvelteCheckCliOptions {
 }
 
 export function parseOptions(cb: (opts: SvelteCheckCliOptions) => any) {
-    const prog = sade('svelte-check', true)
-        .version(require('../../package.json').version) // ends up in dist/src, that's why we go two levels up
-        .option(
-            '--workspace',
-            'Path to your workspace. All subdirectories except node_modules and those listed in `--ignore` are checked. Defaults to current working directory.'
-        )
-        .option(
-            '--output',
-            'What output format to use. Options are human, human-verbose, machine, machine-verbose.',
-            'human-verbose'
-        )
-        .option(
-            '--watch',
-            'Will not exit after one pass but keep watching files for changes and rerun diagnostics',
-            false
-        )
-        .option('--preserveWatchOutput', 'Do not clear the screen in watch mode', false)
-        .option(
-            '--tsconfig',
-            'Pass a path to a tsconfig or jsconfig file. The path can be relative to the workspace path or absolute. Doing this means that only files matched by the files/include/exclude pattern of the config file are diagnosed. It also means that errors from TypeScript and JavaScript files are reported. When not given, searches for the next upper tsconfig/jsconfig in the workspace path.'
-        )
-        .option(
-            '--no-tsconfig',
-            'Use this if you only want to check the Svelte files found in the current directory and below and ignore any JS/TS files (they will not be type-checked)',
-            false
-        )
-        .option(
-            '--ignore',
-            'Only has an effect when using `--no-tsconfig` option. Files/folders to ignore - relative to workspace root, comma-separated, inside quotes. Example: `--ignore "dist,build"`'
-        )
-        .option(
-            '--fail-on-warnings',
-            'Will also exit with error code when there are warnings',
-            false
-        )
-        .option(
-            '--compiler-warnings',
-            'A list of Svelte compiler warning codes. Each entry defines whether that warning should be ignored or treated as an error. Warnings are comma-separated, between warning code and error level is a colon; all inside quotes. Example: `--compiler-warnings "css-unused-selector:ignore,unused-export-let:error"`'
-        )
-        .option(
-            '--diagnostic-sources',
-            'A list of diagnostic sources which should run diagnostics on your code. Possible values are `js` (includes TS), `svelte`, `css`. Comma-separated, inside quotes. By default all are active. Example: `--diagnostic-sources "js,svelte"`'
-        )
-        .option(
-            '--threshold',
-            'Filters the diagnostics to display. `error` will output only errors while `warning` will output warnings and errors.',
-            'warning'
-        )
-        // read by sade and preprocessor like sass
-        .option('--color', 'Force enabling of color output', false)
-        .option('--no-color', 'Force disabling of color output', false)
-        .action((opts) => {
-            const workspaceUri = getWorkspaceUri(opts);
-            const tsconfig = getTsconfig(opts, workspaceUri.fsPath);
+    const options = {
+        help: { type: 'boolean', short: 'h' },
+        version: { type: 'boolean', short: 'v' },
+        workspace: { type: 'string' },
+        output: { type: 'string', default: 'human-verbose' },
+        watch: { type: 'boolean' },
+        preserveWatchOutput: { type: 'boolean' },
+        tsconfig: { type: 'string' },
+        'no-tsconfig': { type: 'boolean' },
+        ignore: { type: 'string' },
+        'fail-on-warnings': { type: 'boolean' },
+        'compiler-warnings': { type: 'string' },
+        'diagnostic-sources': { type: 'string' },
+        threshold: { type: 'string', default: 'warning' },
+        color: { type: 'boolean' },
+        'no-color': { type: 'boolean' }
+    } as const;
 
-            if (opts.ignore && tsconfig) {
-                throwError('`--ignore` only has an effect when using `--no-tsconfig`');
-            }
-
-            cb({
-                workspaceUri,
-                outputFormat: getOutputFormat(opts),
-                watch: !!opts.watch,
-                preserveWatchOutput: !!opts.preserveWatchOutput,
-                tsconfig,
-                filePathsToIgnore: opts.ignore?.split(',') || [],
-                failOnWarnings: !!opts['fail-on-warnings'],
-                compilerWarnings: getCompilerWarnings(opts),
-                diagnosticSources: getDiagnosticSources(opts),
-                threshold: getThreshold(opts)
-            });
+    try {
+        const { values } = parseArgs({
+            args: process.argv.slice(2),
+            options,
+            strict: false
         });
 
-    prog.parse(process.argv, {
-        unknown: (arg) => `Unknown option ${arg}`
-    });
+        if (values.help) {
+            showHelp();
+            process.exit(0);
+        }
+
+        if (values.version) {
+            console.log(require('../../package.json').version);
+            process.exit(0);
+        }
+
+        const workspaceUri = getWorkspaceUri(values);
+        const tsconfig = getTsconfig(values, workspaceUri.fsPath);
+
+        if (values.ignore && tsconfig) {
+            throwError('`--ignore` only has an effect when using `--no-tsconfig`');
+        }
+
+        cb({
+            workspaceUri,
+            outputFormat: getOutputFormat(values),
+            watch: !!values.watch,
+            preserveWatchOutput: !!values.preserveWatchOutput,
+            tsconfig,
+            filePathsToIgnore: typeof values.ignore === 'string' ? values.ignore.split(',') : [],
+            failOnWarnings: !!values['fail-on-warnings'],
+            compilerWarnings: getCompilerWarnings(values),
+            diagnosticSources: getDiagnosticSources(values),
+            threshold: getThreshold(values)
+        });
+    } catch (error: any) {
+        console.error(`Error parsing arguments: ${error.message}`);
+        process.exit(1);
+    }
+}
+
+function showHelp() {
+    const packageJson = require('../../package.json');
+    console.log(`${packageJson.name} v${packageJson.version}`);
+    console.log(`${packageJson.description}`);
+    console.log('');
+    console.log('Usage: svelte-check [options]');
+    console.log('');
+    console.log('Options:');
+    console.log('  -h, --help                          Show help');
+    console.log('  -v, --version                       Show version');
+    console.log('  --workspace <path>                  Path to your workspace. All subdirectories except node_modules and those listed in `--ignore` are checked. Defaults to current working directory.');
+    console.log('  --output <format>                   What output format to use. Options are human, human-verbose, machine, machine-verbose. (default: "human-verbose")');
+    console.log('  --watch                             Will not exit after one pass but keep watching files for changes and rerun diagnostics');
+    console.log('  --preserveWatchOutput               Do not clear the screen in watch mode');
+    console.log('  --tsconfig <path>                   Pass a path to a tsconfig or jsconfig file. The path can be relative to the workspace path or absolute.');
+    console.log('  --no-tsconfig                       Use this if you only want to check the Svelte files found in the current directory and below and ignore any JS/TS files');
+    console.log('  --ignore <patterns>                 Only has an effect when using `--no-tsconfig` option. Files/folders to ignore - relative to workspace root, comma-separated, inside quotes.');
+    console.log('  --fail-on-warnings                  Will also exit with error code when there are warnings');
+    console.log('  --compiler-warnings <list>          A list of Svelte compiler warning codes. Each entry defines whether that warning should be ignored or treated as an error.');
+    console.log('  --diagnostic-sources <list>         A list of diagnostic sources which should run diagnostics on your code. Possible values are `js` (includes TS), `svelte`, `css`.');
+    console.log('  --threshold <level>                 Filters the diagnostics to display. `error` will output only errors while `warning` will output warnings and errors. (default: "warning")');
+    console.log('  --color                             Force enabling of color output');
+    console.log('  --no-color                          Force disabling of color output');
 }
 
 const outputFormats = ['human', 'human-verbose', 'machine', 'machine-verbose'] as const;
@@ -190,7 +197,7 @@ function getDiagnosticSources(opts: Record<string, any>): DiagnosticSource[] {
               .split(',')
               ?.map((s: string) => s.trim())
               .filter((s: any) => diagnosticSources.includes(s))
-        : diagnosticSources;
+        : [...diagnosticSources];
 }
 
 const thresholds = ['warning', 'error'] as const;

@@ -23,14 +23,13 @@
     },
     "homepage": "https://github.com/sveltejs/language-tools#readme",
     "engines": {
-        "node": ">= 18.0.0"
+        "node": ">= 18.3.0"
     },
     "dependencies": {
         "@jridgewell/trace-mapping": "^0.3.25",
         "chokidar": "^4.0.1",
         "fdir": "^6.2.0",
-        "picocolors": "^1.0.0",
-        "sade": "^1.7.4"
+        "picocolors": "^1.0.0"
     },
     "peerDependencies": {
         "svelte": "^4.0.0 || ^5.0.0-next.0",
@@ -47,7 +46,6 @@
         "@rollup/plugin-node-resolve": "^15.0.0",
         "@rollup/plugin-replace": "5.0.2",
         "@rollup/plugin-typescript": "^10.0.0",
-        "@types/sade": "^1.7.2",
         "builtin-modules": "^3.3.0",
         "rollup": "3.7.5",
         "rollup-plugin-cleanup": "^3.2.0",
