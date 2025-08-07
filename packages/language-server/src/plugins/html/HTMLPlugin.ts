@@ -10,7 +10,6 @@ import {
     CompletionList,
     Hover,
     Position,
-    SymbolInformation,
     CompletionItem,
     CompletionItemKind,
     TextEdit,
@@ -19,7 +18,8 @@ import {
     LinkedEditingRanges,
     CompletionContext,
     FoldingRange,
-    DocumentHighlight
+    DocumentHighlight,
+    DocumentSymbol
 } from 'vscode-languageserver';
 import {
     DocumentManager,
@@ -300,7 +300,7 @@ export class HTMLPlugin
         return isInsideMoustacheTag(document.getText(), node.start, offset);
     }
 
-    getDocumentSymbols(document: Document): SymbolInformation[] {
+    getDocumentSymbols(document: Document): DocumentSymbol[] {
         if (!this.featureEnabled('documentSymbols')) {
             return [];
         }
@@ -310,7 +310,7 @@ export class HTMLPlugin
             return [];
         }
 
-        return this.lang.findDocumentSymbols(document, html);
+        return this.lang.findDocumentSymbols2(document, html);
     }
 
     rename(document: Document, position: Position, newName: string): WorkspaceEdit | null {

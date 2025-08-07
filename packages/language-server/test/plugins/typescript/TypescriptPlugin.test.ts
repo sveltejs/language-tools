@@ -69,9 +69,9 @@ describe('TypescriptPlugin', function () {
             .map((s) => ({ ...s, name: harmonizeNewLines(s.name) }))
             .sort(
                 (s1, s2) =>
-                    s1.location.range.start.line * 100 +
-                    s1.location.range.start.character -
-                    (s2.location.range.start.line * 100 + s2.location.range.start.character)
+                    s1.range.start.line * 100 +
+                    s1.range.start.character -
+                    (s2.range.start.line * 100 + s2.range.start.character)
             );
 
         assert.deepStrictEqual(symbols, [

@@ -35,7 +35,8 @@ import {
     TextEdit,
     WorkspaceEdit,
     InlayHint,
-    WorkspaceSymbol
+    WorkspaceSymbol,
+    DocumentSymbol
 } from 'vscode-languageserver';
 import { DocumentManager, getNodeIfIsInHTMLStartTag } from '../lib/documents';
 import { Logger } from '../logger';
@@ -298,7 +299,7 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
     async getDocumentSymbols(
         textDocument: TextDocumentIdentifier,
         cancellationToken: CancellationToken
-    ): Promise<SymbolInformation[]> {
+    ): Promise<DocumentSymbol[]> {
         const document = this.getDocument(textDocument.uri);
 
         // VSCode requested document symbols twice for the outline view and the sticky scroll
@@ -308,7 +309,7 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
             return [];
         }
         return flatten(
-            await this.execute<SymbolInformation[]>(
+            await this.execute<DocumentSymbol[]>(
                 'getDocumentSymbols',
                 [document, cancellationToken],
                 ExecuteMode.Collect,
