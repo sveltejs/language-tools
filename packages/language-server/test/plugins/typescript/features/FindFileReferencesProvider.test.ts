@@ -1,4 +1,4 @@
-import * as assert from 'assert';
+import { describe, it, expect } from 'vitest';
 import * as path from 'path';
 import ts from 'typescript';
 import { Location, Position, Range } from 'vscode-languageserver';
@@ -12,7 +12,7 @@ import { serviceWarmup } from '../test-utils';
 const testDir = path.join(__dirname, '..');
 
 describe('FindFileReferencesProvider', function () {
-    serviceWarmup(this, testDir);
+    serviceWarmup(testDir);
 
     function getFullPath(filename: string) {
         return path.join(testDir, 'testfiles', filename);
@@ -59,6 +59,6 @@ describe('FindFileReferencesProvider', function () {
             )
         ];
 
-        assert.deepStrictEqual(results, expectedResults);
+        expect(results).toEqual(expectedResults);
     });
 });

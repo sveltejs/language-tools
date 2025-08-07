@@ -1,4 +1,4 @@
-import assert from 'assert';
+import { describe, it, expect } from 'vitest';
 import { join } from 'path';
 import ts from 'typescript';
 import {
@@ -20,7 +20,7 @@ import { serviceWarmup } from '../test-utils';
 const testFilesDir = join(__dirname, '..', 'testfiles', 'preferences');
 
 describe('ts user preferences', function () {
-    serviceWarmup(this, testFilesDir);
+    serviceWarmup(testFilesDir);
 
     function setup(filename: string) {
         const docManager = new DocumentManager(
@@ -98,7 +98,7 @@ describe('ts user preferences', function () {
         const item = completions?.items.find((item) => item.label === 'definition');
 
         const { additionalTextEdits } = await completionProvider.resolveCompletion(document, item!);
-        assert.strictEqual(additionalTextEdits![0].newText.trim(), expectedImportEdit);
+        expect(additionalTextEdits![0].newText.trim(), expectedImportEdit);
     });
 
     async function importCodeActionTest(
@@ -120,7 +120,7 @@ describe('ts user preferences', function () {
         const documentChange = codeAction[0].edit?.documentChanges?.[0] as
             | TextDocumentEdit
             | undefined;
-        assert.strictEqual(documentChange?.edits[0].newText.trim(), expectedImportEdit);
+        expect(documentChange?.edits[0].newText.trim(), expectedImportEdit);
     }
 
     it('provides auto import code action according to preferences', async () => {
@@ -158,7 +158,7 @@ describe('ts user preferences', function () {
         );
 
         const item = completions?.items.find((item) => item.label === 'definition');
-        assert.strictEqual(item, undefined, 'Expected no auto import suggestions');
+        expect(item).toEqual(undefined);
     });
 
     const expectedComponentImportEdit = "import Imports from '~/imports.svelte';";
@@ -190,7 +190,7 @@ describe('ts user preferences', function () {
 
         const item = completions?.items.find((item) => item.label === 'Imports');
         const { additionalTextEdits } = await completionProvider.resolveCompletion(document, item!);
-        assert.strictEqual(additionalTextEdits![0].newText.trim(), expectedComponentImportEdit);
+        expect(additionalTextEdits![0].newText.trim(), expectedComponentImportEdit);
     });
 
     it('provides auto import for context="module" export when importModuleSpecifierEnding is js', async () => {
@@ -208,7 +208,7 @@ describe('ts user preferences', function () {
 
         const item = completions?.items.find((item) => item.label === 'hi');
         const { additionalTextEdits } = await completionProvider.resolveCompletion(document, item!);
-        assert.strictEqual(
+        expect(
             additionalTextEdits![0].newText.trim(),
             "import { hi } from '~/with-context-module.svelte';"
         );
@@ -243,7 +243,7 @@ describe('ts user preferences', function () {
         const documentChange = codeAction[0].edit?.documentChanges?.[0] as
             | TextDocumentEdit
             | undefined;
-        assert.strictEqual(documentChange?.edits[0].newText.trim(), expectedComponentImportEdit);
+        expect(documentChange?.edits[0].newText.trim(), expectedComponentImportEdit);
     });
 
     async function testExcludeDefinitionDir(pattern: string) {
@@ -263,7 +263,7 @@ describe('ts user preferences', function () {
 
         const item = completions?.items.find((item) => item.label === 'definition');
 
-        assert.equal(item, undefined);
+        expect(item).toEqual(undefined);
     }
 
     it('exclude auto import', async () => {
@@ -295,6 +295,6 @@ describe('ts user preferences', function () {
 
         const item = completions?.items.find((item) => item.label === 'blubb');
 
-        assert.equal(item, undefined);
+        expect(item).toEqual(undefined);
     });
 });

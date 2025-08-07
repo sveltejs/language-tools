@@ -1,6 +1,6 @@
 import { getTsCheckComment } from '../../../src/plugins/typescript/utils';
 import ts from 'typescript';
-import * as assert from 'assert';
+import { describe, it, expect } from 'vitest';
 
 describe('TypeScriptPlugin utils', () => {
     describe('#getTsCheckComment', () => {
@@ -8,7 +8,7 @@ describe('TypeScriptPlugin utils', () => {
         const tsNocheckComment = `// @ts-nocheck${ts.sys.newLine}`;
 
         it('should not return if ts-check is after non-comment-code', () => {
-            assert.deepStrictEqual(
+            expect(
                 getTsCheckComment(`qwd
             // @ts-check`),
                 undefined
@@ -16,7 +16,7 @@ describe('TypeScriptPlugin utils', () => {
         });
 
         it('should return @ts-check', () => {
-            assert.deepStrictEqual(
+            expect(
                 getTsCheckComment(`
             // @ts-check`),
                 tsCheckComment
@@ -24,7 +24,7 @@ describe('TypeScriptPlugin utils', () => {
         });
 
         it('should return @ts-nocheck', () => {
-            assert.deepStrictEqual(
+            expect(
                 getTsCheckComment(`
             // @ts-nocheck`),
                 tsNocheckComment
@@ -32,7 +32,7 @@ describe('TypeScriptPlugin utils', () => {
         });
 
         it('should return if ts-check is after some comments', () => {
-            assert.deepStrictEqual(
+            expect(
                 getTsCheckComment(`
             // hello
             
@@ -43,7 +43,7 @@ describe('TypeScriptPlugin utils', () => {
         });
 
         it('should not return if there are comments but without ts-check', () => {
-            assert.deepStrictEqual(
+            expect(
                 getTsCheckComment(`
             // nope
             // almost@ts-check

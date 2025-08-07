@@ -1,4 +1,5 @@
 import path, { dirname, isAbsolute, join } from 'path';
+import { expect, beforeEach, afterEach, beforeAll, afterAll, after, describe, it } from 'vitest';
 import { existsSync, readdirSync, statSync, writeFileSync } from 'fs';
 import ts from 'typescript';
 import { resolveConfig, format } from 'prettier';
@@ -191,11 +192,11 @@ export function createSnapshotTester<
     TestOptions extends {
         dir: string;
         workspaceDir: string;
-        context: Mocha.Suite;
+        context: any;
     }
 >(executeTest: (inputFile: string, testOptions: TestOptions) => Promise<void>) {
     return (testOptions: TestOptions) => {
-        serviceWarmup(testOptions.context, testOptions.dir, pathToUrl(testOptions.workspaceDir));
+        serviceWarmup(testOptions.dir, pathToUrl(testOptions.workspaceDir));
         executeTests(testOptions);
     };
 
@@ -208,7 +209,7 @@ export function createSnapshotTester<
         const jsconfig = join(dir, 'jsconfig.json');
 
         if (existsSync(tsconfig) || existsSync(jsconfig)) {
-            serviceWarmup(testOptions.context, dir, workspaceUri);
+            serviceWarmup(dir, workspaceUri);
         }
 
         if (existsSync(inputFile)) {
@@ -254,7 +255,7 @@ export async function updateSnapshotIfFailedOrEmpty({
         try {
             assertion();
         } catch (e) {
-            if (process.argv.includes('--auto')) {
+            if (process.env.UPDATE_SNAPSHOTS === 'true' || process.argv.includes('--auto')) {
                 await writeFile(`Updated ${expectedFile} for`);
             } else {
                 throw e;
@@ -281,19 +282,11 @@ export async function createJsonSnapshotFormatter(dir: string) {
 }
 
 export function serviceWarmup(
-    suite: Mocha.Suite,
     testDir: string,
     rootUri = pathToUrl(testDir),
     tsconfigPath: string | undefined = undefined
 ) {
-    const defaultTimeout = suite.timeout();
-
-    // allow to set a higher timeout for slow machines from cli flag
-    const warmupTimeout = Math.max(defaultTimeout, 5_000);
-    suite.timeout(warmupTimeout);
-    before(() => warmup(tsconfigPath));
-
-    suite.timeout(defaultTimeout);
+    beforeAll(() => warmup(tsconfigPath));
 
     async function warmup(configFilePath: string | undefined = undefined) {
         const start = Date.now();
@@ -333,16 +326,14 @@ export function serviceWarmup(
 }
 
 export function recursiveServiceWarmup(
-    suite: Mocha.Suite,
     testDir: string,
     rootUri = pathToUrl(testDir)
 ) {
-    serviceWarmup(suite, testDir, rootUri);
-    recursiveServiceWarmupNonRoot(suite, testDir, rootUri);
+    serviceWarmup(testDir, rootUri);
+    recursiveServiceWarmupNonRoot(testDir, rootUri);
 }
 
 function recursiveServiceWarmupNonRoot(
-    suite: Mocha.Suite,
     testDir: string,
     rootUri = pathToUrl(testDir)
 ) {
@@ -355,11 +346,11 @@ function recursiveServiceWarmupNonRoot(
             stat.isFile() &&
             (subDirOrFile === 'tsconfig.json' || subDirOrFile === 'jsconfig.json')
         ) {
-            serviceWarmup(suite, testDir, rootUri);
+            serviceWarmup(testDir, rootUri);
         }
 
         if (stat.isDirectory()) {
-            recursiveServiceWarmupNonRoot(suite, join(testDir, subDirOrFile), rootUri);
+            recursiveServiceWarmupNonRoot(join(testDir, subDirOrFile), rootUri);
         }
     }
 }

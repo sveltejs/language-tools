@@ -1,4 +1,4 @@
-import * as assert from 'assert';
+import { describe, it, expect, vi } from 'vitest';
 import { SveltePlugin } from '../../../src/plugins';
 import { DocumentManager, Document } from '../../../src/lib/documents';
 import {
@@ -46,7 +46,7 @@ describe('Svelte Plugin', () => {
             'svelte'
         );
 
-        assert.deepStrictEqual(diagnostics, [diagnostic]);
+        expect(diagnostics).toEqual([diagnostic]);
     });
 
     it('provides diagnostic errors', async () => {
@@ -63,7 +63,7 @@ describe('Svelte Plugin', () => {
             'svelte'
         );
 
-        assert.deepStrictEqual(diagnostics, [diagnostic]);
+        expect(diagnostics).toEqual([diagnostic]);
     });
 
     it('provides no diagnostic errors when untrusted', async () => {
@@ -71,14 +71,15 @@ describe('Svelte Plugin', () => {
 
         const diagnostics = await plugin.getDiagnostics(document);
 
-        assert.deepStrictEqual(diagnostics, []);
+        expect(diagnostics).toEqual([]);
     });
 
     describe('#formatDocument', () => {
         function stubPrettierV2(config: any) {
-            const formatStub = sinon.stub().returns('formatted');
+            const formatStub = vi.fn(() => 'formatted');
 
-            sinon.stub(importPackage, 'importPrettier').returns(<any>{
+            // Use Vitest's vi.spyOn instead of sinon.stub for better compatibility
+            const importPrettierSpy = vi.spyOn(importPackage, 'importPrettier').mockReturnValue(<any>{
                 version: '2.8.0',
                 resolveConfig: () => Promise.resolve(config),
                 getFileInfo: () => ({ ignored: false }),
@@ -102,7 +103,7 @@ describe('Svelte Plugin', () => {
                 insertSpaces: true,
                 tabSize: 4
             });
-            assert.deepStrictEqual(formatted, [
+            expect(formatted).toEqual([
                 {
                     newText: 'formatted',
                     range: {
@@ -123,11 +124,13 @@ describe('Svelte Plugin', () => {
 
         afterEach(() => {
             sinon.restore();
+            vi.restoreAllMocks();
         });
 
         it('should use config for formatting', async () => {
             const formatStub = await testFormat({ fromConfig: true }, { fallbackConfig: true });
-            sinon.assert.calledOnceWithExactly(formatStub, 'unformatted', {
+            expect(formatStub).toHaveBeenCalledOnce();
+            expect(formatStub).toHaveBeenCalledWith('unformatted', {
                 fromConfig: true,
                 plugins: [],
                 parser: 'svelte'
@@ -141,7 +144,8 @@ describe('Svelte Plugin', () => {
                 { fallbackConfig: true },
                 { documentUri }
             );
-            sinon.assert.calledOnceWithExactly(formatStub, 'unformatted', {
+            expect(formatStub).toHaveBeenCalledOnce();
+            expect(formatStub).toHaveBeenCalledWith('unformatted', {
                 fromConfig: true,
                 plugins: [
                     require.resolve('prettier-plugin-svelte', { paths: [urlToPath(documentUri)!] })
@@ -162,7 +166,8 @@ describe('Svelte Plugin', () => {
 
         it('should use prettier fallback config for formatting', async () => {
             const formatStub = await testFormat(undefined, { fallbackConfig: true });
-            sinon.assert.calledOnceWithExactly(formatStub, 'unformatted', {
+            expect(formatStub).toHaveBeenCalledOnce();
+            expect(formatStub).toHaveBeenCalledWith('unformatted', {
                 fallbackConfig: true,
                 plugins: [],
                 parser: 'svelte',
@@ -172,7 +177,8 @@ describe('Svelte Plugin', () => {
 
         it('should use FormattingOptions for formatting', async () => {
             const formatStub = await testFormat(undefined, undefined);
-            sinon.assert.calledOnceWithExactly(formatStub, 'unformatted', {
+            expect(formatStub).toHaveBeenCalledOnce();
+            expect(formatStub).toHaveBeenCalledWith('unformatted', {
                 tabWidth: 4,
                 useTabs: false,
                 plugins: [],
@@ -183,7 +189,8 @@ describe('Svelte Plugin', () => {
 
         it('should use FormattingOptions for formatting when configs are empty objects', async () => {
             const formatStub = await testFormat({}, {});
-            sinon.assert.calledOnceWithExactly(formatStub, 'unformatted', {
+            expect(formatStub).toHaveBeenCalledOnce();
+            expect(formatStub).toHaveBeenCalledWith('unformatted', {
                 tabWidth: 4,
                 useTabs: false,
                 plugins: [],
@@ -194,20 +201,19 @@ describe('Svelte Plugin', () => {
 
         it('should load the user prettier version (version 2)', async () => {
             function stubPrettier(config: any) {
-                const formatStub = sinon.stub().returns('formatted');
+                const formatStub = vi.fn(() => 'formatted');
 
-                sinon
-                    .stub(importPackage, 'importPrettier')
-                    .onFirstCall()
-                    .returns(<any>{
+                vi.spyOn(importPackage, 'importPrettier')
+                    .mockReturnValueOnce(<any>{
                         version: '2.8.0',
                         resolveConfig: () => Promise.resolve(config),
                         getFileInfo: () => ({ ignored: false }),
                         format: formatStub,
                         getSupportInfo: () => ({ languages: [{ name: 'svelte' }] })
                     })
-                    .onSecondCall()
-                    .throws(new Error('should not be called'));
+                    .mockImplementationOnce(() => {
+                        throw new Error('should not be called');
+                    });
 
                 return formatStub;
             }
@@ -217,20 +223,19 @@ describe('Svelte Plugin', () => {
 
         it("should load user plugin if it's module", async () => {
             function stubPrettier(config: any) {
-                const formatStub = sinon.stub().returns('formatted');
+                const formatStub = vi.fn(() => 'formatted');
 
-                sinon
-                    .stub(importPackage, 'importPrettier')
-                    .onFirstCall()
-                    .returns(<any>{
+                vi.spyOn(importPackage, 'importPrettier')
+                    .mockReturnValueOnce(<any>{
                         version: '2.8.0',
                         resolveConfig: () => Promise.resolve(config),
                         getFileInfo: () => ({ ignored: false }),
                         format: formatStub,
                         getSupportInfo: () => ({ languages: [{ name: 'svelte' }] })
                     })
-                    .onSecondCall()
-                    .throws(new Error('should not be called'));
+                    .mockImplementationOnce(() => {
+                        throw new Error('should not be called');
+                    });
 
                 return formatStub;
             }
@@ -247,20 +252,19 @@ describe('Svelte Plugin', () => {
 
         it('should load the user prettier version (version 2)', async () => {
             function stubPrettier(config: any) {
-                const formatStub = sinon.stub().returns(Promise.resolve('formatted'));
+                const formatStub = vi.fn(() => Promise.resolve('formatted'));
 
-                sinon
-                    .stub(importPackage, 'importPrettier')
-                    .onFirstCall()
-                    .returns(<any>{
+                vi.spyOn(importPackage, 'importPrettier')
+                    .mockReturnValueOnce(<any>{
                         version: '2.0.0',
                         resolveConfig: () => Promise.resolve(config),
                         getFileInfo: () => ({ ignored: false }),
                         format: formatStub,
                         getSupportInfo: () => Promise.resolve({ languages: [] })
                     })
-                    .onSecondCall()
-                    .throws(new Error('should not be called'));
+                    .mockImplementationOnce(() => {
+                        throw new Error('should not be called');
+                    });
 
                 return formatStub;
             }
@@ -276,12 +280,10 @@ describe('Svelte Plugin', () => {
 
         it('should fall back to built-in prettier version', async () => {
             function stubPrettier(config: any) {
-                const formatStub = sinon.stub().returns('formatted');
+                const formatStub = vi.fn(() => 'formatted');
 
-                sinon
-                    .stub(importPackage, 'importPrettier')
-                    .onFirstCall()
-                    .returns(<any>{
+                vi.spyOn(importPackage, 'importPrettier')
+                    .mockReturnValueOnce(<any>{
                         version: '2.8.0',
                         resolveConfig: () => Promise.resolve(config),
                         getFileInfo: () => ({ ignored: false }),
@@ -290,16 +292,16 @@ describe('Svelte Plugin', () => {
                         },
                         getSupportInfo: () => Promise.resolve({ languages: [] })
                     })
-                    .onSecondCall()
-                    .returns(<any>{
+                    .mockReturnValueOnce(<any>{
                         version: '3.1.0',
                         resolveConfig: () => Promise.resolve(config),
                         getFileInfo: () => ({ ignored: false }),
                         format: formatStub,
                         getSupportInfo: () => ({ languages: [] })
                     })
-                    .onThirdCall()
-                    .throws(new Error('should not be called'));
+                    .mockImplementationOnce(() => {
+                        throw new Error('should not be called');
+                    });
 
                 return formatStub;
             }
@@ -309,12 +311,10 @@ describe('Svelte Plugin', () => {
 
         it('should fall back to built-in prettier version when failing to resolve plugins config', async () => {
             function stubPrettier(config: any) {
-                const formatStub = sinon.stub().returns('formatted');
+                const formatStub = vi.fn(() => 'formatted');
 
-                sinon
-                    .stub(importPackage, 'importPrettier')
-                    .onFirstCall()
-                    .returns(<any>{
+                vi.spyOn(importPackage, 'importPrettier')
+                    .mockReturnValueOnce(<any>{
                         version: '2.8.0',
                         resolveConfig: () => Promise.resolve(config),
                         getFileInfo: () => ({ ignored: false }),
@@ -323,16 +323,16 @@ describe('Svelte Plugin', () => {
                         },
                         getSupportInfo: () => Promise.resolve({ languages: [] })
                     })
-                    .onSecondCall()
-                    .returns(<any>{
+                    .mockReturnValueOnce(<any>{
                         version: '3.0.0',
                         resolveConfig: () => Promise.resolve(config),
                         getFileInfo: () => ({ ignored: false }),
                         format: formatStub,
                         getSupportInfo: () => ({ languages: [] })
                     })
-                    .onThirdCall()
-                    .throws(new Error('should not be called'));
+                    .mockImplementationOnce(() => {
+                        throw new Error('should not be called');
+                    });
 
                 return formatStub;
             }
@@ -361,7 +361,7 @@ describe('Svelte Plugin', () => {
 
         cancellationTokenSource.cancel();
 
-        assert.deepStrictEqual(await completionsPromise, null);
+        expect(await completionsPromise).toBe(null);
     });
 
     it('can cancel code action before promise resolved', async () => {
@@ -391,6 +391,6 @@ describe('Svelte Plugin', () => {
 
         cancellationTokenSource.cancel();
 
-        assert.deepStrictEqual(await codeActionPromise, []);
+        expect(await codeActionPromise).toEqual([]);
     });
 });

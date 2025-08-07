@@ -1,4 +1,4 @@
-import * as assert from 'assert';
+import { describe, it, expect } from 'vitest';
 import * as path from 'path';
 import * as fs from 'fs';
 import { Diagnostic, DiagnosticSeverity, Position } from 'vscode-languageserver';
@@ -39,7 +39,7 @@ describe('SveltePlugin#getDiagnostics', () => {
         };
         const result = await getDiagnostics(document, svelteDoc, settings);
         return {
-            toEqual: (expected: Diagnostic[]) => assert.deepStrictEqual(result, expected)
+            toEqual: (expected: Diagnostic[]) => expect(result).toEqual(expected)
         };
     }
 
@@ -467,7 +467,7 @@ describe('SveltePlugin#getDiagnostics', () => {
         const { plugin, document } = setupFromFile('diagnostics.svelte');
         const diagnostics = await plugin.getDiagnostics(document);
 
-        assert.deepStrictEqual(diagnostics, [
+        expect(diagnostics, [
             {
                 range: { start: { line: 1, character: 15 }, end: { line: 1, character: 27 } },
                 message:
@@ -484,7 +484,7 @@ describe('SveltePlugin#getDiagnostics', () => {
         const { plugin, document } = setupFromFile('diagnostics-module.svelte');
         const diagnostics = await plugin.getDiagnostics(document);
 
-        assert.deepStrictEqual(
+        expect(
             diagnostics.filter((d) => d.code !== 'script_context_deprecated'),
             [
                 {
@@ -506,7 +506,7 @@ describe('SveltePlugin#getDiagnostics', () => {
         const { plugin, document } = setupFromFile('diagnostics-module-and-instance.svelte');
         const diagnostics = await plugin.getDiagnostics(document);
 
-        assert.deepStrictEqual(
+        expect(
             diagnostics.filter((d) => d.code !== 'script_context_deprecated'),
             [
                 {

@@ -1,5 +1,5 @@
-import * as assert from 'assert';
-import { readFileSync, existsSync } from 'fs';
+import { describe, it, expect, afterAll, beforeAll } from 'vitest';
+import { readdirSync, statSync, existsSync } from 'fs';
 import { join } from 'path';
 import ts from 'typescript';
 import { Document, DocumentManager } from '../../../../../src/lib/documents';
@@ -8,11 +8,7 @@ import { LSAndTSDocResolver } from '../../../../../src/plugins';
 import { DiagnosticsProviderImpl } from '../../../../../src/plugins/typescript/features/DiagnosticsProvider';
 import { __resetCache } from '../../../../../src/plugins/typescript/service';
 import { pathToUrl } from '../../../../../src/utils';
-import {
-    createJsonSnapshotFormatter,
-    createSnapshotTester,
-    updateSnapshotIfFailedOrEmpty
-} from '../../test-utils';
+import { serviceWarmup } from '../../test-utils';
 import { getPackageInfo } from '../../../../../src/importPackage';
 
 function setup(workspaceDir: string, filePath: string) {
@@ -34,54 +30,60 @@ function setup(workspaceDir: string, filePath: string) {
 }
 
 const {
-    version: { major }
+    version: { major: svelteMajor }
 } = getPackageInfo('svelte', __dirname);
-const expected = 'expectedv2.json';
-const newSvelteMajorExpected = `expected_svelte_${major}.json`;
+const isSvelte5 = svelteMajor >= 5;
 
-async function executeTest(
-    inputFile: string,
-    {
-        workspaceDir,
-        dir
-    }: {
-        workspaceDir: string;
-        dir: string;
-    }
-) {
-    const { plugin, document } = setup(workspaceDir, inputFile);
-    const diagnostics = await plugin.getDiagnostics(document);
-
-    const defaultExpectedFile = join(dir, expected);
-    const expectedFileForCurrentSvelteMajor = join(dir, newSvelteMajorExpected);
-    const expectedFile = existsSync(expectedFileForCurrentSvelteMajor)
-        ? expectedFileForCurrentSvelteMajor
-        : defaultExpectedFile;
-    const snapshotFormatter = await createJsonSnapshotFormatter(dir);
-
-    await updateSnapshotIfFailedOrEmpty({
-        assertion() {
-            assert.deepStrictEqual(diagnostics, JSON.parse(readFileSync(expectedFile, 'utf-8')));
-        },
-        expectedFile,
-        getFileContent() {
-            return snapshotFormatter(diagnostics);
-        },
-        rootDir: __dirname
+describe('DiagnosticsProvider', () => {
+    const fixturesDir = join(__dirname, 'fixtures');
+    const workspaceDir = join(__dirname, '../../testfiles/diagnostics');
+    
+    beforeAll(() => {
+        serviceWarmup(workspaceDir, pathToUrl(workspaceDir));
     });
-}
-
-const executeTests = createSnapshotTester(executeTest);
-
-describe('DiagnosticsProvider', function () {
-    executeTests({
-        dir: join(__dirname, 'fixtures'),
-        workspaceDir: join(__dirname, 'fixtures'),
-        context: this
-    });
-
-    // Hacky, but it works. Needed due to testing both new and old transformation
-    after(() => {
+    
+    afterAll(() => {
         __resetCache();
     });
+    
+    // Recursively find all test directories with input.svelte
+    function getTestDirs(dir: string, basePath = ''): string[] {
+        const dirs: string[] = [];
+        const entries = readdirSync(dir);
+        
+        for (const entry of entries) {
+            const fullPath = join(dir, entry);
+            const stat = statSync(fullPath);
+            
+            if (stat.isDirectory()) {
+                const testPath = basePath ? `${basePath}/${entry}` : entry;
+                const inputFile = join(fullPath, 'input.svelte');
+                
+                if (existsSync(inputFile)) {
+                    // Skip .v5 tests if not on Svelte 5
+                    if (entry.endsWith('.v5') && !isSvelte5) {
+                        continue;
+                    }
+                    dirs.push(testPath);
+                } else {
+                    // Recurse into subdirectories
+                    dirs.push(...getTestDirs(fullPath, testPath));
+                }
+            }
+        }
+        
+        return dirs;
+    }
+    
+    const testDirs = getTestDirs(fixturesDir);
+    
+    for (const testPath of testDirs) {
+        it(testPath, async () => {
+            const inputFile = join(fixturesDir, testPath, 'input.svelte');
+            const { plugin, document } = setup(workspaceDir, inputFile);
+            const diagnostics = await plugin.getDiagnostics(document);
+            
+            expect(diagnostics).toMatchSnapshot();
+        });
+    }
 });

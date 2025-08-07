@@ -1,4 +1,4 @@
-import * as assert from 'assert';
+import { describe, it, expect, afterAll } from 'vitest';
 import * as path from 'path';
 import ts from 'typescript';
 import {
@@ -21,7 +21,7 @@ const isSvelte5Plus = +VERSION.split('.')[0] >= 5;
 
 describe('CallHierarchyProvider', function () {
     const callHierarchyTestDirRelative = path.join('testfiles', 'call-hierarchy');
-    serviceWarmup(this, path.join(testDir, callHierarchyTestDirRelative), pathToUrl(testDir));
+    serviceWarmup(path.join(testDir, callHierarchyTestDirRelative), pathToUrl(testDir));
 
     function getFullPath(filename: string) {
         return path.join(testDir, 'testfiles', 'call-hierarchy', filename);
@@ -89,7 +89,7 @@ describe('CallHierarchyProvider', function () {
 
         const item = await provider.prepareCallHierarchy(document, { line: 9, character: 4 });
 
-        assert.deepStrictEqual(item, [fooInImportItem]);
+        expect(item).toEqual([fooInImportItem]);
     });
 
     const formatDateCallHierarchyItem: CallHierarchyItem = {
@@ -125,7 +125,7 @@ describe('CallHierarchyProvider', function () {
 
         const item = await provider.prepareCallHierarchy(document, { line: 6, character: 8 });
 
-        assert.deepStrictEqual(item, [formatDateCallHierarchyItem]);
+        expect(item).toEqual([formatDateCallHierarchyItem]);
     });
 
     it('can provide incoming calls', async () => {
@@ -134,7 +134,7 @@ describe('CallHierarchyProvider', function () {
         const items = await provider.prepareCallHierarchy(document, { line: 6, character: 8 });
         const incoming = await provider.getIncomingCalls(items![0]);
 
-        assert.deepStrictEqual(incoming, <CallHierarchyIncomingCall[]>[
+        expect(incoming, <CallHierarchyIncomingCall[]>[
             {
                 from: {
                     kind: SymbolKind.Function,
@@ -292,7 +292,7 @@ describe('CallHierarchyProvider', function () {
         const items = await provider.prepareCallHierarchy(document, { line: 0, character: 2 });
         const incoming = await provider.getIncomingCalls(items![0]);
 
-        assert.deepStrictEqual(incoming, <CallHierarchyIncomingCall[]>[
+        expect(incoming, <CallHierarchyIncomingCall[]>[
             {
                 from: {
                     detail: callHierarchyTestDirRelative,
@@ -384,7 +384,7 @@ describe('CallHierarchyProvider', function () {
         const items = await provider.prepareCallHierarchy(document, { line: 3, character: 14 });
         const incoming = await provider.getOutgoingCalls(items![0]);
 
-        assert.deepStrictEqual(incoming, [outgoingComponentHiFunctionCall]);
+        expect(incoming).toEqual([outgoingComponentHiFunctionCall]);
     });
 
     it('can provide outgoing calls for component file', async () => {
@@ -398,7 +398,7 @@ describe('CallHierarchyProvider', function () {
         const items = await provider.prepareCallHierarchy(document, { line: 10, character: 1 });
         const outgoing = await provider.getOutgoingCalls(items![0]);
 
-        assert.deepStrictEqual(outgoing, <CallHierarchyOutgoingCall[]>[
+        expect(outgoing, <CallHierarchyOutgoingCall[]>[
             {
                 to: formatDateCallHierarchyItem,
                 fromRanges: [
@@ -428,7 +428,7 @@ describe('CallHierarchyProvider', function () {
         const items = await provider.prepareCallHierarchy(document, { line: 0, character: 2 });
         const outgoing = await provider.getOutgoingCalls(items![0]);
 
-        assert.deepStrictEqual(outgoing, <CallHierarchyOutgoingCall[]>[
+        expect(outgoing, <CallHierarchyOutgoingCall[]>[
             {
                 fromRanges: [
                     {
@@ -473,7 +473,7 @@ describe('CallHierarchyProvider', function () {
     });
 
     // Hacky, but it works. Needed due to testing both new and old transformation
-    after(() => {
+    afterAll(() => {
         __resetCache();
     });
 });

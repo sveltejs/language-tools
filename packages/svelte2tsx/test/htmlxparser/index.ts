@@ -1,5 +1,5 @@
 import { htmlx2jsx } from '../build';
-import assert from 'assert';
+import { describe, it, expect } from 'vitest';
 import { benchmark } from '../helpers';
 import { parse } from 'svelte/compiler';
 
@@ -12,6 +12,6 @@ describe('htmlxparser', () => {
         const duration = benchmark(
             htmlx2jsx.bind(null, `<script> ${str} </script>` + `<style> ${str} </style>`, parse)
         );
-        assert(duration <= 1000, `Parsing took ${duration} ms, which was longer than 1000ms`);
+        expect(duration).toBeLessThanOrEqual(1000);
     });
 });

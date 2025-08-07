@@ -1,4 +1,4 @@
-import * as assert from 'assert';
+import { describe, it, expect, afterAll } from 'vitest';
 import * as path from 'path';
 import ts from 'typescript';
 import { Location, Position, Range } from 'vscode-languageserver';
@@ -16,7 +16,7 @@ const testDir = path.join(__dirname, '..');
 const isSvelte5Plus = +VERSION.split('.')[0] >= 5;
 
 describe('FindReferencesProvider', function () {
-    serviceWarmup(this, testDir);
+    serviceWarmup(testDir);
 
     function getFullPath(filename: string) {
         return path.join(testDir, 'testfiles', filename);
@@ -79,7 +79,7 @@ describe('FindReferencesProvider', function () {
             ].concat(expectedResults);
         }
 
-        assert.deepStrictEqual(results, expectedResults);
+        expect(results).toEqual(expectedResults);
     }
 
     it('finds references', async () => {
@@ -102,7 +102,7 @@ describe('FindReferencesProvider', function () {
         const results = await provider.findReferences(document, Position.create(5, 10), {
             includeDeclaration: true
         });
-        assert.deepStrictEqual(results, [
+        expect(results, [
             {
                 range: {
                     end: {
@@ -216,7 +216,7 @@ describe('FindReferencesProvider', function () {
         const results = await provider.findReferences(document, Position.create(1, 8), {
             includeDeclaration: true
         });
-        assert.deepStrictEqual(results, [
+        expect(results, [
             {
                 range: {
                     end: {
@@ -269,7 +269,7 @@ describe('FindReferencesProvider', function () {
             includeDeclaration: true
         });
 
-        assert.deepStrictEqual(results, [
+        expect(results, [
             {
                 uri,
                 range: {
@@ -322,7 +322,7 @@ describe('FindReferencesProvider', function () {
                 includeDeclaration: true
             }
         );
-        assert.deepStrictEqual(references, <Location[]>[
+        expect(references, <Location[]>[
             {
                 range: {
                     end: { line: 0, character: 18 },
@@ -420,7 +420,7 @@ describe('FindReferencesProvider', function () {
             includeDeclaration: true
         });
 
-        assert.deepStrictEqual(results, componentReferences);
+        expect(results).toEqual(componentReferences);
     });
 
     it('can find all component references', async () => {
@@ -432,11 +432,11 @@ describe('FindReferencesProvider', function () {
             includeDeclaration: true
         });
 
-        assert.deepStrictEqual(results, componentReferences);
+        expect(results).toEqual(componentReferences);
     });
 
     // Hacky, but it works. Needed due to testing both new and old transformation
-    after(() => {
+    afterAll(() => {
         __resetCache();
     });
 });

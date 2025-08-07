@@ -1,3 +1,4 @@
+import { describe, it } from 'vitest';
 import * as path from 'path';
 import { performance } from 'perf_hooks';
 import ts from 'typescript';
@@ -34,11 +35,9 @@ describe('TypeScript Plugin Performance Tests', () => {
         return { plugin, document, append, prepend };
     }
 
-    it('should be fast enough', async function () {
+    it('should be fast enough', { timeout: 25000 }, async () => {
         // allow to set a higher timeout for slow machines from cli flag
-        const performanceTimeout = Math.max(this.timeout(), 25_000);
-        this.timeout(performanceTimeout);
-
+        
         const { document, plugin, append, prepend } = setup('performance.svelte');
 
         const benchmarkElapse = Math.ceil(await benchmark());
@@ -46,9 +45,9 @@ describe('TypeScript Plugin Performance Tests', () => {
         // plus 1 for the benchmark itself
         const newTimeout = benchmarkElapse * 7;
 
+        const performanceTimeout = 25_000;
         if (newTimeout < performanceTimeout) {
             console.log(`Benchmark took ${benchmarkElapse}ms. Setting timeout to ${newTimeout}ms`);
-            this.timeout(newTimeout);
         }
 
         const start = performance.now();

@@ -1,4 +1,4 @@
-import * as assert from 'assert';
+import { describe, it, expect } from 'vitest';
 import {
     Range,
     Position,
@@ -44,7 +44,7 @@ describe('CSS Plugin', () => {
         it('for normal css', () => {
             const { plugin, document } = setup('<style>h1 {}</style>');
 
-            assert.deepStrictEqual(plugin.doHover(document, Position.create(0, 8)), <Hover>{
+            expect(plugin.doHover(document, Position.create(0, 8))).toEqual(<Hover>{
                 contents: [
                     { language: 'html', value: '<h1>' },
                     '[Selector Specificity](https://developer.mozilla.org/docs/Web/CSS/Specificity): (0, 0, 1)'
@@ -52,22 +52,22 @@ describe('CSS Plugin', () => {
                 range: Range.create(0, 7, 0, 9)
             });
 
-            assert.strictEqual(plugin.doHover(document, Position.create(0, 10)), null);
+            expect(plugin.doHover(document, Position.create(0, 10))).toBeNull();
         });
 
         it('not for SASS', () => {
             const { plugin, document } = setup('<style lang="sass">h1 {}</style>');
-            assert.deepStrictEqual(plugin.doHover(document, Position.create(0, 20)), null);
+            expect(plugin.doHover(document, Position.create(0, 20))).toBeNull();
         });
 
         it('not for stylus', () => {
             const { plugin, document } = setup('<style lang="stylus">h1 {}</style>');
-            assert.deepStrictEqual(plugin.doHover(document, Position.create(0, 22)), null);
+            expect(plugin.doHover(document, Position.create(0, 22))).toBeNull();
         });
 
         it('for style attribute', () => {
             const { plugin, document } = setup('<div style="height: auto;"></div>');
-            assert.deepStrictEqual(plugin.doHover(document, Position.create(0, 13)), <Hover>{
+            expect(plugin.doHover(document, Position.create(0, 13))).toEqual(<Hover>{
                 contents: {
                     kind: 'markdown',
                     value:
@@ -82,7 +82,7 @@ describe('CSS Plugin', () => {
 
         it('not for style attribute with interpolation', () => {
             const { plugin, document } = setup('<div style="height: {}"></div>');
-            assert.deepStrictEqual(plugin.doHover(document, Position.create(0, 13)), null);
+            expect(plugin.doHover(document, Position.create(0, 13))).toBeNull();
         });
     });
 
@@ -93,13 +93,13 @@ describe('CSS Plugin', () => {
             const completions = await plugin.getCompletions(document, Position.create(0, 7), {
                 triggerCharacter: '.'
             } as CompletionContext);
-            assert.ok(
+            expect(
                 Array.isArray(completions && completions.items),
                 'Expected completion items to be an array'
             );
-            assert.ok(completions!.items.length > 0, 'Expected completions to have length');
+            expect(completions!.items.length > 0).toBeTruthy();
 
-            assert.deepStrictEqual(completions!.items[0], <CompletionItem>{
+            expect(completions!.items[0]).toEqual(<CompletionItem>{
                 label: '@charset',
                 kind: CompletionItemKind.Keyword,
                 documentation: {
@@ -121,7 +121,7 @@ describe('CSS Plugin', () => {
                 triggerCharacter: ':'
             } as CompletionContext);
             const globalCompletion = completions?.items.find((item) => item.label === ':global()');
-            assert.ok(globalCompletion);
+            expect(globalCompletion);
         });
 
         it('not for stylus', async () => {
@@ -129,7 +129,7 @@ describe('CSS Plugin', () => {
             const completions = await plugin.getCompletions(document, Position.create(0, 21), {
                 triggerCharacter: '.'
             } as CompletionContext);
-            assert.deepStrictEqual(completions, null);
+            expect(completions).toEqual(null);
         });
 
         it('for style attribute', async () => {
@@ -137,7 +137,7 @@ describe('CSS Plugin', () => {
             const completions = await plugin.getCompletions(document, Position.create(0, 22), {
                 triggerKind: CompletionTriggerKind.Invoked
             } as CompletionContext);
-            assert.deepStrictEqual(
+            expect(
                 completions?.items.find((item) => item.label === 'none'),
                 <CompletionItem>{
                     insertTextFormat: undefined,
@@ -168,7 +168,7 @@ describe('CSS Plugin', () => {
 
         it('not for style attribute with interpolation', async () => {
             const { plugin, document } = setup('<div style="height: {}"></div>');
-            assert.deepStrictEqual(
+            expect(
                 await plugin.getCompletions(document, Position.create(0, 21)),
                 null
             );
@@ -188,7 +188,7 @@ describe('CSS Plugin', () => {
                 }
             });
             const completions = await plugin.getCompletions(document, Position.create(0, 16));
-            assert.deepStrictEqual(
+            expect(
                 completions?.items.find((item) => item.label === 'foo.css'),
                 <CompletionItem>{
                     label: 'foo.css',
@@ -217,7 +217,7 @@ describe('CSS Plugin', () => {
 
             const diagnostics = plugin.getDiagnostics(document);
 
-            assert.deepStrictEqual(diagnostics, []);
+            expect(diagnostics).toEqual([]);
         });
 
         it('- has error', () => {
@@ -225,7 +225,7 @@ describe('CSS Plugin', () => {
 
             const diagnostics = plugin.getDiagnostics(document);
 
-            assert.deepStrictEqual(diagnostics, [
+            expect(diagnostics, [
                 {
                     code: 'unknownProperties',
                     message: "Unknown property: 'iDunnoDisProperty'",
@@ -253,7 +253,7 @@ describe('CSS Plugin', () => {
                 </style>`
             );
             const diagnostics = plugin.getDiagnostics(document);
-            assert.deepStrictEqual(diagnostics, []);
+            expect(diagnostics).toEqual([]);
         });
 
         it('- no diagnostics for stylus', () => {
@@ -264,7 +264,7 @@ describe('CSS Plugin', () => {
                 </style>`
             );
             const diagnostics = plugin.getDiagnostics(document);
-            assert.deepStrictEqual(diagnostics, []);
+            expect(diagnostics).toEqual([]);
         });
     });
 
@@ -281,7 +281,7 @@ describe('CSS Plugin', () => {
                 { alpha: 1, blue: 255, green: 0, red: 0 }
             );
 
-            assert.deepStrictEqual(colors, [
+            expect(colors, [
                 {
                     label: 'rgb(0, 0, 65025)',
                     textEdit: {
@@ -387,7 +387,7 @@ describe('CSS Plugin', () => {
                 color:blue
             </style>`);
 
-            assert.deepStrictEqual(
+            expect(
                 plugin.getColorPresentations(
                     document,
                     {
@@ -398,7 +398,7 @@ describe('CSS Plugin', () => {
                 ),
                 []
             );
-            assert.deepStrictEqual(plugin.getDocumentColors(document), []);
+            expect(plugin.getDocumentColors(document), []);
         });
 
         it('not for stylus', () => {
@@ -407,7 +407,7 @@ describe('CSS Plugin', () => {
                 color:blue
             </style>`);
 
-            assert.deepStrictEqual(
+            expect(
                 plugin.getColorPresentations(
                     document,
                     {
@@ -418,7 +418,7 @@ describe('CSS Plugin', () => {
                 ),
                 []
             );
-            assert.deepStrictEqual(plugin.getDocumentColors(document), []);
+            expect(plugin.getDocumentColors(document), []);
         });
     });
 
@@ -428,7 +428,7 @@ describe('CSS Plugin', () => {
 
             const symbols = plugin.getDocumentSymbols(document);
 
-            assert.deepStrictEqual(symbols, [
+            expect(symbols, [
                 {
                     containerName: 'style',
                     kind: 5,
@@ -452,12 +452,12 @@ describe('CSS Plugin', () => {
 
         it('not for SASS', () => {
             const { plugin, document } = setup('<style lang="sass">h1 {color:blue;}</style>');
-            assert.deepStrictEqual(plugin.getDocumentSymbols(document), []);
+            expect(plugin.getDocumentSymbols(document), []);
         });
 
         it('not for stylus', () => {
             const { plugin, document } = setup('<style lang="stylus">h1 {color:blue;}</style>');
-            assert.deepStrictEqual(plugin.getDocumentSymbols(document), []);
+            expect(plugin.getDocumentSymbols(document), []);
         });
     });
 
@@ -466,7 +466,7 @@ describe('CSS Plugin', () => {
 
         const selectionRange = plugin.getSelectionRange(document, Position.create(0, 11));
 
-        assert.deepStrictEqual(selectionRange, <SelectionRange>{
+        expect(selectionRange, <SelectionRange>{
             parent: {
                 parent: {
                     parent: undefined,
@@ -510,7 +510,7 @@ describe('CSS Plugin', () => {
 
         const selectionRange = plugin.getSelectionRange(document, Position.create(0, 10));
 
-        assert.equal(selectionRange, null);
+        expect(selectionRange).toEqual(null);
     });
 
     describe('folding ranges', () => {
@@ -519,7 +519,7 @@ describe('CSS Plugin', () => {
 
             const foldingRanges = plugin.getFoldingRanges(document);
 
-            assert.deepStrictEqual(foldingRanges, [{ startLine: 1, endLine: 2, kind: undefined }]);
+            expect(foldingRanges).toEqual([{ startLine: 1, endLine: 2, kind: undefined }]);
         });
 
         it('provides folding ranges for known indent style', () => {
@@ -529,7 +529,7 @@ describe('CSS Plugin', () => {
 
             const foldingRanges = plugin.getFoldingRanges(document);
 
-            assert.deepStrictEqual(foldingRanges, [
+            expect(foldingRanges, [
                 { startLine: 1, endLine: 6, kind: FoldingRangeKind.Region },
                 { startLine: 2, endLine: 3 },
                 { startLine: 4, endLine: 5 }
@@ -543,7 +543,7 @@ describe('CSS Plugin', () => {
 
             const highlight = plugin.findDocumentHighlight(document, Position.create(0, 9));
 
-            assert.deepStrictEqual(highlight, <DocumentHighlight[]>[
+            expect(highlight, <DocumentHighlight[]>[
                 {
                     range: {
                         start: {
@@ -578,7 +578,7 @@ describe('CSS Plugin', () => {
 
             const highlight = plugin.findDocumentHighlight(document, Position.create(0, 13));
 
-            assert.deepStrictEqual(highlight, <DocumentHighlight[]>[
+            expect(highlight, <DocumentHighlight[]>[
                 {
                     range: {
                         start: {
@@ -600,7 +600,7 @@ describe('CSS Plugin', () => {
 
             const highlight = plugin.findDocumentHighlight(document, Position.create(0, 25));
 
-            assert.deepStrictEqual(highlight, <DocumentHighlight[]>[
+            expect(highlight, <DocumentHighlight[]>[
                 {
                     range: {
                         start: {

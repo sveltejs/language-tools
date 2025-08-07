@@ -1,7 +1,7 @@
 import { ConfigLoader } from '../../../src/lib/documents/configLoader';
 import path from 'path';
 import { pathToFileURL, URL } from 'url';
-import assert from 'assert';
+import { describe, it, expect } from 'vitest';
 import { spy } from 'sinon';
 
 describe('ConfigLoader', () => {
@@ -49,8 +49,8 @@ describe('ConfigLoader', () => {
     ) {
         filePath = normalizePath(filePath);
         configPath = normalizePath(configPath);
-        assert.deepStrictEqual(configLoader.getConfig(filePath), configFrom(configPath));
-        assert.deepStrictEqual(await configLoader.awaitConfig(filePath), configFrom(configPath));
+        expect(configLoader.getConfig(filePath), configFrom(configPath));
+        expect(await configLoader.awaitConfig(filePath), configFrom(configPath));
     }
 
     it('should load all config files below and the one inside/above given directory', async () => {
@@ -108,7 +108,7 @@ describe('ConfigLoader', () => {
         );
         await configLoader.loadConfigs(normalizePath('/some/path'));
 
-        assert.deepStrictEqual(
+        expect(
             // Can't do the equal-check directly, instead check if it's the expected object props
             Object.keys(
                 configLoader.getConfig(normalizePath('/some/path/comp.svelte'))?.preprocess || {}
@@ -158,14 +158,14 @@ describe('ConfigLoader', () => {
             '/some/path/sub/comp.svelte',
             '/some/path/svelte.config.js'
         );
-        assert.deepStrictEqual(nrImportCalls, 1);
+        expect(nrImportCalls).toEqual(1);
     });
 
     it('can deal with missing config', () => {
         const configLoader = new ConfigLoader(mockFdir([]), { existsSync: () => false }, path, () =>
             Promise.resolve('unimportant')
         );
-        assert.deepStrictEqual(
+        expect(
             configLoader.getConfig(normalizePath('/some/file.svelte')),
             undefined
         );
@@ -178,7 +178,7 @@ describe('ConfigLoader', () => {
             path,
             (module: URL) => Promise.resolve({ default: { preprocess: module.toString() } })
         );
-        assert.deepStrictEqual(
+        expect(
             await configLoader.awaitConfig(normalizePath('some/file.svelte')),
             configFrom(normalizePath('some/svelte.config.js'))
         );
@@ -194,6 +194,6 @@ describe('ConfigLoader', () => {
         );
         configLoader.setDisabled(true);
         await configLoader.awaitConfig(normalizePath('some/file.svelte'));
-        assert.deepStrictEqual(moduleLoader.notCalled, true);
+        expect(moduleLoader.notCalled).toEqual(true);
     });
 });

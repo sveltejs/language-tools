@@ -1,5 +1,5 @@
 import { svelte2tsx } from '../build';
-import assert from 'assert';
+import { describe, it, expect } from 'vitest';
 import { decode } from '@jridgewell/sourcemap-codec';
 import { each_sample, GenerateFn, get_svelte2tsx_config, Sample } from '../helpers';
 import { print_string } from './helpers';
@@ -55,10 +55,8 @@ const isSvelte5Plus = Number(VERSION[0]) >= 5;
                 }
             );
 
-            assert.strictEqual(
-                parsed.print_mappings(),
-                sample.get('mappings.jsx'),
-                `SourceMapping changed, run tests with --auto to update them`
+            expect(parsed.print_mappings()).toBe(
+                sample.get('mappings.jsx')
             );
         });
 

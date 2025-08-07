@@ -10,7 +10,7 @@ import {
 import { DocumentManager, Document } from '../../src/lib/documents';
 import { LSPProviderConfig, PluginHost } from '../../src/plugins';
 import { CompletionTriggerKind } from 'vscode-languageserver';
-import assert from 'assert';
+import { describe, it, expect } from 'vitest';
 
 describe('PluginHost', () => {
     const textDocument: TextDocumentItem = {
@@ -115,7 +115,7 @@ describe('PluginHost', () => {
                 Position.create(0, 2)
             );
 
-            assert.deepStrictEqual(completions.items, <CompletionItem[]>[
+            expect(completions.items).toEqual(<CompletionItem[]>[
                 { label: 'Hello' },
                 { label: 'foo' }
             ]);
@@ -128,7 +128,7 @@ describe('PluginHost', () => {
                 Position.create(0, 2)
             );
 
-            assert.deepStrictEqual(completions.items, <CompletionItem[]>[{ label: 'Hello' }]);
+            expect(completions.items).toEqual(<CompletionItem[]>[{ label: 'Hello' }]);
         });
     });
 
@@ -160,7 +160,7 @@ describe('PluginHost', () => {
                 Position.create(0, 0)
             );
 
-            assert.deepStrictEqual(definitions, [
+            expect(definitions).toEqual([
                 <LocationLink>{
                     targetRange: Range.create(Position.create(0, 0), Position.create(0, 2)),
                     targetSelectionRange: Range.create(
@@ -179,7 +179,7 @@ describe('PluginHost', () => {
                 Position.create(0, 0)
             );
 
-            assert.deepStrictEqual(definitions, [
+            expect(definitions).toEqual([
                 <Location>{
                     range: Range.create(Position.create(0, 0), Position.create(0, 1)),
                     uri: 'uri'
