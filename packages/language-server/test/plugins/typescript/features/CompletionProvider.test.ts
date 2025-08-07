@@ -1116,7 +1116,7 @@ describe('CompletionProviderImpl', function () {
             const item = completions?.items?.[0];
             expect(item?.label).toEqual('abc');
         }
-    }, { timeout: 10000 });
+    });
 
     it('provides default slot-let completion for components with type definition', async () => {
         const { completionProvider, document } = setup('component-events-completion-ts-def.svelte');

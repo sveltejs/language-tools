@@ -55,7 +55,7 @@ describe('DiagnosticsProvider', function () {
 
         const diagnostics3 = await plugin.getDiagnostics(document);
         expect(diagnostics3.length).toEqual(1);
-    }, { timeout: 12000 });
+    });
 
     it('notices changes of module resolution because of new file', async () => {
         const { plugin, document, lsAndTsDocResolver } = setup('unresolvedimport.svelte');
@@ -90,7 +90,7 @@ describe('DiagnosticsProvider', function () {
             unlinkSync(newTsFilePath);
             unlinkSync(newFilePath);
         }
-    }, { timeout: 12500 });
+    });
 
     it('notices update of imported module', async () => {
         const { plugin, document, lsAndTsDocResolver } = setup(
@@ -116,7 +116,7 @@ describe('DiagnosticsProvider', function () {
         const diagnostics2 = await plugin.getDiagnostics(document);
         expect(diagnostics2.length).toEqual(0);
         await lsAndTsDocResolver.deleteSnapshot(newFilePath);
-    }, { timeout: 12500 });
+    });
 
     it('notices file changes in all services that reference that file', async () => {
         // Hacky but ensures that this tests is not interfered with by other tests
@@ -169,5 +169,5 @@ describe('DiagnosticsProvider', function () {
         expect(diagnostics3.length).toEqual(0);
         const diagnostics4 = await plugin.getDiagnostics(otherDocument);
         expect(diagnostics4.length).toEqual(0);
-    }, { timeout: 12500 });
+    });
 });

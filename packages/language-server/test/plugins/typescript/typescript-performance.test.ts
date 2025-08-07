@@ -1,4 +1,4 @@
-import { describe, it } from 'vitest';
+import { describe, it, vi } from 'vitest';
 import * as path from 'path';
 import { performance } from 'perf_hooks';
 import ts from 'typescript';
@@ -35,8 +35,9 @@ describe('TypeScript Plugin Performance Tests', () => {
         return { plugin, document, append, prepend };
     }
 
-    it('should be fast enough', { timeout: 25000 }, async () => {
+    it('should be fast enough', async () => {
         // allow to set a higher timeout for slow machines from cli flag
+        vi.setConfig({ testTimeout: 25000 });
         
         const { document, plugin, append, prepend } = setup('performance.svelte');
 
