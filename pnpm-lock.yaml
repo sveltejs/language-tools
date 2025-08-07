@@ -21,6 +21,9 @@ importers:
       ts-node:
         specifier: ^10.0.0
         version: 10.9.1(@types/node@18.19.46)(typescript@5.8.2)
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.4(@types/node@18.19.46)
 
   packages/language-server:
     dependencies:
@@ -97,9 +100,6 @@ importers:
       '@types/sinon':
         specifier: ^7.5.2
         version: 7.5.2
-      cross-env:
-        specifier: ^7.0.2
-        version: 7.0.3
       sinon:
         specifier: ^11.0.0
         version: 11.1.2
