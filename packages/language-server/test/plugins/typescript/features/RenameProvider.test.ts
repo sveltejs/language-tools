@@ -2,7 +2,7 @@ import { describe, it, expect, afterAll } from 'vitest';
 import * as path from 'path';
 import ts from 'typescript';
 import { Position } from 'vscode-languageserver';
-import { VERSION } from 'svelte/compiler';
+import { svelteVersion } from '../../test-helpers';
 import { Document, DocumentManager } from '../../../../src/lib/documents';
 import { LSConfigManager } from '../../../../src/ls-config';
 import { RenameProviderImpl } from '../../../../src/plugins/typescript/features/RenameProvider';
@@ -13,7 +13,7 @@ import { serviceWarmup } from '../test-utils';
 
 const testDir = path.join(__dirname, '..');
 const renameTestDir = path.join(testDir, 'testfiles', 'rename');
-const isSvelte5Plus = +VERSION.split('.')[0] >= 5;
+const isSvelte5Plus = svelteVersion.isSvelte5Plus;
 
 describe('RenameProvider', function () {
     serviceWarmup(renameTestDir, pathToUrl(testDir));

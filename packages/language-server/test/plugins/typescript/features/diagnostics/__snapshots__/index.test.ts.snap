@@ -290,6 +290,44 @@ exports[`DiagnosticsProvider > $$Props-invalid-alias/$$Props-invalid-alias7 1`] 
 exports[`DiagnosticsProvider > $$events 1`] = `
 [
   {
+    "code": 6385,
+    "message": "'createEventDispatcher' is deprecated.",
+    "range": {
+      "end": {
+        "character": 34,
+        "line": 1,
+      },
+      "start": {
+        "character": 13,
+        "line": 1,
+      },
+    },
+    "severity": 4,
+    "source": "ts",
+    "tags": [
+      2,
+    ],
+  },
+  {
+    "code": 6387,
+    "message": "The signature '(): EventDispatcher<__sveltets_2_CustomEvents<$$Events>>' of 'createEventDispatcher' is deprecated.",
+    "range": {
+      "end": {
+        "character": 42,
+        "line": 8,
+      },
+      "start": {
+        "character": 21,
+        "line": 8,
+      },
+    },
+    "severity": 4,
+    "source": "ts",
+    "tags": [
+      2,
+    ],
+  },
+  {
     "code": 2345,
     "message": "Argument of type 'boolean' is not assignable to parameter of type 'string'.",
     "range": {
@@ -1236,8 +1274,8 @@ exports[`DiagnosticsProvider > bind-this 1`] = `
     "tags": [],
   },
   {
-    "code": 2741,
-    "message": "Property 'prop' is missing in type '{}' but required in type '{ prop: boolean; }'.",
+    "code": 2322,
+    "message": "Type '{}' is not assignable to type 'Properties<{ prop: boolean; }, any>'.",
     "range": {
       "end": {
         "character": 17,
@@ -1291,8 +1329,8 @@ exports[`DiagnosticsProvider > bind-this 1`] = `
     "tags": [],
   },
   {
-    "code": 2741,
-    "message": "Property 'prop' is missing in type '{}' but required in type '{ prop: boolean; }'.",
+    "code": 2322,
+    "message": "Type '{}' is not assignable to type 'Properties<{ prop: boolean; }, any>'.",
     "range": {
       "end": {
         "character": 17,
@@ -1315,84 +1353,16 @@ exports[`DiagnosticsProvider > bind-union 1`] = `[]`;
 exports[`DiagnosticsProvider > bindings 1`] = `
 [
   {
-    "code": 2344,
-    "message": "Type 'typeof Runes__SvelteComponent_' does not satisfy the constraint '(...args: any) => any'.
-  Type 'typeof Runes__SvelteComponent_' provides no match for the signature '(...args: any): any'.",
-    "range": {
-      "end": {
-        "character": 41,
-        "line": 12,
-      },
-      "start": {
-        "character": 29,
-        "line": 12,
-      },
-    },
-    "severity": 1,
-    "source": "ts",
-    "tags": [],
-  },
-  {
-    "code": 2353,
-    "message": "Object literal may only specify known properties, and 'can_bind' does not exist in type '{ only_bind?: () => boolean; }'.",
-    "range": {
-      "end": {
-        "character": 20,
-        "line": 21,
-      },
-      "start": {
-        "character": 12,
-        "line": 21,
-      },
-    },
-    "severity": 1,
-    "source": "ts",
-    "tags": [],
-  },
-  {
-    "code": 2353,
-    "message": "Object literal may only specify known properties, and 'can_bind' does not exist in type '{ only_bind?: () => boolean; }'.",
-    "range": {
-      "end": {
-        "character": 16,
-        "line": 22,
-      },
-      "start": {
-        "character": 8,
-        "line": 22,
-      },
-    },
-    "severity": 1,
-    "source": "ts",
-    "tags": [],
-  },
-  {
-    "code": 2353,
-    "message": "Object literal may only specify known properties, and 'readonly' does not exist in type '{ only_bind?: () => boolean; }'.",
-    "range": {
-      "end": {
-        "character": 16,
-        "line": 23,
-      },
-      "start": {
-        "character": 8,
-        "line": 23,
-      },
-    },
-    "severity": 1,
-    "source": "ts",
-    "tags": [],
-  },
-  {
-    "code": 2353,
-    "message": "Object literal may only specify known properties, and 'readonly' does not exist in type '{ only_bind?: () => boolean; }'.",
+    "code": 2322,
+    "message": "Cannot use 'bind:' with this property. It is declared as non-bindable inside the component.
+To mark a property as bindable: 'let { readonly = $bindable() } = $props()'",
     "range": {
       "end": {
         "character": 20,
         "line": 26,
       },
       "start": {
-        "character": 12,
+        "character": 7,
         "line": 26,
       },
     },
@@ -1402,15 +1372,120 @@ exports[`DiagnosticsProvider > bindings 1`] = `
   },
   {
     "code": 2353,
-    "message": "Object literal may only specify known properties, and 'readonly' does not exist in type '{ only_bind?: () => boolean; }'.",
+    "message": "Object literal may only specify known properties, and 'only_bind' does not exist in type '$$ComponentProps'.",
+    "range": {
+      "end": {
+        "character": 21,
+        "line": 27,
+      },
+      "start": {
+        "character": 12,
+        "line": 27,
+      },
+    },
+    "severity": 1,
+    "source": "ts",
+    "tags": [],
+  },
+  {
+    "code": 2322,
+    "message": "Cannot use 'bind:' with this property. It is declared as non-bindable inside the component.
+To mark a property as bindable: 'let { only_bind = $bindable() } = $props()'",
+    "range": {
+      "end": {
+        "character": 21,
+        "line": 27,
+      },
+      "start": {
+        "character": 7,
+        "line": 27,
+      },
+    },
+    "severity": 1,
+    "source": "ts",
+    "tags": [],
+  },
+  {
+    "code": 2353,
+    "message": "Object literal may only specify known properties, and 'only_bind' does not exist in type '$$ComponentProps'.",
+    "range": {
+      "end": {
+        "character": 17,
+        "line": 28,
+      },
+      "start": {
+        "character": 8,
+        "line": 28,
+      },
+    },
+    "severity": 1,
+    "source": "ts",
+    "tags": [],
+  },
+  {
+    "code": 2322,
+    "message": "Cannot use 'bind:' with this property. It is declared as non-bindable inside the component.
+To mark a property as bindable: 'let { readonly = $bindable() } = $props()'",
     "range": {
       "end": {
         "character": 27,
         "line": 30,
       },
       "start": {
-        "character": 19,
+        "character": 14,
         "line": 30,
+      },
+    },
+    "severity": 1,
+    "source": "ts",
+    "tags": [],
+  },
+  {
+    "code": 2353,
+    "message": "Object literal may only specify known properties, and 'only_bind' does not exist in type '$$ComponentProps'.",
+    "range": {
+      "end": {
+        "character": 28,
+        "line": 31,
+      },
+      "start": {
+        "character": 19,
+        "line": 31,
+      },
+    },
+    "severity": 1,
+    "source": "ts",
+    "tags": [],
+  },
+  {
+    "code": 2322,
+    "message": "Cannot use 'bind:' with this property. It is declared as non-bindable inside the component.
+To mark a property as bindable: 'let { only_bind = $bindable() } = $props()'",
+    "range": {
+      "end": {
+        "character": 28,
+        "line": 31,
+      },
+      "start": {
+        "character": 14,
+        "line": 31,
+      },
+    },
+    "severity": 1,
+    "source": "ts",
+    "tags": [],
+  },
+  {
+    "code": 2353,
+    "message": "Object literal may only specify known properties, and 'only_bind' does not exist in type '$$ComponentProps'.",
+    "range": {
+      "end": {
+        "character": 24,
+        "line": 32,
+      },
+      "start": {
+        "character": 15,
+        "line": 32,
       },
     },
     "severity": 1,
@@ -1752,14 +1827,13 @@ exports[`DiagnosticsProvider > component-invalid 1`] = `
 [
   {
     "code": 2345,
-    "message": "Argument of type 'typeof DoesntWork' is not assignable to parameter of type 'ConstructorOfATypedSvelteComponent'.
-  Type 'DoesntWork' is missing the following properties from type 'ATypedSvelteComponent': $$prop_def, $$events_def, $$slot_def, $on
+    "message": "Argument of type 'typeof DoesntWork' is not assignable to parameter of type 'ConstructorOfATypedSvelteComponent | Component<any, any, any>'.
+  Type 'typeof DoesntWork' is not assignable to type 'ConstructorOfATypedSvelteComponent'.
+    Type 'DoesntWork' is missing the following properties from type 'ATypedSvelteComponent': $$prop_def, $$events_def, $$slot_def, $on
 
 Possible causes:
 - You use the instance type of a component where you should use the constructor type
-- Type definitions are missing for this Svelte Component. If you are using Svelte 3.31+, use SvelteComponentTyped to add a definition:
-  import type { SvelteComponentTyped } from "svelte";
-  class ComponentName extends SvelteComponentTyped<{propertyName: string;}> {}",
+- Type definitions are missing for this Svelte Component. ",
     "range": {
       "end": {
         "character": 11,
@@ -1793,14 +1867,13 @@ Possible causes:
   },
   {
     "code": 2345,
-    "message": "Argument of type 'typeof DoesntWork' is not assignable to parameter of type 'ConstructorOfATypedSvelteComponent'.
-  Type 'DoesntWork' is missing the following properties from type 'ATypedSvelteComponent': $$prop_def, $$events_def, $$slot_def, $on
+    "message": "Argument of type 'typeof DoesntWork' is not assignable to parameter of type 'ConstructorOfATypedSvelteComponent | Component<any, any, any>'.
+  Type 'typeof DoesntWork' is not assignable to type 'ConstructorOfATypedSvelteComponent'.
+    Type 'DoesntWork' is missing the following properties from type 'ATypedSvelteComponent': $$prop_def, $$events_def, $$slot_def, $on
 
 Possible causes:
 - You use the instance type of a component where you should use the constructor type
-- Type definitions are missing for this Svelte Component. If you are using Svelte 3.31+, use SvelteComponentTyped to add a definition:
-  import type { SvelteComponentTyped } from "svelte";
-  class ComponentName extends SvelteComponentTyped<{propertyName: string;}> {}",
+- Type definitions are missing for this Svelte Component. ",
     "range": {
       "end": {
         "character": 34,
@@ -1817,14 +1890,13 @@ Possible causes:
   },
   {
     "code": 2345,
-    "message": "Argument of type 'typeof DoesntWork' is not assignable to parameter of type 'ConstructorOfATypedSvelteComponent'.
-  Type 'DoesntWork' is missing the following properties from type 'ATypedSvelteComponent': $$prop_def, $$events_def, $$slot_def, $on
+    "message": "Argument of type 'typeof DoesntWork' is not assignable to parameter of type 'ConstructorOfATypedSvelteComponent | Component<any, any, any>'.
+  Type 'typeof DoesntWork' is not assignable to type 'ConstructorOfATypedSvelteComponent'.
+    Type 'DoesntWork' is missing the following properties from type 'ATypedSvelteComponent': $$prop_def, $$events_def, $$slot_def, $on
 
 Possible causes:
 - You use the instance type of a component where you should use the constructor type
-- Type definitions are missing for this Svelte Component. If you are using Svelte 3.31+, use SvelteComponentTyped to add a definition:
-  import type { SvelteComponentTyped } from "svelte";
-  class ComponentName extends SvelteComponentTyped<{propertyName: string;}> {}",
+- Type definitions are missing for this Svelte Component. ",
     "range": {
       "end": {
         "character": 11,
@@ -1841,14 +1913,13 @@ Possible causes:
   },
   {
     "code": 2345,
-    "message": "Argument of type 'typeof DoesntWork' is not assignable to parameter of type 'ConstructorOfATypedSvelteComponent'.
-  Type 'DoesntWork' is missing the following properties from type 'ATypedSvelteComponent': $$prop_def, $$events_def, $$slot_def, $on
+    "message": "Argument of type 'typeof DoesntWork' is not assignable to parameter of type 'ConstructorOfATypedSvelteComponent | Component<any, any, any>'.
+  Type 'typeof DoesntWork' is not assignable to type 'ConstructorOfATypedSvelteComponent'.
+    Type 'DoesntWork' is missing the following properties from type 'ATypedSvelteComponent': $$prop_def, $$events_def, $$slot_def, $on
 
 Possible causes:
 - You use the instance type of a component where you should use the constructor type
-- Type definitions are missing for this Svelte Component. If you are using Svelte 3.31+, use SvelteComponentTyped to add a definition:
-  import type { SvelteComponentTyped } from "svelte";
-  class ComponentName extends SvelteComponentTyped<{propertyName: string;}> {}",
+- Type definitions are missing for this Svelte Component. ",
     "range": {
       "end": {
         "character": 34,
@@ -3174,7 +3245,8 @@ exports[`DiagnosticsProvider > parser-error 1`] = `
 [
   {
     "code": -1,
-    "message": "You can only have one top-level <style> tag per component",
+    "message": "A component can have a single top-level \`<style>\` element
+https://svelte.dev/e/style_duplicate",
     "range": {
       "end": {
         "character": 0,
@@ -3864,7 +3936,8 @@ exports[`DiagnosticsProvider > svelte-element-error 1`] = `
 [
   {
     "code": -1,
-    "message": "<svelte:element> must have a 'this' attribute",
+    "message": "\`<svelte:element>\` must have a 'this' attribute with a value
+https://svelte.dev/e/svelte_element_missing_this",
     "range": {
       "end": {
         "character": 0,

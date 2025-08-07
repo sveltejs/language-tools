@@ -18,7 +18,7 @@ import { ignoredBuildDirectories } from '../../../src/plugins/typescript/Snapsho
 import { pathToUrl } from '../../../src/utils';
 import { serviceWarmup } from './test-utils';
 import { internalHelpers } from 'svelte2tsx';
-import { VERSION } from 'svelte/compiler';
+import { svelteVersion } from '../test-helpers';
 
 const testDir = path.join(__dirname, 'testfiles');
 
@@ -820,7 +820,7 @@ describe('TypescriptPlugin', function () {
         __resetCache();
     });
 
-    const isSvelte5Plus = Number(VERSION.split('.')[0]) >= 5;
+    const isSvelte5Plus = svelteVersion.isSvelte5Plus;
     if (!isSvelte5Plus) {
         return;
     }

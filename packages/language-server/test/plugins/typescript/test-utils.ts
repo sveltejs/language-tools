@@ -13,10 +13,10 @@ import {
     pathToUrl,
     urlToPath
 } from '../../../src/utils';
-import { VERSION } from 'svelte/compiler';
+import { svelteVersion } from '../test-helpers';
 import { findTsConfigPath } from '../../../src/plugins/typescript/utils';
 
-const isSvelte5Plus = Number(VERSION.split('.')[0]) >= 5;
+const isSvelte5Plus = svelteVersion.isSvelte5Plus;
 
 export function createVirtualTsSystem(currentDirectory: string): ts.System {
     const virtualFs = new FileMap<string>();

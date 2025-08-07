@@ -14,10 +14,10 @@ import { LSAndTSDocResolver } from '../../../../src/plugins/typescript/LSAndTSDo
 import { __resetCache } from '../../../../src/plugins/typescript/service';
 import { pathToUrl } from '../../../../src/utils';
 import { serviceWarmup } from '../test-utils';
-import { VERSION } from 'svelte/compiler';
+import { svelteVersion } from '../../test-helpers';
 
 const testDir = path.join(__dirname, '..');
-const isSvelte5Plus = +VERSION.split('.')[0] >= 5;
+const isSvelte5Plus = svelteVersion.isSvelte5Plus;
 
 describe('CallHierarchyProvider', function () {
     const callHierarchyTestDirRelative = path.join('testfiles', 'call-hierarchy');

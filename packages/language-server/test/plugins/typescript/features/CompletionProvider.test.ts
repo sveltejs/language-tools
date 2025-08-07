@@ -24,13 +24,13 @@ import { sortBy } from 'lodash';
 import { LSConfigManager } from '../../../../src/ls-config';
 import { __resetCache } from '../../../../src/plugins/typescript/service';
 import { getRandomVirtualDirPath, serviceWarmup, setupVirtualEnvironment } from '../test-utils';
-import { VERSION } from 'svelte/compiler';
+import { svelteVersion } from '../../test-helpers';
 
 const testDir = join(__dirname, '..');
 const testFilesDir = join(testDir, 'testfiles', 'completions');
 const newLine = ts.sys.newLine;
 const indent = ' '.repeat(4);
-const isSvelte5Plus = +VERSION.split('.')[0] >= 5;
+const isSvelte5Plus = svelteVersion.isSvelte5Plus;
 
 const fileNameToAbsoluteUri = (file: string) => {
     return pathToUrl(join(testFilesDir, file));

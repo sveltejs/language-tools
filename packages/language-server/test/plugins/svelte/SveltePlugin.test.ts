@@ -12,9 +12,9 @@ import * as importPackage from '../../../src/importPackage';
 import sinon from 'sinon';
 import { join } from 'path';
 import { pathToUrl, urlToPath } from '../../../src/utils';
-import { VERSION } from 'svelte/compiler';
+import { svelteVersion } from '../test-helpers';
 
-const isSvelte5Plus = Number(VERSION.split('.')[0]) >= 5;
+const isSvelte5Plus = svelteVersion.isSvelte5Plus;
 
 describe('Svelte Plugin', () => {
     function setup(

@@ -1,6 +1,6 @@
 import { describe, it, expect, afterAll } from 'vitest';
 import * as path from 'path';
-import { VERSION } from 'svelte/compiler';
+import { svelteVersion } from '../../test-helpers';
 import { internalHelpers } from 'svelte2tsx';
 import ts from 'typescript';
 import {
@@ -27,7 +27,7 @@ import { recursiveServiceWarmup } from '../test-utils';
 
 const testDir = path.join(__dirname, '..');
 const indent = ' '.repeat(4);
-const isSvelte5Plus = +VERSION.split('.')[0] >= 5;
+const isSvelte5Plus = svelteVersion.isSvelte5Plus;
 
 describe('CodeActionsProvider', function () {
     recursiveServiceWarmup(

@@ -621,7 +621,40 @@ exports[`InlayHintProvider > reactive-varable 1`] = `
 ]
 `;
 
-exports[`InlayHintProvider > snippet.v5 1`] = `[]`;
+exports[`InlayHintProvider > snippet.v5 1`] = `
+[
+  {
+    "kind": 2,
+    "label": [
+      {
+        "location": {
+          "range": {
+            "end": {
+              "character": 15,
+              "line": 0,
+            },
+            "start": {
+              "character": 14,
+              "line": 0,
+            },
+          },
+          "uri": "file:///Users/aewing/Projects/phx.digital/language-tools/packages/language-server/test/plugins/typescript/features/inlayHints/fixtures/snippet.v5/input.svelte",
+        },
+        "value": "a",
+      },
+      {
+        "value": ":",
+      },
+    ],
+    "paddingLeft": undefined,
+    "paddingRight": true,
+    "position": {
+      "character": 13,
+      "line": 4,
+    },
+  },
+]
+`;
 
 exports[`InlayHintProvider > transition 1`] = `[]`;
 

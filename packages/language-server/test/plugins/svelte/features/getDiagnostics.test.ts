@@ -12,9 +12,9 @@ import { SvelteConfig } from '../../../../src/lib/documents/configLoader';
 import { CompilerWarningsSettings, LSConfigManager } from '../../../../src/ls-config';
 import { pathToUrl } from '../../../../src/utils';
 import { SveltePlugin } from '../../../../src/plugins';
-import { VERSION } from 'svelte/compiler';
+import { svelteVersion } from '../../test-helpers';
 
-const isSvelte5Plus = Number(VERSION.split('.')[0]) >= 5;
+const isSvelte5Plus = svelteVersion.isSvelte5Plus;
 
 describe('SveltePlugin#getDiagnostics', () => {
     async function expectDiagnosticsFor({
