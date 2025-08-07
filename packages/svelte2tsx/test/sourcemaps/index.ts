@@ -55,9 +55,7 @@ const isSvelte5Plus = Number(VERSION[0]) >= 5;
                 }
             );
 
-            expect(parsed.print_mappings()).toBe(
-                sample.get('mappings.jsx')
-            );
+            expect(parsed.print_mappings()).toBe(sample.get('mappings.jsx'));
         });
 
         function regenerate(generate: GenerateFn, skip = false) {

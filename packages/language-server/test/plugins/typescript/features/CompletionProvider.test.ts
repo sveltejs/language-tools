@@ -1600,10 +1600,7 @@ describe('CompletionProviderImpl', function () {
         const item2 = completions2?.items.find((item) => item.label === 'Bar');
         const { detail } = await completionProvider.resolveCompletion(document, item2!);
 
-        expect(
-            detail,
-            `Add import from "./Bar.svelte"${isSvelte5Plus() ? '' : '\n\nclass Bar'}`
-        );
+        expect(detail, `Add import from "./Bar.svelte"${isSvelte5Plus() ? '' : '\n\nclass Bar'}`);
     });
 
     it("doesn't use empty cache", async () => {
@@ -1652,10 +1649,7 @@ describe('CompletionProviderImpl', function () {
         const item2 = completions?.items.find((item) => item.label === 'Bar');
         const { detail } = await completionProvider.resolveCompletion(document, item2!);
 
-        expect(
-            detail,
-            `Add import from "./Bar.svelte"${isSvelte5Plus() ? '' : '\n\nclass Bar'}`
-        );
+        expect(detail, `Add import from "./Bar.svelte"${isSvelte5Plus() ? '' : '\n\nclass Bar'}`);
     });
 
     it('can auto import new export', async () => {
@@ -1800,10 +1794,7 @@ describe('CompletionProviderImpl', function () {
 
         const { detail } = await completionProvider.resolveCompletion(document, item);
 
-        expect(
-            detail,
-            'Add import from "./to-import"\n\nconst store: Writable<number>'
-        );
+        expect(detail, 'Add import from "./to-import"\n\nconst store: Writable<number>');
     });
 
     it(`provide props completions for namespaced component`, async () => {

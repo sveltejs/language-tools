@@ -46,9 +46,7 @@ describe('utils', () => {
 
     describe('#modifyLines', () => {
         it('should work', () => {
-            expect(
-                modifyLines('a\nb\r\nc\nd', (line) => 1 + line)
-            ).toBe('1a\n1b\r\n1c\n1d');
+            expect(modifyLines('a\nb\r\nc\nd', (line) => 1 + line)).toBe('1a\n1b\r\n1c\n1d');
         });
 
         it('should pass correct line numbers', () => {

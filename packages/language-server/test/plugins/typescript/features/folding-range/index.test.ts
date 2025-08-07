@@ -33,25 +33,24 @@ function setup(workspaceDir: string, filePath: string) {
 describe('FoldingRangeProvider', () => {
     const fixturesDir = join(__dirname, 'fixtures');
     const workspaceDir = join(__dirname, '../../testfiles');
-    
+
     beforeAll(() => {
         serviceWarmup(workspaceDir, pathToUrl(workspaceDir));
     });
-    
+
     // Get all test fixtures
-    const testFiles = readdirSync(fixturesDir)
-        .filter(entry => {
-            const fullPath = join(fixturesDir, entry);
-            const inputFile = join(fullPath, 'input.svelte');
-            return statSync(fullPath).isDirectory() && existsSync(inputFile);
-        });
-    
+    const testFiles = readdirSync(fixturesDir).filter((entry) => {
+        const fullPath = join(fixturesDir, entry);
+        const inputFile = join(fullPath, 'input.svelte');
+        return statSync(fullPath).isDirectory() && existsSync(inputFile);
+    });
+
     for (const testName of testFiles) {
         it(testName, async () => {
             const inputFile = join(fixturesDir, testName, 'input.svelte');
             const { plugin, document } = setup(workspaceDir, inputFile);
             const folding = await plugin.getFoldingRanges(document);
-            
+
             expect(folding).toMatchSnapshot();
         });
     }

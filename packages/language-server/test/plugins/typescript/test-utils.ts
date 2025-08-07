@@ -323,18 +323,12 @@ export function serviceWarmup(
     }
 }
 
-export function recursiveServiceWarmup(
-    testDir: string,
-    rootUri = pathToUrl(testDir)
-) {
+export function recursiveServiceWarmup(testDir: string, rootUri = pathToUrl(testDir)) {
     serviceWarmup(testDir, rootUri);
     recursiveServiceWarmupNonRoot(testDir, rootUri);
 }
 
-function recursiveServiceWarmupNonRoot(
-    testDir: string,
-    rootUri = pathToUrl(testDir)
-) {
+function recursiveServiceWarmupNonRoot(testDir: string, rootUri = pathToUrl(testDir)) {
     const subDirs = readdirSync(testDir);
 
     for (const subDirOrFile of subDirs) {

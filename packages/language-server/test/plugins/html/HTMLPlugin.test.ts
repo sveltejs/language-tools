@@ -224,14 +224,8 @@ describe('HTML Plugin', () => {
         const newName = 'p';
 
         const pepareRenameInfo = Range.create(Position.create(0, 1), Position.create(0, 4));
-        expect(
-            plugin.prepareRename(document, Position.create(0, 2)),
-            pepareRenameInfo
-        );
-        expect(
-            plugin.prepareRename(document, Position.create(0, 28)),
-            pepareRenameInfo
-        );
+        expect(plugin.prepareRename(document, Position.create(0, 2)), pepareRenameInfo);
+        expect(plugin.prepareRename(document, Position.create(0, 28)), pepareRenameInfo);
 
         const renameInfo = {
             changes: {
@@ -254,10 +248,7 @@ describe('HTML Plugin', () => {
             }
         };
         expect(plugin.rename(document, Position.create(0, 2), newName), renameInfo);
-        expect(
-            plugin.rename(document, Position.create(0, 28), newName),
-            renameInfo
-        );
+        expect(plugin.rename(document, Position.create(0, 28), newName), renameInfo);
     });
 
     it('provides linked editing ranges', async () => {

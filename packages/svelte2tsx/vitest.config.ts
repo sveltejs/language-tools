@@ -5,7 +5,6 @@ export default defineConfig({
         include: ['test/**/index.ts'],
         exclude: ['test/build/**', 'test/test.ts', 'test/emitDts/samples/**/src/**'],
         globals: true,
-        environment: 'node',
-        setupFiles: ['./test/vitest.setup.ts']
+        environment: 'node'
     }
 });

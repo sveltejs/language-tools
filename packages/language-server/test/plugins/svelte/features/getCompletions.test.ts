@@ -16,9 +16,7 @@ describe('SveltePlugin#getCompletions', () => {
         const completions = getCompletions(document, svelteDoc, position);
         return {
             toEqual: (expectedLabels: string[] | null) =>
-                expect(
-                    completions?.items.map((item) => item.label) ?? null
-                ).toEqual(expectedLabels)
+                expect(completions?.items.map((item) => item.label) ?? null).toEqual(expectedLabels)
         };
     }
 

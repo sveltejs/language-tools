@@ -400,11 +400,7 @@ describe('service', () => {
                 ...lsDocumentContext,
                 watchTsConfig: true
             });
-            expect(
-                newLs.compilerOptions.strict,
-                true,
-                'expected to reload compilerOptions'
-            );
+            expect(newLs.compilerOptions.strict, true, 'expected to reload compilerOptions');
 
             return true;
         }
@@ -452,11 +448,7 @@ describe('service', () => {
                 ...lsDocumentContext,
                 watchTsConfig: true
             });
-            expect(
-                newLs.compilerOptions.strict,
-                true,
-                'expected to reload compilerOptions'
-            );
+            expect(newLs.compilerOptions.strict, true, 'expected to reload compilerOptions');
             return true;
         }
     });

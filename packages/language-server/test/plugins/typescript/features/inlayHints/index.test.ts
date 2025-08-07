@@ -49,16 +49,18 @@ function sanitizeUri(inlayHints: InlayHint[] | null, workspaceUri: string) {
         return null;
     }
 
-    return inlayHints.map(hint => {
+    return inlayHints.map((hint) => {
         const sanitized = { ...hint };
         if (Array.isArray(sanitized.label)) {
-            sanitized.label = sanitized.label.map(label => {
+            sanitized.label = sanitized.label.map((label) => {
                 if (label.location) {
                     const location = { ...label.location };
                     location.uri = location.uri.replace(workspaceUri, '<workspaceUri>');
                     const indexOfNodeModules = location.uri.lastIndexOf('node_modules');
                     if (indexOfNodeModules !== -1) {
-                        location.uri = '<node_modules>' + location.uri.slice(indexOfNodeModules + 'node_modules'.length);
+                        location.uri =
+                            '<node_modules>' +
+                            location.uri.slice(indexOfNodeModules + 'node_modules'.length);
                     }
                     return { ...label, location };
                 }
@@ -73,29 +75,28 @@ describe('InlayHintProvider', () => {
     const fixturesDir = join(__dirname, 'fixtures');
     const workspaceDir = join(__dirname, '../../testfiles');
     const workspaceUri = pathToUrl(workspaceDir);
-    
+
     beforeAll(() => {
         serviceWarmup(workspaceDir, workspaceUri);
     });
-    
+
     // Get all test fixtures
-    const testFiles = readdirSync(fixturesDir)
-        .filter(entry => {
-            const fullPath = join(fixturesDir, entry);
-            const inputFile = join(fullPath, 'input.svelte');
-            return statSync(fullPath).isDirectory() && existsSync(inputFile);
-        });
-    
+    const testFiles = readdirSync(fixturesDir).filter((entry) => {
+        const fullPath = join(fixturesDir, entry);
+        const inputFile = join(fullPath, 'input.svelte');
+        return statSync(fullPath).isDirectory() && existsSync(inputFile);
+    });
+
     for (const testName of testFiles) {
         it(testName, async () => {
             const inputFile = join(fixturesDir, testName, 'input.svelte');
             const { plugin, document } = setup(workspaceDir, inputFile);
-            
+
             const inlayHints = await plugin.getInlayHints(document, {
                 start: { line: 0, character: 0 },
                 end: document.positionAt(document.getTextLength())
             });
-            
+
             // Sanitize URIs for consistent snapshots
             const sanitized = sanitizeUri(inlayHints, workspaceUri);
             expect(sanitized).toMatchSnapshot();

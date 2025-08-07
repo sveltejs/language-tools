@@ -348,9 +348,7 @@ export function test_samples(dir: string, transform: TransformSampleFn, js: 'js'
                     }
                 }
             } else {
-                expect(
-                    normalize(transform(input, config).code)
-                ).toBe(sample.get(expectedFile));
+                expect(normalize(transform(input, config).code)).toBe(sample.get(expectedFile));
             }
         });
     }

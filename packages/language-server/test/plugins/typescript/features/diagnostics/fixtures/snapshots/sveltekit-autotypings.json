@@ -1,0 +1,19 @@
+[
+    {
+        "code": 2741,
+        "message": "Property 'data' is missing in type '{}' but required in type '{ data: { exists: boolean; }; }'.",
+        "range": {
+            "end": {
+                "character": 5,
+                "line": 5
+            },
+            "start": {
+                "character": 1,
+                "line": 5
+            }
+        },
+        "severity": 1,
+        "source": "ts",
+        "tags": []
+    }
+]

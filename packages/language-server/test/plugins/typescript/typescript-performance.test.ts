@@ -36,9 +36,6 @@ describe('TypeScript Plugin Performance Tests', () => {
     }
 
     it.sequential('should be fast enough', async () => {
-        // allow to set a higher timeout for slow machines from cli flag
-        vi.setConfig({ testTimeout: 25000 });
-        
         const { document, plugin, append, prepend } = setup('performance.svelte');
 
         const benchmarkElapse = Math.ceil(await benchmark());

@@ -11,11 +11,9 @@ describe('createSvelteModuleLoader', () => {
     });
 
     function setup(resolvedModule: ts.ResolvedModuleFull) {
-        const getSvelteSnapshotStub = sinon
-            .stub()
-            .callsFake((fileName: string) => {
-                return <Partial<DocumentSnapshot>>{ scriptKind: ts.ScriptKind.JSX };
-            });
+        const getSvelteSnapshotStub = sinon.stub().callsFake((fileName: string) => {
+            return <Partial<DocumentSnapshot>>{ scriptKind: ts.ScriptKind.JSX };
+        });
 
         const resolveStub = sinon.stub().callsFake((...args) => {
             return <ts.ResolvedModuleWithFailedLookupLocations>{
@@ -34,7 +32,7 @@ describe('createSvelteModuleLoader', () => {
             }
         };
         sinon.stub(svS, 'createSvelteSys').returns(svelteSys);
-        
+
         // Don't provide a moduleResolutionHost so it falls back to svelteSys
         const moduleResolutionHost = undefined;
 
@@ -74,7 +72,7 @@ describe('createSvelteModuleLoader', () => {
             resolvedFileName: 'filename.d.svelte.ts',
             isExternalLibraryImport: false
         };
-        
+
         const { getSvelteSnapshotStub, moduleResolver } = setup(resolvedModule);
 
         const result = moduleResolver.resolveModuleNames(
@@ -89,7 +87,7 @@ describe('createSvelteModuleLoader', () => {
         // The transformation logic needs deeper investigation
         expect(result).toBeDefined();
         expect(result.length).toBe(1);
-        
+
         // TODO: Fix the transformation from .d.svelte.ts to .svelte
         // expect(result[0]?.resolvedFileName).toBe('filename.svelte');
         // expect(result[0]?.extension).toBe(ts.Extension.Jsx);

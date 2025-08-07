@@ -1,0 +1,19 @@
+[
+    {
+        "code": 6263,
+        "message": "Module './c.svelte' was resolved to '/Users/aewing/Projects/phx.digital/language-tools/packages/language-server/test/plugins/typescript/features/diagnostics/fixtures/import-precedence/c.d.svelte.ts', but '--allowArbitraryExtensions' is not set.",
+        "range": {
+            "end": {
+                "character": 34,
+                "line": 4
+            },
+            "start": {
+                "character": 22,
+                "line": 4
+            }
+        },
+        "severity": 1,
+        "source": "ts",
+        "tags": []
+    }
+]

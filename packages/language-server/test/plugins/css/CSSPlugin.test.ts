@@ -168,10 +168,7 @@ describe('CSS Plugin', () => {
 
         it('not for style attribute with interpolation', async () => {
             const { plugin, document } = setup('<div style="height: {}"></div>');
-            expect(
-                await plugin.getCompletions(document, Position.create(0, 21)),
-                null
-            );
+            expect(await plugin.getCompletions(document, Position.create(0, 21)), null);
         });
 
         it('for path completion', async () => {

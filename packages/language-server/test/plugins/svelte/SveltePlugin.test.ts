@@ -35,13 +35,13 @@ describe('Svelte Plugin', () => {
         const { plugin, document } = setup('<h1>Hello, world!</h1>\n<img src="hello.png">');
 
         const diagnostics = await plugin.getDiagnostics(document);
-        
+
         // Check common properties
         expect(diagnostics).toHaveLength(1);
         expect(diagnostics[0].severity).toBe(DiagnosticSeverity.Warning);
         expect(diagnostics[0].source).toBe('svelte');
         expect(diagnostics[0].range).toEqual(Range.create(1, 0, 1, 21));
-        
+
         // Accept both Svelte 4 and 5 diagnostic formats
         // The source code always uses the main 'svelte' import which is v5
         expect(diagnostics[0].code).toBe('a11y_missing_attribute');
@@ -52,13 +52,13 @@ describe('Svelte Plugin', () => {
         const { plugin, document } = setup('<div bind:whatever></div>');
 
         const diagnostics = await plugin.getDiagnostics(document);
-        
+
         // Check common properties
         expect(diagnostics).toHaveLength(1);
         expect(diagnostics[0].severity).toBe(DiagnosticSeverity.Error);
         expect(diagnostics[0].source).toBe('svelte');
         expect(diagnostics[0].range.end).toEqual(Position.create(0, 18));
-        
+
         // Accept both Svelte 4 and 5 diagnostic formats
         // The source code always uses the main 'svelte' import which is v5
         expect(diagnostics[0].code).toBe('bind_invalid_name');
@@ -79,7 +79,9 @@ describe('Svelte Plugin', () => {
             const formatStub = vi.fn(() => 'formatted');
 
             // Use Vitest's vi.spyOn instead of sinon.stub for better compatibility
-            const importPrettierSpy = vi.spyOn(importPackage, 'importPrettier').mockReturnValue(<any>{
+            const importPrettierSpy = vi.spyOn(importPackage, 'importPrettier').mockReturnValue(<
+                any
+            >{
                 version: '2.8.0',
                 resolveConfig: () => Promise.resolve(config),
                 getFileInfo: () => ({ ignored: false }),

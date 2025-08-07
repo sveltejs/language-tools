@@ -29,10 +29,7 @@ const testDir = path.join(__dirname, '..');
 const indent = ' '.repeat(4);
 
 describe('CodeActionsProvider', function () {
-    recursiveServiceWarmup(
-        path.join(testDir, 'testfiles', 'code-actions'),
-        pathToUrl(testDir)
-    );
+    recursiveServiceWarmup(path.join(testDir, 'testfiles', 'code-actions'), pathToUrl(testDir));
 
     function getFullPath(filename: string) {
         return path.join(testDir, 'testfiles', 'code-actions', filename);

@@ -1,0 +1,19 @@
+[
+    {
+        "code": 2322,
+        "message": "Type 'boolean' is not assignable to type 'string'.",
+        "range": {
+            "end": {
+                "character": 27,
+                "line": 0
+            },
+            "start": {
+                "character": 24,
+                "line": 0
+            }
+        },
+        "severity": 1,
+        "source": "ts",
+        "tags": []
+    }
+]

@@ -352,10 +352,7 @@ describe('document/utils', () => {
         });
 
         it('should return line at position (multiple lines)', () => {
-            expect(
-                getLineAtPosition(Position.create(1, 1), 'ABC\nDEF\nGHI'),
-                'DEF\n'
-            );
+            expect(getLineAtPosition(Position.create(1, 1), 'ABC\nDEF\nGHI'), 'DEF\n');
         });
     });
 

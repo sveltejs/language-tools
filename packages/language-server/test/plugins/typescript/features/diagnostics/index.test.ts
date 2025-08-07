@@ -37,28 +37,28 @@ const isSvelte5 = svelteMajor >= 5;
 describe('DiagnosticsProvider', () => {
     const fixturesDir = join(__dirname, 'fixtures');
     const workspaceDir = join(__dirname, '../../testfiles/diagnostics');
-    
+
     beforeAll(() => {
         serviceWarmup(workspaceDir, pathToUrl(workspaceDir));
     });
-    
+
     afterAll(() => {
         __resetCache();
     });
-    
+
     // Recursively find all test directories with input.svelte
     function getTestDirs(dir: string, basePath = ''): string[] {
         const dirs: string[] = [];
         const entries = readdirSync(dir);
-        
+
         for (const entry of entries) {
             const fullPath = join(dir, entry);
             const stat = statSync(fullPath);
-            
+
             if (stat.isDirectory()) {
                 const testPath = basePath ? `${basePath}/${entry}` : entry;
                 const inputFile = join(fullPath, 'input.svelte');
-                
+
                 if (existsSync(inputFile)) {
                     // Skip .v5 tests if not on Svelte 5
                     if (entry.endsWith('.v5') && !isSvelte5) {
@@ -71,19 +71,22 @@ describe('DiagnosticsProvider', () => {
                 }
             }
         }
-        
+
         return dirs;
     }
-    
+
     const testDirs = getTestDirs(fixturesDir);
-    
+
     for (const testPath of testDirs) {
         it(testPath, async () => {
             const inputFile = join(fixturesDir, testPath, 'input.svelte');
             const { plugin, document } = setup(workspaceDir, inputFile);
             const diagnostics = await plugin.getDiagnostics(document);
-            
-            expect(diagnostics).toMatchSnapshot();
+
+            const snapshotName = testPath + '.json';
+            const snapshotPath = join(fixturesDir, 'snapshots', snapshotName);
+
+            await expect(diagnostics).toMatchFileSnapshot(snapshotPath);
         });
     }
 });

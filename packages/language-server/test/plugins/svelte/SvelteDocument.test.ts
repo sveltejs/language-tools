@@ -122,7 +122,9 @@ describe('Svelte Document', () => {
             });
             const transpiled = await svelteDoc.getTranspiled();
             if (!transpiled || !transpiled.mapper) {
-                throw new Error(`getTranspiled() returned invalid result: ${JSON.stringify(transpiled)}`);
+                throw new Error(
+                    `getTranspiled() returned invalid result: ${JSON.stringify(transpiled)}`
+                );
             }
             const scriptSourceMapper = (<any>transpiled).mapper;
             // hacky reset of method because mocking the SourceMap constructor is an impossible task

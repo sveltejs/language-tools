@@ -165,10 +165,7 @@ describe('ConfigLoader', () => {
         const configLoader = new ConfigLoader(mockFdir([]), { existsSync: () => false }, path, () =>
             Promise.resolve('unimportant')
         );
-        expect(
-            configLoader.getConfig(normalizePath('/some/file.svelte')),
-            undefined
-        );
+        expect(configLoader.getConfig(normalizePath('/some/file.svelte')), undefined);
     });
 
     it('should await config', async () => {
