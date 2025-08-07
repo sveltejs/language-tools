@@ -1,0 +1,19 @@
+[
+  {
+    "code": -1,
+    "message": "A component can have a single top-level `<style>` element
+https://svelte.dev/e/style_duplicate",
+    "range": {
+      "end": {
+        "character": 0,
+        "line": 1,
+      },
+      "start": {
+        "character": 0,
+        "line": 1,
+      },
+    },
+    "severity": 1,
+    "source": "js",
+  },
+]

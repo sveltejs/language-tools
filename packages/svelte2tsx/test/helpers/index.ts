@@ -1,4 +1,4 @@
-import * as assert from 'assert';
+import { describe, it, expect } from 'vitest';
 import ts from 'typescript';
 import { internalHelpers } from '../../src';
 
@@ -16,7 +16,7 @@ describe('Internal Helpers - upsertKitFile', () => {
             },
             () => sourceFile
         );
-        assert.strictEqual(result?.text, expected);
+        expect(result?.text).toBe(expected);
     }
 
     it('upserts +page.ts function', () => {

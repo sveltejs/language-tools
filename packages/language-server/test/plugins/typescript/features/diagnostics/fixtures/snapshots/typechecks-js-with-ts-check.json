@@ -1,0 +1,19 @@
+[
+    {
+        "code": 2339,
+        "message": "Property 'bla' does not exist on type '1'.",
+        "range": {
+            "end": {
+                "character": 7,
+                "line": 3
+            },
+            "start": {
+                "character": 4,
+                "line": 3
+            }
+        },
+        "severity": 1,
+        "source": "js",
+        "tags": []
+    }
+]

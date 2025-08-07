@@ -1,4 +1,4 @@
-import * as assert from 'assert';
+import { describe, it, expect } from 'vitest';
 import { EOL } from 'os';
 import { Position } from 'vscode-languageserver';
 import { getCompletions } from '../../../../src/plugins/svelte/features/getCompletions';
@@ -16,10 +16,7 @@ describe('SveltePlugin#getCompletions', () => {
         const completions = getCompletions(document, svelteDoc, position);
         return {
             toEqual: (expectedLabels: string[] | null) =>
-                assert.deepStrictEqual(
-                    completions?.items.map((item) => item.label) ?? null,
-                    expectedLabels
-                )
+                expect(completions?.items.map((item) => item.label) ?? null).toEqual(expectedLabels)
         };
     }
 
@@ -135,7 +132,7 @@ describe('SveltePlugin#getCompletions', () => {
         const document = new Document('url', content);
         const svelteDoc = new SvelteDocument(document);
         const completions = getCompletions(document, svelteDoc, Position.create(0, content.length));
-        assert.deepStrictEqual(completions?.items?.[0].insertText, `component${EOL}$1${EOL}`);
+        expect(completions?.items?.[0].insertText).toEqual(`component${EOL}$1${EOL}`);
     });
 
     function expectCompletionsForModifier(

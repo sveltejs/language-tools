@@ -1,0 +1,87 @@
+[
+    {
+        "code": 2307,
+        "message": "Cannot find module 'whatever' or its corresponding type declarations.",
+        "range": {
+            "end": {
+                "character": 32,
+                "line": 2
+            },
+            "start": {
+                "character": 22,
+                "line": 2
+            }
+        },
+        "severity": 1,
+        "source": "ts",
+        "tags": []
+    },
+    {
+        "code": 2695,
+        "message": "Left side of comma operator is unused and has no side effects.",
+        "range": {
+            "end": {
+                "character": 8,
+                "line": 7
+            },
+            "start": {
+                "character": 7,
+                "line": 7
+            }
+        },
+        "severity": 1,
+        "source": "ts",
+        "tags": [1]
+    },
+    {
+        "code": 2695,
+        "message": "Left side of comma operator is unused and has no side effects.",
+        "range": {
+            "end": {
+                "character": 11,
+                "line": 8
+            },
+            "start": {
+                "character": 10,
+                "line": 8
+            }
+        },
+        "severity": 1,
+        "source": "ts",
+        "tags": [1]
+    },
+    {
+        "code": 2695,
+        "message": "Left side of comma operator is unused and has no side effects.",
+        "range": {
+            "end": {
+                "character": 8,
+                "line": 9
+            },
+            "start": {
+                "character": 7,
+                "line": 9
+            }
+        },
+        "severity": 1,
+        "source": "ts",
+        "tags": [1]
+    },
+    {
+        "code": 2695,
+        "message": "Left side of comma operator is unused and has no side effects.",
+        "range": {
+            "end": {
+                "character": 9,
+                "line": 14
+            },
+            "start": {
+                "character": 8,
+                "line": 14
+            }
+        },
+        "severity": 1,
+        "source": "ts",
+        "tags": [1]
+    }
+]

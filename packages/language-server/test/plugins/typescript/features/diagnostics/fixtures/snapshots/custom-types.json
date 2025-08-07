@@ -1,0 +1,206 @@
+[
+  {
+    "code": 7044,
+    "message": "Parameter 'e' implicitly has an 'any' type, but a better type may be inferred from usage.",
+    "range": {
+      "end": {
+        "character": 27,
+        "line": 4,
+      },
+      "start": {
+        "character": 26,
+        "line": 4,
+      },
+    },
+    "severity": 4,
+    "source": "ts",
+    "tags": [],
+  },
+  {
+    "code": 7044,
+    "message": "Parameter 'e' implicitly has an 'any' type, but a better type may be inferred from usage.",
+    "range": {
+      "end": {
+        "character": 20,
+        "line": 12,
+      },
+      "start": {
+        "character": 19,
+        "line": 12,
+      },
+    },
+    "severity": 4,
+    "source": "ts",
+    "tags": [],
+  },
+  {
+    "code": 7044,
+    "message": "Parameter 'e' implicitly has an 'any' type, but a better type may be inferred from usage.",
+    "range": {
+      "end": {
+        "character": 20,
+        "line": 21,
+      },
+      "start": {
+        "character": 19,
+        "line": 21,
+      },
+    },
+    "severity": 4,
+    "source": "ts",
+    "tags": [],
+  },
+  {
+    "code": 7044,
+    "message": "Parameter 'e' implicitly has an 'any' type, but a better type may be inferred from usage.",
+    "range": {
+      "end": {
+        "character": 27,
+        "line": 22,
+      },
+      "start": {
+        "character": 26,
+        "line": 22,
+      },
+    },
+    "severity": 4,
+    "source": "ts",
+    "tags": [],
+  },
+  {
+    "code": 2353,
+    "message": "Object literal may only specify known properties, and '"owntypefromold"' does not exist in type 'HTMLProps<"div", HTMLAttributes<any>>'.",
+    "range": {
+      "end": {
+        "character": 19,
+        "line": 3,
+      },
+      "start": {
+        "character": 5,
+        "line": 3,
+      },
+    },
+    "severity": 1,
+    "source": "ts",
+    "tags": [],
+  },
+  {
+    "code": 2353,
+    "message": "Object literal may only specify known properties, and '"on:ownclickfromold"' does not exist in type 'HTMLProps<"div", HTMLAttributes<any>>'.",
+    "range": {
+      "end": {
+        "character": 23,
+        "line": 4,
+      },
+      "start": {
+        "character": 8,
+        "line": 4,
+      },
+    },
+    "severity": 1,
+    "source": "ts",
+    "tags": [],
+  },
+  {
+    "code": 2353,
+    "message": "Object literal may only specify known properties, and '"owntype"' does not exist in type 'HTMLProps<"div", HTMLAttributes<any>>'.",
+    "range": {
+      "end": {
+        "character": 12,
+        "line": 11,
+      },
+      "start": {
+        "character": 5,
+        "line": 11,
+      },
+    },
+    "severity": 1,
+    "source": "ts",
+    "tags": [],
+  },
+  {
+    "code": 2353,
+    "message": "Object literal may only specify known properties, and '"on:ownclick"' does not exist in type 'HTMLProps<"div", HTMLAttributes<any>>'.",
+    "range": {
+      "end": {
+        "character": 16,
+        "line": 12,
+      },
+      "start": {
+        "character": 8,
+        "line": 12,
+      },
+    },
+    "severity": 1,
+    "source": "ts",
+    "tags": [],
+  },
+  {
+    "code": 2353,
+    "message": "Object literal may only specify known properties, and '"owntype"' does not exist in type 'HTMLProps<"div", HTMLAttributes<any>>'.",
+    "range": {
+      "end": {
+        "character": 12,
+        "line": 19,
+      },
+      "start": {
+        "character": 5,
+        "line": 19,
+      },
+    },
+    "severity": 1,
+    "source": "ts",
+    "tags": [],
+  },
+  {
+    "code": 2353,
+    "message": "Object literal may only specify known properties, and '"owntypefromold"' does not exist in type 'HTMLProps<"div", HTMLAttributes<any>>'.",
+    "range": {
+      "end": {
+        "character": 19,
+        "line": 20,
+      },
+      "start": {
+        "character": 5,
+        "line": 20,
+      },
+    },
+    "severity": 1,
+    "source": "ts",
+    "tags": [],
+  },
+  {
+    "code": 2353,
+    "message": "Object literal may only specify known properties, and '"on:ownclick"' does not exist in type 'HTMLProps<"div", HTMLAttributes<any>>'.",
+    "range": {
+      "end": {
+        "character": 16,
+        "line": 21,
+      },
+      "start": {
+        "character": 8,
+        "line": 21,
+      },
+    },
+    "severity": 1,
+    "source": "ts",
+    "tags": [],
+  },
+  {
+    "code": 2353,
+    "message": "Object literal may only specify known properties, and '"on:ownclickfromold"' does not exist in type 'HTMLProps<"div", HTMLAttributes<any>>'.",
+    "range": {
+      "end": {
+        "character": 23,
+        "line": 22,
+      },
+      "start": {
+        "character": 8,
+        "line": 22,
+      },
+    },
+    "severity": 1,
+    "source": "ts",
+    "tags": [],
+  },
+]

@@ -1,10 +1,10 @@
-import assert from 'assert';
+import { describe, it, expect } from 'vitest';
 import { HTMLDocument } from 'vscode-html-languageservice';
 import { parseHtml } from '../../../src/lib/documents/parseHtml';
 
 describe('parseHtml', () => {
     const testRootElements = (document: HTMLDocument) => {
-        assert.deepStrictEqual(
+        expect(
             document.roots.map((r) => r.tag),
             ['Foo', 'style']
         );

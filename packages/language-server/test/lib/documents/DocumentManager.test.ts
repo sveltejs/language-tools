@@ -1,5 +1,5 @@
 import sinon from 'sinon';
-import * as assert from 'assert';
+import { describe, it, expect } from 'vitest';
 import { TextDocumentItem, Range } from 'vscode-languageserver-types';
 import { DocumentManager, Document } from '../../../src/lib/documents';
 
@@ -65,7 +65,7 @@ describe('Document Manager', () => {
     it("fails to update if document isn't open", () => {
         const manager = new DocumentManager(createTextDocument);
 
-        assert.throws(() => manager.updateDocument(textDocument, []));
+        expect(() => manager.updateDocument(textDocument, [])).toThrow();
     });
 
     it('emits a document change event on open and update', () => {
@@ -109,6 +109,6 @@ describe('Document Manager', () => {
             ]
         );
 
-        assert.ok(manager.get(textDocument.uri)!.version > firstVersion);
+        expect(manager.get(textDocument.uri)!.version > firstVersion).toBeTruthy();
     });
 });

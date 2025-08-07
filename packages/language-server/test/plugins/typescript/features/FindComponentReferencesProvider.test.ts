@@ -1,4 +1,4 @@
-import * as assert from 'assert';
+import { describe, it, expect } from 'vitest';
 import * as path from 'path';
 import ts from 'typescript';
 import { Document, DocumentManager } from '../../../../src/lib/documents';
@@ -8,13 +8,12 @@ import { LSAndTSDocResolver } from '../../../../src/plugins/typescript/LSAndTSDo
 import { pathToUrl } from '../../../../src/utils';
 import { serviceWarmup } from '../test-utils';
 import { Location } from 'vscode-html-languageservice';
-import { VERSION } from 'svelte/compiler';
+import { isSvelte5Plus } from '../../test-helpers';
 
 const testDir = path.join(__dirname, '..', 'testfiles');
-const isSvelte5Plus = +VERSION.split('.')[0] >= 5;
 
 describe('FindComponentReferencesProvider', function () {
-    serviceWarmup(this, testDir);
+    serviceWarmup(testDir);
 
     function getFullPath(filename: string) {
         return path.join(testDir, filename);
@@ -111,7 +110,7 @@ describe('FindComponentReferencesProvider', function () {
                 uri: getUri('find-component-references-parent2.svelte')
             }
         ];
-        if (!isSvelte5Plus) {
+        if (!isSvelte5Plus()) {
             expected.unshift({
                 range: {
                     start: {
@@ -126,6 +125,6 @@ describe('FindComponentReferencesProvider', function () {
                 uri: getUri('find-component-references-parent.svelte')
             });
         }
-        assert.deepStrictEqual(results, expected);
+        expect(results).toEqual(expected);
     });
 });

@@ -1,0 +1,70 @@
+[
+    {
+        "code": 2339,
+        "message": "Property 'invalidProp1' does not exist on type '{ valid1: boolean; validPropWrongType1: string; }'.",
+        "range": {
+            "end": {
+                "character": 58,
+                "line": 4
+            },
+            "start": {
+                "character": 46,
+                "line": 4
+            }
+        },
+        "severity": 1,
+        "source": "ts",
+        "tags": []
+    },
+    {
+        "code": 2367,
+        "message": "This comparison appears to be unintentional because the types 'string' and 'boolean' have no overlap.",
+        "range": {
+            "end": {
+                "character": 33,
+                "line": 6
+            },
+            "start": {
+                "character": 5,
+                "line": 6
+            }
+        },
+        "severity": 1,
+        "source": "ts",
+        "tags": []
+    },
+    {
+        "code": 2339,
+        "message": "Property 'invalidProp2' does not exist on type '{ valid2: boolean; validPropWrongType2: string; }'.",
+        "range": {
+            "end": {
+                "character": 71,
+                "line": 8
+            },
+            "start": {
+                "character": 59,
+                "line": 8
+            }
+        },
+        "severity": 1,
+        "source": "ts",
+        "tags": []
+    },
+    {
+        "code": 2367,
+        "message": "This comparison appears to be unintentional because the types 'string' and 'boolean' have no overlap.",
+        "range": {
+            "end": {
+                "character": 37,
+                "line": 10
+            },
+            "start": {
+                "character": 9,
+                "line": 10
+            }
+        },
+        "severity": 1,
+        "source": "ts",
+        "tags": []
+    }
+]

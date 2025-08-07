@@ -1,6 +1,6 @@
-import * as assert from 'assert';
+import { describe, it, expect, afterAll } from 'vitest';
 import * as path from 'path';
-import { VERSION } from 'svelte/compiler';
+import { isSvelte5Plus } from '../../test-helpers';
 import { internalHelpers } from 'svelte2tsx';
 import ts from 'typescript';
 import {
@@ -27,14 +27,9 @@ import { recursiveServiceWarmup } from '../test-utils';
 
 const testDir = path.join(__dirname, '..');
 const indent = ' '.repeat(4);
-const isSvelte5Plus = +VERSION.split('.')[0] >= 5;
 
 describe('CodeActionsProvider', function () {
-    recursiveServiceWarmup(
-        this,
-        path.join(testDir, 'testfiles', 'code-actions'),
-        pathToUrl(testDir)
-    );
+    recursiveServiceWarmup(path.join(testDir, 'testfiles', 'code-actions'), pathToUrl(testDir));
 
     function getFullPath(filename: string) {
         return path.join(testDir, 'testfiles', 'code-actions', filename);
@@ -91,7 +86,7 @@ describe('CodeActionsProvider', function () {
             }
         );
 
-        assert.deepStrictEqual(codeActions, [
+        expect(codeActions, [
             {
                 edit: {
                     documentChanges: [
@@ -200,7 +195,7 @@ describe('CodeActionsProvider', function () {
             (edit) => (edit.newText = harmonizeNewLines(edit.newText))
         );
 
-        assert.deepStrictEqual(codeActions, [
+        expect(codeActions, [
             {
                 edit: {
                     documentChanges: [
@@ -268,7 +263,7 @@ describe('CodeActionsProvider', function () {
             (edit) => (edit.newText = harmonizeNewLines(edit.newText))
         );
 
-        assert.deepStrictEqual(codeActions, [
+        expect(codeActions, [
             {
                 edit: {
                     documentChanges: [
@@ -309,7 +304,7 @@ describe('CodeActionsProvider', function () {
             (edit) => (edit.newText = harmonizeNewLines(edit.newText))
         );
 
-        assert.deepStrictEqual(codeActions, [
+        expect(codeActions, [
             {
                 edit: {
                     documentChanges: [
@@ -379,7 +374,7 @@ describe('CodeActionsProvider', function () {
             version: null
         };
 
-        if (isSvelte5Plus) {
+        if (isSvelte5Plus()) {
             // Maybe because of the hidden interface declarations? It's harmless anyway
             if (
                 codeActions.length === 4 &&
@@ -389,7 +384,7 @@ describe('CodeActionsProvider', function () {
             }
         }
 
-        assert.deepStrictEqual(codeActions, <CodeAction[]>[
+        expect(codeActions, <CodeAction[]>[
             {
                 edit: {
                     documentChanges: [
@@ -478,7 +473,7 @@ describe('CodeActionsProvider', function () {
             uri: getUri('codeaction-checkJs-module.svelte'),
             version: null
         };
-        assert.deepStrictEqual(codeActions, <CodeAction[]>[
+        expect(codeActions, <CodeAction[]>[
             {
                 edit: {
                     documentChanges: [
@@ -553,7 +548,7 @@ describe('CodeActionsProvider', function () {
             (edit) => (edit.newText = harmonizeNewLines(edit.newText))
         );
 
-        assert.deepStrictEqual(addJsDoc?.edit, {
+        expect(addJsDoc?.edit, {
             documentChanges: [
                 <TextDocumentEdit>{
                     edits: [
@@ -595,7 +590,7 @@ describe('CodeActionsProvider', function () {
             (edit) => (edit.newText = harmonizeNewLines(edit.newText))
         );
 
-        assert.deepStrictEqual(addJsDoc?.edit, {
+        expect(addJsDoc?.edit, {
             documentChanges: [
                 <TextDocumentEdit>{
                     edits: [
@@ -639,7 +634,7 @@ describe('CodeActionsProvider', function () {
             (edit) => (edit.newText = harmonizeNewLines(edit.newText))
         );
 
-        assert.deepStrictEqual(codeActions, <CodeAction[]>[
+        expect(codeActions, <CodeAction[]>[
             {
                 edit: {
                     documentChanges: [
@@ -700,7 +695,7 @@ describe('CodeActionsProvider', function () {
             (edit) => (edit.newText = harmonizeNewLines(edit.newText))
         );
 
-        assert.deepStrictEqual(codeActions, <CodeAction[]>[
+        expect(codeActions, <CodeAction[]>[
             {
                 edit: {
                     documentChanges: [
@@ -771,7 +766,7 @@ describe('CodeActionsProvider', function () {
             }
         );
 
-        assert.deepStrictEqual(codeActions, <CodeAction[]>[
+        expect(codeActions, <CodeAction[]>[
             {
                 edit: {
                     documentChanges: [
@@ -817,7 +812,7 @@ describe('CodeActionsProvider', function () {
             }
         );
 
-        assert.deepStrictEqual(codeActions, [
+        expect(codeActions, [
             {
                 edit: {
                     documentChanges: [
@@ -878,7 +873,7 @@ describe('CodeActionsProvider', function () {
             }
         );
 
-        assert.deepStrictEqual(codeActions, []);
+        expect(codeActions).toEqual([]);
     });
 
     it('provides quickfix to add async to a function', async () => {
@@ -901,7 +896,7 @@ describe('CodeActionsProvider', function () {
             }
         );
 
-        assert.deepStrictEqual(codeActions, [
+        expect(codeActions, [
             {
                 edit: {
                     documentChanges: [
@@ -963,7 +958,7 @@ describe('CodeActionsProvider', function () {
             }
         );
 
-        assert.deepStrictEqual(codeActions, []);
+        expect(codeActions).toEqual([]);
     });
 
     it('provide quick fix to fix all errors when possible', async () => {
@@ -992,7 +987,7 @@ describe('CodeActionsProvider', function () {
             (edit) => (edit.newText = harmonizeNewLines(edit.newText))
         );
 
-        assert.deepStrictEqual(resolvedFixAll.edit, {
+        expect(resolvedFixAll.edit, {
             documentChanges: [
                 {
                     edits: [
@@ -1063,7 +1058,7 @@ describe('CodeActionsProvider', function () {
             (edit) => (edit.newText = harmonizeNewLines(edit.newText))
         );
 
-        assert.deepStrictEqual(resolvedFixAll.edit, {
+        expect(resolvedFixAll.edit, {
             documentChanges: [
                 {
                     edits: [
@@ -1104,7 +1099,7 @@ describe('CodeActionsProvider', function () {
         const cannotFindNameDiagnostics = lang
             .getSemanticDiagnostics(tsDoc.filePath)
             .filter((diagnostic) => diagnostic.code === DiagnosticCode.CANNOT_FIND_NAME);
-        assert.strictEqual(cannotFindNameDiagnostics.length, 0);
+        expect(cannotFindNameDiagnostics.length).toEqual(0);
     });
 
     it('provide quick fix to fix all missing import component with "did you mean" diagnostics', async () => {
@@ -1130,7 +1125,7 @@ describe('CodeActionsProvider', function () {
             (edit) => (edit.newText = harmonizeNewLines(edit.newText))
         );
 
-        assert.deepStrictEqual(resolvedFixAll.edit, {
+        expect(resolvedFixAll.edit, {
             documentChanges: [
                 {
                     edits: [
@@ -1182,7 +1177,7 @@ describe('CodeActionsProvider', function () {
             (edit) => (edit.newText = harmonizeNewLines(edit.newText))
         );
 
-        assert.deepStrictEqual(resolvedFixAll.edit, {
+        expect(resolvedFixAll.edit, {
             documentChanges: [
                 {
                     edits: [
@@ -1234,7 +1229,7 @@ describe('CodeActionsProvider', function () {
             (edit) => (edit.newText = harmonizeNewLines(edit.newText))
         );
 
-        assert.deepStrictEqual(resolvedFixAll.edit, {
+        expect(resolvedFixAll.edit, {
             documentChanges: [
                 {
                     edits: [
@@ -1286,7 +1281,7 @@ describe('CodeActionsProvider', function () {
             (edit) => (edit.newText = harmonizeNewLines(edit.newText))
         );
 
-        assert.deepStrictEqual(resolvedFixAll.edit, {
+        expect(resolvedFixAll.edit, {
             documentChanges: [
                 {
                     edits: [
@@ -1340,7 +1335,7 @@ describe('CodeActionsProvider', function () {
             (edit) => (edit.newText = harmonizeNewLines(edit.newText))
         );
 
-        assert.deepStrictEqual(resolvedFixAll.edit, {
+        expect(resolvedFixAll.edit, {
             documentChanges: [
                 {
                     edits: [
@@ -1386,7 +1381,7 @@ describe('CodeActionsProvider', function () {
             (edit) => (edit.newText = harmonizeNewLines(edit.newText))
         );
 
-        assert.deepStrictEqual(codeActions, [
+        expect(codeActions, [
             {
                 edit: {
                     documentChanges: [
@@ -1474,7 +1469,7 @@ describe('CodeActionsProvider', function () {
             (edit) => (edit.newText = harmonizeNewLines(edit.newText))
         );
 
-        assert.deepStrictEqual(codeActions, [
+        expect(codeActions, [
             {
                 edit: {
                     documentChanges: [
@@ -1565,7 +1560,7 @@ describe('CodeActionsProvider', function () {
             (edit) => (edit.newText = harmonizeNewLines(edit.newText))
         );
 
-        assert.deepStrictEqual(codeActions, [
+        expect(codeActions, [
             {
                 edit: {
                     documentChanges: [
@@ -1639,7 +1634,7 @@ describe('CodeActionsProvider', function () {
             (edit) => (edit.newText = harmonizeNewLines(edit.newText))
         );
 
-        assert.deepStrictEqual(codeActions, [
+        expect(codeActions, [
             {
                 edit: {
                     documentChanges: [
@@ -1714,7 +1709,7 @@ describe('CodeActionsProvider', function () {
             (edit) => (edit.newText = harmonizeNewLines(edit.newText))
         );
 
-        assert.deepStrictEqual(codeActions, [
+        expect(codeActions, [
             {
                 edit: {
                     documentChanges: [
@@ -1762,7 +1757,7 @@ describe('CodeActionsProvider', function () {
             (edit) => (edit.newText = harmonizeNewLines(edit.newText))
         );
 
-        assert.deepStrictEqual(codeActions, [
+        expect(codeActions, [
             {
                 edit: {
                     documentChanges: [
@@ -1824,7 +1819,7 @@ describe('CodeActionsProvider', function () {
             (edit) => (edit.newText = harmonizeNewLines(edit.newText))
         );
 
-        assert.deepStrictEqual(codeActions, [
+        expect(codeActions, [
             {
                 edit: {
                     documentChanges: [
@@ -1871,7 +1866,7 @@ describe('CodeActionsProvider', function () {
             }
         );
 
-        assert.deepStrictEqual(codeActions, []);
+        expect(codeActions).toEqual([]);
     });
 
     it('organize imports aware of groups', async () => {
@@ -1890,7 +1885,7 @@ describe('CodeActionsProvider', function () {
             (edit) => (edit.newText = harmonizeNewLines(edit.newText))
         );
 
-        assert.deepStrictEqual(codeActions, [
+        expect(codeActions, [
             {
                 edit: {
                     documentChanges: [
@@ -1948,7 +1943,7 @@ describe('CodeActionsProvider', function () {
         );
         const action = actions[1];
 
-        assert.deepEqual(action, {
+        expect(action, {
             command: {
                 arguments: [
                     getUri('codeactions.svelte'),
@@ -1988,7 +1983,7 @@ describe('CodeActionsProvider', function () {
             (edit) => (edit.newText = harmonizeNewLines(edit.newText))
         );
 
-        assert.deepStrictEqual(edit, {
+        expect(edit, {
             documentChanges: [
                 {
                     edits: [
@@ -2040,7 +2035,7 @@ describe('CodeActionsProvider', function () {
             }
         );
 
-        assert.deepStrictEqual(codeActions, [
+        expect(codeActions, [
             {
                 title: 'Organize Imports',
                 edit: {
@@ -2098,7 +2093,7 @@ describe('CodeActionsProvider', function () {
             }
         );
 
-        assert.deepStrictEqual(codeActions, [
+        expect(codeActions, [
             {
                 title: 'Organize Imports',
                 edit: {
@@ -2206,7 +2201,7 @@ describe('CodeActionsProvider', function () {
         );
         const action = actions[0];
 
-        assert.deepStrictEqual(action, {
+        expect(action, {
             command: {
                 arguments: [
                     getUri('codeactions.svelte'),
@@ -2246,7 +2241,7 @@ describe('CodeActionsProvider', function () {
             (edit) => (edit.newText = harmonizeNewLines(edit.newText))
         );
 
-        assert.deepStrictEqual(edit, {
+        expect(edit, {
             documentChanges: [
                 {
                     edits: [
@@ -2317,7 +2312,7 @@ describe('CodeActionsProvider', function () {
 
         cancellationTokenSource.cancel();
 
-        assert.deepStrictEqual(await codeActionsPromise, []);
+        expect(await codeActionsPromise).toEqual([]);
     });
 
     it('can cancel refactor before promise resolved', async () => {
@@ -2333,11 +2328,11 @@ describe('CodeActionsProvider', function () {
 
         cancellationTokenSource.cancel();
 
-        assert.deepStrictEqual(await codeActionsPromise, []);
+        expect(await codeActionsPromise).toEqual([]);
     });
 
     // Hacky, but it works. Needed due to testing both new and old transformation
-    after(() => {
+    afterAll(() => {
         __resetCache();
     });
 
@@ -2352,28 +2347,25 @@ describe('CodeActionsProvider', function () {
             only: [ADD_MISSING_IMPORTS_CODE_ACTION_KIND]
         });
 
-        assert.ok(codeActions.length > 0, 'No code actions found');
+        expect(codeActions.length > 0).toBeTruthy();
 
         // Find the action by its kind
         const addImportsAction = codeActions.find((action) => action.data);
 
         // Ensure the action was found and has data (as it's now deferred)
-        assert.ok(addImportsAction, 'Add missing imports action should be found');
-        assert.ok(
-            addImportsAction.data,
-            'Add missing imports action should have data for resolution'
-        );
+        expect(addImportsAction).toBeDefined();
+        expect(addImportsAction.data).toBeDefined();
 
         // Resolve the action to get the edits
         const resolvedAction = await provider.resolveCodeAction(document, addImportsAction);
 
         // Assert the edits on the resolved action
-        assert.ok(resolvedAction.edit, 'Resolved action should have an edit');
+        expect(resolvedAction.edit).toBeDefined();
         (<TextDocumentEdit>resolvedAction.edit?.documentChanges?.[0])?.edits.forEach(
             (edit) => (edit.newText = harmonizeNewLines(edit.newText))
         );
 
-        assert.deepStrictEqual(resolvedAction.edit, {
+        expect(resolvedAction.edit, {
             documentChanges: [
                 {
                     edits: [
@@ -2402,8 +2394,8 @@ describe('CodeActionsProvider', function () {
         });
 
         // Optional: Verify the kind and title remain correct on the resolved action
-        assert.strictEqual(resolvedAction.kind, ADD_MISSING_IMPORTS_CODE_ACTION_KIND);
-        assert.strictEqual(resolvedAction.title, 'Add all missing imports');
+        expect(resolvedAction.kind).toEqual(ADD_MISSING_IMPORTS_CODE_ACTION_KIND);
+        expect(resolvedAction.title).toEqual('Add all missing imports');
     });
 
     it('provides source action for adding all missing imports only when imports are missing', async () => {
@@ -2418,10 +2410,10 @@ describe('CodeActionsProvider', function () {
             }
         );
 
-        assert.deepStrictEqual(codeActions, []);
+        expect(codeActions).toEqual([]);
     });
 
-    if (!isSvelte5Plus) {
+    if (!isSvelte5Plus()) {
         return;
     }
 
@@ -2441,7 +2433,7 @@ describe('CodeActionsProvider', function () {
             (edit) => (edit.newText = harmonizeNewLines(edit.newText))
         );
 
-        assert.deepStrictEqual(codeActions, [
+        expect(codeActions, [
             {
                 edit: {
                     documentChanges: [
