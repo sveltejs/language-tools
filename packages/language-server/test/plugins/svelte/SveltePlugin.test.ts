@@ -5,7 +5,8 @@ import {
     Diagnostic,
     Range,
     DiagnosticSeverity,
-    CancellationTokenSource
+    CancellationTokenSource,
+    Position
 } from 'vscode-languageserver';
 import { LSConfigManager } from '../../../src/ls-config';
 import * as importPackage from '../../../src/importPackage';
