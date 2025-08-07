@@ -35,7 +35,7 @@ describe('TypeScript Plugin Performance Tests', () => {
         return { plugin, document, append, prepend };
     }
 
-    it('should be fast enough', async () => {
+    it.sequential('should be fast enough', async () => {
         // allow to set a higher timeout for slow machines from cli flag
         vi.setConfig({ testTimeout: 25000 });
         

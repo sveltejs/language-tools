@@ -18,8 +18,33 @@ jobs:
       - run: pnpm bootstrap
       - run: pnpm build
 
-      # Run tests against both Svelte versions using workspace
-      - run: pnpm test:workspace
+      # Run any tests
+      - run: pnpm test
+        env:
+          CI: true
+
+  test-svelte5:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20.x"
+          cache: pnpm
+
+      # Lets us use one-liner JSON manipulations the package.json files
+      - run: "npm install -g json"
+
+      # Get projects set up
+      - run: json -I -f package.json -e 'this.pnpm={"overrides":{"svelte":"^5.0.0-next.100"}}'
+      - run: pnpm install --no-frozen-lockfile
+      - run: pnpm bootstrap
+      - run: pnpm build
+
+      # Run any tests
+      - run: pnpm test
         env:
           CI: true
 
