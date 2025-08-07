@@ -1,4 +1,4 @@
-import { describe, it, vi } from 'vitest';
+import { describe, it } from 'vitest';
 import * as path from 'path';
 import { performance } from 'perf_hooks';
 import ts from 'typescript';
@@ -35,19 +35,33 @@ describe('TypeScript Plugin Performance Tests', () => {
         return { plugin, document, append, prepend };
     }
 
+    // Performance regression test that adapts to machine speed
+    // Fast machines get stricter time limits, slow machines get more generous limits
     it.sequential('should be fast enough', async () => {
         const { document, plugin, append, prepend } = setup('performance.svelte');
 
-        const benchmarkElapse = Math.ceil(await benchmark());
-        // it usually takes around 5-6 times of the benchmark result
-        // plus 1 for the benchmark itself
-        const newTimeout = benchmarkElapse * 7;
-
-        const performanceTimeout = 25_000;
-        if (newTimeout < performanceTimeout) {
-            console.log(`Benchmark took ${benchmarkElapse}ms. Setting timeout to ${newTimeout}ms`);
+        // Benchmark TypeScript compilation to establish machine baseline
+        async function benchmark() {
+            const start = performance.now();
+            for (let i = 0; i < 5; i++) {
+                ts.createProgram({
+                    options: {},
+                    rootNames: [document.getFilePath()!]
+                });
+            }
+            return performance.now() - start;
         }
 
+        const benchmarkElapse = Math.ceil(await benchmark());
+        
+        // Calculate adaptive time limit based on machine performance
+        const expectedMaxTime = benchmarkElapse * 7;
+        const maxAllowedTime = 25_000;
+        const timeLimit = Math.min(expectedMaxTime, maxAllowedTime);
+        
+        console.log(`Benchmark took ${benchmarkElapse}ms. Expected operations to complete within ${timeLimit}ms`);
+
+        // Run the actual performance test
         const start = performance.now();
         for (let i = 0; i < 100; i++) {
             const position = Position.create(Math.floor(i / 2) + 1, 15);
@@ -65,21 +79,10 @@ describe('TypeScript Plugin Performance Tests', () => {
                 append('function asd() {}\n');
             }
         }
-        const end = performance.now();
-
-        console.log(`Performance test took ${end - start}ms`);
-
-        async function benchmark() {
-            const start = performance.now();
-            for (let i = 0; i < 5; i++) {
-                ts.createProgram({
-                    options: {},
-                    rootNames: [document.getFilePath()!]
-                });
-            }
-            const end = performance.now();
-
-            return end - start;
-        }
+        const totalTime = performance.now() - start;
+        console.log(`Performance test took ${totalTime}ms`);
+        
+        // Ensure operations complete within adaptive time limit
+        expect(totalTime).toBeLessThan(timeLimit);
     });
 });
