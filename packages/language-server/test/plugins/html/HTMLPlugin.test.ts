@@ -15,9 +15,6 @@ import { HTMLPlugin } from '../../../src/plugins';
 import { DocumentManager, Document } from '../../../src/lib/documents';
 import { LSConfigManager } from '../../../src/ls-config';
 import { DocumentHighlight } from 'vscode-languageserver-types';
-import { svelteVersion } from '../test-helpers';
-
-const isSvelte5Plus = svelteVersion.isSvelte5Plus;
 
 describe('HTML Plugin', () => {
     function setup(content: string) {

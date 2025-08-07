@@ -2,7 +2,7 @@ import { describe, it, expect, afterAll } from 'vitest';
 import * as path from 'path';
 import ts from 'typescript';
 import { Position } from 'vscode-languageserver';
-import { svelteVersion } from '../../test-helpers';
+import { isSvelte5Plus } from '../../test-helpers';
 import { Document, DocumentManager } from '../../../../src/lib/documents';
 import { LSConfigManager } from '../../../../src/ls-config';
 import { RenameProviderImpl } from '../../../../src/plugins/typescript/features/RenameProvider';
@@ -13,7 +13,6 @@ import { serviceWarmup } from '../test-utils';
 
 const testDir = path.join(__dirname, '..');
 const renameTestDir = path.join(testDir, 'testfiles', 'rename');
-const isSvelte5Plus = svelteVersion.isSvelte5Plus;
 
 describe('RenameProvider', function () {
     serviceWarmup(renameTestDir, pathToUrl(testDir));
@@ -879,7 +878,7 @@ describe('RenameProvider', function () {
     });
 
     // -------------------- put tests that only run in Svelte 5 below this line and everything else above --------------------
-    if (!isSvelte5Plus) return;
+    if (!isSvelte5Plus()) return;
 
     it('renames $props() prop from inside component', async () => {
         const { provider, renameRunes } = await setup();
@@ -1015,8 +1014,8 @@ describe('RenameProvider', function () {
         });
     });
 
-    // blocked by https://github.com/microsoft/TypeScript/pull/57201
-    it.skip('renames $props() prop inside consumer', async () => {
+    // Was blocked by https://github.com/microsoft/TypeScript/pull/57201 - testing if fixed
+    it('renames $props() prop inside consumer', async () => {
         const { provider, renameRunes } = await setup();
 
         const result = await provider.rename(renameRunes, Position.create(7, 15), 'newName');

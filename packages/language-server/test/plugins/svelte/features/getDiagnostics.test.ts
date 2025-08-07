@@ -12,9 +12,7 @@ import { SvelteConfig } from '../../../../src/lib/documents/configLoader';
 import { CompilerWarningsSettings, LSConfigManager } from '../../../../src/ls-config';
 import { pathToUrl } from '../../../../src/utils';
 import { SveltePlugin } from '../../../../src/plugins';
-import { svelteVersion } from '../../test-helpers';
-
-const isSvelte5Plus = svelteVersion.isSvelte5Plus;
+import { isSvelte5Plus } from '../../test-helpers';
 
 describe('SveltePlugin#getDiagnostics', () => {
     async function expectDiagnosticsFor({
@@ -472,10 +470,10 @@ describe('SveltePlugin#getDiagnostics', () => {
                 range: { start: { line: 1, character: 15 }, end: { line: 1, character: 27 } },
                 message:
                     "Component has unused export property 'name'. If it is for external reference only, please consider using `export const name`" +
-                    (isSvelte5Plus ? '\nhttps://svelte.dev/e/export_let_unused' : ''),
+                    (isSvelte5Plus() ? '\nhttps://svelte.dev/e/export_let_unused' : ''),
                 severity: 2,
                 source: 'svelte',
-                code: isSvelte5Plus ? 'export_let_unused' : 'unused-export-let'
+                code: isSvelte5Plus() ? 'export_let_unused' : 'unused-export-let'
             }
         ]);
     });
@@ -510,10 +508,10 @@ describe('SveltePlugin#getDiagnostics', () => {
             diagnostics.filter((d) => d.code !== 'script_context_deprecated'),
             [
                 {
-                    code: isSvelte5Plus ? 'export_let_unused' : 'unused-export-let',
+                    code: isSvelte5Plus() ? 'export_let_unused' : 'unused-export-let',
                     message:
                         "Component has unused export property 'unused1'. If it is for external reference only, please consider using `export const unused1`" +
-                        (isSvelte5Plus ? '\nhttps://svelte.dev/e/export_let_unused' : ''),
+                        (isSvelte5Plus() ? '\nhttps://svelte.dev/e/export_let_unused' : ''),
                     range: {
                         start: {
                             line: 5,
@@ -521,17 +519,17 @@ describe('SveltePlugin#getDiagnostics', () => {
                         },
                         end: {
                             line: 5,
-                            character: isSvelte5Plus ? 20 : 27
+                            character: isSvelte5Plus() ? 20 : 27
                         }
                     },
                     severity: 2,
                     source: 'svelte'
                 },
                 {
-                    code: isSvelte5Plus ? 'export_let_unused' : 'unused-export-let',
+                    code: isSvelte5Plus() ? 'export_let_unused' : 'unused-export-let',
                     message:
                         "Component has unused export property 'unused2'. If it is for external reference only, please consider using `export const unused2`" +
-                        (isSvelte5Plus ? '\nhttps://svelte.dev/e/export_let_unused' : ''),
+                        (isSvelte5Plus() ? '\nhttps://svelte.dev/e/export_let_unused' : ''),
                     range: {
                         start: {
                             line: 6,
@@ -539,7 +537,7 @@ describe('SveltePlugin#getDiagnostics', () => {
                         },
                         end: {
                             line: 6,
-                            character: isSvelte5Plus ? 20 : 27
+                            character: isSvelte5Plus() ? 20 : 27
                         }
                     },
                     severity: 2,

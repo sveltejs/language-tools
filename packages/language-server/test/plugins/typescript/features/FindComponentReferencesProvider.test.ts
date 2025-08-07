@@ -8,10 +8,9 @@ import { LSAndTSDocResolver } from '../../../../src/plugins/typescript/LSAndTSDo
 import { pathToUrl } from '../../../../src/utils';
 import { serviceWarmup } from '../test-utils';
 import { Location } from 'vscode-html-languageservice';
-import { svelteVersion } from '../../test-helpers';
+import { isSvelte5Plus } from '../../test-helpers';
 
 const testDir = path.join(__dirname, '..', 'testfiles');
-const isSvelte5Plus = svelteVersion.isSvelte5Plus;
 
 describe('FindComponentReferencesProvider', function () {
     serviceWarmup(testDir);
@@ -111,7 +110,7 @@ describe('FindComponentReferencesProvider', function () {
                 uri: getUri('find-component-references-parent2.svelte')
             }
         ];
-        if (!isSvelte5Plus) {
+        if (!isSvelte5Plus()) {
             expected.unshift({
                 range: {
                     start: {

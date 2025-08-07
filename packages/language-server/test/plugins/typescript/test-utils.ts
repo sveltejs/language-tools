@@ -13,10 +13,8 @@ import {
     pathToUrl,
     urlToPath
 } from '../../../src/utils';
-import { svelteVersion } from '../test-helpers';
+import { isSvelte5Plus } from '../test-helpers';
 import { findTsConfigPath } from '../../../src/plugins/typescript/utils';
-
-const isSvelte5Plus = svelteVersion.isSvelte5Plus;
 
 export function createVirtualTsSystem(currentDirectory: string): ts.System {
     const virtualFs = new FileMap<string>();
@@ -214,7 +212,7 @@ export function createSnapshotTester<
 
         if (existsSync(inputFile)) {
             const _it =
-                dir.endsWith('.v5') && !isSvelte5Plus
+                dir.endsWith('.v5') && !isSvelte5Plus()
                     ? it.skip
                     : dir.endsWith('.only')
                       ? it.only

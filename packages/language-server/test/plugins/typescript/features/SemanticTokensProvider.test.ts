@@ -14,11 +14,10 @@ import { SemanticTokensProviderImpl } from '../../../../src/plugins/typescript/f
 import { LSAndTSDocResolver } from '../../../../src/plugins/typescript/LSAndTSDocResolver';
 import { pathToUrl } from '../../../../src/utils';
 import { serviceWarmup } from '../test-utils';
-import { svelteVersion } from '../../test-helpers';
+import { isSvelte5Plus } from '../../test-helpers';
 
 const testDir = path.join(__dirname, '..');
 const semanticTokenTestDir = path.join(testDir, 'testfiles', 'semantic-tokens');
-const isSvelte5Plus = svelteVersion.isSvelte5Plus;
 
 describe('SemanticTokensProvider', function () {
     const tsFile = 'tokens.svelte';

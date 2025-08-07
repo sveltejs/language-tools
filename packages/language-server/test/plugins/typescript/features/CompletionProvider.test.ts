@@ -24,13 +24,12 @@ import { sortBy } from 'lodash';
 import { LSConfigManager } from '../../../../src/ls-config';
 import { __resetCache } from '../../../../src/plugins/typescript/service';
 import { getRandomVirtualDirPath, serviceWarmup, setupVirtualEnvironment } from '../test-utils';
-import { svelteVersion } from '../../test-helpers';
+import { isSvelte5Plus } from '../../test-helpers';
 
 const testDir = join(__dirname, '..');
 const testFilesDir = join(testDir, 'testfiles', 'completions');
 const newLine = ts.sys.newLine;
 const indent = ' '.repeat(4);
-const isSvelte5Plus = svelteVersion.isSvelte5Plus;
 
 const fileNameToAbsoluteUri = (file: string) => {
     return pathToUrl(join(testFilesDir, file));
@@ -892,7 +891,7 @@ describe('CompletionProviderImpl', function () {
 
         expect(
             detail,
-            `Add import from "../imported-file.svelte"${isSvelte5Plus ? '' : '\n\nclass ImportedFile'}`
+            `Add import from "../imported-file.svelte"${isSvelte5Plus() ? '' : '\n\nclass ImportedFile'}`
         );
 
         expect(
@@ -930,7 +929,7 @@ describe('CompletionProviderImpl', function () {
 
         expect(
             detail,
-            `Add import from "../imported-file.svelte"${isSvelte5Plus ? '' : '\n\nclass ImportedFile'}`
+            `Add import from "../imported-file.svelte"${isSvelte5Plus() ? '' : '\n\nclass ImportedFile'}`
         );
 
         expect(
@@ -1603,7 +1602,7 @@ describe('CompletionProviderImpl', function () {
 
         expect(
             detail,
-            `Add import from "./Bar.svelte"${isSvelte5Plus ? '' : '\n\nclass Bar'}`
+            `Add import from "./Bar.svelte"${isSvelte5Plus() ? '' : '\n\nclass Bar'}`
         );
     });
 
@@ -1655,7 +1654,7 @@ describe('CompletionProviderImpl', function () {
 
         expect(
             detail,
-            `Add import from "./Bar.svelte"${isSvelte5Plus ? '' : '\n\nclass Bar'}`
+            `Add import from "./Bar.svelte"${isSvelte5Plus() ? '' : '\n\nclass Bar'}`
         );
     });
 
@@ -1839,7 +1838,7 @@ describe('CompletionProviderImpl', function () {
     });
 
     // -------------------- put tests that only run in Svelte 5 below this line and everything else above --------------------
-    if (!isSvelte5Plus) return;
+    if (!isSvelte5Plus()) return;
 
     it(`provide props completions for rune-mode component`, async () => {
         const { completionProvider, document } = setup('component-props-completion-rune.svelte');

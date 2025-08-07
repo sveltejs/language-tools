@@ -14,10 +14,9 @@ import { LSAndTSDocResolver } from '../../../../src/plugins/typescript/LSAndTSDo
 import { __resetCache } from '../../../../src/plugins/typescript/service';
 import { pathToUrl } from '../../../../src/utils';
 import { serviceWarmup } from '../test-utils';
-import { svelteVersion } from '../../test-helpers';
+import { isSvelte5Plus } from '../../test-helpers';
 
 const testDir = path.join(__dirname, '..');
-const isSvelte5Plus = svelteVersion.isSvelte5Plus;
 
 describe('CallHierarchyProvider', function () {
     const callHierarchyTestDirRelative = path.join('testfiles', 'call-hierarchy');
@@ -388,7 +387,7 @@ describe('CallHierarchyProvider', function () {
     });
 
     it('can provide outgoing calls for component file', async () => {
-        if (isSvelte5Plus) {
+        if (isSvelte5Plus()) {
             // Doesn't work due to https://github.com/microsoft/TypeScript/issues/43740 and https://github.com/microsoft/TypeScript/issues/42375
             return;
         }
@@ -418,7 +417,7 @@ describe('CallHierarchyProvider', function () {
     });
 
     it('can provide outgoing calls for component tags', async () => {
-        if (isSvelte5Plus) {
+        if (isSvelte5Plus()) {
             // Doesn't work due to https://github.com/microsoft/TypeScript/issues/43740 and https://github.com/microsoft/TypeScript/issues/42375
             return;
         }

@@ -10,10 +10,9 @@ import { __resetCache } from '../../../../src/plugins/typescript/service';
 import { pathToUrl } from '../../../../src/utils';
 import { serviceWarmup } from '../test-utils';
 import { FindComponentReferencesProviderImpl } from '../../../../src/plugins/typescript/features/FindComponentReferencesProvider';
-import { svelteVersion } from '../../test-helpers';
+import { isSvelte5Plus } from '../../test-helpers';
 
 const testDir = path.join(__dirname, '..');
-const isSvelte5Plus = svelteVersion.isSvelte5Plus;
 
 describe('FindReferencesProvider', function () {
     serviceWarmup(testDir);
@@ -394,7 +393,7 @@ describe('FindReferencesProvider', function () {
             uri: getUri('find-component-references-parent2.svelte')
         }
     ];
-    if (!isSvelte5Plus) {
+    if (!isSvelte5Plus()) {
         componentReferences.unshift({
             range: {
                 start: {
