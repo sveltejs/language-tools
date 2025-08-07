@@ -18,33 +18,10 @@ jobs:
       - run: pnpm bootstrap
       - run: pnpm build
 
-      # Run any tests
-      - run: pnpm test
+      # Run tests against both Svelte versions using workspace
+      - run: pnpm test:workspace
         env:
           CI: true
-
-  test-svelte5:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "20.x"
-          cache: pnpm
-
-      # Get projects set up
-      - run: pnpm install
-      - run: pnpm add -D svelte5@npm:svelte@^5.0.0-next.100
-      - run: pnpm bootstrap
-      - run: pnpm build
-
-      # Run tests with Svelte 5
-      - run: pnpm test
-        env:
-          CI: true
-          SVELTE_VERSION: 5
 
   lint:
     runs-on: ubuntu-latest
