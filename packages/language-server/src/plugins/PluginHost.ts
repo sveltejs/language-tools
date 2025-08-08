@@ -35,7 +35,8 @@ import {
     TextEdit,
     WorkspaceEdit,
     InlayHint,
-    WorkspaceSymbol
+    WorkspaceSymbol,
+    DocumentSymbol
 } from 'vscode-languageserver';
 import { DocumentManager, getNodeIfIsInHTMLStartTag } from '../lib/documents';
 import { Logger } from '../logger';
@@ -295,13 +296,27 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         );
     }
 
-    private flattenSymbolTree(node: DocumentSymbol) {
-        const result = [node];
-        for (const child of node.children || []) {
-            result.push(...this.flattenSymbolTree(child));
+    async getDocumentSymbols(
+        textDocument: TextDocumentIdentifier,
+        cancellationToken: CancellationToken
+    ): Promise<SymbolInformation[]> {
+        const document = this.getDocument(textDocument.uri);
+
+        // VSCode requested document symbols twice for the outline view and the sticky scroll
+        // Manually delay here and don't use low priority as one of them will return no symbols
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        if (cancellationToken.isCancellationRequested) {
+            return [];
         }
-        node.children = [];
-        return result;
+
+        return flatten(
+            await this.execute<SymbolInformation[]>(
+                'getDocumentSymbols',
+                [document, cancellationToken],
+                ExecuteMode.Collect,
+                'high'
+            )
+        );
     }
 
     private comparePosition(pos1: Position, pos2: Position) {
@@ -319,28 +334,22 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         );
     }
 
-    async getDocumentSymbols(
+    async getHierarchicalDocumentSymbols(
         textDocument: TextDocumentIdentifier,
         cancellationToken: CancellationToken
-    ): Promise<SymbolInformation[]> {
-        const document = this.getDocument(textDocument.uri);
-
-        // VSCode requested document symbols twice for the outline view and the sticky scroll
-        // Manually delay here and don't use low priority as one of them will return no symbols
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        if (cancellationToken.isCancellationRequested) {
-            return [];
-        }
-
-        const results = await this.execute<SymbolInformation[]>(
-            'getDocumentSymbols',
-            [document, cancellationToken],
-            ExecuteMode.Collect,
-            'high'
-        );
-
-        const symbols = results
-            .flatMap((arr) => arr.flatMap((s) => this.flattenSymbolTree(s)))
+    ): Promise<DocumentSymbol[]> {
+        const flat = await this.getDocumentSymbols(textDocument, cancellationToken);
+        const symbols = flat
+            .map((s) =>
+                DocumentSymbol.create(
+                    s.name,
+                    undefined,
+                    s.kind,
+                    s.location.range,
+                    s.location.range,
+                    []
+                )
+            )
             .sort((a, b) => {
                 const start = this.comparePosition(a.range.start, b.range.start);
                 if (start !== 0) return start;
