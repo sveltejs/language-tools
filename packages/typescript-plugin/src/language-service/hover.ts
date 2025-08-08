@@ -13,13 +13,13 @@ export function decorateHover(
 ): void {
     const getQuickInfoAtPosition = ls.getQuickInfoAtPosition;
 
-    ls.getQuickInfoAtPosition = (fileName: string, position: number) => {
+    ls.getQuickInfoAtPosition = (fileName: string, position: number, ...rest) => {
         const result = getVirtualLS(fileName, info, ts);
-        if (!result) return getQuickInfoAtPosition(fileName, position);
+        if (!result) return getQuickInfoAtPosition(fileName, position, ...rest);
 
         const { languageService, toOriginalPos, toVirtualPos } = result;
         const virtualPos = toVirtualPos(position);
-        const quickInfo = languageService.getQuickInfoAtPosition(fileName, virtualPos);
+        const quickInfo = languageService.getQuickInfoAtPosition(fileName, virtualPos, ...rest);
         if (!quickInfo) return quickInfo;
 
         const source = languageService.getProgram()?.getSourceFile(fileName);
