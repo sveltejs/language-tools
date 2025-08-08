@@ -50,7 +50,7 @@ import { getIdClassCompletion } from './features/getIdClassCompletion';
 import { AttributeContext, getAttributeContextAtPosition } from '../../lib/documents/parseHtml';
 import { StyleAttributeDocument } from './StyleAttributeDocument';
 import { getDocumentContext } from '../documentContext';
-import { DocumentSymbol, FoldingRange, FoldingRangeKind } from 'vscode-languageserver-types';
+import { FoldingRange, FoldingRangeKind } from 'vscode-languageserver-types';
 import { indentBasedFoldingRangeForTag } from '../../lib/foldingRange/indentFolding';
 import { wordHighlightForTag } from '../../lib/documentHighlight/wordHighlight';
 import { isNotNullOrUndefined, urlToPath } from '../../utils';
@@ -362,7 +362,7 @@ export class CSSPlugin
             .map((colorPres) => mapColorPresentationToOriginal(cssDocument, colorPres));
     }
 
-    getDocumentSymbols(document: Document): DocumentSymbol[] {
+    getDocumentSymbols(document: Document): SymbolInformation[] {
         if (!this.featureEnabled('documentColors')) {
             return [];
         }
@@ -373,14 +373,20 @@ export class CSSPlugin
             return [];
         }
 
-        function mapSymbol(symbol: DocumentSymbol) {
-            symbol.children = symbol.children?.map(mapSymbol);
-            return mapSymbolInformationToOriginal(cssDocument, symbol);
-        }
-
         return this.getLanguageService(extractLanguage(cssDocument))
-            .findDocumentSymbols2(cssDocument, cssDocument.stylesheet)
-            .map(mapSymbol);
+            .findDocumentSymbols(cssDocument, cssDocument.stylesheet)
+            .map((symbol) => {
+                if (!symbol.containerName) {
+                    return {
+                        ...symbol,
+                        // TODO: this could contain other things, e.g. style.myclass
+                        containerName: 'style'
+                    };
+                }
+
+                return symbol;
+            })
+            .map((symbol) => mapSymbolInformationToOriginal(cssDocument, symbol));
     }
 
     getFoldingRanges(document: Document): FoldingRange[] {

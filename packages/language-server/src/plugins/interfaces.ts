@@ -22,7 +22,6 @@ import {
     DefinitionLink,
     Diagnostic,
     DocumentHighlight,
-    DocumentSymbol,
     FoldingRange,
     FormattingOptions,
     Hover,
@@ -98,7 +97,7 @@ export interface DocumentSymbolsProvider {
     getDocumentSymbols(
         document: Document,
         cancellationToken?: CancellationToken
-    ): Resolvable<DocumentSymbol[]>;
+    ): Resolvable<SymbolInformation[]>;
 }
 
 export interface DefinitionsProvider {

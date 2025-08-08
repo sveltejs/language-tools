@@ -12,7 +12,6 @@ import {
     DefinitionLink,
     Diagnostic,
     DocumentHighlight,
-    DocumentSymbol,
     FileChangeType,
     FoldingRange,
     Hover,
@@ -36,7 +35,6 @@ import {
     Document,
     DocumentManager,
     getTextInRange,
-    mapRangeToOriginal,
     mapSymbolInformationToOriginal
 } from '../../lib/documents';
 import { LSConfigManager, LSTypescriptConfig } from '../../ls-config';
@@ -249,7 +247,7 @@ export class TypeScriptPlugin
     async getDocumentSymbols(
         document: Document,
         cancellationToken?: CancellationToken
-    ): Promise<DocumentSymbol[]> {
+    ): Promise<SymbolInformation[]> {
         if (!this.featureEnabled('documentSymbols')) {
             return [];
         }
@@ -261,85 +259,100 @@ export class TypeScriptPlugin
         }
 
         const navTree = lang.getNavigationTree(tsDoc.filePath);
-        const symbols: DocumentSymbol[] = [];
 
-        function collectSymbols(tree: NavigationTree, cb: (symbol: DocumentSymbol) => void) {
-            const start = tree.spans[0];
-            const end = tree.spans[tree.spans.length - 1];
-            if (!(start && end)) return next();
+        const symbols: SymbolInformation[] = [];
+        collectSymbols(navTree, undefined, (symbol) => symbols.push(symbol));
 
-            let name = tree.text;
-            const kind = symbolKindFromString(tree.kind);
-            const range = mapRangeToOriginal(
-                tsDoc,
-                Range.create(
-                    tsDoc.positionAt(start.start),
-                    tsDoc.positionAt(end.start + end.length)
-                )
-            );
+        const topContainerName = symbols[0].name;
+        const result: SymbolInformation[] = [];
+
+        for (let symbol of symbols.slice(1)) {
+            if (symbol.containerName === topContainerName) {
+                symbol.containerName = 'script';
+            }
+
+            symbol = mapSymbolInformationToOriginal(tsDoc, symbol);
 
             if (
-                range.start.line < 0 ||
-                range.end.line < 0 ||
-                isZeroLengthRange(range) ||
-                name.startsWith('__sveltets_')
+                symbol.location.range.start.line < 0 ||
+                symbol.location.range.end.line < 0 ||
+                isZeroLengthRange(symbol.location.range) ||
+                symbol.name.startsWith('__sveltets_')
             ) {
-                return next();
+                continue;
             }
 
             if (
-                (kind === SymbolKind.Property || kind === SymbolKind.Method) &&
-                !isInScript(range.start, document)
+                (symbol.kind === SymbolKind.Property || symbol.kind === SymbolKind.Method) &&
+                !isInScript(symbol.location.range.start, document)
             ) {
                 if (
-                    name === 'props' &&
-                    document.getText().charAt(document.offsetAt(range.start)) !== 'p'
+                    symbol.name === 'props' &&
+                    document.getText().charAt(document.offsetAt(symbol.location.range.start)) !==
+                        'p'
                 ) {
                     // This is the "props" of a generated component constructor
-                    return next();
+                    continue;
                 }
-                const node = tsDoc.svelteNodeAt(range.start);
+                const node = tsDoc.svelteNodeAt(symbol.location.range.start);
                 if (
                     (node && (isAttributeName(node) || isAttributeShorthand(node))) ||
                     isEventHandler(node)
                 ) {
                     // This is a html or component property, they are not treated as a new symbol
                     // in JSX and so we do the same for the new transformation.
-                    return next();
+                    continue;
                 }
             }
 
-            if (name === '<function>') {
-                name = getTextInRange(range, document.getText()).trimStart();
+            if (symbol.name === '<function>') {
+                let name = getTextInRange(symbol.location.range, document.getText()).trimLeft();
                 if (name.length > 50) {
                     name = name.substring(0, 50) + '...';
                 }
+                symbol.name = name;
             }
 
-            if (name.startsWith('$$_')) {
-                if (!name.includes('$on')) {
-                    return next();
+            if (symbol.name.startsWith('$$_')) {
+                if (!symbol.name.includes('$on')) {
+                    continue;
                 }
                 // on:foo={() => ''}   ->   $on("foo") callback
-                name = name.substring(name.indexOf('$on'));
+                symbol.name = symbol.name.substring(symbol.name.indexOf('$on'));
             }
 
-            const symbol = DocumentSymbol.create(name, undefined, kind, range, range, undefined);
+            result.push(symbol);
+        }
 
-            cb(symbol);
-            next();
+        return result;
 
-            function next() {
-                if (tree.childItems) {
-                    for (const child of tree.childItems) {
-                        collectSymbols(child, cb);
-                    }
+        function collectSymbols(
+            tree: NavigationTree,
+            container: string | undefined,
+            cb: (symbol: SymbolInformation) => void
+        ) {
+            const start = tree.spans[0];
+            const end = tree.spans[tree.spans.length - 1];
+            if (start && end) {
+                cb(
+                    SymbolInformation.create(
+                        tree.text,
+                        symbolKindFromString(tree.kind),
+                        Range.create(
+                            tsDoc.positionAt(start.start),
+                            tsDoc.positionAt(end.start + end.length)
+                        ),
+                        tsDoc.getURL(),
+                        container
+                    )
+                );
+            }
+            if (tree.childItems) {
+                for (const child of tree.childItems) {
+                    collectSymbols(child, tree.text, cb);
                 }
             }
         }
-
-        collectSymbols(navTree, (symbol) => symbols.push(symbol));
-        return symbols;
     }
 
     async getCompletions(

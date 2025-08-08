@@ -12,8 +12,7 @@ import {
     SelectionRange,
     TextEdit,
     InsertReplaceEdit,
-    Location,
-    DocumentSymbol
+    Location
 } from 'vscode-languageserver';
 import { TagInformation, offsetAt, positionAt, getLineOffsets } from './utils';
 import { Logger } from '../../logger';
@@ -354,10 +353,9 @@ export function mapColorPresentationToOriginal(
 
 export function mapSymbolInformationToOriginal(
     fragment: Pick<DocumentMapper, 'getOriginalPosition'>,
-    info: DocumentSymbol
-): DocumentSymbol {
-    const range = mapRangeToOriginal(fragment, info.range);
-    return { ...info, range, selectionRange: range };
+    info: SymbolInformation
+): SymbolInformation {
+    return { ...info, location: mapObjWithRangeToOriginal(fragment, info.location) };
 }
 
 export function mapLocationLinkToOriginal(
