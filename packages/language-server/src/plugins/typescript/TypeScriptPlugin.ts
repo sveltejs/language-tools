@@ -260,11 +260,7 @@ export class TypeScriptPlugin
             return [];
         }
 
-        const hierarchy =
-            this.configManager.getClientCapabilities()?.textDocument?.documentSymbol
-                ?.hierarchicalDocumentSymbolSupport ?? false;
         const navTree = lang.getNavigationTree(tsDoc.filePath);
-
         const symbols: DocumentSymbol[] = [];
 
         function collectSymbols(tree: NavigationTree, cb: (symbol: DocumentSymbol) => void) {
@@ -281,7 +277,6 @@ export class TypeScriptPlugin
                     tsDoc.positionAt(end.start + end.length)
                 )
             );
-            const children: DocumentSymbol[] = [];
 
             if (
                 range.start.line < 0 ||
@@ -329,10 +324,9 @@ export class TypeScriptPlugin
                 name = name.substring(name.indexOf('$on'));
             }
 
-            const symbol = DocumentSymbol.create(name, undefined, kind, range, range, children);
+            const symbol = DocumentSymbol.create(name, undefined, kind, range, range, undefined);
 
             cb(symbol);
-            if (hierarchy) cb = (s) => children.push(s);
             next();
 
             function next() {
