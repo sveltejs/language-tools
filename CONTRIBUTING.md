@@ -4,18 +4,18 @@ Svelte Language Tools provides IDE support for Svelte files through the Language
 
 The [Open Source Guides](https://opensource.guide/) website has a collection of resources for individuals, communities, and companies. These resources help people who want to learn how to run and contribute to open source projects. Contributors and people new to open source alike will find the following guides especially useful:
 
-- [How to Contribute to Open Source](https://opensource.guide/how-to-contribute/)
-- [Building Welcoming Communities](https://opensource.guide/building-community/)
+-   [How to Contribute to Open Source](https://opensource.guide/how-to-contribute/)
+-   [Building Welcoming Communities](https://opensource.guide/building-community/)
 
 ## Get involved
 
 There are many ways to contribute to Svelte Language Tools, and many of them do not involve writing any code. Here's a few ideas to get started:
 
-- Simply start using Svelte Language Tools in your IDE. Does everything work as expected? If not, we're always looking for improvements. Let us know by [opening an issue](#reporting-new-issues).
-- Look through the [open issues](https://github.com/sveltejs/language-tools/issues). A good starting point would be issues tagged [good first issue](https://github.com/sveltejs/language-tools/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22). Provide workarounds, ask for clarification, or suggest labels. Help [triage issues](#triaging-issues-and-pull-requests).
-- If you find an issue you would like to fix, [open a pull request](#pull-requests).
-- Read through our [documentation](https://github.com/sveltejs/language-tools/tree/master/docs). If you find anything that is confusing or can be improved, you can make edits by opening a pull request.
-- Take a look at the [features requested](https://github.com/sveltejs/language-tools/labels/enhancement) by others in the community and consider opening a pull request if you see something you want to work on.
+-   Simply start using Svelte Language Tools in your IDE. Does everything work as expected? If not, we're always looking for improvements. Let us know by [opening an issue](#reporting-new-issues).
+-   Look through the [open issues](https://github.com/sveltejs/language-tools/issues). A good starting point would be issues tagged [good first issue](https://github.com/sveltejs/language-tools/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22). Provide workarounds, ask for clarification, or suggest labels. Help [triage issues](#triaging-issues-and-pull-requests).
+-   If you find an issue you would like to fix, [open a pull request](#pull-requests).
+-   Read through our [documentation](https://github.com/sveltejs/language-tools/tree/master/docs). If you find anything that is confusing or can be improved, you can make edits by opening a pull request.
+-   Take a look at the [features requested](https://github.com/sveltejs/language-tools/labels/enhancement) by others in the community and consider opening a pull request if you see something you want to work on.
 
 Contributions are very welcome. If you think you need help planning your contribution, please reach out to us on [Discord](https://svelte.dev/chat) and let us know you are looking for a bit of help.
 
@@ -23,17 +23,17 @@ Contributions are very welcome. If you think you need help planning your contrib
 
 One great way you can contribute to the project without writing any code is to help triage issues and pull requests as they come in.
 
-- Ask for more information if the issue does not provide all the details required by the template.
-- Suggest [labels](https://github.com/sveltejs/language-tools/labels) that can help categorize issues.
-- Flag issues that are stale or that should be closed.
-- Ask for test cases and code samples if needed.
+-   Ask for more information if the issue does not provide all the details required by the template.
+-   Suggest [labels](https://github.com/sveltejs/language-tools/labels) that can help categorize issues.
+-   Flag issues that are stale or that should be closed.
+-   Ask for test cases and code samples if needed.
 
 ## Reporting new issues
 
 When [opening a new issue](https://github.com/sveltejs/language-tools/issues/new/choose), always make sure to fill out the issue template. **This step is very important!** Not doing so may result in your issue not being managed in a timely fashion. Don't take this personally if this happens, and feel free to open a new issue once you've gathered all the information required by the template.
 
-- **One issue, one bug:** Please report a single bug per issue.
-- **Provide reproduction steps:** List all the steps necessary to reproduce the issue. The person reading your bug report should be able to follow these steps to reproduce your issue with minimal effort.
+-   **One issue, one bug:** Please report a single bug per issue.
+-   **Provide reproduction steps:** List all the steps necessary to reproduce the issue. The person reading your bug report should be able to follow these steps to reproduce your issue with minimal effort.
 
 ## Preparing
 
@@ -70,18 +70,18 @@ pnpm watch
 
 ### Packages
 
-- [`packages/language-server`](packages/language-server) - The language server for Svelte
-- [`packages/svelte-vscode`](packages/svelte-vscode) - The official VSCode extension for Svelte
-- [`packages/svelte2tsx`](packages/svelte2tsx) - Converts `.svelte` files into legal TypeScript/JSX
-- [`packages/svelte-check`](packages/svelte-check) - CLI tool for type checking and diagnostics
-- [`packages/typescript-plugin`](packages/typescript-plugin) - TypeScript plugin for Svelte intellisense
+-   [`packages/language-server`](packages/language-server) - The language server for Svelte
+-   [`packages/svelte-vscode`](packages/svelte-vscode) - The official VSCode extension for Svelte
+-   [`packages/svelte2tsx`](packages/svelte2tsx) - Converts `.svelte` files into legal TypeScript/JSX
+-   [`packages/svelte-check`](packages/svelte-check) - CLI tool for type checking and diagnostics
+-   [`packages/typescript-plugin`](packages/typescript-plugin) - TypeScript plugin for Svelte intellisense
 
 ### Key entry points
 
-- `packages/language-server/src/server.ts` - Language server entry point
-- `packages/language-server/src/plugins/` - Language service plugins (TypeScript, Svelte, CSS, HTML)
-- `packages/svelte2tsx/src/svelte2tsx/index.ts` - Svelte to TSX transformation
-- `packages/svelte-vscode/src/extension.ts` - VSCode extension entry point
+-   `packages/language-server/src/server.ts` - Language server entry point
+-   `packages/language-server/src/plugins/` - Language service plugins (TypeScript, Svelte, CSS, HTML)
+-   `packages/svelte2tsx/src/svelte2tsx/index.ts` - Svelte to TSX transformation
+-   `packages/svelte-vscode/src/extension.ts` - VSCode extension entry point
 
 ## Testing changes
 
@@ -119,12 +119,12 @@ To test your local changes in a Svelte project, use [pnpm `overrides`](https://p
 
 ```jsonc
 {
-  "pnpm": {
-    "overrides": {
-      "svelte-language-server": "link:../path/to/language-tools/packages/language-server",
-      "svelte-check": "link:../path/to/language-tools/packages/svelte-check"
+    "pnpm": {
+        "overrides": {
+            "svelte-language-server": "link:../path/to/language-tools/packages/language-server",
+            "svelte-check": "link:../path/to/language-tools/packages/svelte-check"
+        }
     }
-  }
 }
 ```
 
