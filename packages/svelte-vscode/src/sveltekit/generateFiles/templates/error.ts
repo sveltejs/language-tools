@@ -8,7 +8,7 @@ const defaultScriptTemplate = `
 <h1>{$page.status}: {$page.error.message}</h1>
 `;
 
-const jsSv5ScriptTemplateProps = `
+const jsSv5ScriptTemplateAppState = `
 <script>
     import { page } from '$app/state';
 </script>
@@ -24,7 +24,7 @@ const tsScriptTemplate = `
 <h1>{$page.status}: {$page.error?.message}</h1>
 `;
 
-const tsSv5ScriptTemplateProps = `
+const tsSv5ScriptTemplateAppState = `
 <script lang="ts">
     import { page } from '$app/state';
 </script>
@@ -33,16 +33,16 @@ const tsSv5ScriptTemplateProps = `
 `;
 
 export default async function (config: GenerateConfig): ReturnType<Resource['generate']> {
-    const { withTs, withProps } = config.kind;
+    const { withTs, withAppState } = config.kind;
     let template = defaultScriptTemplate;
 
-    if (withProps && withTs) {
-        template = tsSv5ScriptTemplateProps;
-    } else if (withProps && !withTs) {
-        template = jsSv5ScriptTemplateProps;
-    } else if (!withProps && withTs) {
+    if (withAppState && withTs) {
+        template = tsSv5ScriptTemplateAppState;
+    } else if (withAppState && !withTs) {
+        template = jsSv5ScriptTemplateAppState;
+    } else if (!withAppState && withTs) {
         template = tsScriptTemplate;
-    } else if (!withProps && !withTs) {
+    } else if (!withAppState && !withTs) {
         template = defaultScriptTemplate;
     }
 
