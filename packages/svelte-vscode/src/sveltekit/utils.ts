@@ -78,7 +78,7 @@ export async function checkProjectKind(path: string): Promise<GenerateConfig['ki
         withSatisfies,
         withRunes,
         withProps,
-        withAppState,
+        withAppState
     };
 }
 
