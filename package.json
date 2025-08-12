@@ -13,7 +13,7 @@
         "lint": "prettier --check ."
     },
     "dependencies": {
-        "typescript": "^5.8.2"
+        "typescript": "^5.9.2"
     },
     "devDependencies": {
         "cross-env": "^7.0.2",
