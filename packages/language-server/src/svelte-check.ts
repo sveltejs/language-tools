@@ -31,6 +31,11 @@ export interface SvelteCheckOptions {
     tsconfig?: string;
     onProjectReload?: () => void;
     watch?: boolean;
+    /**
+     * Optional callback invoked when a new snapshot is created.
+     * Used by svelte-check to dynamically add watch directories.
+     */
+    onSnapshotCreated?: (dirPath: string) => void;
 }
 
 /**
@@ -91,7 +96,8 @@ export class SvelteCheck {
                     tsconfigPath: options.tsconfig,
                     isSvelteCheck: true,
                     onProjectReloaded: options.onProjectReload,
-                    watch: options.watch
+                    watch: options.watch,
+                    onSnapshotCreated: options.onSnapshotCreated
                 }
             );
             this.pluginHost.register(

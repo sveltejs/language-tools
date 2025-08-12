@@ -197,6 +197,16 @@ class DiagnosticsWatcher {
         this.updateWatchedDirectories();
     }
 
+    addWatchDirectory(dir: string) {
+        if (!dir || this.currentWatchedDirs.has(dir)) {
+            return;
+        }
+        this.watcher.add(dir);
+        this.currentWatchedDirs.add(dir);
+        // New files might now be visible; schedule a run
+        this.scheduleDiagnostics();
+    }
+
     private async updateWatchedDirectories() {
         const watchDirs = await this.svelteCheck.getWatchDirectories();
         const dirsToWatch = watchDirs || [{ path: this.workspaceUri.fsPath, recursive: true }];
@@ -303,11 +313,16 @@ parseOptions(async (opts) => {
         };
 
         if (opts.watch) {
+            // Wire callbacks that can reference the watcher instance created below
+            let watcher: DiagnosticsWatcher;
             svelteCheckOptions.onProjectReload = () => {
                 watcher.updateWatchers();
                 watcher.scheduleDiagnostics();
             };
-            const watcher = new DiagnosticsWatcher(
+            svelteCheckOptions.onSnapshotCreated = (dirPath: string) => {
+                watcher.addWatchDirectory(dirPath);
+            };
+            watcher = new DiagnosticsWatcher(
                 opts.workspaceUri,
                 new SvelteCheck(opts.workspaceUri.fsPath, svelteCheckOptions),
                 writer,

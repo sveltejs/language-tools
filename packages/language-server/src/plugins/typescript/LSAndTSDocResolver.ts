@@ -46,6 +46,11 @@ interface LSAndTSDocResolverOptions {
     tsSystem?: ts.System;
     watchDirectory?: (patterns: RelativePattern[]) => void;
     nonRecursiveWatchPattern?: string;
+    /**
+     * Optional callback invoked when a new snapshot is created.
+     * Used by svelte-check to dynamically add parent directories to file watchers.
+     */
+    onSnapshotCreated?: (dirPath: string) => void;
 }
 
 export class LSAndTSDocResolver {
@@ -83,6 +88,20 @@ export class LSAndTSDocResolver {
 
         this.tsSystem = this.wrapWithPackageJsonMonitoring(this.options?.tsSystem ?? ts.sys);
         this.globalSnapshotsManager = new GlobalSnapshotsManager(this.tsSystem);
+        // Notify when new snapshots are created so external watchers (svelte-check)
+        // can add their parent directories dynamically.
+        if (this.options?.onSnapshotCreated) {
+            this.globalSnapshotsManager.onChange((fileName, newDocument) => {
+                if (newDocument) {
+                    try {
+                        const dir = dirname(fileName);
+                        this.options?.onSnapshotCreated?.(dir);
+                    } catch {
+                        // best-effort; ignore errors in callback
+                    }
+                }
+            });
+        }
         this.userPreferencesAccessor = { preferences: this.getTsUserPreferences() };
         const projectService = createProjectService(this.tsSystem, this.userPreferencesAccessor);
 
