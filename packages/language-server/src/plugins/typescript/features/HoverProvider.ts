@@ -12,7 +12,7 @@ export class HoverProviderImpl implements HoverProvider {
     constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
 
     async doHover(document: Document, position: Position): Promise<Hover | null> {
-        const { lang, tsDoc } = await this.getLSAndTSDoc(document);
+        const { lang, tsDoc, userPreferences } = await this.getLSAndTSDoc(document);
 
         const eventHoverInfo = this.getEventHoverInfo(lang, document, tsDoc, position);
         if (eventHoverInfo) {
@@ -20,7 +20,11 @@ export class HoverProviderImpl implements HoverProvider {
         }
 
         const offset = tsDoc.offsetAt(tsDoc.getGeneratedPosition(position));
-        const info = lang.getQuickInfoAtPosition(tsDoc.filePath, offset);
+        const info = lang.getQuickInfoAtPosition(
+            tsDoc.filePath,
+            offset,
+            userPreferences.maximumHoverLength
+        );
         if (!info) {
             return null;
         }
