@@ -259,7 +259,11 @@ export class Element {
         if (this.tagName.includes('-')) {
             return true;
         }
-        if (this.node.attributes?.find((a: BaseNode) => a.name === 'is')?.value[0]?.data.includes('-')) {
+        if (
+            this.node.attributes
+                ?.find((a: BaseNode) => a.name === 'is')
+                ?.value[0]?.data.includes('-')
+        ) {
             return true;
         }
         return false;
