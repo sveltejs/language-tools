@@ -12,30 +12,14 @@ The [Open Source Guides](https://opensource.guide/) website has a collection of 
 There are many ways to contribute to Svelte Language Tools, and many of them do not involve writing any code. Here's a few ideas to get started:
 
 -   Simply start using Svelte Language Tools in your IDE. Does everything work as expected? If not, we're always looking for improvements. Let us know by [opening an issue](#reporting-new-issues).
--   Look through the [open issues](https://github.com/sveltejs/language-tools/issues). A good starting point would be issues tagged [good first issue](https://github.com/sveltejs/language-tools/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22). Provide workarounds, ask for clarification, or suggest labels. Help [triage issues](#triaging-issues-and-pull-requests).
+-   Look through the [open issues](https://github.com/sveltejs/language-tools/issues). A good starting point would be issues tagged [good first issue](https://github.com/sveltejs/language-tools/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22). Provide workarounds, ask for clarification, or suggest labels. Help triage issues.
 -   If you find an issue you would like to fix, [open a pull request](#pull-requests).
 -   Read through our [documentation](https://github.com/sveltejs/language-tools/tree/master/docs). If you find anything that is confusing or can be improved, you can make edits by opening a pull request.
 -   Take a look at the [features requested](https://github.com/sveltejs/language-tools/labels/enhancement) by others in the community and consider opening a pull request if you see something you want to work on.
 
 Contributions are very welcome. If you think you need help planning your contribution, please reach out to us on [Discord](https://svelte.dev/chat) and let us know you are looking for a bit of help.
 
-## Triaging issues and pull requests
-
-One great way you can contribute to the project without writing any code is to help triage issues and pull requests as they come in.
-
--   Ask for more information if the issue does not provide all the details required by the template.
--   Suggest [labels](https://github.com/sveltejs/language-tools/labels) that can help categorize issues.
--   Flag issues that are stale or that should be closed.
--   Ask for test cases and code samples if needed.
-
-## Reporting new issues
-
-When [opening a new issue](https://github.com/sveltejs/language-tools/issues/new/choose), always make sure to fill out the issue template. **This step is very important!** Not doing so may result in your issue not being managed in a timely fashion. Don't take this personally if this happens, and feel free to open a new issue once you've gathered all the information required by the template.
-
--   **One issue, one bug:** Please report a single bug per issue.
--   **Provide reproduction steps:** List all the steps necessary to reproduce the issue. The person reading your bug report should be able to follow these steps to reproduce your issue with minimal effort.
-
-## Preparing
+## Development
 
 This is a monorepo managed with [`pnpm workspaces`](https://pnpm.io/workspaces/). Install pnpm globally with:
 
@@ -52,7 +36,7 @@ pnpm install
 pnpm bootstrap
 ```
 
-## Building
+### Building
 
 To build all packages:
 
@@ -66,24 +50,68 @@ To watch for changes:
 pnpm watch
 ```
 
-## Code structure
+### Code structure
 
-### Packages
+#### Packages
 
--   [`packages/language-server`](packages/language-server) - The language server for Svelte
+-   [`packages/language-server`](packages/language-server) - The language server for Svelte.
 -   [`packages/svelte-vscode`](packages/svelte-vscode) - The official VSCode extension for Svelte
--   [`packages/svelte2tsx`](packages/svelte2tsx) - Converts `.svelte` files into legal TypeScript/JSX
+-   [`packages/svelte2tsx`](packages/svelte2tsx) - Converts `.svelte` files into legal TypeScript/JSX. Want to see how it's transformed? [Check out this REPL](https://embed.plnkr.co/plunk/JPye9tlsqwMrWHGv?show=preview&autoCloseSidebar)
 -   [`packages/svelte-check`](packages/svelte-check) - CLI tool for type checking and diagnostics
--   [`packages/typescript-plugin`](packages/typescript-plugin) - TypeScript plugin for Svelte intellisense
 
-### Key entry points
+#### Key entry points
 
 -   `packages/language-server/src/server.ts` - Language server entry point
 -   `packages/language-server/src/plugins/` - Language service plugins (TypeScript, Svelte, CSS, HTML)
 -   `packages/svelte2tsx/src/svelte2tsx/index.ts` - Svelte to TSX transformation
 -   `packages/svelte-vscode/src/extension.ts` - VSCode extension entry point
 
-## Testing changes
+#### High Level Overview
+
+```mermaid
+flowchart LR
+    %% IDEs
+    VSC[IDE: VSCode + Svelte for VS Code extension]
+    click VSC "https://github.com/sveltejs/language-tools/tree/master/packages/svelte-vscode" "Svelte for VSCode extension"
+    %% Tools
+    CLI[CLI: svelte-check]
+    click CLI "https://github.com/sveltejs/language-tools/tree/master/packages/svelte-check" "A command line tool to get diagnostics for Svelte code"
+    %% Svelte - Extensions
+    VSC_TSSP[typescript-svelte-plugin]
+    click VSC_TSSP "https://github.com/sveltejs/language-tools/tree/master/packages/typescript-plugin" "A TypeScript plugin for Svelte intellisense"
+    %% Svelte - Packages
+    SVELTE_LANGUAGE_SERVER["svelte-language-server"]
+    SVELTE_COMPILER_SERVICE["svelte2tsx"]
+    TS_SERVICE["TS/JS intellisense using TypeScript language service"]
+    SVELTE_SERVICE["Svelte intellisense using Svelte compiler"]
+    click SVELTE_LANGUAGE_SERVER "https://github.com/sveltejs/language-tools/tree/master/packages/language-server" "A language server adhering to the LSP"
+    click SVELTE_COMPILER_SERVICE "https://github.com/sveltejs/language-tools/tree/master/packages/language-server/src/plugins/svelte" "Transforms Svelte code into JSX/TSX code"
+    click TS_SERVICE "https://github.com/sveltejs/language-tools/tree/master/packages/language-server/src/plugins/typescript"
+    click SVELTE_SERVICE "https://github.com/sveltejs/language-tools/tree/master/packages/language-server/src/plugins/svelte"
+    %% External Packages
+    HTML_SERVICE[HTML intellisense using vscode-html-languageservice]
+    CSS_SERVICE[CSS intellisense using vscode-css-languageservice]
+    VSC_TS[vscode-typescript-language-features]
+    click HTML_SERVICE "https://github.com/microsoft/vscode-html-languageservice"
+    click CSS_SERVICE "https://github.com/microsoft/vscode-css-languageservice"
+    click VSC_TS "https://github.com/microsoft/vscode/tree/main/extensions/typescript-language-features"
+    subgraph EMBEDDED_SERVICES[Embedded Language Services]
+      direction LR
+      TS_SERVICE
+      SVELTE_SERVICE
+      HTML_SERVICE
+      CSS_SERVICE
+    end
+    VSC -- Language Server Protocol --> SVELTE_LANGUAGE_SERVER
+    CLI -- Only using diagnostics feature --> SVELTE_LANGUAGE_SERVER
+    VSC -- includes --> VSC_TS
+    VSC_TS -- loads --> VSC_TSSP
+    VSC_TSSP -- uses --> SVELTE_COMPILER_SERVICE
+    TS_SERVICE -- uses --> SVELTE_COMPILER_SERVICE
+    SVELTE_LANGUAGE_SERVER -- bundles --> EMBEDDED_SERVICES
+```
+
+More information about the internals can be found [HERE](./docs/internal/overview.md).
 
 ### Running tests
 
@@ -109,42 +137,30 @@ To test your changes in VSCode:
 3. Select "Run VSCode Extension" from the dropdown
 4. Press F5 to launch a new VSCode instance with your changes
 
-### Testing in other editors
+This launches a new VSCode window and a watcher for your changes. In this dev window you can choose an existing Svelte project to work against. When you make changes to `svelte-vscode` use the command "Reload Window" in the VSCode command palette to see your changes. When you make changes to `language-server` use the command "Svelte: Restart Language Server". When you make changes to `svelte2tsx`, you first need to run `pnpm build` within its folder, then restart the language server. When you make changes to`typescript-plugin`, you need to first run `pnpm build` within its folder and then use the command "TypeScript: Restart Server". 
+
+#### Testing in other editors
 
 For other editors, you'll need to build the language server and configure your editor to use the local build. See the documentation for your specific editor.
 
 ### Linking local changes
 
-To test your local changes in a Svelte project, use [pnpm `overrides`](https://pnpm.io/package_json#pnpmoverrides) in your project's `package.json`:
+To test certain local changes in a Svelte project, you might want to use [pnpm `overrides`](https://pnpm.io/package_json#pnpmoverrides) in your project's `package.json`:
 
 ```jsonc
 {
     "pnpm": {
         "overrides": {
-            "svelte-language-server": "link:../path/to/language-tools/packages/language-server",
-            "svelte-check": "link:../path/to/language-tools/packages/svelte-check"
+            // Test changes to svelte-check:
+            "svelte-check": "link:../path/to/language-tools/packages/svelte-check",
+            // You only need this if you're testing the changes with an editor other than VS Code:
+            "svelte-language-server": "link:../path/to/language-tools/packages/language-server"
         }
     }
 }
 ```
 
 ## Pull requests
-
-### Your first pull request
-
-So you have decided to contribute code back to upstream by opening a pull request. You've invested a good chunk of time, and we appreciate it. We will do our best to work with you and get the PR looked at.
-
-Working on your first Pull Request? You can learn how from this free video series:
-
-[**How to Contribute to an Open Source Project on GitHub**](https://egghead.io/courses/how-to-contribute-to-an-open-source-project-on-github)
-
-### Proposing a change
-
-If you would like to request a new feature or enhancement but are not yet thinking about opening a pull request, you can also file an issue with [feature template](https://github.com/sveltejs/language-tools/issues/new?template=feature_request.yml).
-
-If you're only fixing a bug, it's fine to submit a pull request right away but we still recommend that you file an issue detailing what you're fixing. This is helpful in case we don't accept that specific fix but want to keep track of the issue.
-
-### Sending a pull request
 
 Small pull requests are much easier to review and more likely to get merged. Make sure the PR does only one thing, otherwise please split it.
 
@@ -156,11 +172,9 @@ Please make sure the following is done when submitting a pull request:
 4. Make sure your tests pass (`pnpm test`).
 5. Make sure your code is properly formatted (`pnpm format`).
 
+If you're only fixing a bug, it's fine to submit a pull request right away but we still recommend that you file an issue detailing what you're fixing. This is helpful in case we don't accept that specific fix but want to keep track of the issue.
+
 All pull requests should be opened against the `master` branch.
-
-## Good first issues
-
-Looking for a good place to start contributing? Check out our [good first issues](https://github.com/sveltejs/language-tools/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) label.
 
 ## License
 
