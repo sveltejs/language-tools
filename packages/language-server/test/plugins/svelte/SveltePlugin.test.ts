@@ -47,7 +47,15 @@ describe('Svelte Plugin', () => {
         expect(['a11y_missing_attribute', 'a11y-missing-attribute']).toContain(
             diagnostics[0].code as string
         );
-        expect(diagnostics[0].message).toContain('`<img>` element should have an alt attribute');
+        const possibleWarningMessages = [
+            '`<img>` element should have an alt attribute', // Svelte 5 style
+            'A11y: <img> element should have an alt attribute' // Svelte 4 style
+        ];
+        expect(
+            possibleWarningMessages.some((m) =>
+                (diagnostics[0].message as string).includes(m)
+            )
+        ).toBe(true);
     });
 
     it('provides diagnostic errors', async () => {
@@ -66,8 +74,24 @@ describe('Svelte Plugin', () => {
         expect(['bind_invalid_name', 'binding-undeclared']).toContain(
             diagnostics[0].code as string
         );
-        expect(diagnostics[0].message).toContain('`bind:whatever` is not a valid binding');
-        expect(diagnostics[0].range.start).toEqual(Position.create(0, 5));
+        const possibleErrorMessages = [
+            '`bind:whatever` is not a valid binding', // Svelte 5 style
+            'whatever is not declared' // Svelte 4 style
+        ];
+        expect(
+            possibleErrorMessages.some((m) =>
+                (diagnostics[0].message as string).includes(m)
+            )
+        ).toBe(true);
+        // Accept start position differences (v5 highlights whole binding, v4 highlights the name)
+        const possibleStarts = [Position.create(0, 5), Position.create(0, 10)];
+        expect(
+            possibleStarts.some(
+                (p) =>
+                    p.line === diagnostics[0].range.start.line &&
+                    p.character === diagnostics[0].range.start.character
+            )
+        ).toBe(true);
     });
 
     it('provides no diagnostic errors when untrusted', async () => {
