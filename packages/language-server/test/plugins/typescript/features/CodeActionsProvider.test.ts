@@ -28,7 +28,7 @@ import { recursiveServiceWarmup } from '../test-utils';
 const testDir = path.join(__dirname, '..');
 const indent = ' '.repeat(4);
 
-describe('CodeActionsProvider', function () {
+describe.sequential('CodeActionsProvider', function () {
     recursiveServiceWarmup(path.join(testDir, 'testfiles', 'code-actions'), pathToUrl(testDir));
 
     function getFullPath(filename: string) {

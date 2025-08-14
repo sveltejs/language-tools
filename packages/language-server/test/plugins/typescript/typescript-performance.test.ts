@@ -8,7 +8,7 @@ import { LSConfigManager } from '../../../src/ls-config';
 import { LSAndTSDocResolver, TypeScriptPlugin } from '../../../src/plugins';
 import { pathToUrl } from '../../../src/utils';
 
-describe('TypeScript Plugin Performance Tests', () => {
+describe.sequential('TypeScript Plugin Performance Tests', () => {
     function setup(filename: string) {
         const docManager = new DocumentManager(() => document);
         const testDir = path.join(__dirname, 'testfiles');
