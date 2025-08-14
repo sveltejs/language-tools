@@ -1,0 +1,19 @@
+[
+    {
+        "code": 2322,
+        "message": "Type 'number' is not assignable to type 'string'.",
+        "range": {
+            "end": {
+                "character": 36,
+                "line": 10
+            },
+            "start": {
+                "character": 24,
+                "line": 10
+            }
+        },
+        "severity": 1,
+        "source": "ts",
+        "tags": []
+    }
+]

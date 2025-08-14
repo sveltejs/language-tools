@@ -1,0 +1,38 @@
+[
+  {
+    "code": 2345,
+    "message": "Argument of type 'HTMLDivElement' is not assignable to parameter of type 'SVGElement & { getTotalLength(): number; }'.
+  Type 'HTMLDivElement' is missing the following properties from type 'SVGElement': ownerSVGElement, viewportElement",
+    "range": {
+      "end": {
+        "character": 19,
+        "line": 9,
+      },
+      "start": {
+        "character": 19,
+        "line": 9,
+      },
+    },
+    "severity": 1,
+    "source": "ts",
+    "tags": [],
+  },
+  {
+    "code": 2345,
+    "message": "Argument of type 'HTMLParagraphElement' is not assignable to parameter of type 'HTMLInputElement'.
+  Type 'HTMLParagraphElement' is missing the following properties from type 'HTMLInputElement': accept, alt, autocomplete, capture, and 54 more.",
+    "range": {
+      "end": {
+        "character": 12,
+        "line": 14,
+      },
+      "start": {
+        "character": 12,
+        "line": 14,
+      },
+    },
+    "severity": 1,
+    "source": "ts",
+    "tags": [],
+  },
+]

@@ -1,0 +1,19 @@
+[
+    {
+        "code": 2307,
+        "message": "Cannot find module './doesnt-exist.svelte' or its corresponding type declarations.",
+        "range": {
+            "end": {
+                "character": 51,
+                "line": 1
+            },
+            "start": {
+                "character": 28,
+                "line": 1
+            }
+        },
+        "severity": 1,
+        "source": "ts",
+        "tags": []
+    }
+]
