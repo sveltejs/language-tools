@@ -87,15 +87,24 @@ describe('DiagnosticsProvider', () => {
             const { plugin, document } = setup(workspaceDir, inputFile);
             const diagnostics = await plugin.getDiagnostics(document);
 
+            // Sanitize paths in diagnostic messages to use placeholder
+            const sanitizedDiagnostics = diagnostics.map(d => ({
+                ...d,
+                message: d.message?.replace(
+                    /resolved to '[^']+\/test\/plugins\/typescript\/features\/diagnostics\/fixtures\//g,
+                    "resolved to '<diagnosticsFixturePath>/"
+                )
+            }));
+
             const expectedFile = join(fixturesDir, testPath, 'expectedv2.json');
             const formatJson = await createJsonSnapshotFormatter(__dirname);
 
             await updateSnapshotIfFailedOrEmpty({
                 assertion: () =>
-                    expect(diagnostics).toEqual(JSON.parse(readFileSync(expectedFile, 'utf-8'))),
+                    expect(sanitizedDiagnostics).toEqual(JSON.parse(readFileSync(expectedFile, 'utf-8'))),
                 expectedFile,
                 rootDir: fixturesDir,
-                getFileContent: () => formatJson(diagnostics)
+                getFileContent: () => formatJson(sanitizedDiagnostics)
             });
         });
     }

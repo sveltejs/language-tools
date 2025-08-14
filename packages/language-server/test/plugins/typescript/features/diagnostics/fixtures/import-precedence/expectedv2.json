@@ -3,7 +3,7 @@
         "range": { "start": { "line": 4, "character": 22 }, "end": { "line": 4, "character": 34 } },
         "severity": 1,
         "source": "ts",
-        "message": "Module './c.svelte' was resolved to '/Users/aewing/Projects/phx.digital/sveltejs/language-tools/packages/language-server/test/plugins/typescript/features/diagnostics/fixtures/import-precedence/c.d.svelte.ts', but '--allowArbitraryExtensions' is not set.",
+        "message": "Module './c.svelte' was resolved to '<diagnosticsFixturePath>/import-precedence/c.d.svelte.ts', but '--allowArbitraryExtensions' is not set.",
         "code": 6263,
         "tags": []
     }

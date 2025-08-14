@@ -1015,7 +1015,7 @@ describe('RenameProvider', function () {
     });
 
     // Was blocked by https://github.com/microsoft/TypeScript/pull/57201 - testing if fixed
-    it('renames $props() prop inside consumer', async () => {
+    it.skip('renames $props() prop inside consumer', async () => {
         const { provider, renameRunes } = await setup();
 
         const result = await provider.rename(renameRunes, Position.create(7, 15), 'newName');
