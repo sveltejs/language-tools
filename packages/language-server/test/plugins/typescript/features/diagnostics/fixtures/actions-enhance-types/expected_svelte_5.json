@@ -1,0 +1,24 @@
+[
+    {
+        "range": {
+            "start": { "line": 25, "character": 16 },
+            "end": { "line": 25, "character": 19 }
+        },
+        "severity": 1,
+        "source": "ts",
+        "message": "Type 'number' is not assignable to type 'string'.",
+        "code": 2322,
+        "tags": []
+    },
+    {
+        "range": {
+            "start": { "line": 26, "character": 31 },
+            "end": { "line": 26, "character": 34 }
+        },
+        "severity": 1,
+        "source": "ts",
+        "message": "Type '(e: CustomEvent<string>) => void' is not assignable to type '(e: CustomEvent<boolean>) => void'.\n  Types of parameters 'e' and 'e' are incompatible.\n    Type 'CustomEvent<boolean>' is not assignable to type 'CustomEvent<string>'.\n      Type 'boolean' is not assignable to type 'string'.",
+        "code": 2322,
+        "tags": []
+    }
+]

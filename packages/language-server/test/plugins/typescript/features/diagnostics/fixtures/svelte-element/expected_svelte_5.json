@@ -1,0 +1,24 @@
+[
+    {
+        "range": {
+            "start": { "line": 22, "character": 38 },
+            "end": { "line": 22, "character": 51 }
+        },
+        "severity": 1,
+        "source": "ts",
+        "message": "Type 'HTMLDivElement' is missing the following properties from type 'HTMLAnchorElement': charset, coords, download, hreflang, and 21 more.",
+        "code": 2740,
+        "tags": []
+    },
+    {
+        "range": {
+            "start": { "line": 23, "character": 27 },
+            "end": { "line": 23, "character": 38 }
+        },
+        "severity": 1,
+        "source": "ts",
+        "message": "Object literal may only specify known properties, and '\"cellpadding\"' does not exist in type 'HTMLProps<\"div\", HTMLAttributes<any>>'.",
+        "code": 2353,
+        "tags": []
+    }
+]
