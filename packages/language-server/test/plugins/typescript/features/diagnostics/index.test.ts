@@ -104,16 +104,40 @@ describe('DiagnosticsProvider', () => {
             );
             const defaultExpectedFile = join(fixturesDir, testPath, 'expectedv2.json');
 
-            // When generating snapshots for Svelte 5+, create version-specific files
-            // Otherwise use existing version-specific file if it exists, or fall back to default
-            const expectedFile =
-                process.env.UPDATE_SNAPSHOTS === 'true' && svelteMajor >= 5
-                    ? versionSpecificExpectedFile
-                    : existsSync(versionSpecificExpectedFile)
-                      ? versionSpecificExpectedFile
-                      : defaultExpectedFile;
+            // Use version-specific file if it exists, otherwise use default
+            const expectedFile = existsSync(versionSpecificExpectedFile)
+                ? versionSpecificExpectedFile
+                : defaultExpectedFile;
 
             const formatJson = await createJsonSnapshotFormatter(__dirname);
+
+            // If UPDATE_SNAPSHOTS is true and we're on Svelte 5+, try the default first
+            // Only create version-specific if it differs from default
+            if (
+                process.env.UPDATE_SNAPSHOTS === 'true' &&
+                svelteMajor >= 5 &&
+                !existsSync(versionSpecificExpectedFile)
+            ) {
+                try {
+                    // Try with default file first
+                    expect(sanitizedDiagnostics).toEqual(
+                        JSON.parse(readFileSync(defaultExpectedFile, 'utf-8'))
+                    );
+                    // If it matches, we don't need a version-specific file
+                } catch (e) {
+                    // If it doesn't match, create version-specific file
+                    await updateSnapshotIfFailedOrEmpty({
+                        assertion: () =>
+                            expect(sanitizedDiagnostics).toEqual(
+                                JSON.parse(readFileSync(versionSpecificExpectedFile, 'utf-8'))
+                            ),
+                        expectedFile: versionSpecificExpectedFile,
+                        rootDir: fixturesDir,
+                        getFileContent: () => formatJson(sanitizedDiagnostics)
+                    });
+                    return;
+                }
+            }
 
             await updateSnapshotIfFailedOrEmpty({
                 assertion: () =>
