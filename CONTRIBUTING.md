@@ -137,7 +137,7 @@ To test your changes in VSCode:
 3. Select "Run VSCode Extension" from the dropdown
 4. Press F5 to launch a new VSCode instance with your changes
 
-This launches a new VSCode window and a watcher for your changes. In this dev window you can choose an existing Svelte project to work against. When you make changes to `svelte-vscode` use the command "Reload Window" in the VSCode command palette to see your changes. When you make changes to `language-server` use the command "Svelte: Restart Language Server". When you make changes to `svelte2tsx`, you first need to run `pnpm build` within its folder, then restart the language server. When you make changes to`typescript-plugin`, you need to first run `pnpm build` within its folder and then use the command "TypeScript: Restart Server". 
+This launches a new VSCode window and a watcher for your changes. In this dev window you can choose an existing Svelte project to work against. When you make changes to `svelte-vscode` use the command "Reload Window" in the VSCode command palette to see your changes. When you make changes to `language-server` use the command "Svelte: Restart Language Server". When you make changes to `svelte2tsx`, you first need to run `pnpm build` within its folder, then restart the language server. When you make changes to`typescript-plugin`, you need to first run `pnpm build` within its folder and then use the command "TypeScript: Restart Server".
 
 #### Testing in other editors
 
