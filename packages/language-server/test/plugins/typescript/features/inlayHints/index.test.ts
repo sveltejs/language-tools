@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll } from 'vitest';
-import { readdirSync, statSync, existsSync } from 'fs';
+import { readdirSync, statSync, existsSync, readFileSync } from 'fs';
 import { join } from 'path';
 import ts from 'typescript';
 import { Document, DocumentManager } from '../../../../../src/lib/documents';
@@ -7,7 +7,11 @@ import { LSConfigManager, TsInlayHintsConfig } from '../../../../../src/ls-confi
 import { LSAndTSDocResolver } from '../../../../../src/plugins';
 import { InlayHintProviderImpl } from '../../../../../src/plugins/typescript/features/InlayHintProvider';
 import { pathToUrl } from '../../../../../src/utils';
-import { serviceWarmup } from '../../test-utils';
+import {
+    serviceWarmup,
+    updateSnapshotIfFailedOrEmpty,
+    createJsonSnapshotFormatter
+} from '../../test-utils';
 import { InlayHint } from 'vscode-languageserver-types';
 
 function setup(workspaceDir: string, filePath: string) {
@@ -99,7 +103,20 @@ describe('InlayHintProvider', () => {
 
             // Sanitize URIs for consistent snapshots
             const sanitized = sanitizeUri(inlayHints, workspaceUri);
-            expect(sanitized).toMatchSnapshot();
+
+            // Compare against file-based expected output (expectedv2.json)
+            const expectedFile = join(fixturesDir, testName, 'expectedv2.json');
+            const formatJson = await createJsonSnapshotFormatter(__dirname);
+
+            await updateSnapshotIfFailedOrEmpty({
+                assertion: () =>
+                    expect(sanitized).toEqual(
+                        JSON.parse(readFileSync(expectedFile, 'utf-8'))
+                    ),
+                expectedFile,
+                rootDir: fixturesDir,
+                getFileContent: () => formatJson(sanitized)
+            });
         });
     }
 });

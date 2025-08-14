@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll } from 'vitest';
-import { readdirSync, statSync, existsSync } from 'fs';
+import { readdirSync, statSync, existsSync, readFileSync } from 'fs';
 import { join } from 'path';
 import ts from 'typescript';
 import { Document, DocumentManager } from '../../../../../src/lib/documents';
@@ -7,7 +7,11 @@ import { LSConfigManager } from '../../../../../src/ls-config';
 import { LSAndTSDocResolver } from '../../../../../src/plugins';
 import { FoldingRangeProviderImpl } from '../../../../../src/plugins/typescript/features/FoldingRangeProvider';
 import { pathToUrl } from '../../../../../src/utils';
-import { serviceWarmup } from '../../test-utils';
+import {
+    serviceWarmup,
+    updateSnapshotIfFailedOrEmpty,
+    createJsonSnapshotFormatter
+} from '../../test-utils';
 
 function setup(workspaceDir: string, filePath: string) {
     const docManager = new DocumentManager(
@@ -51,7 +55,17 @@ describe('FoldingRangeProvider', () => {
             const { plugin, document } = setup(workspaceDir, inputFile);
             const folding = await plugin.getFoldingRanges(document);
 
-            expect(folding).toMatchSnapshot();
+            // Compare against file-based expected output (expectedv2.json)
+            const expectedFile = join(fixturesDir, testName, 'expectedv2.json');
+            const formatJson = await createJsonSnapshotFormatter(__dirname);
+
+            await updateSnapshotIfFailedOrEmpty({
+                assertion: () =>
+                    expect(folding).toEqual(JSON.parse(readFileSync(expectedFile, 'utf-8'))),
+                expectedFile,
+                rootDir: fixturesDir,
+                getFileContent: () => formatJson(folding)
+            });
         });
     }
 });
