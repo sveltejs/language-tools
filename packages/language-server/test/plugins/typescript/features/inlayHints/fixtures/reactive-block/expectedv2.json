@@ -14,7 +14,7 @@
                         "start": { "line": 10, "character": 17 },
                         "end": { "line": 10, "character": 24 }
                     },
-                    "uri": "file:///Users/aewing/Projects/phx.digital/sveltejs/language-tools/packages/language-server/test/plugins/typescript/features/inlayHints/fixtures/reactive-block/input.svelte"
+                    "uri": "<workspaceUri>/reactive-block/input.svelte"
                 }
             },
             { "value": ":" }
@@ -32,7 +32,7 @@
                         "start": { "line": 10, "character": 17 },
                         "end": { "line": 10, "character": 24 }
                     },
-                    "uri": "file:///Users/aewing/Projects/phx.digital/sveltejs/language-tools/packages/language-server/test/plugins/typescript/features/inlayHints/fixtures/reactive-block/input.svelte"
+                    "uri": "<workspaceUri>/reactive-block/input.svelte"
                 }
             },
             { "value": ":" }

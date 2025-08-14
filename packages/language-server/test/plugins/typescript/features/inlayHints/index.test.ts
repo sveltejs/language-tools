@@ -77,7 +77,8 @@ function sanitizeUri(inlayHints: InlayHint[] | null, workspaceUri: string) {
 
 describe('InlayHintProvider', () => {
     const fixturesDir = join(__dirname, 'fixtures');
-    const workspaceDir = join(__dirname, '../../testfiles');
+    // Use fixtures as workspace to ensure URIs are sanitized to <workspaceUri>
+    const workspaceDir = fixturesDir;
     const workspaceUri = pathToUrl(workspaceDir);
 
     beforeAll(() => {

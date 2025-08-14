@@ -14,7 +14,7 @@
                         "start": { "line": 4, "character": 16 },
                         "end": { "line": 4, "character": 20 }
                     },
-                    "uri": "file:///Users/aewing/Projects/phx.digital/sveltejs/language-tools/packages/language-server/test/plugins/typescript/features/inlayHints/fixtures/function-call-in-props/input.svelte"
+                    "uri": "<workspaceUri>/function-call-in-props/input.svelte"
                 }
             },
             { "value": ":" }
