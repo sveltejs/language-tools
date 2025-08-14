@@ -113,7 +113,7 @@ export function handleAttribute(
         if (
             !preserveCase &&
             !svgAttributes.find((x) => x == name) &&
-            !(element instanceof Element && element.tagName.includes('-')) &&
+            !(element instanceof Element && element.isCustomElement()) &&
             !(svelte5Plus && name.startsWith('on'))
         ) {
             return name.toLowerCase();
