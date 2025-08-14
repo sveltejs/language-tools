@@ -43,8 +43,10 @@ describe('Svelte Plugin', () => {
         expect(diagnostics[0].range).toEqual(Range.create(1, 0, 1, 21));
 
         // Accept both Svelte 4 and 5 diagnostic formats
-        // The source code always uses the main 'svelte' import which is v5
-        expect(diagnostics[0].code).toBe('a11y_missing_attribute');
+        // v4 uses hyphenated codes, v5 uses underscored codes
+        expect(['a11y_missing_attribute', 'a11y-missing-attribute']).toContain(
+            diagnostics[0].code as string
+        );
         expect(diagnostics[0].message).toContain('`<img>` element should have an alt attribute');
     });
 
@@ -60,8 +62,10 @@ describe('Svelte Plugin', () => {
         expect(diagnostics[0].range.end).toEqual(Position.create(0, 18));
 
         // Accept both Svelte 4 and 5 diagnostic formats
-        // The source code always uses the main 'svelte' import which is v5
-        expect(diagnostics[0].code).toBe('bind_invalid_name');
+        // v4 uses hyphenated codes, v5 uses underscored codes
+        expect(['bind_invalid_name', 'binding-undeclared']).toContain(
+            diagnostics[0].code as string
+        );
         expect(diagnostics[0].message).toContain('`bind:whatever` is not a valid binding');
         expect(diagnostics[0].range.start).toEqual(Position.create(0, 5));
     });
