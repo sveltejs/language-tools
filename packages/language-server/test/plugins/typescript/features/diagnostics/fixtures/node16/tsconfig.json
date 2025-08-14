@@ -1,0 +1,12 @@
+{
+    "compilerOptions": {
+        "allowJs": true,
+        "module": "Node16",
+        "moduleResolution": "Node16",
+        /**
+          This is actually not needed, but makes the tests faster
+          because TS does not look up other types.
+        */
+        "types": ["svelte"]
+    }
+}
