@@ -306,7 +306,6 @@ export function convertHtmlxToJsx(
                     case 'Title':
                     case 'Document':
                     case 'Body':
-                    case 'SvelteHTML':
                     case 'SvelteBoundary':
                     case 'Slot':
                     case 'SlotTemplate':
@@ -475,7 +474,6 @@ export function convertHtmlxToJsx(
                     case 'Head':
                     case 'Title':
                     case 'Body':
-                    case 'SvelteHTML':
                     case 'SvelteBoundary':
                     case 'Document':
                     case 'Slot':
