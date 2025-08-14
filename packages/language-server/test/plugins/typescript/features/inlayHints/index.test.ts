@@ -13,6 +13,7 @@ import {
     createJsonSnapshotFormatter
 } from '../../test-utils';
 import { InlayHint } from 'vscode-languageserver-types';
+import { isSvelte5Plus } from '../../../test-helpers';
 
 function setup(workspaceDir: string, filePath: string) {
     const docManager = new DocumentManager(
@@ -93,7 +94,10 @@ describe('InlayHintProvider', () => {
     });
 
     for (const testName of testFiles) {
-        it(testName, async () => {
+        // Skip .v5 tests if not on Svelte 5
+        const _it = testName.endsWith('.v5') && !isSvelte5Plus() ? it.skip : it;
+        
+        _it(testName, async () => {
             const inputFile = join(fixturesDir, testName, 'input.svelte');
             const { plugin, document } = setup(workspaceDir, inputFile);
 
