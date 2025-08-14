@@ -1,13 +1,10 @@
-import assert from 'assert';
+import { describe, it, expect } from 'vitest';
 import { HTMLDocument } from 'vscode-html-languageservice';
 import { parseHtml } from '../../../src/lib/documents/parseHtml';
 
 describe('parseHtml', () => {
     const testRootElements = (document: HTMLDocument) => {
-        assert.deepStrictEqual(
-            document.roots.map((r) => r.tag),
-            ['Foo', 'style']
-        );
+        expect(document.roots.map((r) => r.tag)).toEqual(['Foo', 'style']);
     };
 
     it('ignore arrow inside moustache', () => {

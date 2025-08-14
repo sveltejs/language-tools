@@ -1,13 +1,19 @@
 [
     {
+        "code": 2304,
+        "message": "Cannot find name 'nested1'.",
         "range": {
-            "start": { "line": 15, "character": 9 },
-            "end": { "line": 15, "character": 16 }
+            "end": {
+                "character": 16,
+                "line": 15
+            },
+            "start": {
+                "character": 9,
+                "line": 15
+            }
         },
         "severity": 1,
         "source": "ts",
-        "message": "Cannot find name 'nested1'.",
-        "code": 2304,
         "tags": []
     }
 ]

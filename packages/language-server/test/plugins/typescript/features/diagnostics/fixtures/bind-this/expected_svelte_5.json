@@ -9,17 +9,6 @@
     },
     {
         "range": {
-            "start": { "line": 18, "character": 2 },
-            "end": { "line": 18, "character": 11 }
-        },
-        "severity": 1,
-        "source": "ts",
-        "message": "Variable 'component' is used before being assigned.",
-        "code": 2454,
-        "tags": []
-    },
-    {
-        "range": {
             "start": { "line": 40, "character": 16 },
             "end": { "line": 40, "character": 23 }
         },
@@ -58,7 +47,7 @@
         },
         "severity": 1,
         "source": "ts",
-        "message": "Type '{}' is not assignable to type 'Properties<{ prop: boolean; }, any> | undefined'.",
+        "message": "Type '{}' is not assignable to type 'Properties<{ prop: boolean; }, any>'.",
         "code": 2322,
         "tags": []
     },
@@ -91,7 +80,7 @@
         },
         "severity": 1,
         "source": "ts",
-        "message": "Type '{}' is not assignable to type 'Properties<{ prop: boolean; }, any> | undefined'.",
+        "message": "Type '{}' is not assignable to type 'Properties<{ prop: boolean; }, any>'.",
         "code": 2322,
         "tags": []
     }

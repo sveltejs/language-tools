@@ -3,23 +3,15 @@
         "range": { "start": { "line": 6, "character": 1 }, "end": { "line": 6, "character": 9 } },
         "severity": 1,
         "source": "ts",
-        "message": "Property 'required' is missing in type '{}' but required in type '{ required: string; optional1?: string | undefined; optional2?: string | undefined; }'.",
+        "message": "Property 'required' is missing in type '{}' but required in type '{ required: string; optional1?: string; optional2?: string; }'.",
         "code": 2741,
-        "tags": []
-    },
-    {
-        "range": { "start": { "line": 7, "character": 10 }, "end": { "line": 7, "character": 18 } },
-        "severity": 1,
-        "source": "ts",
-        "message": "Type 'undefined' is not assignable to type 'string'.",
-        "code": 2322,
         "tags": []
     },
     {
         "range": { "start": { "line": 8, "character": 57 }, "end": { "line": 8, "character": 68 } },
         "severity": 1,
         "source": "ts",
-        "message": "Object literal may only specify known properties, and '\"doesntExist\"' does not exist in type '{ required: string; optional1?: string | undefined; optional2?: string | undefined; }'.",
+        "message": "Object literal may only specify known properties, and '\"doesntExist\"' does not exist in type '{ required: string; optional1?: string; optional2?: string; }'.",
         "code": 2353,
         "tags": []
     },
@@ -51,19 +43,8 @@
         "range": { "start": { "line": 10, "character": 1 }, "end": { "line": 10, "character": 9 } },
         "severity": 1,
         "source": "ts",
-        "message": "Property 'required' is missing in type '{}' but required in type '{ required: string; optional1?: string | undefined; optional2?: string | undefined; }'.",
+        "message": "Property 'required' is missing in type '{}' but required in type '{ required: string; optional1?: string; optional2?: string; }'.",
         "code": 2741,
-        "tags": []
-    },
-    {
-        "range": {
-            "start": { "line": 11, "character": 10 },
-            "end": { "line": 11, "character": 18 }
-        },
-        "severity": 1,
-        "source": "ts",
-        "message": "Type 'undefined' is not assignable to type 'string'.",
-        "code": 2322,
         "tags": []
     },
     {

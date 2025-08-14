@@ -1,0 +1,24 @@
+[
+    {
+        "range": {
+            "start": { "line": 16, "character": 21 },
+            "end": { "line": 16, "character": 22 }
+        },
+        "severity": 1,
+        "source": "ts",
+        "message": "Type 'string' is not assignable to type 'number'.",
+        "code": 2322,
+        "tags": []
+    },
+    {
+        "range": {
+            "start": { "line": 19, "character": 5 },
+            "end": { "line": 19, "character": 17 }
+        },
+        "severity": 1,
+        "source": "ts",
+        "message": "This comparison appears to be unintentional because the types 'number' and 'string' have no overlap.",
+        "code": 2367,
+        "tags": []
+    }
+]

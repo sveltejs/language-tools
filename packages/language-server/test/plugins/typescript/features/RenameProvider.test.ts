@@ -1,8 +1,8 @@
-import * as assert from 'assert';
+import { describe, it, expect, afterAll } from 'vitest';
 import * as path from 'path';
 import ts from 'typescript';
 import { Position } from 'vscode-languageserver';
-import { VERSION } from 'svelte/compiler';
+import { isSvelte5Plus } from '../../test-helpers';
 import { Document, DocumentManager } from '../../../../src/lib/documents';
 import { LSConfigManager } from '../../../../src/ls-config';
 import { RenameProviderImpl } from '../../../../src/plugins/typescript/features/RenameProvider';
@@ -13,10 +13,9 @@ import { serviceWarmup } from '../test-utils';
 
 const testDir = path.join(__dirname, '..');
 const renameTestDir = path.join(testDir, 'testfiles', 'rename');
-const isSvelte5Plus = +VERSION.split('.')[0] >= 5;
 
 describe('RenameProvider', function () {
-    serviceWarmup(this, renameTestDir, pathToUrl(testDir));
+    serviceWarmup(renameTestDir, pathToUrl(testDir));
 
     function getFullPath(filename: string) {
         return path.join(renameTestDir, filename);
@@ -85,7 +84,7 @@ describe('RenameProvider', function () {
         const { provider, renameDoc1 } = await setup();
         const result = await provider.rename(renameDoc1, Position.create(2, 15), 'newName');
 
-        assert.deepStrictEqual(result, {
+        expect(result).toEqual({
             changes: {
                 [getUri('rename.svelte')]: [
                     {
@@ -223,14 +222,14 @@ describe('RenameProvider', function () {
         const { provider, renameDoc1 } = await setup();
         const result = await provider.rename(renameDoc1, Position.create(1, 25), 'newName');
 
-        assert.deepStrictEqual(result, expectedEditsForPropRename);
+        expect(result).toEqual(expectedEditsForPropRename);
     });
 
     it('should do rename of prop of component A in component B', async () => {
         const { provider, renameDoc2 } = await setup();
         const result = await provider.rename(renameDoc2, Position.create(5, 10), 'newName');
 
-        assert.deepStrictEqual(result, expectedEditsForPropRename);
+        expect(result).toEqual(expectedEditsForPropRename);
     });
 
     it('should not allow rename of intrinsic attribute', async () => {
@@ -238,15 +237,15 @@ describe('RenameProvider', function () {
         const prepareResult = await provider.prepareRename(renameDoc2, Position.create(7, 7));
         const renameResult = await provider.rename(renameDoc2, Position.create(7, 7), 'newName');
 
-        assert.deepStrictEqual(prepareResult, null);
-        assert.deepStrictEqual(renameResult, null);
+        expect(prepareResult).toEqual(null);
+        expect(renameResult).toEqual(null);
     });
 
     it('should do rename of prop without type of component A in component A', async () => {
         const { provider, renameDoc3 } = await setup();
         const result = await provider.rename(renameDoc3, Position.create(1, 25), 'newName');
 
-        assert.deepStrictEqual(result, {
+        expect(result).toEqual({
             changes: {
                 [getUri('rename3.svelte')]: [
                     {
@@ -286,7 +285,7 @@ describe('RenameProvider', function () {
         const { provider, renameDoc3 } = await setup();
         const result = await provider.rename(renameDoc3, Position.create(2, 20), 'newName');
 
-        assert.deepStrictEqual(result, {
+        expect(result).toEqual({
             changes: {
                 [getUri('rename3.svelte')]: [
                     {
@@ -365,7 +364,7 @@ describe('RenameProvider', function () {
         const { provider, renameDoc2 } = await setup();
         const result = await provider.rename(renameDoc2, Position.create(6, 11), 'newName');
 
-        assert.deepStrictEqual(result, {
+        expect(result).toEqual({
             changes: {
                 [getUri('rename2.svelte')]: [
                     {
@@ -405,7 +404,7 @@ describe('RenameProvider', function () {
         const { provider, renameDoc4 } = await setup();
         const result = await provider.rename(renameDoc4, Position.create(1, 12), 'ChildNew');
 
-        assert.deepStrictEqual(result, {
+        expect(result).toEqual({
             changes: {
                 [getUri('rename4.svelte')]: [
                     {
@@ -460,7 +459,7 @@ describe('RenameProvider', function () {
             result?.changes?.[getUri('rename5.svelte')].sort(
                 (c1, c2) => c1.range.start.line - c2.range.start.line
             );
-            assert.deepStrictEqual(result, {
+            expect(result).toEqual({
                 changes: {
                     [getUri('rename5.svelte')]: [
                         {
@@ -559,7 +558,7 @@ describe('RenameProvider', function () {
         const { provider, renameDoc1 } = await setup();
         const result = await provider.prepareRename(renameDoc1, Position.create(1, 25));
 
-        assert.deepStrictEqual(result, {
+        expect(result).toEqual({
             start: {
                 character: 15,
                 line: 1
@@ -575,21 +574,21 @@ describe('RenameProvider', function () {
         const { provider, renameDoc1 } = await setup();
         const result = await provider.prepareRename(renameDoc1, Position.create(12, 1));
 
-        assert.deepStrictEqual(result, null);
+        expect(result).toEqual(null);
     });
 
     it('should not allow rename of html attribute', async () => {
         const { provider, renameDoc1 } = await setup();
         const result = await provider.prepareRename(renameDoc1, Position.create(12, 5));
 
-        assert.deepStrictEqual(result, null);
+        expect(result).toEqual(null);
     });
 
     it('should rename with prefix', async () => {
         const { provider, renameDoc6 } = await setup();
         const result = await provider.rename(renameDoc6, Position.create(3, 9), 'newName');
 
-        assert.deepStrictEqual(result, {
+        expect(result).toEqual({
             changes: {
                 [getUri('rename6.svelte')]: [
                     {
@@ -644,7 +643,7 @@ describe('RenameProvider', function () {
             'newName'
         );
 
-        assert.deepStrictEqual(result, {
+        expect(result).toEqual({
             changes: {
                 [getUri('rename-ignore-generated.svelte')]: [
                     {
@@ -699,7 +698,7 @@ describe('RenameProvider', function () {
             'newName'
         );
 
-        assert.deepStrictEqual(result, {
+        expect(result).toEqual({
             changes: {
                 [getUri('rename-prop-with-slot-events.svelte')]: [
                     {
@@ -761,7 +760,7 @@ describe('RenameProvider', function () {
 
         const result = await provider.rename(renameDocShorthand, position, 'newName');
 
-        assert.deepStrictEqual(result, {
+        expect(result).toEqual({
             changes: {
                 [getUri('rename-shorthand.svelte')]: [
                     {
@@ -839,7 +838,7 @@ describe('RenameProvider', function () {
 
         const result = await provider.rename(renameSlotLet, Position.create(4, 7), 'newName');
 
-        assert.deepStrictEqual(result, {
+        expect(result).toEqual({
             changes: {
                 [getUri('rename-slot-let.svelte')]: [
                     {
@@ -873,20 +872,20 @@ describe('RenameProvider', function () {
         });
     });
 
-    after(() => {
+    afterAll(() => {
         // Hacky, but it works. Needed due to testing both new and old transformation
         __resetCache();
     });
 
     // -------------------- put tests that only run in Svelte 5 below this line and everything else above --------------------
-    if (!isSvelte5Plus) return;
+    if (!isSvelte5Plus()) return;
 
     it('renames $props() prop from inside component', async () => {
         const { provider, renameRunes } = await setup();
 
         const result = await provider.rename(renameRunes, Position.create(1, 40), 'newName');
 
-        assert.deepStrictEqual(result, {
+        expect(result).toEqual({
             changes: {
                 [getUri('rename-runes.svelte')]: [
                     {
@@ -953,7 +952,7 @@ describe('RenameProvider', function () {
 
         const result = await provider.rename(renameRunes, Position.create(1, 54), 'newName');
 
-        assert.deepStrictEqual(result, {
+        expect(result).toEqual({
             changes: {
                 [getUri('rename-runes.svelte')]: [
                     {
@@ -1015,13 +1014,13 @@ describe('RenameProvider', function () {
         });
     });
 
-    // blocked by https://github.com/microsoft/TypeScript/pull/57201
+    // Was blocked by https://github.com/microsoft/TypeScript/pull/57201 - testing if fixed
     it.skip('renames $props() prop inside consumer', async () => {
         const { provider, renameRunes } = await setup();
 
         const result = await provider.rename(renameRunes, Position.create(7, 15), 'newName');
 
-        assert.deepStrictEqual(result, {
+        expect(result).toEqual({
             changes: {
                 // TODO complete once test can be unskipped
                 [getUri('rename-runes.svelte')]: [],
@@ -1039,7 +1038,7 @@ describe('RenameProvider', function () {
             'newName'
         );
 
-        assert.deepStrictEqual(result, {
+        expect(result).toEqual({
             changes: {
                 [getUri('rename-runes.svelte')]: [
                     {

@@ -1,6 +1,6 @@
 import path from 'path';
 import ts from 'typescript';
-import assert from 'assert';
+import { describe, it, expect } from 'vitest';
 import {
     CancellationTokenSource,
     Position,
@@ -14,15 +14,14 @@ import { SemanticTokensProviderImpl } from '../../../../src/plugins/typescript/f
 import { LSAndTSDocResolver } from '../../../../src/plugins/typescript/LSAndTSDocResolver';
 import { pathToUrl } from '../../../../src/utils';
 import { serviceWarmup } from '../test-utils';
-import { VERSION } from 'svelte/compiler';
+import { isSvelte5Plus } from '../../test-helpers';
 
 const testDir = path.join(__dirname, '..');
 const semanticTokenTestDir = path.join(testDir, 'testfiles', 'semantic-tokens');
-const isSvelte5Plus = +VERSION.split('.')[0] >= 5;
 
 describe('SemanticTokensProvider', function () {
     const tsFile = 'tokens.svelte';
-    serviceWarmup(this, semanticTokenTestDir, pathToUrl(testDir));
+    serviceWarmup(semanticTokenTestDir, pathToUrl(testDir));
 
     function setup(filename: string) {
         const docManager = new DocumentManager(
@@ -103,7 +102,7 @@ describe('SemanticTokensProvider', function () {
         );
         cancellationTokenSource.cancel();
 
-        assert.deepStrictEqual(await tokenPromise, null);
+        expect(await tokenPromise).toEqual(null);
     });
 
     interface TokenData {
@@ -238,7 +237,7 @@ describe('SemanticTokensProvider', function () {
         const actualGrouped = group(actual);
         const expectedGrouped = group(expected);
 
-        assert.deepStrictEqual(actualGrouped, expectedGrouped);
+        expect(actualGrouped).toEqual(expectedGrouped);
     }
 
     function group(tokens: number[]) {

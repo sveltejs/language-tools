@@ -1,4 +1,4 @@
-import * as assert from 'assert';
+import { describe, it, expect } from 'vitest';
 import { Position } from 'vscode-languageserver';
 import { getHoverInfo } from '../../../../src/plugins/svelte/features/getHoverInfo';
 import { SvelteDocument } from '../../../../src/plugins/svelte/SvelteDocument';
@@ -13,7 +13,7 @@ describe('SveltePlugin#getHoverInfo', () => {
         const hover = getHoverInfo(document, svelteDoc, position);
         return {
             toEqual: (tag: SvelteTag | null) =>
-                assert.deepStrictEqual(hover, tag ? { contents: documentation[tag] } : null)
+                expect(hover).toEqual(tag ? { contents: documentation[tag] } : null)
         };
     }
 
@@ -109,7 +109,7 @@ describe('SveltePlugin#getHoverInfo', () => {
                 const contents = getModifierData().find(
                     (modifier) => modifier.modifier === expectedModifier
                 )?.documentation;
-                assert.deepStrictEqual(hover, { contents });
+                expect(hover).toEqual({ contents });
             }
         };
     }

@@ -1,4 +1,4 @@
-import * as assert from 'assert';
+import { describe, it, expect, afterAll } from 'vitest';
 import fs from 'fs';
 import * as path from 'path';
 import ts from 'typescript';
@@ -18,12 +18,12 @@ import { ignoredBuildDirectories } from '../../../src/plugins/typescript/Snapsho
 import { pathToUrl } from '../../../src/utils';
 import { serviceWarmup } from './test-utils';
 import { internalHelpers } from 'svelte2tsx';
-import { VERSION } from 'svelte/compiler';
+import { isSvelte5Plus } from '../test-helpers';
 
 const testDir = path.join(__dirname, 'testfiles');
 
 describe('TypescriptPlugin', function () {
-    serviceWarmup(this, testDir);
+    serviceWarmup(testDir);
 
     function getUri(filename: string) {
         const filePath = path.join(__dirname, 'testfiles', filename);
@@ -74,7 +74,7 @@ describe('TypescriptPlugin', function () {
                     (s2.location.range.start.line * 100 + s2.location.range.start.character)
             );
 
-        assert.deepStrictEqual(symbols, [
+        expect(symbols).toEqual([
             {
                 name: 'bla',
                 kind: 12,
@@ -318,7 +318,7 @@ describe('TypescriptPlugin', function () {
         const symbolsPromise = plugin.getDocumentSymbols(document, cancellationTokenSource.token);
 
         cancellationTokenSource.cancel();
-        assert.deepStrictEqual(await symbolsPromise, []);
+        expect(await symbolsPromise).toEqual([]);
     });
 
     it('provides definitions within svelte doc', async () => {
@@ -326,7 +326,7 @@ describe('TypescriptPlugin', function () {
 
         const definitions = await plugin.getDefinitions(document, Position.create(4, 1));
 
-        assert.deepStrictEqual(definitions, [
+        expect(definitions).toEqual([
             {
                 originSelectionRange: {
                     start: {
@@ -368,7 +368,7 @@ describe('TypescriptPlugin', function () {
 
         const definitions = await plugin.getDefinitions(document, Position.create(5, 1));
 
-        assert.deepStrictEqual(definitions, [
+        expect(definitions).toEqual([
             {
                 originSelectionRange: {
                     start: {
@@ -410,7 +410,7 @@ describe('TypescriptPlugin', function () {
 
         const definitions = await plugin.getDefinitions(document, Position.create(12, 3));
 
-        assert.deepStrictEqual(definitions, [
+        expect(definitions).toEqual([
             {
                 originSelectionRange: {
                     start: {
@@ -453,7 +453,7 @@ describe('TypescriptPlugin', function () {
 
             const definitions = await plugin.getDefinitions(document, pos);
 
-            assert.deepStrictEqual(definitions, [
+            expect(definitions).toEqual([
                 {
                     originSelectionRange,
                     targetRange: {
@@ -516,7 +516,7 @@ describe('TypescriptPlugin', function () {
 
             const definitions = await plugin.getDefinitions(document, pos);
 
-            assert.deepStrictEqual(definitions, [
+            expect(definitions).toEqual([
                 {
                     originSelectionRange,
                     targetRange: {
@@ -577,7 +577,7 @@ describe('TypescriptPlugin', function () {
         const { plugin, document } = setup('declaration-map/importing.svelte');
 
         const definition = await plugin.getDefinitions(document, { line: 1, character: 13 });
-        assert.deepStrictEqual(definition, [
+        expect(definition).toEqual([
             <LocationLink>{
                 targetRange: {
                     end: { line: 0, character: 18 },
@@ -600,7 +600,7 @@ describe('TypescriptPlugin', function () {
         const { plugin, document } = setup('declaration-map/import-from-base64-sourcemap.svelte');
 
         const definition = await plugin.getDefinitions(document, { line: 1, character: 13 });
-        assert.deepStrictEqual(definition, [
+        expect(definition).toEqual([
             <LocationLink>{
                 targetRange: {
                     end: { line: 0, character: 18 },
@@ -659,7 +659,7 @@ describe('TypescriptPlugin', function () {
         const firstSnapshot = snapshotManager.get(projectJsFile);
         const firstVersion = firstSnapshot?.version;
 
-        assert.notEqual(firstVersion, INITIAL_VERSION);
+        expect(firstVersion).not.toEqual(INITIAL_VERSION);
 
         await plugin.onWatchFileChanges([
             {
@@ -669,7 +669,7 @@ describe('TypescriptPlugin', function () {
         ]);
         const secondSnapshot = snapshotManager.get(projectJsFile);
 
-        assert.notEqual(secondSnapshot?.version, firstVersion);
+        expect(secondSnapshot?.version).not.toEqual(firstVersion);
     });
 
     it('should delete snapshot cache when file delete', async () => {
@@ -677,7 +677,7 @@ describe('TypescriptPlugin', function () {
             await setupForOnWatchedFileUpdateOrDelete();
 
         const firstSnapshot = snapshotManager.get(projectJsFile);
-        assert.notEqual(firstSnapshot, undefined);
+        expect(firstSnapshot).not.toEqual(undefined);
 
         await plugin.onWatchFileChanges([
             {
@@ -687,7 +687,7 @@ describe('TypescriptPlugin', function () {
         ]);
         const secondSnapshot = snapshotManager.get(projectJsFile);
 
-        assert.equal(secondSnapshot, undefined);
+        expect(secondSnapshot).toEqual(undefined);
     });
 
     const testForOnWatchedFileAdd = async (filePath: string, shouldExist: boolean) => {
@@ -700,10 +700,10 @@ describe('TypescriptPlugin', function () {
             fs.mkdirSync(dir);
         }
         fs.writeFileSync(addFile, 'export function abc() {}');
-        assert.ok(fs.existsSync(addFile));
+        expect(fs.existsSync(addFile)).toBe(true);
 
         try {
-            assert.equal(snapshotManager.has(addFile), false);
+            expect(snapshotManager.has(addFile)).toBe(false);
 
             await plugin.onWatchFileChanges([
                 {
@@ -714,7 +714,7 @@ describe('TypescriptPlugin', function () {
 
             (await lsAndTsDocResolver.getTSService(targetSvelteFile)).getService();
 
-            assert.equal(snapshotManager.has(addFile), shouldExist);
+            expect(snapshotManager.has(addFile)).toBe(shouldExist);
 
             await plugin.onWatchFileChanges([
                 {
@@ -723,7 +723,7 @@ describe('TypescriptPlugin', function () {
                 }
             ]);
 
-            assert.equal(snapshotManager.has(addFile), shouldExist);
+            expect(snapshotManager.has(addFile)).toBe(shouldExist);
         } finally {
             fs.unlinkSync(addFile);
         }
@@ -755,7 +755,7 @@ describe('TypescriptPlugin', function () {
         const firstVersion = firstSnapshot?.version;
         const firstText = firstSnapshot?.getText(0, firstSnapshot?.getLength());
 
-        assert.notEqual(firstVersion, INITIAL_VERSION);
+        expect(firstVersion).not.toEqual(INITIAL_VERSION);
 
         await plugin.updateTsOrJsFile(projectJsFile, [
             {
@@ -765,8 +765,8 @@ describe('TypescriptPlugin', function () {
         ]);
         const secondSnapshot = snapshotManager.get(projectJsFile);
 
-        assert.notEqual(secondSnapshot?.version, firstVersion);
-        assert.equal(
+        expect(secondSnapshot?.version).not.toEqual(firstVersion);
+        expect(
             secondSnapshot?.getText(0, secondSnapshot?.getLength()),
             'const = "hello world";' + firstText
         );
@@ -794,7 +794,7 @@ describe('TypescriptPlugin', function () {
         ]);
 
         const document = docManager.get(pathToUrl(targetSvelteFile));
-        assert.ok(document);
+        expect(document);
     });
 
     it("shouldn't mark client svelte document as close", async () => {
@@ -812,16 +812,15 @@ describe('TypescriptPlugin', function () {
         ]);
 
         const document = docManager.get(pathToUrl(targetSvelteFile));
-        assert.equal(document?.openedByClient, true);
+        expect(document?.openedByClient).toEqual(true);
     });
 
     // Hacky, but it works. Needed due to testing both new and old transformation
-    after(() => {
+    afterAll(() => {
         __resetCache();
     });
 
-    const isSvelte5Plus = Number(VERSION.split('.')[0]) >= 5;
-    if (!isSvelte5Plus) {
+    if (!isSvelte5Plus()) {
         return;
     }
 
@@ -830,7 +829,7 @@ describe('TypescriptPlugin', function () {
 
         const definitions = await plugin.getDefinitions(document, Position.create(4, 3));
 
-        assert.deepStrictEqual(definitions, [
+        expect(definitions).toEqual([
             {
                 originSelectionRange: {
                     start: {

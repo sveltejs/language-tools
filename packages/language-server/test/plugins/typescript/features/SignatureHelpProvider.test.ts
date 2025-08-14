@@ -1,5 +1,5 @@
 import path from 'path';
-import assert from 'assert';
+import { describe, it, expect } from 'vitest';
 import ts from 'typescript';
 import {
     CancellationTokenSource,
@@ -18,7 +18,7 @@ const testDir = path.join(__dirname, '..');
 const signatureHelpTestDir = path.join(testDir, 'testfiles', 'signature-help');
 
 describe('SignatureHelpProvider', function () {
-    serviceWarmup(this, signatureHelpTestDir, pathToUrl(testDir));
+    serviceWarmup(signatureHelpTestDir, pathToUrl(testDir));
 
     function setup() {
         const docManager = new DocumentManager(
@@ -43,7 +43,7 @@ describe('SignatureHelpProvider', function () {
 
         const result = await provider.getSignatureHelp(document, Position.create(3, 8), undefined);
 
-        assert.deepStrictEqual(result, <SignatureHelp>{
+        expect(result).toEqual<SignatureHelp>({
             signatures: [
                 {
                     label: 'foo(): boolean',
@@ -61,7 +61,7 @@ describe('SignatureHelpProvider', function () {
 
         const result = await provider.getSignatureHelp(document, Position.create(4, 12), undefined);
 
-        assert.deepStrictEqual(result, <SignatureHelp>{
+        expect(result).toEqual<SignatureHelp>({
             signatures: [
                 {
                     label: 'abc(a: number, b: number): string',
@@ -103,7 +103,7 @@ describe('SignatureHelpProvider', function () {
             undefined
         );
 
-        assert.equal(result, null);
+        expect(result).toEqual(null);
     });
 
     it('provide signature help with formatted documentation', async () => {
@@ -118,6 +118,6 @@ describe('SignatureHelpProvider', function () {
         );
         cancellationTokenSource.cancel();
 
-        assert.deepStrictEqual(await signatureHelpPromise, null);
+        expect(await signatureHelpPromise).toEqual(null);
     });
 });

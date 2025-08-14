@@ -18,7 +18,8 @@
     "devDependencies": {
         "cross-env": "^7.0.2",
         "prettier": "~3.3.3",
-        "ts-node": "^10.0.0"
+        "ts-node": "^10.0.0",
+        "vitest": "^3.2.4"
     },
     "packageManager": "pnpm@9.3.0"
 }

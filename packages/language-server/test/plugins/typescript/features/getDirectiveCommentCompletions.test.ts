@@ -1,6 +1,6 @@
 import path from 'path';
 import ts from 'typescript';
-import assert from 'assert';
+import { describe, it, expect } from 'vitest';
 import { Document } from '../../../../src/lib/documents';
 import { pathToUrl } from '../../../../src/utils';
 import { Position, CompletionContext, CompletionTriggerKind } from 'vscode-languageserver';
@@ -11,7 +11,7 @@ const testDir = path.join(__dirname, '..');
 const completionTestDir = path.join(testDir, 'testfiles', 'completions');
 
 describe('can get typescript directive comment completions', function () {
-    serviceWarmup(this, completionTestDir, pathToUrl(testDir));
+    serviceWarmup(completionTestDir, pathToUrl(testDir));
 
     function setup(
         position: Position,
@@ -26,7 +26,7 @@ describe('can get typescript directive comment completions', function () {
 
     function testForScript(position: Position) {
         const result = setup(position);
-        assert.deepStrictEqual(result, {
+        expect(result).toEqual({
             isIncomplete: false,
             items: [
                 {
@@ -115,6 +115,6 @@ describe('can get typescript directive comment completions', function () {
 
     it("don't provide in markup", () => {
         const result = setup(Position.create(7, 3));
-        assert.deepStrictEqual(result, null);
+        expect(result).toEqual(null);
     });
 });

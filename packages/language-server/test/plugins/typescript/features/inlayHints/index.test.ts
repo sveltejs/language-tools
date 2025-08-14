@@ -1,5 +1,5 @@
-import * as assert from 'assert';
-import { readFileSync, writeFileSync } from 'fs';
+import { describe, it, expect, beforeAll } from 'vitest';
+import { readdirSync, statSync, existsSync, readFileSync } from 'fs';
 import { join } from 'path';
 import ts from 'typescript';
 import { Document, DocumentManager } from '../../../../../src/lib/documents';
@@ -8,11 +8,12 @@ import { LSAndTSDocResolver } from '../../../../../src/plugins';
 import { InlayHintProviderImpl } from '../../../../../src/plugins/typescript/features/InlayHintProvider';
 import { pathToUrl } from '../../../../../src/utils';
 import {
-    createJsonSnapshotFormatter,
-    createSnapshotTester,
-    updateSnapshotIfFailedOrEmpty
+    serviceWarmup,
+    updateSnapshotIfFailedOrEmpty,
+    createJsonSnapshotFormatter
 } from '../../test-utils';
 import { InlayHint } from 'vscode-languageserver-types';
+import { isSvelte5Plus } from '../../../test-helpers';
 
 function setup(workspaceDir: string, filePath: string) {
     const docManager = new DocumentManager(
@@ -48,115 +49,77 @@ function setup(workspaceDir: string, filePath: string) {
     return { plugin, document, docManager, lsAndTsDocResolver };
 }
 
-async function executeTest(
-    inputFile: string,
-    {
-        workspaceDir,
-        dir
-    }: {
-        workspaceDir: string;
-        dir: string;
-    }
-) {
-    const expected = 'expectedv2.json';
-    const { plugin, document } = setup(workspaceDir, inputFile);
-    const workspaceUri = pathToUrl(workspaceDir);
-    const inlayHints = sanitizeUri(
-        await plugin.getInlayHints(document, {
-            start: { line: 0, character: 0 },
-            end: document.positionAt(document.getTextLength())
-        })
-    );
-
-    const expectedFile = join(dir, expected);
-    if (process.argv.includes('--debug')) {
-        writeFileSync(join(dir, 'debug.svelte'), appendInlayHintAsComment());
+function sanitizeUri(inlayHints: InlayHint[] | null, workspaceUri: string) {
+    if (!inlayHints) {
+        return null;
     }
 
-    const snapshotFormatter = await createJsonSnapshotFormatter(dir);
-
-    await updateSnapshotIfFailedOrEmpty({
-        assertion() {
-            assert.deepStrictEqual(
-                JSON.parse(JSON.stringify(inlayHints)),
-                JSON.parse(readFileSync(expectedFile, 'utf-8'))
-            );
-        },
-        expectedFile,
-        getFileContent() {
-            return snapshotFormatter(inlayHints);
-        },
-        rootDir: __dirname
-    });
-
-    function sanitizeUri(inlayHints: InlayHint[] | null) {
-        if (!inlayHints) {
-            return;
-        }
-
-        for (const inlayHint of inlayHints) {
-            if (!Array.isArray(inlayHint.label)) {
-                continue;
-            }
-
-            for (const label of inlayHint.label) {
+    return inlayHints.map((hint) => {
+        const sanitized = { ...hint };
+        if (Array.isArray(sanitized.label)) {
+            sanitized.label = sanitized.label.map((label) => {
                 if (label.location) {
-                    label.location.uri = label.location.uri.replace(workspaceUri, '<workspaceUri>');
-
-                    const indexOfNodeModules = label.location.uri.lastIndexOf('node_modules');
+                    const location = { ...label.location };
+                    location.uri = location.uri.replace(workspaceUri, '<workspaceUri>');
+                    const indexOfNodeModules = location.uri.lastIndexOf('node_modules');
                     if (indexOfNodeModules !== -1) {
-                        label.location.uri =
+                        location.uri =
                             '<node_modules>' +
-                            label.location.uri.slice(indexOfNodeModules + 'node_modules'.length);
+                            location.uri.slice(indexOfNodeModules + 'node_modules'.length);
                     }
+                    return { ...label, location };
                 }
-            }
+                return label;
+            });
         }
-
-        return inlayHints;
-    }
-
-    function appendInlayHintAsComment() {
-        if (!inlayHints) {
-            return document.getText();
-        }
-
-        const offsetMap = new Map<number, string[]>();
-        for (const inlayHint of inlayHints) {
-            const offset = document.offsetAt(inlayHint.position);
-            const text = Array.isArray(inlayHint.label)
-                ? inlayHint.label.map((l) => l.value).join('')
-                : inlayHint.label;
-
-            const comment = `/*${inlayHint.paddingLeft ? ' ' : ''}${text}${
-                inlayHint.paddingRight ? ' ' : ''
-            }*/`;
-            offsetMap.set(offset, (offsetMap.get(offset) ?? []).concat(comment));
-        }
-
-        const offsets = Array.from(offsetMap.keys()).sort((a, b) => a - b);
-        const parts: string[] = [];
-
-        for (let index = 0; index < offsets.length; index++) {
-            const offset = offsets[index];
-            parts.push(
-                document.getText().slice(offsets[index - 1], offset),
-                ...(offsetMap.get(offset) ?? [])
-            );
-        }
-
-        parts.push(document.getText().slice(offsets[offsets.length - 1]));
-
-        return parts.join('');
-    }
+        return sanitized;
+    });
 }
 
-const executeTests = createSnapshotTester(executeTest);
+describe('InlayHintProvider', () => {
+    const fixturesDir = join(__dirname, 'fixtures');
+    // Use fixtures as workspace to ensure URIs are sanitized to <workspaceUri>
+    const workspaceDir = fixturesDir;
+    const workspaceUri = pathToUrl(workspaceDir);
 
-describe('InlayHintProvider', function () {
-    executeTests({
-        dir: join(__dirname, 'fixtures'),
-        workspaceDir: join(__dirname, 'fixtures'),
-        context: this
+    beforeAll(() => {
+        serviceWarmup(workspaceDir, workspaceUri);
     });
+
+    // Get all test fixtures
+    const testFiles = readdirSync(fixturesDir).filter((entry) => {
+        const fullPath = join(fixturesDir, entry);
+        const inputFile = join(fullPath, 'input.svelte');
+        return statSync(fullPath).isDirectory() && existsSync(inputFile);
+    });
+
+    for (const testName of testFiles) {
+        // Skip .v5 tests if not on Svelte 5
+        const _it = testName.endsWith('.v5') && !isSvelte5Plus() ? it.skip : it;
+
+        _it(testName, async () => {
+            const inputFile = join(fixturesDir, testName, 'input.svelte');
+            const { plugin, document } = setup(workspaceDir, inputFile);
+
+            const inlayHints = await plugin.getInlayHints(document, {
+                start: { line: 0, character: 0 },
+                end: document.positionAt(document.getTextLength())
+            });
+
+            // Sanitize URIs for consistent snapshots
+            const sanitized = sanitizeUri(inlayHints, workspaceUri);
+
+            // Compare against file-based expected output (expectedv2.json)
+            const expectedFile = join(fixturesDir, testName, 'expectedv2.json');
+            const formatJson = await createJsonSnapshotFormatter(__dirname);
+
+            await updateSnapshotIfFailedOrEmpty({
+                assertion: () =>
+                    expect(sanitized).toEqual(JSON.parse(readFileSync(expectedFile, 'utf-8'))),
+                expectedFile,
+                rootDir: fixturesDir,
+                getFileContent: () => formatJson(sanitized)
+            });
+        });
+    }
 });
