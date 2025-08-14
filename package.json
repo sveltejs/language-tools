@@ -1,29 +1,29 @@
 {
-    "name": "@svelte/language-tools",
-    "version": "1.0.0",
-    "author": "Svelte Contributors",
-    "license": "MIT",
-    "private": true,
-    "scripts": {
-        "bootstrap": "cd ./packages/svelte2tsx && pnpm build && cd ../svelte-vscode && pnpm build:grammar",
-        "build": "tsc -b",
-        "test": "cross-env CI=true pnpm test -r",
-        "test:svelte4": "./scripts/switch-svelte-version.sh 4 && pnpm test",
-        "test:svelte5": "./scripts/switch-svelte-version.sh 5 && pnpm test",
-        "test:snapshot:svelte4": "./scripts/switch-svelte-version.sh 4 && cross-env UPDATE_SNAPSHOTS=true pnpm test",
-        "test:snapshot:svelte5": "./scripts/switch-svelte-version.sh 5 && cross-env UPDATE_SNAPSHOTS=true pnpm test",
-        "watch": "tsc -b -watch",
-        "format": "prettier --write .",
-        "lint": "prettier --check ."
-    },
-    "dependencies": {
-        "typescript": "^5.9.2"
-    },
-    "devDependencies": {
-        "cross-env": "^7.0.2",
-        "prettier": "~3.3.3",
-        "ts-node": "^10.0.0",
-        "vitest": "^3.2.4"
-    },
-    "packageManager": "pnpm@9.3.0"
+  "name": "@svelte/language-tools",
+  "version": "1.0.0",
+  "author": "Svelte Contributors",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "bootstrap": "cd ./packages/svelte2tsx && pnpm build && cd ../svelte-vscode && pnpm build:grammar",
+    "build": "tsc -b",
+    "test": "cross-env CI=true pnpm test -r",
+    "test:svelte4": "./scripts/switch-svelte-version.sh 4 && pnpm test; ./scripts/switch-svelte-version.sh cleanup",
+    "test:svelte5": "./scripts/switch-svelte-version.sh 5 && pnpm test; ./scripts/switch-svelte-version.sh cleanup",
+    "test:snapshot:svelte4": "./scripts/switch-svelte-version.sh 4 && cross-env UPDATE_SNAPSHOTS=true pnpm test; ./scripts/switch-svelte-version.sh cleanup",
+    "test:snapshot:svelte5": "./scripts/switch-svelte-version.sh 5 && cross-env UPDATE_SNAPSHOTS=true pnpm test; ./scripts/switch-svelte-version.sh cleanup",
+    "watch": "tsc -b -watch",
+    "format": "prettier --write .",
+    "lint": "prettier --check ."
+  },
+  "dependencies": {
+    "typescript": "^5.9.2"
+  },
+  "devDependencies": {
+    "cross-env": "^7.0.2",
+    "prettier": "~3.3.3",
+    "ts-node": "^10.0.0",
+    "vitest": "^3.2.4"
+  },
+  "packageManager": "pnpm@9.3.0"
 }
