@@ -197,41 +197,64 @@ class DiagnosticsWatcher {
         this.updateWatchedDirectories();
     }
 
+    private isSubdir(candidate: string, parent: string) {
+        const c = path.resolve(candidate);
+        const p = path.resolve(parent);
+        return c === p || c.startsWith(p + path.sep);
+    }
+
+    private minimizeDirs(dirs: string[]): string[] {
+        const sorted = [...new Set(dirs.map((d) => path.resolve(d)))].sort();
+        const result: string[] = [];
+        for (const dir of sorted) {
+            if (!result.some((p) => this.isSubdir(dir, p))) {
+                result.push(dir);
+            }
+        }
+        return result;
+    }
+
     addWatchDirectory(dir: string) {
-        if (!dir || this.currentWatchedDirs.has(dir)) {
-            return;
+        if (!dir) return;
+        // Skip if already covered by an existing watched directory
+        for (const existing of this.currentWatchedDirs) {
+            if (this.isSubdir(dir, existing)) {
+                return;
+            }
+        }
+        // If new dir is a parent of existing ones, unwatch children
+        const toRemove: string[] = [];
+        for (const existing of this.currentWatchedDirs) {
+            if (this.isSubdir(existing, dir)) {
+                toRemove.push(existing);
+            }
+        }
+        if (toRemove.length) {
+            this.watcher.unwatch(toRemove);
+            for (const r of toRemove) this.currentWatchedDirs.delete(r);
         }
         this.watcher.add(dir);
         this.currentWatchedDirs.add(dir);
-        // New files might now be visible; schedule a run
-        this.scheduleDiagnostics();
     }
 
     private async updateWatchedDirectories() {
         const watchDirs = await this.svelteCheck.getWatchDirectories();
-        const dirsToWatch = watchDirs || [{ path: this.workspaceUri.fsPath, recursive: true }];
-        const newDirs = new Set(dirsToWatch.map((d) => d.path));
+        const desired = this.minimizeDirs(
+            (watchDirs?.map((d) => d.path) || [this.workspaceUri.fsPath]).map((p) =>
+                path.resolve(p)
+            )
+        );
 
-        // Fast diff: find directories to add and remove
-        const toAdd = [...newDirs].filter((dir) => !this.currentWatchedDirs.has(dir));
-        const toRemove = [...this.currentWatchedDirs].filter((dir) => !newDirs.has(dir));
+        const current = new Set([...this.currentWatchedDirs].map((p) => path.resolve(p)));
+        const desiredSet = new Set(desired);
 
-        // Add new directories
-        if (toAdd.length > 0) {
-            this.watcher.add(toAdd);
-        }
+        const toAdd = desired.filter((d) => !current.has(d));
+        const toRemove = [...current].filter((d) => !desiredSet.has(d));
 
-        // Remove old directories
-        if (toRemove.length > 0) {
-            this.watcher.unwatch(toRemove);
-        }
+        if (toAdd.length) this.watcher.add(toAdd);
+        if (toRemove.length) this.watcher.unwatch(toRemove);
 
-        // Update current set
-        this.currentWatchedDirs = newDirs;
-
-        if (this.ignoreInitialAdd) {
-            this.scheduleDiagnostics();
-        }
+        this.currentWatchedDirs = new Set(desired);
     }
 
     private async updateDocument(path: string, isNew: boolean) {
@@ -319,7 +342,8 @@ parseOptions(async (opts) => {
                 watcher.updateWatchers();
                 watcher.scheduleDiagnostics();
             };
-            svelteCheckOptions.onSnapshotCreated = (dirPath: string) => {
+            svelteCheckOptions.onFileSnapshotCreated = (filePath: string) => {
+                const dirPath = path.dirname(filePath);
                 watcher.addWatchDirectory(dirPath);
             };
             watcher = new DiagnosticsWatcher(

@@ -33,9 +33,9 @@ export interface SvelteCheckOptions {
     watch?: boolean;
     /**
      * Optional callback invoked when a new snapshot is created.
-     * Used by svelte-check to dynamically add watch directories.
+     * Provides the absolute file path of the snapshot.
      */
-    onSnapshotCreated?: (dirPath: string) => void;
+    onFileSnapshotCreated?: (filePath: string) => void;
 }
 
 /**
@@ -97,7 +97,7 @@ export class SvelteCheck {
                     isSvelteCheck: true,
                     onProjectReloaded: options.onProjectReload,
                     watch: options.watch,
-                    onSnapshotCreated: options.onSnapshotCreated
+                    onFileSnapshotCreated: options.onFileSnapshotCreated
                 }
             );
             this.pluginHost.register(
