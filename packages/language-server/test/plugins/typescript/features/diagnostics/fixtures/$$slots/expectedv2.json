@@ -1,87 +1,57 @@
 [
-  {
-    "code": 2322,
-    "message": "Type 'boolean' is not assignable to type 'string'.",
-    "range": {
-      "end": {
-        "character": 39,
-        "line": 13,
-      },
-      "start": {
-        "character": 20,
-        "line": 13,
-      },
+    {
+        "range": {
+            "start": { "line": 13, "character": 20 },
+            "end": { "line": 13, "character": 39 }
+        },
+        "severity": 1,
+        "source": "ts",
+        "message": "Type 'boolean' is not assignable to type 'string'.",
+        "code": 2322,
+        "tags": []
     },
-    "severity": 1,
-    "source": "ts",
-    "tags": [],
-  },
-  {
-    "code": 2353,
-    "message": "Object literal may only specify known properties, and '"invalidProp1"' does not exist in type '{ valid1: boolean; validPropWrongType1: string; }'.",
-    "range": {
-      "end": {
-        "character": 32,
-        "line": 14,
-      },
-      "start": {
-        "character": 20,
-        "line": 14,
-      },
+    {
+        "range": {
+            "start": { "line": 14, "character": 20 },
+            "end": { "line": 14, "character": 32 }
+        },
+        "severity": 1,
+        "source": "ts",
+        "message": "Object literal may only specify known properties, and '\"invalidProp1\"' does not exist in type '{ valid1: boolean; validPropWrongType1: string; }'.",
+        "code": 2353,
+        "tags": []
     },
-    "severity": 1,
-    "source": "ts",
-    "tags": [],
-  },
-  {
-    "code": 2322,
-    "message": "Type 'boolean' is not assignable to type 'string'.",
-    "range": {
-      "end": {
-        "character": 50,
-        "line": 15,
-      },
-      "start": {
-        "character": 31,
-        "line": 15,
-      },
+    {
+        "range": {
+            "start": { "line": 15, "character": 31 },
+            "end": { "line": 15, "character": 50 }
+        },
+        "severity": 1,
+        "source": "ts",
+        "message": "Type 'boolean' is not assignable to type 'string'.",
+        "code": 2322,
+        "tags": []
     },
-    "severity": 1,
-    "source": "ts",
-    "tags": [],
-  },
-  {
-    "code": 2353,
-    "message": "Object literal may only specify known properties, and '"invalidProp2"' does not exist in type '{ valid2: boolean; validPropWrongType2: string; }'.",
-    "range": {
-      "end": {
-        "character": 43,
-        "line": 16,
-      },
-      "start": {
-        "character": 31,
-        "line": 16,
-      },
+    {
+        "range": {
+            "start": { "line": 16, "character": 31 },
+            "end": { "line": 16, "character": 43 }
+        },
+        "severity": 1,
+        "source": "ts",
+        "message": "Object literal may only specify known properties, and '\"invalidProp2\"' does not exist in type '{ valid2: boolean; validPropWrongType2: string; }'.",
+        "code": 2353,
+        "tags": []
     },
-    "severity": 1,
-    "source": "ts",
-    "tags": [],
-  },
-  {
-    "code": 2345,
-    "message": "Argument of type '"invalid"' is not assignable to parameter of type 'keyof $$Slots'.",
-    "range": {
-      "end": {
-        "character": 19,
-        "line": 17,
-      },
-      "start": {
-        "character": 12,
-        "line": 17,
-      },
-    },
-    "severity": 1,
-    "source": "ts",
-    "tags": [],
-  },
+    {
+        "range": {
+            "start": { "line": 17, "character": 12 },
+            "end": { "line": 17, "character": 19 }
+        },
+        "severity": 1,
+        "source": "ts",
+        "message": "Argument of type '\"invalid\"' is not assignable to parameter of type 'keyof $$Slots'.",
+        "code": 2345,
+        "tags": []
+    }
 ]

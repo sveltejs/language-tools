@@ -1,19 +1,9 @@
 [
-  {
-    "code": -1,
-    "message": "`<svelte:element>` must have a 'this' attribute with a value
-https://svelte.dev/e/svelte_element_missing_this",
-    "range": {
-      "end": {
-        "character": 0,
-        "line": 4,
-      },
-      "start": {
-        "character": 0,
-        "line": 4,
-      },
-    },
-    "severity": 1,
-    "source": "ts",
-  },
+    {
+        "range": { "start": { "line": 4, "character": 0 }, "end": { "line": 4, "character": 0 } },
+        "severity": 1,
+        "source": "ts",
+        "message": "<svelte:element> must have a 'this' attribute",
+        "code": -1
+    }
 ]

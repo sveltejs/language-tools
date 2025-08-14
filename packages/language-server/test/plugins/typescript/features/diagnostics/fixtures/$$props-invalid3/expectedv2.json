@@ -1,20 +1,10 @@
 [
-  {
-    "code": 2345,
-    "message": "Argument of type '$$Props' is not assignable to parameter of type '{ wrong: boolean; }'.
-  Property 'wrong' is missing in type '$$Props' but required in type '{ wrong: boolean; }'.",
-    "range": {
-      "end": {
-        "character": 18,
-        "line": 1,
-      },
-      "start": {
-        "character": 11,
-        "line": 1,
-      },
-    },
-    "severity": 1,
-    "source": "ts",
-    "tags": [],
-  },
+    {
+        "range": { "start": { "line": 1, "character": 11 }, "end": { "line": 1, "character": 18 } },
+        "severity": 1,
+        "source": "ts",
+        "message": "Argument of type '$$Props' is not assignable to parameter of type '{ wrong: boolean; }'.\n  Property 'wrong' is missing in type '$$Props' but required in type '{ wrong: boolean; }'.",
+        "code": 2345,
+        "tags": []
+    }
 ]

@@ -1,122 +1,76 @@
 [
-  {
-    "code": 2367,
-    "message": "This comparison appears to be unintentional because the types 'string' and 'boolean' have no overlap.",
-    "range": {
-      "end": {
-        "character": 15,
-        "line": 14,
-      },
-      "start": {
-        "character": 5,
-        "line": 14,
-      },
+    {
+        "range": {
+            "start": { "line": 14, "character": 5 },
+            "end": { "line": 14, "character": 15 }
+        },
+        "severity": 1,
+        "source": "ts",
+        "message": "This comparison appears to be unintentional because the types 'string' and 'boolean' have no overlap.",
+        "code": 2367,
+        "tags": []
     },
-    "severity": 1,
-    "source": "ts",
-    "tags": [],
-  },
-  {
-    "code": 2367,
-    "message": "This comparison appears to be unintentional because the types 'string' and 'boolean' have no overlap.",
-    "range": {
-      "end": {
-        "character": 19,
-        "line": 17,
-      },
-      "start": {
-        "character": 9,
-        "line": 17,
-      },
+    {
+        "range": {
+            "start": { "line": 17, "character": 9 },
+            "end": { "line": 17, "character": 19 }
+        },
+        "severity": 1,
+        "source": "ts",
+        "message": "This comparison appears to be unintentional because the types 'string' and 'boolean' have no overlap.",
+        "code": 2367,
+        "tags": []
     },
-    "severity": 1,
-    "source": "ts",
-    "tags": [],
-  },
-  {
-    "code": 2367,
-    "message": "This comparison appears to be unintentional because the types 'string' and 'boolean' have no overlap.",
-    "range": {
-      "end": {
-        "character": 19,
-        "line": 21,
-      },
-      "start": {
-        "character": 9,
-        "line": 21,
-      },
+    {
+        "range": {
+            "start": { "line": 21, "character": 9 },
+            "end": { "line": 21, "character": 19 }
+        },
+        "severity": 1,
+        "source": "ts",
+        "message": "This comparison appears to be unintentional because the types 'string' and 'boolean' have no overlap.",
+        "code": 2367,
+        "tags": []
     },
-    "severity": 1,
-    "source": "ts",
-    "tags": [],
-  },
-  {
-    "code": 2367,
-    "message": "This comparison appears to be unintentional because the types '{ a: string | boolean; }' and 'boolean' have no overlap.",
-    "range": {
-      "end": {
-        "character": 19,
-        "line": 32,
-      },
-      "start": {
-        "character": 9,
-        "line": 32,
-      },
+    {
+        "range": {
+            "start": { "line": 32, "character": 9 },
+            "end": { "line": 32, "character": 19 }
+        },
+        "severity": 1,
+        "source": "ts",
+        "message": "This comparison appears to be unintentional because the types '{ a: string | boolean; }' and 'boolean' have no overlap.",
+        "code": 2367,
+        "tags": []
     },
-    "severity": 1,
-    "source": "ts",
-    "tags": [],
-  },
-  {
-    "code": 2367,
-    "message": "This comparison appears to be unintentional because the types 'boolean' and 'string' have no overlap.",
-    "range": {
-      "end": {
-        "character": 26,
-        "line": 36,
-      },
-      "start": {
-        "character": 17,
-        "line": 36,
-      },
+    {
+        "range": {
+            "start": { "line": 36, "character": 17 },
+            "end": { "line": 36, "character": 26 }
+        },
+        "severity": 1,
+        "source": "ts",
+        "message": "This comparison appears to be unintentional because the types 'boolean' and 'string' have no overlap.",
+        "code": 2367,
+        "tags": []
     },
-    "severity": 1,
-    "source": "ts",
-    "tags": [],
-  },
-  {
-    "code": 2367,
-    "message": "This comparison appears to be unintentional because the types 'string' and 'boolean' have no overlap.",
-    "range": {
-      "end": {
-        "character": 25,
-        "line": 45,
-      },
-      "start": {
-        "character": 13,
-        "line": 45,
-      },
+    {
+        "range": {
+            "start": { "line": 45, "character": 13 },
+            "end": { "line": 45, "character": 25 }
+        },
+        "severity": 1,
+        "source": "ts",
+        "message": "This comparison appears to be unintentional because the types 'string' and 'boolean' have no overlap.",
+        "code": 2367,
+        "tags": []
     },
-    "severity": 1,
-    "source": "ts",
-    "tags": [],
-  },
-  {
-    "code": 2322,
-    "message": "Type 'string | boolean' is not assignable to type 'string'.
-  Type 'boolean' is not assignable to type 'string'.",
-    "range": {
-      "end": {
-        "character": 8,
-        "line": 54,
-      },
-      "start": {
-        "character": 1,
-        "line": 54,
-      },
-    },
-    "severity": 1,
-    "source": "ts",
-    "tags": [],
-  },
+    {
+        "range": { "start": { "line": 54, "character": 1 }, "end": { "line": 54, "character": 8 } },
+        "severity": 1,
+        "source": "ts",
+        "message": "Type 'string | boolean' is not assignable to type 'string'.\n  Type 'boolean' is not assignable to type 'string'.",
+        "code": 2322,
+        "tags": []
+    }
 ]

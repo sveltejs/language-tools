@@ -1,70 +1,34 @@
 [
-  {
-    "code": 2353,
-    "message": "Object literal may only specify known properties, and '"horizontalalignment"' does not exist in type 'HTMLProps<"label", HTMLAttributes<any>>'.",
-    "range": {
-      "end": {
-        "character": 43,
-        "line": 1,
-      },
-      "start": {
-        "character": 24,
-        "line": 1,
-      },
+    {
+        "range": { "start": { "line": 1, "character": 24 }, "end": { "line": 1, "character": 43 } },
+        "severity": 1,
+        "source": "ts",
+        "message": "Object literal may only specify known properties, and '\"horizontalalignment\"' does not exist in type 'HTMLProps<\"label\", HTMLAttributes<any>>'.",
+        "code": 2353,
+        "tags": []
     },
-    "severity": 1,
-    "source": "ts",
-    "tags": [],
-  },
-  {
-    "code": 2353,
-    "message": "Object literal may only specify known properties, and '"text"' does not exist in type 'HTMLProps<"span", HTMLAttributes<any>>'.",
-    "range": {
-      "end": {
-        "character": 34,
-        "line": 3,
-      },
-      "start": {
-        "character": 30,
-        "line": 3,
-      },
+    {
+        "range": { "start": { "line": 3, "character": 30 }, "end": { "line": 3, "character": 34 } },
+        "severity": 1,
+        "source": "ts",
+        "message": "Object literal may only specify known properties, and '\"text\"' does not exist in type 'HTMLProps<\"span\", HTMLAttributes<any>>'.",
+        "code": 2353,
+        "tags": []
     },
-    "severity": 1,
-    "source": "ts",
-    "tags": [],
-  },
-  {
-    "code": 2353,
-    "message": "Object literal may only specify known properties, and '"text"' does not exist in type 'HTMLProps<"span", HTMLAttributes<any>>'.",
-    "range": {
-      "end": {
-        "character": 22,
-        "line": 4,
-      },
-      "start": {
-        "character": 18,
-        "line": 4,
-      },
+    {
+        "range": { "start": { "line": 4, "character": 18 }, "end": { "line": 4, "character": 22 } },
+        "severity": 1,
+        "source": "ts",
+        "message": "Object literal may only specify known properties, and '\"text\"' does not exist in type 'HTMLProps<\"span\", HTMLAttributes<any>>'.",
+        "code": 2353,
+        "tags": []
     },
-    "severity": 1,
-    "source": "ts",
-    "tags": [],
-  },
-  {
-    "code": 2353,
-    "message": "Object literal may only specify known properties, and '"asd"' does not exist in type 'HTMLProps<"div", HTMLAttributes<any>>'.",
-    "range": {
-      "end": {
-        "character": 12,
-        "line": 7,
-      },
-      "start": {
-        "character": 9,
-        "line": 7,
-      },
-    },
-    "severity": 1,
-    "source": "ts",
-    "tags": [],
-  },
+    {
+        "range": { "start": { "line": 7, "character": 9 }, "end": { "line": 7, "character": 12 } },
+        "severity": 1,
+        "source": "ts",
+        "message": "Object literal may only specify known properties, and '\"asd\"' does not exist in type 'HTMLProps<\"div\", HTMLAttributes<any>>'.",
+        "code": 2353,
+        "tags": []
+    }
 ]

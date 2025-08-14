@@ -1,111 +1,57 @@
 [
-  {
-    "code": 2345,
-    "message": "Argument of type 'typeof DoesntWork' is not assignable to parameter of type 'ConstructorOfATypedSvelteComponent | Component<any, any, any>'.
-  Type 'typeof DoesntWork' is not assignable to type 'ConstructorOfATypedSvelteComponent'.
-    Type 'DoesntWork' is missing the following properties from type 'ATypedSvelteComponent': $$prop_def, $$events_def, $$slot_def, $on
-
-Possible causes:
-- You use the instance type of a component where you should use the constructor type
-- Type definitions are missing for this Svelte Component. ",
-    "range": {
-      "end": {
-        "character": 11,
-        "line": 19,
-      },
-      "start": {
-        "character": 1,
-        "line": 19,
-      },
+    {
+        "range": {
+            "start": { "line": 19, "character": 1 },
+            "end": { "line": 19, "character": 11 }
+        },
+        "severity": 1,
+        "source": "ts",
+        "message": "Argument of type 'typeof DoesntWork' is not assignable to parameter of type 'ConstructorOfATypedSvelteComponent'.\n  Type 'DoesntWork' is missing the following properties from type 'ATypedSvelteComponent': $$prop_def, $$events_def, $$slot_def, $on\n\nPossible causes:\n- You use the instance type of a component where you should use the constructor type\n- Type definitions are missing for this Svelte Component. If you are using Svelte 3.31+, use SvelteComponentTyped to add a definition:\n  import type { SvelteComponentTyped } from \"svelte\";\n  class ComponentName extends SvelteComponentTyped<{propertyName: string;}> {}",
+        "code": 2345,
+        "tags": []
     },
-    "severity": 1,
-    "source": "ts",
-    "tags": [],
-  },
-  {
-    "code": 2322,
-    "message": "Type 'true' is not assignable to type 'never'.",
-    "range": {
-      "end": {
-        "character": 25,
-        "line": 20,
-      },
-      "start": {
-        "character": 10,
-        "line": 20,
-      },
+    {
+        "range": {
+            "start": { "line": 20, "character": 10 },
+            "end": { "line": 20, "character": 25 }
+        },
+        "severity": 1,
+        "source": "ts",
+        "message": "Type 'true' is not assignable to type 'never'.",
+        "code": 2322,
+        "tags": []
     },
-    "severity": 1,
-    "source": "ts",
-    "tags": [],
-  },
-  {
-    "code": 2345,
-    "message": "Argument of type 'typeof DoesntWork' is not assignable to parameter of type 'ConstructorOfATypedSvelteComponent | Component<any, any, any>'.
-  Type 'typeof DoesntWork' is not assignable to type 'ConstructorOfATypedSvelteComponent'.
-    Type 'DoesntWork' is missing the following properties from type 'ATypedSvelteComponent': $$prop_def, $$events_def, $$slot_def, $on
-
-Possible causes:
-- You use the instance type of a component where you should use the constructor type
-- Type definitions are missing for this Svelte Component. ",
-    "range": {
-      "end": {
-        "character": 34,
-        "line": 21,
-      },
-      "start": {
-        "character": 24,
-        "line": 21,
-      },
+    {
+        "range": {
+            "start": { "line": 21, "character": 24 },
+            "end": { "line": 21, "character": 34 }
+        },
+        "severity": 1,
+        "source": "ts",
+        "message": "Argument of type 'typeof DoesntWork' is not assignable to parameter of type 'ConstructorOfATypedSvelteComponent'.\n  Type 'DoesntWork' is missing the following properties from type 'ATypedSvelteComponent': $$prop_def, $$events_def, $$slot_def, $on\n\nPossible causes:\n- You use the instance type of a component where you should use the constructor type\n- Type definitions are missing for this Svelte Component. If you are using Svelte 3.31+, use SvelteComponentTyped to add a definition:\n  import type { SvelteComponentTyped } from \"svelte\";\n  class ComponentName extends SvelteComponentTyped<{propertyName: string;}> {}",
+        "code": 2345,
+        "tags": []
     },
-    "severity": 1,
-    "source": "ts",
-    "tags": [],
-  },
-  {
-    "code": 2345,
-    "message": "Argument of type 'typeof DoesntWork' is not assignable to parameter of type 'ConstructorOfATypedSvelteComponent | Component<any, any, any>'.
-  Type 'typeof DoesntWork' is not assignable to type 'ConstructorOfATypedSvelteComponent'.
-    Type 'DoesntWork' is missing the following properties from type 'ATypedSvelteComponent': $$prop_def, $$events_def, $$slot_def, $on
-
-Possible causes:
-- You use the instance type of a component where you should use the constructor type
-- Type definitions are missing for this Svelte Component. ",
-    "range": {
-      "end": {
-        "character": 11,
-        "line": 24,
-      },
-      "start": {
-        "character": 1,
-        "line": 24,
-      },
+    {
+        "range": {
+            "start": { "line": 24, "character": 1 },
+            "end": { "line": 24, "character": 11 }
+        },
+        "severity": 1,
+        "source": "ts",
+        "message": "Argument of type 'typeof DoesntWork' is not assignable to parameter of type 'ConstructorOfATypedSvelteComponent'.\n  Type 'DoesntWork' is missing the following properties from type 'ATypedSvelteComponent': $$prop_def, $$events_def, $$slot_def, $on\n\nPossible causes:\n- You use the instance type of a component where you should use the constructor type\n- Type definitions are missing for this Svelte Component. If you are using Svelte 3.31+, use SvelteComponentTyped to add a definition:\n  import type { SvelteComponentTyped } from \"svelte\";\n  class ComponentName extends SvelteComponentTyped<{propertyName: string;}> {}",
+        "code": 2345,
+        "tags": []
     },
-    "severity": 1,
-    "source": "ts",
-    "tags": [],
-  },
-  {
-    "code": 2345,
-    "message": "Argument of type 'typeof DoesntWork' is not assignable to parameter of type 'ConstructorOfATypedSvelteComponent | Component<any, any, any>'.
-  Type 'typeof DoesntWork' is not assignable to type 'ConstructorOfATypedSvelteComponent'.
-    Type 'DoesntWork' is missing the following properties from type 'ATypedSvelteComponent': $$prop_def, $$events_def, $$slot_def, $on
-
-Possible causes:
-- You use the instance type of a component where you should use the constructor type
-- Type definitions are missing for this Svelte Component. ",
-    "range": {
-      "end": {
-        "character": 34,
-        "line": 27,
-      },
-      "start": {
-        "character": 24,
-        "line": 27,
-      },
-    },
-    "severity": 1,
-    "source": "ts",
-    "tags": [],
-  },
+    {
+        "range": {
+            "start": { "line": 27, "character": 24 },
+            "end": { "line": 27, "character": 34 }
+        },
+        "severity": 1,
+        "source": "ts",
+        "message": "Argument of type 'typeof DoesntWork' is not assignable to parameter of type 'ConstructorOfATypedSvelteComponent'.\n  Type 'DoesntWork' is missing the following properties from type 'ATypedSvelteComponent': $$prop_def, $$events_def, $$slot_def, $on\n\nPossible causes:\n- You use the instance type of a component where you should use the constructor type\n- Type definitions are missing for this Svelte Component. If you are using Svelte 3.31+, use SvelteComponentTyped to add a definition:\n  import type { SvelteComponentTyped } from \"svelte\";\n  class ComponentName extends SvelteComponentTyped<{propertyName: string;}> {}",
+        "code": 2345,
+        "tags": []
+    }
 ]
