@@ -1,1 +1,0 @@
- { svelteHTML.createElement("svelte:html", { "lang":`de`,}); }

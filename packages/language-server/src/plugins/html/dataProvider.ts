@@ -271,12 +271,6 @@ const svelteTags: ITagData[] = [
         ]
     },
     {
-        name: 'svelte:html',
-        description:
-            'This element allows you to add properties and listeners to events on `document.documentElement`. This is useful for attributes such as `lang` which influence how the browser interprets the content.',
-        attributes: []
-    },
-    {
         name: 'svelte:document',
         description:
             "As with <svelte:window>, this element allows you to add listeners to events on document, such as visibilitychange, which don't fire on window.",
