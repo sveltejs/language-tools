@@ -1,5 +1,5 @@
 import { describe, it, expect, afterAll, beforeAll } from 'vitest';
-import { readdirSync, statSync, existsSync } from 'fs';
+import { readdirSync, statSync, existsSync, readFileSync } from 'fs';
 import { join } from 'path';
 import ts from 'typescript';
 import { Document, DocumentManager } from '../../../../../src/lib/documents';
@@ -8,7 +8,11 @@ import { LSAndTSDocResolver } from '../../../../../src/plugins';
 import { DiagnosticsProviderImpl } from '../../../../../src/plugins/typescript/features/DiagnosticsProvider';
 import { __resetCache } from '../../../../../src/plugins/typescript/service';
 import { pathToUrl } from '../../../../../src/utils';
-import { serviceWarmup } from '../../test-utils';
+import {
+    serviceWarmup,
+    updateSnapshotIfFailedOrEmpty,
+    createJsonSnapshotFormatter
+} from '../../test-utils';
 import { getPackageInfo } from '../../../../../src/importPackage';
 
 function setup(workspaceDir: string, filePath: string) {
@@ -83,10 +87,18 @@ describe('DiagnosticsProvider', () => {
             const { plugin, document } = setup(workspaceDir, inputFile);
             const diagnostics = await plugin.getDiagnostics(document);
 
-            const snapshotName = testPath + '.json';
-            const snapshotPath = join(fixturesDir, 'snapshots', snapshotName);
+            const expectedFile = join(fixturesDir, testPath, 'expectedv2.json');
+            const formatJson = await createJsonSnapshotFormatter(__dirname);
 
-            await expect(diagnostics).toMatchFileSnapshot(snapshotPath);
+            await updateSnapshotIfFailedOrEmpty({
+                assertion: () =>
+                    expect(diagnostics).toEqual(
+                        JSON.parse(readFileSync(expectedFile, 'utf-8'))
+                    ),
+                expectedFile,
+                rootDir: fixturesDir,
+                getFileContent: () => formatJson(diagnostics)
+            });
         });
     }
 });
