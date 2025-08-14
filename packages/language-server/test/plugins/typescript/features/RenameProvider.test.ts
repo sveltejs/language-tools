@@ -84,7 +84,7 @@ describe('RenameProvider', function () {
         const { provider, renameDoc1 } = await setup();
         const result = await provider.rename(renameDoc1, Position.create(2, 15), 'newName');
 
-        expect(result, {
+        expect(result).toEqual({
             changes: {
                 [getUri('rename.svelte')]: [
                     {
@@ -245,7 +245,7 @@ describe('RenameProvider', function () {
         const { provider, renameDoc3 } = await setup();
         const result = await provider.rename(renameDoc3, Position.create(1, 25), 'newName');
 
-        expect(result, {
+        expect(result).toEqual({
             changes: {
                 [getUri('rename3.svelte')]: [
                     {
@@ -285,7 +285,7 @@ describe('RenameProvider', function () {
         const { provider, renameDoc3 } = await setup();
         const result = await provider.rename(renameDoc3, Position.create(2, 20), 'newName');
 
-        expect(result, {
+        expect(result).toEqual({
             changes: {
                 [getUri('rename3.svelte')]: [
                     {
@@ -364,7 +364,7 @@ describe('RenameProvider', function () {
         const { provider, renameDoc2 } = await setup();
         const result = await provider.rename(renameDoc2, Position.create(6, 11), 'newName');
 
-        expect(result, {
+        expect(result).toEqual({
             changes: {
                 [getUri('rename2.svelte')]: [
                     {
@@ -404,7 +404,7 @@ describe('RenameProvider', function () {
         const { provider, renameDoc4 } = await setup();
         const result = await provider.rename(renameDoc4, Position.create(1, 12), 'ChildNew');
 
-        expect(result, {
+        expect(result).toEqual({
             changes: {
                 [getUri('rename4.svelte')]: [
                     {
@@ -459,7 +459,7 @@ describe('RenameProvider', function () {
             result?.changes?.[getUri('rename5.svelte')].sort(
                 (c1, c2) => c1.range.start.line - c2.range.start.line
             );
-            expect(result, {
+            expect(result).toEqual({
                 changes: {
                     [getUri('rename5.svelte')]: [
                         {
@@ -558,7 +558,7 @@ describe('RenameProvider', function () {
         const { provider, renameDoc1 } = await setup();
         const result = await provider.prepareRename(renameDoc1, Position.create(1, 25));
 
-        expect(result, {
+        expect(result).toEqual({
             start: {
                 character: 15,
                 line: 1
@@ -588,7 +588,7 @@ describe('RenameProvider', function () {
         const { provider, renameDoc6 } = await setup();
         const result = await provider.rename(renameDoc6, Position.create(3, 9), 'newName');
 
-        expect(result, {
+        expect(result).toEqual({
             changes: {
                 [getUri('rename6.svelte')]: [
                     {
@@ -643,7 +643,7 @@ describe('RenameProvider', function () {
             'newName'
         );
 
-        expect(result, {
+        expect(result).toEqual({
             changes: {
                 [getUri('rename-ignore-generated.svelte')]: [
                     {
@@ -698,7 +698,7 @@ describe('RenameProvider', function () {
             'newName'
         );
 
-        expect(result, {
+        expect(result).toEqual({
             changes: {
                 [getUri('rename-prop-with-slot-events.svelte')]: [
                     {
@@ -760,7 +760,7 @@ describe('RenameProvider', function () {
 
         const result = await provider.rename(renameDocShorthand, position, 'newName');
 
-        expect(result, {
+        expect(result).toEqual({
             changes: {
                 [getUri('rename-shorthand.svelte')]: [
                     {
@@ -838,7 +838,7 @@ describe('RenameProvider', function () {
 
         const result = await provider.rename(renameSlotLet, Position.create(4, 7), 'newName');
 
-        expect(result, {
+        expect(result).toEqual({
             changes: {
                 [getUri('rename-slot-let.svelte')]: [
                     {
@@ -885,7 +885,7 @@ describe('RenameProvider', function () {
 
         const result = await provider.rename(renameRunes, Position.create(1, 40), 'newName');
 
-        expect(result, {
+        expect(result).toEqual({
             changes: {
                 [getUri('rename-runes.svelte')]: [
                     {
@@ -952,7 +952,7 @@ describe('RenameProvider', function () {
 
         const result = await provider.rename(renameRunes, Position.create(1, 54), 'newName');
 
-        expect(result, {
+        expect(result).toEqual({
             changes: {
                 [getUri('rename-runes.svelte')]: [
                     {
@@ -1020,7 +1020,7 @@ describe('RenameProvider', function () {
 
         const result = await provider.rename(renameRunes, Position.create(7, 15), 'newName');
 
-        expect(result, {
+        expect(result).toEqual({
             changes: {
                 // TODO complete once test can be unskipped
                 [getUri('rename-runes.svelte')]: [],
@@ -1038,7 +1038,7 @@ describe('RenameProvider', function () {
             'newName'
         );
 
-        expect(result, {
+        expect(result).toEqual({
             changes: {
                 [getUri('rename-runes.svelte')]: [
                     {

@@ -4,10 +4,7 @@ import { parseHtml } from '../../../src/lib/documents/parseHtml';
 
 describe('parseHtml', () => {
     const testRootElements = (document: HTMLDocument) => {
-        expect(
-            document.roots.map((r) => r.tag),
-            ['Foo', 'style']
-        );
+        expect(document.roots.map((r) => r.tag)).toEqual(['Foo', 'style']);
     };
 
     it('ignore arrow inside moustache', () => {

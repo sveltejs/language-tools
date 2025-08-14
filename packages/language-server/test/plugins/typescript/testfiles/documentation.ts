@@ -2,4 +2,6 @@
  * bars
  * @author John
  */
-export function foo() { return false; }
+export function foo() {
+    return false;
+}

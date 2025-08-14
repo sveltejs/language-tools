@@ -49,7 +49,7 @@ describe('TypeDefinitionProvider', function () {
             character: 15
         });
 
-        expect(typeDefs, <Location[]>[
+        expect(typeDefs).toEqual<Location[]>([
             {
                 range: {
                     start: {
@@ -74,7 +74,7 @@ describe('TypeDefinitionProvider', function () {
             character: 20
         });
 
-        expect(typeDefs, <Location[]>[
+        expect(typeDefs).toEqual<Location[]>([
             {
                 range: {
                     start: {
@@ -95,7 +95,7 @@ describe('TypeDefinitionProvider', function () {
         const { provider, document } = setup('../declaration-map/importing.svelte');
 
         const typeDefs = await provider.getTypeDefinition(document, { line: 1, character: 13 });
-        expect(typeDefs, <Location[]>[
+        expect(typeDefs).toEqual<Location[]>([
             {
                 range: {
                     end: { line: 0, character: 18 },

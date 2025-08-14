@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
 import sinon from 'sinon';
 import ts from 'typescript';
 import { createSvelteSys } from '../../../src/plugins/typescript/svelte-sys';

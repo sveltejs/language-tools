@@ -68,7 +68,7 @@ describe('CodeLensProvider', function () {
 
         const references = codeLenses?.filter((lens) => lens.data.type === 'reference');
 
-        expect(references, [
+        expect(references).toEqual([
             {
                 range: {
                     start: { line: 0, character: 0 },
@@ -103,7 +103,7 @@ describe('CodeLensProvider', function () {
             data: { type: 'reference', uri: getUri('references.svelte') }
         });
 
-        expect(codeLens.command, {
+        expect(codeLens.command).toEqual({
             title: '1 reference',
             command: '',
             arguments: [
@@ -132,7 +132,7 @@ describe('CodeLensProvider', function () {
             data: { type: 'reference', uri: getUri('references.svelte') }
         });
 
-        expect(codeLens.command, {
+        expect(codeLens.command).toEqual({
             title: '2 references',
             command: '',
             arguments: [
@@ -167,7 +167,7 @@ describe('CodeLensProvider', function () {
 
         const references = codeLenses?.filter((lens) => lens.data.type === 'implementation');
 
-        expect(references, [
+        expect(references).toEqual([
             {
                 range: {
                     start: { line: 1, character: 14 },
@@ -188,7 +188,7 @@ describe('CodeLensProvider', function () {
             data: { type: 'implementation', uri: getUri('references.svelte') }
         });
 
-        expect(codeLens.command, {
+        expect(codeLens.command).toEqual({
             title: '1 implementation',
             command: '',
             arguments: [

@@ -49,8 +49,8 @@ describe('ConfigLoader', () => {
     ) {
         filePath = normalizePath(filePath);
         configPath = normalizePath(configPath);
-        expect(configLoader.getConfig(filePath), configFrom(configPath));
-        expect(await configLoader.awaitConfig(filePath), configFrom(configPath));
+        expect(configLoader.getConfig(filePath)).toEqual(configFrom(configPath));
+        expect(await configLoader.awaitConfig(filePath)).toEqual(configFrom(configPath));
     }
 
     it('should load all config files below and the one inside/above given directory', async () => {
@@ -112,9 +112,8 @@ describe('ConfigLoader', () => {
             // Can't do the equal-check directly, instead check if it's the expected object props
             Object.keys(
                 configLoader.getConfig(normalizePath('/some/path/comp.svelte'))?.preprocess || {}
-            ).sort(),
-            ['name', 'script'].sort()
-        );
+            ).sort()
+        ).toEqual(['name', 'script'].sort());
     });
 
     it('will not load config multiple times if config loading started in parallel', async () => {
@@ -165,7 +164,7 @@ describe('ConfigLoader', () => {
         const configLoader = new ConfigLoader(mockFdir([]), { existsSync: () => false }, path, () =>
             Promise.resolve('unimportant')
         );
-        expect(configLoader.getConfig(normalizePath('/some/file.svelte')), undefined);
+        expect(configLoader.getConfig(normalizePath('/some/file.svelte'))).toEqual(undefined);
     });
 
     it('should await config', async () => {
@@ -175,8 +174,7 @@ describe('ConfigLoader', () => {
             path,
             (module: URL) => Promise.resolve({ default: { preprocess: module.toString() } })
         );
-        expect(
-            await configLoader.awaitConfig(normalizePath('some/file.svelte')),
+        expect(await configLoader.awaitConfig(normalizePath('some/file.svelte'))).toEqual(
             configFrom(normalizePath('some/svelte.config.js'))
         );
     });

@@ -38,7 +38,7 @@ describe('SelectionRangeProvider', function () {
 
         const selectionRange = await provider.getSelectionRange(document, Position.create(1, 9));
 
-        expect(selectionRange, <SelectionRange>{
+        expect(selectionRange).toEqual<SelectionRange>({
             parent: {
                 parent: undefined,
                 // let a;
@@ -72,7 +72,7 @@ describe('SelectionRangeProvider', function () {
 
         const selectionRange = await provider.getSelectionRange(document, Position.create(2, 28));
 
-        expect(selectionRange, <SelectionRange>{
+        expect(selectionRange).toEqual<SelectionRange>({
             parent: {
                 parent: {
                     parent: {

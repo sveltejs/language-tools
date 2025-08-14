@@ -70,7 +70,7 @@ describe('service', () => {
         // ts internal
         delete ls.compilerOptions.configFilePath;
 
-        expect(ls.compilerOptions, <ts.CompilerOptions>{
+        expect(ls.compilerOptions).toEqual(<ts.CompilerOptions>{
             allowNonTsExtensions: true,
             checkJs: true,
             strict: true,
@@ -213,7 +213,7 @@ describe('service', () => {
             lsDocumentContext
         );
 
-        expect(ls.compilerOptions, <ts.CompilerOptions>{
+        expect(ls.compilerOptions).toEqual(<ts.CompilerOptions>{
             allowJs: true,
             allowSyntheticDefaultImports: true,
             allowNonTsExtensions: true,
@@ -400,7 +400,7 @@ describe('service', () => {
                 ...lsDocumentContext,
                 watchTsConfig: true
             });
-            expect(newLs.compilerOptions.strict, true, 'expected to reload compilerOptions');
+            expect(newLs.compilerOptions.strict, 'expected to reload compilerOptions').toBe(true);
 
             return true;
         }
@@ -448,7 +448,7 @@ describe('service', () => {
                 ...lsDocumentContext,
                 watchTsConfig: true
             });
-            expect(newLs.compilerOptions.strict, true, 'expected to reload compilerOptions');
+            expect(newLs.compilerOptions.strict, 'expected to reload compilerOptions').toBe(true);
             return true;
         }
     });

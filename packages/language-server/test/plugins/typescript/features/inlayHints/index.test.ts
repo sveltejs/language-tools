@@ -111,9 +111,7 @@ describe('InlayHintProvider', () => {
 
             await updateSnapshotIfFailedOrEmpty({
                 assertion: () =>
-                    expect(sanitized).toEqual(
-                        JSON.parse(readFileSync(expectedFile, 'utf-8'))
-                    ),
+                    expect(sanitized).toEqual(JSON.parse(readFileSync(expectedFile, 'utf-8'))),
                 expectedFile,
                 rootDir: fixturesDir,
                 getFileContent: () => formatJson(sanitized)

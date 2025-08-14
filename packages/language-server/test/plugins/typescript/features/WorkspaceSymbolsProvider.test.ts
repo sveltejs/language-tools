@@ -45,7 +45,7 @@ describe('WorkspaceSymbolsProvider', function () {
         await lsAndTsDocResolver.getLSAndTSDoc(document);
 
         const symbols = await provider.getWorkspaceSymbols('longName');
-        expect(symbols, [
+        expect(symbols).toEqual([
             {
                 containerName: 'script',
                 kind: 12,
@@ -136,12 +136,11 @@ describe('WorkspaceSymbolsProvider', function () {
             // and there is a maxResultCount limit, so it's not always present.
             onlyInWorkspaceSymbolsDir(symbols)?.filter(
                 (v) => v.name !== 'WorkspaceSymbols__SvelteComponent_'
-            ),
-            []
-        );
+            )
+        ).toEqual([]);
 
         const symbols2 = await provider.getWorkspaceSymbols('$');
-        expect(onlyInWorkspaceSymbolsDir(symbols2), []);
+        expect(onlyInWorkspaceSymbolsDir(symbols2)).toEqual([]);
     });
 
     function onlyInWorkspaceSymbolsDir(symbols: WorkspaceSymbol[] | null) {

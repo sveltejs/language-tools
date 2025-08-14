@@ -43,7 +43,7 @@ describe('SignatureHelpProvider', function () {
 
         const result = await provider.getSignatureHelp(document, Position.create(3, 8), undefined);
 
-        expect(result, <SignatureHelp>{
+        expect(result).toEqual<SignatureHelp>({
             signatures: [
                 {
                     label: 'foo(): boolean',
@@ -61,7 +61,7 @@ describe('SignatureHelpProvider', function () {
 
         const result = await provider.getSignatureHelp(document, Position.create(4, 12), undefined);
 
-        expect(result, <SignatureHelp>{
+        expect(result).toEqual<SignatureHelp>({
             signatures: [
                 {
                     label: 'abc(a: number, b: number): string',

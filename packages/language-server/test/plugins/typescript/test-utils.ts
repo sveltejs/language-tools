@@ -1,5 +1,5 @@
 import path, { dirname, isAbsolute, join } from 'path';
-import { expect, beforeEach, afterEach, beforeAll, afterAll, after, describe, it } from 'vitest';
+import { expect, beforeEach, afterEach, beforeAll, afterAll, describe, it } from 'vitest';
 import { existsSync, readdirSync, statSync, writeFileSync } from 'fs';
 import ts from 'typescript';
 import { resolveConfig, format } from 'prettier';
@@ -220,7 +220,7 @@ export function createSnapshotTester<
             _it(dir.substring(__dirname.length), () => executeTest(inputFile, testOptions));
         } else {
             const _describe = dir.endsWith('.only') ? describe.only : describe;
-            _describe(dir.substring(__dirname.length), function () {
+            _describe(dir.substring(__dirname.length), function (this: any) {
                 const subDirs = readdirSync(dir);
 
                 for (const subDir of subDirs) {

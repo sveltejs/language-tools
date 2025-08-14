@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
 import { join } from 'path';
 import sinon from 'sinon';
 import ts from 'typescript';
@@ -60,7 +60,7 @@ describe('UpdateImportsProviderImpl', function () {
             newUri: pathToUrl(join(updateImportTestDir, 'documentation.svelte'))
         });
 
-        expect(workspaceEdit?.documentChanges, [
+        expect(workspaceEdit?.documentChanges).toEqual([
             TextDocumentEdit.create(OptionalVersionedTextDocumentIdentifier.create(fileUri, null), [
                 TextEdit.replace(
                     Range.create(Position.create(1, 17), Position.create(1, 34)),
@@ -81,7 +81,7 @@ describe('UpdateImportsProviderImpl', function () {
             newUri: pathToUrl(join(updateImportTestDir, 'Imported.svelte'))
         });
 
-        expect(workspaceEdit?.documentChanges, [
+        expect(workspaceEdit?.documentChanges).toEqual([
             TextDocumentEdit.create(OptionalVersionedTextDocumentIdentifier.create(fileUri, null), [
                 TextEdit.replace(
                     Range.create(Position.create(1, 17), Position.create(1, 34)),

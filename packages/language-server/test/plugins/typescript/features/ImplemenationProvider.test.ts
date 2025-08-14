@@ -49,7 +49,7 @@ describe('ImplementationProvider', function () {
             character: 25
         });
 
-        expect(implementations, <Location[]>[
+        expect(implementations).toEqual<Location[]>([
             {
                 range: {
                     start: {
@@ -86,7 +86,7 @@ describe('ImplementationProvider', function () {
             line: 1,
             character: 13
         });
-        expect(implementations, <Location[]>[
+        expect(implementations).toEqual<Location[]>([
             {
                 range: {
                     end: { line: 0, character: 18 },

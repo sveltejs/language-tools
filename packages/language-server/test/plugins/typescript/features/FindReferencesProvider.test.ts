@@ -101,7 +101,7 @@ describe('FindReferencesProvider', function () {
         const results = await provider.findReferences(document, Position.create(5, 10), {
             includeDeclaration: true
         });
-        expect(results, [
+        expect(results).toEqual([
             {
                 range: {
                     end: {
@@ -215,7 +215,7 @@ describe('FindReferencesProvider', function () {
         const results = await provider.findReferences(document, Position.create(1, 8), {
             includeDeclaration: true
         });
-        expect(results, [
+        expect(results).toEqual([
             {
                 range: {
                     end: {
@@ -268,7 +268,7 @@ describe('FindReferencesProvider', function () {
             includeDeclaration: true
         });
 
-        expect(results, [
+        expect(results).toEqual([
             {
                 uri,
                 range: {
@@ -321,7 +321,7 @@ describe('FindReferencesProvider', function () {
                 includeDeclaration: true
             }
         );
-        expect(references, <Location[]>[
+        expect(references).toEqual(<Location[]>[
             {
                 range: {
                     end: { line: 0, character: 18 },

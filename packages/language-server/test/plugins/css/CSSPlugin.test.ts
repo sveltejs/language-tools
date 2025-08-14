@@ -44,7 +44,7 @@ describe('CSS Plugin', () => {
         it('for normal css', () => {
             const { plugin, document } = setup('<style>h1 {}</style>');
 
-            expect(plugin.doHover(document, Position.create(0, 8))).toEqual(<Hover>{
+            expect(plugin.doHover(document, Position.create(0, 8))).toEqual<Hover>({
                 contents: [
                     { language: 'html', value: '<h1>' },
                     '[Selector Specificity](https://developer.mozilla.org/docs/Web/CSS/Specificity): (0, 0, 1)'
@@ -67,7 +67,7 @@ describe('CSS Plugin', () => {
 
         it('for style attribute', () => {
             const { plugin, document } = setup('<div style="height: auto;"></div>');
-            expect(plugin.doHover(document, Position.create(0, 13))).toEqual(<Hover>{
+            expect(plugin.doHover(document, Position.create(0, 13))).toEqual<Hover>({
                 contents: {
                     kind: 'markdown',
                     value:
@@ -93,10 +93,7 @@ describe('CSS Plugin', () => {
             const completions = await plugin.getCompletions(document, Position.create(0, 7), {
                 triggerCharacter: '.'
             } as CompletionContext);
-            expect(
-                Array.isArray(completions && completions.items),
-                'Expected completion items to be an array'
-            );
+            expect(Array.isArray(completions && completions.items)).toBe(true);
             expect(completions!.items.length > 0).toBeTruthy();
 
             expect(completions!.items[0]).toEqual(<CompletionItem>{
@@ -137,38 +134,37 @@ describe('CSS Plugin', () => {
             const completions = await plugin.getCompletions(document, Position.create(0, 22), {
                 triggerKind: CompletionTriggerKind.Invoked
             } as CompletionContext);
-            expect(
-                completions?.items.find((item) => item.label === 'none'),
-                <CompletionItem>{
-                    insertTextFormat: undefined,
-                    kind: 12,
-                    label: 'none',
-                    documentation: {
-                        kind: 'markdown',
-                        value: 'The element and its descendants generates no boxes\\.'
-                    },
-                    sortText: ' ',
-                    tags: [],
-                    textEdit: {
-                        newText: 'none',
-                        range: {
-                            start: {
-                                line: 0,
-                                character: 21
-                            },
-                            end: {
-                                line: 0,
-                                character: 22
-                            }
+            expect(completions?.items.find((item) => item.label === 'none')).toEqual(<
+                CompletionItem
+            >{
+                insertTextFormat: undefined,
+                kind: 12,
+                label: 'none',
+                documentation: {
+                    kind: 'markdown',
+                    value: 'The element and its descendants generates no boxes\\.'
+                },
+                sortText: ' ',
+                tags: [],
+                textEdit: {
+                    newText: 'none',
+                    range: {
+                        start: {
+                            line: 0,
+                            character: 21
+                        },
+                        end: {
+                            line: 0,
+                            character: 22
                         }
                     }
                 }
-            );
+            });
         });
 
         it('not for style attribute with interpolation', async () => {
             const { plugin, document } = setup('<div style="height: {}"></div>');
-            expect(await plugin.getCompletions(document, Position.create(0, 21)), null);
+            expect(await plugin.getCompletions(document, Position.create(0, 21))).toEqual(null);
         });
 
         it('for path completion', async () => {
@@ -185,26 +181,25 @@ describe('CSS Plugin', () => {
                 }
             });
             const completions = await plugin.getCompletions(document, Position.create(0, 16));
-            expect(
-                completions?.items.find((item) => item.label === 'foo.css'),
-                <CompletionItem>{
-                    label: 'foo.css',
-                    kind: 17,
-                    textEdit: {
-                        newText: 'foo.css',
-                        range: {
-                            end: {
-                                character: 18,
-                                line: 0
-                            },
-                            start: {
-                                character: 16,
-                                line: 0
-                            }
+            expect(completions?.items.find((item) => item.label === 'foo.css')).toEqual(<
+                CompletionItem
+            >{
+                label: 'foo.css',
+                kind: 17,
+                textEdit: {
+                    newText: 'foo.css',
+                    range: {
+                        end: {
+                            character: 18,
+                            line: 0
+                        },
+                        start: {
+                            character: 16,
+                            line: 0
                         }
                     }
                 }
-            );
+            });
         });
     });
 
@@ -222,7 +217,7 @@ describe('CSS Plugin', () => {
 
             const diagnostics = plugin.getDiagnostics(document);
 
-            expect(diagnostics, [
+            expect(diagnostics).toEqual([
                 {
                     code: 'unknownProperties',
                     message: "Unknown property: 'iDunnoDisProperty'",
@@ -278,7 +273,7 @@ describe('CSS Plugin', () => {
                 { alpha: 1, blue: 255, green: 0, red: 0 }
             );
 
-            expect(colors, [
+            expect(colors).toEqual([
                 {
                     label: 'rgb(0, 0, 65025)',
                     textEdit: {
@@ -392,10 +387,9 @@ describe('CSS Plugin', () => {
                         end: { line: 2, character: 26 }
                     },
                     { alpha: 1, blue: 255, green: 0, red: 0 }
-                ),
-                []
-            );
-            expect(plugin.getDocumentColors(document), []);
+                )
+            ).toEqual([]);
+            expect(plugin.getDocumentColors(document)).toEqual([]);
         });
 
         it('not for stylus', () => {
@@ -412,10 +406,9 @@ describe('CSS Plugin', () => {
                         end: { line: 2, character: 26 }
                     },
                     { alpha: 1, blue: 255, green: 0, red: 0 }
-                ),
-                []
-            );
-            expect(plugin.getDocumentColors(document), []);
+                )
+            ).toEqual([]);
+            expect(plugin.getDocumentColors(document)).toEqual([]);
         });
     });
 
@@ -425,7 +418,7 @@ describe('CSS Plugin', () => {
 
             const symbols = plugin.getDocumentSymbols(document);
 
-            expect(symbols, [
+            expect(symbols).toEqual([
                 {
                     containerName: 'style',
                     kind: 5,
@@ -449,12 +442,12 @@ describe('CSS Plugin', () => {
 
         it('not for SASS', () => {
             const { plugin, document } = setup('<style lang="sass">h1 {color:blue;}</style>');
-            expect(plugin.getDocumentSymbols(document), []);
+            expect(plugin.getDocumentSymbols(document)).toEqual([]);
         });
 
         it('not for stylus', () => {
             const { plugin, document } = setup('<style lang="stylus">h1 {color:blue;}</style>');
-            expect(plugin.getDocumentSymbols(document), []);
+            expect(plugin.getDocumentSymbols(document)).toEqual([]);
         });
     });
 
@@ -463,7 +456,7 @@ describe('CSS Plugin', () => {
 
         const selectionRange = plugin.getSelectionRange(document, Position.create(0, 11));
 
-        expect(selectionRange, <SelectionRange>{
+        expect(selectionRange).toEqual(<SelectionRange>{
             parent: {
                 parent: {
                     parent: undefined,
@@ -526,7 +519,7 @@ describe('CSS Plugin', () => {
 
             const foldingRanges = plugin.getFoldingRanges(document);
 
-            expect(foldingRanges, [
+            expect(foldingRanges).toEqual([
                 { startLine: 1, endLine: 6, kind: FoldingRangeKind.Region },
                 { startLine: 2, endLine: 3 },
                 { startLine: 4, endLine: 5 }
@@ -540,7 +533,7 @@ describe('CSS Plugin', () => {
 
             const highlight = plugin.findDocumentHighlight(document, Position.create(0, 9));
 
-            expect(highlight, <DocumentHighlight[]>[
+            expect(highlight).toEqual(<DocumentHighlight[]>[
                 {
                     range: {
                         start: {
@@ -575,7 +568,7 @@ describe('CSS Plugin', () => {
 
             const highlight = plugin.findDocumentHighlight(document, Position.create(0, 13));
 
-            expect(highlight, <DocumentHighlight[]>[
+            expect(highlight).toEqual(<DocumentHighlight[]>[
                 {
                     range: {
                         start: {
@@ -597,7 +590,7 @@ describe('CSS Plugin', () => {
 
             const highlight = plugin.findDocumentHighlight(document, Position.create(0, 25));
 
-            expect(highlight, <DocumentHighlight[]>[
+            expect(highlight).toEqual(<DocumentHighlight[]>[
                 {
                     range: {
                         start: {

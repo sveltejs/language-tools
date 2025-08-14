@@ -22,11 +22,7 @@ describe('getIdClassCompletion', () => {
     }
 
     function testSelectors(items: CompletionItem[], expectedSelectors: string[]) {
-        expect(
-            items.map((item) => item.label),
-            expectedSelectors,
-            'vscode-language-services might have changed the NodeType enum. Check if we need to update it'
-        );
+        expect(items.map((item) => item.label)).toEqual(expectedSelectors);
     }
 
     it('collect css classes', () => {

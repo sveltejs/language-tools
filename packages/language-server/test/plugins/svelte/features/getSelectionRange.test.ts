@@ -16,7 +16,7 @@ describe('SveltePlugin#getSelectionRange', () => {
             Position.create(0, contentWithCursor.indexOf(CURSOR))
         );
 
-        expect(selectionRange, expected);
+        expect(selectionRange).toEqual(expected);
     }
 
     it('should return null for style and script', async () => {

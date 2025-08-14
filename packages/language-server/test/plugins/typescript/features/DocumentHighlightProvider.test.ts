@@ -45,7 +45,7 @@ describe('DocumentHighlightProvider', function () {
             character: 9
         });
 
-        expect(highlight, <DocumentHighlight[]>[
+        expect(highlight).toEqual<DocumentHighlight[]>([
             {
                 range: {
                     start: {
@@ -131,9 +131,8 @@ describe('DocumentHighlightProvider', function () {
             });
 
             expect(
-                documentHighlight?.sort(
-                    (a, b) => a.range.start.character - b.range.start.character
-                ),
+                documentHighlight?.sort((a, b) => a.range.start.character - b.range.start.character)
+            ).toEqual(
                 expected?.map(
                     ([start, end]): DocumentHighlight => ({
                         kind: DocumentHighlightKind.Read,

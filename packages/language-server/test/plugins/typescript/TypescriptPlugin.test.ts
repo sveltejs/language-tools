@@ -74,7 +74,7 @@ describe('TypescriptPlugin', function () {
                     (s2.location.range.start.line * 100 + s2.location.range.start.character)
             );
 
-        expect(symbols, [
+        expect(symbols).toEqual([
             {
                 name: 'bla',
                 kind: 12,
@@ -326,7 +326,7 @@ describe('TypescriptPlugin', function () {
 
         const definitions = await plugin.getDefinitions(document, Position.create(4, 1));
 
-        expect(definitions, [
+        expect(definitions).toEqual([
             {
                 originSelectionRange: {
                     start: {
@@ -368,7 +368,7 @@ describe('TypescriptPlugin', function () {
 
         const definitions = await plugin.getDefinitions(document, Position.create(5, 1));
 
-        expect(definitions, [
+        expect(definitions).toEqual([
             {
                 originSelectionRange: {
                     start: {
@@ -410,7 +410,7 @@ describe('TypescriptPlugin', function () {
 
         const definitions = await plugin.getDefinitions(document, Position.create(12, 3));
 
-        expect(definitions, [
+        expect(definitions).toEqual([
             {
                 originSelectionRange: {
                     start: {
@@ -453,7 +453,7 @@ describe('TypescriptPlugin', function () {
 
             const definitions = await plugin.getDefinitions(document, pos);
 
-            expect(definitions, [
+            expect(definitions).toEqual([
                 {
                     originSelectionRange,
                     targetRange: {
@@ -516,7 +516,7 @@ describe('TypescriptPlugin', function () {
 
             const definitions = await plugin.getDefinitions(document, pos);
 
-            expect(definitions, [
+            expect(definitions).toEqual([
                 {
                     originSelectionRange,
                     targetRange: {
@@ -577,7 +577,7 @@ describe('TypescriptPlugin', function () {
         const { plugin, document } = setup('declaration-map/importing.svelte');
 
         const definition = await plugin.getDefinitions(document, { line: 1, character: 13 });
-        expect(definition, [
+        expect(definition).toEqual([
             <LocationLink>{
                 targetRange: {
                     end: { line: 0, character: 18 },
@@ -600,7 +600,7 @@ describe('TypescriptPlugin', function () {
         const { plugin, document } = setup('declaration-map/import-from-base64-sourcemap.svelte');
 
         const definition = await plugin.getDefinitions(document, { line: 1, character: 13 });
-        expect(definition, [
+        expect(definition).toEqual([
             <LocationLink>{
                 targetRange: {
                     end: { line: 0, character: 18 },
@@ -700,10 +700,10 @@ describe('TypescriptPlugin', function () {
             fs.mkdirSync(dir);
         }
         fs.writeFileSync(addFile, 'export function abc() {}');
-        expect(fs.existsSync(addFile));
+        expect(fs.existsSync(addFile)).toBe(true);
 
         try {
-            expect(snapshotManager.has(addFile), false);
+            expect(snapshotManager.has(addFile)).toBe(false);
 
             await plugin.onWatchFileChanges([
                 {
@@ -714,7 +714,7 @@ describe('TypescriptPlugin', function () {
 
             (await lsAndTsDocResolver.getTSService(targetSvelteFile)).getService();
 
-            expect(snapshotManager.has(addFile), shouldExist);
+            expect(snapshotManager.has(addFile)).toBe(shouldExist);
 
             await plugin.onWatchFileChanges([
                 {
@@ -723,7 +723,7 @@ describe('TypescriptPlugin', function () {
                 }
             ]);
 
-            expect(snapshotManager.has(addFile), shouldExist);
+            expect(snapshotManager.has(addFile)).toBe(shouldExist);
         } finally {
             fs.unlinkSync(addFile);
         }
@@ -829,7 +829,7 @@ describe('TypescriptPlugin', function () {
 
         const definitions = await plugin.getDefinitions(document, Position.create(4, 3));
 
-        expect(definitions, [
+        expect(definitions).toEqual([
             {
                 originSelectionRange: {
                     start: {

@@ -656,7 +656,7 @@ describe('SveltePlugin#getCodeAction', () => {
         ) {
             const range = Range.create(Position.create(5, 8), Position.create(5, 25));
             const result = await extractComponent(path, range);
-            expect(result, <WorkspaceEdit>{
+            expect(result).toEqual(<WorkspaceEdit>{
                 documentChanges: [
                     TextDocumentEdit.create(
                         OptionalVersionedTextDocumentIdentifier.create('someUrl', null),
@@ -729,7 +729,7 @@ describe('SveltePlugin#getCodeAction', () => {
             ]);
 
             const newFileUri = pathToUrl('C:/NewComp.svelte');
-            expect(result, <WorkspaceEdit>{
+            expect(result).toEqual(<WorkspaceEdit>{
                 documentChanges: [
                     TextDocumentEdit.create(
                         OptionalVersionedTextDocumentIdentifier.create(existingFileUri, null),

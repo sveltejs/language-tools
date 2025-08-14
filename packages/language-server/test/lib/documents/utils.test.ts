@@ -72,7 +72,7 @@ describe('document/utils', () => {
 
         it('can extract with self-closing component before it', () => {
             const extracted = extractStyleTag('<SelfClosing /><style></style>');
-            expect(extracted, {
+            expect(extracted).toEqual({
                 start: 22,
                 end: 22,
                 startPos: {
@@ -94,7 +94,7 @@ describe('document/utils', () => {
 
         it('can extract with unclosed component after it', () => {
             const extracted = extractStyleTag('<style></style><C {#if asd}<p>asd</p>{/if}');
-            expect(extracted, {
+            expect(extracted).toEqual({
                 start: 7,
                 end: 7,
                 startPos: {
@@ -165,7 +165,7 @@ describe('document/utils', () => {
                 <script lang="ts" generics="T extends Record<string, any>">content</script>
                 <p>bla</p>
             `;
-            expect(extractScriptTags(text)?.script, {
+            expect(extractScriptTags(text)?.script).toEqual({
                 content: 'content',
                 attributes: {
                     generics: 'T extends Record<string, any>',
@@ -217,7 +217,7 @@ describe('document/utils', () => {
                 <script>top level script</script>
             `;
 
-            expect(extractScriptTags(text)?.script, {
+            expect(extractScriptTags(text)?.script).toEqual({
                 content: 'top level script',
                 attributes: {},
                 start: 1243,
@@ -234,7 +234,7 @@ describe('document/utils', () => {
                 {  #if myvar } {/if}
             `;
 
-            expect(extractScriptTags(text)?.script, {
+            expect(extractScriptTags(text)?.script).toEqual({
                 content: 'top level script',
                 attributes: {},
                 start: 25,
@@ -258,7 +258,7 @@ describe('document/utils', () => {
             <h1>Hello, world!</h1>
             <style>.bla {}</style>
             `;
-            expect(extractScriptTags(text)?.script, {
+            expect(extractScriptTags(text)?.script).toEqual({
                 content: 'top level script',
                 attributes: {},
                 start: 254,
@@ -334,7 +334,7 @@ describe('document/utils', () => {
             {:else if value < 4}
             {/if}
           </div>`;
-            expect(extractScriptTags(text)?.script, {
+            expect(extractScriptTags(text)?.script).toEqual({
                 content: 'let value = 2',
                 attributes: {},
                 start: 159,
@@ -352,7 +352,7 @@ describe('document/utils', () => {
         });
 
         it('should return line at position (multiple lines)', () => {
-            expect(getLineAtPosition(Position.create(1, 1), 'ABC\nDEF\nGHI'), 'DEF\n');
+            expect(getLineAtPosition(Position.create(1, 1), 'ABC\nDEF\nGHI')).toEqual('DEF\n');
         });
     });
 

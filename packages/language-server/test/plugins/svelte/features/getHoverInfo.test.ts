@@ -13,7 +13,7 @@ describe('SveltePlugin#getHoverInfo', () => {
         const hover = getHoverInfo(document, svelteDoc, position);
         return {
             toEqual: (tag: SvelteTag | null) =>
-                expect(hover, tag ? { contents: documentation[tag] } : null)
+                expect(hover).toEqual(tag ? { contents: documentation[tag] } : null)
         };
     }
 
@@ -109,7 +109,7 @@ describe('SveltePlugin#getHoverInfo', () => {
                 const contents = getModifierData().find(
                     (modifier) => modifier.modifier === expectedModifier
                 )?.documentation;
-                expect(hover, { contents });
+                expect(hover).toEqual({ contents });
             }
         };
     }

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { SveltePlugin } from '../../../src/plugins';
 import { DocumentManager, Document } from '../../../src/lib/documents';
 import {
@@ -52,9 +52,7 @@ describe('Svelte Plugin', () => {
             'A11y: <img> element should have an alt attribute' // Svelte 4 style
         ];
         expect(
-            possibleWarningMessages.some((m) =>
-                (diagnostics[0].message as string).includes(m)
-            )
+            possibleWarningMessages.some((m) => (diagnostics[0].message as string).includes(m))
         ).toBe(true);
     });
 
@@ -79,9 +77,7 @@ describe('Svelte Plugin', () => {
             'whatever is not declared' // Svelte 4 style
         ];
         expect(
-            possibleErrorMessages.some((m) =>
-                (diagnostics[0].message as string).includes(m)
-            )
+            possibleErrorMessages.some((m) => (diagnostics[0].message as string).includes(m))
         ).toBe(true);
         // Accept start position differences (v5 highlights whole binding, v4 highlights the name)
         const possibleStarts = [Position.create(0, 5), Position.create(0, 10)];
@@ -282,7 +278,7 @@ describe('Svelte Plugin', () => {
 
         it('should load the user prettier version (version 2)', async () => {
             function stubPrettier(config: any) {
-                const formatStub = vi.fn(() => Promise.resolve('formatted'));
+                const formatStub = vi.fn(() => 'formatted');
 
                 vi.spyOn(importPackage, 'importPrettier')
                     .mockReturnValueOnce(<any>{

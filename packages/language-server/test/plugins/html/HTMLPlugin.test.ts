@@ -55,9 +55,9 @@ describe('HTML Plugin', () => {
 
         const completions = await plugin.getCompletions(document, Position.create(0, 1));
         expect(Array.isArray(completions && completions.items));
-        expect(completions!.items.length > 0);
+        expect(completions!.items.length > 0).toBeTruthy();
 
-        expect(completions!.items[0], <CompletionItem>{
+        expect(completions!.items[0]).toEqual(<CompletionItem>{
             label: '!DOCTYPE',
             kind: CompletionItemKind.Property,
             documentation: 'A preamble for an HTML document.',
@@ -102,8 +102,7 @@ describe('HTML Plugin', () => {
         const completions = await plugin.getCompletions(document, Position.create(0, 7));
         const onClick = completions?.items.find((item) => item.label === 'on:click');
 
-        expect(
-            onClick?.textEdit,
+        expect(onClick?.textEdit).toEqual(
             TextEdit.replace(
                 Range.create(Position.create(0, 5), Position.create(0, 7)),
                 'on:click$2="{$1}"'
@@ -125,7 +124,7 @@ describe('HTML Plugin', () => {
         const { plugin, document } = setup('<div on:click={bla} >');
 
         const completions = await plugin.getCompletions(document, Position.create(0, 21));
-        expect(completions?.items[0], <CompletionItem>{
+        expect(completions?.items[0]).toEqual<CompletionItem>({
             filterText: '</div>',
             insertTextFormat: 2,
             kind: 10,
@@ -224,8 +223,8 @@ describe('HTML Plugin', () => {
         const newName = 'p';
 
         const pepareRenameInfo = Range.create(Position.create(0, 1), Position.create(0, 4));
-        expect(plugin.prepareRename(document, Position.create(0, 2)), pepareRenameInfo);
-        expect(plugin.prepareRename(document, Position.create(0, 28)), pepareRenameInfo);
+        expect(plugin.prepareRename(document, Position.create(0, 2))).toEqual(pepareRenameInfo);
+        expect(plugin.prepareRename(document, Position.create(0, 28))).toEqual(pepareRenameInfo);
 
         const renameInfo = {
             changes: {
@@ -247,15 +246,15 @@ describe('HTML Plugin', () => {
                 ]
             }
         };
-        expect(plugin.rename(document, Position.create(0, 2), newName), renameInfo);
-        expect(plugin.rename(document, Position.create(0, 28), newName), renameInfo);
+        expect(plugin.rename(document, Position.create(0, 2), newName)).toEqual(renameInfo);
+        expect(plugin.rename(document, Position.create(0, 28), newName)).toEqual(renameInfo);
     });
 
     it('provides linked editing ranges', async () => {
         const { plugin, document } = setup('<div></div>');
 
         const ranges = plugin.getLinkedEditingRanges(document, Position.create(0, 3));
-        expect(ranges, {
+        expect(ranges).toEqual({
             ranges: [
                 { start: { line: 0, character: 1 }, end: { line: 0, character: 4 } },
                 { start: { line: 0, character: 7 }, end: { line: 0, character: 10 } }
@@ -283,7 +282,7 @@ describe('HTML Plugin', () => {
         const { plugin, document } = setup('<template lang="pug">\np\n  div\n</template>');
 
         const ranges = plugin.getFoldingRanges(document);
-        expect(ranges, <FoldingRange[]>[
+        expect(ranges).toEqual<FoldingRange[]>([
             { startLine: 0, endLine: 2 },
             { startLine: 1, endLine: 2 }
         ]);
@@ -294,7 +293,7 @@ describe('HTML Plugin', () => {
 
         const highlight = plugin.findDocumentHighlight(document, Position.create(0, 1));
 
-        expect(highlight, <DocumentHighlight[]>[
+        expect(highlight).toEqual<DocumentHighlight[]>([
             {
                 range: {
                     start: {
@@ -329,7 +328,7 @@ describe('HTML Plugin', () => {
 
         const highlight = plugin.findDocumentHighlight(document, Position.create(1, 5));
 
-        expect(highlight, <DocumentHighlight[]>[
+        expect(highlight).toEqual<DocumentHighlight[]>([
             {
                 range: {
                     start: {
@@ -352,7 +351,7 @@ describe('HTML Plugin', () => {
         const completions = await plugin.getCompletions(document, Position.create(0, 6));
         const item = completions?.items.find((item) => item.label === 'transition:');
         expect(item?.kind).toEqual(CompletionItemKind.Keyword);
-        expect(item?.textEdit, {
+        expect(item?.textEdit).toEqual({
             newText: 'transition:',
             range: {
                 start: { line: 0, character: 5 },

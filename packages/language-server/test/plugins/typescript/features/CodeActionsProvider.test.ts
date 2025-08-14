@@ -86,7 +86,7 @@ describe('CodeActionsProvider', function () {
             }
         );
 
-        expect(codeActions, [
+        expect(codeActions).toEqual([
             {
                 edit: {
                     documentChanges: [
@@ -195,7 +195,7 @@ describe('CodeActionsProvider', function () {
             (edit) => (edit.newText = harmonizeNewLines(edit.newText))
         );
 
-        expect(codeActions, [
+        expect(codeActions).toEqual([
             {
                 edit: {
                     documentChanges: [
@@ -263,7 +263,7 @@ describe('CodeActionsProvider', function () {
             (edit) => (edit.newText = harmonizeNewLines(edit.newText))
         );
 
-        expect(codeActions, [
+        expect(codeActions).toEqual([
             {
                 edit: {
                     documentChanges: [
@@ -304,7 +304,7 @@ describe('CodeActionsProvider', function () {
             (edit) => (edit.newText = harmonizeNewLines(edit.newText))
         );
 
-        expect(codeActions, [
+        expect(codeActions).toEqual([
             {
                 edit: {
                     documentChanges: [
@@ -384,7 +384,7 @@ describe('CodeActionsProvider', function () {
             }
         }
 
-        expect(codeActions, <CodeAction[]>[
+        expect(codeActions).toEqual<CodeAction[]>([
             {
                 edit: {
                     documentChanges: [
@@ -473,7 +473,7 @@ describe('CodeActionsProvider', function () {
             uri: getUri('codeaction-checkJs-module.svelte'),
             version: null
         };
-        expect(codeActions, <CodeAction[]>[
+        expect(codeActions).toEqual<CodeAction[]>([
             {
                 edit: {
                     documentChanges: [
@@ -548,7 +548,7 @@ describe('CodeActionsProvider', function () {
             (edit) => (edit.newText = harmonizeNewLines(edit.newText))
         );
 
-        expect(addJsDoc?.edit, {
+        expect(addJsDoc?.edit).toEqual({
             documentChanges: [
                 <TextDocumentEdit>{
                     edits: [
@@ -590,7 +590,7 @@ describe('CodeActionsProvider', function () {
             (edit) => (edit.newText = harmonizeNewLines(edit.newText))
         );
 
-        expect(addJsDoc?.edit, {
+        expect(addJsDoc?.edit).toEqual({
             documentChanges: [
                 <TextDocumentEdit>{
                     edits: [
@@ -634,7 +634,7 @@ describe('CodeActionsProvider', function () {
             (edit) => (edit.newText = harmonizeNewLines(edit.newText))
         );
 
-        expect(codeActions, <CodeAction[]>[
+        expect(codeActions).toEqual<CodeAction[]>([
             {
                 edit: {
                     documentChanges: [
@@ -695,7 +695,7 @@ describe('CodeActionsProvider', function () {
             (edit) => (edit.newText = harmonizeNewLines(edit.newText))
         );
 
-        expect(codeActions, <CodeAction[]>[
+        expect(codeActions).toEqual<CodeAction[]>([
             {
                 edit: {
                     documentChanges: [
@@ -766,7 +766,7 @@ describe('CodeActionsProvider', function () {
             }
         );
 
-        expect(codeActions, <CodeAction[]>[
+        expect(codeActions).toEqual<CodeAction[]>([
             {
                 edit: {
                     documentChanges: [
@@ -812,7 +812,7 @@ describe('CodeActionsProvider', function () {
             }
         );
 
-        expect(codeActions, [
+        expect(codeActions).toEqual([
             {
                 edit: {
                     documentChanges: [
@@ -896,7 +896,7 @@ describe('CodeActionsProvider', function () {
             }
         );
 
-        expect(codeActions, [
+        expect(codeActions).toEqual([
             {
                 edit: {
                     documentChanges: [
@@ -987,7 +987,7 @@ describe('CodeActionsProvider', function () {
             (edit) => (edit.newText = harmonizeNewLines(edit.newText))
         );
 
-        expect(resolvedFixAll.edit, {
+        expect(resolvedFixAll.edit).toEqual({
             documentChanges: [
                 {
                     edits: [
@@ -1058,7 +1058,7 @@ describe('CodeActionsProvider', function () {
             (edit) => (edit.newText = harmonizeNewLines(edit.newText))
         );
 
-        expect(resolvedFixAll.edit, {
+        expect(resolvedFixAll.edit).toEqual({
             documentChanges: [
                 {
                     edits: [
@@ -1087,13 +1087,18 @@ describe('CodeActionsProvider', function () {
         });
 
         // fix-all has some "creative" workaround. Testing if it won't affect the document synchronization after applying the fix
-        docManager.updateDocument(
-            document,
-            resolvedFixAll.edit.documentChanges[0].edits.map((edit) => ({
-                range: edit.range,
-                text: edit.newText
-            }))
-        );
+        if (resolvedFixAll.edit?.documentChanges) {
+            const textDocumentEdit = resolvedFixAll.edit.documentChanges[0];
+            if ('edits' in textDocumentEdit) {
+                docManager.updateDocument(
+                    document,
+                    textDocumentEdit.edits.map((edit: any) => ({
+                        range: edit.range,
+                        text: edit.newText
+                    }))
+                );
+            }
+        }
 
         const { lang, tsDoc } = await lsAndTsDocResolver.getLSAndTSDoc(document);
         const cannotFindNameDiagnostics = lang
@@ -1125,7 +1130,7 @@ describe('CodeActionsProvider', function () {
             (edit) => (edit.newText = harmonizeNewLines(edit.newText))
         );
 
-        expect(resolvedFixAll.edit, {
+        expect(resolvedFixAll.edit).toEqual({
             documentChanges: [
                 {
                     edits: [
@@ -1177,7 +1182,7 @@ describe('CodeActionsProvider', function () {
             (edit) => (edit.newText = harmonizeNewLines(edit.newText))
         );
 
-        expect(resolvedFixAll.edit, {
+        expect(resolvedFixAll.edit).toEqual({
             documentChanges: [
                 {
                     edits: [
@@ -1229,7 +1234,7 @@ describe('CodeActionsProvider', function () {
             (edit) => (edit.newText = harmonizeNewLines(edit.newText))
         );
 
-        expect(resolvedFixAll.edit, {
+        expect(resolvedFixAll.edit).toEqual({
             documentChanges: [
                 {
                     edits: [
@@ -1281,7 +1286,7 @@ describe('CodeActionsProvider', function () {
             (edit) => (edit.newText = harmonizeNewLines(edit.newText))
         );
 
-        expect(resolvedFixAll.edit, {
+        expect(resolvedFixAll.edit).toEqual({
             documentChanges: [
                 {
                     edits: [
@@ -1335,7 +1340,7 @@ describe('CodeActionsProvider', function () {
             (edit) => (edit.newText = harmonizeNewLines(edit.newText))
         );
 
-        expect(resolvedFixAll.edit, {
+        expect(resolvedFixAll.edit).toEqual({
             documentChanges: [
                 {
                     edits: [
@@ -1381,7 +1386,7 @@ describe('CodeActionsProvider', function () {
             (edit) => (edit.newText = harmonizeNewLines(edit.newText))
         );
 
-        expect(codeActions, [
+        expect(codeActions).toEqual([
             {
                 edit: {
                     documentChanges: [
@@ -1469,7 +1474,7 @@ describe('CodeActionsProvider', function () {
             (edit) => (edit.newText = harmonizeNewLines(edit.newText))
         );
 
-        expect(codeActions, [
+        expect(codeActions).toEqual([
             {
                 edit: {
                     documentChanges: [
@@ -1560,7 +1565,7 @@ describe('CodeActionsProvider', function () {
             (edit) => (edit.newText = harmonizeNewLines(edit.newText))
         );
 
-        expect(codeActions, [
+        expect(codeActions).toEqual([
             {
                 edit: {
                     documentChanges: [
@@ -1634,7 +1639,7 @@ describe('CodeActionsProvider', function () {
             (edit) => (edit.newText = harmonizeNewLines(edit.newText))
         );
 
-        expect(codeActions, [
+        expect(codeActions).toEqual([
             {
                 edit: {
                     documentChanges: [
@@ -1709,7 +1714,7 @@ describe('CodeActionsProvider', function () {
             (edit) => (edit.newText = harmonizeNewLines(edit.newText))
         );
 
-        expect(codeActions, [
+        expect(codeActions).toEqual([
             {
                 edit: {
                     documentChanges: [
@@ -1757,7 +1762,7 @@ describe('CodeActionsProvider', function () {
             (edit) => (edit.newText = harmonizeNewLines(edit.newText))
         );
 
-        expect(codeActions, [
+        expect(codeActions).toEqual([
             {
                 edit: {
                     documentChanges: [
@@ -1819,7 +1824,7 @@ describe('CodeActionsProvider', function () {
             (edit) => (edit.newText = harmonizeNewLines(edit.newText))
         );
 
-        expect(codeActions, [
+        expect(codeActions).toEqual([
             {
                 edit: {
                     documentChanges: [
@@ -1885,7 +1890,7 @@ describe('CodeActionsProvider', function () {
             (edit) => (edit.newText = harmonizeNewLines(edit.newText))
         );
 
-        expect(codeActions, [
+        expect(codeActions).toEqual([
             {
                 edit: {
                     documentChanges: [
@@ -1943,7 +1948,7 @@ describe('CodeActionsProvider', function () {
         );
         const action = actions[1];
 
-        expect(action, {
+        expect(action).toEqual({
             command: {
                 arguments: [
                     getUri('codeactions.svelte'),
@@ -1983,7 +1988,7 @@ describe('CodeActionsProvider', function () {
             (edit) => (edit.newText = harmonizeNewLines(edit.newText))
         );
 
-        expect(edit, {
+        expect(edit).toEqual({
             documentChanges: [
                 {
                     edits: [
@@ -2035,7 +2040,7 @@ describe('CodeActionsProvider', function () {
             }
         );
 
-        expect(codeActions, [
+        expect(codeActions).toEqual([
             {
                 title: 'Organize Imports',
                 edit: {
@@ -2093,7 +2098,7 @@ describe('CodeActionsProvider', function () {
             }
         );
 
-        expect(codeActions, [
+        expect(codeActions).toEqual([
             {
                 title: 'Organize Imports',
                 edit: {
@@ -2201,7 +2206,7 @@ describe('CodeActionsProvider', function () {
         );
         const action = actions[0];
 
-        expect(action, {
+        expect(action).toEqual({
             command: {
                 arguments: [
                     getUri('codeactions.svelte'),
@@ -2241,7 +2246,7 @@ describe('CodeActionsProvider', function () {
             (edit) => (edit.newText = harmonizeNewLines(edit.newText))
         );
 
-        expect(edit, {
+        expect(edit).toEqual({
             documentChanges: [
                 {
                     edits: [
@@ -2354,10 +2359,10 @@ describe('CodeActionsProvider', function () {
 
         // Ensure the action was found and has data (as it's now deferred)
         expect(addImportsAction).toBeDefined();
-        expect(addImportsAction.data).toBeDefined();
+        expect(addImportsAction?.data).toBeDefined();
 
         // Resolve the action to get the edits
-        const resolvedAction = await provider.resolveCodeAction(document, addImportsAction);
+        const resolvedAction = await provider.resolveCodeAction(document, addImportsAction!);
 
         // Assert the edits on the resolved action
         expect(resolvedAction.edit).toBeDefined();
@@ -2365,7 +2370,7 @@ describe('CodeActionsProvider', function () {
             (edit) => (edit.newText = harmonizeNewLines(edit.newText))
         );
 
-        expect(resolvedAction.edit, {
+        expect(resolvedAction.edit).toEqual({
             documentChanges: [
                 {
                     edits: [
@@ -2433,7 +2438,7 @@ describe('CodeActionsProvider', function () {
             (edit) => (edit.newText = harmonizeNewLines(edit.newText))
         );
 
-        expect(codeActions, [
+        expect(codeActions).toEqual([
             {
                 edit: {
                     documentChanges: [

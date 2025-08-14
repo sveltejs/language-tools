@@ -121,7 +121,7 @@ describe('Svelte Document', () => {
                 parse: <any>null
             });
             const transpiled = await svelteDoc.getTranspiled();
-            if (!transpiled || !transpiled.mapper) {
+            if (!transpiled || !(transpiled as any).mapper) {
                 throw new Error(
                     `getTranspiled() returned invalid result: ${JSON.stringify(transpiled)}`
                 );

@@ -1,6 +1,6 @@
 import { join, extname } from 'path';
 import ts from 'typescript';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterAll } from 'vitest';
 import { rmdirSync, mkdirSync, readdirSync } from 'fs';
 
 import { DocumentManager, Document } from '../../../../src/lib/documents';
@@ -83,7 +83,7 @@ describe('CompletionProviderImpl', function () {
         const first = completions!.items[0];
         delete first.data;
 
-        expect(first, <CompletionItem>{
+        expect(first).toEqual<CompletionItem>({
             label: 'b',
             insertText: undefined,
             insertTextFormat: undefined,
@@ -111,7 +111,7 @@ describe('CompletionProviderImpl', function () {
         const first = completions!.items[0];
         delete first.data;
 
-        expect(first, <CompletionItem>{
+        expect(first).toEqual<CompletionItem>({
             label: 'b',
             insertText: undefined,
             insertTextFormat: undefined,
@@ -216,7 +216,7 @@ describe('CompletionProviderImpl', function () {
 
         const eventCompletions = completions!.items.filter((item) => item.label.startsWith('on:'));
 
-        expect(eventCompletions, <CompletionItem[]>[
+        expect(eventCompletions).toEqual<CompletionItem[]>([
             {
                 commitCharacters: [],
                 detail: 'aa: CustomEvent<boolean>',
@@ -265,7 +265,7 @@ describe('CompletionProviderImpl', function () {
 
         delete item!.data;
 
-        expect(item, <CompletionItem>{
+        expect(item).toEqual<CompletionItem>({
             commitCharacters: ['.', ',', ';', '('],
             label: 'on:touchend',
             labelDetails: undefined,
@@ -294,7 +294,7 @@ describe('CompletionProviderImpl', function () {
 
         const item = completions!.items.find((item) => item.label === 'custom-element');
 
-        expect(item, <CompletionItem>{
+        expect(item).toEqual<CompletionItem>({
             label: 'custom-element',
             kind: CompletionItemKind.Property,
             commitCharacters: [],
@@ -338,7 +338,7 @@ describe('CompletionProviderImpl', function () {
 
         const eventCompletions = completions!.items.filter((item) => item.label.startsWith('on:'));
 
-        expect(eventCompletions, <CompletionItem[]>[
+        expect(eventCompletions).toEqual<CompletionItem[]>([
             {
                 commitCharacters: [],
                 detail: 'aa: CustomEvent<boolean>',
@@ -421,7 +421,7 @@ describe('CompletionProviderImpl', function () {
 
         const eventCompletions = completions!.items.filter((item) => item.label.startsWith('on:'));
 
-        expect(eventCompletions, <CompletionItem[]>[
+        expect(eventCompletions).toEqual<CompletionItem[]>([
             {
                 commitCharacters: [],
                 detail: 'c: CustomEvent<boolean>',
@@ -450,7 +450,7 @@ describe('CompletionProviderImpl', function () {
 
         const eventCompletions = completions!.items.filter((item) => item.label.startsWith('on:'));
 
-        expect(eventCompletions, <CompletionItem[]>[
+        expect(eventCompletions).toEqual<CompletionItem[]>([
             {
                 commitCharacters: [],
                 detail: 'event1: CustomEvent<null>',
@@ -512,7 +512,7 @@ describe('CompletionProviderImpl', function () {
 
         const eventCompletions = completions!.items.filter((item) => item.label.startsWith('on:'));
 
-        expect(eventCompletions, <CompletionItem[]>[
+        expect(eventCompletions).toEqual<CompletionItem[]>([
             {
                 commitCharacters: [],
                 detail: 'event1: CustomEvent<string> | CustomEvent<number>',
@@ -567,7 +567,7 @@ describe('CompletionProviderImpl', function () {
 
         const { data } = completions!.items[0];
 
-        expect(data, {
+        expect(data).toEqual({
             data: undefined,
             name: 'b',
             position: {
@@ -594,7 +594,7 @@ describe('CompletionProviderImpl', function () {
         });
 
         expect(detail).toEqual('(alias) function foo(): boolean\nimport foo');
-        expect(documentation, {
+        expect(documentation).toEqual({
             value: 'bars\n\n*@author* — John',
             kind: MarkupKind.Markdown
         });
@@ -677,9 +677,8 @@ describe('CompletionProviderImpl', function () {
             sortBy(
                 completions?.items.map((item) => item.label),
                 (x) => x
-            ),
-            sortBy(testfiles, (x) => x)
-        );
+            )
+        ).toEqual(sortBy(testfiles, (x) => x));
     });
 
     it('resolve auto import completion (is first import in file)', async () => {
@@ -709,8 +708,7 @@ describe('CompletionProviderImpl', function () {
             `${newLine}${indent}import { blubb } from "../definitions";${newLine}`
         );
 
-        expect(
-            additionalTextEdits![0]?.range,
+        expect(additionalTextEdits![0]?.range).toEqual(
             Range.create(Position.create(0, 8), Position.create(0, 8))
         );
     });
@@ -741,8 +739,7 @@ describe('CompletionProviderImpl', function () {
             `${indent}import { blubb } from '../definitions';${newLine}`
         );
 
-        expect(
-            additionalTextEdits![0]?.range,
+        expect(additionalTextEdits![0]?.range).toEqual(
             Range.create(Position.create(2, 0), Position.create(2, 0))
         );
     });
@@ -773,8 +770,7 @@ describe('CompletionProviderImpl', function () {
             `${newLine}${indent}import { blubb } from '../definitions';${newLine}`
         );
 
-        expect(
-            additionalTextEdits![0]?.range,
+        expect(additionalTextEdits![0]?.range).toEqual(
             Range.create(Position.create(0, 8), Position.create(0, 8))
         );
     });
@@ -801,8 +797,7 @@ describe('CompletionProviderImpl', function () {
             `${newLine}${indent}import { ComponentDef } from "./ComponentDef";${newLine}`
         );
 
-        expect(
-            additionalTextEdits![0]?.range,
+        expect(additionalTextEdits![0]?.range).toEqual(
             Range.create(Position.create(4, 8), Position.create(4, 8))
         );
     });
@@ -825,8 +820,7 @@ describe('CompletionProviderImpl', function () {
             `${newLine}${indent}import { onMount } from "svelte";${newLine}`
         );
 
-        expect(
-            additionalTextEdits![0]?.range,
+        expect(additionalTextEdits![0]?.range).toEqual(
             Range.create(Position.create(4, 8), Position.create(4, 8))
         );
     });
@@ -849,8 +843,7 @@ describe('CompletionProviderImpl', function () {
             `${newLine}${indent}import { onMount } from "svelte";${newLine}`
         );
 
-        expect(
-            additionalTextEdits![0]?.range,
+        expect(additionalTextEdits![0]?.range).toEqual(
             Range.create(Position.create(0, 25), Position.create(0, 25))
         );
     });
@@ -900,8 +893,7 @@ describe('CompletionProviderImpl', function () {
             `${newLine}${indent}import ImportedFile from "../imported-file.svelte";${newLine}`
         );
 
-        expect(
-            additionalTextEdits![0]?.range,
+        expect(additionalTextEdits![0]?.range).toEqual(
             Range.create(Position.create(0, 8), Position.create(0, 8))
         );
     });
@@ -939,8 +931,7 @@ describe('CompletionProviderImpl', function () {
                 `${newLine}${newLine}</script>${newLine}`
         );
 
-        expect(
-            additionalTextEdits![0]?.range,
+        expect(additionalTextEdits![0]?.range).toEqual(
             Range.create(Position.create(0, 0), Position.create(0, 0))
         );
     });
@@ -1004,7 +995,7 @@ describe('CompletionProviderImpl', function () {
 
         const { additionalTextEdits } = await completionProvider.resolveCompletion(document, item!);
 
-        expect(additionalTextEdits, <TextEdit[]>[
+        expect(additionalTextEdits).toEqual<TextEdit[]>([
             {
                 newText: '{ blubb }',
                 range: Range.create(Position.create(1, 11), Position.create(1, 14))
@@ -1064,7 +1055,7 @@ describe('CompletionProviderImpl', function () {
         );
         cancellationTokenSource.cancel();
 
-        expect((await completionResolvingPromise).additionalTextEdits, undefined);
+        expect((await completionResolvingPromise).additionalTextEdits).toBe(undefined);
     });
 
     const testForJsDocTemplateCompletion = async (position: Position, newText: string) => {
@@ -1080,8 +1071,8 @@ describe('CompletionProviderImpl', function () {
         const start = Position.create(line, character - '/**'.length);
         const end = Position.create(line, character + '*/'.length);
 
-        expect(harmonizeNewLines(item?.textEdit?.newText), newText);
-        expect((item?.textEdit as TextEdit)?.range, Range.create(start, end));
+        expect(harmonizeNewLines(item?.textEdit?.newText)).toBe(newText);
+        expect((item?.textEdit as TextEdit)?.range).toEqual(Range.create(start, end));
     };
 
     it('show jsDoc template completion', async () => {
@@ -1133,7 +1124,7 @@ describe('CompletionProviderImpl', function () {
             item.label.startsWith('let:')
         );
 
-        expect(slotLetCompletions, <CompletionItem[]>[
+        expect(slotLetCompletions).toEqual<CompletionItem[]>([
             {
                 commitCharacters: [],
                 detail: 'let1: boolean',
@@ -1200,7 +1191,7 @@ describe('CompletionProviderImpl', function () {
 
         delete item?.data;
 
-        expect(item, {
+        expect(item).toEqual({
             additionalTextEdits: [
                 {
                     newText: 'import ',
@@ -1260,7 +1251,7 @@ describe('CompletionProviderImpl', function () {
 
         delete item?.data;
 
-        expect(item, {
+        expect(item).toEqual({
             additionalTextEdits: [
                 {
                     newText: 'import ',
@@ -1320,7 +1311,7 @@ describe('CompletionProviderImpl', function () {
 
         delete item?.data;
 
-        expect(item, {
+        expect(item).toEqual({
             additionalTextEdits: [
                 {
                     newText: '?',
@@ -1378,7 +1369,7 @@ describe('CompletionProviderImpl', function () {
 
         delete item?.data;
 
-        expect(item, {
+        expect(item).toEqual({
             label: '@hi',
             kind: CompletionItemKind.Constant,
             sortText: '11',
@@ -1462,7 +1453,7 @@ describe('CompletionProviderImpl', function () {
                 document,
                 Position.create(line, char)
             );
-            expect(completions).toEqual(null, `expected no completions for ${line},${char}`);
+            expect(completions, `expected no completions for ${line},${char}`).toEqual(null);
         }
     });
 
@@ -1473,10 +1464,7 @@ describe('CompletionProviderImpl', function () {
             document,
             Position.create(4, 14)
         );
-        expect(
-            completions?.items.map((item) => item.label),
-            ['s', 'm', 'l']
-        );
+        expect(completions?.items.map((item) => item.label)).toEqual(['s', 'm', 'l']);
     });
 
     it('can auto import in workspace without tsconfig/jsconfig', async () => {
@@ -1600,7 +1588,9 @@ describe('CompletionProviderImpl', function () {
         const item2 = completions2?.items.find((item) => item.label === 'Bar');
         const { detail } = await completionProvider.resolveCompletion(document, item2!);
 
-        expect(detail, `Add import from "./Bar.svelte"${isSvelte5Plus() ? '' : '\n\nclass Bar'}`);
+        expect(detail).toBe(
+            `Add import from "./Bar.svelte"${isSvelte5Plus() ? '' : '\n\nclass Bar'}`
+        );
     });
 
     it("doesn't use empty cache", async () => {
@@ -1649,7 +1639,9 @@ describe('CompletionProviderImpl', function () {
         const item2 = completions?.items.find((item) => item.label === 'Bar');
         const { detail } = await completionProvider.resolveCompletion(document, item2!);
 
-        expect(detail, `Add import from "./Bar.svelte"${isSvelte5Plus() ? '' : '\n\nclass Bar'}`);
+        expect(detail).toBe(
+            `Add import from "./Bar.svelte"${isSvelte5Plus() ? '' : '\n\nclass Bar'}`
+        );
     });
 
     it('can auto import new export', async () => {
@@ -1710,7 +1702,7 @@ describe('CompletionProviderImpl', function () {
 
         delete item?.data;
 
-        expect(item, {
+        expect(item).toEqual({
             label: 'hi',
             labelDetails: {
                 detail: '(name)'
@@ -1744,7 +1736,7 @@ describe('CompletionProviderImpl', function () {
 
         delete item?.data;
 
-        expect(item, {
+        expect(item).toEqual({
             label: 'hi',
             kind: CompletionItemKind.Method,
             sortText: '11',
@@ -1773,12 +1765,12 @@ describe('CompletionProviderImpl', function () {
 
         const item = completions?.items.find((item) => item.label === '$store');
 
-        expect(item);
-        expect(item?.data?.source?.endsWith('/to-import'), true);
+        expect(item).toBeDefined();
+        expect(item?.data?.source?.endsWith('/to-import')).toBe(true);
 
-        const { data, ...itemWithoutData } = item;
+        const { data, ...itemWithoutData } = item!;
 
-        expect(itemWithoutData, {
+        expect(itemWithoutData).toEqual({
             label: '$store',
             kind: CompletionItemKind.Constant,
             sortText: '16',
@@ -1792,9 +1784,9 @@ describe('CompletionProviderImpl', function () {
             }
         });
 
-        const { detail } = await completionProvider.resolveCompletion(document, item);
+        const { detail } = await completionProvider.resolveCompletion(document, item!);
 
-        expect(detail, 'Add import from "./to-import"\n\nconst store: Writable<number>');
+        expect(detail).toBe('Add import from "./to-import"\n\nconst store: Writable<number>');
     });
 
     it(`provide props completions for namespaced component`, async () => {

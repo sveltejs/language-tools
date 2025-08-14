@@ -26,7 +26,7 @@ describe('can get typescript directive comment completions', function () {
 
     function testForScript(position: Position) {
         const result = setup(position);
-        expect(result, {
+        expect(result).toEqual({
             isIncomplete: false,
             items: [
                 {

@@ -133,7 +133,7 @@ describe('CallHierarchyProvider', function () {
         const items = await provider.prepareCallHierarchy(document, { line: 6, character: 8 });
         const incoming = await provider.getIncomingCalls(items![0]);
 
-        expect(incoming, <CallHierarchyIncomingCall[]>[
+        expect(incoming).toEqual<CallHierarchyIncomingCall[]>([
             {
                 from: {
                     kind: SymbolKind.Function,
@@ -291,7 +291,7 @@ describe('CallHierarchyProvider', function () {
         const items = await provider.prepareCallHierarchy(document, { line: 0, character: 2 });
         const incoming = await provider.getIncomingCalls(items![0]);
 
-        expect(incoming, <CallHierarchyIncomingCall[]>[
+        expect(incoming).toEqual<CallHierarchyIncomingCall[]>([
             {
                 from: {
                     detail: callHierarchyTestDirRelative,
@@ -397,7 +397,7 @@ describe('CallHierarchyProvider', function () {
         const items = await provider.prepareCallHierarchy(document, { line: 10, character: 1 });
         const outgoing = await provider.getOutgoingCalls(items![0]);
 
-        expect(outgoing, <CallHierarchyOutgoingCall[]>[
+        expect(outgoing).toEqual<CallHierarchyOutgoingCall[]>([
             {
                 to: formatDateCallHierarchyItem,
                 fromRanges: [
@@ -427,7 +427,7 @@ describe('CallHierarchyProvider', function () {
         const items = await provider.prepareCallHierarchy(document, { line: 0, character: 2 });
         const outgoing = await provider.getOutgoingCalls(items![0]);
 
-        expect(outgoing, <CallHierarchyOutgoingCall[]>[
+        expect(outgoing).toEqual<CallHierarchyOutgoingCall[]>([
             {
                 fromRanges: [
                     {

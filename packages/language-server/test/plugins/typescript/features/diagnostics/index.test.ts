@@ -92,9 +92,7 @@ describe('DiagnosticsProvider', () => {
 
             await updateSnapshotIfFailedOrEmpty({
                 assertion: () =>
-                    expect(diagnostics).toEqual(
-                        JSON.parse(readFileSync(expectedFile, 'utf-8'))
-                    ),
+                    expect(diagnostics).toEqual(JSON.parse(readFileSync(expectedFile, 'utf-8'))),
                 expectedFile,
                 rootDir: fixturesDir,
                 getFileContent: () => formatJson(diagnostics)

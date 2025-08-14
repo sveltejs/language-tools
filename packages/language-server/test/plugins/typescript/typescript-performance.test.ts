@@ -1,4 +1,4 @@
-import { describe, it } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import * as path from 'path';
 import { performance } from 'perf_hooks';
 import ts from 'typescript';
@@ -53,13 +53,15 @@ describe('TypeScript Plugin Performance Tests', () => {
         }
 
         const benchmarkElapse = Math.ceil(await benchmark());
-        
+
         // Calculate adaptive time limit based on machine performance
         const expectedMaxTime = benchmarkElapse * 7;
         const maxAllowedTime = 25_000;
         const timeLimit = Math.min(expectedMaxTime, maxAllowedTime);
-        
-        console.log(`Benchmark took ${benchmarkElapse}ms. Expected operations to complete within ${timeLimit}ms`);
+
+        console.log(
+            `Benchmark took ${benchmarkElapse}ms. Expected operations to complete within ${timeLimit}ms`
+        );
 
         // Run the actual performance test
         const start = performance.now();
@@ -81,7 +83,7 @@ describe('TypeScript Plugin Performance Tests', () => {
         }
         const totalTime = performance.now() - start;
         console.log(`Performance test took ${totalTime}ms`);
-        
+
         // Ensure operations complete within adaptive time limit
         expect(totalTime).toBeLessThan(timeLimit);
     });
