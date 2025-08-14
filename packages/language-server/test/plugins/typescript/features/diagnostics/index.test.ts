@@ -96,7 +96,23 @@ describe('DiagnosticsProvider', () => {
                 )
             }));
 
-            const expectedFile = join(fixturesDir, testPath, 'expectedv2.json');
+            // Check for version-specific expected file first
+            const versionSpecificExpectedFile = join(
+                fixturesDir,
+                testPath,
+                `expected_svelte_${svelteMajor}.json`
+            );
+            const defaultExpectedFile = join(fixturesDir, testPath, 'expectedv2.json');
+
+            // When generating snapshots for Svelte 5+, create version-specific files
+            // Otherwise use existing version-specific file if it exists, or fall back to default
+            const expectedFile =
+                process.env.UPDATE_SNAPSHOTS === 'true' && svelteMajor >= 5
+                    ? versionSpecificExpectedFile
+                    : existsSync(versionSpecificExpectedFile)
+                      ? versionSpecificExpectedFile
+                      : defaultExpectedFile;
+
             const formatJson = await createJsonSnapshotFormatter(__dirname);
 
             await updateSnapshotIfFailedOrEmpty({
