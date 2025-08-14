@@ -39,6 +39,7 @@ export interface GenerateConfig {
         withSatisfies: boolean;
         withRunes: boolean;
         withProps: boolean;
+        withAppState: boolean;
     };
     pageExtension: string;
     scriptExtension: string;

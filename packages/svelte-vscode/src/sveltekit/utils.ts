@@ -47,6 +47,13 @@ export async function checkProjectKind(path: string): Promise<GenerateConfig['ki
         fallback: true
     });
 
+    let withAppState = atLeast({
+        packageName: '@sveltejs/kit',
+        versionMin: '2.12',
+        versionToCheck: svelteKitVersion ?? '',
+        fallback: true
+    });
+
     const withTs = !!tsconfig && (!jsconfig || tsconfig.length >= jsconfig.length);
     let withSatisfies = false;
     if (withTs) {
@@ -70,7 +77,8 @@ export async function checkProjectKind(path: string): Promise<GenerateConfig['ki
         withTs,
         withSatisfies,
         withRunes,
-        withProps
+        withProps,
+        withAppState
     };
 }
 
