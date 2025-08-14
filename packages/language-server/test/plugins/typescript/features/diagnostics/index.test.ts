@@ -88,7 +88,7 @@ describe('DiagnosticsProvider', () => {
             const diagnostics = await plugin.getDiagnostics(document);
 
             // Sanitize paths in diagnostic messages to use placeholder
-            const sanitizedDiagnostics = diagnostics.map(d => ({
+            const sanitizedDiagnostics = diagnostics.map((d) => ({
                 ...d,
                 message: d.message?.replace(
                     /resolved to '[^']+\/test\/plugins\/typescript\/features\/diagnostics\/fixtures\//g,
@@ -101,7 +101,9 @@ describe('DiagnosticsProvider', () => {
 
             await updateSnapshotIfFailedOrEmpty({
                 assertion: () =>
-                    expect(sanitizedDiagnostics).toEqual(JSON.parse(readFileSync(expectedFile, 'utf-8'))),
+                    expect(sanitizedDiagnostics).toEqual(
+                        JSON.parse(readFileSync(expectedFile, 'utf-8'))
+                    ),
                 expectedFile,
                 rootDir: fixturesDir,
                 getFileContent: () => formatJson(sanitizedDiagnostics)
