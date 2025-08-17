@@ -194,10 +194,9 @@ class DiagnosticsWatcher {
             .on('unlink', (path) => this.removeDocument(path))
             .on('change', (path) => this.updateDocument(path, false));
 
+        this.updateWatchedDirectories();
         if (this.ignoreInitialAdd) {
-            getDiagnostics(this.workspaceUri, this.writer, this.svelteCheck).then(() => {
-                this.updateWatchedDirectories();
-            });
+            getDiagnostics(this.workspaceUri, this.writer, this.svelteCheck);
         }
     }
 
