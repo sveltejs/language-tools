@@ -1,36 +1,24 @@
 [
     {
-        "code": 2345,
-        "message": "Argument of type 'boolean' is not assignable to parameter of type 'String | Number'.",
         "range": {
-            "end": {
-                "character": 16,
-                "line": 16
-            },
-            "start": {
-                "character": 11,
-                "line": 16
-            }
+            "start": { "line": 16, "character": 11 },
+            "end": { "line": 16, "character": 16 }
         },
         "severity": 1,
         "source": "ts",
+        "message": "Argument of type 'true' is not assignable to parameter of type 'String | Number | null | undefined'.",
+        "code": 2345,
         "tags": []
     },
     {
-        "code": 2345,
-        "message": "Argument of type 'boolean' is not assignable to parameter of type 'String | Number'.",
         "range": {
-            "end": {
-                "character": 23,
-                "line": 17
-            },
-            "start": {
-                "character": 18,
-                "line": 17
-            }
+            "start": { "line": 17, "character": 18 },
+            "end": { "line": 17, "character": 23 }
         },
         "severity": 1,
         "source": "ts",
+        "message": "Argument of type 'true' is not assignable to parameter of type 'String | Number | null | undefined'.",
+        "code": 2345,
         "tags": []
     }
 ]

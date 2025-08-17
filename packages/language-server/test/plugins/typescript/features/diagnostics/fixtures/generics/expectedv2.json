@@ -6,7 +6,7 @@
         },
         "severity": 1,
         "source": "ts",
-        "message": "Type '\"asd\"' is not assignable to type '\"b\" | \"a\"'.",
+        "message": "Type '\"asd\"' is not assignable to type '\"a\" | \"b\"'.",
         "code": 2322,
         "tags": []
     },

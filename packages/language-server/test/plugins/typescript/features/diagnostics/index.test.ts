@@ -40,7 +40,7 @@ const isSvelte5 = svelteMajor >= 5;
 
 describe('DiagnosticsProvider', () => {
     const fixturesDir = join(__dirname, 'fixtures');
-    const workspaceDir = join(__dirname, '../../testfiles/diagnostics');
+    const workspaceDir = join(__dirname, 'fixtures');
 
     beforeAll(() => {
         serviceWarmup(workspaceDir, pathToUrl(workspaceDir));

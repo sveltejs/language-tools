@@ -1,13 +1,5 @@
 [
     {
-        "range": { "start": { "line": 5, "character": 12 }, "end": { "line": 5, "character": 13 } },
-        "severity": 4,
-        "source": "ts",
-        "message": "Variable 'x' implicitly has an 'any' type, but a better type may be inferred from usage.",
-        "code": 7043,
-        "tags": []
-    },
-    {
         "range": { "start": { "line": 3, "character": 6 }, "end": { "line": 3, "character": 13 } },
         "severity": 1,
         "source": "ts",

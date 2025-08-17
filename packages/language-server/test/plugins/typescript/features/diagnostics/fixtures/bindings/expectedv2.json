@@ -17,7 +17,7 @@
         },
         "severity": 1,
         "source": "ts",
-        "message": "Object literal may only specify known properties, and 'can_bind' does not exist in type '{ only_bind?: () => boolean; }'.",
+        "message": "Object literal may only specify known properties, and 'can_bind' does not exist in type '{ only_bind?: (() => boolean) | undefined; }'.",
         "code": 2353,
         "tags": []
     },
@@ -28,7 +28,7 @@
         },
         "severity": 1,
         "source": "ts",
-        "message": "Object literal may only specify known properties, and 'can_bind' does not exist in type '{ only_bind?: () => boolean; }'.",
+        "message": "Object literal may only specify known properties, and 'can_bind' does not exist in type '{ only_bind?: (() => boolean) | undefined; }'.",
         "code": 2353,
         "tags": []
     },
@@ -39,7 +39,7 @@
         },
         "severity": 1,
         "source": "ts",
-        "message": "Object literal may only specify known properties, and 'readonly' does not exist in type '{ only_bind?: () => boolean; }'.",
+        "message": "Object literal may only specify known properties, and 'readonly' does not exist in type '{ only_bind?: (() => boolean) | undefined; }'.",
         "code": 2353,
         "tags": []
     },
@@ -50,7 +50,7 @@
         },
         "severity": 1,
         "source": "ts",
-        "message": "Object literal may only specify known properties, and 'readonly' does not exist in type '{ only_bind?: () => boolean; }'.",
+        "message": "Object literal may only specify known properties, and 'readonly' does not exist in type '{ only_bind?: (() => boolean) | undefined; }'.",
         "code": 2353,
         "tags": []
     },
@@ -61,7 +61,7 @@
         },
         "severity": 1,
         "source": "ts",
-        "message": "Object literal may only specify known properties, and 'readonly' does not exist in type '{ only_bind?: () => boolean; }'.",
+        "message": "Object literal may only specify known properties, and 'readonly' does not exist in type '{ only_bind?: (() => boolean) | undefined; }'.",
         "code": 2353,
         "tags": []
     }

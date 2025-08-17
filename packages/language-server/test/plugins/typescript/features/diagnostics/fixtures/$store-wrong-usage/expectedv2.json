@@ -3,7 +3,7 @@
         "range": { "start": { "line": 8, "character": 0 }, "end": { "line": 8, "character": 14 } },
         "severity": 1,
         "source": "ts",
-        "message": "Cannot use 'noStoreModule' as a store. 'noStoreModule' needs to be an object with a subscribe method on it.\n\nNo overload matches this call.\n  Overload 1 of 2, '(store: SvelteStore<any>): any', gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'SvelteStore<any>'.\n  Overload 2 of 2, '(store: SvelteStore<any>): any', gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'SvelteStore<any>'.",
+        "message": "Cannot use 'noStoreModule' as a store. 'noStoreModule' needs to be an object with a subscribe method on it.\n\nNo overload matches this call.\n  Overload 1 of 2, '(store: SvelteStore<any>): any', gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'SvelteStore<any>'.\n  Overload 2 of 2, '(store: SvelteStore<any> | null | undefined): any', gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'SvelteStore<any>'.",
         "code": 2769,
         "tags": []
     },
@@ -14,7 +14,7 @@
         },
         "severity": 1,
         "source": "ts",
-        "message": "Cannot use 'noStoreModule' as a store. 'noStoreModule' needs to be an object with a subscribe method on it.\n\nNo overload matches this call.\n  Overload 1 of 2, '(store: SvelteStore<any>): any', gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'SvelteStore<any>'.\n  Overload 2 of 2, '(store: SvelteStore<any>): any', gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'SvelteStore<any>'.",
+        "message": "Cannot use 'noStoreModule' as a store. 'noStoreModule' needs to be an object with a subscribe method on it.\n\nNo overload matches this call.\n  Overload 1 of 2, '(store: SvelteStore<any>): any', gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'SvelteStore<any>'.\n  Overload 2 of 2, '(store: SvelteStore<any> | null | undefined): any', gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'SvelteStore<any>'.",
         "code": 2769,
         "tags": []
     },
@@ -22,7 +22,7 @@
         "range": { "start": { "line": 6, "character": 0 }, "end": { "line": 6, "character": 6 } },
         "severity": 1,
         "source": "ts",
-        "message": "Cannot use 'store' as a store. 'store' needs to be an object with a subscribe method on it.\n\nNo overload matches this call.\n  Overload 1 of 2, '(store: SvelteStore<any>): any', gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'SvelteStore<any>'.\n  Overload 2 of 2, '(store: SvelteStore<any>): any', gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'SvelteStore<any>'.",
+        "message": "Cannot use 'store' as a store. 'store' needs to be an object with a subscribe method on it.\n\nNo overload matches this call.\n  Overload 1 of 2, '(store: SvelteStore<any>): any', gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'SvelteStore<any>'.\n  Overload 2 of 2, '(store: SvelteStore<any> | null | undefined): any', gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'SvelteStore<any>'.",
         "code": 2769,
         "tags": []
     },
@@ -30,7 +30,7 @@
         "range": { "start": { "line": 7, "character": 3 }, "end": { "line": 7, "character": 9 } },
         "severity": 1,
         "source": "ts",
-        "message": "Cannot use 'store' as a store. 'store' needs to be an object with a subscribe method on it.\n\nNo overload matches this call.\n  Overload 1 of 2, '(store: SvelteStore<any>): any', gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'SvelteStore<any>'.\n  Overload 2 of 2, '(store: SvelteStore<any>): any', gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'SvelteStore<any>'.",
+        "message": "Cannot use 'store' as a store. 'store' needs to be an object with a subscribe method on it.\n\nNo overload matches this call.\n  Overload 1 of 2, '(store: SvelteStore<any>): any', gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'SvelteStore<any>'.\n  Overload 2 of 2, '(store: SvelteStore<any> | null | undefined): any', gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'SvelteStore<any>'.",
         "code": 2769,
         "tags": []
     },
@@ -38,7 +38,7 @@
         "range": { "start": { "line": 11, "character": 1 }, "end": { "line": 11, "character": 7 } },
         "severity": 1,
         "source": "ts",
-        "message": "Cannot use 'store' as a store. 'store' needs to be an object with a subscribe method on it.\n\nNo overload matches this call.\n  Overload 1 of 2, '(store: SvelteStore<any>): any', gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'SvelteStore<any>'.\n  Overload 2 of 2, '(store: SvelteStore<any>): any', gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'SvelteStore<any>'.",
+        "message": "Cannot use 'store' as a store. 'store' needs to be an object with a subscribe method on it.\n\nNo overload matches this call.\n  Overload 1 of 2, '(store: SvelteStore<any>): any', gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'SvelteStore<any>'.\n  Overload 2 of 2, '(store: SvelteStore<any> | null | undefined): any', gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'SvelteStore<any>'.",
         "code": 2769,
         "tags": []
     },
@@ -49,7 +49,7 @@
         },
         "severity": 1,
         "source": "ts",
-        "message": "Cannot use 'store' as a store. 'store' needs to be an object with a subscribe method on it.\n\nNo overload matches this call.\n  Overload 1 of 2, '(store: SvelteStore<any>): any', gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'SvelteStore<any>'.\n  Overload 2 of 2, '(store: SvelteStore<any>): any', gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'SvelteStore<any>'.",
+        "message": "Cannot use 'store' as a store. 'store' needs to be an object with a subscribe method on it.\n\nNo overload matches this call.\n  Overload 1 of 2, '(store: SvelteStore<any>): any', gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'SvelteStore<any>'.\n  Overload 2 of 2, '(store: SvelteStore<any> | null | undefined): any', gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'SvelteStore<any>'.",
         "code": 2769,
         "tags": []
     }

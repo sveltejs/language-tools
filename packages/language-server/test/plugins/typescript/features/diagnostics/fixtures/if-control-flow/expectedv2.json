@@ -34,13 +34,13 @@
     },
     {
         "range": {
-            "start": { "line": 32, "character": 9 },
-            "end": { "line": 32, "character": 19 }
+            "start": { "line": 34, "character": 13 },
+            "end": { "line": 34, "character": 14 }
         },
         "severity": 1,
         "source": "ts",
-        "message": "This comparison appears to be unintentional because the types '{ a: string | boolean; }' and 'boolean' have no overlap.",
-        "code": 2367,
+        "message": "'b' is possibly 'undefined'.",
+        "code": 18048,
         "tags": []
     },
     {
@@ -71,6 +71,17 @@
         "source": "ts",
         "message": "Type 'string | boolean' is not assignable to type 'string'.\n  Type 'boolean' is not assignable to type 'string'.",
         "code": 2322,
+        "tags": []
+    },
+    {
+        "range": {
+            "start": { "line": 56, "character": 8 },
+            "end": { "line": 56, "character": 22 }
+        },
+        "severity": 1,
+        "source": "ts",
+        "message": "'aNestedPromise' is possibly 'null'.",
+        "code": 18047,
         "tags": []
     }
 ]

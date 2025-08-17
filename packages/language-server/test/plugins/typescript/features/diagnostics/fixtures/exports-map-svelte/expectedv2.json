@@ -1,53 +1,18 @@
 [
     {
-        "code": 2307,
+        "range": { "start": { "line": 1, "character": 36 }, "end": { "line": 1, "character": 45 } },
+        "severity": 1,
+        "source": "ts",
         "message": "Cannot find module 'package' or its corresponding type declarations.",
-        "range": {
-            "end": {
-                "character": 45,
-                "line": 1
-            },
-            "start": {
-                "character": 36,
-                "line": 1
-            }
-        },
-        "severity": 1,
-        "source": "ts",
+        "code": 2307,
         "tags": []
     },
     {
-        "code": 2307,
-        "message": "Cannot find module 'package/x' or its corresponding type declarations.",
-        "range": {
-            "end": {
-                "character": 38,
-                "line": 2
-            },
-            "start": {
-                "character": 27,
-                "line": 2
-            }
-        },
+        "range": { "start": { "line": 3, "character": 38 }, "end": { "line": 3, "character": 49 } },
         "severity": 1,
         "source": "ts",
-        "tags": []
-    },
-    {
-        "code": 2307,
         "message": "Cannot find module 'package/y' or its corresponding type declarations.",
-        "range": {
-            "end": {
-                "character": 49,
-                "line": 3
-            },
-            "start": {
-                "character": 38,
-                "line": 3
-            }
-        },
-        "severity": 1,
-        "source": "ts",
+        "code": 2307,
         "tags": []
     }
 ]
