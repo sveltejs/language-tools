@@ -68,3 +68,6 @@ dist
 
 # VSCode history extension
 .history
+
+# Ignore AI artifacts
+.crush/
