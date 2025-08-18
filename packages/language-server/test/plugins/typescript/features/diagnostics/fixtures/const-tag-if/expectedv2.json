@@ -1,70 +1,46 @@
 [
     {
-        "code": 2551,
-        "message": "Property 'toFixed' does not exist on type 'string'. Did you mean 'fixed'?",
         "range": {
-            "end": {
-                "character": 26,
-                "line": 25
-            },
-            "start": {
-                "character": 19,
-                "line": 25
-            }
+            "start": { "line": 25, "character": 19 },
+            "end": { "line": 25, "character": 26 }
         },
         "severity": 1,
         "source": "ts",
+        "message": "Property 'toFixed' does not exist on type 'string'. Did you mean 'fixed'?",
+        "code": 2551,
         "tags": []
     },
     {
-        "code": 2551,
-        "message": "Property 'toFixed' does not exist on type 'string'. Did you mean 'fixed'?",
         "range": {
-            "end": {
-                "character": 47,
-                "line": 25
-            },
-            "start": {
-                "character": 40,
-                "line": 25
-            }
+            "start": { "line": 25, "character": 40 },
+            "end": { "line": 25, "character": 47 }
         },
         "severity": 1,
         "source": "ts",
+        "message": "Property 'toFixed' does not exist on type 'string'. Did you mean 'fixed'?",
+        "code": 2551,
         "tags": []
     },
     {
-        "code": 2339,
+        "range": {
+            "start": { "line": 27, "character": 11 },
+            "end": { "line": 27, "character": 20 }
+        },
+        "severity": 1,
+        "source": "ts",
         "message": "Property 'substring' does not exist on type 'number'.",
-        "range": {
-            "end": {
-                "character": 20,
-                "line": 27
-            },
-            "start": {
-                "character": 11,
-                "line": 27
-            }
-        },
-        "severity": 1,
-        "source": "ts",
+        "code": 2339,
         "tags": []
     },
     {
-        "code": 2339,
-        "message": "Property 'toFixed' does not exist on type 'boolean'.",
         "range": {
-            "end": {
-                "character": 18,
-                "line": 29
-            },
-            "start": {
-                "character": 11,
-                "line": 29
-            }
+            "start": { "line": 29, "character": 11 },
+            "end": { "line": 29, "character": 18 }
         },
         "severity": 1,
         "source": "ts",
+        "message": "Property 'toFixed' does not exist on type 'boolean'.",
+        "code": 2339,
         "tags": []
     }
 ]

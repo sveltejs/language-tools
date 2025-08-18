@@ -1,18 +1,36 @@
 [
     {
-        "range": { "start": { "line": 1, "character": 13 }, "end": { "line": 1, "character": 34 } },
+        "code": 6385,
+        "message": "'createEventDispatcher' is deprecated.",
+        "range": {
+            "end": {
+                "character": 34,
+                "line": 1
+            },
+            "start": {
+                "character": 13,
+                "line": 1
+            }
+        },
         "severity": 4,
         "source": "ts",
-        "message": "'createEventDispatcher' is deprecated.",
-        "code": 6385,
         "tags": [2]
     },
     {
-        "range": { "start": { "line": 8, "character": 21 }, "end": { "line": 8, "character": 42 } },
+        "code": 6387,
+        "message": "The signature '(): EventDispatcher<__sveltets_2_CustomEvents<$$Events>>' of 'createEventDispatcher' is deprecated.",
+        "range": {
+            "end": {
+                "character": 42,
+                "line": 8
+            },
+            "start": {
+                "character": 21,
+                "line": 8
+            }
+        },
         "severity": 4,
         "source": "ts",
-        "message": "The signature '(): EventDispatcher<__sveltets_2_CustomEvents<$$Events>>' of 'createEventDispatcher' is deprecated.",
-        "code": 6387,
         "tags": [2]
     },
     {

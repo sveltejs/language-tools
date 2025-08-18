@@ -1,68 +1,104 @@
 [
     {
-        "range": {
-            "start": { "line": 12, "character": 29 },
-            "end": { "line": 12, "character": 41 }
-        },
-        "severity": 1,
-        "source": "ts",
-        "message": "Type 'typeof Runes__SvelteComponent_' does not satisfy the constraint '(...args: any) => any'.\n  Type 'typeof Runes__SvelteComponent_' provides no match for the signature '(...args: any): any'.",
         "code": 2344,
-        "tags": []
-    },
-    {
+        "message": "Type 'typeof Runes__SvelteComponent_' does not satisfy the constraint '(...args: any) => any'.\n  Type 'typeof Runes__SvelteComponent_' provides no match for the signature '(...args: any): any'.",
         "range": {
-            "start": { "line": 21, "character": 12 },
-            "end": { "line": 21, "character": 20 }
+            "end": {
+                "character": 41,
+                "line": 12
+            },
+            "start": {
+                "character": 29,
+                "line": 12
+            }
         },
         "severity": 1,
         "source": "ts",
+        "tags": []
+    },
+    {
+        "code": 2353,
         "message": "Object literal may only specify known properties, and 'can_bind' does not exist in type '{ only_bind?: (() => boolean) | undefined; }'.",
-        "code": 2353,
-        "tags": []
-    },
-    {
         "range": {
-            "start": { "line": 22, "character": 8 },
-            "end": { "line": 22, "character": 16 }
+            "end": {
+                "character": 20,
+                "line": 21
+            },
+            "start": {
+                "character": 12,
+                "line": 21
+            }
         },
         "severity": 1,
         "source": "ts",
+        "tags": []
+    },
+    {
+        "code": 2353,
         "message": "Object literal may only specify known properties, and 'can_bind' does not exist in type '{ only_bind?: (() => boolean) | undefined; }'.",
-        "code": 2353,
-        "tags": []
-    },
-    {
         "range": {
-            "start": { "line": 23, "character": 8 },
-            "end": { "line": 23, "character": 16 }
+            "end": {
+                "character": 16,
+                "line": 22
+            },
+            "start": {
+                "character": 8,
+                "line": 22
+            }
         },
         "severity": 1,
         "source": "ts",
-        "message": "Object literal may only specify known properties, and 'readonly' does not exist in type '{ only_bind?: (() => boolean) | undefined; }'.",
-        "code": 2353,
         "tags": []
     },
     {
+        "code": 2353,
+        "message": "Object literal may only specify known properties, and 'readonly' does not exist in type '{ only_bind?: (() => boolean) | undefined; }'.",
         "range": {
-            "start": { "line": 26, "character": 12 },
-            "end": { "line": 26, "character": 20 }
+            "end": {
+                "character": 16,
+                "line": 23
+            },
+            "start": {
+                "character": 8,
+                "line": 23
+            }
         },
         "severity": 1,
         "source": "ts",
-        "message": "Object literal may only specify known properties, and 'readonly' does not exist in type '{ only_bind?: (() => boolean) | undefined; }'.",
-        "code": 2353,
         "tags": []
     },
     {
+        "code": 2353,
+        "message": "Object literal may only specify known properties, and 'readonly' does not exist in type '{ only_bind?: (() => boolean) | undefined; }'.",
         "range": {
-            "start": { "line": 30, "character": 19 },
-            "end": { "line": 30, "character": 27 }
+            "end": {
+                "character": 20,
+                "line": 26
+            },
+            "start": {
+                "character": 12,
+                "line": 26
+            }
         },
         "severity": 1,
         "source": "ts",
-        "message": "Object literal may only specify known properties, and 'readonly' does not exist in type '{ only_bind?: (() => boolean) | undefined; }'.",
+        "tags": []
+    },
+    {
         "code": 2353,
+        "message": "Object literal may only specify known properties, and 'readonly' does not exist in type '{ only_bind?: (() => boolean) | undefined; }'.",
+        "range": {
+            "end": {
+                "character": 27,
+                "line": 30
+            },
+            "start": {
+                "character": 19,
+                "line": 30
+            }
+        },
+        "severity": 1,
+        "source": "ts",
         "tags": []
     }
 ]

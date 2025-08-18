@@ -1,70 +1,34 @@
 [
     {
-        "code": 2695,
-        "message": "Left side of comma operator is unused and has no side effects.",
-        "range": {
-            "end": {
-                "character": 8,
-                "line": 6
-            },
-            "start": {
-                "character": 7,
-                "line": 6
-            }
-        },
+        "range": { "start": { "line": 6, "character": 7 }, "end": { "line": 6, "character": 8 } },
         "severity": 1,
         "source": "ts",
+        "message": "Left side of comma operator is unused and has no side effects.",
+        "code": 2695,
         "tags": [1]
     },
     {
-        "code": 2695,
-        "message": "Left side of comma operator is unused and has no side effects.",
-        "range": {
-            "end": {
-                "character": 11,
-                "line": 7
-            },
-            "start": {
-                "character": 10,
-                "line": 7
-            }
-        },
+        "range": { "start": { "line": 7, "character": 10 }, "end": { "line": 7, "character": 11 } },
         "severity": 1,
         "source": "ts",
+        "message": "Left side of comma operator is unused and has no side effects.",
+        "code": 2695,
         "tags": [1]
     },
     {
-        "code": 2695,
-        "message": "Left side of comma operator is unused and has no side effects.",
-        "range": {
-            "end": {
-                "character": 8,
-                "line": 8
-            },
-            "start": {
-                "character": 7,
-                "line": 8
-            }
-        },
+        "range": { "start": { "line": 8, "character": 7 }, "end": { "line": 8, "character": 8 } },
         "severity": 1,
         "source": "ts",
+        "message": "Left side of comma operator is unused and has no side effects.",
+        "code": 2695,
         "tags": [1]
     },
     {
-        "code": 2695,
-        "message": "Left side of comma operator is unused and has no side effects.",
-        "range": {
-            "end": {
-                "character": 9,
-                "line": 13
-            },
-            "start": {
-                "character": 8,
-                "line": 13
-            }
-        },
+        "range": { "start": { "line": 13, "character": 8 }, "end": { "line": 13, "character": 9 } },
         "severity": 1,
         "source": "ts",
+        "message": "Left side of comma operator is unused and has no side effects.",
+        "code": 2695,
         "tags": [1]
     }
 ]

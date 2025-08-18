@@ -1,36 +1,18 @@
 [
     {
-        "code": 2304,
-        "message": "Cannot find name 'Component'.",
-        "range": {
-            "end": {
-                "character": 10,
-                "line": 2
-            },
-            "start": {
-                "character": 1,
-                "line": 2
-            }
-        },
+        "range": { "start": { "line": 2, "character": 1 }, "end": { "line": 2, "character": 10 } },
         "severity": 1,
         "source": "ts",
+        "message": "Cannot find name 'Component'.",
+        "code": 2304,
         "tags": []
     },
     {
-        "code": 2304,
-        "message": "Cannot find name 'SomeLongComponentName'.",
-        "range": {
-            "end": {
-                "character": 22,
-                "line": 3
-            },
-            "start": {
-                "character": 1,
-                "line": 3
-            }
-        },
+        "range": { "start": { "line": 3, "character": 1 }, "end": { "line": 3, "character": 22 } },
         "severity": 1,
         "source": "ts",
+        "message": "Cannot find name 'SomeLongComponentName'.",
+        "code": 2304,
         "tags": []
     }
 ]

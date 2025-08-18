@@ -1,70 +1,46 @@
 [
     {
-        "code": 2322,
+        "range": {
+            "start": { "line": 17, "character": 24 },
+            "end": { "line": 17, "character": 34 }
+        },
+        "severity": 1,
+        "source": "ts",
         "message": "Type 'number' is not assignable to type 'boolean'.",
-        "range": {
-            "end": {
-                "character": 34,
-                "line": 17
-            },
-            "start": {
-                "character": 24,
-                "line": 17
-            }
-        },
-        "severity": 1,
-        "source": "ts",
+        "code": 2322,
         "tags": []
     },
     {
-        "code": 2322,
+        "range": {
+            "start": { "line": 18, "character": 16 },
+            "end": { "line": 18, "character": 20 }
+        },
+        "severity": 1,
+        "source": "ts",
         "message": "Type 'boolean' is not assignable to type 'number'.",
-        "range": {
-            "end": {
-                "character": 20,
-                "line": 18
-            },
-            "start": {
-                "character": 16,
-                "line": 18
-            }
-        },
-        "severity": 1,
-        "source": "ts",
+        "code": 2322,
         "tags": []
     },
     {
-        "code": 2322,
+        "range": {
+            "start": { "line": 19, "character": 24 },
+            "end": { "line": 19, "character": 41 }
+        },
+        "severity": 1,
+        "source": "ts",
         "message": "Type 'number' is not assignable to type 'boolean'.",
-        "range": {
-            "end": {
-                "character": 41,
-                "line": 19
-            },
-            "start": {
-                "character": 24,
-                "line": 19
-            }
-        },
-        "severity": 1,
-        "source": "ts",
+        "code": 2322,
         "tags": []
     },
     {
-        "code": 2322,
-        "message": "Type 'boolean' is not assignable to type 'number'.",
         "range": {
-            "end": {
-                "character": 20,
-                "line": 20
-            },
-            "start": {
-                "character": 16,
-                "line": 20
-            }
+            "start": { "line": 20, "character": 16 },
+            "end": { "line": 20, "character": 20 }
         },
         "severity": 1,
         "source": "ts",
+        "message": "Type 'boolean' is not assignable to type 'number'.",
+        "code": 2322,
         "tags": []
     }
 ]
