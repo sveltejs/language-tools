@@ -1,4 +1,4 @@
-import * as assert from 'assert';
+import { describe, it, expect } from 'vitest';
 import { Position, SelectionRange } from 'vscode-languageserver';
 import { Document } from '../../../../src/lib/documents';
 import { getSelectionRange } from '../../../../src/plugins/svelte/features/getSelectionRanges';
@@ -16,7 +16,7 @@ describe('SveltePlugin#getSelectionRange', () => {
             Position.create(0, contentWithCursor.indexOf(CURSOR))
         );
 
-        assert.deepStrictEqual(selectionRange, expected);
+        expect(selectionRange).toEqual(expected);
     }
 
     it('should return null for style and script', async () => {

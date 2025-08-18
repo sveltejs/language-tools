@@ -1,4 +1,4 @@
-import assert from 'assert';
+import { describe, it, expect, afterEach } from 'vitest';
 import { join } from 'path';
 import sinon from 'sinon';
 import ts from 'typescript';
@@ -20,7 +20,7 @@ const testDir = join(__dirname, '..');
 const updateImportTestDir = join(testDir, 'testfiles', 'update-imports');
 
 describe('UpdateImportsProviderImpl', function () {
-    serviceWarmup(this, updateImportTestDir, pathToUrl(testDir));
+    serviceWarmup(updateImportTestDir, pathToUrl(testDir));
 
     async function setup(filename: string, useCaseSensitiveFileNames: boolean) {
         const docManager = new DocumentManager(
@@ -60,7 +60,7 @@ describe('UpdateImportsProviderImpl', function () {
             newUri: pathToUrl(join(updateImportTestDir, 'documentation.svelte'))
         });
 
-        assert.deepStrictEqual(workspaceEdit?.documentChanges, [
+        expect(workspaceEdit?.documentChanges).toEqual([
             TextDocumentEdit.create(OptionalVersionedTextDocumentIdentifier.create(fileUri, null), [
                 TextEdit.replace(
                     Range.create(Position.create(1, 17), Position.create(1, 34)),
@@ -81,7 +81,7 @@ describe('UpdateImportsProviderImpl', function () {
             newUri: pathToUrl(join(updateImportTestDir, 'Imported.svelte'))
         });
 
-        assert.deepStrictEqual(workspaceEdit?.documentChanges, [
+        expect(workspaceEdit?.documentChanges).toEqual([
             TextDocumentEdit.create(OptionalVersionedTextDocumentIdentifier.create(fileUri, null), [
                 TextEdit.replace(
                     Range.create(Position.create(1, 17), Position.create(1, 34)),

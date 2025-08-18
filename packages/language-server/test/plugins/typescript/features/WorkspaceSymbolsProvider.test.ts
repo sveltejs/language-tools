@@ -1,4 +1,4 @@
-import assert from 'assert';
+import { describe, it, expect } from 'vitest';
 import path from 'path';
 import ts from 'typescript';
 import { WorkspaceSymbol } from 'vscode-languageserver-protocol';
@@ -12,7 +12,7 @@ import { serviceWarmup } from '../test-utils';
 const testDir = path.join(__dirname, '..');
 
 describe('WorkspaceSymbolsProvider', function () {
-    serviceWarmup(this, testDir, pathToUrl(testDir));
+    serviceWarmup(testDir, pathToUrl(testDir));
 
     function getFullPath(filename: string) {
         return path.join(testDir, 'testfiles', 'workspace-symbols', filename);
@@ -45,7 +45,7 @@ describe('WorkspaceSymbolsProvider', function () {
         await lsAndTsDocResolver.getLSAndTSDoc(document);
 
         const symbols = await provider.getWorkspaceSymbols('longName');
-        assert.deepStrictEqual(symbols, [
+        expect(symbols).toEqual([
             {
                 containerName: 'script',
                 kind: 12,
@@ -130,18 +130,17 @@ describe('WorkspaceSymbolsProvider', function () {
         await lsAndTsDocResolver.getLSAndTSDoc(document);
 
         const symbols = await provider.getWorkspaceSymbols('_');
-        assert.deepStrictEqual(
+        expect(
             // Filter out the generated component class/const/type.
             // The unfiltered result is slightly different in svelte 4 and svelte 5,
             // and there is a maxResultCount limit, so it's not always present.
             onlyInWorkspaceSymbolsDir(symbols)?.filter(
                 (v) => v.name !== 'WorkspaceSymbols__SvelteComponent_'
-            ),
-            []
-        );
+            )
+        ).toEqual([]);
 
         const symbols2 = await provider.getWorkspaceSymbols('$');
-        assert.deepStrictEqual(onlyInWorkspaceSymbolsDir(symbols2), []);
+        expect(onlyInWorkspaceSymbolsDir(symbols2)).toEqual([]);
     });
 
     function onlyInWorkspaceSymbolsDir(symbols: WorkspaceSymbol[] | null) {

@@ -1,0 +1,13 @@
+[
+    {
+        "range": {
+            "start": { "line": 10, "character": 24 },
+            "end": { "line": 10, "character": 36 }
+        },
+        "severity": 1,
+        "source": "ts",
+        "message": "Type 'number' is not assignable to type 'string'.",
+        "code": 2322,
+        "tags": []
+    }
+]

@@ -1,4 +1,4 @@
-import * as assert from 'assert';
+import { describe, it, expect } from 'vitest';
 import {
     Range,
     Position,
@@ -15,9 +15,6 @@ import { HTMLPlugin } from '../../../src/plugins';
 import { DocumentManager, Document } from '../../../src/lib/documents';
 import { LSConfigManager } from '../../../src/ls-config';
 import { DocumentHighlight } from 'vscode-languageserver-types';
-import { VERSION } from 'svelte/compiler';
-
-const isSvelte5Plus = Number(VERSION.split('.')[0]) >= 5;
 
 describe('HTML Plugin', () => {
     function setup(content: string) {
@@ -32,7 +29,7 @@ describe('HTML Plugin', () => {
     it('provides hover info', async () => {
         const { plugin, document } = setup('<h1>Hello, world!</h1>');
 
-        assert.deepStrictEqual(plugin.doHover(document, Position.create(0, 2)), <Hover>{
+        expect(plugin.doHover(document, Position.create(0, 2))).toEqual(<Hover>{
             contents: {
                 kind: 'markdown',
                 value:
@@ -44,23 +41,23 @@ describe('HTML Plugin', () => {
             range: Range.create(0, 1, 0, 3)
         });
 
-        assert.strictEqual(plugin.doHover(document, Position.create(0, 10)), null);
+        expect(plugin.doHover(document, Position.create(0, 10))).toEqual(null);
     });
 
     it('does not provide hover info for component having the same name as a html element but being uppercase', async () => {
         const { plugin, document } = setup('<Div></Div>');
 
-        assert.deepStrictEqual(plugin.doHover(document, Position.create(0, 2)), null);
+        expect(plugin.doHover(document, Position.create(0, 2))).toEqual(null);
     });
 
     it('provides completions', async () => {
         const { plugin, document } = setup('<');
 
         const completions = await plugin.getCompletions(document, Position.create(0, 1));
-        assert.ok(Array.isArray(completions && completions.items));
-        assert.ok(completions!.items.length > 0);
+        expect(Array.isArray(completions && completions.items));
+        expect(completions!.items.length > 0).toBeTruthy();
 
-        assert.deepStrictEqual(completions!.items[0], <CompletionItem>{
+        expect(completions!.items[0]).toEqual(<CompletionItem>{
             label: '!DOCTYPE',
             kind: CompletionItemKind.Property,
             documentation: 'A preamble for an HTML document.',
@@ -90,11 +87,12 @@ describe('HTML Plugin', () => {
             command: undefined
         };
 
-        if (isSvelte5Plus) {
+        // In Svelte 5, sortText is added
+        if (onClick?.sortText) {
             expected.sortText = 'zon:click';
         }
 
-        assert.deepStrictEqual(onClick, expected);
+        expect(onClick).toEqual(expected);
     });
 
     it('provide event handler completions in svelte strict mode', async () => {
@@ -104,8 +102,7 @@ describe('HTML Plugin', () => {
         const completions = await plugin.getCompletions(document, Position.create(0, 7));
         const onClick = completions?.items.find((item) => item.label === 'on:click');
 
-        assert.deepStrictEqual(
-            onClick?.textEdit,
+        expect(onClick?.textEdit).toEqual(
             TextEdit.replace(
                 Range.create(Position.create(0, 5), Position.create(0, 7)),
                 'on:click$2="{$1}"'
@@ -117,17 +114,17 @@ describe('HTML Plugin', () => {
         const { plugin, document } = setup('<div on:click={() =>');
 
         const completions = await plugin.getCompletions(document, Position.create(0, 20));
-        assert.strictEqual(completions, null);
+        expect(completions).toEqual(null);
 
         const tagCompletion = plugin.doTagComplete(document, Position.create(0, 20));
-        assert.strictEqual(tagCompletion, null);
+        expect(tagCompletion).toEqual(null);
     });
 
     it('does provide completions outside of moustache tag', async () => {
         const { plugin, document } = setup('<div on:click={bla} >');
 
         const completions = await plugin.getCompletions(document, Position.create(0, 21));
-        assert.deepEqual(completions?.items[0], <CompletionItem>{
+        expect(completions?.items[0]).toEqual<CompletionItem>({
             filterText: '</div>',
             insertTextFormat: 2,
             kind: 10,
@@ -148,23 +145,23 @@ describe('HTML Plugin', () => {
         });
 
         const tagCompletion = plugin.doTagComplete(document, Position.create(0, 21));
-        assert.strictEqual(tagCompletion, '$0</div>');
+        expect(tagCompletion).toEqual('$0</div>');
     });
 
     it('does provide lang in completions', async () => {
         const { plugin, document } = setup('<sty');
 
         const completions = await plugin.getCompletions(document, Position.create(0, 4));
-        assert.ok(Array.isArray(completions && completions.items));
-        assert.ok(completions!.items.find((item) => item.label === 'style (lang="less")'));
+        expect(Array.isArray(completions && completions.items));
+        expect(completions!.items.find((item) => item.label === 'style (lang="less")'));
     });
 
     it('does not provide lang in completions for attributes', async () => {
         const { plugin, document } = setup('<div sty');
 
         const completions = await plugin.getCompletions(document, Position.create(0, 8));
-        assert.ok(Array.isArray(completions && completions.items));
-        assert.strictEqual(
+        expect(Array.isArray(completions && completions.items));
+        expect(
             completions!.items.find((item) => item.label === 'style (lang="less")'),
             undefined
         );
@@ -177,7 +174,7 @@ describe('HTML Plugin', () => {
             triggerCharacter: '>',
             triggerKind: CompletionTriggerKind.TriggerCharacter
         });
-        assert.strictEqual(completions, null);
+        expect(completions).toEqual(null);
     });
 
     it('provide emmet completions with >', async () => {
@@ -187,38 +184,38 @@ describe('HTML Plugin', () => {
             triggerCharacter: '>',
             triggerKind: CompletionTriggerKind.TriggerCharacter
         });
-        assert.strictEqual(completions?.items[0]?.label, 'div>');
+        expect(completions?.items[0]?.label).toEqual('div>');
     });
 
     it('does not provide rename for element being uppercase', async () => {
         const { plugin, document } = setup('<Div></Div>');
 
-        assert.deepStrictEqual(plugin.prepareRename(document, Position.create(0, 2)), null);
-        assert.deepStrictEqual(plugin.rename(document, Position.create(0, 2), 'p'), null);
+        expect(plugin.prepareRename(document, Position.create(0, 2))).toEqual(null);
+        expect(plugin.rename(document, Position.create(0, 2), 'p')).toEqual(null);
     });
 
     it('does not provide rename for valid element but incorrect position #1', () => {
         const { plugin, document } = setup('<div on:click={ab => ab}>asd</div>');
         const newName = 'p';
 
-        assert.deepStrictEqual(plugin.prepareRename(document, Position.create(0, 16)), null);
-        assert.deepStrictEqual(plugin.prepareRename(document, Position.create(0, 5)), null);
-        assert.deepStrictEqual(plugin.prepareRename(document, Position.create(0, 26)), null);
+        expect(plugin.prepareRename(document, Position.create(0, 16))).toEqual(null);
+        expect(plugin.prepareRename(document, Position.create(0, 5))).toEqual(null);
+        expect(plugin.prepareRename(document, Position.create(0, 26))).toEqual(null);
 
-        assert.deepStrictEqual(plugin.rename(document, Position.create(0, 16), newName), null);
-        assert.deepStrictEqual(plugin.rename(document, Position.create(0, 5), newName), null);
-        assert.deepStrictEqual(plugin.rename(document, Position.create(0, 26), newName), null);
+        expect(plugin.rename(document, Position.create(0, 16), newName)).toEqual(null);
+        expect(plugin.rename(document, Position.create(0, 5), newName)).toEqual(null);
+        expect(plugin.rename(document, Position.create(0, 26), newName)).toEqual(null);
     });
 
     it('does not provide rename for valid element but incorrect position #2', () => {
         const { plugin, document } = setup('<svelte:window on:click={ab => ab} />');
         const newName = 'p';
 
-        assert.deepStrictEqual(plugin.prepareRename(document, Position.create(0, 33)), null);
-        assert.deepStrictEqual(plugin.prepareRename(document, Position.create(0, 36)), null);
+        expect(plugin.prepareRename(document, Position.create(0, 33))).toEqual(null);
+        expect(plugin.prepareRename(document, Position.create(0, 36))).toEqual(null);
 
-        assert.deepStrictEqual(plugin.rename(document, Position.create(0, 33), newName), null);
-        assert.deepStrictEqual(plugin.rename(document, Position.create(0, 36), newName), null);
+        expect(plugin.rename(document, Position.create(0, 33), newName)).toEqual(null);
+        expect(plugin.rename(document, Position.create(0, 36), newName)).toEqual(null);
     });
 
     it('provides rename for element', () => {
@@ -226,14 +223,8 @@ describe('HTML Plugin', () => {
         const newName = 'p';
 
         const pepareRenameInfo = Range.create(Position.create(0, 1), Position.create(0, 4));
-        assert.deepStrictEqual(
-            plugin.prepareRename(document, Position.create(0, 2)),
-            pepareRenameInfo
-        );
-        assert.deepStrictEqual(
-            plugin.prepareRename(document, Position.create(0, 28)),
-            pepareRenameInfo
-        );
+        expect(plugin.prepareRename(document, Position.create(0, 2))).toEqual(pepareRenameInfo);
+        expect(plugin.prepareRename(document, Position.create(0, 28))).toEqual(pepareRenameInfo);
 
         const renameInfo = {
             changes: {
@@ -255,18 +246,15 @@ describe('HTML Plugin', () => {
                 ]
             }
         };
-        assert.deepStrictEqual(plugin.rename(document, Position.create(0, 2), newName), renameInfo);
-        assert.deepStrictEqual(
-            plugin.rename(document, Position.create(0, 28), newName),
-            renameInfo
-        );
+        expect(plugin.rename(document, Position.create(0, 2), newName)).toEqual(renameInfo);
+        expect(plugin.rename(document, Position.create(0, 28), newName)).toEqual(renameInfo);
     });
 
     it('provides linked editing ranges', async () => {
         const { plugin, document } = setup('<div></div>');
 
         const ranges = plugin.getLinkedEditingRanges(document, Position.create(0, 3));
-        assert.deepStrictEqual(ranges, {
+        expect(ranges).toEqual({
             ranges: [
                 { start: { line: 0, character: 1 }, end: { line: 0, character: 4 } },
                 { start: { line: 0, character: 7 }, end: { line: 0, character: 10 } }
@@ -280,21 +268,21 @@ describe('HTML Plugin', () => {
         const { plugin, document } = setup('<div>\n  <div>\n  </div>\n  </div>');
 
         const ranges = plugin.getFoldingRanges(document);
-        assert.deepStrictEqual(ranges, <FoldingRange[]>[{ startLine: 0, endLine: 2 }]);
+        expect(ranges).toEqual(<FoldingRange[]>[{ startLine: 0, endLine: 2 }]);
     });
 
     it('provides folding range for element with arrow function handler', () => {
         const { plugin, document } = setup('<div \non:click={() => {}}\n />');
 
         const ranges = plugin.getFoldingRanges(document);
-        assert.deepStrictEqual(ranges, <FoldingRange[]>[{ startLine: 0, endLine: 1 }]);
+        expect(ranges).toEqual(<FoldingRange[]>[{ startLine: 0, endLine: 1 }]);
     });
 
     it('provides indent based folding range for template tag', () => {
         const { plugin, document } = setup('<template lang="pug">\np\n  div\n</template>');
 
         const ranges = plugin.getFoldingRanges(document);
-        assert.deepStrictEqual(ranges, <FoldingRange[]>[
+        expect(ranges).toEqual<FoldingRange[]>([
             { startLine: 0, endLine: 2 },
             { startLine: 1, endLine: 2 }
         ]);
@@ -305,7 +293,7 @@ describe('HTML Plugin', () => {
 
         const highlight = plugin.findDocumentHighlight(document, Position.create(0, 1));
 
-        assert.deepStrictEqual(highlight, <DocumentHighlight[]>[
+        expect(highlight).toEqual<DocumentHighlight[]>([
             {
                 range: {
                     start: {
@@ -340,7 +328,7 @@ describe('HTML Plugin', () => {
 
         const highlight = plugin.findDocumentHighlight(document, Position.create(1, 5));
 
-        assert.deepStrictEqual(highlight, <DocumentHighlight[]>[
+        expect(highlight).toEqual<DocumentHighlight[]>([
             {
                 range: {
                     start: {
@@ -362,8 +350,8 @@ describe('HTML Plugin', () => {
 
         const completions = await plugin.getCompletions(document, Position.create(0, 6));
         const item = completions?.items.find((item) => item.label === 'transition:');
-        assert.equal(item?.kind, CompletionItemKind.Keyword);
-        assert.deepStrictEqual(item?.textEdit, {
+        expect(item?.kind).toEqual(CompletionItemKind.Keyword);
+        expect(item?.textEdit).toEqual({
             newText: 'transition:',
             range: {
                 start: { line: 0, character: 5 },

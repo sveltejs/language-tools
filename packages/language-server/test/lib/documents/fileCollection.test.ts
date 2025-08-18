@@ -1,4 +1,4 @@
-import assert from 'assert';
+import { describe, it, expect } from 'vitest';
 import { FileMap, FileSet } from '../../../src/lib/documents/fileCollection';
 
 describe('fileCollection', () => {
@@ -8,8 +8,8 @@ describe('fileCollection', () => {
 
             set.add('hi.svelte');
 
-            assert.strictEqual(set.has('Hi.svelte'), false);
-            assert.ok(set.has('hi.svelte'));
+            expect(set.has('Hi.svelte')).toBe(false);
+            expect(set.has('hi.svelte')).toBeTruthy();
         });
 
         it('delete (case sensitive)', () => {
@@ -17,8 +17,8 @@ describe('fileCollection', () => {
 
             set.add('hi.svelte');
 
-            assert.strictEqual(set.delete('Hi.svelte'), false);
-            assert.ok(set.delete('hi.svelte'));
+            expect(set.delete('Hi.svelte')).toBe(false);
+            expect(set.delete('hi.svelte')).toBeTruthy();
         });
 
         it('has (case insensitive)', () => {
@@ -26,7 +26,7 @@ describe('fileCollection', () => {
 
             set.add('hi.svelte');
 
-            assert.ok(set.has('Hi.svelte'));
+            expect(set.has('Hi.svelte')).toBeTruthy();
         });
 
         it('delete (case sensitive)', () => {
@@ -34,7 +34,7 @@ describe('fileCollection', () => {
 
             set.add('hi.svelte');
 
-            assert.ok(set.delete('Hi.svelte'));
+            expect(set.delete('Hi.svelte')).toBeTruthy();
         });
     });
 
@@ -45,8 +45,8 @@ describe('fileCollection', () => {
 
             map.set('hi.svelte', info);
 
-            assert.strictEqual(map.has('Hi.svelte'), false);
-            assert.ok(map.has('hi.svelte'));
+            expect(map.has('Hi.svelte')).toBe(false);
+            expect(map.has('hi.svelte')).toBeTruthy();
         });
 
         it('get (case sensitive)', () => {
@@ -55,8 +55,8 @@ describe('fileCollection', () => {
 
             map.set('hi.svelte', info);
 
-            assert.strictEqual(map.get('Hi.svelte'), undefined);
-            assert.strictEqual(map.get('hi.svelte'), info);
+            expect(map.get('Hi.svelte')).toBe(undefined);
+            expect(map.get('hi.svelte')).toBe(info);
         });
 
         it('delete (case sensitive)', () => {
@@ -65,8 +65,8 @@ describe('fileCollection', () => {
 
             map.set('hi.svelte', info);
 
-            assert.strictEqual(map.delete('Hi.svelte'), false);
-            assert.ok(map.has('hi.svelte'));
+            expect(map.delete('Hi.svelte')).toBe(false);
+            expect(map.has('hi.svelte')).toBeTruthy();
         });
 
         it('has (case insensitive)', () => {
@@ -75,7 +75,7 @@ describe('fileCollection', () => {
 
             map.set('hi.svelte', info);
 
-            assert.ok(map.has('Hi.svelte'));
+            expect(map.has('Hi.svelte')).toBeTruthy();
         });
 
         it('get (case insensitive)', () => {
@@ -84,7 +84,7 @@ describe('fileCollection', () => {
 
             map.set('hi.svelte', info);
 
-            assert.strictEqual(map.get('Hi.svelte'), info);
+            expect(map.get('Hi.svelte')).toBe(info);
         });
 
         it('delete (case insensitive)', () => {
@@ -93,7 +93,7 @@ describe('fileCollection', () => {
 
             map.set('hi.svelte', info);
 
-            assert.strictEqual(map.delete('Hi.svelte'), true);
+            expect(map.delete('Hi.svelte')).toBe(true);
         });
     });
 });

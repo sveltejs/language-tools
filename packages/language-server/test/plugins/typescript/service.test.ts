@@ -1,4 +1,4 @@
-import assert from 'assert';
+import { describe, it, expect } from 'vitest';
 import path from 'path';
 import sinon from 'sinon';
 import ts from 'typescript';
@@ -70,7 +70,7 @@ describe('service', () => {
         // ts internal
         delete ls.compilerOptions.configFilePath;
 
-        assert.deepStrictEqual(ls.compilerOptions, <ts.CompilerOptions>{
+        expect(ls.compilerOptions).toEqual(<ts.CompilerOptions>{
             allowNonTsExtensions: true,
             checkJs: true,
             strict: true,
@@ -103,10 +103,10 @@ describe('service', () => {
             ...lsDocumentContext,
             reportConfigError: (message) => {
                 called = true;
-                assert.equal(message.uri, pathToUrl(path.join(dirPath, 'tsconfig.json')));
+                expect(message.uri).toEqual(pathToUrl(path.join(dirPath, 'tsconfig.json')));
             }
         });
-        assert.ok(called);
+        expect(called);
     });
 
     it('does not report no svelte files when loaded through import', async () => {
@@ -137,15 +137,15 @@ describe('service', () => {
             ...lsDocumentContext,
             reportConfigError: (message) => {
                 called = true;
-                assert.deepStrictEqual([], message.diagnostics);
+                expect([]).toEqual(message.diagnostics);
             }
         });
 
-        assert.equal(
+        expect(
             normalizePath(path.join(dirPath, 'tsconfig.json')),
             normalizePath(service.tsconfigPath)
         );
-        assert.ok(called);
+        expect(called);
     });
 
     it('does not errors if referenced tsconfig matches no svelte files', async () => {
@@ -197,11 +197,10 @@ describe('service', () => {
             }
         });
 
-        assert.equal(
-            normalizePath(path.join(dirPath, 'tsconfig_web.json')),
-            lsContainer.tsconfigPath
+        expect(lsContainer.tsconfigPath).toEqual(
+            normalizePath(path.join(dirPath, 'tsconfig_web.json'))
         );
-        assert.equal(called, false, 'expected not to call reportConfigError');
+        expect(called).toEqual(false);
     });
 
     it('can loads default tsconfig', async () => {
@@ -214,7 +213,7 @@ describe('service', () => {
             lsDocumentContext
         );
 
-        assert.deepStrictEqual(ls.compilerOptions, <ts.CompilerOptions>{
+        expect(ls.compilerOptions).toEqual(<ts.CompilerOptions>{
             allowJs: true,
             allowSyntheticDefaultImports: true,
             allowNonTsExtensions: true,
@@ -276,9 +275,9 @@ describe('service', () => {
         document2.update(' ', 0, 0);
         lang.getProgram();
 
-        assert.doesNotThrow(() => {
+        expect(() => {
             lang.dispose();
-        });
+        }).not.toThrow();
     });
 
     it('do not throw when script tag is nuked', async () => {
@@ -401,11 +400,7 @@ describe('service', () => {
                 ...lsDocumentContext,
                 watchTsConfig: true
             });
-            assert.strictEqual(
-                newLs.compilerOptions.strict,
-                true,
-                'expected to reload compilerOptions'
-            );
+            expect(newLs.compilerOptions.strict, 'expected to reload compilerOptions').toBe(true);
 
             return true;
         }
@@ -453,11 +448,7 @@ describe('service', () => {
                 ...lsDocumentContext,
                 watchTsConfig: true
             });
-            assert.strictEqual(
-                newLs.compilerOptions.strict,
-                true,
-                'expected to reload compilerOptions'
-            );
+            expect(newLs.compilerOptions.strict, 'expected to reload compilerOptions').toBe(true);
             return true;
         }
     });
@@ -496,7 +487,7 @@ describe('service', () => {
         virtualSystem.writeFile(tsFilePath, 'const a: number = null;');
 
         const ls = await getService(tsFilePath, rootUris, docContextWithReload);
-        assert.deepStrictEqual(getSemanticDiagnosticsMessages(ls, tsFilePath), [
+        expect(getSemanticDiagnosticsMessages(ls, tsFilePath)).toEqual([
             "Type 'null' is not assignable to type 'number'."
         ]);
 
@@ -520,7 +511,7 @@ describe('service', () => {
                 watchTsConfig: true
             });
 
-            assert.deepStrictEqual(getSemanticDiagnosticsMessages(newLs, tsFilePath), []);
+            expect(getSemanticDiagnosticsMessages(newLs, tsFilePath)).toEqual([]);
             return true;
         }
     });
@@ -540,9 +531,9 @@ describe('service', () => {
         document.openedByClient = true;
         ls.updateSnapshot(document);
 
-        assert.doesNotThrow(() => {
+        expect(() => {
             ls.getService().getSemanticDiagnostics(document.getFilePath()!);
-        });
+        }).not.toThrow();
     });
 
     it('resolve module with source project reference redirect', async () => {
@@ -596,7 +587,7 @@ describe('service', () => {
 
         const ls = await getService(importing, rootUris, lsDocumentContext);
 
-        assert.deepStrictEqual(getSemanticDiagnosticsMessages(ls, importing), []);
+        expect(getSemanticDiagnosticsMessages(ls, importing)).toEqual([]);
     });
 
     it('resolve module with source project reference redirect having different module resolution', async () => {
@@ -644,7 +635,7 @@ describe('service', () => {
 
         const ls = await getService(importing, rootUris, lsDocumentContext);
 
-        assert.deepStrictEqual(getSemanticDiagnosticsMessages(ls, importing), []);
+        expect(getSemanticDiagnosticsMessages(ls, importing)).toEqual([]);
     });
 
     it('skip directory watching if directory is root', async () => {
@@ -737,7 +728,7 @@ describe('service', () => {
         const ls = await getService(referencedFile, rootUris, lsDocumentContext);
         ls.updateSnapshot(document);
 
-        assert.equal(normalizePath(ls.tsconfigPath), normalizePath(tsconfigPath));
+        expect(normalizePath(ls.tsconfigPath), normalizePath(tsconfigPath));
 
         const noImplicitOverrideErrorCode = 4114;
         const findError = (ls: LanguageServiceContainer) =>
@@ -746,7 +737,7 @@ describe('service', () => {
                 .getSemanticDiagnostics(referencedFile)
                 .find((f) => f.code === noImplicitOverrideErrorCode);
 
-        assert.ok(findError(ls));
+        expect(findError(ls));
 
         virtualSystem.writeFile(tsFilePath, '');
         ls.updateTsOrJsFile(tsFilePath);
@@ -754,7 +745,7 @@ describe('service', () => {
         const ls2 = await getService(referencedFile, rootUris, lsDocumentContext);
         ls2.updateSnapshot(document);
 
-        assert.deepStrictEqual(findError(ls2), undefined);
+        expect(findError(ls2), undefined);
     });
 
     it('assigns newly created files to the right service before the watcher trigger', async () => {
@@ -775,13 +766,13 @@ describe('service', () => {
 
         const ls = await getService(svelteFilePath, rootUris, lsDocumentContext);
 
-        assert.equal(normalizePath(ls.tsconfigPath), normalizePath(tsconfigPath));
+        expect(normalizePath(ls.tsconfigPath), normalizePath(tsconfigPath));
 
         const svelteFilePath2 = path.join(dirPath, 'random2.svelte');
         virtualSystem.writeFile(svelteFilePath2, '');
 
         const ls2 = await getService(svelteFilePath2, rootUris, lsDocumentContext);
-        assert.equal(normalizePath(ls2.tsconfigPath), normalizePath(tsconfigPath));
+        expect(normalizePath(ls2.tsconfigPath), normalizePath(tsconfigPath));
     });
 
     function getSemanticDiagnosticsMessages(ls: LanguageServiceContainer, filePath: string) {

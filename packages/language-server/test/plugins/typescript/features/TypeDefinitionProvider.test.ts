@@ -1,4 +1,4 @@
-import assert from 'assert';
+import { describe, it, expect } from 'vitest';
 import path from 'path';
 import ts from 'typescript';
 import { Location } from 'vscode-languageserver-protocol';
@@ -13,7 +13,7 @@ const testDir = path.join(__dirname, '..');
 const typeDefinitionTestDir = path.join(testDir, 'testfiles', 'typedefinition');
 
 describe('TypeDefinitionProvider', function () {
-    serviceWarmup(this, typeDefinitionTestDir, pathToUrl(testDir));
+    serviceWarmup(typeDefinitionTestDir, pathToUrl(testDir));
 
     function getFullPath(filename: string) {
         return path.join(typeDefinitionTestDir, filename);
@@ -49,7 +49,7 @@ describe('TypeDefinitionProvider', function () {
             character: 15
         });
 
-        assert.deepStrictEqual(typeDefs, <Location[]>[
+        expect(typeDefs).toEqual<Location[]>([
             {
                 range: {
                     start: {
@@ -74,7 +74,7 @@ describe('TypeDefinitionProvider', function () {
             character: 20
         });
 
-        assert.deepStrictEqual(typeDefs, <Location[]>[
+        expect(typeDefs).toEqual<Location[]>([
             {
                 range: {
                     start: {
@@ -95,7 +95,7 @@ describe('TypeDefinitionProvider', function () {
         const { provider, document } = setup('../declaration-map/importing.svelte');
 
         const typeDefs = await provider.getTypeDefinition(document, { line: 1, character: 13 });
-        assert.deepStrictEqual(typeDefs, <Location[]>[
+        expect(typeDefs).toEqual<Location[]>([
             {
                 range: {
                     end: { line: 0, character: 18 },

@@ -1,4 +1,4 @@
-import * as assert from 'assert';
+import { describe, it, expect } from 'vitest';
 import * as fs from 'fs';
 import { join } from 'path';
 import { emitDts } from '../../src';
@@ -39,32 +39,17 @@ async function testEmitDts(sample: string) {
             }
         } else {
             const expectedFiles = fs.readdirSync(join(cwd, 'expected'));
-            assert.strictEqual(
-                actual_files.length,
-                expectedFiles.length,
-                'Contains a different number of files. Expected ' +
-                    expectedFiles.join(',') +
-                    ' , got ' +
-                    actual_files.join(',')
-            );
+            expect(actual_files.length).toBe(expectedFiles.length);
 
             for (const file of actual_files) {
-                assert.strictEqual(
-                    expectedFiles.includes(file),
-                    true,
-                    `Did not expect file or folder ${file}`
-                );
+                expect(expectedFiles.includes(file)).toBe(true);
                 const expectedContent = fs
                     .readFileSync(join(cwd, 'expected', file), 'utf-8')
                     .replace(/\r\n/g, '\n');
                 const actualContent = fs
                     .readFileSync(join(cwd, 'package', file), 'utf-8')
                     .replace(/\r\n/g, '\n');
-                assert.strictEqual(
-                    actualContent,
-                    expectedContent,
-                    `Expected equal file contents for ${file}`
-                );
+                expect(actualContent).toBe(expectedContent);
             }
         }
     } finally {
@@ -77,6 +62,6 @@ describe('emitDts', async () => {
     let samplesToTest = samples.filter((s) => s.endsWith('.solo'));
     samplesToTest = samplesToTest.length ? samplesToTest : samples;
     for (const sample of samplesToTest) {
-        it(sample, async () => await testEmitDts(sample)).timeout(10000);
+        it(sample, async () => await testEmitDts(sample), 10000);
     }
 });
