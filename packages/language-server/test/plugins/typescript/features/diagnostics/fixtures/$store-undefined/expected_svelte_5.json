@@ -1,5 +1,13 @@
 [
     {
+        "range": { "start": { "line": 8, "character": 2 }, "end": { "line": 8, "character": 17 } },
+        "severity": 1,
+        "source": "ts",
+        "message": "'$interfaceStore' is possibly 'undefined'.",
+        "code": 18048,
+        "tags": []
+    },
+    {
         "range": { "start": { "line": 9, "character": 36 }, "end": { "line": 9, "character": 64 } },
         "severity": 1,
         "source": "ts",
