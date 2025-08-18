@@ -1,5 +1,5 @@
 export interface SomeType {
-    hi: string;
+    hi: string
 }
 
 export function getDefaultSomeType(): SomeType {

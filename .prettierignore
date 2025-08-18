@@ -15,4 +15,3 @@ packages/typescript-plugin/src/**/*.d.ts
 .github/**
 .history/**
 pnpm-lock.yaml
-packages/language-server/test/plugins/typescript/features/diagnostics/fixtures/snapshots/**/*.json
