@@ -35,7 +35,8 @@ import {
     TextEdit,
     WorkspaceEdit,
     InlayHint,
-    WorkspaceSymbol
+    WorkspaceSymbol,
+    DocumentSymbol
 } from 'vscode-languageserver';
 import { DocumentManager, getNodeIfIsInHTMLStartTag } from '../lib/documents';
 import { Logger } from '../logger';
@@ -307,6 +308,7 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         if (cancellationToken.isCancellationRequested) {
             return [];
         }
+
         return flatten(
             await this.execute<SymbolInformation[]>(
                 'getDocumentSymbols',
@@ -315,6 +317,63 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
                 'high'
             )
         );
+    }
+
+    private comparePosition(pos1: Position, pos2: Position) {
+        if (pos1.line < pos2.line) return -1;
+        if (pos1.line > pos2.line) return 1;
+        if (pos1.character < pos2.character) return -1;
+        if (pos1.character > pos2.character) return 1;
+        return 0;
+    }
+
+    private rangeContains(parent: Range, child: Range) {
+        return (
+            this.comparePosition(parent.start, child.start) <= 0 &&
+            this.comparePosition(child.end, parent.end) <= 0
+        );
+    }
+
+    async getHierarchicalDocumentSymbols(
+        textDocument: TextDocumentIdentifier,
+        cancellationToken: CancellationToken
+    ): Promise<DocumentSymbol[]> {
+        const flat = await this.getDocumentSymbols(textDocument, cancellationToken);
+        const symbols = flat
+            .map((s) =>
+                DocumentSymbol.create(
+                    s.name,
+                    undefined,
+                    s.kind,
+                    s.location.range,
+                    s.location.range,
+                    []
+                )
+            )
+            .sort((a, b) => {
+                const start = this.comparePosition(a.range.start, b.range.start);
+                if (start !== 0) return start;
+                return this.comparePosition(b.range.end, a.range.end);
+            });
+
+        const stack: DocumentSymbol[] = [];
+        const roots: DocumentSymbol[] = [];
+
+        for (const node of symbols) {
+            while (stack.length > 0 && !this.rangeContains(stack.at(-1)!.range, node.range)) {
+                stack.pop();
+            }
+
+            if (stack.length > 0) {
+                stack.at(-1)!.children!.push(node);
+            } else {
+                roots.push(node);
+            }
+
+            stack.push(node);
+        }
+
+        return roots;
     }
 
     async getDefinitions(
