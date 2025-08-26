@@ -31,6 +31,11 @@ export interface SvelteCheckOptions {
     tsconfig?: string;
     onProjectReload?: () => void;
     watch?: boolean;
+    /**
+     * Optional callback invoked when a new snapshot is created.
+     * Provides the absolute file path of the snapshot.
+     */
+    onFileSnapshotCreated?: (filePath: string) => void;
 }
 
 /**
@@ -91,7 +96,8 @@ export class SvelteCheck {
                     tsconfigPath: options.tsconfig,
                     isSvelteCheck: true,
                     onProjectReloaded: options.onProjectReload,
-                    watch: options.watch
+                    watch: options.watch,
+                    onFileSnapshotCreated: options.onFileSnapshotCreated
                 }
             );
             this.pluginHost.register(
@@ -352,5 +358,26 @@ export class SvelteCheck {
             throw new Error('Cannot run with tsconfig path without LS/TSdoc resolver');
         }
         return this.lsAndTSDocResolver.getTSService(tsconfigPath);
+    }
+
+    /**
+     * Gets the watch directories based on the tsconfig include patterns.
+     * Returns null if no tsconfig is specified.
+     */
+    async getWatchDirectories(): Promise<{ path: string; recursive: boolean }[] | null> {
+        if (!this.options.tsconfig) {
+            return null;
+        }
+        const lsContainer = await this.getLSContainer(this.options.tsconfig);
+        const projectConfig = lsContainer.getProjectConfig();
+
+        if (!projectConfig.wildcardDirectories) {
+            return null;
+        }
+
+        return Object.entries(projectConfig.wildcardDirectories).map(([dir, flags]) => ({
+            path: dir,
+            recursive: !!(flags & ts.WatchDirectoryFlags.Recursive)
+        }));
     }
 }

@@ -60,6 +60,7 @@ export interface LanguageServiceContainer {
     getResolvedProjectReferences(): TsConfigInfo[];
     openVirtualDocument(document: Document): void;
     isShimFiles(filePath: string): boolean;
+    getProjectConfig(): ts.ParsedCommandLine;
     dispose(): void;
 }
 
@@ -458,6 +459,7 @@ async function createLanguageService(
         getResolvedProjectReferences,
         openVirtualDocument,
         isShimFiles,
+        getProjectConfig,
         dispose
     };
 
@@ -1248,6 +1250,10 @@ async function createLanguageService(
 
     function isShimFiles(filePath: string) {
         return svelteTsxFilesToOriginalCasing.has(getCanonicalFileName(normalizePath(filePath)));
+    }
+
+    function getProjectConfig() {
+        return projectConfig;
     }
 }
 
