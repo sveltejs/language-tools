@@ -1,4 +1,4 @@
-import * as assert from 'assert';
+import { describe, it, expect, afterEach } from 'vitest';
 import sinon from 'sinon';
 import ts from 'typescript';
 import { createSvelteSys } from '../../../src/plugins/typescript/svelte-sys';
@@ -33,7 +33,7 @@ describe('Svelte Sys', () => {
             const { loader, fileExistsStub } = setupLoader();
             loader.fileExists('../file.ts');
 
-            assert.strictEqual(fileExistsStub.getCall(0).args[0], '../file.ts');
+            expect(fileExistsStub.getCall(0).args[0], '../file.ts');
         });
 
         it('should convert .d.svelte.ts-endings', async () => {
@@ -44,9 +44,9 @@ describe('Svelte Sys', () => {
 
             loader.fileExists('../file.d.svelte.ts');
 
-            assert.strictEqual(fileExistsStub.getCall(0).args[0], '../file.svelte.d.ts');
-            assert.strictEqual(fileExistsStub.getCall(1).args[0], '../file.d.svelte.ts');
-            assert.strictEqual(fileExistsStub.getCall(2).args[0], '../file.svelte');
+            expect(fileExistsStub.getCall(0).args[0], '../file.svelte.d.ts');
+            expect(fileExistsStub.getCall(1).args[0], '../file.d.svelte.ts');
+            expect(fileExistsStub.getCall(2).args[0], '../file.svelte');
         });
     });
 });

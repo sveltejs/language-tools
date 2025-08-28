@@ -1,5 +1,5 @@
-import * as assert from 'assert';
-import { readFileSync, writeFileSync } from 'fs';
+import { describe, it, expect, beforeAll } from 'vitest';
+import { readdirSync, statSync, existsSync, readFileSync } from 'fs';
 import { join } from 'path';
 import ts from 'typescript';
 import { Document, DocumentManager } from '../../../../../src/lib/documents';
@@ -8,9 +8,9 @@ import { LSAndTSDocResolver } from '../../../../../src/plugins';
 import { FoldingRangeProviderImpl } from '../../../../../src/plugins/typescript/features/FoldingRangeProvider';
 import { pathToUrl } from '../../../../../src/utils';
 import {
-    createJsonSnapshotFormatter,
-    createSnapshotTester,
-    updateSnapshotIfFailedOrEmpty
+    serviceWarmup,
+    updateSnapshotIfFailedOrEmpty,
+    createJsonSnapshotFormatter
 } from '../../test-utils';
 
 function setup(workspaceDir: string, filePath: string) {
@@ -34,89 +34,38 @@ function setup(workspaceDir: string, filePath: string) {
     return { plugin, document, docManager, lsAndTsDocResolver };
 }
 
-async function executeTest(
-    inputFile: string,
-    {
-        workspaceDir,
-        dir
-    }: {
-        workspaceDir: string;
-        dir: string;
-    }
-) {
-    const expected = 'expectedv2.json';
-    const { plugin, document } = setup(workspaceDir, inputFile);
-    const folding = await plugin.getFoldingRanges(document);
+describe('FoldingRangeProvider', () => {
+    const fixturesDir = join(__dirname, 'fixtures');
+    const workspaceDir = join(__dirname, '../../testfiles');
 
-    const expectedFile = join(dir, expected);
-    if (process.argv.includes('--debug')) {
-        writeFileSync(join(dir, 'debug.svelte'), appendFoldingAsComment());
-    }
-
-    const snapshotFormatter = await createJsonSnapshotFormatter(dir);
-
-    await updateSnapshotIfFailedOrEmpty({
-        assertion() {
-            assert.deepStrictEqual(
-                JSON.parse(JSON.stringify(folding)),
-                JSON.parse(readFileSync(expectedFile, 'utf-8'))
-            );
-        },
-        expectedFile,
-        getFileContent() {
-            return snapshotFormatter(folding);
-        },
-        rootDir: __dirname
+    beforeAll(() => {
+        serviceWarmup(workspaceDir, pathToUrl(workspaceDir));
     });
 
-    function appendFoldingAsComment() {
-        if (!folding) {
-            return document.getText();
-        }
-
-        const offsetMap = new Map<number, string[]>();
-        const lineLength = document
-            .getText()
-            .split('\n')
-            .map((line) => (line[line.length - 1] === '\r' ? line.length - 1 : line.length));
-
-        for (const fold of folding) {
-            const startOffset = document.offsetAt({
-                line: fold.startLine,
-                character: lineLength[fold.startLine]
-            });
-            const endOffset = document.offsetAt({
-                line: fold.endLine,
-                character: lineLength[fold.endLine]
-            });
-
-            offsetMap.set(startOffset, (offsetMap.get(startOffset) ?? []).concat(`/*s*/`));
-            offsetMap.set(endOffset, (offsetMap.get(endOffset) ?? []).concat(`/*e*/`));
-        }
-
-        const offsets = Array.from(offsetMap.keys()).sort((a, b) => a - b);
-        const parts: string[] = [];
-
-        for (let index = 0; index < offsets.length; index++) {
-            const offset = offsets[index];
-            parts.push(
-                document.getText().slice(offsets[index - 1], offset),
-                ...(offsetMap.get(offset) ?? [])
-            );
-        }
-
-        parts.push(document.getText().slice(offsets[offsets.length - 1]));
-
-        return parts.join('');
-    }
-}
-
-const executeTests = createSnapshotTester(executeTest);
-
-describe('FoldingRangeProvider', function () {
-    executeTests({
-        dir: join(__dirname, 'fixtures'),
-        workspaceDir: join(__dirname, 'fixtures'),
-        context: this
+    // Get all test fixtures
+    const testFiles = readdirSync(fixturesDir).filter((entry) => {
+        const fullPath = join(fixturesDir, entry);
+        const inputFile = join(fullPath, 'input.svelte');
+        return statSync(fullPath).isDirectory() && existsSync(inputFile);
     });
+
+    for (const testName of testFiles) {
+        it(testName, async () => {
+            const inputFile = join(fixturesDir, testName, 'input.svelte');
+            const { plugin, document } = setup(workspaceDir, inputFile);
+            const folding = await plugin.getFoldingRanges(document);
+
+            // Compare against file-based expected output (expectedv2.json)
+            const expectedFile = join(fixturesDir, testName, 'expectedv2.json');
+            const formatJson = await createJsonSnapshotFormatter(__dirname);
+
+            await updateSnapshotIfFailedOrEmpty({
+                assertion: () =>
+                    expect(folding).toEqual(JSON.parse(readFileSync(expectedFile, 'utf-8'))),
+                expectedFile,
+                rootDir: fixturesDir,
+                getFileContent: () => formatJson(folding)
+            });
+        });
+    }
 });

@@ -1,4 +1,4 @@
-import * as assert from 'assert';
+import { describe, it, expect } from 'vitest';
 import {
     getLineAtPosition,
     extractStyleTag,
@@ -12,12 +12,12 @@ describe('document/utils', () => {
     describe('extractTag', () => {
         it('supports boolean attributes', () => {
             const extracted = extractStyleTag('<style test></style>');
-            assert.deepStrictEqual(extracted?.attributes, { test: 'test' });
+            expect(extracted?.attributes).toEqual({ test: 'test' });
         });
 
         it('supports unquoted attributes', () => {
             const extracted = extractStyleTag('<style type=text/css></style>');
-            assert.deepStrictEqual(extracted?.attributes, {
+            expect(extracted?.attributes).toEqual({
                 type: 'text/css'
             });
         });
@@ -28,7 +28,7 @@ describe('document/utils', () => {
                 <!--<style>h1{ color: blue; }</style>-->
                 <style>p{ color: blue; }</style>
             `;
-            assert.deepStrictEqual(extractStyleTag(text), {
+            expect(extractStyleTag(text)).toEqual({
                 content: 'p{ color: blue; }',
                 attributes: {},
                 start: 108,
@@ -47,7 +47,7 @@ describe('document/utils', () => {
             <p>bla</p>
             ></style>
             `;
-            assert.deepStrictEqual(extractStyleTag(text), null);
+            expect(extractStyleTag(text)).toEqual(null);
         });
 
         it('is canse sensitive to style/script', () => {
@@ -55,8 +55,8 @@ describe('document/utils', () => {
             <Style></Style>
             <Script></Script>
             `;
-            assert.deepStrictEqual(extractStyleTag(text), null);
-            assert.deepStrictEqual(extractScriptTags(text), null);
+            expect(extractStyleTag(text)).toEqual(null);
+            expect(extractScriptTags(text)).toEqual(null);
         });
 
         it('only extract attribute until tag ends', () => {
@@ -67,12 +67,12 @@ describe('document/utils', () => {
             `;
             const extracted = extractScriptTags(text);
             const attributes = extracted?.script?.attributes;
-            assert.deepStrictEqual(attributes, { type: 'typescript' });
+            expect(attributes).toEqual({ type: 'typescript' });
         });
 
         it('can extract with self-closing component before it', () => {
             const extracted = extractStyleTag('<SelfClosing /><style></style>');
-            assert.deepStrictEqual(extracted, {
+            expect(extracted).toEqual({
                 start: 22,
                 end: 22,
                 startPos: {
@@ -94,7 +94,7 @@ describe('document/utils', () => {
 
         it('can extract with unclosed component after it', () => {
             const extracted = extractStyleTag('<style></style><C {#if asd}<p>asd</p>{/if}');
-            assert.deepStrictEqual(extracted, {
+            expect(extracted).toEqual({
                 start: 7,
                 end: 7,
                 startPos: {
@@ -119,7 +119,7 @@ describe('document/utils', () => {
                 <p>bla</p>
                 <style>p{ color: blue; }</style>
             `;
-            assert.deepStrictEqual(extractStyleTag(text), {
+            expect(extractStyleTag(text)).toEqual({
                 content: 'p{ color: blue; }',
                 attributes: {},
                 start: 51,
@@ -134,7 +134,7 @@ describe('document/utils', () => {
             const text = `
                 <style lang="scss">p{ color: blue; }</style>
             `;
-            assert.deepStrictEqual(extractStyleTag(text), {
+            expect(extractStyleTag(text)).toEqual({
                 content: 'p{ color: blue; }',
                 attributes: { lang: 'scss' },
                 start: 36,
@@ -149,7 +149,7 @@ describe('document/utils', () => {
             const text = `
                 <style     lang="scss"    >  p{ color: blue; }  </style>
             `;
-            assert.deepStrictEqual(extractStyleTag(text), {
+            expect(extractStyleTag(text)).toEqual({
                 content: '  p{ color: blue; }  ',
                 attributes: { lang: 'scss' },
                 start: 44,
@@ -165,7 +165,7 @@ describe('document/utils', () => {
                 <script lang="ts" generics="T extends Record<string, any>">content</script>
                 <p>bla</p>
             `;
-            assert.deepStrictEqual(extractScriptTags(text)?.script, {
+            expect(extractScriptTags(text)?.script).toEqual({
                 content: 'content',
                 attributes: {
                     generics: 'T extends Record<string, any>',
@@ -217,7 +217,7 @@ describe('document/utils', () => {
                 <script>top level script</script>
             `;
 
-            assert.deepStrictEqual(extractScriptTags(text)?.script, {
+            expect(extractScriptTags(text)?.script).toEqual({
                 content: 'top level script',
                 attributes: {},
                 start: 1243,
@@ -234,7 +234,7 @@ describe('document/utils', () => {
                 {  #if myvar } {/if}
             `;
 
-            assert.deepStrictEqual(extractScriptTags(text)?.script, {
+            expect(extractScriptTags(text)?.script).toEqual({
                 content: 'top level script',
                 attributes: {},
                 start: 25,
@@ -258,7 +258,7 @@ describe('document/utils', () => {
             <h1>Hello, world!</h1>
             <style>.bla {}</style>
             `;
-            assert.deepStrictEqual(extractScriptTags(text)?.script, {
+            expect(extractScriptTags(text)?.script).toEqual({
                 content: 'top level script',
                 attributes: {},
                 start: 254,
@@ -274,7 +274,7 @@ describe('document/utils', () => {
             <script context="module">a</script>
             <script>b</script>
             `;
-            assert.deepStrictEqual(extractScriptTags(text), {
+            expect(extractScriptTags(text)).toEqual({
                 moduleScript: {
                     attributes: {
                         context: 'module'
@@ -334,7 +334,7 @@ describe('document/utils', () => {
             {:else if value < 4}
             {/if}
           </div>`;
-            assert.deepStrictEqual(extractScriptTags(text)?.script, {
+            expect(extractScriptTags(text)?.script).toEqual({
                 content: 'let value = 2',
                 attributes: {},
                 start: 159,
@@ -348,14 +348,11 @@ describe('document/utils', () => {
 
     describe('#getLineAtPosition', () => {
         it('should return line at position (only one line)', () => {
-            assert.deepStrictEqual(getLineAtPosition(Position.create(0, 1), 'ABC'), 'ABC');
+            expect(getLineAtPosition(Position.create(0, 1), 'ABC')).toEqual('ABC');
         });
 
         it('should return line at position (multiple lines)', () => {
-            assert.deepStrictEqual(
-                getLineAtPosition(Position.create(1, 1), 'ABC\nDEF\nGHI'),
-                'DEF\n'
-            );
+            expect(getLineAtPosition(Position.create(1, 1), 'ABC\nDEF\nGHI')).toEqual('DEF\n');
         });
     });
 
@@ -366,7 +363,7 @@ describe('document/utils', () => {
                 'C:/absolute/newPath',
                 './Component.svelte'
             );
-            assert.deepStrictEqual(newPath, '../path/oldPath/Component.svelte');
+            expect(newPath).toEqual('../path/oldPath/Component.svelte');
         });
 
         it('should update path of file without ending', () => {
@@ -375,7 +372,7 @@ describe('document/utils', () => {
                 'C:/absolute/newPath',
                 './someTsFile'
             );
-            assert.deepStrictEqual(newPath, '../path/oldPath/someTsFile');
+            expect(newPath).toEqual('../path/oldPath/someTsFile');
         });
 
         it('should update path of file going one up', () => {
@@ -384,36 +381,36 @@ describe('document/utils', () => {
                 'C:/absolute/path',
                 './someTsFile'
             );
-            assert.deepStrictEqual(newPath, './oldPath/someTsFile');
+            expect(newPath).toEqual('./oldPath/someTsFile');
         });
     });
 
     describe('#getWordAt', () => {
         it('returns word between whitespaces', () => {
-            assert.equal(getWordAt('qwd asd qwd', 5), 'asd');
+            expect(getWordAt('qwd asd qwd', 5)).toEqual('asd');
         });
 
         it('returns word between whitespace and end of string', () => {
-            assert.equal(getWordAt('qwd asd', 5), 'asd');
+            expect(getWordAt('qwd asd', 5)).toEqual('asd');
         });
 
         it('returns word between start of string and whitespace', () => {
-            assert.equal(getWordAt('asd qwd', 2), 'asd');
+            expect(getWordAt('asd qwd', 2)).toEqual('asd');
         });
 
         it('returns word between start of string and end of string', () => {
-            assert.equal(getWordAt('asd', 2), 'asd');
+            expect(getWordAt('asd', 2)).toEqual('asd');
         });
 
         it('returns word with custom delimiters', () => {
-            assert.equal(
+            expect(
                 getWordAt('asd on:asd-qwd="asd" ', 10, { left: /\S+$/, right: /[\s=]/ }),
                 'on:asd-qwd'
             );
         });
 
         function testEvent(str: string, pos: number, expected: string) {
-            assert.equal(getWordAt(str, pos, { left: /\S+$/, right: /[^\w$:]/ }), expected);
+            expect(getWordAt(str, pos, { left: /\S+$/, right: /[^\w$:]/ })).toEqual(expected);
         }
 
         it('returns event #1', () => {
@@ -425,7 +422,7 @@ describe('document/utils', () => {
         });
 
         it('returns empty string when only whitespace', () => {
-            assert.equal(getWordAt('a  a', 2), '');
+            expect(getWordAt('a  a', 2)).toEqual('');
         });
     });
 });

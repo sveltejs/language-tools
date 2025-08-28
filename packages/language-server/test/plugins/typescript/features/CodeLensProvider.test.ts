@@ -1,4 +1,4 @@
-import * as assert from 'assert';
+import { describe, it, expect } from 'vitest';
 import * as path from 'path';
 import ts from 'typescript';
 import { Document, DocumentManager } from '../../../../src/lib/documents';
@@ -14,7 +14,7 @@ import { serviceWarmup } from '../test-utils';
 const testDir = path.join(__dirname, '..');
 
 describe('CodeLensProvider', function () {
-    serviceWarmup(this, path.join(testDir, 'testfiles', 'codelens'), pathToUrl(testDir));
+    serviceWarmup(path.join(testDir, 'testfiles', 'codelens'), pathToUrl(testDir));
 
     function getFullPath(filename: string) {
         return path.join(testDir, 'testfiles', 'codelens', filename);
@@ -68,7 +68,7 @@ describe('CodeLensProvider', function () {
 
         const references = codeLenses?.filter((lens) => lens.data.type === 'reference');
 
-        assert.deepStrictEqual(references, [
+        expect(references).toEqual([
             {
                 range: {
                     start: { line: 0, character: 0 },
@@ -103,7 +103,7 @@ describe('CodeLensProvider', function () {
             data: { type: 'reference', uri: getUri('references.svelte') }
         });
 
-        assert.deepStrictEqual(codeLens.command, {
+        expect(codeLens.command).toEqual({
             title: '1 reference',
             command: '',
             arguments: [
@@ -132,7 +132,7 @@ describe('CodeLensProvider', function () {
             data: { type: 'reference', uri: getUri('references.svelte') }
         });
 
-        assert.deepStrictEqual(codeLens.command, {
+        expect(codeLens.command).toEqual({
             title: '2 references',
             command: '',
             arguments: [
@@ -167,7 +167,7 @@ describe('CodeLensProvider', function () {
 
         const references = codeLenses?.filter((lens) => lens.data.type === 'implementation');
 
-        assert.deepStrictEqual(references, [
+        expect(references).toEqual([
             {
                 range: {
                     start: { line: 1, character: 14 },
@@ -188,7 +188,7 @@ describe('CodeLensProvider', function () {
             data: { type: 'implementation', uri: getUri('references.svelte') }
         });
 
-        assert.deepStrictEqual(codeLens.command, {
+        expect(codeLens.command).toEqual({
             title: '1 implementation',
             command: '',
             arguments: [

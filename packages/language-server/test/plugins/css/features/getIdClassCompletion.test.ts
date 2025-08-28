@@ -1,4 +1,4 @@
-import assert from 'assert';
+import { describe, it, expect } from 'vitest';
 import { CompletionItem, CompletionItemKind, CompletionList } from 'vscode-languageserver';
 import { Document, DocumentManager } from '../../../../src/lib/documents';
 import { LSConfigManager } from '../../../../src/ls-config';
@@ -22,11 +22,7 @@ describe('getIdClassCompletion', () => {
     }
 
     function testSelectors(items: CompletionItem[], expectedSelectors: string[]) {
-        assert.deepStrictEqual(
-            items.map((item) => item.label),
-            expectedSelectors,
-            'vscode-language-services might have changed the NodeType enum. Check if we need to update it'
-        );
+        expect(items.map((item) => item.label)).toEqual(expectedSelectors);
     }
 
     it('collect css classes', () => {
@@ -61,7 +57,7 @@ describe('getIdClassCompletion', () => {
 
     it('provides css classes completion for class attribute', async () => {
         const { plugin, document } = setup('<div class=></div><style>.abc{}</style>');
-        assert.deepStrictEqual(await plugin.getCompletions(document, { line: 0, character: 11 }), {
+        expect(await plugin.getCompletions(document, { line: 0, character: 11 })).toEqual({
             isIncomplete: false,
             items: [{ label: 'abc', kind: CompletionItemKind.Keyword }]
         } as CompletionList);
@@ -69,7 +65,7 @@ describe('getIdClassCompletion', () => {
 
     it('provides css classes completion for class directive', async () => {
         const { plugin, document } = setup('<div class:></div><style>.abc{}</style>');
-        assert.deepStrictEqual(await plugin.getCompletions(document, { line: 0, character: 11 }), {
+        expect(await plugin.getCompletions(document, { line: 0, character: 11 })).toEqual({
             isIncomplete: false,
             items: [{ label: 'abc', kind: CompletionItemKind.Keyword }]
         } as CompletionList);
@@ -77,7 +73,7 @@ describe('getIdClassCompletion', () => {
 
     it('provides css id completion for id attribute', async () => {
         const { plugin, document } = setup('<div id=></div><style>#abc{}</style>');
-        assert.deepStrictEqual(await plugin.getCompletions(document, { line: 0, character: 8 }), {
+        expect(await plugin.getCompletions(document, { line: 0, character: 8 })).toEqual({
             isIncomplete: false,
             items: [{ label: 'abc', kind: CompletionItemKind.Keyword }]
         } as CompletionList);

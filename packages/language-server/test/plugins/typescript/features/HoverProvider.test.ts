@@ -1,4 +1,4 @@
-import * as assert from 'assert';
+import { describe, it, expect, afterAll } from 'vitest';
 import * as path from 'path';
 import ts from 'typescript';
 import { Hover, Position } from 'vscode-languageserver';
@@ -14,7 +14,7 @@ const testDir = path.join(__dirname, '..');
 const hoverTestDir = path.join(testDir, 'testfiles', 'hover');
 
 describe('HoverProvider', function () {
-    serviceWarmup(this, hoverTestDir, pathToUrl(testDir));
+    serviceWarmup(hoverTestDir, pathToUrl(testDir));
 
     function getFullPath(filename: string) {
         return path.join(hoverTestDir, filename);
@@ -47,7 +47,7 @@ describe('HoverProvider', function () {
     it('provides basic hover info when no docstring exists', async () => {
         const { provider, document } = setup('hoverinfo.svelte');
 
-        assert.deepStrictEqual(await provider.doHover(document, Position.create(6, 10)), <Hover>{
+        expect(await provider.doHover(document, Position.create(6, 10))).toEqual(<Hover>{
             contents: '```typescript\nconst withoutDocs: true\n```',
             range: {
                 start: {
@@ -65,7 +65,7 @@ describe('HoverProvider', function () {
     it('provides formatted hover info when a docstring exists', async () => {
         const { provider, document } = setup('hoverinfo.svelte');
 
-        assert.deepStrictEqual(await provider.doHover(document, Position.create(4, 10)), <Hover>{
+        expect(await provider.doHover(document, Position.create(4, 10))).toEqual(<Hover>{
             contents: '```typescript\nconst withDocs: true\n```\n---\nDocumentation string',
             range: {
                 start: {
@@ -83,7 +83,7 @@ describe('HoverProvider', function () {
     it('provides formatted hover info for component events', async () => {
         const { provider, document } = setup('hoverinfo.svelte');
 
-        assert.deepStrictEqual(await provider.doHover(document, Position.create(12, 26)), <Hover>{
+        expect(await provider.doHover(document, Position.create(12, 26))).toEqual(<Hover>{
             contents:
                 '```typescript\nabc: MouseEvent\n```\nTEST\n```ts\nconst abc: boolean = true;\n```'
         });
@@ -92,7 +92,7 @@ describe('HoverProvider', function () {
     it('provides formatted hover info for jsDoc tags', async () => {
         const { provider, document } = setup('hoverinfo.svelte');
 
-        assert.deepStrictEqual(await provider.doHover(document, Position.create(9, 10)), <Hover>{
+        expect(await provider.doHover(document, Position.create(9, 10))).toEqual(<Hover>{
             contents: '```typescript\nconst withJsDocTag: true\n```\n---\n\n\n*@author* — foo ',
             range: {
                 start: {
@@ -110,7 +110,7 @@ describe('HoverProvider', function () {
     it('provides hover info for $store access', async () => {
         const { provider, document } = setup('hover-$store.svelte');
 
-        assert.deepStrictEqual(await provider.doHover(document, Position.create(3, 5)), <Hover>{
+        expect(await provider.doHover(document, Position.create(3, 5))).toEqual(<Hover>{
             contents: '```typescript\nlet $b: string | {\n    a: boolean | string;\n}\n```',
             range: {
                 end: {
@@ -123,7 +123,7 @@ describe('HoverProvider', function () {
                 }
             }
         });
-        assert.deepStrictEqual(await provider.doHover(document, Position.create(5, 9)), <Hover>{
+        expect(await provider.doHover(document, Position.create(5, 9))).toEqual(<Hover>{
             contents: '```typescript\nlet $b: string\n```',
             range: {
                 end: {
@@ -136,7 +136,7 @@ describe('HoverProvider', function () {
                 }
             }
         });
-        assert.deepStrictEqual(await provider.doHover(document, Position.create(7, 4)), <Hover>{
+        expect(await provider.doHover(document, Position.create(7, 4))).toEqual(<Hover>{
             contents:
                 '```typescript\nconst b: Writable<string | {\n    a: boolean | string;\n}>\n```',
             range: {
@@ -151,7 +151,7 @@ describe('HoverProvider', function () {
             }
         });
 
-        assert.deepStrictEqual(await provider.doHover(document, Position.create(10, 2)), <Hover>{
+        expect(await provider.doHover(document, Position.create(10, 2))).toEqual(<Hover>{
             contents: '```typescript\nlet $b: string | {\n    a: boolean | string;\n}\n```',
             range: {
                 end: {
@@ -164,7 +164,7 @@ describe('HoverProvider', function () {
                 }
             }
         });
-        assert.deepStrictEqual(await provider.doHover(document, Position.create(12, 6)), <Hover>{
+        expect(await provider.doHover(document, Position.create(12, 6))).toEqual(<Hover>{
             contents: '```typescript\nlet $b: string\n```',
             range: {
                 end: {
@@ -177,7 +177,7 @@ describe('HoverProvider', function () {
                 }
             }
         });
-        assert.deepStrictEqual(await provider.doHover(document, Position.create(14, 1)), <Hover>{
+        expect(await provider.doHover(document, Position.create(14, 1))).toEqual(<Hover>{
             contents:
                 '```typescript\nconst b: Writable<string | {\n    a: boolean | string;\n}>\n```',
             range: {
@@ -194,7 +194,7 @@ describe('HoverProvider', function () {
     });
 
     // Hacky, but it works. Needed due to testing both new and old transformation
-    after(() => {
+    afterAll(() => {
         __resetCache();
     });
 });

@@ -1,5 +1,5 @@
 import path from 'path';
-import assert from 'assert';
+import { describe, it, expect } from 'vitest';
 import ts from 'typescript';
 import { Document, DocumentManager } from '../../../../src/lib/documents';
 import { LSConfigManager } from '../../../../src/ls-config';
@@ -13,7 +13,7 @@ const testDir = path.join(__dirname, '..');
 const implementationTestDir = path.join(testDir, 'testfiles', 'implementation');
 
 describe('ImplementationProvider', function () {
-    serviceWarmup(this, implementationTestDir, pathToUrl(testDir));
+    serviceWarmup(implementationTestDir, pathToUrl(testDir));
 
     function getFullPath(filename: string) {
         return path.join(testDir, 'testfiles', 'implementation', filename);
@@ -49,7 +49,7 @@ describe('ImplementationProvider', function () {
             character: 25
         });
 
-        assert.deepStrictEqual(implementations, <Location[]>[
+        expect(implementations).toEqual<Location[]>([
             {
                 range: {
                     start: {
@@ -86,7 +86,7 @@ describe('ImplementationProvider', function () {
             line: 1,
             character: 13
         });
-        assert.deepStrictEqual(implementations, <Location[]>[
+        expect(implementations).toEqual<Location[]>([
             {
                 range: {
                     end: { line: 0, character: 18 },

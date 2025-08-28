@@ -1,4 +1,5 @@
 import path, { dirname, isAbsolute, join } from 'path';
+import { expect, beforeEach, afterEach, beforeAll, afterAll, describe, it } from 'vitest';
 import { existsSync, readdirSync, statSync, writeFileSync } from 'fs';
 import ts from 'typescript';
 import { resolveConfig, format } from 'prettier';
@@ -12,10 +13,8 @@ import {
     pathToUrl,
     urlToPath
 } from '../../../src/utils';
-import { VERSION } from 'svelte/compiler';
+import { isSvelte5Plus } from '../test-helpers';
 import { findTsConfigPath } from '../../../src/plugins/typescript/utils';
-
-const isSvelte5Plus = Number(VERSION.split('.')[0]) >= 5;
 
 export function createVirtualTsSystem(currentDirectory: string): ts.System {
     const virtualFs = new FileMap<string>();
@@ -191,11 +190,11 @@ export function createSnapshotTester<
     TestOptions extends {
         dir: string;
         workspaceDir: string;
-        context: Mocha.Suite;
+        context: any;
     }
 >(executeTest: (inputFile: string, testOptions: TestOptions) => Promise<void>) {
     return (testOptions: TestOptions) => {
-        serviceWarmup(testOptions.context, testOptions.dir, pathToUrl(testOptions.workspaceDir));
+        serviceWarmup(testOptions.dir, pathToUrl(testOptions.workspaceDir));
         executeTests(testOptions);
     };
 
@@ -208,12 +207,12 @@ export function createSnapshotTester<
         const jsconfig = join(dir, 'jsconfig.json');
 
         if (existsSync(tsconfig) || existsSync(jsconfig)) {
-            serviceWarmup(testOptions.context, dir, workspaceUri);
+            serviceWarmup(dir, workspaceUri);
         }
 
         if (existsSync(inputFile)) {
             const _it =
-                dir.endsWith('.v5') && !isSvelte5Plus
+                dir.endsWith('.v5') && !isSvelte5Plus()
                     ? it.skip
                     : dir.endsWith('.only')
                       ? it.only
@@ -221,7 +220,7 @@ export function createSnapshotTester<
             _it(dir.substring(__dirname.length), () => executeTest(inputFile, testOptions));
         } else {
             const _describe = dir.endsWith('.only') ? describe.only : describe;
-            _describe(dir.substring(__dirname.length), function () {
+            _describe(dir.substring(__dirname.length), function (this: any) {
                 const subDirs = readdirSync(dir);
 
                 for (const subDir of subDirs) {
@@ -254,7 +253,7 @@ export async function updateSnapshotIfFailedOrEmpty({
         try {
             assertion();
         } catch (e) {
-            if (process.argv.includes('--auto')) {
+            if (process.env.UPDATE_SNAPSHOTS === 'true' || process.argv.includes('--auto')) {
                 await writeFile(`Updated ${expectedFile} for`);
             } else {
                 throw e;
@@ -281,19 +280,11 @@ export async function createJsonSnapshotFormatter(dir: string) {
 }
 
 export function serviceWarmup(
-    suite: Mocha.Suite,
     testDir: string,
     rootUri = pathToUrl(testDir),
     tsconfigPath: string | undefined = undefined
 ) {
-    const defaultTimeout = suite.timeout();
-
-    // allow to set a higher timeout for slow machines from cli flag
-    const warmupTimeout = Math.max(defaultTimeout, 5_000);
-    suite.timeout(warmupTimeout);
-    before(() => warmup(tsconfigPath));
-
-    suite.timeout(defaultTimeout);
+    beforeAll(() => warmup(tsconfigPath));
 
     async function warmup(configFilePath: string | undefined = undefined) {
         const start = Date.now();
@@ -332,20 +323,12 @@ export function serviceWarmup(
     }
 }
 
-export function recursiveServiceWarmup(
-    suite: Mocha.Suite,
-    testDir: string,
-    rootUri = pathToUrl(testDir)
-) {
-    serviceWarmup(suite, testDir, rootUri);
-    recursiveServiceWarmupNonRoot(suite, testDir, rootUri);
+export function recursiveServiceWarmup(testDir: string, rootUri = pathToUrl(testDir)) {
+    serviceWarmup(testDir, rootUri);
+    recursiveServiceWarmupNonRoot(testDir, rootUri);
 }
 
-function recursiveServiceWarmupNonRoot(
-    suite: Mocha.Suite,
-    testDir: string,
-    rootUri = pathToUrl(testDir)
-) {
+function recursiveServiceWarmupNonRoot(testDir: string, rootUri = pathToUrl(testDir)) {
     const subDirs = readdirSync(testDir);
 
     for (const subDirOrFile of subDirs) {
@@ -355,11 +338,11 @@ function recursiveServiceWarmupNonRoot(
             stat.isFile() &&
             (subDirOrFile === 'tsconfig.json' || subDirOrFile === 'jsconfig.json')
         ) {
-            serviceWarmup(suite, testDir, rootUri);
+            serviceWarmup(testDir, rootUri);
         }
 
         if (stat.isDirectory()) {
-            recursiveServiceWarmupNonRoot(suite, join(testDir, subDirOrFile), rootUri);
+            recursiveServiceWarmupNonRoot(join(testDir, subDirOrFile), rootUri);
         }
     }
 }

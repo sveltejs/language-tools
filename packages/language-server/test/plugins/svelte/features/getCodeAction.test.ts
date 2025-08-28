@@ -1,4 +1,4 @@
-import * as assert from 'assert';
+import { describe, it, expect } from 'vitest';
 import * as fs from 'fs';
 import { EOL } from 'os';
 import * as path from 'path';
@@ -48,7 +48,7 @@ describe('SveltePlugin#getCodeAction', () => {
             context
         );
         return {
-            toEqual: (expected: CodeAction[]) => assert.deepStrictEqual(codeAction, expected)
+            toEqual: (expected: CodeAction[]) => expect(codeAction).toEqual(expected)
         };
     }
 
@@ -656,7 +656,7 @@ describe('SveltePlugin#getCodeAction', () => {
         ) {
             const range = Range.create(Position.create(5, 8), Position.create(5, 25));
             const result = await extractComponent(path, range);
-            assert.deepStrictEqual(result, <WorkspaceEdit>{
+            expect(result).toEqual(<WorkspaceEdit>{
                 documentChanges: [
                     TextDocumentEdit.create(
                         OptionalVersionedTextDocumentIdentifier.create('someUrl', null),
@@ -704,7 +704,7 @@ describe('SveltePlugin#getCodeAction', () => {
         it('should return "Invalid selection range"', async () => {
             const range = Range.create(Position.create(6, 8), Position.create(6, 25));
             const result = await extractComponent('Bla', range);
-            assert.deepStrictEqual(result, 'Invalid selection range');
+            expect(result).toEqual('Invalid selection range');
         });
 
         it('should update relative imports', async () => {
@@ -729,7 +729,7 @@ describe('SveltePlugin#getCodeAction', () => {
             ]);
 
             const newFileUri = pathToUrl('C:/NewComp.svelte');
-            assert.deepStrictEqual(result, <WorkspaceEdit>{
+            expect(result).toEqual(<WorkspaceEdit>{
                 documentChanges: [
                     TextDocumentEdit.create(
                         OptionalVersionedTextDocumentIdentifier.create(existingFileUri, null),

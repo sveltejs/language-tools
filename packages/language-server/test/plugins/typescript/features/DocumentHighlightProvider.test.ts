@@ -1,4 +1,4 @@
-import assert from 'assert';
+import { describe, it, expect } from 'vitest';
 import path from 'path';
 import ts from 'typescript';
 import { DocumentHighlight, DocumentHighlightKind } from 'vscode-languageserver';
@@ -13,7 +13,7 @@ const testDir = path.join(__dirname, '..');
 
 describe('DocumentHighlightProvider', function () {
     const highlightTestDir = path.join(testDir, 'testfiles', 'document-highlight');
-    serviceWarmup(this, highlightTestDir);
+    serviceWarmup(highlightTestDir);
 
     function getFullPath(filename: string) {
         return path.join(highlightTestDir, filename);
@@ -45,7 +45,7 @@ describe('DocumentHighlightProvider', function () {
             character: 9
         });
 
-        assert.deepStrictEqual(highlight, <DocumentHighlight[]>[
+        expect(highlight).toEqual<DocumentHighlight[]>([
             {
                 range: {
                     start: {
@@ -130,10 +130,9 @@ describe('DocumentHighlightProvider', function () {
                 character
             });
 
-            assert.deepStrictEqual(
-                documentHighlight?.sort(
-                    (a, b) => a.range.start.character - b.range.start.character
-                ),
+            expect(
+                documentHighlight?.sort((a, b) => a.range.start.character - b.range.start.character)
+            ).toEqual(
                 expected?.map(
                     ([start, end]): DocumentHighlight => ({
                         kind: DocumentHighlightKind.Read,

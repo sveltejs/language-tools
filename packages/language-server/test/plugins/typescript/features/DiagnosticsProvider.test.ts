@@ -1,4 +1,4 @@
-import * as assert from 'assert';
+import { describe, it, expect } from 'vitest';
 import { existsSync, unlinkSync, writeFileSync } from 'fs';
 import * as path from 'path';
 import ts from 'typescript';
@@ -13,7 +13,7 @@ import { serviceWarmup } from '../test-utils';
 const testDir = path.join(__dirname, '..', 'testfiles', 'diagnostics');
 
 describe('DiagnosticsProvider', function () {
-    serviceWarmup(this, testDir);
+    serviceWarmup(testDir);
 
     function setup(filename: string) {
         const docManager = new DocumentManager(
@@ -37,60 +37,60 @@ describe('DiagnosticsProvider', function () {
         const { plugin, document, lsAndTsDocResolver } = setup('unresolvedimport.svelte');
 
         const diagnostics1 = await plugin.getDiagnostics(document);
-        assert.deepStrictEqual(diagnostics1.length, 1);
+        expect(diagnostics1.length).toEqual(1);
 
         // back-and-forth-conversion normalizes slashes
         const newFilePath = normalizePath(path.join(testDir, 'doesntexistyet.js')) || '';
         writeFileSync(newFilePath, 'export default function foo() {}');
-        assert.ok(existsSync(newFilePath));
+        expect(existsSync(newFilePath));
         await lsAndTsDocResolver.invalidateModuleCache([newFilePath]);
 
         try {
             const diagnostics2 = await plugin.getDiagnostics(document);
-            assert.deepStrictEqual(diagnostics2.length, 0);
+            expect(diagnostics2.length).toEqual(0);
             await lsAndTsDocResolver.deleteSnapshot(newFilePath);
         } finally {
             unlinkSync(newFilePath);
         }
 
         const diagnostics3 = await plugin.getDiagnostics(document);
-        assert.deepStrictEqual(diagnostics3.length, 1);
-    }).timeout(this.timeout() * 2.5);
+        expect(diagnostics3.length).toEqual(1);
+    });
 
     it('notices changes of module resolution because of new file', async () => {
         const { plugin, document, lsAndTsDocResolver } = setup('unresolvedimport.svelte');
 
         const diagnostics1 = await plugin.getDiagnostics(document);
-        assert.deepStrictEqual(diagnostics1.length, 1);
+        expect(diagnostics1.length).toEqual(1);
 
         // back-and-forth-conversion normalizes slashes
         const newFilePath = normalizePath(path.join(testDir, 'doesntexistyet.js')) || '';
         const newTsFilePath = normalizePath(path.join(testDir, 'doesntexistyet.ts')) || '';
         writeFileSync(newFilePath, 'export function foo() {}');
-        assert.ok(existsSync(newFilePath));
+        expect(existsSync(newFilePath));
         await lsAndTsDocResolver.invalidateModuleCache([newFilePath]);
 
         try {
             const diagnostics2 = await plugin.getDiagnostics(document);
-            assert.deepStrictEqual(diagnostics2[0].code, 2613);
+            expect(diagnostics2[0].code).toEqual(2613);
         } catch (e) {
             unlinkSync(newFilePath);
             throw e;
         }
 
         writeFileSync(newTsFilePath, 'export default function foo() {}');
-        assert.ok(existsSync(newTsFilePath));
+        expect(existsSync(newTsFilePath));
         await lsAndTsDocResolver.invalidateModuleCache([newTsFilePath]);
 
         try {
             const diagnostics3 = await plugin.getDiagnostics(document);
-            assert.deepStrictEqual(diagnostics3.length, 0);
+            expect(diagnostics3.length).toEqual(0);
             await lsAndTsDocResolver.deleteSnapshot(newTsFilePath);
         } finally {
             unlinkSync(newTsFilePath);
             unlinkSync(newFilePath);
         }
-    }).timeout(this.timeout() * 2.5);
+    });
 
     it('notices update of imported module', async () => {
         const { plugin, document, lsAndTsDocResolver } = setup(
@@ -101,7 +101,7 @@ describe('DiagnosticsProvider', function () {
         await lsAndTsDocResolver.getOrCreateSnapshot(newFilePath);
 
         const diagnostics1 = await plugin.getDiagnostics(document);
-        assert.deepStrictEqual(
+        expect(
             diagnostics1[0]?.message,
             "Module '\"./empty-export\"' has no exported member 'foo'."
         );
@@ -114,9 +114,9 @@ describe('DiagnosticsProvider', function () {
         ]);
 
         const diagnostics2 = await plugin.getDiagnostics(document);
-        assert.deepStrictEqual(diagnostics2.length, 0);
+        expect(diagnostics2.length).toEqual(0);
         await lsAndTsDocResolver.deleteSnapshot(newFilePath);
-    }).timeout(this.timeout() * 2.5);
+    });
 
     it('notices file changes in all services that reference that file', async () => {
         // Hacky but ensures that this tests is not interfered with by other tests
@@ -143,9 +143,9 @@ describe('DiagnosticsProvider', function () {
         });
 
         const diagnostics1 = await plugin.getDiagnostics(document);
-        assert.deepStrictEqual(diagnostics1.length, 2);
+        expect(diagnostics1.length).toEqual(2);
         const diagnostics2 = await plugin.getDiagnostics(otherDocument);
-        assert.deepStrictEqual(diagnostics2.length, 2);
+        expect(diagnostics2.length).toEqual(2);
 
         docManager.updateDocument(
             { uri: pathToUrl(path.join(testDir, 'shared-comp.svelte')), version: 2 },
@@ -166,8 +166,8 @@ describe('DiagnosticsProvider', function () {
         await new Promise((resolve) => setTimeout(resolve, 1000));
 
         const diagnostics3 = await plugin.getDiagnostics(document);
-        assert.deepStrictEqual(diagnostics3.length, 0);
+        expect(diagnostics3.length).toEqual(0);
         const diagnostics4 = await plugin.getDiagnostics(otherDocument);
-        assert.deepStrictEqual(diagnostics4.length, 0);
-    }).timeout(this.timeout() * 2.5);
+        expect(diagnostics4.length).toEqual(0);
+    });
 });

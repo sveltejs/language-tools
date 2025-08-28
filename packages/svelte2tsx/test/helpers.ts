@@ -1,6 +1,7 @@
 import fs from 'fs';
-import assert, { AssertionError } from 'assert';
-import { TestFunction } from 'mocha';
+import { describe, it, expect, afterEach } from 'vitest';
+import { AssertionError } from 'assert';
+import { TestFunction } from 'vitest';
 import { htmlx2jsx, svelte2tsx } from './build';
 import path from 'path';
 import { VERSION } from 'svelte/compiler';
@@ -133,7 +134,7 @@ export class Sample {
     }
 
     onError(fn: ErrorFn) {
-        assert(!this.on_error);
+        expect(this.on_error).toBeFalsy();
         this.on_error = fn;
     }
 
@@ -303,10 +304,10 @@ export function test_samples(dir: string, transform: TransformSampleFn, js: 'js'
                         actual = { start: actual.start, end: actual.end };
                         expected = { start: expected.start, end: expected.end };
                     }
-                    assert.deepEqual(actual, expected, TestError.WrongError);
+                    expect(actual).toEqual(expected);
                     config.emitOnTemplateError = true;
                 }
-                assert(hadError, TestError.MissingError);
+                expect(hadError).toBeTruthy();
             }
 
             const output = transform(input, config);
@@ -318,11 +319,11 @@ export function test_samples(dir: string, transform: TransformSampleFn, js: 'js'
             if (isSvelte5Plus) {
                 const actual = normalize(transform(input, config).code);
                 if (sample.has(expectedFile)) {
-                    assert.strictEqual(actual, sample.get(expectedFile), TestError.WrongExpected);
+                    expect(actual).toBe(sample.get(expectedFile));
                 } else {
                     const expected = sample.get(`expectedv2.${js}`);
                     try {
-                        assert.strictEqual(actual, expected, TestError.WrongExpected);
+                        expect(actual).toBe(expected);
                     } catch (e) {
                         // html2jsx tests don't have the default export
                         const expectDefaultExportPosition = expected.lastIndexOf(
@@ -340,22 +341,14 @@ export function test_samples(dir: string, transform: TransformSampleFn, js: 'js'
                             .replace(', exports: {}', '')
                             .replace(', bindings: ""', '');
                         try {
-                            assert.strictEqual(
-                                actualModified,
-                                expectedModified,
-                                TestError.WrongExpected
-                            );
+                            expect(actualModified).toBe(expectedModified);
                         } catch (_) {
                             throw e;
                         }
                     }
                 }
             } else {
-                assert.strictEqual(
-                    normalize(transform(input, config).code),
-                    sample.get(expectedFile),
-                    TestError.WrongExpected
-                );
+                expect(normalize(transform(input, config).code)).toBe(sample.get(expectedFile));
             }
         });
     }

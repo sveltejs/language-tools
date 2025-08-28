@@ -1,4 +1,4 @@
-import * as assert from 'assert';
+import { describe, it, expect } from 'vitest';
 import { FragmentMapper, positionAt } from '../../../src/lib/documents';
 
 describe('DocumentMapper', () => {
@@ -19,16 +19,16 @@ describe('DocumentMapper', () => {
         it('isInGenerated works', () => {
             const fragment = setup('Hello, \nworld!', 8, 13);
 
-            assert.strictEqual(fragment.isInGenerated({ line: 0, character: 0 }), false);
-            assert.strictEqual(fragment.isInGenerated({ line: 1, character: 0 }), true);
-            assert.strictEqual(fragment.isInGenerated({ line: 1, character: 5 }), true);
-            assert.strictEqual(fragment.isInGenerated({ line: 1, character: 6 }), false);
+            expect(fragment.isInGenerated({ line: 0, character: 0 })).toEqual(false);
+            expect(fragment.isInGenerated({ line: 1, character: 0 })).toEqual(true);
+            expect(fragment.isInGenerated({ line: 1, character: 5 })).toEqual(true);
+            expect(fragment.isInGenerated({ line: 1, character: 6 })).toEqual(false);
         });
 
         it('calculates the position in parent', () => {
             const fragment = setup('Hello, \nworld!', 8, 13);
 
-            assert.deepStrictEqual(fragment.getOriginalPosition({ line: 0, character: 2 }), {
+            expect(fragment.getOriginalPosition({ line: 0, character: 2 })).toEqual({
                 line: 1,
                 character: 2
             });
@@ -37,7 +37,7 @@ describe('DocumentMapper', () => {
         it('calculates the position in fragment', () => {
             const fragment = setup('Hello, \nworld!', 8, 13);
 
-            assert.deepStrictEqual(fragment.getGeneratedPosition({ line: 1, character: 2 }), {
+            expect(fragment.getGeneratedPosition({ line: 1, character: 2 })).toEqual({
                 line: 0,
                 character: 2
             });

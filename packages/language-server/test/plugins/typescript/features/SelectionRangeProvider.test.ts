@@ -1,6 +1,6 @@
 import path from 'path';
 import ts from 'typescript';
-import assert from 'assert';
+import { describe, it, expect } from 'vitest';
 import { Position, SelectionRange } from 'vscode-languageserver';
 import { Document, DocumentManager } from '../../../../src/lib/documents';
 import { SelectionRangeProviderImpl } from '../../../../src/plugins/typescript/features/SelectionRangeProvider';
@@ -13,7 +13,7 @@ const testDir = path.join(__dirname, '..');
 const selectionRangeTestDir = path.join(testDir, 'testfiles', 'selection-range');
 
 describe('SelectionRangeProvider', function () {
-    serviceWarmup(this, selectionRangeTestDir, pathToUrl(testDir));
+    serviceWarmup(selectionRangeTestDir, pathToUrl(testDir));
 
     function setup(fileName: string) {
         const docManager = new DocumentManager(
@@ -38,7 +38,7 @@ describe('SelectionRangeProvider', function () {
 
         const selectionRange = await provider.getSelectionRange(document, Position.create(1, 9));
 
-        assert.deepStrictEqual(selectionRange, <SelectionRange>{
+        expect(selectionRange).toEqual<SelectionRange>({
             parent: {
                 parent: undefined,
                 // let a;
@@ -72,7 +72,7 @@ describe('SelectionRangeProvider', function () {
 
         const selectionRange = await provider.getSelectionRange(document, Position.create(2, 28));
 
-        assert.deepStrictEqual(selectionRange, <SelectionRange>{
+        expect(selectionRange).toEqual<SelectionRange>({
             parent: {
                 parent: {
                     parent: {
@@ -131,6 +131,6 @@ describe('SelectionRangeProvider', function () {
 
         const selectionRange = await provider.getSelectionRange(document, Position.create(5, 0));
 
-        assert.equal(selectionRange, null);
+        expect(selectionRange).toEqual(null);
     });
 });

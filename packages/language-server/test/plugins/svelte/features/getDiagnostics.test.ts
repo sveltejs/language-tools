@@ -1,4 +1,4 @@
-import * as assert from 'assert';
+import { describe, it, expect } from 'vitest';
 import * as path from 'path';
 import * as fs from 'fs';
 import { Diagnostic, DiagnosticSeverity, Position } from 'vscode-languageserver';
@@ -12,9 +12,7 @@ import { SvelteConfig } from '../../../../src/lib/documents/configLoader';
 import { CompilerWarningsSettings, LSConfigManager } from '../../../../src/ls-config';
 import { pathToUrl } from '../../../../src/utils';
 import { SveltePlugin } from '../../../../src/plugins';
-import { VERSION } from 'svelte/compiler';
-
-const isSvelte5Plus = Number(VERSION.split('.')[0]) >= 5;
+import { isSvelte5Plus } from '../../test-helpers';
 
 describe('SveltePlugin#getDiagnostics', () => {
     async function expectDiagnosticsFor({
@@ -39,7 +37,7 @@ describe('SveltePlugin#getDiagnostics', () => {
         };
         const result = await getDiagnostics(document, svelteDoc, settings);
         return {
-            toEqual: (expected: Diagnostic[]) => assert.deepStrictEqual(result, expected)
+            toEqual: (expected: Diagnostic[]) => expect(result).toEqual(expected)
         };
     }
 
@@ -467,15 +465,15 @@ describe('SveltePlugin#getDiagnostics', () => {
         const { plugin, document } = setupFromFile('diagnostics.svelte');
         const diagnostics = await plugin.getDiagnostics(document);
 
-        assert.deepStrictEqual(diagnostics, [
+        expect(diagnostics).toEqual([
             {
                 range: { start: { line: 1, character: 15 }, end: { line: 1, character: 27 } },
                 message:
                     "Component has unused export property 'name'. If it is for external reference only, please consider using `export const name`" +
-                    (isSvelte5Plus ? '\nhttps://svelte.dev/e/export_let_unused' : ''),
+                    (isSvelte5Plus() ? '\nhttps://svelte.dev/e/export_let_unused' : ''),
                 severity: 2,
                 source: 'svelte',
-                code: isSvelte5Plus ? 'export_let_unused' : 'unused-export-let'
+                code: isSvelte5Plus() ? 'export_let_unused' : 'unused-export-let'
             }
         ]);
     });
@@ -484,68 +482,62 @@ describe('SveltePlugin#getDiagnostics', () => {
         const { plugin, document } = setupFromFile('diagnostics-module.svelte');
         const diagnostics = await plugin.getDiagnostics(document);
 
-        assert.deepStrictEqual(
-            diagnostics.filter((d) => d.code !== 'script_context_deprecated'),
-            [
-                {
-                    range: { start: { line: 1, character: 4 }, end: { line: 1, character: 26 } },
-                    message: isSvelte5Plus
-                        ? 'Reactive declarations only exist at the top level of the instance script\nhttps://svelte.dev/e/reactive_declaration_invalid_placement'
-                        : '$: has no effect in a module script',
-                    severity: 2,
-                    source: 'svelte',
-                    code: isSvelte5Plus
-                        ? 'reactive_declaration_invalid_placement'
-                        : 'module-script-reactive-declaration'
-                }
-            ]
-        );
+        expect(diagnostics.filter((d) => d.code !== 'script_context_deprecated')).toEqual([
+            {
+                range: { start: { line: 1, character: 4 }, end: { line: 1, character: 26 } },
+                message: isSvelte5Plus()
+                    ? 'Reactive declarations only exist at the top level of the instance script\nhttps://svelte.dev/e/reactive_declaration_invalid_placement'
+                    : '$: has no effect in a module script',
+                severity: 2,
+                source: 'svelte',
+                code: isSvelte5Plus()
+                    ? 'reactive_declaration_invalid_placement'
+                    : 'module-script-reactive-declaration'
+            }
+        ]);
     });
 
     it('should correctly determine diagnostic position for script when theres also context="module"', async () => {
         const { plugin, document } = setupFromFile('diagnostics-module-and-instance.svelte');
         const diagnostics = await plugin.getDiagnostics(document);
 
-        assert.deepStrictEqual(
-            diagnostics.filter((d) => d.code !== 'script_context_deprecated'),
-            [
-                {
-                    code: isSvelte5Plus ? 'export_let_unused' : 'unused-export-let',
-                    message:
-                        "Component has unused export property 'unused1'. If it is for external reference only, please consider using `export const unused1`" +
-                        (isSvelte5Plus ? '\nhttps://svelte.dev/e/export_let_unused' : ''),
-                    range: {
-                        start: {
-                            line: 5,
-                            character: 13
-                        },
-                        end: {
-                            line: 5,
-                            character: isSvelte5Plus ? 20 : 27
-                        }
+        expect(diagnostics.filter((d) => d.code !== 'script_context_deprecated')).toEqual([
+            {
+                code: isSvelte5Plus() ? 'export_let_unused' : 'unused-export-let',
+                message:
+                    "Component has unused export property 'unused1'. If it is for external reference only, please consider using `export const unused1`" +
+                    (isSvelte5Plus() ? '\nhttps://svelte.dev/e/export_let_unused' : ''),
+                range: {
+                    start: {
+                        line: 5,
+                        character: 13
                     },
-                    severity: 2,
-                    source: 'svelte'
+                    end: {
+                        line: 5,
+                        character: isSvelte5Plus() ? 20 : 27
+                    }
                 },
-                {
-                    code: isSvelte5Plus ? 'export_let_unused' : 'unused-export-let',
-                    message:
-                        "Component has unused export property 'unused2'. If it is for external reference only, please consider using `export const unused2`" +
-                        (isSvelte5Plus ? '\nhttps://svelte.dev/e/export_let_unused' : ''),
-                    range: {
-                        start: {
-                            line: 6,
-                            character: 13
-                        },
-                        end: {
-                            line: 6,
-                            character: isSvelte5Plus ? 20 : 27
-                        }
+                severity: 2,
+                source: 'svelte'
+            },
+            {
+                code: isSvelte5Plus() ? 'export_let_unused' : 'unused-export-let',
+                message:
+                    "Component has unused export property 'unused2'. If it is for external reference only, please consider using `export const unused2`" +
+                    (isSvelte5Plus() ? '\nhttps://svelte.dev/e/export_let_unused' : ''),
+                range: {
+                    start: {
+                        line: 6,
+                        character: 13
                     },
-                    severity: 2,
-                    source: 'svelte'
-                }
-            ]
-        );
+                    end: {
+                        line: 6,
+                        character: isSvelte5Plus() ? 20 : 27
+                    }
+                },
+                severity: 2,
+                source: 'svelte'
+            }
+        ]);
     });
 });
