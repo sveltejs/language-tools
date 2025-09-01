@@ -111,9 +111,7 @@ function loadTsconfig(config: EmitDtsConfig, svelteMap: SvelteMap) {
         options: {
             ...options,
             noEmit: false, // Set to true in case of jsconfig, force false, else nothing is emitted
-            moduleResolution:
-                // NodeJS: up to 4.9, Node10: since 5.0
-                (ts.ModuleResolutionKind as any).NodeJs ?? ts.ModuleResolutionKind.Node10, // Classic if not set, which gives wrong results
+            moduleResolution: ts.ModuleResolutionKind.Node16,
             declaration: true, // Needed for d.ts file generation
             emitDeclarationOnly: true, // We only want d.ts file generation
             declarationDir: config.declarationDir, // Where to put the declarations
