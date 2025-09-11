@@ -107,8 +107,6 @@ function loadTsconfig(config: EmitDtsConfig, svelteMap: SvelteMap) {
     // code output of svelte2tsx.
     filenames.push(config.svelteShimsPath);
 
-    console.log('options.nodeModuleResolution', options.moduleResolution);
-
     return {
         options: {
             ...options,
