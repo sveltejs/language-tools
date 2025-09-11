@@ -10,12 +10,15 @@
         "test": "cross-env CI=true pnpm test -r",
         "watch": "tsc -b -watch",
         "format": "prettier --write .",
-        "lint": "prettier --check ."
+        "lint": "prettier --check .",
+        "changeset:version": "changeset version && git add --all",
+        "changeset:publish": "changeset publish"
     },
     "dependencies": {
         "typescript": "^5.9.2"
     },
     "devDependencies": {
+        "@changesets/cli": "^2.29.7",
         "cross-env": "^7.0.2",
         "prettier": "~3.3.3",
         "ts-node": "^10.0.0"
