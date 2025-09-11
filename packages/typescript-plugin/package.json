@@ -1,6 +1,6 @@
 {
     "name": "typescript-svelte-plugin",
-    "version": "0.3.0",
+    "version": "0.3.50",
     "description": "A TypeScript Plugin providing Svelte intellisense",
     "main": "dist/src/index.js",
     "scripts": {

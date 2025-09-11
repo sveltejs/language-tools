@@ -11,5 +11,5 @@
     "baseBranch": "master",
     "updateInternalDependencies": "minor",
     "bumpVersionsWithWorkspaceProtocolOnly": true,
-    "ignore": []
+    "ignore": ["svelte-vscode"]
 }
