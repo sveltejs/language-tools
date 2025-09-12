@@ -2,4 +2,4 @@
 'svelte2tsx': patch
 ---
 
-support for runes={false} in svelte:options
+fix: properly handle `runes={false}` in `<svelte:options>`
