@@ -125,10 +125,10 @@ export function convertHtmlxToJsx(
                 case 'runes':
                     if (Array.isArray(optionValue)) {
                         if (optionValue[0].type === 'MustacheTag') {
-                            usesAccessors = optionValue[0].expression.value;
+                            isRunes = optionValue[0].expression.value;
                         }
                     } else {
-                        usesAccessors = true;
+                        isRunes = true;
                     }
                     break;
             }
