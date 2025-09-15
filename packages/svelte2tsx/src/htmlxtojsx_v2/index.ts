@@ -123,7 +123,13 @@ export function convertHtmlxToJsx(
                     }
                     break;
                 case 'runes':
-                    isRunes = true;
+                    if (Array.isArray(optionValue)) {
+                        if (optionValue[0].type === 'MustacheTag') {
+                            isRunes = optionValue[0].expression.value;
+                        }
+                    } else {
+                        isRunes = true;
+                    }
                     break;
             }
         }
