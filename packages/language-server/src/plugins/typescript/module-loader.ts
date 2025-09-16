@@ -1,4 +1,5 @@
 import ts from 'typescript';
+import path from 'node:path';
 import { FileMap, FileSet } from '../../lib/documents/fileCollection';
 import { createGetCanonicalFileName, getLastPartOfPath, toFileNameLowerCase } from '../../utils';
 import { DocumentSnapshot } from './DocumentSnapshot';
@@ -80,7 +81,11 @@ class ModuleResolutionCache {
     }
 
     private getKey(moduleName: string, containingFile: string) {
-        return containingFile + CACHE_KEY_SEPARATOR + ensureRealSvelteFilePath(moduleName);
+        return (
+            path.dirname(containingFile) +
+            CACHE_KEY_SEPARATOR +
+            ensureRealSvelteFilePath(moduleName)
+        );
     }
 
     clearPendingInvalidations() {
