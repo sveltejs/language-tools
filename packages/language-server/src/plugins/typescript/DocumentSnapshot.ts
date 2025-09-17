@@ -78,7 +78,6 @@ const svelteTypesPattern = /node_modules[\/\\]svelte[\/\\]types[\/\\]index\.d\.t
 const shimsPattern =
     /svelte2tsx[\/\\]svelte-shims\.d\.ts$|svelte-check[\/\\]dist[\/\\]src[\/\\]svelte-shims\.d\.ts$/;
 
-
 export namespace DocumentSnapshot {
     /**
      * Returns a svelte snapshot from a svelte document.
