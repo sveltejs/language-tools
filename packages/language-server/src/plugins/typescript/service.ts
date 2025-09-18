@@ -531,7 +531,7 @@ async function createLanguageService(
         for (const filePath of filePaths) {
             const normalizedPath = normalizePath(filePath);
             svelteModuleLoader.deleteFromModuleCache(normalizedPath);
-            svelteModuleLoader.deleteUnresolvedResolutionsFromCache(normalizedPath);
+            svelteModuleLoader.scheduleResolutionFailedLocationCheck(normalizedPath);
 
             scheduleUpdate(normalizedPath);
         }
@@ -559,7 +559,7 @@ async function createLanguageService(
         const newSnapshot = DocumentSnapshot.fromDocument(document, transformationConfig);
 
         if (!prevSnapshot) {
-            svelteModuleLoader.deleteUnresolvedResolutionsFromCache(filePath);
+            svelteModuleLoader.scheduleResolutionFailedLocationCheck(filePath);
             if (configFileForOpenFiles.get(filePath) === '' && services.size > 1) {
                 configFileForOpenFiles.delete(filePath);
             }
@@ -580,6 +580,7 @@ async function createLanguageService(
             return prevSnapshot;
         }
 
+        svelteModuleLoader.scheduleResolutionFailedLocationCheck(filePath);
         return createSnapshot(filePath);
     }
 
@@ -600,6 +601,8 @@ async function createLanguageService(
             return undefined;
         }
 
+        // don't invalidate the module cache here
+        // this only get called if we already know the file exists
         return createSnapshot(
             svelteModuleLoader.svelteFileExists(fileName) ? svelteFileName : fileName
         );
@@ -613,11 +616,12 @@ async function createLanguageService(
             return doc;
         }
 
+        // don't invalidate the module cache here
+        // this only get called if we already know the file exists
         return createSnapshot(fileName);
     }
 
     function createSnapshot(fileName: string) {
-        svelteModuleLoader.deleteUnresolvedResolutionsFromCache(fileName);
         const doc = DocumentSnapshot.fromFilePath(
             fileName,
             docContext.createDocument,
@@ -730,7 +734,7 @@ async function createLanguageService(
 
     function updateTsOrJsFile(fileName: string, changes?: TextDocumentContentChangeEvent[]): void {
         if (!snapshotManager.has(fileName)) {
-            svelteModuleLoader.deleteUnresolvedResolutionsFromCache(fileName);
+            svelteModuleLoader.scheduleResolutionFailedLocationCheck(fileName);
         }
         snapshotManager.updateTsOrJsFile(fileName, changes);
     }
