@@ -10,7 +10,7 @@
         "./bin/server.js": "./bin/server.js"
     },
     "scripts": {
-        "test": "cross-env TS_NODE_TRANSPILE_ONLY=true mocha --require ts-node/register \"test/**/*.test.ts\"",
+        "test": "cross-env TS_NODE_TRANSPILE_ONLY=true mocha --require ts-node/register \"test/**/*.test.ts\" --no-experimental-strip-types",
         "build": "tsc",
         "prepublishOnly": "npm run build",
         "watch": "tsc -w"
