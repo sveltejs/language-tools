@@ -371,7 +371,7 @@ export function createSvelteModuleLoader(
         });
 
         if (toRemoves.length) {
-            moduleCache.deleteByValues(Array.from(toRemoves));
+            moduleCache.deleteByValues(toRemoves);
             resolutionWithFailedLookup.forEach((r) => {
                 if (toRemoves.includes(r)) {
                     resolutionWithFailedLookup.delete(r);
