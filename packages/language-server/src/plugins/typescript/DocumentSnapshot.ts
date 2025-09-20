@@ -73,6 +73,11 @@ export interface SvelteSnapshotOptions {
     typingsNamespace: string;
 }
 
+const ambientPathPattern = /node_modules[\/\\]svelte[\/\\]types[\/\\]ambient\.d\.ts$/;
+const svelteTypesPattern = /node_modules[\/\\]svelte[\/\\]types[\/\\]index\.d\.ts$/;
+const shimsPattern =
+    /svelte2tsx[\/\\]svelte-shims\.d\.ts$|svelte-check[\/\\]dist[\/\\]src[\/\\]svelte-shims\.d\.ts$/;
+
 export namespace DocumentSnapshot {
     /**
      * Returns a svelte snapshot from a svelte document.
@@ -121,30 +126,25 @@ export namespace DocumentSnapshot {
      * @param options options that apply in case it's a svelte file
      */
     export function fromNonSvelteFilePath(filePath: string, tsSystem: ts.System) {
-        let originalText = '';
-
         // The following (very hacky) code makes sure that the ambient module definitions
         // that tell TS "every import ending with .svelte is a valid module" are removed.
         // They exist in svelte2tsx and svelte to make sure that people don't
         // get errors in their TS files when importing Svelte files and not using our TS plugin.
         // If someone wants to get back the behavior they can add an ambient module definition
         // on their own.
-        const normalizedPath = filePath.replace(/\\/g, '/');
-        if (!normalizedPath.endsWith('node_modules/svelte/types/runtime/ambient.d.ts')) {
+        let originalText = '';
+        if (!ambientPathPattern.test(filePath)) {
             originalText = tsSystem.readFile(filePath) || '';
         }
 
-        if (normalizedPath.endsWith('node_modules/svelte/types/index.d.ts')) {
+        if (svelteTypesPattern.test(filePath)) {
             const startIdx = originalText.indexOf(`declare module '*.svelte' {`);
             const endIdx = originalText.indexOf(`\n}`, startIdx + 1) + 2;
             originalText =
                 originalText.substring(0, startIdx) +
                 ' '.repeat(endIdx - startIdx) +
                 originalText.substring(endIdx);
-        } else if (
-            normalizedPath.endsWith('svelte2tsx/svelte-shims.d.ts') ||
-            normalizedPath.endsWith('svelte-check/dist/src/svelte-shims.d.ts')
-        ) {
+        } else if (shimsPattern.test(filePath)) {
             // If not present, the LS uses an older version of svelte2tsx
             if (originalText.includes('// -- start svelte-ls-remove --')) {
                 originalText =
@@ -157,7 +157,7 @@ export namespace DocumentSnapshot {
         }
 
         const declarationExtensions = [ts.Extension.Dcts, ts.Extension.Dts, ts.Extension.Dmts];
-        if (declarationExtensions.some((ext) => normalizedPath.endsWith(ext))) {
+        if (declarationExtensions.some((ext) => filePath.endsWith(ext))) {
             return new DtsDocumentSnapshot(INITIAL_VERSION, filePath, originalText, tsSystem);
         }
 

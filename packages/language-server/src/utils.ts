@@ -60,7 +60,10 @@ export function normalizeUri(uri: string): string {
  * (bar or bar.svelte in this example).
  */
 export function getLastPartOfPath(path: string): string {
-    return path.replace(/\\/g, '/').split('/').pop() || '';
+    const lastSlash = path.lastIndexOf('/');
+    const lastBackslash = path.lastIndexOf('\\');
+    const lastSeparator = Math.max(lastSlash, lastBackslash);
+    return lastSeparator === -1 ? path : path.slice(lastSeparator + 1);
 }
 
 export function flatten<T>(arr: Array<T | T[]>): T[] {
