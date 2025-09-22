@@ -180,8 +180,8 @@ function getCompilerWarnings(opts: Record<string, any>) {
     }
 }
 
-const diagnosticSources = ['js', 'css', 'svelte'] as const;
-type DiagnosticSource = (typeof diagnosticSources)[number];
+type DiagnosticSource = 'js' | 'css' | 'svelte';
+const diagnosticSources: DiagnosticSource[] = ['js', 'css', 'svelte'];
 
 function getDiagnosticSources(opts: Record<string, any>): DiagnosticSource[] {
     const sources = opts['diagnostic-sources'];

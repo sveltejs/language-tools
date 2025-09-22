@@ -37,9 +37,9 @@
         "typescript": ">=5.0.0"
     },
     "scripts": {
-        "build": "rollup -c && node ./dist/src/index.js --workspace ./test --tsconfig ./tsconfig.json",
-        "prepublishOnly": "npm run build",
-        "test": "npm run build"
+        "build": "cd ../svelte2tsx && pnpm build && cd ../language-server && pnpm build && cd ../svelte-check && rollup -c && node ./dist/src/index.js --workspace ./test --tsconfig ./tsconfig.json",
+        "prepublishOnly": "pnpm build",
+        "test": "pnpm build"
     },
     "devDependencies": {
         "@rollup/plugin-commonjs": "^24.0.0",
