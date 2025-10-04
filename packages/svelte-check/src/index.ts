@@ -194,13 +194,17 @@ class DiagnosticsWatcher {
             .on('unlink', (path) => this.removeDocument(path))
             .on('change', (path) => this.updateDocument(path, false));
 
-        this.updateWatchedDirectories();
-        if (this.ignoreInitialAdd) {
-            getDiagnostics(this.workspaceUri, this.writer, this.svelteCheck);
-        }
+        this.updateWildcardWatcher().then(() => {
+            // ensuring the typescript program is built after wildcard watchers are added
+            // so that individual file watchers added from onFileSnapshotCreated
+            // run after the wildcard ones
+            if (this.ignoreInitialAdd) {
+                getDiagnostics(this.workspaceUri, this.writer, this.svelteCheck);
+            }
+        });
     }
 
-    private isSubdir(candidate: string, parent: string) {
+    private isSubDir(candidate: string, parent: string) {
         const c = path.resolve(candidate);
         const p = path.resolve(parent);
         return c === p || c.startsWith(p + path.sep);
@@ -210,7 +214,7 @@ class DiagnosticsWatcher {
         const sorted = [...new Set(dirs.map((d) => path.resolve(d)))].sort();
         const result: string[] = [];
         for (const dir of sorted) {
-            if (!result.some((p) => this.isSubdir(dir, p))) {
+            if (!result.some((p) => this.isSubDir(dir, p))) {
                 result.push(dir);
             }
         }
@@ -218,29 +222,29 @@ class DiagnosticsWatcher {
     }
 
     addWatchDirectory(dir: string) {
-        if (!dir) return;
+        if (!dir) {
+            return;
+        }
+
         // Skip if already covered by an existing watched directory
         for (const existing of this.currentWatchedDirs) {
-            if (this.isSubdir(dir, existing)) {
+            if (this.isSubDir(dir, existing)) {
                 return;
             }
         }
-        // If new dir is a parent of existing ones, unwatch children
-        const toRemove: string[] = [];
+
+        // Don't remove existing watchers, chokidar `unwatch` ignores future events from that path instead of closing the watcher in some cases
         for (const existing of this.currentWatchedDirs) {
-            if (this.isSubdir(existing, dir)) {
-                toRemove.push(existing);
+            if (this.isSubDir(existing, dir)) {
+                this.currentWatchedDirs.delete(existing);
             }
         }
-        if (toRemove.length) {
-            this.watcher.unwatch(toRemove);
-            for (const r of toRemove) this.currentWatchedDirs.delete(r);
-        }
+
         this.watcher.add(dir);
         this.currentWatchedDirs.add(dir);
     }
 
-    private async updateWatchedDirectories() {
+    private async updateWildcardWatcher() {
         const watchDirs = await this.svelteCheck.getWatchDirectories();
         const desired = this.minimizeDirs(
             (watchDirs?.map((d) => d.path) || [this.workspaceUri.fsPath]).map((p) =>
@@ -249,15 +253,13 @@ class DiagnosticsWatcher {
         );
 
         const current = new Set([...this.currentWatchedDirs].map((p) => path.resolve(p)));
-        const desiredSet = new Set(desired);
 
         const toAdd = desired.filter((d) => !current.has(d));
-        const toRemove = [...current].filter((d) => !desiredSet.has(d));
+        if (toAdd.length) {
+            this.watcher.add(toAdd);
+        }
 
-        if (toAdd.length) this.watcher.add(toAdd);
-        if (toRemove.length) this.watcher.unwatch(toRemove);
-
-        this.currentWatchedDirs = new Set(desired);
+        this.currentWatchedDirs = new Set([...current, ...toAdd]);
     }
 
     private async updateDocument(path: string, isNew: boolean) {
@@ -280,9 +282,9 @@ class DiagnosticsWatcher {
         this.scheduleDiagnostics();
     }
 
-    updateWatchers() {
+    updateWildcardWatchers() {
         clearTimeout(this.pendingWatcherUpdate);
-        this.pendingWatcherUpdate = setTimeout(() => this.updateWatchedDirectories(), 1000);
+        this.pendingWatcherUpdate = setTimeout(() => this.updateWildcardWatcher(), 1000);
     }
 
     scheduleDiagnostics() {
@@ -342,7 +344,7 @@ parseOptions(async (opts) => {
             // Wire callbacks that can reference the watcher instance created below
             let watcher: DiagnosticsWatcher;
             svelteCheckOptions.onProjectReload = () => {
-                watcher.updateWatchers();
+                watcher.updateWildcardWatchers();
                 watcher.scheduleDiagnostics();
             };
             svelteCheckOptions.onFileSnapshotCreated = (filePath: string) => {

@@ -965,7 +965,11 @@ async function createLanguageService(
     ) {
         if (
             kind === ts.FileWatcherEventKind.Changed &&
-            !configFileModified(fileName, modifiedTime ?? tsSystem.getModifiedTime?.(fileName))
+            !configFileModified(
+                fileName,
+                modifiedTime ?? tsSystem.getModifiedTime?.(fileName),
+                docContext
+            )
         ) {
             return;
         }
@@ -1328,7 +1332,8 @@ function createWatchDependedConfigCallback(docContext: LanguageServiceDocumentCo
             kind === ts.FileWatcherEventKind.Changed &&
             !configFileModified(
                 fileName,
-                modifiedTime ?? docContext.tsSystem.getModifiedTime?.(fileName)
+                modifiedTime ?? docContext.tsSystem.getModifiedTime?.(fileName),
+                docContext
             )
         ) {
             return;
@@ -1360,7 +1365,11 @@ function createWatchDependedConfigCallback(docContext: LanguageServiceDocumentCo
 /**
  * check if file content is modified instead of attributes changed
  */
-function configFileModified(fileName: string, modifiedTime: Date | undefined) {
+function configFileModified(
+    fileName: string,
+    modifiedTime: Date | undefined,
+    docContext: LanguageServiceDocumentContext
+) {
     const previousModifiedTime = configFileModifiedTime.get(fileName);
     if (!modifiedTime || !previousModifiedTime) {
         return true;
@@ -1371,6 +1380,20 @@ function configFileModified(fileName: string, modifiedTime: Date | undefined) {
     }
 
     configFileModifiedTime.set(fileName, modifiedTime);
+
+    const oldSourceFile =
+        parsedTsConfigInfo.get(fileName)?.parsedCommandLine?.options.configFile ??
+        docContext.extendedConfigCache.get(fileName)?.extendedResult;
+
+    if (
+        oldSourceFile &&
+        typeof oldSourceFile === 'object' &&
+        'kind' in oldSourceFile &&
+        typeof oldSourceFile.text === 'string' &&
+        oldSourceFile.text === docContext.tsSystem.readFile(fileName)
+    ) {
+        return false;
+    }
     return true;
 }
 
