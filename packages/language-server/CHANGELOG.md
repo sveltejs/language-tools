@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.17.21
+
+### Patch Changes
+
+-   perf: check if file content changed in tsconfig file watch ([#2859](https://github.com/sveltejs/language-tools/pull/2859))
+
+-   Updated dependencies [[`7468286`](https://github.com/sveltejs/language-tools/commit/7468286afd56b886f5490adebe6f667306d0fe08)]:
+    -   svelte2tsx@0.7.45
+
 ## 0.17.20
 
 ### Patch Changes

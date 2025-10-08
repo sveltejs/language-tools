@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.45
+
+### Patch Changes
+
+-   fix: allow `undefined` and `null` values for `#each` in Svelte 5 ([#2863](https://github.com/sveltejs/language-tools/pull/2863))
+
 ## 0.7.44
 
 ### Patch Changes
