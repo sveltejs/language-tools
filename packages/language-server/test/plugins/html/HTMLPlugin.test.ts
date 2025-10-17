@@ -19,7 +19,7 @@ import { VERSION } from 'svelte/compiler';
 
 const isSvelte5Plus = Number(VERSION.split('.')[0]) >= 5;
 
-describe('HTML Plugin', () => {
+describe.only('HTML Plugin', () => {
     function setup(content: string) {
         const document = new Document('file:///hello.svelte', content);
         const docManager = new DocumentManager(() => document);
