@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.17.22
+
+### Patch Changes
+
+-   fix: support for @nativescript-community/svelte-native ([#2867](https://github.com/sveltejs/language-tools/pull/2867))
+
 ## 0.17.21
 
 ### Patch Changes
