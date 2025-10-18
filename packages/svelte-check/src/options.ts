@@ -99,7 +99,14 @@ const outputFormats = ['human', 'human-verbose', 'machine', 'machine-verbose'] a
 type OutputFormat = (typeof outputFormats)[number];
 
 function getOutputFormat(opts: Record<string, any>): OutputFormat {
-    return outputFormats.includes(opts.output) ? opts.output : 'human-verbose';
+    if (outputFormats.includes(opts.output)) {
+        return opts.output;
+    } else if (process.env.CLAUDECODE === '1') {
+        // https://github.com/sveltejs/language-tools/issues/2868
+        return 'machine';
+    } else {
+        return 'human-verbose';
+    }
 }
 
 function getWorkspaceUri(opts: Record<string, any>) {
