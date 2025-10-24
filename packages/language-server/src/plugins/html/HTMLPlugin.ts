@@ -76,9 +76,11 @@ export class HTMLPlugin
         configManager.onChange(() =>
             this.lang.setDataProviders(false, this.getCustomDataProviders())
         );
-        docManager.on('documentChange', (document) => {
+        const sync = (document: Document) => {
             this.documents.set(document, document.html);
-        });
+        };
+        docManager.on('documentChange', sync);
+        docManager.on('documentOpen', sync);
     }
 
     doHover(document: Document, position: Position): Hover | null {

@@ -531,7 +531,7 @@ async function createLanguageService(
         for (const filePath of filePaths) {
             const normalizedPath = normalizePath(filePath);
             svelteModuleLoader.deleteFromModuleCache(normalizedPath);
-            svelteModuleLoader.deleteUnresolvedResolutionsFromCache(normalizedPath);
+            svelteModuleLoader.scheduleResolutionFailedLocationCheck(normalizedPath);
 
             scheduleUpdate(normalizedPath);
         }
@@ -559,7 +559,7 @@ async function createLanguageService(
         const newSnapshot = DocumentSnapshot.fromDocument(document, transformationConfig);
 
         if (!prevSnapshot) {
-            svelteModuleLoader.deleteUnresolvedResolutionsFromCache(filePath);
+            svelteModuleLoader.scheduleResolutionFailedLocationCheck(filePath);
             if (configFileForOpenFiles.get(filePath) === '' && services.size > 1) {
                 configFileForOpenFiles.delete(filePath);
             }
@@ -580,6 +580,7 @@ async function createLanguageService(
             return prevSnapshot;
         }
 
+        svelteModuleLoader.scheduleResolutionFailedLocationCheck(filePath);
         return createSnapshot(filePath);
     }
 
@@ -600,6 +601,8 @@ async function createLanguageService(
             return undefined;
         }
 
+        // don't invalidate the module cache here
+        // this only get called if we already know the file exists
         return createSnapshot(
             svelteModuleLoader.svelteFileExists(fileName) ? svelteFileName : fileName
         );
@@ -613,11 +616,12 @@ async function createLanguageService(
             return doc;
         }
 
+        // don't invalidate the module cache here
+        // this only get called if we already know the file exists
         return createSnapshot(fileName);
     }
 
     function createSnapshot(fileName: string) {
-        svelteModuleLoader.deleteUnresolvedResolutionsFromCache(fileName);
         const doc = DocumentSnapshot.fromFilePath(
             fileName,
             docContext.createDocument,
@@ -730,7 +734,7 @@ async function createLanguageService(
 
     function updateTsOrJsFile(fileName: string, changes?: TextDocumentContentChangeEvent[]): void {
         if (!snapshotManager.has(fileName)) {
-            svelteModuleLoader.deleteUnresolvedResolutionsFromCache(fileName);
+            svelteModuleLoader.scheduleResolutionFailedLocationCheck(fileName);
         }
         snapshotManager.updateTsOrJsFile(fileName, changes);
     }
@@ -790,7 +794,7 @@ async function createLanguageService(
             //override if we detect svelte-native
             if (workspacePath) {
                 try {
-                    const svelteNativePkgInfo = getPackageInfo('svelte-native', workspacePath);
+                    const svelteNativePkgInfo = getPackageInfo('@nativescript-community/svelte-native', workspacePath) || getPackageInfo('svelte-native', workspacePath);
                     if (svelteNativePkgInfo.path) {
                         // For backwards compatibility
                         parsedConfig.raw.svelteOptions = parsedConfig.raw.svelteOptions || {};
@@ -961,7 +965,11 @@ async function createLanguageService(
     ) {
         if (
             kind === ts.FileWatcherEventKind.Changed &&
-            !configFileModified(fileName, modifiedTime ?? tsSystem.getModifiedTime?.(fileName))
+            !configFileModified(
+                fileName,
+                modifiedTime ?? tsSystem.getModifiedTime?.(fileName),
+                docContext
+            )
         ) {
             return;
         }
@@ -1324,7 +1332,8 @@ function createWatchDependedConfigCallback(docContext: LanguageServiceDocumentCo
             kind === ts.FileWatcherEventKind.Changed &&
             !configFileModified(
                 fileName,
-                modifiedTime ?? docContext.tsSystem.getModifiedTime?.(fileName)
+                modifiedTime ?? docContext.tsSystem.getModifiedTime?.(fileName),
+                docContext
             )
         ) {
             return;
@@ -1356,7 +1365,11 @@ function createWatchDependedConfigCallback(docContext: LanguageServiceDocumentCo
 /**
  * check if file content is modified instead of attributes changed
  */
-function configFileModified(fileName: string, modifiedTime: Date | undefined) {
+function configFileModified(
+    fileName: string,
+    modifiedTime: Date | undefined,
+    docContext: LanguageServiceDocumentContext
+) {
     const previousModifiedTime = configFileModifiedTime.get(fileName);
     if (!modifiedTime || !previousModifiedTime) {
         return true;
@@ -1367,6 +1380,20 @@ function configFileModified(fileName: string, modifiedTime: Date | undefined) {
     }
 
     configFileModifiedTime.set(fileName, modifiedTime);
+
+    const oldSourceFile =
+        parsedTsConfigInfo.get(fileName)?.parsedCommandLine?.options.configFile ??
+        docContext.extendedConfigCache.get(fileName)?.extendedResult;
+
+    if (
+        oldSourceFile &&
+        typeof oldSourceFile === 'object' &&
+        'kind' in oldSourceFile &&
+        typeof oldSourceFile.text === 'string' &&
+        oldSourceFile.text === docContext.tsSystem.readFile(fileName)
+    ) {
+        return false;
+    }
     return true;
 }
 

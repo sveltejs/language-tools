@@ -68,19 +68,6 @@ describe('Document Manager', () => {
         assert.throws(() => manager.updateDocument(textDocument, []));
     });
 
-    it('emits a document change event on open and update', () => {
-        const manager = new DocumentManager(createTextDocument);
-        const cb = sinon.spy();
-
-        manager.on('documentChange', cb);
-
-        manager.openClientDocument(textDocument);
-        sinon.assert.calledOnce(cb);
-
-        manager.updateDocument(textDocument, []);
-        sinon.assert.calledTwice(cb);
-    });
-
     it('update document in case-insensitive fs with different casing', () => {
         const textDocument: TextDocumentItem = {
             uri: 'file:///hello2.svelte',

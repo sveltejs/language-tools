@@ -1,6 +1,6 @@
 {
     "name": "svelte-language-server",
-    "version": "0.17.19",
+    "version": "0.17.21",
     "description": "A language server for Svelte",
     "main": "dist/src/index.js",
     "typings": "dist/src/index",
@@ -10,7 +10,7 @@
         "./bin/server.js": "./bin/server.js"
     },
     "scripts": {
-        "test": "cross-env TS_NODE_TRANSPILE_ONLY=true mocha --require ts-node/register \"test/**/*.test.ts\"",
+        "test": "cross-env TS_NODE_TRANSPILE_ONLY=true mocha --require ts-node/register \"test/**/*.test.ts\" --no-experimental-strip-types",
         "build": "tsc",
         "prepublishOnly": "npm run build",
         "watch": "tsc -w"
