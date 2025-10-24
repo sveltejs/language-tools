@@ -794,7 +794,9 @@ async function createLanguageService(
             //override if we detect svelte-native
             if (workspacePath) {
                 try {
-                    const svelteNativePkgInfo = getPackageInfo('@nativescript-community/svelte-native', workspacePath) || getPackageInfo('svelte-native', workspacePath);
+                    const svelteNativePkgInfo =
+                        getPackageInfo('@nativescript-community/svelte-native', workspacePath) ||
+                        getPackageInfo('svelte-native', workspacePath);
                     if (svelteNativePkgInfo.path) {
                         // For backwards compatibility
                         parsedConfig.raw.svelteOptions = parsedConfig.raw.svelteOptions || {};
