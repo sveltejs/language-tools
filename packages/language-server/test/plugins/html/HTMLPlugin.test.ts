@@ -19,7 +19,7 @@ import { VERSION } from 'svelte/compiler';
 
 const isSvelte5Plus = Number(VERSION.split('.')[0]) >= 5;
 
-describe.only('HTML Plugin', () => {
+describe('HTML Plugin', () => {
     function setup(content: string) {
         const document = new Document('file:///hello.svelte', content);
         const docManager = new DocumentManager(() => document);
@@ -188,6 +188,16 @@ describe.only('HTML Plugin', () => {
             triggerKind: CompletionTriggerKind.TriggerCharacter
         });
         assert.strictEqual(completions?.items[0]?.label, 'div>');
+    });
+
+    it('skip emmet completions right after start tag close', async () => {
+        const { plugin, document } = setup('Test.a>');
+
+        const completions = await plugin.getCompletions(document, Position.create(0, 5), {
+            triggerCharacter: '>',
+            triggerKind: CompletionTriggerKind.TriggerCharacter
+        });
+        assert.strictEqual(completions, null);
     });
 
     it('does not provide rename for element being uppercase', async () => {
