@@ -16,6 +16,7 @@ import { LSConfigManager } from '../../../../src/ls-config';
 import {
     ADD_MISSING_IMPORTS_CODE_ACTION_KIND,
     CodeActionsProviderImpl,
+    REMOVE_UNUSED_IMPORTS_CODE_ACTION_KIND,
     SORT_IMPORT_CODE_ACTION_KIND
 } from '../../../../src/plugins/typescript/features/CodeActionsProvider';
 import { CompletionsProviderImpl } from '../../../../src/plugins/typescript/features/CompletionProvider';
@@ -1546,6 +1547,96 @@ describe('CodeActionsProvider', function () {
                 },
                 kind: SORT_IMPORT_CODE_ACTION_KIND,
                 title: 'Sort Imports'
+            }
+        ]);
+    });
+
+    it('removes unused imports', async () => {
+        const { provider, document } = setup('codeactions.svelte');
+
+        const codeActions = await provider.getCodeActions(
+            document,
+            Range.create(Position.create(1, 4), Position.create(1, 5)),
+            {
+                diagnostics: [],
+                only: [REMOVE_UNUSED_IMPORTS_CODE_ACTION_KIND]
+            }
+        );
+        (<TextDocumentEdit>codeActions[0]?.edit?.documentChanges?.[0])?.edits.forEach(
+            (edit) => (edit.newText = harmonizeNewLines(edit.newText))
+        );
+
+        assert.deepStrictEqual(codeActions, [
+            {
+                edit: {
+                    documentChanges: [
+                        {
+                            edits: [
+                                {
+                                    newText:
+                                        "import { C } from 'blubb';\n" +
+                                        "import { A } from 'bla';\n",
+
+                                    range: {
+                                        start: {
+                                            character: 0,
+                                            line: 1
+                                        },
+                                        end: {
+                                            character: 0,
+                                            line: 2
+                                        }
+                                    }
+                                },
+                                {
+                                    newText: '',
+                                    range: {
+                                        start: {
+                                            character: 0,
+                                            line: 2
+                                        },
+                                        end: {
+                                            character: 0,
+                                            line: 3
+                                        }
+                                    }
+                                },
+                                {
+                                    newText: '',
+                                    range: {
+                                        start: {
+                                            character: 0,
+                                            line: 3
+                                        },
+                                        end: {
+                                            character: 0,
+                                            line: 4
+                                        }
+                                    }
+                                },
+                                {
+                                    newText: '',
+                                    range: {
+                                        start: {
+                                            character: 0,
+                                            line: 4
+                                        },
+                                        end: {
+                                            character: 0,
+                                            line: 5
+                                        }
+                                    }
+                                }
+                            ],
+                            textDocument: {
+                                uri: getUri('codeactions.svelte'),
+                                version: null
+                            }
+                        }
+                    ]
+                },
+                kind: REMOVE_UNUSED_IMPORTS_CODE_ACTION_KIND,
+                title: 'Remove Unused Imports'
             }
         ]);
     });
