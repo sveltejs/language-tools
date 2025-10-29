@@ -47,7 +47,8 @@ import { configLoader } from './lib/documents/configLoader';
 import { setIsTrusted } from './importPackage';
 import {
     SORT_IMPORT_CODE_ACTION_KIND,
-    ADD_MISSING_IMPORTS_CODE_ACTION_KIND
+    ADD_MISSING_IMPORTS_CODE_ACTION_KIND,
+    REMOVE_UNUSED_IMPORTS_CODE_ACTION_KIND
 } from './plugins/typescript/features/CodeActionsProvider';
 import { createLanguageServices } from './plugins/css/service';
 import { FileSystemProvider } from './plugins/css/FileSystemProvider';
@@ -274,6 +275,7 @@ export function startServer(options?: LSOptions) {
                               CodeActionKind.SourceOrganizeImports,
                               SORT_IMPORT_CODE_ACTION_KIND,
                               ADD_MISSING_IMPORTS_CODE_ACTION_KIND,
+                              REMOVE_UNUSED_IMPORTS_CODE_ACTION_KIND,
                               ...(clientSupportApplyEditCommand ? [CodeActionKind.Refactor] : [])
                           ].filter(
                               clientSupportedCodeActionKinds &&

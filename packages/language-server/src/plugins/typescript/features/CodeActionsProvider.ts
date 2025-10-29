@@ -142,6 +142,16 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         if (context.only?.[0] === CodeActionKind.Source) {
             return [
                 ...(await this.organizeImports(document, cancellationToken)),
+                ...(await this.organizeImports(
+                    document,
+                    cancellationToken,
+                    OrganizeImportsMode.SortAndCombine
+                )),
+                ...(await this.organizeImports(
+                    document,
+                    cancellationToken,
+                    OrganizeImportsMode.RemoveUnused
+                )),
                 ...(await this.addMissingImports(document, cancellationToken))
             ];
         }
@@ -479,19 +489,24 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             this.checkIndentLeftover(change, document);
         }
 
-        const title =
-            mode === OrganizeImportsMode.SortAndCombine
-                ? 'Sort Imports'
-                : mode === OrganizeImportsMode.RemoveUnused
-                  ? 'Remove Unused Imports'
-                  : 'Organize Imports';
+        let kind: CodeActionKind;
+        let title: string;
 
-        const kind =
-            mode === OrganizeImportsMode.SortAndCombine
-                ? SORT_IMPORT_CODE_ACTION_KIND
-                : mode === OrganizeImportsMode.RemoveUnused
-                  ? REMOVE_UNUSED_IMPORTS_CODE_ACTION_KIND
-                  : CodeActionKind.SourceOrganizeImports;
+        switch (mode) {
+            case OrganizeImportsMode.SortAndCombine:
+                kind = SORT_IMPORT_CODE_ACTION_KIND;
+                title = 'Sort Imports';
+                break;
+
+            case OrganizeImportsMode.RemoveUnused:
+                kind = REMOVE_UNUSED_IMPORTS_CODE_ACTION_KIND;
+                title = 'Remove Unused Imports';
+                break;
+
+            default:
+                kind = CodeActionKind.SourceOrganizeImports;
+                title = 'Organize Imports';
+        }
 
         return [CodeAction.create(title, { documentChanges }, kind)];
     }
