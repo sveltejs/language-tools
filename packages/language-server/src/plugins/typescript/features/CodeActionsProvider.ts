@@ -1,5 +1,5 @@
 import { internalHelpers } from 'svelte2tsx';
-import ts from 'typescript';
+import ts, { OrganizeImportsMode } from 'typescript';
 import {
     CancellationToken,
     CodeAction,
@@ -65,6 +65,7 @@ import {
  */
 export const SORT_IMPORT_CODE_ACTION_KIND = 'source.sortImports';
 export const ADD_MISSING_IMPORTS_CODE_ACTION_KIND = 'source.addMissingImports';
+export const REMOVE_UNUSED_IMPORTS_CODE_ACTION_KIND = 'source.removeUnusedImports';
 
 interface RefactorArgs {
     type: 'refactor';
@@ -120,7 +121,15 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             return await this.organizeImports(
                 document,
                 cancellationToken,
-                /**skipDestructiveCodeActions */ true
+                OrganizeImportsMode.SortAndCombine
+            );
+        }
+
+        if (context.only?.[0] === REMOVE_UNUSED_IMPORTS_CODE_ACTION_KIND) {
+            return await this.organizeImports(
+                document,
+                cancellationToken,
+                OrganizeImportsMode.RemoveUnused
             );
         }
 
@@ -136,7 +145,12 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                 ...(await this.organizeImports(
                     document,
                     cancellationToken,
-                    /**skipDestructiveCodeActions */ true
+                    OrganizeImportsMode.SortAndCombine
+                )),
+                ...(await this.organizeImports(
+                    document,
+                    cancellationToken,
+                    OrganizeImportsMode.RemoveUnused
                 )),
                 ...(await this.addMissingImports(document, cancellationToken))
             ];
@@ -406,7 +420,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
     private async organizeImports(
         document: Document,
         cancellationToken: CancellationToken | undefined,
-        skipDestructiveCodeActions = false
+        mode: OrganizeImportsMode = OrganizeImportsMode.All
     ): Promise<CodeAction[]> {
         if (!document.scriptInfo && !document.moduleScriptInfo) {
             return [];
@@ -425,7 +439,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             {
                 fileName: tsDoc.filePath,
                 type: 'file',
-                skipDestructiveCodeActions
+                mode
             },
             {
                 ...(await this.configManager.getFormatCodeSettingsForFile(
@@ -475,15 +489,26 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             this.checkIndentLeftover(change, document);
         }
 
-        return [
-            CodeAction.create(
-                skipDestructiveCodeActions ? 'Sort Imports' : 'Organize Imports',
-                { documentChanges },
-                skipDestructiveCodeActions
-                    ? SORT_IMPORT_CODE_ACTION_KIND
-                    : CodeActionKind.SourceOrganizeImports
-            )
-        ];
+        let kind: CodeActionKind;
+        let title: string;
+
+        switch (mode) {
+            case OrganizeImportsMode.SortAndCombine:
+                kind = SORT_IMPORT_CODE_ACTION_KIND;
+                title = 'Sort Imports';
+                break;
+
+            case OrganizeImportsMode.RemoveUnused:
+                kind = REMOVE_UNUSED_IMPORTS_CODE_ACTION_KIND;
+                title = 'Remove Unused Imports';
+                break;
+
+            default:
+                kind = CodeActionKind.SourceOrganizeImports;
+                title = 'Organize Imports';
+        }
+
+        return [CodeAction.create(title, { documentChanges }, kind)];
     }
 
     private fixIndentationOfImports(edit: TextEdit, document: Document): TextEdit {
