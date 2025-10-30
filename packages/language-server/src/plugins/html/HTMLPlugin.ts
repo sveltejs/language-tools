@@ -147,7 +147,17 @@ export class HTMLPlugin
             completionContext?.triggerCharacter &&
             !this.htmlTriggerCharacters.includes(completionContext?.triggerCharacter)
         ) {
-            return doEmmetCompleteInner() ?? null;
+            const node = html.findNodeAt(document.offsetAt(position));
+            const offset = document.offsetAt(position);
+            if (
+                !node?.tag ||
+                (offset > (node.startTagEnd ?? node.end) &&
+                    (node.endTagStart == null || offset <= node.endTagStart))
+            ) {
+                return doEmmetCompleteInner() ?? null;
+            }
+
+            return null;
         }
 
         const results = this.isInComponentTag(html, document, position)

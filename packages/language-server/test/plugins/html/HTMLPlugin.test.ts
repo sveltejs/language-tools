@@ -190,6 +190,16 @@ describe('HTML Plugin', () => {
         assert.strictEqual(completions?.items[0]?.label, 'div>');
     });
 
+    it('skip emmet completions right after start tag close', async () => {
+        const { plugin, document } = setup('Test.a>');
+
+        const completions = await plugin.getCompletions(document, Position.create(0, 5), {
+            triggerCharacter: '>',
+            triggerKind: CompletionTriggerKind.TriggerCharacter
+        });
+        assert.strictEqual(completions, null);
+    });
+
     it('does not provide rename for element being uppercase', async () => {
         const { plugin, document } = setup('<Div></Div>');
 
