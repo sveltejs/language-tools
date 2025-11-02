@@ -341,6 +341,21 @@ export function getNodeIfIsInHTMLStartTag(html: HTMLDocument, offset: number): N
 }
 
 /**
+ * Returns the node if offset is inside a HTML endtag
+ */
+export function getNodeIfIsInTagName(html: HTMLDocument, offset: number): Node | undefined {
+    const node = html.findNodeAt(offset);
+    if (
+        !!node.tag &&
+        node.tag[0] === node.tag[0].toLowerCase() &&
+        (offset <= node.start + 1 + (node.tag.length ?? 0) ||
+            (node.endTagStart && offset >= node.endTagStart && offset <= node.end))
+    ) {
+        return node;
+    }
+}
+
+/**
  * Returns the node if offset is inside a starttag (HTML or component)
  */
 export function getNodeIfIsInStartTag(html: HTMLDocument, offset: number): Node | undefined {
