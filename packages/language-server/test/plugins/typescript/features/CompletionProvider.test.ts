@@ -297,6 +297,10 @@ describe('CompletionProviderImpl', function () {
 
         assert.deepStrictEqual(item, <CompletionItem>{
             label: 'custom-element',
+            documentation: {
+                value: 'Custom doc for custom element',
+                kind: 'markdown'
+            },
             kind: CompletionItemKind.Property,
             commitCharacters: [],
             textEdit: {

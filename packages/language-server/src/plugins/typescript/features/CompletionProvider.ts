@@ -582,23 +582,35 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
             return;
         }
 
-        let tagNames: string[] = typeChecker
+        let tags: { name: string; documentation: string }[] = typeChecker
             .getDeclaredTypeOfSymbol(elements)
             .getProperties()
-            .map((p) => ts.symbolName(p));
+            .map((p) => {
+                return {
+                    name: ts.symbolName(p),
+                    documentation: ts.displayPartsToString(p.getDocumentationComment(typeChecker))
+                };
+            });
 
-        if (tagNames.length && tag.tag) {
-            tagNames = tagNames.filter((name) => name.startsWith(tag.tag ?? ''));
+        if (tags.length && tag.tag) {
+            tags = tags.filter((t) => t.name.startsWith(tag.tag ?? ''));
         }
 
         const replacementRange = toRange(document, tag.start + 1, tagNameEnd);
 
-        return tagNames.map((name) => ({
-            label: name,
-            kind: CompletionItemKind.Property,
-            textEdit: TextEdit.replace(cloneRange(replacementRange), name),
-            commitCharacters: []
-        }));
+        return tags.map(
+            (t) =>
+                ({
+                    label: t.name,
+                    documentation: {
+                        value: t.documentation,
+                        kind: 'markdown'
+                    },
+                    kind: CompletionItemKind.Property,
+                    textEdit: TextEdit.replace(cloneRange(replacementRange), t.name),
+                    commitCharacters: []
+                }) as CompletionItem
+        );
     }
 
     private findTypingsNamespaceSymbol(
