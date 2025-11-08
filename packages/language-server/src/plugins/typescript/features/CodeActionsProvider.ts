@@ -699,6 +699,13 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                     errorCodes,
                     formatCodeSettings,
                     userPreferences
+                ),
+                ...this.getSvelteQuickFixes(
+                    lang,
+                    cannotFindNameDiagnostic,
+                    tsDoc,
+                    userPreferences,
+                    formatCodeSettings
                 )
             );
         }
@@ -1128,6 +1135,64 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         return path.split('/').length - 1;
     }
 
+    private getSvelteQuickFixes(
+        lang: ts.LanguageService,
+        cannotFindNameDiagnostics: Diagnostic[],
+        tsDoc: DocumentSnapshot,
+        userPreferences: ts.UserPreferences,
+        formatCodeSettings: ts.FormatCodeSettings
+    ): CustomFixCannotFindNameInfo[] {
+        const program = lang.getProgram();
+        const sourceFile = program?.getSourceFile(tsDoc.filePath);
+        if (!program || !sourceFile) {
+            return [];
+        }
+
+        const results: CustomFixCannotFindNameInfo[] = [];
+        const getGlobalCompletion = memoize(() =>
+            lang.getCompletionsAtPosition(tsDoc.filePath, 0, userPreferences, formatCodeSettings)
+        );
+
+        for (const diagnostic of cannotFindNameDiagnostics) {
+            const identifier = this.findIdentifierForDiagnostic(tsDoc, diagnostic, sourceFile);
+
+            if (!identifier) {
+                continue;
+            }
+
+            const isQuickFixTargetTargetStore = identifier?.escapedText.toString().startsWith('$');
+
+            const fixes: ts.CodeFixAction[] = [];
+            if (isQuickFixTargetTargetStore) {
+                fixes.push(
+                    ...this.getSvelteStoreQuickFixes(
+                        identifier,
+                        lang,
+                        tsDoc,
+                        userPreferences,
+                        formatCodeSettings,
+                        getGlobalCompletion
+                    )
+                );
+            }
+
+            if (!fixes.length) {
+                continue;
+            }
+
+            const originalPosition = tsDoc.getOriginalPosition(tsDoc.positionAt(identifier.pos));
+            results.push(
+                ...fixes.map((fix) => ({
+                    name: identifier.getText(),
+                    position: originalPosition,
+                    ...fix
+                }))
+            );
+        }
+
+        return results;
+    }
+
     private findIdentifierForDiagnostic(
         tsDoc: DocumentSnapshot,
         diagnostic: Diagnostic,
@@ -1143,6 +1208,54 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         );
 
         return identifier;
+    }
+
+    private getSvelteStoreQuickFixes(
+        identifier: ts.Identifier,
+        lang: ts.LanguageService,
+        tsDoc: DocumentSnapshot,
+        userPreferences: ts.UserPreferences,
+        formatCodeSettings: ts.FormatCodeSettings,
+        getCompletions: () => ts.CompletionInfo | undefined
+    ): ts.CodeFixAction[] {
+        const storeIdentifier = identifier.escapedText.toString().substring(1);
+        const completion = getCompletions();
+
+        if (!completion) {
+            return [];
+        }
+
+        const toFix = (c: ts.CompletionEntry) =>
+            lang
+                .getCompletionEntryDetails(
+                    tsDoc.filePath,
+                    0,
+                    c.name,
+                    formatCodeSettings,
+                    c.source,
+                    userPreferences,
+                    c.data
+                )
+                ?.codeActions?.map((a) => ({
+                    ...a,
+                    changes: a.changes.map((change) => {
+                        return {
+                            ...change,
+                            textChanges: change.textChanges.map((textChange) => {
+                                // For some reason, TS sometimes adds the `type` modifier. Remove it.
+                                return {
+                                    ...textChange,
+                                    newText: textChange.newText.replace(' type ', ' ')
+                                };
+                            })
+                        };
+                    }),
+                    fixName: FIX_IMPORT_FIX_NAME,
+                    fixId: FIX_IMPORT_FIX_ID,
+                    fixAllDescription: FIX_IMPORT_FIX_DESCRIPTION
+                })) ?? [];
+
+        return flatten(completion.entries.filter((c) => c.name === storeIdentifier).map(toFix));
     }
 
     private getAddLangTSCodeAction(
