@@ -2512,6 +2512,71 @@ describe('CodeActionsProvider', function () {
         assert.deepStrictEqual(codeActions, []);
     });
 
+    it('provides code action for adding lang="ts"', async () => {
+        const { provider, document } = setup('codeaction-add-lang-ts.svelte');
+
+        const codeActions = await provider.getCodeActions(
+            document,
+            Range.create(Position.create(0, 0), Position.create(0, 1)),
+            {
+                diagnostics: [
+                    {
+                        code: 8010,
+                        message: 'Type annotations can only be used in TypeScript files.',
+                        range: Range.create(Position.create(1, 18), Position.create(1, 24)),
+                        source: 'ts'
+                    }
+                ],
+                only: [CodeActionKind.QuickFix]
+            }
+        );
+
+        assert.deepStrictEqual(codeActions, <CodeAction[]>[
+            {
+                title: 'Add lang="ts" to <script> tag',
+                kind: CodeActionKind.QuickFix,
+                edit: {
+                    documentChanges: [
+                        {
+                            edits: [
+                                {
+                                    newText: ' lang="ts"',
+                                    range: {
+                                        start: {
+                                            character: 7,
+                                            line: 0
+                                        },
+                                        end: {
+                                            character: 7,
+                                            line: 0
+                                        }
+                                    }
+                                },
+                                {
+                                    newText: ' lang="ts"',
+                                    range: {
+                                        start: {
+                                            character: 7,
+                                            line: 6
+                                        },
+                                        end: {
+                                            character: 7,
+                                            line: 6
+                                        }
+                                    }
+                                }
+                            ],
+                            textDocument: {
+                                uri: getUri('codeaction-add-lang-ts.svelte'),
+                                version: null
+                            }
+                        }
+                    ]
+                }
+            }
+        ]);
+    });
+
     if (!isSvelte5Plus) {
         return;
     }
@@ -2574,6 +2639,58 @@ describe('CodeActionsProvider', function () {
                 },
                 kind: 'source.organizeImports',
                 title: 'Organize Imports'
+            }
+        ]);
+    });
+
+    it('provides code action for adding <script lang="ts"', async () => {
+        const { provider, document } = setup('codeaction-add-lang-ts-no-script.svelte');
+
+        const codeActions = await provider.getCodeActions(
+            document,
+            Range.create(Position.create(0, 0), Position.create(0, 1)),
+            {
+                diagnostics: [
+                    {
+                        code: 8010,
+                        message: 'Type annotations can only be used in TypeScript files.',
+                        range: Range.create(Position.create(1, 18), Position.create(1, 24)),
+                        source: 'ts'
+                    }
+                ],
+                only: [CodeActionKind.QuickFix]
+            }
+        );
+
+        assert.deepStrictEqual(codeActions, <CodeAction[]>[
+            {
+                title: 'Add <script lang="ts"> tag',
+                kind: CodeActionKind.QuickFix,
+                edit: {
+                    documentChanges: [
+                        {
+                            edits: [
+                                {
+                                    newText: '<script lang="ts"></script>\n',
+                                    range: {
+                                        start: {
+                                            character: 0,
+                                            line: 0
+                                        },
+                                        end: {
+                                            character: 0,
+                                            line: 0
+                                        }
+                                    }
+                                }
+                            ],
+                            textDocument: {
+                                uri: getUri('codeaction-add-lang-ts-no-script.svelte'),
+                                version: null
+                            }
+                        }
+                    ]
+                }
             }
         ]);
     });

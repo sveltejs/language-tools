@@ -59,6 +59,7 @@ import {
     isTextSpanInGeneratedCode,
     SnapshotMap
 } from './utils';
+import { Node } from 'vscode-html-languageservice';
 
 /**
  * TODO change this to protocol constant if it's part of the protocol
@@ -698,15 +699,6 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                     errorCodes,
                     formatCodeSettings,
                     userPreferences
-                ),
-                ...this.getSvelteQuickFixes(
-                    lang,
-                    document,
-                    cannotFindNameDiagnostic,
-                    tsDoc,
-                    formatCodeBasis,
-                    userPreferences,
-                    formatCodeSettings
                 )
             );
         }
@@ -760,8 +752,18 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             lang
         );
 
+        const addLangCodeAction = this.getAddLangTSCodeAction(
+            document,
+            context,
+            tsDoc,
+            formatCodeBasis
+        );
+
         // filter out empty code action
-        return codeActionsNotFilteredOut.map(({ codeAction }) => codeAction).concat(fixAllActions);
+        const result = codeActionsNotFilteredOut
+            .map(({ codeAction }) => codeAction)
+            .concat(fixAllActions);
+        return addLangCodeAction ? [addLangCodeAction].concat(result) : result;
     }
 
     private async convertAndFixCodeFixAction({
@@ -1126,88 +1128,6 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         return path.split('/').length - 1;
     }
 
-    private getSvelteQuickFixes(
-        lang: ts.LanguageService,
-        document: Document,
-        cannotFindNameDiagnostics: Diagnostic[],
-        tsDoc: DocumentSnapshot,
-        formatCodeBasis: FormatCodeBasis,
-        userPreferences: ts.UserPreferences,
-        formatCodeSettings: ts.FormatCodeSettings
-    ): CustomFixCannotFindNameInfo[] {
-        const program = lang.getProgram();
-        const sourceFile = program?.getSourceFile(tsDoc.filePath);
-        if (!program || !sourceFile) {
-            return [];
-        }
-
-        const typeChecker = program.getTypeChecker();
-        const results: CustomFixCannotFindNameInfo[] = [];
-        const quote = getQuotePreference(sourceFile, userPreferences);
-        const getGlobalCompletion = memoize(() =>
-            lang.getCompletionsAtPosition(tsDoc.filePath, 0, userPreferences, formatCodeSettings)
-        );
-        const [tsMajorStr] = ts.version.split('.');
-        const tsSupportHandlerQuickFix = parseInt(tsMajorStr) >= 5;
-
-        for (const diagnostic of cannotFindNameDiagnostics) {
-            const identifier = this.findIdentifierForDiagnostic(tsDoc, diagnostic, sourceFile);
-
-            if (!identifier) {
-                continue;
-            }
-
-            const isQuickFixTargetTargetStore = identifier?.escapedText.toString().startsWith('$');
-
-            const fixes: ts.CodeFixAction[] = [];
-            if (isQuickFixTargetTargetStore) {
-                fixes.push(
-                    ...this.getSvelteStoreQuickFixes(
-                        identifier,
-                        lang,
-                        tsDoc,
-                        userPreferences,
-                        formatCodeSettings,
-                        getGlobalCompletion
-                    )
-                );
-            }
-
-            if (!tsSupportHandlerQuickFix) {
-                const isQuickFixTargetEventHandler = this.isQuickFixForEventHandler(
-                    document,
-                    diagnostic
-                );
-                if (isQuickFixTargetEventHandler) {
-                    fixes.push(
-                        ...this.getEventHandlerQuickFixes(
-                            identifier,
-                            tsDoc,
-                            typeChecker,
-                            quote,
-                            formatCodeBasis
-                        )
-                    );
-                }
-            }
-
-            if (!fixes.length) {
-                continue;
-            }
-
-            const originalPosition = tsDoc.getOriginalPosition(tsDoc.positionAt(identifier.pos));
-            results.push(
-                ...fixes.map((fix) => ({
-                    name: identifier.getText(),
-                    position: originalPosition,
-                    ...fix
-                }))
-            );
-        }
-
-        return results;
-    }
-
     private findIdentifierForDiagnostic(
         tsDoc: DocumentSnapshot,
         diagnostic: Diagnostic,
@@ -1225,151 +1145,119 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         return identifier;
     }
 
-    // TODO: Remove this in late 2023
-    // when most users have upgraded to TS 5.0+
-    private getSvelteStoreQuickFixes(
-        identifier: ts.Identifier,
-        lang: ts.LanguageService,
+    private getAddLangTSCodeAction(
+        document: Document,
+        context: CodeActionContext,
         tsDoc: DocumentSnapshot,
-        userPreferences: ts.UserPreferences,
-        formatCodeSettings: ts.FormatCodeSettings,
-        getCompletions: () => ts.CompletionInfo | undefined
-    ): ts.CodeFixAction[] {
-        const storeIdentifier = identifier.escapedText.toString().substring(1);
-        const completion = getCompletions();
-
-        if (!completion) {
-            return [];
-        }
-
-        const toFix = (c: ts.CompletionEntry) =>
-            lang
-                .getCompletionEntryDetails(
-                    tsDoc.filePath,
-                    0,
-                    c.name,
-                    formatCodeSettings,
-                    c.source,
-                    userPreferences,
-                    c.data
-                )
-                ?.codeActions?.map((a) => ({
-                    ...a,
-                    changes: a.changes.map((change) => {
-                        return {
-                            ...change,
-                            textChanges: change.textChanges.map((textChange) => {
-                                // For some reason, TS sometimes adds the `type` modifier. Remove it.
-                                return {
-                                    ...textChange,
-                                    newText: textChange.newText.replace(' type ', ' ')
-                                };
-                            })
-                        };
-                    }),
-                    fixName: FIX_IMPORT_FIX_NAME,
-                    fixId: FIX_IMPORT_FIX_ID,
-                    fixAllDescription: FIX_IMPORT_FIX_DESCRIPTION
-                })) ?? [];
-
-        return flatten(completion.entries.filter((c) => c.name === storeIdentifier).map(toFix));
-    }
-
-    /**
-     * Workaround for TypeScript doesn't provide a quick fix if the signature is typed as union type, like `(() => void) | null`
-     * We can remove this once TypeScript doesn't have this limitation.
-     */
-    private getEventHandlerQuickFixes(
-        identifier: ts.Identifier,
-        tsDoc: DocumentSnapshot,
-        typeChecker: ts.TypeChecker,
-        quote: string,
         formatCodeBasis: FormatCodeBasis
-    ): ts.CodeFixAction[] {
-        const type = identifier && typeChecker.getContextualType(identifier);
-
-        // if it's not union typescript should be able to do it. no need to enhance
-        if (!type || !type.isUnion()) {
-            return [];
+    ) {
+        if (tsDoc.scriptKind !== ts.ScriptKind.JS) {
+            return;
         }
 
-        const nonNullable = type.getNonNullableType();
-
-        if (
-            !(
-                nonNullable.flags & ts.TypeFlags.Object &&
-                (nonNullable as ts.ObjectType).objectFlags & ts.ObjectFlags.Anonymous
-            )
-        ) {
-            return [];
+        let hasTSOnlyDiagnostic = false;
+        for (const diagnostic of context.diagnostics) {
+            const num = Number(diagnostic.code);
+            const canOnlyBeUsedInTS = num >= 8004 && num <= 8017;
+            if (canOnlyBeUsedInTS) {
+                hasTSOnlyDiagnostic = true;
+                break;
+            }
+        }
+        if (!hasTSOnlyDiagnostic) {
+            return;
         }
 
-        const signature = typeChecker.getSignaturesOfType(nonNullable, ts.SignatureKind.Call)[0];
+        if (!document.scriptInfo && !document.moduleScriptInfo) {
+            const hasNonTopLevelLang = document.html.roots.some((node) =>
+                this.hasNonTopLevelLangTsScriptTag(node)
+            );
+            // Might be because issue with parsing the script tag, so don't suggest adding a new one
+            if (hasNonTopLevelLang) {
+                return;
+            }
+        }
 
-        const parameters = signature.parameters.map((p) => {
-            const declaration = p.valueDeclaration ?? p.declarations?.[0];
-            const typeString = declaration
-                ? typeChecker.typeToString(typeChecker.getTypeOfSymbolAtLocation(p, declaration))
-                : '';
+        const edits = [document.scriptInfo, document.moduleScriptInfo]
+            .map((info) => {
+                if (!info) {
+                    return;
+                }
 
-            return { name: p.name, typeString };
-        });
+                const startTagNameEnd = document.positionAt(info.container.start + 7); // <script
+                const existingLangOffset = document
+                    .getText({
+                        start: startTagNameEnd,
+                        end: document.positionAt(info.start)
+                    })
+                    .indexOf('lang=');
+                if (existingLangOffset !== -1) {
+                    return {
+                        range: Range.create(startTagNameEnd, startTagNameEnd),
+                        newText: ' lang="ts"'
+                    };
+                }
+                return {
+                    range: Range.create(startTagNameEnd, startTagNameEnd),
+                    newText: ' lang="ts"'
+                };
+            })
+            .filter(isNotNullOrUndefined);
 
-        const returnType = typeChecker.typeToString(signature.getReturnType());
-        const useJsDoc =
-            tsDoc.scriptKind === ts.ScriptKind.JS || tsDoc.scriptKind === ts.ScriptKind.JSX;
-        const parametersText = (
-            useJsDoc
-                ? parameters.map((p) => p.name)
-                : parameters.map((p) => p.name + (p.typeString ? ': ' + p.typeString : ''))
-        ).join(', ');
+        if (edits.length) {
+            return CodeAction.create(
+                'Add lang="ts" to <script> tag',
+                {
+                    documentChanges: [
+                        {
+                            textDocument: OptionalVersionedTextDocumentIdentifier.create(
+                                document.uri,
+                                null
+                            ),
+                            edits
+                        }
+                    ]
+                },
+                CodeActionKind.QuickFix
+            );
+        }
 
-        const jsDoc = useJsDoc
-            ? ['/**', ...parameters.map((p) => ` * @param {${p.typeString}} ${p.name}`), ' */']
-            : [];
-
-        const newText = [
-            ...jsDoc,
-            `function ${identifier.text}(${parametersText})${
-                useJsDoc || returnType === 'any' ? '' : ': ' + returnType
-            } {`,
-            formatCodeBasis.indent +
-                `throw new Error(${quote}Function not implemented.${quote})` +
-                formatCodeBasis.semi,
-            '}'
-        ]
-            .map((line) => formatCodeBasis.baseIndent + line + formatCodeBasis.newLine)
-            .join('');
-
-        return [
+        return CodeAction.create(
+            'Add <script lang="ts"> tag',
             {
-                description: `Add missing function declaration '${identifier.text}'`,
-                fixName: 'fixMissingFunctionDeclaration',
-                changes: [
+                documentChanges: [
                     {
-                        fileName: tsDoc.filePath,
-                        textChanges: [
+                        textDocument: OptionalVersionedTextDocumentIdentifier.create(
+                            document.uri,
+                            null
+                        ),
+                        edits: [
                             {
-                                newText,
-                                span: { start: 0, length: 0 }
+                                range: Range.create(Position.create(0, 0), Position.create(0, 0)),
+                                newText: '<script lang="ts"></script>' + formatCodeBasis.newLine
                             }
                         ]
                     }
                 ]
-            }
-        ];
+            },
+            CodeActionKind.QuickFix
+        );
     }
 
-    private isQuickFixForEventHandler(document: Document, diagnostic: Diagnostic) {
-        const htmlNode = document.html.findNodeAt(document.offsetAt(diagnostic.range.start));
-        if (
-            !htmlNode.attributes ||
-            !Object.keys(htmlNode.attributes).some((attr) => attr.startsWith('on:'))
-        ) {
-            return false;
+    private hasNonTopLevelLangTsScriptTag(node: Node): boolean {
+        for (const element of node.children) {
+            if (
+                element.tag === 'script' &&
+                (element.attributes?.lang === '"ts"' || element.attributes?.lang === "'ts'") &&
+                element.parent
+            ) {
+                return true;
+            }
+            if (this.hasNonTopLevelLangTsScriptTag(element)) {
+                return true;
+            }
         }
-
-        return true;
+        return false;
     }
 
     private async getApplicableRefactors(
