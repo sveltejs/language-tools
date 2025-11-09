@@ -113,6 +113,7 @@ export class SveltePlugin
             return await svelteDoc.getCompiledWith({
                 // @ts-ignore is 'client' in Svelte 5
                 generate: 'dom',
+                // @ts-ignore only available in Svelte 5
                 experimental: document.config?.compilerOptions?.experimental
             });
         } catch (error) {
