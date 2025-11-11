@@ -1289,6 +1289,30 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             if (hasNonTopLevelLang) {
                 return;
             }
+
+            return CodeAction.create(
+                'Add <script lang="ts"> tag',
+                {
+                    documentChanges: [
+                        {
+                            textDocument: OptionalVersionedTextDocumentIdentifier.create(
+                                document.uri,
+                                null
+                            ),
+                            edits: [
+                                {
+                                    range: Range.create(
+                                        Position.create(0, 0),
+                                        Position.create(0, 0)
+                                    ),
+                                    newText: '<script lang="ts"></script>' + formatCodeBasis.newLine
+                                }
+                            ]
+                        }
+                    ]
+                },
+                CodeActionKind.QuickFix
+            );
         }
 
         const edits = [document.scriptInfo, document.moduleScriptInfo]
@@ -1304,12 +1328,11 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                         end: document.positionAt(info.start)
                     })
                     .indexOf('lang=');
+
                 if (existingLangOffset !== -1) {
-                    return {
-                        range: Range.create(startTagNameEnd, startTagNameEnd),
-                        newText: ' lang="ts"'
-                    };
+                    return;
                 }
+
                 return {
                     range: Range.create(startTagNameEnd, startTagNameEnd),
                     newText: ' lang="ts"'
@@ -1334,27 +1357,6 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                 CodeActionKind.QuickFix
             );
         }
-
-        return CodeAction.create(
-            'Add <script lang="ts"> tag',
-            {
-                documentChanges: [
-                    {
-                        textDocument: OptionalVersionedTextDocumentIdentifier.create(
-                            document.uri,
-                            null
-                        ),
-                        edits: [
-                            {
-                                range: Range.create(Position.create(0, 0), Position.create(0, 0)),
-                                newText: '<script lang="ts"></script>' + formatCodeBasis.newLine
-                            }
-                        ]
-                    }
-                ]
-            },
-            CodeActionKind.QuickFix
-        );
     }
 
     private hasLangTsScriptTag(node: Node): boolean {
