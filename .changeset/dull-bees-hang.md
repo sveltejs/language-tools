@@ -1,5 +1,5 @@
 ---
-"svelte-language-server": patch
+'svelte-language-server': patch
 ---
 
 feat: support hierarchical document symbols
