@@ -31,6 +31,11 @@ export interface SvelteCheckOptions {
     tsconfig?: string;
     onProjectReload?: () => void;
     watch?: boolean;
+    /**
+     * Optional callback invoked when a new snapshot is created.
+     * Provides the absolute file path of the snapshot.
+     */
+    onFileSnapshotCreated?: (filePath: string) => void;
 }
 
 /**
@@ -91,7 +96,8 @@ export class SvelteCheck {
                     tsconfigPath: options.tsconfig,
                     isSvelteCheck: true,
                     onProjectReloaded: options.onProjectReload,
-                    watch: options.watch
+                    watch: options.watch,
+                    onFileSnapshotCreated: options.onFileSnapshotCreated
                 }
             );
             this.pluginHost.register(
@@ -246,66 +252,67 @@ export class SvelteCheck {
                     const isKitFile = snapshot?.kitFile ?? false;
                     const diagnostics: Diagnostic[] = [];
                     if (!skipDiagnosticsForFile) {
-                        const originalDiagnostics = [
-                            ...lang.getSyntacticDiagnostics(file.fileName),
-                            ...lang.getSuggestionDiagnostics(file.fileName),
-                            ...lang.getSemanticDiagnostics(file.fileName)
-                        ];
-
-                        for (let diagnostic of originalDiagnostics) {
-                            if (!diagnostic.start || !diagnostic.length || !isKitFile) {
-                                diagnostics.push(map(diagnostic));
-                                continue;
-                            }
-
-                            let range: Range | undefined = undefined;
-                            const inGenerated = isInGeneratedCode(
-                                file.text,
-                                diagnostic.start,
-                                diagnostic.start + diagnostic.length
-                            );
-                            if (inGenerated && snapshot) {
-                                const pos = snapshot.getOriginalPosition(
-                                    snapshot.positionAt(diagnostic.start)
-                                );
-                                range = {
-                                    start: pos,
-                                    end: {
-                                        line: pos.line,
-                                        // adjust length so it doesn't spill over to the next line
-                                        character: pos.character + 1
-                                    }
-                                };
-                                // If not one of the specific error messages then filter out
-                                if (diagnostic.code === 2307) {
-                                    diagnostic = {
-                                        ...diagnostic,
-                                        messageText:
-                                            typeof diagnostic.messageText === 'string' &&
-                                            diagnostic.messageText.includes('./$types')
-                                                ? diagnostic.messageText +
-                                                  ` (this likely means that SvelteKit's type generation didn't run yet - try running it by executing 'npm run dev' or 'npm run build')`
-                                                : diagnostic.messageText
-                                    };
-                                } else if (diagnostic.code === 2694) {
-                                    diagnostic = {
-                                        ...diagnostic,
-                                        messageText:
-                                            typeof diagnostic.messageText === 'string' &&
-                                            diagnostic.messageText.includes('/$types')
-                                                ? diagnostic.messageText +
-                                                  ` (this likely means that SvelteKit's generated types are out of date - try rerunning it by executing 'npm run dev' or 'npm run build')`
-                                                : diagnostic.messageText
-                                    };
-                                } else if (
-                                    diagnostic.code !==
-                                    2355 /*  A function whose declared type is neither 'void' nor 'any' must return a value */
-                                ) {
+                        const diagnosticSources = [
+                            'getSyntacticDiagnostics',
+                            'getSuggestionDiagnostics',
+                            'getSemanticDiagnostics'
+                        ] as const;
+                        for (const diagnosticSource of diagnosticSources) {
+                            for (let diagnostic of lang[diagnosticSource](file.fileName)) {
+                                if (!diagnostic.start || !diagnostic.length || !isKitFile) {
+                                    diagnostics.push(map(diagnostic));
                                     continue;
                                 }
-                            }
 
-                            diagnostics.push(map(diagnostic, range));
+                                let range: Range | undefined = undefined;
+                                const inGenerated = isInGeneratedCode(
+                                    file.text,
+                                    diagnostic.start,
+                                    diagnostic.start + diagnostic.length
+                                );
+                                if (inGenerated && snapshot) {
+                                    const pos = snapshot.getOriginalPosition(
+                                        snapshot.positionAt(diagnostic.start)
+                                    );
+                                    range = {
+                                        start: pos,
+                                        end: {
+                                            line: pos.line,
+                                            // adjust length so it doesn't spill over to the next line
+                                            character: pos.character + 1
+                                        }
+                                    };
+                                    // If not one of the specific error messages then filter out
+                                    if (diagnostic.code === 2307) {
+                                        diagnostic = {
+                                            ...diagnostic,
+                                            messageText:
+                                                typeof diagnostic.messageText === 'string' &&
+                                                diagnostic.messageText.includes('./$types')
+                                                    ? diagnostic.messageText +
+                                                      ` (this likely means that SvelteKit's type generation didn't run yet - try running it by executing 'npm run dev' or 'npm run build')`
+                                                    : diagnostic.messageText
+                                        };
+                                    } else if (diagnostic.code === 2694) {
+                                        diagnostic = {
+                                            ...diagnostic,
+                                            messageText:
+                                                typeof diagnostic.messageText === 'string' &&
+                                                diagnostic.messageText.includes('/$types')
+                                                    ? diagnostic.messageText +
+                                                      ` (this likely means that SvelteKit's generated types are out of date - try rerunning it by executing 'npm run dev' or 'npm run build')`
+                                                    : diagnostic.messageText
+                                        };
+                                    } else if (
+                                        diagnostic.code !==
+                                        2355 /*  A function whose declared type is neither 'void' nor 'any' must return a value */
+                                    ) {
+                                        continue;
+                                    }
+                                }
+
+                                diagnostics.push(map(diagnostic, range));
+                            }
                         }
                     }
 
@@ -352,5 +359,26 @@ export class SvelteCheck {
             throw new Error('Cannot run with tsconfig path without LS/TSdoc resolver');
         }
         return this.lsAndTSDocResolver.getTSService(tsconfigPath);
+    }
+
+    /**
+     * Gets the watch directories based on the tsconfig include patterns.
+     * Returns null if no tsconfig is specified.
+     */
+    async getWatchDirectories(): Promise<{ path: string; recursive: boolean }[] | null> {
+        if (!this.options.tsconfig) {
+            return null;
+        }
+        const lsContainer = await this.getLSContainer(this.options.tsconfig);
+        const projectConfig = lsContainer.getProjectConfig();
+
+        if (!projectConfig.wildcardDirectories) {
+            return null;
+        }
+
+        return Object.entries(projectConfig.wildcardDirectories).map(([dir, flags]) => ({
+            path: dir,
+            recursive: !!(flags & ts.WatchDirectoryFlags.Recursive)
+        }));
     }
 }

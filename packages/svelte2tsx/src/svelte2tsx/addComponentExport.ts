@@ -1,4 +1,4 @@
-import { pascalCase } from 'pascal-case';
+import { pascalCase } from 'scule';
 import path from 'path';
 import MagicString from 'magic-string';
 import { ExportedNames } from './nodes/ExportedNames';
@@ -380,7 +380,7 @@ function classNameFromFilename(filename: string, appendSuffix: boolean): string 
         const withoutInvalidCharacters = withoutExtensions
             .split('')
             // Although "-" is invalid, we leave it in, pascal-case-handling will throw it out later
-            .filter((char) => /[A-Za-z$_\d-]/.test(char))
+            .filter((char) => /[A-Za-z_\d-]/.test(char))
             .join('');
         const firstValidCharIdx = withoutInvalidCharacters
             .split('')

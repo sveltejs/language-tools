@@ -2,7 +2,7 @@
  * This code's groundwork is taken from https://github.com/vuejs/vetur/tree/master/vti
  */
 
-import { watch } from 'chokidar';
+import { watch, FSWatcher } from 'chokidar';
 import * as fs from 'fs';
 import { fdir } from 'fdir';
 import * as path from 'path';
@@ -143,35 +143,44 @@ async function getDiagnostics(
     }
 }
 
+const FILE_ENDING_REGEX = /\.(svelte|d\.ts|ts|js|jsx|tsx|mjs|cjs|mts|cts)$/;
+const VITE_CONFIG_REGEX = /vite\.config\.(js|ts)\.timestamp-/;
+
 class DiagnosticsWatcher {
     private updateDiagnostics: any;
+    private watcher: FSWatcher;
+    private currentWatchedDirs = new Set<string>();
+    private userIgnored: Array<(path: string) => boolean>;
+    private pendingWatcherUpdate: any;
 
     constructor(
         private workspaceUri: URI,
         private svelteCheck: SvelteCheck,
         private writer: Writer,
         filePathsToIgnore: string[],
-        ignoreInitialAdd: boolean
+        private ignoreInitialAdd: boolean
     ) {
-        const fileEnding = /\.(svelte|d\.ts|ts|js|jsx|tsx|mjs|cjs|mts|cts)$/;
-        const viteConfigRegex = /vite\.config\.(js|ts)\.timestamp-/;
-        const userIgnored = createIgnored(filePathsToIgnore);
-        const offset = workspaceUri.fsPath.length + 1;
+        this.userIgnored = createIgnored(filePathsToIgnore);
 
-        watch(workspaceUri.fsPath, {
+        // Create watcher with initial paths
+        this.watcher = watch([], {
             ignored: (path, stats) => {
                 if (
                     path.includes('node_modules') ||
                     path.includes('.git') ||
-                    (stats?.isFile() && (!fileEnding.test(path) || viteConfigRegex.test(path)))
+                    (stats?.isFile() &&
+                        (!FILE_ENDING_REGEX.test(path) || VITE_CONFIG_REGEX.test(path)))
                 ) {
                     return true;
                 }
 
-                if (userIgnored.length !== 0) {
-                    path = path.slice(offset);
-                    for (const i of userIgnored) {
-                        if (i(path)) {
+                if (this.userIgnored.length !== 0) {
+                    // Make path relative to workspace for user ignores
+                    const workspaceRelative = path.startsWith(this.workspaceUri.fsPath)
+                        ? path.slice(this.workspaceUri.fsPath.length + 1)
+                        : path;
+                    for (const i of this.userIgnored) {
+                        if (i(workspaceRelative)) {
                             return true;
                         }
                     }
@@ -179,15 +188,78 @@ class DiagnosticsWatcher {
 
                 return false;
             },
-            ignoreInitial: ignoreInitialAdd
+            ignoreInitial: this.ignoreInitialAdd
         })
             .on('add', (path) => this.updateDocument(path, true))
             .on('unlink', (path) => this.removeDocument(path))
             .on('change', (path) => this.updateDocument(path, false));
 
-        if (ignoreInitialAdd) {
-            this.scheduleDiagnostics();
+        this.updateWildcardWatcher().then(() => {
+            // ensuring the typescript program is built after wildcard watchers are added
+            // so that individual file watchers added from onFileSnapshotCreated
+            // run after the wildcard ones
+            if (this.ignoreInitialAdd) {
+                getDiagnostics(this.workspaceUri, this.writer, this.svelteCheck);
+            }
+        });
+    }
+
+    private isSubDir(candidate: string, parent: string) {
+        const c = path.resolve(candidate);
+        const p = path.resolve(parent);
+        return c === p || c.startsWith(p + path.sep);
+    }
+
+    private minimizeDirs(dirs: string[]): string[] {
+        const sorted = [...new Set(dirs.map((d) => path.resolve(d)))].sort();
+        const result: string[] = [];
+        for (const dir of sorted) {
+            if (!result.some((p) => this.isSubDir(dir, p))) {
+                result.push(dir);
+            }
         }
+        return result;
+    }
+
+    addWatchDirectory(dir: string) {
+        if (!dir) {
+            return;
+        }
+
+        // Skip if already covered by an existing watched directory
+        for (const existing of this.currentWatchedDirs) {
+            if (this.isSubDir(dir, existing)) {
+                return;
+            }
+        }
+
+        // Don't remove existing watchers, chokidar `unwatch` ignores future events from that path instead of closing the watcher in some cases
+        for (const existing of this.currentWatchedDirs) {
+            if (this.isSubDir(existing, dir)) {
+                this.currentWatchedDirs.delete(existing);
+            }
+        }
+
+        this.watcher.add(dir);
+        this.currentWatchedDirs.add(dir);
+    }
+
+    private async updateWildcardWatcher() {
+        const watchDirs = await this.svelteCheck.getWatchDirectories();
+        const desired = this.minimizeDirs(
+            (watchDirs?.map((d) => d.path) || [this.workspaceUri.fsPath]).map((p) =>
+                path.resolve(p)
+            )
+        );
+
+        const current = new Set([...this.currentWatchedDirs].map((p) => path.resolve(p)));
+
+        const toAdd = desired.filter((d) => !current.has(d));
+        if (toAdd.length) {
+            this.watcher.add(toAdd);
+        }
+
+        this.currentWatchedDirs = new Set([...current, ...toAdd]);
     }
 
     private async updateDocument(path: string, isNew: boolean) {
@@ -208,6 +280,11 @@ class DiagnosticsWatcher {
     private async removeDocument(path: string) {
         await this.svelteCheck.removeDocument(URI.file(path).toString());
         this.scheduleDiagnostics();
+    }
+
+    updateWildcardWatchers() {
+        clearTimeout(this.pendingWatcherUpdate);
+        this.pendingWatcherUpdate = setTimeout(() => this.updateWildcardWatcher(), 1000);
     }
 
     scheduleDiagnostics() {
@@ -264,8 +341,17 @@ parseOptions(async (opts) => {
         };
 
         if (opts.watch) {
-            svelteCheckOptions.onProjectReload = () => watcher.scheduleDiagnostics();
-            const watcher = new DiagnosticsWatcher(
+            // Wire callbacks that can reference the watcher instance created below
+            let watcher: DiagnosticsWatcher;
+            svelteCheckOptions.onProjectReload = () => {
+                watcher.updateWildcardWatchers();
+                watcher.scheduleDiagnostics();
+            };
+            svelteCheckOptions.onFileSnapshotCreated = (filePath: string) => {
+                const dirPath = path.dirname(filePath);
+                watcher.addWatchDirectory(dirPath);
+            };
+            watcher = new DiagnosticsWatcher(
                 opts.workspaceUri,
                 new SvelteCheck(opts.workspaceUri.fsPath, svelteCheckOptions),
                 writer,

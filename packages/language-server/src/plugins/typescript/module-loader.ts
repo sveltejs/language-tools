@@ -7,7 +7,8 @@ import {
     ensureRealSvelteFilePath,
     getExtensionFromScriptKind,
     isSvelteFilePath,
-    isVirtualSvelteFilePath
+    isVirtualSvelteFilePath,
+    toVirtualSvelteFilePath
 } from './utils';
 
 const CACHE_KEY_SEPARATOR = ':::';
@@ -15,7 +16,7 @@ const CACHE_KEY_SEPARATOR = ':::';
  * Caches resolved modules.
  */
 class ModuleResolutionCache {
-    private cache = new FileMap<ts.ResolvedModule | undefined>();
+    private cache = new FileMap<ts.ResolvedModuleWithFailedLookupLocations>();
     private pendingInvalidations = new FileSet();
     private getCanonicalFileName = createGetCanonicalFileName(ts.sys.useCaseSensitiveFileNames);
 
@@ -23,7 +24,10 @@ class ModuleResolutionCache {
      * Tries to get a cached module.
      * Careful: `undefined` can mean either there's no match found, or that the result resolved to `undefined`.
      */
-    get(moduleName: string, containingFile: string): ts.ResolvedModule | undefined {
+    get(
+        moduleName: string,
+        containingFile: string
+    ): ts.ResolvedModuleWithFailedLookupLocations | undefined {
         return this.cache.get(this.getKey(moduleName, containingFile));
     }
 
@@ -37,7 +41,11 @@ class ModuleResolutionCache {
     /**
      * Caches resolved module (or undefined).
      */
-    set(moduleName: string, containingFile: string, resolvedModule: ts.ResolvedModule | undefined) {
+    set(
+        moduleName: string,
+        containingFile: string,
+        resolvedModule: ts.ResolvedModuleWithFailedLookupLocations
+    ) {
         this.cache.set(this.getKey(moduleName, containingFile), resolvedModule);
     }
 
@@ -48,7 +56,11 @@ class ModuleResolutionCache {
     delete(resolvedModuleName: string): void {
         resolvedModuleName = this.getCanonicalFileName(resolvedModuleName);
         this.cache.forEach((val, key) => {
-            if (val && this.getCanonicalFileName(val.resolvedFileName) === resolvedModuleName) {
+            if (
+                val.resolvedModule &&
+                this.getCanonicalFileName(val.resolvedModule.resolvedFileName) ===
+                    resolvedModuleName
+            ) {
                 this.cache.delete(key);
                 this.pendingInvalidations.add(key.split(CACHE_KEY_SEPARATOR).shift() || '');
             }
@@ -59,17 +71,10 @@ class ModuleResolutionCache {
      * Deletes everything from cache that resolved to `undefined`
      * and which might match the path.
      */
-    deleteUnresolvedResolutionsFromCache(path: string): void {
-        const fileNameWithoutEnding =
-            getLastPartOfPath(this.getCanonicalFileName(path)).split('.').shift() || '';
+    deleteByValues(list: ts.ResolvedModuleWithFailedLookupLocations[]): void {
         this.cache.forEach((val, key) => {
-            if (val) {
-                return;
-            }
-            const [containingFile, moduleName = ''] = key.split(CACHE_KEY_SEPARATOR);
-            if (moduleName.includes(fileNameWithoutEnding)) {
+            if (list.includes(val)) {
                 this.cache.delete(key);
-                this.pendingInvalidations.add(containingFile);
             }
         });
     }
@@ -181,13 +186,13 @@ export function createSvelteModuleLoader(
             svelteSys.deleteFromCache(path);
             moduleCache.delete(path);
         },
-        deleteUnresolvedResolutionsFromCache: (path: string) => {
+        scheduleResolutionFailedLocationCheck: (path: string) => {
             svelteSys.deleteFromCache(path);
-            moduleCache.deleteUnresolvedResolutionsFromCache(path);
-            pendingFailedLocationCheck.add(path);
-
-            tsModuleCache.clear();
-            typeReferenceCache.clear();
+            if (isSvelteFilePath(path)) {
+                pendingFailedLocationCheck.add(toVirtualSvelteFilePath(path));
+            } else {
+                pendingFailedLocationCheck.add(path);
+            }
         },
         resolveModuleNames,
         resolveTypeReferenceDirectiveReferences,
@@ -206,8 +211,9 @@ export function createSvelteModuleLoader(
         containingSourceFile?: ts.SourceFile | undefined
     ): Array<ts.ResolvedModule | undefined> {
         return moduleNames.map((moduleName, index) => {
-            if (moduleCache.has(moduleName, containingFile)) {
-                return moduleCache.get(moduleName, containingFile);
+            const cached = moduleCache.get(moduleName, containingFile);
+            if (cached) {
+                return cached.resolvedModule;
             }
 
             const resolvedModule = resolveModuleName(
@@ -221,7 +227,7 @@ export function createSvelteModuleLoader(
 
             cacheResolutionWithFailedLookup(resolvedModule, containingFile);
 
-            moduleCache.set(moduleName, containingFile, resolvedModule?.resolvedModule);
+            moduleCache.set(moduleName, containingFile, resolvedModule);
             return resolvedModule?.resolvedModule;
         });
     }
@@ -347,17 +353,15 @@ export function createSvelteModuleLoader(
     }
 
     function invalidateFailedLocationResolution() {
+        const toRemoves: ts.ResolvedModuleWithFailedLookupLocations[] = [];
         resolutionWithFailedLookup.forEach((resolvedModule) => {
-            if (
-                !resolvedModule.resolvedModule ||
-                !resolvedModule.files ||
-                !resolvedModule.failedLookupLocations
-            ) {
+            if (!resolvedModule.failedLookupLocations) {
                 return;
             }
+
             for (const location of resolvedModule.failedLookupLocations) {
                 if (pendingFailedLocationCheck.has(location)) {
-                    moduleCache.delete(resolvedModule.resolvedModule.resolvedFileName);
+                    toRemoves.push(resolvedModule);
                     resolvedModule.files?.forEach((file) => {
                         failedLocationInvalidated.add(file);
                     });
@@ -366,6 +370,16 @@ export function createSvelteModuleLoader(
             }
         });
 
+        if (toRemoves.length) {
+            moduleCache.deleteByValues(toRemoves);
+            resolutionWithFailedLookup.forEach((r) => {
+                if (toRemoves.includes(r)) {
+                    resolutionWithFailedLookup.delete(r);
+                }
+            });
+            tsModuleCache.clear();
+            tsTypeReferenceDirectiveCache.clear();
+        }
         pendingFailedLocationCheck.clear();
     }
 }
