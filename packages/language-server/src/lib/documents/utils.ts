@@ -72,6 +72,15 @@ function extractTags(
      * If that is BEFORE `{#X`, we are inside a moustache tag.
      */
     function isNotInsideControlFlowTag(tag: Node) {
+        const tagIndex = rootNodes.indexOf(tag);
+        // Quick check: if the tag has nothing before it, it can't be inside a control flow tag
+        // This also works around a case where the tag is treated as under a control flow tag when vscode-html-languageservice parses something wrong
+        if (tagIndex === 0) {
+            const startContent = text.substring(0, tag.start);
+            if (startContent.trim() === '') {
+                return true;
+            }
+        }
         const nodes = rootNodes.slice(rootNodes.indexOf(tag));
         const rootContentAfterTag = nodes
             .map((node, idx) => {
