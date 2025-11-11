@@ -1,15 +1,18 @@
 import sinon from 'sinon';
 import {
     CompletionItem,
+    DocumentSymbol,
     Location,
     LocationLink,
     Position,
     Range,
+    SymbolInformation,
+    SymbolKind,
     TextDocumentItem
 } from 'vscode-languageserver-types';
 import { DocumentManager, Document } from '../../src/lib/documents';
 import { LSPProviderConfig, PluginHost } from '../../src/plugins';
-import { CompletionTriggerKind } from 'vscode-languageserver';
+import { CompletionTriggerKind, CancellationToken } from 'vscode-languageserver';
 import assert from 'assert';
 
 describe('PluginHost', () => {
@@ -185,6 +188,148 @@ describe('PluginHost', () => {
                     uri: 'uri'
                 }
             ]);
+        });
+    });
+
+    describe('getHierarchicalDocumentSymbols', () => {
+        it('converts flat symbols to hierarchical structure', async () => {
+            const cancellation_token: CancellationToken = {
+                isCancellationRequested: false,
+                onCancellationRequested: () => ({ dispose: () => {} })
+            };
+
+            const flat_symbols: SymbolInformation[] = [
+                // Root level class (lines 0-10)
+                SymbolInformation.create(
+                    'MyClass',
+                    SymbolKind.Class,
+                    Range.create(Position.create(0, 0), Position.create(10, 0)),
+                    'file:///hello.svelte'
+                ),
+                // Method inside class (lines 1-5)
+                SymbolInformation.create(
+                    'myMethod',
+                    SymbolKind.Method,
+                    Range.create(Position.create(1, 0), Position.create(5, 0)),
+                    'file:///hello.svelte'
+                ),
+                // Variable inside method (lines 2-3)
+                SymbolInformation.create(
+                    'localVar',
+                    SymbolKind.Variable,
+                    Range.create(Position.create(2, 0), Position.create(3, 0)),
+                    'file:///hello.svelte'
+                ),
+                // Another method in class (lines 6-8)
+                SymbolInformation.create(
+                    'anotherMethod',
+                    SymbolKind.Method,
+                    Range.create(Position.create(6, 0), Position.create(8, 0)),
+                    'file:///hello.svelte'
+                ),
+                // Root level function (lines 12-15)
+                SymbolInformation.create(
+                    'topLevelFunction',
+                    SymbolKind.Function,
+                    Range.create(Position.create(12, 0), Position.create(15, 0)),
+                    'file:///hello.svelte'
+                )
+            ];
+
+            const { docManager, pluginHost } = setup({
+                getDocumentSymbols: sinon.stub().returns(flat_symbols)
+            });
+            docManager.openClientDocument(textDocument);
+
+            const result = await pluginHost.getHierarchicalDocumentSymbols(
+                textDocument,
+                cancellation_token
+            );
+
+            // Should have 2 root symbols: MyClass and topLevelFunction
+            assert.strictEqual(result.length, 2);
+
+            // Check first root symbol (MyClass)
+            assert.strictEqual(result[0].name, 'MyClass');
+            assert.strictEqual(result[0].kind, SymbolKind.Class);
+            assert.strictEqual(result[0].children?.length, 2);
+
+            // Check children of MyClass
+            assert.strictEqual(result[0].children![0].name, 'myMethod');
+            assert.strictEqual(result[0].children![0].kind, SymbolKind.Method);
+            assert.strictEqual(result[0].children![0].children?.length, 1);
+
+            // Check nested child (localVar inside myMethod)
+            assert.strictEqual(result[0].children![0].children![0].name, 'localVar');
+            assert.strictEqual(result[0].children![0].children![0].kind, SymbolKind.Variable);
+            assert.strictEqual(result[0].children![0].children![0].children?.length, 0);
+
+            // Check second child of MyClass
+            assert.strictEqual(result[0].children![1].name, 'anotherMethod');
+            assert.strictEqual(result[0].children![1].kind, SymbolKind.Method);
+            assert.strictEqual(result[0].children![1].children?.length, 0);
+
+            // Check second root symbol (topLevelFunction)
+            assert.strictEqual(result[1].name, 'topLevelFunction');
+            assert.strictEqual(result[1].kind, SymbolKind.Function);
+            assert.strictEqual(result[1].children?.length, 0);
+        });
+
+        it('handles empty symbol list', async () => {
+            const cancellation_token: CancellationToken = {
+                isCancellationRequested: false,
+                onCancellationRequested: () => ({ dispose: () => {} })
+            };
+
+            const { docManager, pluginHost } = setup({
+                getDocumentSymbols: sinon.stub().returns([])
+            });
+            docManager.openClientDocument(textDocument);
+
+            const result = await pluginHost.getHierarchicalDocumentSymbols(
+                textDocument,
+                cancellation_token
+            );
+
+            assert.deepStrictEqual(result, []);
+        });
+
+        it('handles symbols with same start position', async () => {
+            const cancellation_token: CancellationToken = {
+                isCancellationRequested: false,
+                onCancellationRequested: () => ({ dispose: () => {} })
+            };
+
+            const flat_symbols: SymbolInformation[] = [
+                // Two symbols starting at same position, longer one should be parent
+                SymbolInformation.create(
+                    'outer',
+                    SymbolKind.Class,
+                    Range.create(Position.create(0, 0), Position.create(10, 0)),
+                    'file:///hello.svelte'
+                ),
+                SymbolInformation.create(
+                    'inner',
+                    SymbolKind.Method,
+                    Range.create(Position.create(0, 0), Position.create(5, 0)),
+                    'file:///hello.svelte'
+                )
+            ];
+
+            const { docManager, pluginHost } = setup({
+                getDocumentSymbols: sinon.stub().returns(flat_symbols)
+            });
+            docManager.openClientDocument(textDocument);
+
+            const result = await pluginHost.getHierarchicalDocumentSymbols(
+                textDocument,
+                cancellation_token
+            );
+
+            assert.strictEqual(result.length, 1);
+            assert.strictEqual(result[0].name, 'outer');
+            assert.strictEqual(result[0].children?.length, 1);
+            assert.strictEqual(result[0].children![0].name, 'inner');
         });
     });
 });
