@@ -198,16 +198,18 @@ export class HTMLPlugin
                 return;
             }
 
-            if (item.label.startsWith('on:')) {
+            if (item.label.startsWith('on')) {
+                const isLegacyDirective = item.label.startsWith('on:');
+                const modifierTabStop = isLegacyDirective ? '$2' : '';
                 item.textEdit = {
                     ...item.textEdit,
                     newText: item.textEdit.newText.replace(
                         attributeValuePlaceHolder,
-                        `$2=${startQuote}$1${endQuote}`
+                        `${modifierTabStop}=${startQuote}$1${endQuote}`
                     )
                 };
                 // In Svelte 5, people should use `onclick` instead of `on:click`
-                if (document.isSvelte5) {
+                if (isLegacyDirective && document.isSvelte5) {
                     item.sortText = 'z' + (item.sortText ?? item.label);
                 }
             }
