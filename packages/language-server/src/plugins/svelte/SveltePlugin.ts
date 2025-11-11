@@ -110,8 +110,13 @@ export class SveltePlugin
     async getCompiledResult(document: Document): Promise<SvelteCompileResult | null> {
         try {
             const svelteDoc = await this.getSvelteDoc(document);
-            // @ts-ignore is 'client' in Svelte 5
-            return svelteDoc.getCompiledWith({ generate: 'dom' });
+            const options: any = { generate: 'dom' }; // 'client' in Svelte 5
+            // @ts-ignore Svelte 5 only; we gotta write it like this else Svelte 4 fails on unknown key
+            if (document.config?.compilerOptions?.experimental) {
+                // @ts-ignore Svelte 5 only
+                options.experimental = document.config.compilerOptions.experimental;
+            }
+            return await svelteDoc.getCompiledWith(options);
         } catch (error) {
             return null;
         }
