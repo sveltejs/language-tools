@@ -111,8 +111,9 @@ export class SveltePlugin
         try {
             const svelteDoc = await this.getSvelteDoc(document);
             const options: any = { generate: 'dom' }; // 'client' in Svelte 5
+            // @ts-ignore Svelte 5 only; we gotta write it like this else Svelte 4 fails on unknown key
             if (document.config?.compilerOptions?.experimental) {
-                // Svelte 5 only; we gotta write it like this else Svelte 4 fails on unknown key
+                // @ts-ignore Svelte 5 only
                 options.experimental = document.config.compilerOptions.experimental;
             }
             return await svelteDoc.getCompiledWith(options);
