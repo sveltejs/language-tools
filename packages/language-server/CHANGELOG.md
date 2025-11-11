@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.17.22
+
+### Patch Changes
+
+-   feat: support hierarchical document symbols ([#2817](https://github.com/sveltejs/language-tools/pull/2817))
+
+-   fix: use moustache for svelte5 onhandler completion ([#2883](https://github.com/sveltejs/language-tools/pull/2883))
+
+-   feat: quick fix for adding lang="ts" ([#2882](https://github.com/sveltejs/language-tools/pull/2882))
+
+-   fix: support for @nativescript-community/svelte-native ([#2867](https://github.com/sveltejs/language-tools/pull/2867))
+
+-   fix: always treat a script tag as top-level if it's the first tag in the file ([#2886](https://github.com/sveltejs/language-tools/pull/2886))
+
+-   fix: restrict emmet completion with emmet specific triggerCharacter ([#2873](https://github.com/sveltejs/language-tools/pull/2873))
+
+-   fix: support experimental feature in "Show compiled Code" ([#2884](https://github.com/sveltejs/language-tools/pull/2884))
+
+-   feat: implement 'source.removeUnusedImports' code action ([#2875](https://github.com/sveltejs/language-tools/pull/2875))
+
 ## 0.17.21
 
 ### Patch Changes
