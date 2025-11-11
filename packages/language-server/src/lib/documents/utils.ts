@@ -81,7 +81,7 @@ function extractTags(
                 return true;
             }
         }
-        const nodes = rootNodes.slice(rootNodes.indexOf(tag));
+        const nodes = rootNodes.slice(tagIndex);
         const rootContentAfterTag = nodes
             .map((node, idx) => {
                 const start = node.startTagEnd ? node.end : node.start + (node.tag?.length || 0);
