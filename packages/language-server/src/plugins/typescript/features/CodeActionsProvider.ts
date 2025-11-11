@@ -1283,7 +1283,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
 
         if (!document.scriptInfo && !document.moduleScriptInfo) {
             const hasNonTopLevelLang = document.html.roots.some((node) =>
-                this.hasNonTopLevelLangTsScriptTag(node)
+                this.hasLangTsScriptTag(node)
             );
             // Might be because issue with parsing the script tag, so don't suggest adding a new one
             if (hasNonTopLevelLang) {
@@ -1357,16 +1357,16 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         );
     }
 
-    private hasNonTopLevelLangTsScriptTag(node: Node): boolean {
+    private hasLangTsScriptTag(node: Node): boolean {
+        if (
+            node.tag === 'script' &&
+            (node.attributes?.lang === '"ts"' || node.attributes?.lang === "'ts'") &&
+            node.parent
+        ) {
+            return true;
+        }
         for (const element of node.children) {
-            if (
-                element.tag === 'script' &&
-                (element.attributes?.lang === '"ts"' || element.attributes?.lang === "'ts'") &&
-                element.parent
-            ) {
-                return true;
-            }
-            if (this.hasNonTopLevelLangTsScriptTag(element)) {
+            if (this.hasLangTsScriptTag(element)) {
                 return true;
             }
         }

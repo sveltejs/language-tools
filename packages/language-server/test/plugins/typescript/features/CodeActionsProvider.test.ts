@@ -2662,6 +2662,10 @@ describe('CodeActionsProvider', function () {
             }
         );
 
+        (<TextDocumentEdit>codeActions[0]?.edit?.documentChanges?.[0])?.edits.forEach(
+            (edit) => (edit.newText = harmonizeNewLines(edit.newText))
+        );
+
         assert.deepStrictEqual(codeActions, <CodeAction[]>[
             {
                 title: 'Add <script lang="ts"> tag',
