@@ -1,18 +1,24 @@
 import ts from 'typescript';
 import { Hover, Position } from 'vscode-languageserver';
-import { Document, getWordAt, mapObjWithRangeToOriginal } from '../../../lib/documents';
+import {
+    Document,
+    getNodeIfIsInTagName,
+    getWordAt,
+    mapObjWithRangeToOriginal
+} from '../../../lib/documents';
 import { HoverProvider } from '../../interfaces';
 import { SvelteDocumentSnapshot } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { getMarkdownDocumentation } from '../previewer';
 import { convertRange } from '../utils';
-import { getComponentAtPosition } from './utils';
+import { getComponentAtPosition, getCustomElementsSymbols } from './utils';
+import { LanguageServiceContainer } from '../service';
 
 export class HoverProviderImpl implements HoverProvider {
     constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
 
     async doHover(document: Document, position: Position): Promise<Hover | null> {
-        const { lang, tsDoc, userPreferences } = await this.getLSAndTSDoc(document);
+        const { lang, lsContainer, tsDoc, userPreferences } = await this.getLSAndTSDoc(document);
 
         const eventHoverInfo = this.getEventHoverInfo(lang, document, tsDoc, position);
         if (eventHoverInfo) {
@@ -20,6 +26,23 @@ export class HoverProviderImpl implements HoverProvider {
         }
 
         const offset = tsDoc.offsetAt(tsDoc.getGeneratedPosition(position));
+
+        const customElementDescription = this.getCustomElementDescription(
+            lang,
+            position,
+            lsContainer,
+            document,
+            tsDoc
+        );
+        if (customElementDescription) {
+            return {
+                contents: {
+                    value: customElementDescription,
+                    kind: 'markdown'
+                }
+            };
+        }
+
         const info = lang.getQuickInfoAtPosition(
             tsDoc.filePath,
             offset,
@@ -50,6 +73,25 @@ export class HoverProviderImpl implements HoverProvider {
             range: convertRange(tsDoc, info.textSpan),
             contents
         });
+    }
+
+    private getCustomElementDescription(
+        lang: ts.LanguageService,
+        position: Position,
+        lsContainer: LanguageServiceContainer,
+        document: Document,
+        tsDoc: SvelteDocumentSnapshot
+    ): string | undefined {
+        const offset = document.offsetAt(position);
+        const tag = getNodeIfIsInTagName(document.html, offset);
+        if (!tag || !tag.tag) {
+            return;
+        }
+
+        const customElementsSymbols = getCustomElementsSymbols(lang, lsContainer, tsDoc);
+        let customElement = customElementsSymbols.find((t) => t.name == tag.tag!);
+
+        return customElement?.documentation;
     }
 
     private getEventHoverInfo(
