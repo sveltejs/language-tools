@@ -41,11 +41,8 @@ export function handleAwait(str: MagicString, awaitBlock: BaseNode): void {
     transforms.push('await (', [awaitBlock.expression.start, expressionEnd], ');');
 
     if (awaitBlock.value) {
-        transforms.push(
-            '{ const ',
-            [awaitBlock.value.start, awaitBlock.value.end],
-            ' = $$_value; '
-        );
+        const end = awaitBlock.value.typeAnnotation?.end ?? awaitBlock.value.end;
+        transforms.push('{ const ', [awaitBlock.value.start, end], ' = $$_value; ');
     }
     if (!awaitBlock.then.skip) {
         if (awaitBlock.pending.skip) {
@@ -62,12 +59,9 @@ export function handleAwait(str: MagicString, awaitBlock: BaseNode): void {
     }
     if (awaitBlock.error || !awaitBlock.catch.skip) {
         transforms.push('} catch($$_e) { ');
+        const end = awaitBlock.error?.typeAnnotation?.end ?? awaitBlock.error?.end;
         if (awaitBlock.error) {
-            transforms.push(
-                'const ',
-                [awaitBlock.error.start, awaitBlock.error.end],
-                ' = __sveltets_2_any();'
-            );
+            transforms.push('const ', [awaitBlock.error.start, end], ' = __sveltets_2_any();');
         }
         if (!awaitBlock.catch.skip && awaitBlock.catch.children?.length) {
             transforms.push([
