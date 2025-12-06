@@ -1,8 +1,7 @@
-import { isEqual, sum, uniqWith } from 'lodash';
-import { FoldingRange, Node } from 'vscode-html-languageservice';
+import { isEqual, uniqWith } from 'lodash';
+import { Node } from 'vscode-html-languageservice';
 import { Position, Range } from 'vscode-languageserver';
 import { URI } from 'vscode-uri';
-import { Document, TagInformation } from './lib/documents';
 
 type Predicate<T> = (x: T) => boolean;
 
@@ -137,13 +136,13 @@ export function isNotNullOrUndefined<T>(val: T | undefined | null): val is T {
  * a second function determines it should.
  *
  * @param fn The function with it's argument
- * @param determineIfSame The function which determines if the previous invocation should be canceld or not
- * @param miliseconds Number of miliseconds to debounce
+ * @param determineIfSame The function which determines if the previous invocation should be canceled or not
+ * @param milliseconds Number of milliseconds to debounce
  */
 export function debounceSameArg<T>(
     fn: (arg: T) => void,
     shouldCancelPrevious: (newArg: T, prevArg?: T) => boolean,
-    miliseconds: number
+    milliseconds: number
 ): (arg: T) => void {
     let timeout: any;
     let prevArg: T | undefined;
@@ -157,34 +156,34 @@ export function debounceSameArg<T>(
         timeout = setTimeout(() => {
             fn(arg);
             prevArg = undefined;
-        }, miliseconds);
+        }, milliseconds);
     };
 }
 
 /**
- * Debounces a function but also waits at minimum the specified number of miliseconds until
+ * Debounces a function but also waits at minimum the specified number of milliseconds until
  * the next invocation. This avoids needless calls when a synchronous call (like diagnostics)
  * took too long and the whole timeout of the next call was eaten up already.
  *
  * @param fn The function
- * @param miliseconds Number of miliseconds to debounce/throttle
+ * @param milliseconds Number of milliseconds to debounce/throttle
  */
-export function debounceThrottle(fn: () => void, miliseconds: number): () => void {
+export function debounceThrottle(fn: () => void, milliseconds: number): () => void {
     let timeout: any;
-    let lastInvocation = Date.now() - miliseconds;
+    let lastInvocation = Date.now() - milliseconds;
 
     function maybeCall() {
         clearTimeout(timeout);
 
         timeout = setTimeout(() => {
-            if (Date.now() - lastInvocation < miliseconds) {
+            if (Date.now() - lastInvocation < milliseconds) {
                 maybeCall();
                 return;
             }
 
             fn();
             lastInvocation = Date.now();
-        }, miliseconds);
+        }, milliseconds);
     }
 
     return maybeCall;

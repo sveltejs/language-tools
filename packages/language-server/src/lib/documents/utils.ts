@@ -184,7 +184,7 @@ export function extractTemplateTag(source: string, html?: HTMLDocument): TagInfo
 /**
  * Get the line and character based on the offset
  * @param offset The index of the position
- * @param text The text for which the position should be retrived
+ * @param text The text for which the position should be retrieved
  * @param lineOffsets number Array with offsets for each line. Computed if not given
  */
 export function positionAt(
@@ -222,7 +222,7 @@ export function positionAt(
 /**
  * Get the offset of the line and character position
  * @param position Line and character position
- * @param text The text for which the offset should be retrived
+ * @param text The text for which the offset should be retrieved
  * @param lineOffsets number Array with offsets for each line. Computed if not given
  */
 export function offsetAt(
@@ -281,14 +281,21 @@ export function isRangeInTag(
 }
 
 export function getTextInRange(range: Range, text: string) {
-    return text.substring(offsetAt(range.start, text), offsetAt(range.end, text));
+    const lineOffsets = getLineOffsets(text);
+    const start = offsetAt(range.start, text, lineOffsets);
+    const end = offsetAt(range.end, text, lineOffsets);
+    return text.substring(start, end);
 }
 
 export function getLineAtPosition(position: Position, text: string) {
-    return text.substring(
-        offsetAt({ line: position.line, character: 0 }, text),
-        offsetAt({ line: position.line, character: Number.MAX_VALUE }, text)
+    const lineOffsets = getLineOffsets(text);
+    const lineStart = offsetAt({ line: position.line, character: 0 }, text, lineOffsets);
+    const lineEnd = offsetAt(
+        { line: position.line, character: Number.MAX_VALUE },
+        text,
+        lineOffsets
     );
+    return text.substring(lineStart, lineEnd);
 }
 
 /**
@@ -446,22 +453,29 @@ export function getLangAttribute(...tags: Array<TagInformation | null>): string 
  * `{#if {a: true}.a}`
  */
 export function isInsideMoustacheTag(html: string, tagStart: number | null, position: number) {
+    const searchEnd = Math.max(position - 1, 0);
+
     if (tagStart === null) {
         // Not inside <tag ... >
-        const charactersBeforePosition = html.substring(0, position);
-        return (
-            Math.max(
-                // TODO make this just check for '{'?
-                // Theoretically, someone could do {a < b} in a simple moustache tag
-                charactersBeforePosition.lastIndexOf('{#'),
-                charactersBeforePosition.lastIndexOf('{:'),
-                charactersBeforePosition.lastIndexOf('{@')
-            ) > charactersBeforePosition.lastIndexOf('}')
-        );
+        // TODO make this just check for '{'?
+        // Theoretically, someone could do {a < b} in a simple moustache tag
+        const lastHash = html.lastIndexOf('{#', searchEnd);
+        const lastColon = html.lastIndexOf('{:', searchEnd);
+        const lastAt = html.lastIndexOf('{@', searchEnd);
+        const lastClose = html.lastIndexOf('}', searchEnd);
+
+        const lastOpen = Math.max(lastHash, lastColon, lastAt);
+        return lastOpen > lastClose;
     } else {
         // Inside <tag ... >
-        const charactersInNode = html.substring(tagStart, position);
-        return charactersInNode.lastIndexOf('{') > charactersInNode.lastIndexOf('}');
+        const lastOpen = html.lastIndexOf('{', searchEnd);
+        const lastClose = html.lastIndexOf('}', searchEnd);
+
+        // Ensure we only consider braces inside the tag region
+        const effectiveLastOpen = lastOpen >= tagStart ? lastOpen : -1;
+        const effectiveLastClose = lastClose >= tagStart ? lastClose : -1;
+
+        return effectiveLastOpen > effectiveLastClose;
     }
 }
 
