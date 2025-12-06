@@ -3,10 +3,22 @@ import {
     getLineAtPosition,
     extractStyleTag,
     extractScriptTags,
+    extractTemplateTag,
     updateRelativeImport,
-    getWordAt
+    getWordAt,
+    getWordRangeAt,
+    positionAt,
+    offsetAt,
+    getLineOffsets,
+    isInTag,
+    isRangeInTag,
+    getTextInRange,
+    isAtEndOfLine,
+    toRange,
+    getLangAttribute,
+    isInsideMoustacheTag
 } from '../../../src/lib/documents/utils';
-import { Position } from 'vscode-languageserver';
+import { Position, Range } from 'vscode-languageserver';
 
 describe('document/utils', () => {
     describe('extractTag', () => {
@@ -440,6 +452,453 @@ describe('document/utils', () => {
 
         it('returns empty string when only whitespace', () => {
             assert.equal(getWordAt('a  a', 2), '');
+        });
+    });
+
+    describe('#getWordRangeAt', () => {
+        it('returns range between whitespaces', () => {
+            assert.deepStrictEqual(getWordRangeAt('qwd asd qwd', 5), { start: 4, end: 7 });
+        });
+
+        it('returns range between whitespace and end of string', () => {
+            assert.deepStrictEqual(getWordRangeAt('qwd asd', 5), { start: 4, end: 7 });
+        });
+
+        it('returns range between start of string and whitespace', () => {
+            assert.deepStrictEqual(getWordRangeAt('asd qwd', 2), { start: 0, end: 3 });
+        });
+
+        it('returns range for entire string when no delimiters', () => {
+            assert.deepStrictEqual(getWordRangeAt('asd', 2), { start: 0, end: 3 });
+        });
+
+        it('returns range with custom delimiters', () => {
+            assert.deepStrictEqual(
+                getWordRangeAt('asd on:asd-qwd="asd" ', 10, { left: /\S+$/, right: /[\s=]/ }),
+                { start: 4, end: 14 }
+            );
+        });
+    });
+
+    describe('#extractTemplateTag', () => {
+        it('should extract template tag', () => {
+            const text = '<template>content</template>';
+            const extracted = extractTemplateTag(text);
+            assert.deepStrictEqual(extracted?.content, 'content');
+        });
+
+        it('should return null when no template tag', () => {
+            const text = '<div>no template</div>';
+            assert.equal(extractTemplateTag(text), null);
+        });
+
+        it('should extract first template tag only', () => {
+            const text = '<template>first</template><template>second</template>';
+            const extracted = extractTemplateTag(text);
+            assert.equal(extracted?.content, 'first');
+        });
+    });
+
+    describe('#positionAt', () => {
+        it('should return position at offset (single line)', () => {
+            const pos = positionAt(3, 'abcdef');
+            assert.deepStrictEqual(pos, Position.create(0, 3));
+        });
+
+        it('should return position at offset (multiple lines)', () => {
+            const pos = positionAt(7, 'abc\ndefghi');
+            assert.deepStrictEqual(pos, Position.create(1, 3));
+        });
+
+        it('should handle CRLF line breaks', () => {
+            const pos = positionAt(8, 'abc\r\ndefghi');
+            assert.deepStrictEqual(pos, Position.create(1, 3));
+        });
+
+        it('should clamp offset to text length', () => {
+            const pos = positionAt(100, 'short');
+            assert.deepStrictEqual(pos, Position.create(0, 5));
+        });
+
+        it('should handle negative offset', () => {
+            const pos = positionAt(-5, 'text');
+            assert.deepStrictEqual(pos, Position.create(0, 0));
+        });
+
+        it('should handle empty text', () => {
+            const pos = positionAt(0, '');
+            assert.deepStrictEqual(pos, Position.create(0, 0));
+        });
+
+        it('should return position at start of second line', () => {
+            const pos = positionAt(4, 'abc\ndef');
+            assert.deepStrictEqual(pos, Position.create(1, 0));
+        });
+    });
+
+    describe('#offsetAt', () => {
+        it('should return offset at position (single line)', () => {
+            const offset = offsetAt(Position.create(0, 3), 'abcdef');
+            assert.equal(offset, 3);
+        });
+
+        it('should return offset at position (multiple lines)', () => {
+            const offset = offsetAt(Position.create(1, 3), 'abc\ndefghi');
+            assert.equal(offset, 7);
+        });
+
+        it('should handle CRLF line breaks', () => {
+            const offset = offsetAt(Position.create(1, 3), 'abc\r\ndefghi');
+            assert.equal(offset, 8);
+        });
+
+        it('should clamp to text length when line exceeds', () => {
+            const offset = offsetAt(Position.create(10, 0), 'abc');
+            assert.equal(offset, 3);
+        });
+
+        it('should return 0 for negative line', () => {
+            const offset = offsetAt(Position.create(-1, 5), 'abc\ndef');
+            assert.equal(offset, 0);
+        });
+
+        it('should clamp character to line length', () => {
+            const offset = offsetAt(Position.create(0, 100), 'abc\ndef');
+            assert.equal(offset, 4);
+        });
+    });
+
+    describe('#getLineOffsets', () => {
+        it('should return offsets for single line', () => {
+            const offsets = getLineOffsets('hello');
+            assert.deepStrictEqual(offsets, [0]);
+        });
+
+        it('should return offsets for multiple lines with LF', () => {
+            const offsets = getLineOffsets('a\nb\nc');
+            assert.deepStrictEqual(offsets, [0, 2, 4]);
+        });
+
+        it('should return offsets for multiple lines with CRLF', () => {
+            const offsets = getLineOffsets('a\r\nb\r\nc');
+            assert.deepStrictEqual(offsets, [0, 3, 6]);
+        });
+
+        it('should handle mixed line breaks', () => {
+            const offsets = getLineOffsets('a\nb\r\nc');
+            assert.deepStrictEqual(offsets, [0, 2, 5]);
+        });
+
+        it('should handle empty string', () => {
+            const offsets = getLineOffsets('');
+            assert.deepStrictEqual(offsets, []);
+        });
+
+        it('should handle trailing newline', () => {
+            const offsets = getLineOffsets('a\nb\n');
+            assert.deepStrictEqual(offsets, [0, 2, 4]);
+        });
+    });
+
+    describe('#isInTag', () => {
+        it('should return true when position is in tag', () => {
+            const tagInfo = {
+                content: 'test',
+                attributes: {},
+                start: 10,
+                end: 20,
+                startPos: Position.create(0, 10),
+                endPos: Position.create(0, 20),
+                container: { start: 5, end: 25 }
+            };
+            assert.equal(isInTag(Position.create(0, 15), tagInfo), true);
+        });
+
+        it('should return false when position is outside tag', () => {
+            const tagInfo = {
+                content: 'test',
+                attributes: {},
+                start: 10,
+                end: 20,
+                startPos: Position.create(0, 10),
+                endPos: Position.create(0, 20),
+                container: { start: 5, end: 25 }
+            };
+            assert.equal(isInTag(Position.create(0, 25), tagInfo), false);
+        });
+
+        it('should return false when tagInfo is null', () => {
+            assert.equal(isInTag(Position.create(0, 10), null), false);
+        });
+
+        it('should return true for position at start', () => {
+            const tagInfo = {
+                content: 'test',
+                attributes: {},
+                start: 10,
+                end: 20,
+                startPos: Position.create(0, 10),
+                endPos: Position.create(0, 20),
+                container: { start: 5, end: 25 }
+            };
+            assert.equal(isInTag(Position.create(0, 10), tagInfo), true);
+        });
+
+        it('should return true for position at end', () => {
+            const tagInfo = {
+                content: 'test',
+                attributes: {},
+                start: 10,
+                end: 20,
+                startPos: Position.create(0, 10),
+                endPos: Position.create(0, 20),
+                container: { start: 5, end: 25 }
+            };
+            assert.equal(isInTag(Position.create(0, 20), tagInfo), true);
+        });
+    });
+
+    describe('#isRangeInTag', () => {
+        const tagInfo = {
+            content: 'test',
+            attributes: {},
+            start: 10,
+            end: 20,
+            startPos: Position.create(0, 10),
+            endPos: Position.create(0, 20),
+            container: { start: 5, end: 25 }
+        };
+
+        it('should return true when range is fully in tag', () => {
+            const range = Range.create(Position.create(0, 12), Position.create(0, 18));
+            assert.equal(isRangeInTag(range, tagInfo), true);
+        });
+
+        it('should return false when range start is outside', () => {
+            const range = Range.create(Position.create(0, 5), Position.create(0, 15));
+            assert.equal(isRangeInTag(range, tagInfo), false);
+        });
+
+        it('should return false when range end is outside', () => {
+            const range = Range.create(Position.create(0, 15), Position.create(0, 25));
+            assert.equal(isRangeInTag(range, tagInfo), false);
+        });
+
+        it('should return false when tagInfo is null', () => {
+            const range = Range.create(Position.create(0, 12), Position.create(0, 18));
+            assert.equal(isRangeInTag(range, null), false);
+        });
+    });
+
+    describe('#getTextInRange', () => {
+        it('should extract text in range (single line)', () => {
+            const text = 'hello world';
+            const range = Range.create(Position.create(0, 0), Position.create(0, 5));
+            assert.equal(getTextInRange(range, text), 'hello');
+        });
+
+        it('should extract text in range (multiple lines)', () => {
+            const text = 'line1\nline2\nline3';
+            const range = Range.create(Position.create(0, 0), Position.create(1, 5));
+            assert.equal(getTextInRange(range, text), 'line1\nline2');
+        });
+
+        it('should extract partial text from line', () => {
+            const text = 'hello world';
+            const range = Range.create(Position.create(0, 6), Position.create(0, 11));
+            assert.equal(getTextInRange(range, text), 'world');
+        });
+
+        it('should handle empty range', () => {
+            const text = 'hello';
+            const range = Range.create(Position.create(0, 2), Position.create(0, 2));
+            assert.equal(getTextInRange(range, text), '');
+        });
+    });
+
+    describe('#isAtEndOfLine', () => {
+        it('should return true at LF', () => {
+            assert.equal(isAtEndOfLine('hello\n', 5), true);
+        });
+
+        it('should return true at CR', () => {
+            assert.equal(isAtEndOfLine('hello\r', 5), true);
+        });
+
+        it('should return true at end of string', () => {
+            assert.equal(isAtEndOfLine('hello', 5), true);
+        });
+
+        it('should return false in middle of line', () => {
+            assert.equal(isAtEndOfLine('hello world', 5), false);
+        });
+
+        it('should return true at CRLF (CR position)', () => {
+            assert.equal(isAtEndOfLine('hello\r\n', 5), true);
+        });
+    });
+
+    describe('#toRange', () => {
+        it('should convert offsets to range', () => {
+            const text = 'hello\nworld';
+            const range = toRange(text, 0, 5);
+            assert.deepStrictEqual(
+                range,
+                Range.create(Position.create(0, 0), Position.create(0, 5))
+            );
+        });
+
+        it('should handle multi-line range', () => {
+            const text = 'hello\nworld';
+            const range = toRange(text, 0, 7);
+            assert.deepStrictEqual(
+                range,
+                Range.create(Position.create(0, 0), Position.create(1, 1))
+            );
+        });
+
+        it('should handle same start and end', () => {
+            const text = 'hello';
+            const range = toRange(text, 2, 2);
+            assert.deepStrictEqual(
+                range,
+                Range.create(Position.create(0, 2), Position.create(0, 2))
+            );
+        });
+    });
+
+    describe('#getLangAttribute', () => {
+        it('should return lang attribute', () => {
+            const tag = {
+                content: '',
+                attributes: { lang: 'typescript' },
+                start: 0,
+                end: 0,
+                startPos: Position.create(0, 0),
+                endPos: Position.create(0, 0),
+                container: { start: 0, end: 0 }
+            };
+            assert.equal(getLangAttribute(tag), 'typescript');
+        });
+
+        it('should return type attribute when lang is missing', () => {
+            const tag = {
+                content: '',
+                attributes: { type: 'text/typescript' },
+                start: 0,
+                end: 0,
+                startPos: Position.create(0, 0),
+                endPos: Position.create(0, 0),
+                container: { start: 0, end: 0 }
+            };
+            assert.equal(getLangAttribute(tag), 'typescript');
+        });
+
+        it('should prefer lang over type', () => {
+            const tag = {
+                content: '',
+                attributes: { lang: 'scss', type: 'text/css' },
+                start: 0,
+                end: 0,
+                startPos: Position.create(0, 0),
+                endPos: Position.create(0, 0),
+                container: { start: 0, end: 0 }
+            };
+            assert.equal(getLangAttribute(tag), 'scss');
+        });
+
+        it('should return null when no attributes', () => {
+            const tag = {
+                content: '',
+                attributes: {},
+                start: 0,
+                end: 0,
+                startPos: Position.create(0, 0),
+                endPos: Position.create(0, 0),
+                container: { start: 0, end: 0 }
+            };
+            assert.equal(getLangAttribute(tag), null);
+        });
+
+        it('should return null when tag is null', () => {
+            assert.equal(getLangAttribute(null), null);
+        });
+
+        it('should check multiple tags and return first with lang', () => {
+            const tag1 = {
+                content: '',
+                attributes: {},
+                start: 0,
+                end: 0,
+                startPos: Position.create(0, 0),
+                endPos: Position.create(0, 0),
+                container: { start: 0, end: 0 }
+            };
+            const tag2 = {
+                content: '',
+                attributes: { lang: 'scss' },
+                start: 0,
+                end: 0,
+                startPos: Position.create(0, 0),
+                endPos: Position.create(0, 0),
+                container: { start: 0, end: 0 }
+            };
+            assert.equal(getLangAttribute(tag1, tag2), 'scss');
+        });
+
+        it('should strip text/ prefix from type', () => {
+            const tag = {
+                content: '',
+                attributes: { type: 'text/javascript' },
+                start: 0,
+                end: 0,
+                startPos: Position.create(0, 0),
+                endPos: Position.create(0, 0),
+                container: { start: 0, end: 0 }
+            };
+            assert.equal(getLangAttribute(tag), 'javascript');
+        });
+    });
+
+    describe('#isInsideMoustacheTag', () => {
+        it('should return true when inside #if tag', () => {
+            const html = '{#if condition}content';
+            assert.equal(isInsideMoustacheTag(html, null, 10), true);
+        });
+
+        it('should return false after closing moustache', () => {
+            const html = '{#if condition}content{/if}after';
+            assert.equal(isInsideMoustacheTag(html, null, 30), false);
+        });
+
+        it('should return true when inside {:else tag', () => {
+            const html = '{#if a}{:else}content';
+            assert.equal(isInsideMoustacheTag(html, null, 10), true);
+        });
+
+        it('should return true when inside {@html tag', () => {
+            const html = 'before{@html content';
+            assert.equal(isInsideMoustacheTag(html, null, 15), true);
+        });
+
+        it('should return false before any moustache tags', () => {
+            const html = 'before{#if condition}';
+            assert.equal(isInsideMoustacheTag(html, null, 3), false);
+        });
+
+        it('should handle position inside tag attributes', () => {
+            const html = '<div class="test {value}"></div>';
+            assert.equal(isInsideMoustacheTag(html, 0, 22), true);
+        });
+
+        it('should return false when inside tag with no open moustache', () => {
+            const html = '<div class="test"></div>';
+            assert.equal(isInsideMoustacheTag(html, 0, 15), false);
+        });
+
+        it('should return true when open brace without close', () => {
+            const html = '<div class="test {value';
+            assert.equal(isInsideMoustacheTag(html, 0, 22), true);
         });
     });
 });
