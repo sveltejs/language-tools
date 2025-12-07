@@ -37,7 +37,7 @@ export function getCompletions(
     if (inStyleOrScript(svelteDoc, position)) {
         return null;
     }
-    
+
     const offset = svelteDoc.offsetAt(position);
     const lastCharactersBeforePosition = svelteDoc
         .getText()
