@@ -95,6 +95,10 @@ export class FileSet implements Iterable<string> {
         this.set.clear();
     }
 
+    get size() {
+        return this.set.size;
+    }
+
     [Symbol.iterator](): Iterator<string> {
         return this.set[Symbol.iterator]();
     }

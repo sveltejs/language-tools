@@ -353,6 +353,10 @@ export function createSvelteModuleLoader(
     }
 
     function invalidateFailedLocationResolution() {
+        if (pendingFailedLocationCheck.size === 0) {
+            return;
+        }
+
         const toRemoves: ts.ResolvedModuleWithFailedLookupLocations[] = [];
         resolutionWithFailedLookup.forEach((resolvedModule) => {
             if (!resolvedModule.failedLookupLocations) {
