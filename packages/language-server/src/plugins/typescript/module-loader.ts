@@ -365,6 +365,7 @@ export function createSvelteModuleLoader(
 
             for (const location of resolvedModule.failedLookupLocations) {
                 if (pendingFailedLocationCheck.has(location)) {
+                    resolutionWithFailedLookup.delete(resolvedModule);
                     toRemoves.push(resolvedModule);
                     resolvedModule.files?.forEach((file) => {
                         failedLocationInvalidated.add(file);
@@ -376,11 +377,6 @@ export function createSvelteModuleLoader(
 
         if (toRemoves.length) {
             moduleCache.deleteByValues(toRemoves);
-            resolutionWithFailedLookup.forEach((r) => {
-                if (toRemoves.includes(r)) {
-                    resolutionWithFailedLookup.delete(r);
-                }
-            });
             tsModuleCache.clear();
             tsTypeReferenceDirectiveCache.clear();
         }

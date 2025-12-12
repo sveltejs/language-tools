@@ -2,4 +2,4 @@
 'svelte-language-server': patch
 ---
 
-perf: skip module cache invalidation check when unnecessary
+perf: optimize module resolution cache invalidation check
