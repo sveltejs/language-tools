@@ -74,6 +74,8 @@ interface CommitCharactersOptions {
     isNewIdentifierLocation?: boolean;
 }
 
+const ENSURE_COMPONENT_HELPER = '__sveltets_2_ensureComponent';
+
 export class CompletionsProviderImpl implements CompletionsProvider<CompletionResolveInfo> {
     constructor(
         private readonly lsAndTsDocResolver: LSAndTSDocResolver,
@@ -249,20 +251,32 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
         ) {
             const name = svelteNode.name;
             const nameEnd = svelteNode.start + 1 + name.length;
-            const isWhitespaceAfterStartTag =
-                document.getText().slice(nameEnd, originalOffset).trim() === '' &&
-                this.mightBeAtStartTagWhitespace(document, originalOffset);
+            const mightBeAtStartTagWhitespace = this.mightBeAtStartTagWhitespace(
+                document,
+                originalOffset
+            );
 
-            if (isWhitespaceAfterStartTag) {
-                // We can be sure only to get completions for directives and props here
-                // so don't bother with the expensive global completions
-                return this.getCompletionListForDirectiveOrProps(
-                    attributeContext,
-                    componentInfo,
-                    wordInfo.defaultTextEditRange,
-                    eventAndSlotLetCompletions,
-                    tsDoc
-                );
+            const generatedText = tsDoc.getFullText();
+            if (mightBeAtStartTagWhitespace && originalOffset > nameEnd) {
+                // If it's in whitespace after the component name in the start tag,
+                // this should trigger only directive and prop completions
+                // Unless it's correctly mapped to props. Handle it by ourselves to avoid expensive global completions
+                if (!generatedText.slice(0, offset).endsWith('props: {')) {
+                    return this.getCompletionListForDirectiveOrProps(
+                        attributeContext,
+                        componentInfo,
+                        wordInfo.defaultTextEditRange,
+                        eventAndSlotLetCompletions,
+                        tsDoc
+                    );
+                }
+            } else {
+                const componentNameOffByOne = generatedText
+                    .slice(0, offset + 1)
+                    .endsWith(ENSURE_COMPONENT_HELPER + '(' + name);
+                if (componentNameOffByOne) {
+                    offset++;
+                }
             }
         }
 
