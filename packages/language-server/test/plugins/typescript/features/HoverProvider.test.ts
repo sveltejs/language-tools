@@ -193,6 +193,35 @@ describe('HoverProvider', function () {
         });
     });
 
+    it('provides formatted hover info for custom elements', async () => {
+        const { provider, document } = setup('hoverinfo.svelte');
+
+        assert.deepStrictEqual(await provider.doHover(document, Position.create(13, 7)), <Hover>{
+            contents: {
+                value: 'Custom doc for custom element',
+                kind: 'markdown'
+            }
+        });
+    });
+
+    it('provides formatted hover info for custom elements properties', async () => {
+        const { provider, document } = setup('hoverinfo.svelte');
+
+        assert.deepStrictEqual(await provider.doHover(document, Position.create(13, 18)), <Hover>{
+            contents: '```typescript\n(property) foo: string\n```\n---\nbar',
+            range: {
+                end: {
+                    character: 19,
+                    line: 13
+                },
+                start: {
+                    character: 16,
+                    line: 13
+                }
+            }
+        });
+    });
+
     // Hacky, but it works. Needed due to testing both new and old transformation
     after(() => {
         __resetCache();
