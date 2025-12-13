@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.17.23
+
+### Patch Changes
+
+-   perf: move return statement in `getCompletions` so it returns immediately if possible ([#2899](https://github.com/sveltejs/language-tools/pull/2899))
+
+-   perf: optimize module resolution cache invalidation check ([#2902](https://github.com/sveltejs/language-tools/pull/2902))
+
+-   Updated dependencies [[`b6ebbd8`](https://github.com/sveltejs/language-tools/commit/b6ebbd83e7495db187d2ebc15d3b9e372623e1a7)]:
+    -   svelte2tsx@0.7.46
+
 ## 0.17.22
 
 ### Patch Changes
