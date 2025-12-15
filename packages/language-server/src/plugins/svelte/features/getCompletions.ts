@@ -34,16 +34,16 @@ export function getCompletions(
     svelteDoc: SvelteDocument,
     position: Position
 ): CompletionList | null {
-    const offset = svelteDoc.offsetAt(position);
+    if (inStyleOrScript(svelteDoc, position)) {
+        return null;
+    }
 
+    const offset = svelteDoc.offsetAt(position);
     const lastCharactersBeforePosition = svelteDoc
         .getText()
         // use last 10 characters, should cover 99% of all cases
         .substr(Math.max(offset - 10, 0), Math.min(offset, 10));
     const precededByOpeningBracket = /[\s\S]*{\s*[#:/@]\w*$/.test(lastCharactersBeforePosition);
-    if (inStyleOrScript(svelteDoc, position)) {
-        return null;
-    }
 
     if (precededByOpeningBracket) {
         return getTagCompletionsWithinMoustache();

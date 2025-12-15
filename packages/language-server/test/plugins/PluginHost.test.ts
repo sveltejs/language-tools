@@ -236,9 +236,8 @@ describe('PluginHost', () => {
                 )
             ];
 
-            const { docManager, pluginHost } = setup({
-                getDocumentSymbols: sinon.stub().returns(flat_symbols)
-            });
+            const { docManager, pluginHost } = setup({});
+            sinon.stub(pluginHost, 'getDocumentSymbols').returns(Promise.resolve(flat_symbols));
             docManager.openClientDocument(textDocument);
 
             const result = await pluginHost.getHierarchicalDocumentSymbols(
@@ -281,9 +280,8 @@ describe('PluginHost', () => {
                 onCancellationRequested: () => ({ dispose: () => {} })
             };
 
-            const { docManager, pluginHost } = setup({
-                getDocumentSymbols: sinon.stub().returns([])
-            });
+            const { docManager, pluginHost } = setup({});
+            sinon.stub(pluginHost, 'getDocumentSymbols').returns(Promise.resolve([]));
             docManager.openClientDocument(textDocument);
 
             const result = await pluginHost.getHierarchicalDocumentSymbols(
@@ -316,9 +314,8 @@ describe('PluginHost', () => {
                 )
             ];
 
-            const { docManager, pluginHost } = setup({
-                getDocumentSymbols: sinon.stub().returns(flat_symbols)
-            });
+            const { docManager, pluginHost } = setup({});
+            sinon.stub(pluginHost, 'getDocumentSymbols').returns(Promise.resolve(flat_symbols));
             docManager.openClientDocument(textDocument);
 
             const result = await pluginHost.getHierarchicalDocumentSymbols(
