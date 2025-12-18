@@ -1,7 +1,7 @@
 import ts from 'typescript';
 import { Hover, Position } from 'vscode-languageserver';
 import { Document, getWordAt, mapObjWithRangeToOriginal } from '../../../lib/documents';
-import { HoverProvider } from '../../interfaces';
+import { HoverContext, HoverProvider } from '../../interfaces';
 import { SvelteDocumentSnapshot } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { getMarkdownDocumentation } from '../previewer';
@@ -11,7 +11,11 @@ import { getComponentAtPosition } from './utils';
 export class HoverProviderImpl implements HoverProvider {
     constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
 
-    async doHover(document: Document, position: Position): Promise<Hover | null> {
+    async doHover(
+        document: Document,
+        position: Position,
+        context?: HoverContext
+    ): Promise<Hover | null> {
         const { lang, tsDoc, userPreferences } = await this.getLSAndTSDoc(document);
 
         const eventHoverInfo = this.getEventHoverInfo(lang, document, tsDoc, position);
@@ -20,11 +24,9 @@ export class HoverProviderImpl implements HoverProvider {
         }
 
         const offset = tsDoc.offsetAt(tsDoc.getGeneratedPosition(position));
-        const info = lang.getQuickInfoAtPosition(
-            tsDoc.filePath,
-            offset,
-            userPreferences.maximumHoverLength
-        );
+        console.log('Hover requested at offset', offset, 'with context', context);
+        const options = [userPreferences.maximumHoverLength, context?.verbosityLevel];
+        const info = lang.getQuickInfoAtPosition(tsDoc.filePath, offset, ...options);
         if (!info) {
             return null;
         }
@@ -48,7 +50,8 @@ export class HoverProviderImpl implements HoverProvider {
 
         return mapObjWithRangeToOriginal(tsDoc, {
             range: convertRange(tsDoc, info.textSpan),
-            contents
+            contents,
+            canIncreaseVerbosityLevel: info.canIncreaseVerbosityLevel
         });
     }
 

@@ -33,6 +33,7 @@ import { addFindComponentReferencesListener } from './typescript/findComponentRe
 import { addFindFileReferencesListener } from './typescript/findFileReferences';
 import { setupSvelteKit } from './sveltekit';
 import { resolveCodeLensMiddleware } from './middlewares';
+import { HoverVerbosityProvider } from './typescript/hoverVerbosity';
 
 namespace TagCloseRequest {
     export const type: RequestType<TextDocumentPositionParams, string, any> = new RequestType(
@@ -199,8 +200,12 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
             isTrusted: workspace.isTrusted
         },
         middleware: {
-            resolveCodeLens: resolveCodeLensMiddleware
-        }
+            resolveCodeLens: resolveCodeLensMiddleware,
+            provideHover() {
+                return null;
+            },
+        },
+        
     };
 
     const ls = createLanguageServer(serverOptions, clientOptions);
@@ -332,6 +337,8 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
             }
         ]
     });
+
+    languages.registerHoverProvider('svelte', new HoverVerbosityProvider(getLS));
 
     return {
         getLS,

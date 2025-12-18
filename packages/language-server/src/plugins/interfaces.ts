@@ -2,6 +2,7 @@ import {
     CancellationToken,
     CompletionContext,
     FileChangeType,
+    HoverParams,
     LinkedEditingRanges,
     SemanticTokens,
     SignatureHelpContext,
@@ -55,7 +56,11 @@ export interface DiagnosticsProvider {
 }
 
 export interface HoverProvider {
-    doHover(document: Document, position: Position): Resolvable<Hover | null>;
+    doHover(
+        document: Document,
+        position: Position,
+        context: HoverContext
+    ): Resolvable<Hover | null>;
 }
 
 export interface CompletionsProvider<T extends TextDocumentIdentifier = any> {
@@ -314,3 +319,10 @@ export type Plugin = Partial<
         SelectionRangeProvider &
         UpdateTsOrJsFile
 > & { __name: string };
+
+export interface HoverParamsWithContext extends HoverParams {
+    context: HoverContext;
+}
+export interface HoverContext {
+    verbosityLevel?: number;
+}

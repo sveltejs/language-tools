@@ -39,7 +39,8 @@ import {
     SveltePlugin,
     TypeScriptPlugin,
     OnWatchFileChangesPara,
-    LSAndTSDocResolver
+    LSAndTSDocResolver,
+    HoverParamsWithContext
 } from './plugins';
 import { debounceThrottle, isNotNullOrUndefined, normalizeUri, urlToPath } from './utils';
 import { FallbackWatcher } from './lib/FallbackWatcher';
@@ -625,6 +626,10 @@ export function startServer(options?: LSOptions) {
         } else {
             return null;
         }
+    });
+
+    connection.onRequest('$/hoverVerbosity', async (req: HoverParamsWithContext) => {
+        return pluginHost.doHover(req.textDocument, req.position, req.context);
     });
 
     connection.listen();

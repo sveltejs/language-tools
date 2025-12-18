@@ -55,6 +55,7 @@ import {
     FindComponentReferencesProvider,
     FindReferencesProvider,
     FoldingRangeProvider,
+    HoverContext,
     HoverProvider,
     ImplementationProvider,
     InlayHintProvider,
@@ -236,12 +237,16 @@ export class TypeScriptPlugin
         return this.diagnosticsProvider.getDiagnostics(document, cancellationToken);
     }
 
-    async doHover(document: Document, position: Position): Promise<Hover | null> {
+    async doHover(
+        document: Document,
+        position: Position,
+        context?: HoverContext
+    ): Promise<Hover | null> {
         if (!this.featureEnabled('hover')) {
             return null;
         }
 
-        return this.hoverProvider.doHover(document, position);
+        return this.hoverProvider.doHover(document, position, context);
     }
 
     async getDocumentSymbols(

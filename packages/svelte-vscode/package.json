@@ -40,6 +40,9 @@
     "engines": {
         "vscode": "^1.82.0"
     },
+    "enabledApiProposals": [
+        "editorHoverVerbosityLevel"
+    ],
     "activationEvents": [
         "onLanguage:svelte",
         "onCommand:svelte.restartLanguageServer",

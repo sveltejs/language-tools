@@ -44,6 +44,7 @@ import { isNotNullOrUndefined, regexLastIndexOf } from '../utils';
 import {
     AppCompletionItem,
     FileRename,
+    HoverContext,
     LSPProviderConfig,
     LSProvider,
     OnWatchFileChanges,
@@ -110,12 +111,16 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         );
     }
 
-    async doHover(textDocument: TextDocumentIdentifier, position: Position): Promise<Hover | null> {
+    async doHover(
+        textDocument: TextDocumentIdentifier,
+        position: Position,
+        context?: HoverContext
+    ): Promise<Hover | null> {
         const document = this.getDocument(textDocument.uri);
 
         return this.execute<Hover>(
             'doHover',
-            [document, position],
+            [document, position, context],
             ExecuteMode.FirstNonNull,
             'high'
         );
