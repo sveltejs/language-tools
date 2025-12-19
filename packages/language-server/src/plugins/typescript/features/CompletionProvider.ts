@@ -52,6 +52,7 @@ import {
 } from './utils';
 import { isInTag as svelteIsInTag } from '../svelte-ast-utils';
 import { LanguageServiceContainer } from '../service';
+import { internalHelpers } from 'svelte2tsx';
 
 export interface CompletionResolveInfo
     extends Pick<ts.CompletionEntry, 'data' | 'name' | 'source'>,
@@ -364,8 +365,9 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
         // import completions and then filter them down to likely matches.
         if (wordInfo.word.charAt(0) === '$') {
             const storeName = wordInfo.word.substring(1);
+            const typeChecker = lang.getProgram()?.getTypeChecker();
             const text = '__sveltets_2_store_get(' + storeName;
-            if (!tsDoc.getFullText().includes(text)) {
+            if (!tsDoc.getFullText().includes(text) && typeChecker) {
                 const pos = (tsDoc.scriptInfo || tsDoc.moduleScriptInfo)?.endPos ?? {
                     line: 0,
                     character: 0
@@ -376,13 +378,26 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
                     virtualOffset,
                     {
                         ...userPreferences,
+                        includeSymbol: true,
                         triggerCharacter: validTriggerCharacter
                     },
                     formatSettings
                 );
                 for (const entry of storeCompletions?.entries || []) {
-                    if (entry.name.startsWith(storeName)) {
-                        addCompletion(entry, true);
+                    if (
+                        entry.symbol &&
+                        entry.source &&
+                        entry.name.startsWith(storeName) &&
+                        !entry.name.startsWith('$') &&
+                        !isGeneratedSvelteComponentName(entry.name)
+                    ) {
+                        const aliasedSymbol =
+                            entry.symbol.flags & ts.SymbolFlags.Alias
+                                ? typeChecker.getAliasedSymbol(entry.symbol)
+                                : entry.symbol;
+                        if (aliasedSymbol.flags & ts.SymbolFlags.Variable) {
+                            addCompletion(entry, true);
+                        }
                     }
                 }
             }
@@ -1290,7 +1305,7 @@ function createIsValidCompletion(
             return !value.name.startsWith('__sveltets_') && !svelte2tsxTypes.has(value.name);
         }
 
-        return !value.name.startsWith('$$_');
+        return value.name !== internalHelpers.renderName && !value.name.startsWith('$$_');
     };
     const isCompletionInHTMLStartTag = !!getNodeIfIsInHTMLStartTag(
         document.html,
