@@ -1,6 +1,6 @@
 {
     "name": "svelte-language-server",
-    "version": "0.17.0",
+    "version": "0.17.22",
     "description": "A language server for Svelte",
     "main": "dist/src/index.js",
     "typings": "dist/src/index",
@@ -10,7 +10,7 @@
         "./bin/server.js": "./bin/server.js"
     },
     "scripts": {
-        "test": "cross-env TS_NODE_TRANSPILE_ONLY=true mocha --require ts-node/register \"test/**/*.test.ts\"",
+        "test": "cross-env TS_NODE_TRANSPILE_ONLY=true mocha --require ts-node/register \"test/**/*.test.ts\" --no-experimental-strip-types",
         "build": "tsc",
         "prepublishOnly": "npm run build",
         "watch": "tsc -w"
@@ -62,7 +62,7 @@
         "prettier-plugin-svelte": "^3.4.0",
         "svelte": "^4.2.19",
         "svelte2tsx": "workspace:~",
-        "typescript": "^5.8.2",
+        "typescript": "^5.9.2",
         "typescript-auto-import-cache": "^0.3.6",
         "vscode-css-languageservice": "~6.3.5",
         "vscode-html-languageservice": "~5.4.0",

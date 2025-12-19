@@ -6,7 +6,7 @@ interface OptionObject {
 
 const simpleOptions: number[] = [];
 const complexOptions: string[] | OptionObject[] = [];
-
+const maybeUndefined: number[] | undefined | null = null as any;
 const badOptions = {
   object: {},
   number: 1,
@@ -33,4 +33,9 @@ const badOptions = {
 
 {#each badOptions.number as option, i}
   <div>{option} {i}</div>
+{/each}
+
+<!-- Fine in Svelte 5, error in Svelte 4 -->
+{#each maybeUndefined as option, i (i)}
+  <div>{option}, {i}</div>
 {/each}

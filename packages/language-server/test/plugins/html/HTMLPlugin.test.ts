@@ -190,6 +190,16 @@ describe('HTML Plugin', () => {
         assert.strictEqual(completions?.items[0]?.label, 'div>');
     });
 
+    it('skip emmet completions right after start tag close', async () => {
+        const { plugin, document } = setup('Test.a>');
+
+        const completions = await plugin.getCompletions(document, Position.create(0, 5), {
+            triggerCharacter: '>',
+            triggerKind: CompletionTriggerKind.TriggerCharacter
+        });
+        assert.strictEqual(completions, null);
+    });
+
     it('does not provide rename for element being uppercase', async () => {
         const { plugin, document } = setup('<Div></Div>');
 
@@ -370,5 +380,33 @@ describe('HTML Plugin', () => {
                 end: { line: 0, character: 6 }
             }
         });
+    });
+
+    if (!isSvelte5Plus) {
+        return;
+    }
+
+    it('provide event handler completions (svelte 5+)', async () => {
+        const { plugin, document } = setup('<div on');
+
+        const completions = await plugin.getCompletions(document, Position.create(0, 7));
+        const onClick = completions?.items.find((item) => item.label === 'onclick');
+
+        const expected: CompletionItem = {
+            label: 'onclick',
+            kind: CompletionItemKind.Value,
+            documentation: {
+                kind: 'markdown',
+                value: 'A pointing device button has been pressed and released on an element.'
+            },
+            textEdit: TextEdit.replace(
+                Range.create(Position.create(0, 5), Position.create(0, 7)),
+                'onclick={$1}'
+            ),
+            insertTextFormat: InsertTextFormat.Snippet,
+            command: undefined
+        };
+
+        assert.deepStrictEqual(onClick, expected);
     });
 });

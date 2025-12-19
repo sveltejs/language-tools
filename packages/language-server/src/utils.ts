@@ -1,8 +1,7 @@
-import { isEqual, sum, uniqWith } from 'lodash';
-import { FoldingRange, Node } from 'vscode-html-languageservice';
+import { isEqual, uniqWith } from 'lodash';
+import { Node } from 'vscode-html-languageservice';
 import { Position, Range } from 'vscode-languageserver';
 import { URI } from 'vscode-uri';
-import { Document, TagInformation } from './lib/documents';
 
 type Predicate<T> = (x: T) => boolean;
 
@@ -38,12 +37,27 @@ export function pathToUrl(path: string) {
     return URI.file(path).toString();
 }
 
+const backslashRegEx = /\\/g;
+
 /**
  * Some paths (on windows) start with a upper case driver letter, some don't.
  * This is normalized here.
  */
 export function normalizePath(path: string): string {
-    return URI.file(path).fsPath.replace(/\\/g, '/');
+    return normalizeDriveLetter(path.replace(backslashRegEx, '/'));
+}
+
+function normalizeDriveLetter(path: string): string {
+    if (path.charCodeAt(1) !== /*:*/ 58) {
+        return path;
+    }
+
+    const driveLetter = path.charCodeAt(0);
+    if (driveLetter >= /*A*/ 65 && driveLetter <= /*Z*/ 90) {
+        return String.fromCharCode(driveLetter + 32) + path.slice(1);
+    }
+
+    return path;
 }
 
 /**
@@ -60,7 +74,10 @@ export function normalizeUri(uri: string): string {
  * (bar or bar.svelte in this example).
  */
 export function getLastPartOfPath(path: string): string {
-    return path.replace(/\\/g, '/').split('/').pop() || '';
+    const lastSlash = path.lastIndexOf('/');
+    const lastBackslash = path.lastIndexOf('\\');
+    const lastSeparator = Math.max(lastSlash, lastBackslash);
+    return lastSeparator === -1 ? path : path.slice(lastSeparator + 1);
 }
 
 export function flatten<T>(arr: Array<T | T[]>): T[] {

@@ -99,9 +99,11 @@ export class CSSPlugin
             this.updateConfigs();
         });
 
-        docManager.on('documentChange', (document) =>
-            this.cssDocuments.set(document, new CSSDocument(document, this.cssLanguageServices))
-        );
+        const sync = (document: Document) => {
+            this.cssDocuments.set(document, new CSSDocument(document, this.cssLanguageServices));
+        };
+        docManager.on('documentChange', sync);
+        docManager.on('documentOpen', sync);
         docManager.on('documentClose', (document) => this.cssDocuments.delete(document));
     }
 

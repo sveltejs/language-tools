@@ -1,0 +1,8 @@
+{
+	"name": "test-cross-package-generics",
+	"version": "0.0.1",
+	"type": "module",
+	"dependencies": {
+		"test-package": "1.0.0"
+	}
+}

@@ -16,6 +16,7 @@ import { LSConfigManager } from '../../../../src/ls-config';
 import {
     ADD_MISSING_IMPORTS_CODE_ACTION_KIND,
     CodeActionsProviderImpl,
+    REMOVE_UNUSED_IMPORTS_CODE_ACTION_KIND,
     SORT_IMPORT_CODE_ACTION_KIND
 } from '../../../../src/plugins/typescript/features/CodeActionsProvider';
 import { CompletionsProviderImpl } from '../../../../src/plugins/typescript/features/CompletionProvider';
@@ -1550,6 +1551,96 @@ describe('CodeActionsProvider', function () {
         ]);
     });
 
+    it('removes unused imports', async () => {
+        const { provider, document } = setup('codeactions.svelte');
+
+        const codeActions = await provider.getCodeActions(
+            document,
+            Range.create(Position.create(1, 4), Position.create(1, 5)),
+            {
+                diagnostics: [],
+                only: [REMOVE_UNUSED_IMPORTS_CODE_ACTION_KIND]
+            }
+        );
+        (<TextDocumentEdit>codeActions[0]?.edit?.documentChanges?.[0])?.edits.forEach(
+            (edit) => (edit.newText = harmonizeNewLines(edit.newText))
+        );
+
+        assert.deepStrictEqual(codeActions, [
+            {
+                edit: {
+                    documentChanges: [
+                        {
+                            edits: [
+                                {
+                                    newText:
+                                        "import { C } from 'blubb';\n" +
+                                        "import { A } from 'bla';\n",
+
+                                    range: {
+                                        start: {
+                                            character: 0,
+                                            line: 1
+                                        },
+                                        end: {
+                                            character: 0,
+                                            line: 2
+                                        }
+                                    }
+                                },
+                                {
+                                    newText: '',
+                                    range: {
+                                        start: {
+                                            character: 0,
+                                            line: 2
+                                        },
+                                        end: {
+                                            character: 0,
+                                            line: 3
+                                        }
+                                    }
+                                },
+                                {
+                                    newText: '',
+                                    range: {
+                                        start: {
+                                            character: 0,
+                                            line: 3
+                                        },
+                                        end: {
+                                            character: 0,
+                                            line: 4
+                                        }
+                                    }
+                                },
+                                {
+                                    newText: '',
+                                    range: {
+                                        start: {
+                                            character: 0,
+                                            line: 4
+                                        },
+                                        end: {
+                                            character: 0,
+                                            line: 5
+                                        }
+                                    }
+                                }
+                            ],
+                            textDocument: {
+                                uri: getUri('codeactions.svelte'),
+                                version: null
+                            }
+                        }
+                    ]
+                },
+                kind: REMOVE_UNUSED_IMPORTS_CODE_ACTION_KIND,
+                title: 'Remove Unused Imports'
+            }
+        ]);
+    });
+
     it('organizes imports with module script', async () => {
         const { provider, document } = setup('organize-imports-with-module.svelte');
 
@@ -2421,6 +2512,71 @@ describe('CodeActionsProvider', function () {
         assert.deepStrictEqual(codeActions, []);
     });
 
+    it('provides code action for adding lang="ts"', async () => {
+        const { provider, document } = setup('codeaction-add-lang-ts.svelte');
+
+        const codeActions = await provider.getCodeActions(
+            document,
+            Range.create(Position.create(0, 0), Position.create(0, 1)),
+            {
+                diagnostics: [
+                    {
+                        code: 8010,
+                        message: 'Type annotations can only be used in TypeScript files.',
+                        range: Range.create(Position.create(1, 18), Position.create(1, 24)),
+                        source: 'ts'
+                    }
+                ],
+                only: [CodeActionKind.QuickFix]
+            }
+        );
+
+        assert.deepStrictEqual(codeActions, <CodeAction[]>[
+            {
+                title: 'Add lang="ts" to <script> tag',
+                kind: CodeActionKind.QuickFix,
+                edit: {
+                    documentChanges: [
+                        {
+                            edits: [
+                                {
+                                    newText: ' lang="ts"',
+                                    range: {
+                                        start: {
+                                            character: 7,
+                                            line: 0
+                                        },
+                                        end: {
+                                            character: 7,
+                                            line: 0
+                                        }
+                                    }
+                                },
+                                {
+                                    newText: ' lang="ts"',
+                                    range: {
+                                        start: {
+                                            character: 7,
+                                            line: 6
+                                        },
+                                        end: {
+                                            character: 7,
+                                            line: 6
+                                        }
+                                    }
+                                }
+                            ],
+                            textDocument: {
+                                uri: getUri('codeaction-add-lang-ts.svelte'),
+                                version: null
+                            }
+                        }
+                    ]
+                }
+            }
+        ]);
+    });
+
     if (!isSvelte5Plus) {
         return;
     }
@@ -2483,6 +2639,62 @@ describe('CodeActionsProvider', function () {
                 },
                 kind: 'source.organizeImports',
                 title: 'Organize Imports'
+            }
+        ]);
+    });
+
+    it('provides code action for adding <script lang="ts"', async () => {
+        const { provider, document } = setup('codeaction-add-lang-ts-no-script.svelte');
+
+        const codeActions = await provider.getCodeActions(
+            document,
+            Range.create(Position.create(0, 0), Position.create(0, 1)),
+            {
+                diagnostics: [
+                    {
+                        code: 8010,
+                        message: 'Type annotations can only be used in TypeScript files.',
+                        range: Range.create(Position.create(1, 18), Position.create(1, 24)),
+                        source: 'ts'
+                    }
+                ],
+                only: [CodeActionKind.QuickFix]
+            }
+        );
+
+        (<TextDocumentEdit>codeActions[0]?.edit?.documentChanges?.[0])?.edits.forEach(
+            (edit) => (edit.newText = harmonizeNewLines(edit.newText))
+        );
+
+        assert.deepStrictEqual(codeActions, <CodeAction[]>[
+            {
+                title: 'Add <script lang="ts"> tag',
+                kind: CodeActionKind.QuickFix,
+                edit: {
+                    documentChanges: [
+                        {
+                            edits: [
+                                {
+                                    newText: '<script lang="ts"></script>\n',
+                                    range: {
+                                        start: {
+                                            character: 0,
+                                            line: 0
+                                        },
+                                        end: {
+                                            character: 0,
+                                            line: 0
+                                        }
+                                    }
+                                }
+                            ],
+                            textDocument: {
+                                uri: getUri('codeaction-add-lang-ts-no-script.svelte'),
+                                version: null
+                            }
+                        }
+                    ]
+                }
             }
         ]);
     });

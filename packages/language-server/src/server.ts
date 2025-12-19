@@ -47,7 +47,8 @@ import { configLoader } from './lib/documents/configLoader';
 import { setIsTrusted } from './importPackage';
 import {
     SORT_IMPORT_CODE_ACTION_KIND,
-    ADD_MISSING_IMPORTS_CODE_ACTION_KIND
+    ADD_MISSING_IMPORTS_CODE_ACTION_KIND,
+    REMOVE_UNUSED_IMPORTS_CODE_ACTION_KIND
 } from './plugins/typescript/features/CodeActionsProvider';
 import { createLanguageServices } from './plugins/css/service';
 import { FileSystemProvider } from './plugins/css/FileSystemProvider';
@@ -274,6 +275,7 @@ export function startServer(options?: LSOptions) {
                               CodeActionKind.SourceOrganizeImports,
                               SORT_IMPORT_CODE_ACTION_KIND,
                               ADD_MISSING_IMPORTS_CODE_ACTION_KIND,
+                              REMOVE_UNUSED_IMPORTS_CODE_ACTION_KIND,
                               ...(clientSupportApplyEditCommand ? [CodeActionKind.Refactor] : [])
                           ].filter(
                               clientSupportedCodeActionKinds &&
@@ -427,9 +429,16 @@ export function startServer(options?: LSOptions) {
     connection.onColorPresentation((evt) =>
         pluginHost.getColorPresentations(evt.textDocument, evt.range, evt.color)
     );
-    connection.onDocumentSymbol((evt, cancellationToken) =>
-        pluginHost.getDocumentSymbols(evt.textDocument, cancellationToken)
-    );
+    connection.onDocumentSymbol((evt, cancellationToken) => {
+        if (
+            configManager.getClientCapabilities()?.textDocument?.documentSymbol
+                ?.hierarchicalDocumentSymbolSupport
+        ) {
+            return pluginHost.getHierarchicalDocumentSymbols(evt.textDocument, cancellationToken);
+        } else {
+            return pluginHost.getDocumentSymbols(evt.textDocument, cancellationToken);
+        }
+    });
     connection.onDefinition((evt) => pluginHost.getDefinitions(evt.textDocument, evt.position));
     connection.onReferences((evt, cancellationToken) =>
         pluginHost.findReferences(evt.textDocument, evt.position, evt.context, cancellationToken)
