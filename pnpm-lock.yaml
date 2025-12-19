@@ -148,7 +148,7 @@ importers:
         version: 5.0.2(rollup@3.7.5)
       '@rollup/plugin-typescript':
         specifier: ^10.0.0
-        version: 10.0.1(rollup@3.7.5)(tslib@2.5.2)(typescript@5.8.2)
+        version: 10.0.1(rollup@3.7.5)(tslib@2.5.2)(typescript@5.9.2)
       builtin-modules:
         specifier: ^3.3.0
         version: 3.3.0
@@ -846,9 +846,6 @@ packages:
   '@types/mocha@9.1.1':
     resolution: {integrity: sha512-Z61JK7DKDtdKTWwLeElSEBcWGRLY8g95ic5FoQqI9CMx0ns/Ghep3B4DfcEimiKMvtamNVULVNKEsiwV3aQmXw==}
 
-  '@types/mri@1.1.1':
-    resolution: {integrity: sha512-nJOuiTlsvmClSr3+a/trTSx4DTuY/VURsWGKSf/eeavh0LRMqdsK60ti0TlwM5iHiGOK3/Ibkxsbr7i9rzGreA==}
-
   '@types/node@12.20.55':
     resolution: {integrity: sha512-J8xLz7q2OFulZ2cyGTLE1TbbZcjpno7FaN6zdJNrgAdrJ+DZzh/uFR6YrTb4C+nXakvud8Q4+rbhoIWlYQbUFQ==}
 
@@ -1543,6 +1540,10 @@ packages:
     resolution: {integrity: sha512-L6XC3EdwT6YrIk0yXpavvLkn8h+EU+Y5UcCHKECyMbdUIxyMuZj4bX4U9e1nvnvUUvQVsV2VHQr5zLdcUkhW/g==}
     engines: {node: '>= 12.0.0'}
     hasBin: true
+
+  mri@1.2.0:
+    resolution: {integrity: sha512-tzzskb3bG8LvYGFF/mDTpq3jpI6Q9wc3LEmBaghu+DdCssd1FakN7Bc0hVNmEyGq1bq3RgfkCb3cmQLpNPOroA==}
+    engines: {node: '>=4'}
 
   ms@2.1.2:
     resolution: {integrity: sha512-sGkPx+VjMtmA6MX27oA4FBFELFCZZ4S4XqeGOXCv68tT+jb3vk/RyaKWP0PTKyWtmLSM0b+adUTEvbs1PEaH2w==}
@@ -2645,8 +2646,6 @@ snapshots:
 
   '@types/mocha@9.1.1': {}
 
-  '@types/mri@1.1.1': {}
-
   '@types/node@12.20.55': {}
 
   '@types/node@18.19.46':
@@ -3352,6 +3351,8 @@ snapshots:
       yargs: 16.2.0
       yargs-parser: 20.2.4
       yargs-unparser: 2.0.0
+
+  mri@1.2.0: {}
 
   ms@2.1.2: {}
 
