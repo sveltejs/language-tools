@@ -6,7 +6,7 @@ import { watch, FSWatcher } from 'chokidar';
 import * as fs from 'fs';
 import { fdir } from 'fdir';
 import * as path from 'path';
-import { SvelteCheck, SvelteCheckOptions } from 'svelte-language-server';
+import { SvelteCheck, SvelteCheckOptions } from 'svelte-language-server/svelte-check';
 import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver-protocol';
 import { URI } from 'vscode-uri';
 import { parseOptions, SvelteCheckCliOptions } from './options';
