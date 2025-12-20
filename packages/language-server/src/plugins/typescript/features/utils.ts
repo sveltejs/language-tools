@@ -451,3 +451,74 @@ export function checkRangeMappingWithGeneratedSemi(
         originalRange.end.character += 1;
     }
 }
+
+/** Returns the list of registered custom elements and their description (from JSDoc) */
+export function getCustomElementsSymbols(
+    lang: ts.LanguageService,
+    lsContainer: LanguageServiceContainer,
+    tsDoc: SvelteDocumentSnapshot
+): { name: string; documentation: string }[] {
+    const program = lang.getProgram();
+    const sourceFile = program?.getSourceFile(tsDoc.filePath);
+    const typeChecker = program?.getTypeChecker();
+    if (!typeChecker || !sourceFile) {
+        return [];
+    }
+
+    const typingsNamespace = lsContainer.getTsConfigSvelteOptions().namespace;
+
+    const typingsNamespaceSymbol = findTypingsNamespaceSymbol(
+        typingsNamespace,
+        typeChecker,
+        sourceFile
+    );
+
+    if (!typingsNamespaceSymbol) {
+        return [];
+    }
+
+    const elements = typeChecker
+        .getExportsOfModule(typingsNamespaceSymbol)
+        .find((symbol) => symbol.name === 'IntrinsicElements');
+
+    if (!elements || !(elements.flags & ts.SymbolFlags.Interface)) {
+        return [];
+    }
+
+    return typeChecker
+        .getDeclaredTypeOfSymbol(elements)
+        .getProperties()
+        .filter((s) => ts.symbolName(s).includes('-'))
+        .map((s) => {
+            return {
+                name: ts.symbolName(s),
+                documentation: ts.displayPartsToString(s.getDocumentationComment(typeChecker))
+            };
+        });
+}
+
+function findTypingsNamespaceSymbol(
+    namespaceExpression: string,
+    typeChecker: ts.TypeChecker,
+    sourceFile: ts.SourceFile
+) {
+    if (!namespaceExpression || typeof namespaceExpression !== 'string') {
+        return;
+    }
+
+    const [first, ...rest] = namespaceExpression.split('.');
+
+    let symbol: ts.Symbol | undefined = typeChecker
+        .getSymbolsInScope(sourceFile, ts.SymbolFlags.Namespace)
+        .find((symbol) => symbol.name === first);
+
+    for (const part of rest) {
+        if (!symbol) {
+            return;
+        }
+
+        symbol = typeChecker.getExportsOfModule(symbol).find((symbol) => symbol.name === part);
+    }
+
+    return symbol;
+}

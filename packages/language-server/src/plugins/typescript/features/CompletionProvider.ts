@@ -19,6 +19,7 @@ import {
     Document,
     getNodeIfIsInHTMLStartTag,
     getNodeIfIsInStartTag,
+    getNodeIfIsInTagName,
     getWordRangeAt,
     isInTag,
     mapCompletionItemToOriginal,
@@ -45,6 +46,7 @@ import { getJsDocTemplateCompletion } from './getJsDocTemplateCompletion';
 import {
     checkRangeMappingWithGeneratedSemi,
     getComponentAtPosition,
+    getCustomElementsSymbols,
     getFormatCodeBasis,
     getNewScriptStartTag,
     isKitTypePath,
@@ -573,87 +575,32 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
         position: Position
     ): CompletionItem[] | undefined {
         const offset = document.offsetAt(position);
-        const tag = getNodeIfIsInHTMLStartTag(document.html, offset);
+        const tag = getNodeIfIsInTagName(document.html, offset);
 
-        if (!tag) {
+        if (!tag || !tag.tag) {
             return;
         }
 
-        const tagNameEnd = tag.start + 1 + (tag.tag?.length ?? 0);
-        if (offset > tagNameEnd) {
-            return;
-        }
-
-        const program = lang.getProgram();
-        const sourceFile = program?.getSourceFile(tsDoc.filePath);
-        const typeChecker = program?.getTypeChecker();
-        if (!typeChecker || !sourceFile) {
-            return;
-        }
-
-        const typingsNamespace = lsContainer.getTsConfigSvelteOptions().namespace;
-
-        const typingsNamespaceSymbol = this.findTypingsNamespaceSymbol(
-            typingsNamespace,
-            typeChecker,
-            sourceFile
+        let tags = getCustomElementsSymbols(lang, lsContainer, tsDoc).filter((t) =>
+            t.name.startsWith(tag.tag!)
         );
 
-        if (!typingsNamespaceSymbol) {
-            return;
-        }
-
-        const elements = typeChecker
-            .getExportsOfModule(typingsNamespaceSymbol)
-            .find((symbol) => symbol.name === 'IntrinsicElements');
-
-        if (!elements || !(elements.flags & ts.SymbolFlags.Interface)) {
-            return;
-        }
-
-        let tagNames: string[] = typeChecker
-            .getDeclaredTypeOfSymbol(elements)
-            .getProperties()
-            .map((p) => ts.symbolName(p));
-
-        if (tagNames.length && tag.tag) {
-            tagNames = tagNames.filter((name) => name.startsWith(tag.tag ?? ''));
-        }
-
+        const tagNameEnd = tag.start + 1 + (tag.tag?.length ?? 0);
         const replacementRange = toRange(document, tag.start + 1, tagNameEnd);
 
-        return tagNames.map((name) => ({
-            label: name,
-            kind: CompletionItemKind.Property,
-            textEdit: TextEdit.replace(cloneRange(replacementRange), name),
-            commitCharacters: []
-        }));
-    }
-
-    private findTypingsNamespaceSymbol(
-        namespaceExpression: string,
-        typeChecker: ts.TypeChecker,
-        sourceFile: ts.SourceFile
-    ) {
-        if (!namespaceExpression || typeof namespaceExpression !== 'string') {
-            return;
-        }
-
-        const [first, ...rest] = namespaceExpression.split('.');
-
-        let symbol: ts.Symbol | undefined = typeChecker
-            .getSymbolsInScope(sourceFile, ts.SymbolFlags.Namespace)
-            .find((symbol) => symbol.name === first);
-
-        for (const part of rest) {
-            if (!symbol) {
-                return;
-            }
-
-            symbol = typeChecker.getExportsOfModule(symbol).find((symbol) => symbol.name === part);
-        }
-
-        return symbol;
+        return tags.map(
+            (t) =>
+                ({
+                    label: t.name,
+                    documentation: {
+                        value: t.documentation,
+                        kind: 'markdown'
+                    },
+                    kind: CompletionItemKind.Property,
+                    textEdit: TextEdit.replace(cloneRange(replacementRange), t.name),
+                    commitCharacters: []
+                }) as CompletionItem
+        );
     }
 
     private componentInfoToCompletionEntry(
