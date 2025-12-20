@@ -5,8 +5,10 @@ import { surroundWithIgnoreComments } from '../../utils/ignore';
 import { throwError } from '../utils/error';
 
 export class Generics {
+    /** The whole `T extends boolean` */
     private definitions: string[] = [];
     private typeReferences: string[] = [];
+    /** The `T` in `T extends boolean` */
     private references: string[] = [];
     genericsAttr: Node | undefined;
 
@@ -91,6 +93,10 @@ export class Generics {
 
     getTypeReferences() {
         return this.typeReferences;
+    }
+
+    getReferences() {
+        return this.references;
     }
 
     toDefinitionString(addIgnore = false) {

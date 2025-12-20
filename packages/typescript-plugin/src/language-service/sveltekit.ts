@@ -23,6 +23,7 @@ declare module 'typescript/lib/tsserverlibrary' {
         /** @internal */ getPackageJsonAutoImportProvider?(): ts.Program | undefined;
 
         /** @internal*/ getModuleResolutionCache?(): ts.ModuleResolutionCache;
+        /** @internal */ useSourceOfProjectReferenceRedirect?(): boolean;
     }
 }
 
@@ -780,6 +781,11 @@ function getProxiedLanguageService(info: ts.server.PluginCreateInfo, ts: _ts, lo
         getModuleResolutionCache = originalLanguageServiceHost.getModuleResolutionCache
             ? () => originalLanguageServiceHost.getModuleResolutionCache!()
             : undefined;
+
+        useSourceOfProjectReferenceRedirect =
+            originalLanguageServiceHost.useSourceOfProjectReferenceRedirect
+                ? () => originalLanguageServiceHost.useSourceOfProjectReferenceRedirect!()
+                : undefined;
     }
 
     // Ideally we'd create a full Proxy of the language service, but that seems to have cache issues

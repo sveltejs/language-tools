@@ -1,5 +1,5 @@
 import ts from 'typescript';
-import { Position } from 'vscode-languageserver';
+import { Position, Range } from 'vscode-languageserver';
 import {
     Document,
     getLineAtPosition,
@@ -13,6 +13,7 @@ import { or } from '../../../utils';
 import { FileMap } from '../../../lib/documents/fileCollection';
 import { LSConfig } from '../../../ls-config';
 import { LanguageServiceContainer } from '../service';
+import { internalHelpers } from 'svelte2tsx';
 
 type NodePredicate = (node: ts.Node) => boolean;
 
@@ -40,7 +41,7 @@ export function getComponentAtPosition(
         return null;
     }
 
-    const node = getNodeIfIsInComponentStartTag(doc.html, doc.offsetAt(originalPosition));
+    const node = getNodeIfIsInComponentStartTag(doc.html, doc, doc.offsetAt(originalPosition));
     if (!node) {
         return null;
     }
@@ -79,7 +80,7 @@ export function isComponentAtPosition(
         return false;
     }
 
-    return !!getNodeIfIsInComponentStartTag(doc.html, doc.offsetAt(originalPosition));
+    return !!getNodeIfIsInComponentStartTag(doc.html, doc, doc.offsetAt(originalPosition));
 }
 
 export const IGNORE_START_COMMENT = '/*Ωignore_startΩ*/';
@@ -299,7 +300,11 @@ function nodeAndParentsSatisfyRespectivePredicates<T extends ts.Node>(
 
 const isRenderFunction = nodeAndParentsSatisfyRespectivePredicates<
     ts.FunctionDeclaration & { name: ts.Identifier }
->((node) => ts.isFunctionDeclaration(node) && node?.name?.getText() === 'render', ts.isSourceFile);
+>(
+    (node) =>
+        ts.isFunctionDeclaration(node) && node?.name?.getText() === internalHelpers.renderName,
+    ts.isSourceFile
+);
 
 const isRenderFunctionBody = nodeAndParentsSatisfyRespectivePredicates(
     ts.isBlock,
@@ -309,11 +314,11 @@ const isRenderFunctionBody = nodeAndParentsSatisfyRespectivePredicates(
 export const isReactiveStatement = nodeAndParentsSatisfyRespectivePredicates<ts.LabeledStatement>(
     (node) => ts.isLabeledStatement(node) && node.label.getText() === '$',
     or(
-        // function render() {
+        // function $$render() {
         //     $: x2 = __sveltets_2_invalidate(() => x * x)
         // }
         isRenderFunctionBody,
-        // function render() {
+        // function $$render() {
         //     ;() => {$: x, update();
         // }
         nodeAndParentsSatisfyRespectivePredicates(
@@ -424,8 +429,25 @@ export function findChildOfKind(node: ts.Node, kind: ts.SyntaxKind): ts.Node | u
     }
 }
 
-export function getNewScriptStartTag(lsConfig: Readonly<LSConfig>) {
+export function getNewScriptStartTag(lsConfig: Readonly<LSConfig>, newLine: string) {
     const lang = lsConfig.svelte.defaultScriptLanguage;
     const scriptLang = lang === 'none' ? '' : ` lang="${lang}"`;
-    return `<script${scriptLang}>${ts.sys.newLine}`;
+    return `<script${scriptLang}>${newLine}`;
+}
+
+export function checkRangeMappingWithGeneratedSemi(
+    originalRange: Range,
+    generatedRange: Range,
+    tsDoc: SvelteDocumentSnapshot
+) {
+    const originalLength = originalRange.end.character - originalRange.start.character;
+    const generatedLength = generatedRange.end.character - generatedRange.start.character;
+
+    // sourcemap off by one character issue + a generated semicolon
+    if (
+        originalLength === generatedLength - 2 &&
+        tsDoc.getFullText()[tsDoc.offsetAt(generatedRange.end) - 1] === ';'
+    ) {
+        originalRange.end.character += 1;
+    }
 }

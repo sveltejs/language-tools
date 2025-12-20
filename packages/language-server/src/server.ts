@@ -45,7 +45,11 @@ import { debounceThrottle, isNotNullOrUndefined, normalizeUri, urlToPath } from 
 import { FallbackWatcher } from './lib/FallbackWatcher';
 import { configLoader } from './lib/documents/configLoader';
 import { setIsTrusted } from './importPackage';
-import { SORT_IMPORT_CODE_ACTION_KIND } from './plugins/typescript/features/CodeActionsProvider';
+import {
+    SORT_IMPORT_CODE_ACTION_KIND,
+    ADD_MISSING_IMPORTS_CODE_ACTION_KIND,
+    REMOVE_UNUSED_IMPORTS_CODE_ACTION_KIND
+} from './plugins/typescript/features/CodeActionsProvider';
 import { createLanguageServices } from './plugins/css/service';
 import { FileSystemProvider } from './plugins/css/FileSystemProvider';
 
@@ -106,7 +110,9 @@ export function startServer(options?: LSOptions) {
 
     // Include Svelte files to better deal with scenarios such as switching git branches
     // where files that are not opened in the client could change
-    const nonRecursiveWatchPattern = '*.{ts,js,mts,mjs,cjs,cts,json,svelte}';
+    const watchExtensions = ['.ts', '.js', '.mts', '.mjs', '.cjs', '.cts', '.json', '.svelte'];
+    const nonRecursiveWatchPattern =
+        '*.{' + watchExtensions.map((ext) => ext.slice(1)).join(',') + '}';
     const recursiveWatchPattern = '**/' + nonRecursiveWatchPattern;
 
     connection.onInitialize((evt) => {
@@ -118,9 +124,9 @@ export function startServer(options?: LSOptions) {
             Logger.error('No workspace path set');
         }
 
-        if (!evt.capabilities.workspace?.didChangeWatchedFiles) {
+        if (!evt.capabilities.workspace?.didChangeWatchedFiles?.dynamicRegistration) {
             const workspacePaths = workspaceUris.map(urlToPath).filter(isNotNullOrUndefined);
-            watcher = new FallbackWatcher(recursiveWatchPattern, workspacePaths);
+            watcher = new FallbackWatcher(watchExtensions, workspacePaths);
             watcher.onDidChangeWatchedFiles(onDidChangeWatchedFiles);
 
             watchDirectory = (patterns) => {
@@ -268,6 +274,8 @@ export function startServer(options?: LSOptions) {
                               CodeActionKind.QuickFix,
                               CodeActionKind.SourceOrganizeImports,
                               SORT_IMPORT_CODE_ACTION_KIND,
+                              ADD_MISSING_IMPORTS_CODE_ACTION_KIND,
+                              REMOVE_UNUSED_IMPORTS_CODE_ACTION_KIND,
                               ...(clientSupportApplyEditCommand ? [CodeActionKind.Refactor] : [])
                           ].filter(
                               clientSupportedCodeActionKinds &&
@@ -317,7 +325,11 @@ export function startServer(options?: LSOptions) {
                 foldingRangeProvider: true,
                 codeLensProvider: {
                     resolveProvider: true
-                }
+                },
+                documentHighlightProvider:
+                    evt.initializationOptions?.configuration?.svelte?.plugin?.svelte
+                        ?.documentHighlight?.enable ?? true,
+                workspaceSymbolProvider: true
             }
         };
     });
@@ -338,7 +350,7 @@ export function startServer(options?: LSOptions) {
         connection?.client.register(DidChangeWatchedFilesNotification.type, {
             watchers: [
                 {
-                    // Editors have exlude configs, such as VSCode with `files.watcherExclude`,
+                    // Editors have exclude configs, such as VSCode with `files.watcherExclude`,
                     // which means it's safe to watch recursively here
                     globPattern: recursiveWatchPattern
                 }
@@ -417,9 +429,16 @@ export function startServer(options?: LSOptions) {
     connection.onColorPresentation((evt) =>
         pluginHost.getColorPresentations(evt.textDocument, evt.range, evt.color)
     );
-    connection.onDocumentSymbol((evt, cancellationToken) =>
-        pluginHost.getDocumentSymbols(evt.textDocument, cancellationToken)
-    );
+    connection.onDocumentSymbol((evt, cancellationToken) => {
+        if (
+            configManager.getClientCapabilities()?.textDocument?.documentSymbol
+                ?.hierarchicalDocumentSymbolSupport
+        ) {
+            return pluginHost.getHierarchicalDocumentSymbols(evt.textDocument, cancellationToken);
+        } else {
+            return pluginHost.getDocumentSymbols(evt.textDocument, cancellationToken);
+        }
+    });
     connection.onDefinition((evt) => pluginHost.getDefinitions(evt.textDocument, evt.position));
     connection.onReferences((evt, cancellationToken) =>
         pluginHost.findReferences(evt.textDocument, evt.position, evt.context, cancellationToken)
@@ -487,6 +506,11 @@ export function startServer(options?: LSOptions) {
 
         return pluginHost.resolveCodeLens(data, codeLens, token);
     });
+    connection.onDocumentHighlight((evt) =>
+        pluginHost.findDocumentHighlight(evt.textDocument, evt.position)
+    );
+
+    connection.onWorkspaceSymbol((evt, token) => pluginHost.getWorkspaceSymbols(evt.query, token));
 
     const diagnosticsManager = new DiagnosticsManager(
         connection.sendDiagnostics,

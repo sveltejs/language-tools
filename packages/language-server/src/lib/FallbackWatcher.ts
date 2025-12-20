@@ -9,6 +9,7 @@ import {
 } from 'vscode-languageserver';
 import { pathToUrl } from '../utils';
 import { fileURLToPath } from 'url';
+import { Stats } from 'fs';
 
 type DidChangeHandler = (para: DidChangeWatchedFilesParams) => void;
 
@@ -20,18 +21,20 @@ export class FallbackWatcher {
 
     private undeliveredFileEvents: FileEvent[] = [];
 
-    constructor(recursivePatterns: string, workspacePaths: string[]) {
+    constructor(watchExtensions: string[], workspacePaths: string[]) {
         const gitOrNodeModules = /\.git|node_modules/;
-        this.watcher = watch(
-            workspacePaths.map((workspacePath) => join(workspacePath, recursivePatterns)),
-            {
-                ignored: gitOrNodeModules,
-                // typescript would scan the project files on init.
-                // We only need to know what got updated.
-                ignoreInitial: true,
-                ignorePermissionErrors: true
-            }
-        );
+        const ignoredExtensions = (fileName: string, stats?: Stats) => {
+            return (
+                stats?.isFile() === true && !watchExtensions.some((ext) => fileName.endsWith(ext))
+            );
+        };
+        this.watcher = watch(workspacePaths, {
+            ignored: [gitOrNodeModules, ignoredExtensions],
+            // typescript would scan the project files on init.
+            // We only need to know what got updated.
+            ignoreInitial: true,
+            ignorePermissionErrors: true
+        });
 
         this.watcher
             .on('add', (path) => this.onFSEvent(path, FileChangeType.Created))

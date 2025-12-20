@@ -11,6 +11,8 @@ import { SvelteDocumentSnapshot } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { convertToTextSpan } from '../utils';
 import { isInGeneratedCode } from './utils';
+import { internalHelpers } from 'svelte2tsx';
+import { TokenType } from '../../../lib/semanticToken/semanticTokenLegend';
 
 const CONTENT_LENGTH_LIMIT = 50000;
 
@@ -111,7 +113,8 @@ export class SemanticTokensProviderImpl implements SemanticTokensProvider {
         if (
             isInGeneratedCode(text, generatedOffset, generatedOffset + generatedLength) ||
             (encodedClassification === 2817 /* top level function */ &&
-                text.substring(generatedOffset, generatedOffset + generatedLength) === 'render')
+                text.substring(generatedOffset, generatedOffset + generatedLength) ===
+                    internalHelpers.renderName)
         ) {
             return;
         }
@@ -131,10 +134,11 @@ export class SemanticTokensProviderImpl implements SemanticTokensProvider {
 
         // Ensure components in the template get no semantic highlighting
         if (
-            (classificationType === 0 ||
-                classificationType === 5 ||
-                classificationType === 7 ||
-                classificationType === 10) &&
+            (classificationType === TokenType.class ||
+                classificationType === TokenType.type ||
+                classificationType === TokenType.parameter ||
+                classificationType === TokenType.variable ||
+                classificationType === TokenType.function) &&
             snapshot.svelteNodeAt(startOffset)?.type === 'InlineComponent' &&
             (document.getText().charCodeAt(startOffset - 1) === /* < */ 60 ||
                 document.getText().charCodeAt(startOffset - 1) === /* / */ 47)

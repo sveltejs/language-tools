@@ -2,9 +2,9 @@ import { Hover, Position } from 'vscode-languageserver';
 import { SvelteDocument } from '../SvelteDocument';
 import { documentation, SvelteTag, getLatestOpeningTag } from './SvelteTags';
 import { flatten } from '../../../utils';
-import { Document, isInTag } from '../../../lib/documents';
+import { Document } from '../../../lib/documents';
 import { AttributeContext, getAttributeContextAtPosition } from '../../../lib/documents/parseHtml';
-import { attributeCanHaveEventModifier } from './utils';
+import { attributeCanHaveEventModifier, inStyleOrScript } from './utils';
 import { getModifierData } from './getModifierData';
 
 /**
@@ -17,11 +17,6 @@ export function getHoverInfo(
 ): Hover | null {
     const offset = svelteDoc.offsetAt(position);
 
-    const isInStyleOrScript =
-        isInTag(position, svelteDoc.style) ||
-        isInTag(position, svelteDoc.script) ||
-        isInTag(position, svelteDoc.moduleScript);
-
     const offsetStart = Math.max(offset - 10, 0);
     const charactersAroundOffset = svelteDoc
         .getText()
@@ -29,7 +24,7 @@ export function getHoverInfo(
         .substr(offsetStart, 20);
     const isSvelteTag = tagRegexp.test(charactersAroundOffset);
 
-    if (isInStyleOrScript) {
+    if (inStyleOrScript(svelteDoc, position)) {
         return null;
     }
 
@@ -116,6 +111,7 @@ const tagPossibilities: Array<{ tag: SvelteTag | ':else'; values: string[] }> = 
     { tag: 'debug' as const, values: ['@debug'] },
     { tag: 'const' as const, values: ['@const'] },
     { tag: 'render' as const, values: ['@render'] },
+    { tag: 'attach' as const, values: ['@attach'] },
     // this tag has multiple possibilities
     { tag: ':else' as const, values: [':else'] }
 ];

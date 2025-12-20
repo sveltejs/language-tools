@@ -250,7 +250,10 @@ declare function __sveltets_2_ensureComponent<
           : never
 >;
 
-declare function __sveltets_2_ensureArray<T extends ArrayLike<unknown> | Iterable<unknown>>(array: T): T extends ArrayLike<infer U> ? U[] : T extends Iterable<infer U> ? Iterable<U> : any[];
+declare function __sveltets_2_ensureArray<T extends ArrayLike<unknown> | Iterable<unknown>>(
+    // Svelte 5 allows undefined or null here, Svelte 4 doesn't
+    array: T | (typeof import('svelte') extends { mount: any } ? (undefined | null) : never)
+): T extends ArrayLike<infer U> ? U[] : T extends Iterable<infer U> ? Iterable<U> : any[];
 
 type __sveltets_2_PropsWithChildren<Props, Slots> = Props &
     (Slots extends { default: any }
@@ -262,6 +265,8 @@ type __sveltets_2_PropsWithChildren<Props, Slots> = Props &
         : { children?: any }
         : {});
 declare function __sveltets_2_runes_constructor<Props extends {}>(render: {props: Props }): import("svelte").ComponentConstructorOptions<Props>;
+
+declare function __sveltets_2_get_set_binding<T>(get: (() => T) | null | undefined, set: (t: T) => void): T;
 
 declare function __sveltets_$$bindings<Bindings extends string[]>(...bindings: Bindings): Bindings[number];
 

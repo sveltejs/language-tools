@@ -1,5 +1,5 @@
 ///<reference types="svelte" />
-;function render<T>() {
+;function $$render<T>() {
 ;type $$ComponentProps =  { a: T, b: string };
     let { a, b }:/*Ωignore_startΩ*/$$ComponentProps/*Ωignore_endΩ*/ = $props();
     let x = $state<T>(0);
@@ -8,15 +8,9 @@
 async () => {};
 return { props: {} as any as $$ComponentProps, exports: {}, bindings: __sveltets_$$bindings(''), slots: {}, events: {} }}
 class __sveltets_Render<T> {
-    props() {
-        return render<T>().props;
-    }
-    events() {
-        return render<T>().events;
-    }
-    slots() {
-        return render<T>().slots;
-    }
+    props(): ReturnType<typeof $$render<T>>['props'] { return null as any; }
+    events(): ReturnType<typeof $$render<T>>['events'] { return null as any; }
+    slots(): ReturnType<typeof $$render<T>>['slots'] { return null as any; }
     bindings() { return __sveltets_$$bindings(''); }
     exports() { return {}; }
 }

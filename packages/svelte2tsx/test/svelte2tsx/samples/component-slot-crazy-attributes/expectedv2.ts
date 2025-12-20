@@ -1,5 +1,5 @@
 ///<reference types="svelte" />
-;function render() {
+;function $$render() {
 
     let b = 7;
 
@@ -10,5 +10,5 @@ async () => {
  }};
 return { props: /** @type {Record<string, never>} */ ({}), slots: {'default': {a:b, b:b, c:"b", d:"__svelte_ts_string", e:b}}, events: {} }}
 
-export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial(__sveltets_2_with_any_event(render()))) {
+export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial(__sveltets_2_with_any_event($$render()))) {
 }

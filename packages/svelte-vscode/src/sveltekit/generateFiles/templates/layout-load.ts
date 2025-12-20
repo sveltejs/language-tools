@@ -1,28 +1,37 @@
-import { GenerateConfig } from '../types';
+import { GenerateConfig, Resource } from '../types';
 
-export default async function (config: GenerateConfig) {
-    const ts = `
+const defaultScriptTemplate = `
+/** @type {import('./$types').LayoutLoad} */
+export async function load() {
+    return {};
+}
+`;
+
+const tsScriptTemplate = `
 import type { LayoutLoad } from './$types';
 
 export const load: LayoutLoad = async () => {
     return {};
 };
-    `.trim();
+`;
 
-    const tsSatisfies = `
+const tsSatisfiesScriptTemplate = `
 import type { LayoutLoad } from './$types';
 
 export const load = (async () => {
     return {};
 }) satisfies LayoutLoad;
-    `.trim();
+`;
 
-    const js = `
-/** @type {import('./$types').LayoutLoad} */
-export async function load() {
-    return {};
-}
-    `.trim();
+export default async function (config: GenerateConfig): ReturnType<Resource['generate']> {
+    const { withTs, withSatisfies } = config.kind;
+    let template = defaultScriptTemplate;
 
-    return config.type === 'js' ? js : config.type === 'ts' ? ts : tsSatisfies;
+    if (withTs && withSatisfies) {
+        template = tsSatisfiesScriptTemplate;
+    } else if (withTs && !withSatisfies) {
+        template = tsScriptTemplate;
+    }
+
+    return template.trim();
 }

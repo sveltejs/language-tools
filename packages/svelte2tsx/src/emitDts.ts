@@ -112,8 +112,11 @@ function loadTsconfig(config: EmitDtsConfig, svelteMap: SvelteMap) {
             ...options,
             noEmit: false, // Set to true in case of jsconfig, force false, else nothing is emitted
             moduleResolution:
-                // NodeJS: up to 4.9, Node10: since 5.0
-                (ts.ModuleResolutionKind as any).NodeJs ?? ts.ModuleResolutionKind.Node10, // Classic if not set, which gives wrong results
+                options.moduleResolution &&
+                options.moduleResolution !== ts.ModuleResolutionKind.Classic
+                    ? options.moduleResolution
+                    : // NodeJS: up to 4.9, Node10: since 5.0
+                      ((ts.ModuleResolutionKind as any).NodeJs ?? ts.ModuleResolutionKind.Node10), // Classic if not set, which gives wrong results
             declaration: true, // Needed for d.ts file generation
             emitDeclarationOnly: true, // We only want d.ts file generation
             declarationDir: config.declarationDir, // Where to put the declarations
@@ -277,7 +280,7 @@ interface SvelteMap {
  * those transformed source later on.
  */
 async function createSvelteMap(config: EmitDtsConfig): Promise<SvelteMap> {
-    const svelteFiles = new Map();
+    const svelteFiles = new Map<string, { transformed: string; isTsFile: boolean }>();
 
     // TODO detect Svelte version in here and set shimsPath accordingly if not given from above
     const noSvelteComponentTyped = config.svelteShimsPath
@@ -286,6 +289,12 @@ async function createSvelteMap(config: EmitDtsConfig): Promise<SvelteMap> {
     const version = noSvelteComponentTyped ? undefined : '3.42.0';
 
     function add(path: string): boolean {
+        const normalizedPath = path.replace(/\\/g, '/');
+
+        if (svelteFiles.has(normalizedPath)) {
+            return svelteFiles.get(normalizedPath)!.isTsFile;
+        }
+
         const code = ts.sys.readFile(path, 'utf-8');
         const isTsFile = /<script\s+[^>]*?lang=('|")(ts|typescript)('|")/.test(code);
         const transformed = svelte2tsx(code, {
@@ -295,13 +304,13 @@ async function createSvelteMap(config: EmitDtsConfig): Promise<SvelteMap> {
             version,
             noSvelteComponentTyped: noSvelteComponentTyped
         }).code;
-        svelteFiles.set(path.replace(/\\/g, '/'), transformed);
+        svelteFiles.set(normalizedPath, { transformed, isTsFile });
         return isTsFile;
     }
 
     return {
         add,
-        get: (key: string) => svelteFiles.get(key.replace(/\\/g, '/'))
+        get: (key: string) => svelteFiles.get(key.replace(/\\/g, '/'))?.transformed
     };
 }
 

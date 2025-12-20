@@ -50,7 +50,7 @@ describe('document/utils', () => {
             assert.deepStrictEqual(extractStyleTag(text), null);
         });
 
-        it('is canse sensitive to style/script', () => {
+        it('is case sensitive to style/script', () => {
             const text = `
             <Style></Style>
             <Script></Script>
@@ -342,6 +342,20 @@ describe('document/utils', () => {
                 startPos: Position.create(7, 18),
                 endPos: Position.create(7, 31),
                 container: { start: 151, end: 181 }
+            });
+        });
+
+        it('extract tag correctly if nothing is before the tag', () => {
+            const text = `<script>let value = 2</script>
+                {/if}`;
+            assert.deepStrictEqual(extractScriptTags(text)?.script, {
+                content: 'let value = 2',
+                attributes: {},
+                start: 8,
+                end: 21,
+                startPos: Position.create(0, 8),
+                endPos: Position.create(0, 21),
+                container: { start: 0, end: 30 }
             });
         });
     });

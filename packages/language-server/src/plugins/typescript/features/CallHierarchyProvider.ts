@@ -27,6 +27,7 @@ import {
     toGeneratedSvelteComponentName
 } from '../utils';
 import { findNodeAtSpan, gatherDescendants, SnapshotMap } from './utils';
+import { internalHelpers } from 'svelte2tsx';
 
 const ENSURE_COMPONENT_HELPER = '__sveltets_2_ensureComponent';
 
@@ -200,7 +201,7 @@ export class CallHierarchyProviderImpl implements CallHierarchyProvider {
                       .find(
                           (statement): statement is ts.FunctionDeclaration =>
                               ts.isFunctionDeclaration(statement) &&
-                              statement.name?.getText() === 'render'
+                              statement.name?.getText() === internalHelpers.renderName
                       )
                       ?.name?.getStart()
                 : -1;
@@ -304,7 +305,7 @@ export class CallHierarchyProviderImpl implements CallHierarchyProvider {
             return this.toComponentCallHierarchyItem(snapshot, item);
         }
 
-        if (item.name === 'render') {
+        if (item.name === internalHelpers.renderName) {
             const end = item.selectionSpan.start + item.selectionSpan.length;
             const renderFunction = sourceFile.statements.find(
                 (statement) =>

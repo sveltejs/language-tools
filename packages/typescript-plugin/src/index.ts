@@ -7,11 +7,12 @@ import type ts from 'typescript/lib/tsserverlibrary';
 import { ConfigManager, Configuration } from './config-manager';
 import { ProjectSvelteFilesManager } from './project-svelte-files';
 import {
-    getConfigPathForProject,
     getProjectDirectory,
+    getProjectParsedCommandLine,
     importSvelteCompiler,
     isSvelteProject
 } from './utils';
+import { internalHelpers } from 'svelte2tsx';
 
 function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
     const configManager = new ConfigManager();
@@ -46,11 +47,7 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
             logger.log(info.config);
         }
 
-        // This call the ConfiguredProject.getParsedCommandLine
-        // where it'll try to load the cached version of the parsedCommandLine
-        const parsedCommandLine = info.languageServiceHost.getParsedCommandLine?.(
-            getConfigPathForProject(info.project)
-        );
+        const parsedCommandLine = getProjectParsedCommandLine(info.project);
 
         // For some reason it's no longer enough to patch this at the projectService level, so we do it here, too
         // TODO investigate if we can use the script snapshot for all Svelte files, too, enabling Svelte file
@@ -200,32 +197,27 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
         }
 
         const svelteTsPath = dirname(require.resolve('svelte2tsx'));
-        const sveltePath = require.resolve(
+        const svelteCompilerPath = require.resolve(
             'svelte/compiler',
             configFilePath ? { paths: [configFilePath] } : undefined
         );
-        const VERSION = require(sveltePath).VERSION;
-        const isSvelte3 = VERSION.split('.')[0] === '3';
-        const svelteHtmlDeclaration = isSvelte3
-            ? undefined
-            : join(dirname(sveltePath), 'svelte-html.d.ts');
-        const svelteHtmlFallbackIfNotExist =
-            svelteHtmlDeclaration && modules.typescript.sys.fileExists(svelteHtmlDeclaration)
-                ? svelteHtmlDeclaration
-                : './svelte-jsx-v4.d.ts';
-        const svelteTsxFiles = (
-            isSvelte3
-                ? ['./svelte-shims.d.ts', './svelte-jsx.d.ts', './svelte-native-jsx.d.ts']
-                : [
-                      './svelte-shims-v4.d.ts',
-                      svelteHtmlFallbackIfNotExist,
-                      './svelte-native-jsx.d.ts'
-                  ]
-        ).map((f) => modules.typescript.sys.resolvePath(resolve(svelteTsPath, f)));
+        const sveltePath = dirname(
+            require.resolve(
+                'svelte/package.json',
+                configFilePath ? { paths: [configFilePath] } : undefined
+            )
+        );
+        const VERSION = require(svelteCompilerPath).VERSION;
 
-        resolvedSvelteTsxFiles = svelteTsxFiles;
+        resolvedSvelteTsxFiles = internalHelpers.get_global_types(
+            modules.typescript.sys,
+            VERSION.split('.')[0] === '3',
+            sveltePath,
+            svelteTsPath,
+            configFilePath
+        );
 
-        return svelteTsxFiles;
+        return resolvedSvelteTsxFiles;
     }
 
     function isSvelteProjectWithCache(project: ts.server.Project) {

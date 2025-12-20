@@ -1,6 +1,7 @@
 {
     "name": "svelte-vscode",
     "version": "0.5.0",
+    "private": true,
     "description": "Svelte language support for VS Code",
     "main": "dist/src/extension.js",
     "scripts": {
@@ -9,7 +10,7 @@
         "build": "npm run build:ts && npm run build:grammar",
         "vscode:prepublish": "npm install && npm run build && npm prune --production",
         "watch": "npm run build:grammar && tsc -w -p ./",
-        "test": "npm run build:grammar && node test/grammar/test.js"
+        "test": "npm run build:grammar && node test/grammar/test.js && vitest --run"
     },
     "repository": {
         "type": "git",
@@ -19,7 +20,7 @@
         "svelte",
         "vscode"
     ],
-    "author": "James Birtles <jameshbirtles@gmail.com> & the Svelte Core Team",
+    "author": "The Svelte Community",
     "license": "MIT",
     "bugs": {
         "url": "https://github.com/sveltejs/language-tools/issues"
@@ -178,6 +179,12 @@
                     "default": true,
                     "title": "TypeScript: Semantic Tokens",
                     "description": "Enable semantic tokens (semantic highlight) for TypeScript."
+                },
+                "svelte.plugin.typescript.workspaceSymbols.enable": {
+                    "type": "boolean",
+                    "default": true,
+                    "title": "TypeScript: Workspace Symbols",
+                    "description": "Enable workspace symbols for TypeScript."
                 },
                 "svelte.plugin.css.enable": {
                     "type": "boolean",
@@ -384,6 +391,12 @@
                     "title": "Svelte: Rename",
                     "description": "Enable rename/move Svelte files functionality"
                 },
+                "svelte.plugin.svelte.runesLegacyModeCodeLens.enable": {
+                    "type": "boolean",
+                    "default": true,
+                    "title": "Svelte: Legacy/Runes mode Code Lens",
+                    "description": "Show a code lens at the top of Svelte files indicating if they are in runes mode or legacy mode. Only visible in Svelte 5 projects."
+                },
                 "svelte.plugin.svelte.defaultScriptLanguage": {
                     "type": "string",
                     "default": "none",
@@ -393,6 +406,12 @@
                         "none",
                         "ts"
                     ]
+                },
+                "svelte.plugin.svelte.documentHighlight.enable": {
+                    "type": "boolean",
+                    "default": true,
+                    "title": "Svelte: Document Highlight",
+                    "description": "Enable document highlight support. Requires a restart."
                 }
             }
         },
@@ -723,10 +742,13 @@
     "devDependencies": {
         "@types/lodash": "^4.14.116",
         "@types/node": "^18.0.0",
+        "@types/semver": "^7.7.0",
         "@types/vscode": "^1.67",
         "js-yaml": "^3.14.0",
+        "semver": "^7.7.2",
         "tslib": "^2.4.0",
-        "typescript": "^5.5.2",
+        "typescript": "^5.9.2",
+        "vitest": "^3.2.4",
         "vscode-tmgrammar-test": "^0.0.11"
     },
     "dependencies": {

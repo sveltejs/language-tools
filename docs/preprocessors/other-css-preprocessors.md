@@ -42,7 +42,7 @@ export default {
 
 ## TailwindCSS
 
-We assume you already have setup TailwindCSS within your Svelte project. If not, you can run `npx svelte-add tailwindcss` to set it up automatically or visit [the Tailwind docs](https://tailwindcss.com/docs/guides/sveltekit) which explain how to manually set it up.
+We assume you already have setup TailwindCSS within your Svelte project. If not, you can run `npx sv add tailwindcss` to set it up automatically or visit [the Tailwind docs](https://tailwindcss.com/docs/guides/sveltekit) which explain how to manually set it up.
 
 To use TailwindCSS with the VSCode extension:
 

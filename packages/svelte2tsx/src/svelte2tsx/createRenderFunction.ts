@@ -2,17 +2,22 @@ import MagicString from 'magic-string';
 import { Node } from 'estree-walker';
 import { ComponentEvents } from './nodes/ComponentEvents';
 import { InstanceScriptProcessResult } from './processInstanceScriptContent';
-import { surroundWithIgnoreComments } from '../utils/ignore';
+import {
+    IGNORE_END_COMMENT,
+    IGNORE_START_COMMENT,
+    surroundWithIgnoreComments
+} from '../utils/ignore';
+import { internalHelpers } from '../helpers';
 
 export interface CreateRenderFunctionPara extends InstanceScriptProcessResult {
     str: MagicString;
     scriptTag: Node;
     scriptDestination: number;
-    rootSnippets: Array<[number, number]>;
     slots: Map<string, Map<string, string>>;
     events: ComponentEvents;
     uses$$SlotsInterface: boolean;
     svelte5Plus: boolean;
+    isTsFile: boolean;
     mode?: 'ts' | 'dts';
 }
 
@@ -20,7 +25,6 @@ export function createRenderFunction({
     str,
     scriptTag,
     scriptDestination,
-    rootSnippets,
     slots,
     events,
     exportedNames,
@@ -29,6 +33,8 @@ export function createRenderFunction({
     uses$$slots,
     uses$$SlotsInterface,
     generics,
+    hasTopLevelAwait,
+    isTsFile,
     mode
 }: CreateRenderFunctionPara) {
     const htmlx = str.original;
@@ -71,19 +77,24 @@ export function createRenderFunction({
                 start++;
                 end--;
             }
-            str.overwrite(scriptTag.start + 1, start - 1, `function render`);
-            str.overwrite(start - 1, start, `<`); // if the generics are unused, only this char is colored opaque
-            str.overwrite(end, scriptTagEnd, `>() {${propsDecl}\n`);
+
+            str.overwrite(
+                scriptTag.start + 1,
+                start - 1,
+                `${hasTopLevelAwait ? 'async ' : ''}function ${internalHelpers.renderName}`
+            );
+            str.overwrite(start - 1, start, isTsFile ? '<' : `<${IGNORE_START_COMMENT}`); // if the generics are unused, only this char is colored opaque
+            str.overwrite(
+                end,
+                scriptTagEnd,
+                `>${isTsFile ? '' : IGNORE_END_COMMENT}() {${propsDecl}\n`
+            );
         } else {
             str.overwrite(
                 scriptTag.start + 1,
                 scriptTagEnd,
-                `function render${generics.toDefinitionString(true)}() {${propsDecl}\n`
+                `${hasTopLevelAwait ? 'async ' : ''}function ${internalHelpers.renderName}${generics.toDefinitionString(true)}() {${propsDecl}\n`
             );
-        }
-
-        for (const rootSnippet of rootSnippets) {
-            str.move(rootSnippet[0], rootSnippet[1], scriptTagEnd);
         }
 
         const scriptEndTagStart = htmlx.lastIndexOf('<', scriptTag.end - 1);
@@ -94,7 +105,8 @@ export function createRenderFunction({
     } else {
         str.prependRight(
             scriptDestination,
-            `;function render() {` + `${propsDecl}${slotsDeclaration}\nasync () => {`
+            `;${hasTopLevelAwait ? 'async ' : ''}function ${internalHelpers.renderName}() {` +
+                `${propsDecl}${slotsDeclaration}\nasync () => {`
         );
     }
 

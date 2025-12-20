@@ -4,7 +4,8 @@
         "moduleResolution": "node",
         "strict": true,
         "allowJs": true,
-        "checkJs": true
+        "checkJs": true,
+        "skipLibCheck": true
     },
     "files": ["./Index.svelte"]
 }

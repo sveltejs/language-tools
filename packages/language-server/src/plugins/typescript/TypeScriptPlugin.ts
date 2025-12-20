@@ -11,6 +11,7 @@ import {
     CompletionList,
     DefinitionLink,
     Diagnostic,
+    DocumentHighlight,
     FileChangeType,
     FoldingRange,
     Hover,
@@ -27,7 +28,8 @@ import {
     SymbolInformation,
     SymbolKind,
     TextDocumentContentChangeEvent,
-    WorkspaceEdit
+    WorkspaceEdit,
+    WorkspaceSymbol
 } from 'vscode-languageserver';
 import {
     Document,
@@ -46,6 +48,7 @@ import {
     CompletionsProvider,
     DefinitionsProvider,
     DiagnosticsProvider,
+    DocumentHighlightProvider,
     DocumentSymbolsProvider,
     FileReferencesProvider,
     FileRename,
@@ -63,7 +66,8 @@ import {
     SignatureHelpProvider,
     TypeDefinitionProvider,
     UpdateImportsProvider,
-    UpdateTsOrJsFile
+    UpdateTsOrJsFile,
+    WorkspaceSymbolsProvider
 } from '../interfaces';
 import { LSAndTSDocResolver } from './LSAndTSDocResolver';
 import { ignoredBuildDirectories } from './SnapshotManager';
@@ -89,6 +93,7 @@ import {
     is$storeVariableIn$storeDeclaration,
     isTextSpanInGeneratedCode
 } from './features/utils';
+import { DocumentHighlightProviderImpl } from './features/DocumentHighlightProvider';
 import { isAttributeName, isAttributeShorthand, isEventHandler } from './svelte-ast-utils';
 import {
     convertToLocationForReferenceOrDefinition,
@@ -100,6 +105,7 @@ import {
 } from './utils';
 import { CallHierarchyProviderImpl } from './features/CallHierarchyProvider';
 import { CodeLensProviderImpl } from './features/CodeLensProvider';
+import { WorkspaceSymbolsProviderImpl } from './features/WorkspaceSymbolProvider';
 
 export class TypeScriptPlugin
     implements
@@ -116,12 +122,14 @@ export class TypeScriptPlugin
         SelectionRangeProvider,
         SignatureHelpProvider,
         SemanticTokensProvider,
+        DocumentHighlightProvider,
         ImplementationProvider,
         TypeDefinitionProvider,
         InlayHintProvider,
         CallHierarchyProvider,
         FoldingRangeProvider,
         CodeLensProvider,
+        WorkspaceSymbolsProvider,
         OnWatchFileChanges,
         CompletionsProvider<CompletionResolveInfo>,
         UpdateTsOrJsFile
@@ -149,6 +157,8 @@ export class TypeScriptPlugin
     private readonly foldingRangeProvider: FoldingRangeProviderImpl;
     private readonly callHierarchyProvider: CallHierarchyProviderImpl;
     private readonly codLensProvider: CodeLensProviderImpl;
+    private readonly documentHeightProvider: DocumentHighlightProviderImpl;
+    private readonly workspaceSymbolsProvider: WorkspaceSymbolsProvider;
 
     constructor(
         configManager: LSConfigManager,
@@ -207,6 +217,11 @@ export class TypeScriptPlugin
             this.findReferencesProvider,
             this.implementationProvider,
             this.configManager
+        );
+        this.documentHeightProvider = new DocumentHighlightProviderImpl(this.lsAndTsDocResolver);
+        this.workspaceSymbolsProvider = new WorkspaceSymbolsProviderImpl(
+            this.lsAndTsDocResolver,
+            configManager
         );
     }
 
@@ -686,6 +701,23 @@ export class TypeScriptPlugin
         cancellationToken?: CancellationToken
     ): Promise<CodeLens> {
         return this.codLensProvider.resolveCodeLens(document, codeLensToResolve, cancellationToken);
+    }
+
+    async findDocumentHighlight(
+        document: Document,
+        position: Position
+    ): Promise<DocumentHighlight[] | null> {
+        return this.documentHeightProvider.findDocumentHighlight(document, position);
+    }
+
+    async getWorkspaceSymbols(
+        query: string,
+        cancellationToken?: CancellationToken
+    ): Promise<WorkspaceSymbol[] | null> {
+        if (!this.featureEnabled('workspaceSymbols')) {
+            return null;
+        }
+        return this.workspaceSymbolsProvider.getWorkspaceSymbols(query, cancellationToken);
     }
 
     private featureEnabled(feature: keyof LSTypescriptConfig) {

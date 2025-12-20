@@ -1,6 +1,6 @@
 import MagicString from 'magic-string';
 import ts from 'typescript';
-import { moveNode } from '../utils/tsAst';
+import { getTopLevelImports, moveNode } from '../utils/tsAst';
 
 /**
  * move imports to top of script so they appear outside our render function
@@ -25,9 +25,8 @@ export function handleFirstInstanceImport(
     hasModuleScript: boolean,
     str: MagicString
 ) {
-    const firstImport = tsAst.statements
-        .filter(ts.isImportDeclaration)
-        .sort((a, b) => a.end - b.end)[0];
+    const imports = getTopLevelImports(tsAst);
+    const firstImport = imports[0];
     if (!firstImport) {
         return;
     }
@@ -42,4 +41,12 @@ export function handleFirstInstanceImport(
             : firstImport.getStart();
 
     str.appendRight(start + astOffset, '\n' + (hasModuleScript ? '\n' : ''));
+
+    // Add a semi-colon to the last import if it doesn't have one, to prevent auto completion
+    // and imports from being added at the wrong position
+    const lastImport = imports[imports.length - 1];
+    const end = lastImport.end + astOffset - 1;
+    if (str.original[end] !== ';') {
+        str.overwrite(end, lastImport.end + astOffset, str.original[end] + ';\n');
+    }
 }

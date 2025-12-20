@@ -1,5 +1,5 @@
 ///<reference types="svelte" />
-;function render() {                                                                                                                                  {/**
+;function $$render() {                                                                                                                                {/**
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
 async () => { {const $$action_0 = __sveltets_2_ensureAction(action(svelteHTML.mapElementTag('element')));{ svelteHTML.createElement("element", __sveltets_2_union($$action_0), { });}}{/**
 ============#                                                                                                                                                                              Originless mappings
@@ -143,5 +143,5 @@ async•()•=>•{•{const•$$action_0•=•__sveltets_2_ensureAction(action
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
 return { props: /** @type {Record<string, never>} */ ({}), slots: {}, events: {} }}
 
-export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial(__sveltets_2_with_any_event(render()))) {
+export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial(__sveltets_2_with_any_event($$render()))) {
 }

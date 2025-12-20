@@ -5,7 +5,7 @@ import { SvelteComponentTyped } from "svelte"
 ;;
 
 import { createEventDispatcher } from 'svelte';
-function render() {
+function $$render() {
 
   
 
@@ -24,10 +24,10 @@ async () => {
  { __sveltets_createSlot("default", {bar,}); }};
 return { props: {
 /** @type {boolean} */bar: bar , foobar: foobar}, slots: {'default': {bar:bar}}, events: {'click':__sveltets_2_mapElementEvent('click'), 'hi': __sveltets_2_customEvent} }}
-const __propDef = __sveltets_2_partial(['foobar'], __sveltets_2_with_any_event(render()));
+const __propDef = __sveltets_2_partial(['foobar'], __sveltets_2_with_any_event($$render()));
 /** @typedef {typeof __propDef.props}  InputProps */
 /** @typedef {typeof __propDef.events}  InputEvents */
 /** @typedef {typeof __propDef.slots}  InputSlots */
 
-export default class Input extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial(['foobar'], __sveltets_2_with_any_event(render()))) {
+export default class Input extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial(['foobar'], __sveltets_2_with_any_event($$render()))) {
 }

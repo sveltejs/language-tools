@@ -6,7 +6,7 @@ import { SvelteComponentTyped } from "svelte"
 
 import Bar from './bar';
 import { createEventDispatcher } from 'svelte';
-function render() {
+function $$render() {
 
   
   
@@ -37,6 +37,6 @@ type $$__sveltets_2_PropsWithChildren<Props, Slots> = Props &
         declare function $$__sveltets_2_isomorphic_component_slots<
             Props extends Record<string, any>, Events extends Record<string, any>, Slots extends Record<string, any>, Exports extends Record<string, any>, Bindings extends string
         >(klass: {props: Props, events: Events, slots: Slots, exports?: Exports, bindings?: Bindings }): $$__sveltets_2_IsomorphicComponent<$$__sveltets_2_PropsWithChildren<Props, Slots>, Events, Slots, Exports, Bindings>;
-const Input = $$__sveltets_2_isomorphic_component_slots(__sveltets_2_with_any_event(render()));
+const Input = $$__sveltets_2_isomorphic_component_slots(__sveltets_2_with_any_event($$render()));
 /*Ωignore_startΩ*/type Input = InstanceType<typeof Input>;
 /*Ωignore_endΩ*/export default Input;

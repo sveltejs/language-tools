@@ -21,6 +21,7 @@ describe('service', () => {
 
         const rootUris = [pathToUrl(testDir)];
         const lsDocumentContext: LanguageServiceDocumentContext = {
+            isSvelteCheck: false,
             ambientTypesSource: 'svelte2tsx',
             createDocument(fileName, content) {
                 return new Document(pathToUrl(fileName), content);
@@ -278,6 +279,57 @@ describe('service', () => {
         assert.doesNotThrow(() => {
             lang.dispose();
         });
+    });
+
+    it('do not throw when script tag is nuked', async () => {
+        // testing this because the patch rely on ts implementation details
+        // and we want to be aware of the changes
+
+        const dirPath = getRandomVirtualDirPath(testDir);
+        const { virtualSystem, lsDocumentContext, rootUris } = setup();
+
+        virtualSystem.writeFile(
+            path.join(dirPath, 'tsconfig.json'),
+            JSON.stringify({
+                compilerOptions: {
+                    module: 'NodeNext',
+                    moduleResolution: 'NodeNext'
+                }
+            })
+        );
+
+        virtualSystem.writeFile(
+            path.join(dirPath, 'random.svelte'),
+            '<script>const a: number = null;</script>'
+        );
+        virtualSystem.writeFile(
+            path.join(dirPath, 'random2.svelte'),
+            '<script lang="ts">import Random from "./random.svelte";</script>'
+        );
+
+        const ls = await getService(
+            path.join(dirPath, 'random.svelte'),
+            rootUris,
+            lsDocumentContext
+        );
+
+        const document = new Document(pathToUrl(path.join(dirPath, 'random.svelte')), '');
+        document.openedByClient = true;
+        ls.updateSnapshot(document);
+
+        const document2 = new Document(
+            pathToUrl(path.join(dirPath, 'random2.svelte')),
+            virtualSystem.readFile(path.join(dirPath, 'random2.svelte'))!
+        );
+        document.openedByClient = true;
+        ls.updateSnapshot(document2);
+
+        const lang = ls.getService();
+        lang.getProgram();
+
+        document2.update('<script', 0, document2.getTextLength());
+        ls.updateSnapshot(document2);
+        ls.getService();
     });
 
     function createReloadTester(
@@ -541,6 +593,54 @@ describe('service', () => {
 
             return fileExists(realPath);
         };
+
+        const ls = await getService(importing, rootUris, lsDocumentContext);
+
+        assert.deepStrictEqual(getSemanticDiagnosticsMessages(ls, importing), []);
+    });
+
+    it('resolve module with source project reference redirect having different module resolution', async () => {
+        const dirPath = getRandomVirtualDirPath(testDir);
+        const { virtualSystem, lsDocumentContext, rootUris } = setup();
+
+        const package1 = path.join(dirPath, 'package1');
+
+        virtualSystem.writeFile(
+            path.join(package1, 'tsconfig.json'),
+            JSON.stringify({
+                references: [{ path: '../package2' }],
+                files: ['index.ts'],
+                compilerOptions: {
+                    moduleResolution: 'Bundler',
+                    module: 'ESNext',
+                    paths: {
+                        package2: ['../package2']
+                    }
+                }
+            })
+        );
+
+        const package2 = path.join(dirPath, 'package2');
+        virtualSystem.writeFile(
+            path.join(package2, 'tsconfig.json'),
+            JSON.stringify({
+                compilerOptions: {
+                    composite: true,
+                    strict: true,
+                    moduleResolution: 'NodeNext'
+                },
+                files: ['index.ts']
+            })
+        );
+
+        const importing = path.join(package1, 'index.ts');
+        virtualSystem.writeFile(importing, 'import { hi } from "package2"; hi((a) => `${a}`);');
+
+        const reExport = path.join(package2, 'index.ts');
+        virtualSystem.writeFile(reExport, 'export * from "./foo"');
+
+        const exportFile = path.join(package2, 'foo.ts');
+        virtualSystem.writeFile(exportFile, 'export function hi(cb: (num: number) => string) {}');
 
         const ls = await getService(importing, rootUris, lsDocumentContext);
 

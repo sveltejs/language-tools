@@ -21,7 +21,8 @@ const defaultLSConfig: LSConfig = {
         codeActions: { enable: true },
         selectionRange: { enable: true },
         signatureHelp: { enable: true },
-        semanticTokens: { enable: true }
+        semanticTokens: { enable: true },
+        workspaceSymbols: { enable: true }
     },
     css: {
         enable: true,
@@ -63,6 +64,7 @@ const defaultLSConfig: LSConfig = {
         hover: { enable: true },
         codeActions: { enable: true },
         selectionRange: { enable: true },
+        runesLegacyModeCodeLens: { enable: true },
         defaultScriptLanguage: 'none'
     }
 };
@@ -102,6 +104,9 @@ export interface LSTypescriptConfig {
         enable: boolean;
     };
     semanticTokens: {
+        enable: boolean;
+    };
+    workspaceSymbols: {
         enable: boolean;
     };
 }
@@ -188,6 +193,7 @@ export interface LSSvelteConfig {
     selectionRange: {
         enable: boolean;
     };
+    runesLegacyModeCodeLens: { enable: boolean };
     defaultScriptLanguage: 'none' | 'ts';
 }
 
@@ -203,6 +209,11 @@ export interface TSUserConfig {
     inlayHints?: TsInlayHintsConfig;
     referencesCodeLens?: TsReferenceCodeLensConfig;
     implementationsCodeLens?: TsImplementationCodeLensConfig;
+    workspaceSymbols?: TsWorkspaceSymbolsConfig;
+}
+
+interface TsJsSharedConfig {
+    hover?: { maximumLength?: number };
 }
 
 /**
@@ -221,6 +232,20 @@ export interface TsUserPreferencesConfig {
     includePackageJsonAutoImports?: ts.UserPreferences['includePackageJsonAutoImports'];
 
     preferTypeOnlyAutoImports?: ts.UserPreferences['preferTypeOnlyAutoImports'];
+
+    autoImportSpecifierExcludeRegexes?: string[];
+
+    organizeImports?: TsOrganizeImportPreferencesConfig;
+}
+
+interface TsOrganizeImportPreferencesConfig {
+    accentCollation: ts.UserPreferences['organizeImportsAccentCollation'];
+    caseFirst: ts.UserPreferences['organizeImportsCaseFirst'] | 'default';
+    caseSensitivity: ts.UserPreferences['organizeImportsIgnoreCase'];
+    collation: ts.UserPreferences['organizeImportsCollation'];
+    locale: ts.UserPreferences['organizeImportsLocale'];
+    numericCollation: ts.UserPreferences['organizeImportsNumericCollation'];
+    typeOrder: ts.UserPreferences['organizeImportsTypeOrder'] | 'auto';
 }
 
 /**
@@ -264,7 +289,17 @@ export interface TsImplementationCodeLensConfig {
     showOnInterfaceMethods?: boolean | undefined;
 }
 
+export interface TsWorkspaceSymbolsConfig {
+    excludeLibrarySymbols?: boolean;
+}
+
 export type TsUserConfigLang = 'typescript' | 'javascript';
+
+interface TsUserConfigLangMap {
+    typescript?: TSUserConfig;
+    javascript?: TSUserConfig;
+    'js/ts'?: TsJsSharedConfig;
+}
 
 /**
  * The config as the vscode-css-languageservice understands it
@@ -409,10 +444,11 @@ export class LSConfigManager {
         );
     }
 
-    updateTsJsUserPreferences(config: Record<TsUserConfigLang, TSUserConfig>): void {
+    updateTsJsUserPreferences(config: TsUserConfigLangMap): void {
+        const shared = config['js/ts'];
         (['typescript', 'javascript'] as const).forEach((lang) => {
             if (config[lang]) {
-                this._updateTsUserPreferences(lang, config[lang]);
+                this._updateTsUserPreferences(lang, config[lang], shared);
                 this.rawTsUserConfig[lang] = config[lang];
             }
         });
@@ -433,7 +469,11 @@ export class LSConfigManager {
         this.notifyListeners();
     }
 
-    private _updateTsUserPreferences(lang: TsUserConfigLang, config: TSUserConfig) {
+    private _updateTsUserPreferences(
+        lang: TsUserConfigLang,
+        config: TSUserConfig,
+        shared?: TsJsSharedConfig
+    ) {
         const { inlayHints } = config;
 
         this.tsUserPreferences[lang] = {
@@ -457,6 +497,7 @@ export class LSConfigManager {
             includeCompletionsWithObjectLiteralMethodSnippets:
                 config.suggest?.objectLiteralMethodSnippets?.enabled ?? true,
             preferTypeOnlyAutoImports: config.preferences?.preferTypeOnlyAutoImports,
+            maximumHoverLength: shared?.hover?.maximumLength,
 
             // Although we don't support incompletion cache.
             // But this will make ts resolve the module specifier more aggressively
@@ -473,9 +514,34 @@ export class LSConfigManager {
             includeInlayPropertyDeclarationTypeHints: inlayHints?.propertyDeclarationTypes?.enabled,
             includeInlayVariableTypeHintsWhenTypeMatchesName:
                 inlayHints?.variableTypes?.suppressWhenTypeMatchesName === false,
+            interactiveInlayHints: true,
 
-            interactiveInlayHints: true
+            autoImportSpecifierExcludeRegexes:
+                config.preferences?.autoImportSpecifierExcludeRegexes,
+
+            organizeImportsAccentCollation: config.preferences?.organizeImports?.accentCollation,
+            organizeImportsCollation: config.preferences?.organizeImports?.collation,
+            organizeImportsCaseFirst: this.withDefaultAsUndefined(
+                config.preferences?.organizeImports?.caseFirst,
+                'default'
+            ),
+            organizeImportsIgnoreCase: this.withDefaultAsUndefined(
+                config.preferences?.organizeImports?.caseSensitivity,
+                'auto'
+            ),
+            organizeImportsLocale: config.preferences?.organizeImports?.locale,
+            organizeImportsNumericCollation: config.preferences?.organizeImports?.numericCollation,
+            organizeImportsTypeOrder: this.withDefaultAsUndefined(
+                config.preferences?.organizeImports?.typeOrder,
+                'auto'
+            ),
+
+            excludeLibrarySymbolsInNavTo: config.workspaceSymbols?.excludeLibrarySymbols ?? true
         };
+    }
+
+    private withDefaultAsUndefined<T, O extends T>(value: T, def: O): Exclude<T, O> | undefined {
+        return value === def ? undefined : (value as Exclude<T, O>);
     }
 
     getTsUserPreferences(
@@ -568,7 +634,7 @@ export class LSConfigManager {
         return this.htmlConfig;
     }
 
-    updateTsJsFormateConfig(config: Record<TsUserConfigLang, TSUserConfig>): void {
+    updateTsJsFormateConfig(config: TsUserConfigLangMap): void {
         (['typescript', 'javascript'] as const).forEach((lang) => {
             if (config[lang]) {
                 this._updateTsFormatConfig(lang, config[lang]);

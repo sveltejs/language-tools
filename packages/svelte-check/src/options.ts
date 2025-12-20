@@ -65,6 +65,9 @@ export function parseOptions(cb: (opts: SvelteCheckCliOptions) => any) {
             'Filters the diagnostics to display. `error` will output only errors while `warning` will output warnings and errors.',
             'warning'
         )
+        // read by sade and preprocessor like sass
+        .option('--color', 'Force enabling of color output', false)
+        .option('--no-color', 'Force disabling of color output', false)
         .action((opts) => {
             const workspaceUri = getWorkspaceUri(opts);
             const tsconfig = getTsconfig(opts, workspaceUri.fsPath);
@@ -96,7 +99,14 @@ const outputFormats = ['human', 'human-verbose', 'machine', 'machine-verbose'] a
 type OutputFormat = (typeof outputFormats)[number];
 
 function getOutputFormat(opts: Record<string, any>): OutputFormat {
-    return outputFormats.includes(opts.output) ? opts.output : 'human-verbose';
+    if (outputFormats.includes(opts.output)) {
+        return opts.output;
+    } else if (process.env.CLAUDECODE === '1') {
+        // https://github.com/sveltejs/language-tools/issues/2868
+        return 'machine';
+    } else {
+        return 'human-verbose';
+    }
 }
 
 function getWorkspaceUri(opts: Record<string, any>) {
@@ -177,8 +187,8 @@ function getCompilerWarnings(opts: Record<string, any>) {
     }
 }
 
-const diagnosticSources = ['js', 'css', 'svelte'] as const;
-type DiagnosticSource = (typeof diagnosticSources)[number];
+type DiagnosticSource = 'js' | 'css' | 'svelte';
+const diagnosticSources: DiagnosticSource[] = ['js', 'css', 'svelte'];
 
 function getDiagnosticSources(opts: Record<string, any>): DiagnosticSource[] {
     const sources = opts['diagnostic-sources'];

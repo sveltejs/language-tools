@@ -14,21 +14,27 @@ export function createSvelteSys(tsSystem: ts.System) {
 
             // First check if there's a `.svelte.d.ts` or `.d.svelte.ts` file, which should take precedence
             const dtsPath = sveltePath.slice(0, -7) + '.svelte.d.ts';
-            const dtsPathExists = fileExistsCache.get(dtsPath) ?? tsSystem.fileExists(dtsPath);
-            fileExistsCache.set(dtsPath, dtsPathExists);
+            const dtsPathExists = getOrCreateFileExistCache(dtsPath);
             if (dtsPathExists) return false;
 
-            const svelteDtsPathExists = fileExistsCache.get(path) ?? tsSystem.fileExists(path);
-            fileExistsCache.set(path, svelteDtsPathExists);
+            const svelteDtsPathExists = getOrCreateFileExistCache(path);
             if (svelteDtsPathExists) return false;
 
-            const sveltePathExists =
-                fileExistsCache.get(sveltePath) ?? tsSystem.fileExists(sveltePath);
-            fileExistsCache.set(sveltePath, sveltePathExists);
+            const sveltePathExists = getOrCreateFileExistCache(sveltePath);
             return sveltePathExists;
         } else {
             return false;
         }
+    }
+
+    function getOrCreateFileExistCache(path: string) {
+        const cached = fileExistsCache.get(path);
+        if (cached !== undefined) {
+            return cached;
+        }
+        const exists = tsSystem.fileExists(path);
+        fileExistsCache.set(path, exists);
+        return exists;
     }
 
     function getRealSveltePathIfExists(path: string) {
@@ -48,9 +54,7 @@ export function createSvelteSys(tsSystem: ts.System) {
             const sveltePathExists = svelteFileExists(path);
             if (sveltePathExists) return true;
 
-            const exists = fileExistsCache.get(path) ?? tsSystem.fileExists(path);
-            fileExistsCache.set(path, exists);
-            return exists;
+            return getOrCreateFileExistCache(path);
         },
         readFile(path: string) {
             // No getSnapshot here, because TS will very rarely call this and only for files that are not in the project

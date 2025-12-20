@@ -56,7 +56,8 @@ export class Sample {
 
     constructor(
         dir: string,
-        readonly name: string
+        readonly name: string,
+        public emitOnTemplateError = false
     ) {
         this.directory = path.resolve(dir, 'samples', name);
         this.folder = fs.readdirSync(this.directory);
@@ -110,7 +111,7 @@ export class Sample {
 
         const sample = this;
 
-        _it(this.name, function () {
+        _it(this.name + (this.emitOnTemplateError ? ' (loose parser mode)' : ''), function () {
             try {
                 fn();
                 if (sample.skipped) this.skip();
@@ -237,7 +238,7 @@ export function test_samples(dir: string, transform: TransformSampleFn, js: 'js'
         const config = {
             filename: svelteFile,
             sampleName: sample.name,
-            emitOnTemplateError: false,
+            emitOnTemplateError: sample.emitOnTemplateError,
             preserveAttributeCase: sample.name.endsWith('-foreign-ns')
         };
 
@@ -273,7 +274,7 @@ export function test_samples(dir: string, transform: TransformSampleFn, js: 'js'
             sample.onError(function (generate, err: AssertionError) {
                 if (!err || err.code !== 'ERR_ASSERTION') return;
                 const { message, actual } = err;
-                switch (message) {
+                switch (message.split('\n')[0]) {
                     case TestError.WrongExpected: {
                         generate(expectedFile, actual);
                         break;
@@ -382,6 +383,9 @@ export function get_svelte2tsx_config(base: BaseConfig, sampleName: string): Sve
 export function* each_sample(dir: string) {
     for (const name of fs.readdirSync(`${dir}/samples`)) {
         yield new Sample(dir, name);
+        if (isSvelte5Plus && !fs.existsSync(`${dir}/samples/${name}/expected.error.json`)) {
+            yield new Sample(dir, `${name}`, true);
+        }
     }
 }
 

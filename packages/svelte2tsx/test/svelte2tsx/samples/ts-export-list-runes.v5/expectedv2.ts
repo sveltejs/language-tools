@@ -1,5 +1,5 @@
 ///<reference types="svelte" />
-;function render() {
+;function $$render() {
 
     let name1: string = "world"/*Ωignore_startΩ*/;name1 = __sveltets_2_any(name1);/*Ωignore_endΩ*/
     let name2: string/*Ωignore_startΩ*/;name2 = __sveltets_2_any(name2);/*Ωignore_endΩ*/;
@@ -20,6 +20,7 @@
 ;
 async () => {  { svelteHTML.createElement("svelte:options", {"runes":true,});}
 };
-return { props: {} as Record<string, never>, exports: {} as any as { name1: string,name2: string,name3: string,name4: string,renamed1: string,renamed2: string,Foo: typeof Foo,bar: typeof bar,baz: string,RenamedFoo: typeof RenameFoo,renamedbar: typeof renamebar,renamedbaz: string }, bindings: __sveltets_$$bindings(''), slots: {}, events: {} }}
-const Input__SvelteComponent_ = __sveltets_2_fn_component(render());
-export default Input__SvelteComponent_;
+return { props: {} as Record<string, never>, exports: {name1: name1,name2: name2,name3: name3,name4: name4,renamed1: rename1,renamed2: rename2,baz: baz,renamedbaz: renamebaz} as any as { name1: string,name2: string,name3: string,name4: string,renamed1: string,renamed2: string,Foo: typeof Foo,bar: typeof bar,baz: string,RenamedFoo: typeof RenameFoo,renamedbar: typeof renamebar,renamedbaz: string }, bindings: __sveltets_$$bindings(''), slots: {}, events: {} }}
+const Input__SvelteComponent_ = __sveltets_2_fn_component($$render());
+/*Ωignore_startΩ*/type Input__SvelteComponent_ = ReturnType<typeof Input__SvelteComponent_>;
+/*Ωignore_endΩ*/export default Input__SvelteComponent_;

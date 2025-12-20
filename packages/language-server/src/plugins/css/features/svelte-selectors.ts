@@ -9,7 +9,7 @@ Applying styles to a selector globally`,
         references: [
             {
                 name: 'Svelte.dev Reference',
-                url: 'https://svelte.dev/docs#style'
+                url: 'https://svelte.dev/docs/svelte/global-styles'
             }
         ]
     }

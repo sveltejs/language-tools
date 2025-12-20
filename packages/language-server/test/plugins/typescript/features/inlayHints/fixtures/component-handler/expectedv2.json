@@ -12,8 +12,8 @@
                 "value": "MouseEvent",
                 "location": {
                     "range": {
-                        "start": { "line": 15860, "character": 10 },
-                        "end": { "line": 15860, "character": 20 }
+                        "start": { "line": 20928, "character": 10 },
+                        "end": { "line": 20928, "character": 20 }
                     },
                     "uri": "<node_modules>/typescript/lib/lib.dom.d.ts"
                 }

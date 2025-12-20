@@ -8,6 +8,7 @@ import { SvelteDocumentSnapshot } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { convertRange } from '../utils';
 import { isTextSpanInGeneratedCode } from './utils';
+import { internalHelpers } from 'svelte2tsx';
 
 type CodeLensType = 'reference' | 'implementation';
 
@@ -79,7 +80,9 @@ export class CodeLensProviderImpl implements CodeLensProvider {
         }
 
         const navigationTree = lang.getNavigationTree(tsDoc.filePath);
-        const renderFunction = navigationTree?.childItems?.find((item) => item.text === 'render');
+        const renderFunction = navigationTree?.childItems?.find(
+            (item) => item.text === internalHelpers.renderName
+        );
         if (renderFunction) {
             // pretty rare that there is anything to show in the template, so we skip it
             const notTemplate = renderFunction.childItems?.filter(

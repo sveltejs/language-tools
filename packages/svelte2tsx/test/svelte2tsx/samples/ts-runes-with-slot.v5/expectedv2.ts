@@ -1,5 +1,5 @@
 ///<reference types="svelte" />
-;function render<T>() {
+;function $$render<T>() {
 
     type Props = { a: T, b: string };
     let { a, b }: Props = $props();
@@ -12,15 +12,9 @@ async () => {
  { __sveltets_createSlot("default", {  x,y,});}};
 return { props: {} as any as Props, exports: {}, bindings: __sveltets_$$bindings(''), slots: {'default': {x:x, y:y}}, events: {} }}
 class __sveltets_Render<T> {
-    props() {
-        return render<T>().props;
-    }
-    events() {
-        return render<T>().events;
-    }
-    slots() {
-        return render<T>().slots;
-    }
+    props(): ReturnType<typeof $$render<T>>['props'] { return null as any; }
+    events(): ReturnType<typeof $$render<T>>['events'] { return null as any; }
+    slots(): ReturnType<typeof $$render<T>>['slots'] { return null as any; }
     bindings() { return __sveltets_$$bindings(''); }
     exports() { return {}; }
 }

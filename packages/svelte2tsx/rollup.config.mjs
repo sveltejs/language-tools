@@ -107,7 +107,7 @@ export default [
             'svelte',
             'svelte/compiler',
             'dedent-js',
-            'pascal-case'
+            'scule'
         ]
     }
 ];

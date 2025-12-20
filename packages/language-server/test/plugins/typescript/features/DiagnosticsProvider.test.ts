@@ -84,11 +84,33 @@ describe('DiagnosticsProvider', function () {
 
         try {
             const diagnostics3 = await plugin.getDiagnostics(document);
-            assert.deepStrictEqual(diagnostics3.length, 1);
+            assert.deepStrictEqual(diagnostics3.length, 0);
             await lsAndTsDocResolver.deleteSnapshot(newTsFilePath);
         } finally {
             unlinkSync(newTsFilePath);
             unlinkSync(newFilePath);
+        }
+    }).timeout(this.timeout() * 2.5);
+
+    it('notices changes of module resolution because of new svelte file', async () => {
+        const { plugin, document, lsAndTsDocResolver } = setup('unresolvedimport2.svelte');
+
+        const diagnostics1 = await plugin.getDiagnostics(document);
+        assert.deepStrictEqual(diagnostics1.length, 1);
+
+        // back-and-forth-conversion normalizes slashes
+        const newSvelteFilePath = normalizePath(path.join(testDir, 'doesntexistyet.svelte')) || '';
+
+        writeFileSync(newSvelteFilePath, '<script lang="ts"></script>');
+        assert.ok(existsSync(newSvelteFilePath));
+        await lsAndTsDocResolver.invalidateModuleCache([newSvelteFilePath]);
+
+        try {
+            const diagnostics2 = await plugin.getDiagnostics(document);
+            assert.deepStrictEqual(diagnostics2.length, 0);
+            await lsAndTsDocResolver.deleteSnapshot(newSvelteFilePath);
+        } finally {
+            unlinkSync(newSvelteFilePath);
         }
     }).timeout(this.timeout() * 2.5);
 

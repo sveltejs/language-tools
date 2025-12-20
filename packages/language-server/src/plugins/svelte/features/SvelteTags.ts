@@ -8,7 +8,7 @@ export type SvelteLogicTag = 'each' | 'if' | 'await' | 'key' | 'snippet';
 /**
  * Special svelte syntax tags.
  */
-export type SvelteTag = SvelteLogicTag | 'html' | 'debug' | 'const' | 'render';
+export type SvelteTag = SvelteLogicTag | 'html' | 'debug' | 'const' | 'render' | 'attach';
 
 /**
  * For each tag, a documentation in markdown format.
@@ -23,7 +23,7 @@ Await blocks allow you to branch on the three possible states of a Promise — p
 \`{#await expression}...{:then name}...{/await}\`\\
 \`{#await expression then name}...{/await}\`\\
 \\
-https://svelte.dev/docs#template-syntax-await
+https://svelte.dev/docs/svelte/await
 `,
     each: `\`{#each ...}\`\\
 Iterating over lists of values can be done with an each block.
@@ -33,7 +33,7 @@ Iterating over lists of values can be done with an each block.
 \`{#each expression as name, index (key)}...{/each}\`\\
 \`{#each expression as name}...{:else}...{/each}\`\\
 \\
-https://svelte.dev/docs#template-syntax-each
+https://svelte.dev/docs/svelte/each
 `,
     if: `\`{#if ...}\`\\
 Content that is conditionally rendered can be wrapped in an if block.
@@ -42,7 +42,7 @@ Content that is conditionally rendered can be wrapped in an if block.
 \`{#if expression}...{:else if expression}...{/if}\`\\
 \`{#if expression}...{:else}...{/if}\`\\
 \\
-https://svelte.dev/docs#template-syntax-if
+https://svelte.dev/docs/svelte/if
 `,
     key: `\`{#key expression}...{/key}\`\\
 Key blocks destroy and recreate their contents when the value of an expression changes.\\
@@ -51,14 +51,22 @@ When used around components, this will cause them to be reinstantiated and reini
 #### Usage:
 \`{#key expression}...{/key}\`\\
 \\
-https://svelte.dev/docs#template-syntax-key
+https://svelte.dev/docs/svelte/key
 `,
     snippet: `\`{#snippet identifier(parameter)}...{/snippet}\`\\
 Snippets allow you to create reusable UI blocks you can render with the {@render ...} tag.
 They also function as slot props for components.
+#### Usage:
+\`{#snippet identifier(parameter)}...{/snippet}\`\\
+\\
+https://svelte.dev/docs/svelte/snippet
 `,
     render: `\`{@render ...}\`\\
 Renders a snippet with the given parameters.
+#### Usage:
+\`{@render identifier(parameter)}\`\\
+\\
+https://svelte.dev/docs/svelte/@render
 `,
     html:
         `\`{@html ...}\`\\
@@ -72,7 +80,7 @@ If the data comes from an untrusted source, you must sanitize it, ` +
 #### Usage:
 \`{@html expression}\`\\
 \\
-https://svelte.dev/docs#template-syntax-html
+https://svelte.dev/docs/svelte/@html
 `,
     debug:
         `\`{@debug ...}\`\\
@@ -84,14 +92,22 @@ It accepts a comma-separated list of variable names (not arbitrary expressions).
 \`{@debug}\`
 \`{@debug var1, var2, ..., varN}\`\\
 \\
-https://svelte.dev/docs#template-syntax-debug
+https://svelte.dev/docs/svelte/@debug
 `,
     const: `\`{@const ...}\`\\
-Defines a local constant}\\
+Defines a local constant\\
 #### Usage:
 \`{@const a = b + c}\`\\
 \\
-https://svelte.dev/docs/special-tags#const
+https://svelte.dev/docs/svelte/@const
+`,
+    attach: `\`{@attach ...}\`\\
+Defines an attachment that is attached to an element or component\\
+#### Usage:
+\`<div {@attach (node) => {...}}></div>\`\\
+\`<Component {@attach namedAttachment} />\`\\
+\\
+https://svelte.dev/docs/svelte/@attach
 `
 };
 

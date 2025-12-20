@@ -1,0 +1,15 @@
+{
+    "$schema": "https://unpkg.com/@changesets/config@3.1.1/schema.json",
+    "changelog": [
+        "@svitejs/changesets-changelog-github-compact",
+        { "repo": "sveltejs/language-tools" }
+    ],
+    "commit": false,
+    "fixed": [],
+    "linked": [],
+    "access": "public",
+    "baseBranch": "master",
+    "updateInternalDependencies": "minor",
+    "bumpVersionsWithWorkspaceProtocolOnly": true,
+    "ignore": ["svelte-vscode"]
+}

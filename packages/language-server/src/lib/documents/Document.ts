@@ -5,6 +5,7 @@ import { parseHtml } from './parseHtml';
 import { SvelteConfig, configLoader } from './configLoader';
 import { HTMLDocument } from 'vscode-html-languageservice';
 import { Range } from 'vscode-languageserver';
+import { importSvelte } from '../../importPackage';
 
 /**
  * Represents a text document contains a svelte component.
@@ -25,6 +26,16 @@ export class Document extends WritableDocument {
      */
     private path = urlToPath(this.url);
 
+    private _compiler: typeof import('svelte/compiler') | undefined;
+    get compiler() {
+        return this.getCompiler();
+    }
+
+    private svelteVersion: [number, number] | undefined;
+    public get isSvelte5() {
+        return this.getSvelteVersion()[0] > 4;
+    }
+
     constructor(
         public url: string,
         public content: string
@@ -32,6 +43,13 @@ export class Document extends WritableDocument {
         super();
         this.configPromise = configLoader.awaitConfig(this.getFilePath() || '');
         this.updateDocInfo();
+    }
+
+    private getCompiler() {
+        if (!this._compiler) {
+            this._compiler = importSvelte(this.getFilePath() || '');
+        }
+        return this._compiler;
     }
 
     private updateDocInfo() {
@@ -64,6 +82,14 @@ export class Document extends WritableDocument {
             update(undefined);
             this.configPromise.then((c) => update(c));
         }
+    }
+
+    getSvelteVersion() {
+        if (!this.svelteVersion) {
+            const [major, minor] = this.compiler.VERSION.split('.');
+            this.svelteVersion = [Number(major), Number(minor)];
+        }
+        return this.svelteVersion;
     }
 
     /**

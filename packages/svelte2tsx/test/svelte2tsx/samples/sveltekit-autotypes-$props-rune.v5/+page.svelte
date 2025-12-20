@@ -1,4 +1,4 @@
 <script>
-    let { form, data } = $props();
+    let { form, data, params } = $props();
     export const snapshot = {};
 </script>

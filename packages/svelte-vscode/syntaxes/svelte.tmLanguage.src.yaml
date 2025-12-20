@@ -21,8 +21,14 @@ injections:
 
   # TypeScript | 'ts' 'typescript' | 'source.ts'
   'L:(meta.script.svelte | meta.style.svelte) (meta.lang.ts | meta.lang.typescript) - (meta source)':
-    patterns: [{begin: '(?<=>)(?!</)', end: '(?=</)', name: meta.embedded.block.svelte,
-    contentName: source.ts, patterns: [{ include: source.ts }]}]
+    patterns: [
+      # single line script tag
+      {begin: '(?<=>)(?=[^\n]+</(script|style)[\s>])', end: '(?=</(script|style)[\s>])', name: meta.embedded.block.svelte,
+      contentName: source.ts, patterns: [{ include: source.ts }]},
+      # fix #1110
+      {begin: '(?<=>)(?!</)', while: '^(?!\s*</(script|style)[\s>])', name: meta.embedded.block.svelte,
+      contentName: source.ts, patterns: [{ include: source.ts }]}
+    ]
 
   # CoffeeScript | 'coffee' | 'source.coffee'
   'L:(meta.script.svelte | meta.style.svelte) meta.lang.coffee - (meta source)':
@@ -224,7 +230,7 @@ repository:
          { match: if|else\s+if|else, name: keyword.control.conditional.svelte },
          { match: each|key,          name: keyword.control.svelte             },
          { match: await|then|catch,  name: keyword.control.flow.svelte        },
-         { match: snippet,           name: keyword.control.svelte        },
+         { match: snippet,           name: keyword.control.svelte             },
          { match: html,              name: keyword.other.svelte               },
          { match: render,            name: keyword.other.svelte               },
          { match: debug,             name: keyword.other.debugger.svelte      },
@@ -234,10 +240,37 @@ repository:
   special-tags-modes:
     patterns:
     # Expressions or simple values.
-    - begin: (?<=(if|key|then|catch|snippet|html|render).*?)\G
+    - begin: (?<=(if|key|then|catch|html|render).*?)\G
       end: (?=})
       name: meta.embedded.expression.svelte source.ts
       patterns: [ include: source.ts ]
+
+    # Snippet blocks - special because of how source.ts will parse generics: If it realizes "oh this is a function definition" it will
+    # go into arrow function parsing mode and not stop until it finds a `=>`, which means it will go past the `}` snippet open boundary
+    # and fuck up the rest of the file syntax highlighting
+    - begin: (?<=snippet.*?)\G
+      end: (?=})
+      name: meta.embedded.expression.svelte source.ts
+      patterns:
+        # Match an identifier, but only if it is before a generic
+        - match: \G\s*([_$[:alpha:]][_$[:alnum:]]*)\s*(?=<)
+          captures:
+            1: { name: entity.name.function.ts }
+        # Match optional `<` ... `>` with inner as source.ts
+        - begin: (?<=<)
+          end: (?=>)
+          contentName: meta.type.parameters.ts
+          patterns: [ include: source.ts ]
+        # Match the `(...)` but not starting at `(` because then TS would see it as an arrow function and parse past our snippet open boundary
+        - begin: (?<=>\s*\()
+          end: (?=})
+          name: meta.embedded.expression.svelte source.ts
+          patterns: [ include: source.ts ]
+        # If the above three don't match (because there's no generic) then this one kicks in
+        - begin: \G
+          end: (?=})
+          name: meta.embedded.expression.svelte source.ts
+          patterns: [ include: source.ts ]
 
     # Const.
     - begin: (?<=const.*?)\G
@@ -246,8 +279,13 @@ repository:
       - include: '#destructuring-const'
       # Variable.
       - begin: \G\s*([_$[:alpha:]][_$[:alnum:]]+)\s*
-        end: (?=\=)
+        end: (?=[:=])
         beginCaptures: { 1: { name: variable.other.constant.svelte } }
+      # Type annotation (starting with ":").
+      - begin: (?=:)
+        end: (?=\=)
+        name: meta.type.annotation.svelte
+        patterns: [ include: source.ts ]
       # Expression (starting with "=").
       - begin: (?=\=)
         name: meta.embedded.expression.svelte source.ts
@@ -260,11 +298,11 @@ repository:
       patterns:
       # Start expression.
       - begin: \G\s*?(?=\S)
-        end: (?=(?:^\s*|\s+)(as))
+        end: (?=(?:(?:^\s*|\s+)(as))|\s*(}|,))
         contentName: meta.embedded.expression.svelte source.ts
         patterns: [ include: source.ts ]
       # 'as' token and onwards.
-      - begin: (as)
+      - begin: (as)|(?=}|,)
         beginCaptures: { 1: { name: keyword.control.as.svelte } }
         end: (?=})
         patterns:
@@ -355,7 +393,16 @@ repository:
     patterns:
     - include: '#attributes-directives'
     - include: '#attributes-keyvalue'
+    - include: '#attributes-attach'
     - include: '#attributes-interpolated'
+
+  # Attachments
+  attributes-attach:
+    begin: (?<!:|=)\s*({@attach\s)
+    end: (\})
+    captures: { 1: { name: entity.other.attribute-name.svelte } }
+    contentName: meta.embedded.expression.svelte source.ts
+    patterns: [ include: source.ts ]
 
   # Interpolated shorthand attributes, like `{variable}` sitting by itself.
   attributes-interpolated:
@@ -509,16 +556,22 @@ repository:
   # Scopes the `name` part in `<name>`.
   tags-name:
     patterns:
-    # Svelte (`svelte:<type>`) elements.
-    - match: '(svelte)(:)([a-z][\w0-9:-]*)'
+    # Svelte built-in elements (e.g., svelte:self, svelte:component).
+    - match: '(svelte)(:)([a-z][\w:-]*)'
       captures:
         1: { name: keyword.control.svelte }
         2: { name: punctuation.definition.keyword.svelte }
         3: { name: entity.name.tag.svelte }
     # Slot.
     - { match: 'slot', name: keyword.control.svelte }
-    # Components.
-    - { match: '[A-Z][a-zA-Z0-9_]*', name: support.class.component.svelte }
+    # Components (either Namespaced.Component, namespaced.component or PascalCase).
+    - match: '([\w]+(?:\.[\w]+)+)|([A-Z][\w]*)'
+      captures:
+        1: { patterns: [
+           { match: '\w+', name: support.class.component.svelte },
+           { match: '\.', name: punctuation.definition.keyword.svelte },
+         ]}
+        2: { name: support.class.component.svelte }
     # Custom elements. (has a dash, but otherwise is a valid HTML element)
     - { match: '[a-z][\w0-9:]*-[\w0-9:-]*', name: meta.tag.custom.svelte entity.name.tag.svelte }
     # HTML elements.

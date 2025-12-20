@@ -21,6 +21,7 @@ import {
     CompletionList,
     DefinitionLink,
     Diagnostic,
+    DocumentHighlight,
     FoldingRange,
     FormattingOptions,
     Hover,
@@ -34,7 +35,8 @@ import {
     SymbolInformation,
     TextDocumentIdentifier,
     TextEdit,
-    WorkspaceEdit
+    WorkspaceEdit,
+    WorkspaceSymbol
 } from 'vscode-languageserver-types';
 import { Document } from '../lib/documents';
 
@@ -243,6 +245,20 @@ export interface FoldingRangeProvider {
     getFoldingRanges(document: Document): Resolvable<FoldingRange[]>;
 }
 
+export interface DocumentHighlightProvider {
+    findDocumentHighlight(
+        document: Document,
+        position: Position
+    ): Resolvable<DocumentHighlight[] | null>;
+}
+
+export interface WorkspaceSymbolsProvider {
+    getWorkspaceSymbols(
+        query: string,
+        cancellationToken?: CancellationToken
+    ): Resolvable<WorkspaceSymbol[] | null>;
+}
+
 export interface OnWatchFileChanges {
     onWatchFileChanges(onWatchFileChangesParas: OnWatchFileChangesPara[]): void;
 }
@@ -273,7 +289,9 @@ type ProviderBase = DiagnosticsProvider &
     InlayHintProvider &
     CallHierarchyProvider &
     FoldingRangeProvider &
-    CodeLensProvider;
+    CodeLensProvider &
+    DocumentHighlightProvider &
+    WorkspaceSymbolsProvider;
 
 export type LSProvider = ProviderBase & BackwardsCompatibleDefinitionsProvider;
 

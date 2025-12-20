@@ -135,6 +135,10 @@ Enable signature help (parameter hints) for JS/TS. _Default_: `true`
 
 Enable semantic tokens (semantic highlight) for TypeScript. _Default_: `true`
 
+#### `svelte.plugin.typescript.workspaceSymbols.enable`
+
+Enable workspace symbols for TypeScript. You can disable this if the language server client you're using doesn't deduplicate results from the TSServer. _Default_: `true`.
+
 ##### `svelte.plugin.css.enable`
 
 Enable the CSS plugin. _Default_: `true`
@@ -281,9 +285,17 @@ Enable code actions for Svelte. _Default_: `true`
 
 Enable selection range for Svelte. _Default_: `true`
 
+##### `svelte.plugin.svelte.runesLegacyModeCodeLens.enable`
+
+Whether or not to show a code lens at the top of Svelte files indicating if they are in runes mode or legacy mode. Only visible in Svelte 5 projects. _Default_: `true`
+
 ##### `svelte.plugin.svelte.defaultScriptLanguage`
 
 The default language to use when generating new script tags in Svelte. _Default_: `none`
+
+#### `svelte.plugin.svelte.documentHighlight.enable`
+
+Enable document highlight support. Requires a restart. _Default_: `true`
 
 ## Credits
 

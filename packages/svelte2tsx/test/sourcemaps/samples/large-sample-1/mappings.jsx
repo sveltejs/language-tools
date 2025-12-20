@@ -78,11 +78,11 @@ import•{↲     [generated] line 23
    ╚}•from•'../../../config';                                                                                                                         
    ╚}•from•'../../../config';↲    [original] line 27 (rest generated at line 36)                                                                      
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
-function render() {                                                                                                                                   {/**
-function•render()•{↲    [generated] line 28                                                                                                           
+function $$render() {                                                                                                                                 {/**
+function•$$render()•{↲    [generated] line 28                                                                                                         
 s                                                                                                                                                     
  s                                                                                                                                                    
-<script>↲               [original] line 16 (rest generated at lines 15, 29)                                                                           
+<script>↲                 [original] line 16 (rest generated at lines 15, 29)                                                                         
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                                                                                                                                                       {/**
 ↲            [generated] line 29                                                                                                                      
@@ -368,9 +368,9 @@ s                                              ↲
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
   { svelteHTML.createElement("svelte:window", { "bind:innerWidth":width,});/*Ωignore_startΩ*/() => width = __sveltets_2_any(null);/*Ωignore_endΩ*/}   {/**
 ••{•svelteHTML.createElement("svelte:window",•{•"bind:innerWidth":width,});/*Ωignore_startΩ*/()•=>•width•=•__sveltets_2_any(null);/*Ωignore_endΩ*/}↲    [generated] line 133
-<>                                             ib                 width}                                                                           ↲    
- #=============================================#                                                                                                        Order-breaking mappings
-<              bi               width} >↲                                                                                                               
+<>                                             { bind:innerWidth= width}                                                                           ↲    
+ #=============================================#=                                                                                                       Order-breaking mappings
+<              bind:innerWidth={width} >↲                                                                                                               
 <svelte:window•bind:innerWidth={width}/>↲                                                                                                               [original] line 269 (rest generated at line 134)
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                                                                                                                                                       {/**
@@ -856,5 +856,5 @@ s                                              ↲
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
 return { props: {slug: slug , chapter: chapter}, slots: {}, events: {} }}
 
-export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial(__sveltets_2_with_any_event(render()))) {
+export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial(__sveltets_2_with_any_event($$render()))) {
 }
