@@ -23,10 +23,10 @@ injections:
   'L:(meta.script.svelte | meta.style.svelte) (meta.lang.ts | meta.lang.typescript) - (meta source)':
     patterns: [
       # single line script tag
-      {begin: '(?<=>)(?=[^\n]+</script[\s>])', end: '(?=</script[\s>])', name: meta.embedded.block.svelte,
+      {begin: '(?<=>)(?=[^\n]+</(script|style)[\s>])', end: '(?=</(script|style)[\s>])', name: meta.embedded.block.svelte,
       contentName: source.ts, patterns: [{ include: source.ts }]},
       # fix #1110
-      {begin: '(?<=>)(?!</)', while: '^(?!\s*</script[\s>])', name: meta.embedded.block.svelte,
+      {begin: '(?<=>)(?!</)', while: '^(?!\s*</(script|style)[\s>])', name: meta.embedded.block.svelte,
       contentName: source.ts, patterns: [{ include: source.ts }]}
     ]
 
