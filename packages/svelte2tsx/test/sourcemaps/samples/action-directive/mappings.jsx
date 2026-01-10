@@ -1,5 +1,5 @@
 ///<reference types="svelte" />
-;function render() {                                                                                                                                  {/**
+;function $$render() {                                                                                                                                {/**
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
 async () => { {const $$action_0 = __sveltets_2_ensureAction(action(svelteHTML.mapElementTag('element')));{ svelteHTML.createElement("element", __sveltets_2_union($$action_0), { });}}{/**
 ============#                                                                                                                                                                              Originless mappings
@@ -7,10 +7,12 @@ async•()•=>•{•{const•$$action_0•=•__sveltets_2_ensureAction(action
              <                                              action/                                                                  element                                    su    ↲    
                                                                   #==================================================================                                           #          Order-breaking mappings
 <element us  action/ ↲                                                                                                                                                                     
-<element•use:action/>↲                                                                                                                                                                     [original] line 1 
+<element•use:action/>↲                                                                                                                                                                     [original] line 1 (rest generated at line 4)
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                                                                                                                                                       {/**
-
+↲                         [generated] line 4                                                                                                          
+                     ↲                                                                                                                                
+<element•use:action/>↲    [original] line 1 (rest generated at line 3)                                                                                
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
  {const $$action_0 = __sveltets_2_ensureAction(action(svelteHTML.mapElementTag('element')));{ svelteHTML.createElement("element", __sveltets_2_union($$action_0), {  });}}{/**
 •{const•$$action_0•=•__sveltets_2_ensureAction(action(svelteHTML.mapElementTag('element')));{•svelteHTML.createElement("element",•__sveltets_2_union($$action_0),•{••});}}↲    [generated] line 5
@@ -30,27 +32,31 @@ async•()•=>•{•{const•$$action_0•=•__sveltets_2_ensureAction(action
                                                                                                                                                                     •     ↲    [generated] subset
                                                                                                                                                                     /     ↲    
 / ↲                                                                                                                                                                            
-/>↲                                                                                                                                                                            [original] line 5 
+/>↲                                                                                                                                                                            [original] line 5 (rest generated at line 6)
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                                                                                                                                                       {/**
-
+↲      [generated] line 6                                                                                                                             
+  ↲                                                                                                                                                   
+/>↲    [original] line 5 (rest generated at line 5)                                                                                                   
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
   {const $$action_0 = __sveltets_2_ensureAction(action.nested.method(svelteHTML.mapElementTag('element'),(foo)));{ svelteHTML.createElement("element", __sveltets_2_union($$action_0), {  });}}{/**
 ••{const•$$action_0•=•__sveltets_2_ensureAction(action.nested.method(svelteHTML.mapElementTag('element'),(foo)));{•svelteHTML.createElement("element",•__sveltets_2_union($$action_0),•{••});}}↲    [generated] line 7
 <>                                              action.nested.method=                                     foo}                               element                                    s{u    ↲    
  #==============================================                                                             #===============================                                            #          Order-breaking mappings
 <element us  action.nested.method={foo} >↲                                                                                                                                                          
-<element•use:action.nested.method={foo}/>↲                                                                                                                                                          [original] line 7 
+<element•use:action.nested.method={foo}/>↲                                                                                                                                                          [original] line 7 (rest generated at line 8)
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                                                                                                                                                       {/**
-
+↲                                             [generated] line 8                                                                                      
+                                         ↲                                                                                                            
+<element•use:action.nested.method={foo}/>↲    [original] line 7 (rest generated at line 7)                                                            
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
  {const $$action_0 = __sveltets_2_ensureAction(action(svelteHTML.mapElementTag('element'),($foo)));{ svelteHTML.createElement("element", __sveltets_2_union($$action_0), {   });}}{/**
 •{const•$$action_0•=•__sveltets_2_ensureAction(action(svelteHTML.mapElementTag('element'),($foo)));{•svelteHTML.createElement("element",•__sveltets_2_union($$action_0),•{•••});}}↲    [generated] line 9
                                                                                                                                                                             •     ↲    [generated] subset
                                                                                                                                                                             /     ↲    
 / ↲                                                                                                                                                                                    
-/>↲                                                                                                                                                                                    [original] line 11 
+/>↲                                                                                                                                                                                    [original] line 11 (rest generated at line 10)
                                                                                                                                                                                        
 •{const•$$action_0•=•__sveltets_2_ensureAction(action(svelteHTML.mapElementTag('element'),($foo)));{•svelteHTML.createElement("element",•__sveltets_2_union($$action_0),•{•••});}}↲    [generated] line 9
 •{const•$$action_0•=•__sveltets_2_ensureAction(                                                                                element",•__sveltets_2_union($$action_0),•{   });}}     [generated] subset
@@ -66,7 +72,9 @@ async•()•=>•{•{const•$$action_0•=•__sveltets_2_ensureAction(action
 ╚use:action={$foo}↲                                                                                                                                                                    [original] line 10 
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                                                                                                                                                       {/**
-
+↲      [generated] line 10                                                                                                                            
+  ↲                                                                                                                                                   
+/>↲    [original] line 11 (rest generated at line 9)                                                                                                  
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
  {const $$action_0 = __sveltets_2_ensureAction(action(svelteHTML.mapElementTag('element'),({ foo })));{ svelteHTML.createElement("element", __sveltets_2_union($$action_0), {   });}}{/**
 •{const•$$action_0•=•__sveltets_2_ensureAction(action(svelteHTML.mapElementTag('element'),({•foo•})));{•svelteHTML.createElement("element",•__sveltets_2_union($$action_0),•{•••});}}↲    [generated] line 11
@@ -86,10 +94,12 @@ async•()•=>•{•{const•$$action_0•=•__sveltets_2_ensureAction(action
                                                                                                                                                                                •     ↲    [generated] subset
                                                                                                                                                                                /     ↲    
 / ↲                                                                                                                                                                                       
-/>↲                                                                                                                                                                                       [original] line 15 
+/>↲                                                                                                                                                                                       [original] line 15 (rest generated at line 12)
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                                                                                                                                                       {/**
-
+↲      [generated] line 12                                                                                                                            
+  ↲                                                                                                                                                   
+/>↲    [original] line 15 (rest generated at line 11)                                                                                                 
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
  {const $$action_0 = __sveltets_2_ensureAction(action(svelteHTML.mapElementTag('element'),({                                                          {/**
 •{const•$$action_0•=•__sveltets_2_ensureAction(action(svelteHTML.mapElementTag('element'),({•↲    [generated] line 13                                 
@@ -133,5 +143,5 @@ async•()•=>•{•{const•$$action_0•=•__sveltets_2_ensureAction(action
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
 return { props: /** @type {Record<string, never>} */ ({}), slots: {}, events: {} }}
 
-export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial(__sveltets_2_with_any_event(render()))) {
+export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial(__sveltets_2_with_any_event($$render()))) {
 }

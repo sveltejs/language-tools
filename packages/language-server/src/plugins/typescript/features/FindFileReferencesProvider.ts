@@ -13,7 +13,8 @@ export class FindFileReferencesProviderImpl implements FileReferencesProvider {
         const u = URI.parse(uri);
         const fileName = u.fsPath;
 
-        const lang = await this.getLSForPath(fileName);
+        const lsContainer = await this.lsAndTsDocResolver.getTSService(fileName);
+        const lang = lsContainer.getService();
         const tsDoc = await this.getSnapshotForPath(fileName);
 
         const references = lang.getFileReferences(fileName);
@@ -22,7 +23,7 @@ export class FindFileReferencesProviderImpl implements FileReferencesProvider {
             return null;
         }
 
-        const snapshots = new SnapshotMap(this.lsAndTsDocResolver);
+        const snapshots = new SnapshotMap(this.lsAndTsDocResolver, lsContainer);
         snapshots.set(tsDoc.filePath, tsDoc);
 
         const locations = await Promise.all(
@@ -40,11 +41,7 @@ export class FindFileReferencesProviderImpl implements FileReferencesProvider {
         return locations.filter(hasNonZeroRange);
     }
 
-    private async getLSForPath(path: string) {
-        return this.lsAndTsDocResolver.getLSForPath(path);
-    }
-
     private async getSnapshotForPath(path: string) {
-        return this.lsAndTsDocResolver.getSnapshot(path);
+        return this.lsAndTsDocResolver.getOrCreateSnapshot(path);
     }
 }

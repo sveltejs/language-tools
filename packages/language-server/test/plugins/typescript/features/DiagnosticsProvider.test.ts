@@ -43,7 +43,7 @@ describe('DiagnosticsProvider', function () {
         const newFilePath = normalizePath(path.join(testDir, 'doesntexistyet.js')) || '';
         writeFileSync(newFilePath, 'export default function foo() {}');
         assert.ok(existsSync(newFilePath));
-        await lsAndTsDocResolver.invalidateModuleCache(newFilePath);
+        await lsAndTsDocResolver.invalidateModuleCache([newFilePath]);
 
         try {
             const diagnostics2 = await plugin.getDiagnostics(document);
@@ -68,7 +68,7 @@ describe('DiagnosticsProvider', function () {
         const newTsFilePath = normalizePath(path.join(testDir, 'doesntexistyet.ts')) || '';
         writeFileSync(newFilePath, 'export function foo() {}');
         assert.ok(existsSync(newFilePath));
-        await lsAndTsDocResolver.invalidateModuleCache(newFilePath);
+        await lsAndTsDocResolver.invalidateModuleCache([newFilePath]);
 
         try {
             const diagnostics2 = await plugin.getDiagnostics(document);
@@ -80,15 +80,37 @@ describe('DiagnosticsProvider', function () {
 
         writeFileSync(newTsFilePath, 'export default function foo() {}');
         assert.ok(existsSync(newTsFilePath));
-        await lsAndTsDocResolver.invalidateModuleCache(newTsFilePath);
+        await lsAndTsDocResolver.invalidateModuleCache([newTsFilePath]);
 
         try {
             const diagnostics3 = await plugin.getDiagnostics(document);
-            assert.deepStrictEqual(diagnostics3.length, 1);
+            assert.deepStrictEqual(diagnostics3.length, 0);
             await lsAndTsDocResolver.deleteSnapshot(newTsFilePath);
         } finally {
             unlinkSync(newTsFilePath);
             unlinkSync(newFilePath);
+        }
+    }).timeout(this.timeout() * 2.5);
+
+    it('notices changes of module resolution because of new svelte file', async () => {
+        const { plugin, document, lsAndTsDocResolver } = setup('unresolvedimport2.svelte');
+
+        const diagnostics1 = await plugin.getDiagnostics(document);
+        assert.deepStrictEqual(diagnostics1.length, 1);
+
+        // back-and-forth-conversion normalizes slashes
+        const newSvelteFilePath = normalizePath(path.join(testDir, 'doesntexistyet.svelte')) || '';
+
+        writeFileSync(newSvelteFilePath, '<script lang="ts"></script>');
+        assert.ok(existsSync(newSvelteFilePath));
+        await lsAndTsDocResolver.invalidateModuleCache([newSvelteFilePath]);
+
+        try {
+            const diagnostics2 = await plugin.getDiagnostics(document);
+            assert.deepStrictEqual(diagnostics2.length, 0);
+            await lsAndTsDocResolver.deleteSnapshot(newSvelteFilePath);
+        } finally {
+            unlinkSync(newSvelteFilePath);
         }
     }).timeout(this.timeout() * 2.5);
 
@@ -98,7 +120,7 @@ describe('DiagnosticsProvider', function () {
         );
 
         const newFilePath = normalizePath(path.join(testDir, 'empty-export.ts')) || '';
-        await lsAndTsDocResolver.getSnapshot(newFilePath);
+        await lsAndTsDocResolver.getOrCreateSnapshot(newFilePath);
 
         const diagnostics1 = await plugin.getDiagnostics(document);
         assert.deepStrictEqual(

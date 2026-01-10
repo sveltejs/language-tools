@@ -1,8 +1,7 @@
-import { isEqual, sum, uniqWith } from 'lodash';
-import { FoldingRange, Node } from 'vscode-html-languageservice';
+import { isEqual, uniqWith } from 'lodash';
+import { Node } from 'vscode-html-languageservice';
 import { Position, Range } from 'vscode-languageserver';
 import { URI } from 'vscode-uri';
-import { Document, TagInformation } from './lib/documents';
 
 type Predicate<T> = (x: T) => boolean;
 
@@ -38,12 +37,27 @@ export function pathToUrl(path: string) {
     return URI.file(path).toString();
 }
 
+const backslashRegEx = /\\/g;
+
 /**
  * Some paths (on windows) start with a upper case driver letter, some don't.
  * This is normalized here.
  */
 export function normalizePath(path: string): string {
-    return URI.file(path).fsPath.replace(/\\/g, '/');
+    return normalizeDriveLetter(path.replace(backslashRegEx, '/'));
+}
+
+function normalizeDriveLetter(path: string): string {
+    if (path.charCodeAt(1) !== /*:*/ 58) {
+        return path;
+    }
+
+    const driveLetter = path.charCodeAt(0);
+    if (driveLetter >= /*A*/ 65 && driveLetter <= /*Z*/ 90) {
+        return String.fromCharCode(driveLetter + 32) + path.slice(1);
+    }
+
+    return path;
 }
 
 /**
@@ -60,7 +74,10 @@ export function normalizeUri(uri: string): string {
  * (bar or bar.svelte in this example).
  */
 export function getLastPartOfPath(path: string): string {
-    return path.replace(/\\/g, '/').split('/').pop() || '';
+    const lastSlash = path.lastIndexOf('/');
+    const lastBackslash = path.lastIndexOf('\\');
+    const lastSeparator = Math.max(lastSlash, lastBackslash);
+    return lastSeparator === -1 ? path : path.slice(lastSeparator + 1);
 }
 
 export function flatten<T>(arr: Array<T | T[]>): T[] {
@@ -250,6 +267,9 @@ export function modifyLines(
         .join('\r\n');
 }
 
+export function isSamePosition(position: Position, another: Position) {
+    return position.line === another.line && position.character === another.character;
+}
 /**
  * Like array.filter, but asynchronous
  */
@@ -340,4 +360,46 @@ export function removeLineWithString(str: string, keyword: string) {
     const lines = str.split('\n');
     const filteredLines = lines.filter((line) => !line.includes(keyword));
     return filteredLines.join('\n');
+}
+
+/**
+ * Traverses a string and returns the index of the end character, taking into account quotes, curlies and generic tags.
+ */
+export function traverseTypeString(str: string, start: number, endChar: string): number {
+    let singleQuoteOpen = false;
+    let doubleQuoteOpen = false;
+    let countCurlyBrace = 0;
+    let countAngleBracket = 0;
+
+    for (let i = start; i < str.length; i++) {
+        const char = str[i];
+
+        if (!doubleQuoteOpen && char === "'") {
+            singleQuoteOpen = !singleQuoteOpen;
+        } else if (!singleQuoteOpen && char === '"') {
+            doubleQuoteOpen = !doubleQuoteOpen;
+        } else if (!doubleQuoteOpen && !singleQuoteOpen) {
+            if (char === '{') {
+                countCurlyBrace++;
+            } else if (char === '}') {
+                countCurlyBrace--;
+            } else if (char === '<') {
+                countAngleBracket++;
+            } else if (char === '>') {
+                countAngleBracket--;
+            }
+        }
+
+        if (
+            !singleQuoteOpen &&
+            !doubleQuoteOpen &&
+            countCurlyBrace === 0 &&
+            countAngleBracket === 0 &&
+            char === endChar
+        ) {
+            return i;
+        }
+    }
+
+    return -1;
 }

@@ -4,7 +4,7 @@ import { addResourceCommandMap } from './commands';
 import { generateResources } from './generate';
 import { resourcesMap } from './resources';
 import { FileType, ResourceType, GenerateConfig, CommandType } from './types';
-import { checkProjectType } from '../utils';
+import { checkProjectKind } from '../utils';
 
 class GenerateError extends Error {}
 
@@ -38,7 +38,7 @@ async function handleSingle(uri: Uri | undefined, resourceType: ResourceType) {
     }
     const resources = [resource];
 
-    const { type, rootPath, scriptExtension } = await getCommonConfig(uri);
+    const { kind, rootPath, scriptExtension } = await getCommonConfig(uri);
 
     const itemPath = await promptResourcePath();
 
@@ -48,7 +48,7 @@ async function handleSingle(uri: Uri | undefined, resourceType: ResourceType) {
 
     await generate({
         path: path.join(rootPath, itemPath),
-        type,
+        kind,
         pageExtension: 'svelte',
         scriptExtension,
         resources
@@ -56,7 +56,7 @@ async function handleSingle(uri: Uri | undefined, resourceType: ResourceType) {
 }
 
 async function handleMultiple(uri: Uri | undefined) {
-    const { type, rootPath, scriptExtension } = await getCommonConfig(uri);
+    const { kind, rootPath, scriptExtension } = await getCommonConfig(uri);
     const itemPath = await promptResourcePath();
 
     if (!itemPath) {
@@ -92,7 +92,7 @@ async function handleMultiple(uri: Uri | undefined) {
 
     await generate({
         path: path.join(rootPath, itemPath),
-        type,
+        kind,
         pageExtension: 'svelte',
         scriptExtension,
         resources: result.map((res) => res.value)
@@ -125,13 +125,17 @@ async function getCommonConfig(uri: Uri | undefined) {
         );
     }
 
-    const type = await checkProjectType(rootPath);
-    const scriptExtension = type === 'js' ? 'js' : 'ts';
+    const kind = await checkProjectKind(rootPath);
+    const scriptExtension = getScriptExtension(kind);
     return {
-        type,
+        kind,
         scriptExtension,
         rootPath
     } as const;
+}
+
+function getScriptExtension(kind: GenerateConfig['kind']) {
+    return kind.withTs ? 'ts' : 'js';
 }
 
 function getRootPath(uri: Uri | undefined) {

@@ -160,6 +160,18 @@ function upsertKitRouteFile(
         );
 
         insert(pos, inserted);
+    } else if (load?.type === 'var' && !load.hasTypeDefinition) {
+        // "const load = ..." will be transformed into
+        // "const load = (...) satisfies PageLoad"
+        insert(load.node.initializer.getStart(), surround('('));
+        insert(
+            load.node.initializer.getEnd(),
+            surround(
+                `) satisfies import('./$types.js').${basename.includes('layout') ? 'Layout' : 'Page'}${
+                    basename.includes('server') ? 'Server' : ''
+                }Load`
+            )
+        );
     }
 
     // add type to entries function if not explicitly typed

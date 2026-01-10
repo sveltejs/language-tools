@@ -14,8 +14,10 @@ import { LSAndTSDocResolver } from '../../../../src/plugins/typescript/LSAndTSDo
 import { __resetCache } from '../../../../src/plugins/typescript/service';
 import { pathToUrl } from '../../../../src/utils';
 import { serviceWarmup } from '../test-utils';
+import { VERSION } from 'svelte/compiler';
 
 const testDir = path.join(__dirname, '..');
+const isSvelte5Plus = +VERSION.split('.')[0] >= 5;
 
 describe('CallHierarchyProvider', function () {
     const callHierarchyTestDirRelative = path.join('testfiles', 'call-hierarchy');
@@ -386,6 +388,11 @@ describe('CallHierarchyProvider', function () {
     });
 
     it('can provide outgoing calls for component file', async () => {
+        if (isSvelte5Plus) {
+            // Doesn't work due to https://github.com/microsoft/TypeScript/issues/43740 and https://github.com/microsoft/TypeScript/issues/42375
+            return;
+        }
+
         const { provider, document } = setup(outgoingComponentName);
 
         const items = await provider.prepareCallHierarchy(document, { line: 10, character: 1 });
@@ -411,6 +418,11 @@ describe('CallHierarchyProvider', function () {
     });
 
     it('can provide outgoing calls for component tags', async () => {
+        if (isSvelte5Plus) {
+            // Doesn't work due to https://github.com/microsoft/TypeScript/issues/43740 and https://github.com/microsoft/TypeScript/issues/42375
+            return;
+        }
+
         const { provider, document } = setup(outgoingComponentName);
 
         const items = await provider.prepareCallHierarchy(document, { line: 0, character: 2 });

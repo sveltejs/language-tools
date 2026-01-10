@@ -1,7 +1,7 @@
 ///<reference types="svelte" />
 ;
 import { createEventDispatcher, abc } from "svelte";
-function render() {
+function $$render() {
 
     
 
@@ -27,5 +27,5 @@ return { props: {} as Record<string, never>, slots: {}, events: {...__sveltets_2
     hi: boolean;
     }>(), ...__sveltets_2_toEventTypings<{hi: string;}>(), 'click':__sveltets_2_mapElementEvent('click'), 'hi': __sveltets_2_customEvent, 'bye': __sveltets_2_customEvent} }}
 
-export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_with_any_event(render())) {
+export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_with_any_event($$render())) {
 }

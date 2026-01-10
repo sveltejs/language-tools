@@ -56,7 +56,8 @@ export class Sample {
 
     constructor(
         dir: string,
-        readonly name: string
+        readonly name: string,
+        public emitOnTemplateError = false
     ) {
         this.directory = path.resolve(dir, 'samples', name);
         this.folder = fs.readdirSync(this.directory);
@@ -110,7 +111,7 @@ export class Sample {
 
         const sample = this;
 
-        _it(this.name, function () {
+        _it(this.name + (this.emitOnTemplateError ? ' (loose parser mode)' : ''), function () {
             try {
                 fn();
                 if (sample.skipped) this.skip();
@@ -230,11 +231,14 @@ export function test_samples(dir: string, transform: TransformSampleFn, js: 'js'
         if (sample.name.endsWith('.v5') && !isSvelte5Plus) continue;
 
         const svelteFile = sample.find_file('*.svelte');
-        const expectedFile = isSvelte5Plus ? `expected-svelte5.${js}` : `expectedv2.${js}`;
+        const expectedFile =
+            isSvelte5Plus && !sample.name.endsWith('.v5')
+                ? `expected-svelte5.${js}`
+                : `expectedv2.${js}`;
         const config = {
             filename: svelteFile,
             sampleName: sample.name,
-            emitOnTemplateError: false,
+            emitOnTemplateError: sample.emitOnTemplateError,
             preserveAttributeCase: sample.name.endsWith('-foreign-ns')
         };
 
@@ -270,7 +274,7 @@ export function test_samples(dir: string, transform: TransformSampleFn, js: 'js'
             sample.onError(function (generate, err: AssertionError) {
                 if (!err || err.code !== 'ERR_ASSERTION') return;
                 const { message, actual } = err;
-                switch (message) {
+                switch (message.split('\n')[0]) {
                     case TestError.WrongExpected: {
                         generate(expectedFile, actual);
                         break;
@@ -311,19 +315,48 @@ export function test_samples(dir: string, transform: TransformSampleFn, js: 'js'
                 sample.eval('expected.js', output);
             }
 
-            assert.strictEqual(
-                normalize(transform(input, config).code),
-                sample.get(
-                    // Check the expectedv2 file first even in Svelte 5 mode because many are identical between versions.
-                    // This way we don't need to duplicate a bunch of expected files.
-                    isSvelte5Plus
-                        ? sample.has(expectedFile)
-                            ? expectedFile
-                            : `expectedv2.${js}`
-                        : expectedFile
-                ),
-                TestError.WrongExpected
-            );
+            if (isSvelte5Plus) {
+                const actual = normalize(transform(input, config).code);
+                if (sample.has(expectedFile)) {
+                    assert.strictEqual(actual, sample.get(expectedFile), TestError.WrongExpected);
+                } else {
+                    const expected = sample.get(`expectedv2.${js}`);
+                    try {
+                        assert.strictEqual(actual, expected, TestError.WrongExpected);
+                    } catch (e) {
+                        // html2jsx tests don't have the default export
+                        const expectDefaultExportPosition = expected.lastIndexOf(
+                            '\n\nexport default class'
+                        );
+                        if (expectDefaultExportPosition === -1) {
+                            throw e;
+                        }
+                        // retry with the last part (the returned default export) stripped because it's always differing between old and new,
+                        // and if that fails then we're going to rethrow the original error
+                        const expectedModified = expected.substring(0, expectDefaultExportPosition);
+                        const actualModified = actual
+                            .substring(0, actual.lastIndexOf('\nconst '))
+                            // not added in Svelte 4
+                            .replace(', exports: {}', '')
+                            .replace(', bindings: ""', '');
+                        try {
+                            assert.strictEqual(
+                                actualModified,
+                                expectedModified,
+                                TestError.WrongExpected
+                            );
+                        } catch (_) {
+                            throw e;
+                        }
+                    }
+                }
+            } else {
+                assert.strictEqual(
+                    normalize(transform(input, config).code),
+                    sample.get(expectedFile),
+                    TestError.WrongExpected
+                );
+            }
         });
     }
 }
@@ -350,6 +383,9 @@ export function get_svelte2tsx_config(base: BaseConfig, sampleName: string): Sve
 export function* each_sample(dir: string) {
     for (const name of fs.readdirSync(`${dir}/samples`)) {
         yield new Sample(dir, name);
+        if (isSvelte5Plus && !fs.existsSync(`${dir}/samples/${name}/expected.error.json`)) {
+            yield new Sample(dir, `${name}`, true);
+        }
     }
 }
 

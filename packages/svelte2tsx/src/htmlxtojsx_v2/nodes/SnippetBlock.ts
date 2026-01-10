@@ -1,8 +1,9 @@
 import MagicString from 'magic-string';
 import { BaseNode } from '../../interfaces';
-import { transform, TransformationArray } from '../utils/node-utils';
+import { isImplicitlyClosedBlock, transform, TransformationArray } from '../utils/node-utils';
 import { InlineComponent } from './InlineComponent';
-import { surroundWithIgnoreComments } from '../../utils/ignore';
+import { IGNORE_POSITION_COMMENT, surroundWithIgnoreComments } from '../../utils/ignore';
+import { Element } from './Element';
 
 /**
  * Transform #snippet into a function
@@ -14,9 +15,9 @@ import { surroundWithIgnoreComments } from '../../utils/ignore';
  * ```
  * --> if standalone:
  * ```ts
- * const foo = (bar) => {
+ * const foo = (bar) => { async () => {
  * ..
- * }
+ * };return return __sveltets_2_any(0)};
  * ```
  * --> if slot prop:
  * ```ts
@@ -28,37 +29,66 @@ import { surroundWithIgnoreComments } from '../../utils/ignore';
 export function handleSnippet(
     str: MagicString,
     snippetBlock: BaseNode,
-    component?: InlineComponent
+    component?: InlineComponent | Element
 ): void {
     const isImplicitProp = component !== undefined;
     const endSnippet = str.original.lastIndexOf('{', snippetBlock.end - 1);
-    // Return something to silence the "snippet type not assignable to return type void" error
-    str.overwrite(
-        endSnippet,
-        snippetBlock.end,
-        `return __sveltets_2_any(0)}${isImplicitProp ? '' : ';'}`,
-        {
+
+    const afterSnippet = isImplicitProp
+        ? `};return __sveltets_2_any(0)}`
+        : `};return __sveltets_2_any(0)};`;
+
+    if (isImplicitlyClosedBlock(endSnippet, snippetBlock)) {
+        str.prependLeft(snippetBlock.end, afterSnippet);
+    } else {
+        str.overwrite(endSnippet, snippetBlock.end, afterSnippet, {
             contentOnly: true
-        }
-    );
+        });
+    }
+
+    const lastParameter = snippetBlock.parameters?.at(-1);
 
     const startEnd =
         str.original.indexOf(
             '}',
-            // context was the first iteration in a .next release, remove at some point
-            snippetBlock.context?.end ||
-                snippetBlock.parameters?.at(-1)?.end ||
-                snippetBlock.expression.end
+            lastParameter?.typeAnnotation?.end ?? lastParameter?.end ?? snippetBlock.expression.end
         ) + 1;
 
+    let parameters: [number, number] | undefined;
+
+    if (snippetBlock.parameters?.length) {
+        const firstParameter = snippetBlock.parameters[0];
+        const start = firstParameter?.leadingComments?.[0]?.start ?? firstParameter.start;
+        const end = lastParameter.typeAnnotation?.end ?? lastParameter.end;
+        parameters = [start, end];
+    }
+
+    // inner async function for potential #await blocks
+    const afterParameters = ` => { async ()${IGNORE_POSITION_COMMENT} => {`;
+
     if (isImplicitProp) {
-        str.overwrite(snippetBlock.start, snippetBlock.expression.start, '', { contentOnly: true });
+        /** Can happen in loose parsing mode, e.g. code is currently `{#snippet }` */
+        const emptyId = snippetBlock.expression.start === snippetBlock.expression.end;
+
+        if (emptyId) {
+            // Give intellisense a way to map into the right position for implicit prop completion
+            str.overwrite(snippetBlock.start, snippetBlock.expression.start - 1, '', {
+                contentOnly: true
+            });
+            str.overwrite(snippetBlock.expression.start - 1, snippetBlock.expression.start, ' ', {
+                contentOnly: true
+            });
+        } else {
+            str.overwrite(snippetBlock.start, snippetBlock.expression.start, '', {
+                contentOnly: true
+            });
+        }
+
         const transforms: TransformationArray = ['('];
-        if (snippetBlock.context || snippetBlock.parameters?.length) {
-            // context was the first iteration in a .next release, remove at some point
-            const start = snippetBlock.context?.start || snippetBlock.parameters?.[0].start;
-            const end = snippetBlock.context?.end || snippetBlock.parameters.at(-1).end;
-            transforms.push([start, end]);
+
+        if (parameters) {
+            transforms.push(parameters);
+            const [start, end] = parameters;
             str.overwrite(snippetBlock.expression.end, start, '', {
                 contentOnly: true
             });
@@ -66,52 +96,40 @@ export function handleSnippet(
         } else {
             str.overwrite(snippetBlock.expression.end, startEnd, '', { contentOnly: true });
         }
-        transforms.push(') => {');
-        transforms.push([startEnd, snippetBlock.end]);
-        component.addProp(
-            [[snippetBlock.expression.start, snippetBlock.expression.end]],
-            transforms
-        );
-    } else {
-        let generic = '';
-        // context was the first iteration in a .next release, remove at some point
-        if (snippetBlock.context) {
-            generic = snippetBlock.context.typeAnnotation
-                ? `<${str.original.slice(
-                      snippetBlock.context.typeAnnotation.start + 1,
-                      snippetBlock.context.typeAnnotation.end
-                  )}>`
-                : // slap any on to it to silence "implicit any" errors; JSDoc people can't add types to snippets
-                  '<any>';
-        } else if (snippetBlock.parameters?.length) {
-            generic = `<[${snippetBlock.parameters
-                .map((p) =>
-                    p.typeAnnotation
-                        ? str.original.slice(p.typeAnnotation.start + 1, p.typeAnnotation.end)
-                        : // slap any on to it to silence "implicit any" errors; JSDoc people can't add types to snippets
-                          'any'
-                )
-                .join(', ')}]>`;
-        }
 
-        const typeAnnotation = surroundWithIgnoreComments(`: import('svelte').Snippet${generic}`);
+        transforms.push(')' + afterParameters);
+        transforms.push([startEnd, snippetBlock.end]);
+
+        if (component instanceof InlineComponent) {
+            component.addImplicitSnippetProp(
+                [snippetBlock.expression.start - (emptyId ? 1 : 0), snippetBlock.expression.end],
+                transforms
+            );
+        } else {
+            component.addAttribute(
+                [[snippetBlock.expression.start - (emptyId ? 1 : 0), snippetBlock.expression.end]],
+                transforms
+            );
+        }
+    } else {
         const transforms: TransformationArray = [
-            'var ',
+            'const ',
             [snippetBlock.expression.start, snippetBlock.expression.end],
-            typeAnnotation + ' = ('
+            IGNORE_POSITION_COMMENT,
+            ` = ${snippetBlock.typeParams ? `<${snippetBlock.typeParams}>` : ''}(`
         ];
 
-        // context was the first iteration in a .next release, remove at some point
-        if (snippetBlock.context) {
-            transforms.push([snippetBlock.context.start, snippetBlock.context.end]);
-        } else if (snippetBlock.parameters?.length) {
-            const start = snippetBlock.parameters[0].start;
-            const end = snippetBlock.parameters.at(-1).end;
-            transforms.push([start, end]);
+        if (parameters) {
+            transforms.push(parameters);
         }
 
-        transforms.push(') => {');
-        transform(str, snippetBlock.start, startEnd, startEnd, transforms);
+        transforms.push(
+            ')',
+            surroundWithIgnoreComments(`: ReturnType<import('svelte').Snippet>`), // shows up nicely preserved on hover, other alternatives don't
+            afterParameters
+        );
+
+        transform(str, snippetBlock.start, startEnd, transforms);
     }
 }
 
@@ -140,7 +158,11 @@ export function handleImplicitChildren(componentNode: BaseNode, component: Inlin
                 continue;
             }
         }
-        if (child.type === 'Comment' || (child.type === 'Text' && child.data.trim() === '')) {
+        if (
+            child.type === 'Comment' ||
+            child.type === 'Slot' ||
+            (child.type === 'Text' && child.data.trim() === '')
+        ) {
             continue;
         }
         if (child.type !== 'SnippetBlock') {
@@ -155,4 +177,33 @@ export function handleImplicitChildren(componentNode: BaseNode, component: Inlin
 
     // it's enough to fake a children prop, we don't need to actually move the content inside (which would also reset control flow)
     component.addProp(['children'], ['() => { return __sveltets_2_any(0); }']);
+}
+
+export function hoistSnippetBlock(str: MagicString, blockOrEl: BaseNode) {
+    if (blockOrEl.type === 'InlineComponent' || blockOrEl.type === 'SvelteBoundary') {
+        // implicit props, handled in InlineComponent
+        return;
+    }
+
+    let targetPosition: number | undefined;
+
+    for (const node of blockOrEl.children ?? []) {
+        if (node.type !== 'SnippetBlock') {
+            if (targetPosition === undefined && (node.type !== 'Text' || node.data.trim() !== '')) {
+                targetPosition = node.type === 'Text' ? node.end : node.start;
+            }
+            continue;
+        }
+
+        // already first
+        if (targetPosition === undefined) {
+            continue;
+        }
+
+        if (node.start === targetPosition) {
+            continue;
+        }
+
+        str.move(node.start, node.end, targetPosition);
+    }
 }

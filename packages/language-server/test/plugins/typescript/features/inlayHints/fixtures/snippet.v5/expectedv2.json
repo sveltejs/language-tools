@@ -1,0 +1,20 @@
+[
+    {
+        "label": [
+            {
+                "value": "a",
+                "location": {
+                    "range": {
+                        "start": { "line": 0, "character": 14 },
+                        "end": { "line": 0, "character": 15 }
+                    },
+                    "uri": "<workspaceUri>/snippet.v5/input.svelte"
+                }
+            },
+            { "value": ":" }
+        ],
+        "position": { "line": 4, "character": 13 },
+        "kind": 2,
+        "paddingRight": true
+    }
+]

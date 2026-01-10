@@ -4,6 +4,7 @@ import { internalHelpers } from '../../helpers';
 import { surroundWithIgnoreComments } from '../../utils/ignore';
 import { preprendStr, overwriteStr } from '../../utils/magic-string';
 import { findExportKeyword, getLastLeadingDoc, isInterfaceOrTypeDeclaration } from '../utils/tsAst';
+import { HoistableInterfaces } from './HoistableInterfaces';
 
 export function is$$PropsDeclaration(
     node: ts.Node
@@ -17,24 +18,32 @@ interface ExportedName {
     identifierText?: string;
     required?: boolean;
     doc?: string;
-    /** Set if this is the implicit children prop. `empty` == no parameters, else `has_params` */
-    implicitChildren?: 'empty' | 'has_params';
+    isNamedExport?: boolean;
 }
 
 export class ExportedNames {
+    public hoistableInterfaces = new HoistableInterfaces();
+    public usesAccessors = false;
     /**
      * Uses the `$$Props` type
      */
     public uses$$Props = false;
     /**
+     * Component contains globals that have a rune name
+     */
+    private hasRunesGlobals = false;
+    /**
      * The `$props()` rune's type info as a string, if it exists.
      * If using TS, this returns the generic string, if using JS, returns the `@type {..}` string.
      */
     private $props = {
+        /** The JSDoc type; not set when TS type exists */
         comment: '',
-        generic: '',
-        mayHaveChildrenProp: false
+        /** The TS type */
+        type: '',
+        bindings: [] as string[]
     };
+    /** Map of all props and exports. Exposing it publicly is no longer necessary for runes mode */
     private exports = new Map<string, ExportedName>();
     private possibleExports = new Map<
         string,
@@ -49,7 +58,9 @@ export class ExportedNames {
         private str: MagicString,
         private astOffset: number,
         private basename: string,
-        private isTsFile: boolean
+        private isTsFile: boolean,
+        private isSvelte5Plus: boolean,
+        private isRunes: boolean
     ) {}
 
     handleVariableStatement(node: ts.VariableStatement, parent: ts.Node): void {
@@ -122,9 +133,9 @@ export class ExportedNames {
         if (ts.isNamedExports(exportClause)) {
             for (const ne of exportClause.elements) {
                 if (ne.propertyName) {
-                    this.addExport(ne.propertyName, false, ne.name);
+                    this.addExport(ne.propertyName, false, ne.name, undefined, undefined, true);
                 } else {
-                    this.addExport(ne.name, false);
+                    this.addExport(ne.name, false, undefined, undefined, undefined, true);
                 }
             }
             //we can remove entire statement
@@ -137,42 +148,60 @@ export class ExportedNames {
             initializer: ts.CallExpression & { expression: ts.Identifier };
         }
     ): void {
-        // Check if the $props() rune has a children prop
+        // Check if the $props() rune uses $bindable()
         if (ts.isObjectBindingPattern(node.name)) {
             for (const element of node.name.elements) {
                 if (
-                    !ts.isIdentifier(element.name) ||
-                    (element.propertyName && !ts.isIdentifier(element.propertyName)) ||
-                    !!element.dotDotDotToken
+                    ts.isIdentifier(element.name) &&
+                    (!element.propertyName || ts.isIdentifier(element.propertyName)) &&
+                    !element.dotDotDotToken
                 ) {
-                    // not statically analyzable, so we assume it may have children
-                    this.$props.mayHaveChildrenProp = true;
-                } else {
                     const name = element.propertyName
                         ? (element.propertyName as ts.Identifier).text
                         : element.name.text;
-                    if (name === 'children') {
-                        this.$props.mayHaveChildrenProp = true;
+
+                    if (element.initializer) {
+                        let call = element.initializer;
+                        // if it's an as expression we need to check wether the as
+                        // expression expression is a call
+                        if (ts.isAsExpression(call)) {
+                            call = call.expression;
+                        }
+                        if (ts.isCallExpression(call) && ts.isIdentifier(call.expression)) {
+                            if (call.expression.text === '$bindable') {
+                                this.$props.bindings.push(name);
+                            }
+                        }
                     }
                 }
             }
-        } else {
-            this.$props.mayHaveChildrenProp = true;
         }
 
+        if (this.$props.bindings.length > 0) {
+            this.str.appendLeft(
+                node.end + this.astOffset,
+                surroundWithIgnoreComments(
+                    ';' + this.$props.bindings.map((prop) => prop + ';').join('')
+                )
+            );
+        }
+
+        // Easy mode: User uses TypeScript and typed the $props() rune
         if (node.initializer.typeArguments?.length > 0 || node.type) {
+            this.hoistableInterfaces.analyze$propsRune(node);
+
             const generic_arg = node.initializer.typeArguments?.[0] || node.type;
             const generic = generic_arg.getText();
-            if (!generic.includes('{')) {
-                this.$props.generic = generic;
+            if (ts.isTypeReferenceNode(generic_arg)) {
+                this.$props.type = generic;
             } else {
                 // Create a virtual type alias for the unnamed generic and reuse it for the props return type
                 // so that rename, find references etc works seamlessly across components
-                this.$props.generic = '$$ComponentProps';
+                this.$props.type = '$$ComponentProps';
                 preprendStr(
                     this.str,
                     generic_arg.pos + this.astOffset,
-                    `;type ${this.$props.generic} = `
+                    `;type ${this.$props.type} = `
                 );
                 this.str.appendLeft(generic_arg.end + this.astOffset, ';');
                 this.str.move(
@@ -180,15 +209,34 @@ export class ExportedNames {
                     generic_arg.end + this.astOffset,
                     node.parent.pos + this.astOffset
                 );
-                this.str.appendRight(generic_arg.end + this.astOffset, this.$props.generic);
+                this.str.appendRight(
+                    generic_arg.end + this.astOffset,
+                    // so that semantic tokens ignore it, preventing an overlap of tokens
+                    surroundWithIgnoreComments(this.$props.type)
+                );
             }
-        } else {
-            if (!this.isTsFile) {
-                const text = node.getSourceFile().getFullText();
-                let start = -1;
-                let comment: string;
-                // reverse because we want to look at the last comment before the node first
-                for (const c of [...(ts.getLeadingCommentRanges(text, node.pos) || [])].reverse()) {
+
+            return;
+        }
+
+        // Hard mode: User uses JSDoc or didn't type the $props() rune
+        if (!this.isTsFile) {
+            const text = node.getSourceFile().getFullText();
+            let start = -1;
+            let comment: string;
+            // reverse because we want to look at the last comment before the node first
+            for (const c of [...(ts.getLeadingCommentRanges(text, node.pos) || [])].reverse()) {
+                const potential_match = text.substring(c.pos, c.end);
+                if (/@type\b/.test(potential_match)) {
+                    comment = potential_match;
+                    start = c.pos + this.astOffset;
+                    break;
+                }
+            }
+            if (!comment) {
+                for (const c of [
+                    ...(ts.getLeadingCommentRanges(text, node.parent.pos) || []).reverse()
+                ]) {
                     const potential_match = text.substring(c.pos, c.end);
                     if (/@type\b/.test(potential_match)) {
                         comment = potential_match;
@@ -196,134 +244,140 @@ export class ExportedNames {
                         break;
                     }
                 }
-                if (!comment) {
-                    for (const c of [
-                        ...(ts.getLeadingCommentRanges(text, node.parent.pos) || []).reverse()
-                    ]) {
-                        const potential_match = text.substring(c.pos, c.end);
-                        if (/@type\b/.test(potential_match)) {
-                            comment = potential_match;
-                            start = c.pos + this.astOffset;
-                            break;
-                        }
-                    }
-                }
-
-                if (comment && /\/\*\*[^@]*?@type\s*{\s*{.*}\s*}\s*\*\//.test(comment)) {
-                    // Create a virtual type alias for the unnamed generic and reuse it for the props return type
-                    // so that rename, find references etc works seamlessly across components
-                    this.$props.comment = '/** @type {$$ComponentProps} */';
-                    const type_start = this.str.original.indexOf('@type', start);
-                    this.str.overwrite(type_start, type_start + 5, '@typedef');
-                    const end = this.str.original.indexOf('*/', start);
-                    this.str.overwrite(end, end + 2, ' $$ComponentProps */' + this.$props.comment);
-                } else {
-                    // Complex comment or simple `@type {AType}` comment which we just use as-is.
-                    // For the former this means things like rename won't work properly across components.
-                    this.$props.comment = comment || '';
-                }
             }
 
-            if (this.$props.comment) {
-                return;
-            }
-
-            // Do a best-effort to extract the props from the object literal
-            let propsStr = '';
-            let withUnknown = false;
-            let props = [];
-
-            const isKitRouteFile = internalHelpers.isKitRouteFile(this.basename);
-            const isKitLayoutFile = isKitRouteFile && this.basename.includes('layout');
-            if (isKitRouteFile) {
-                this.$props.mayHaveChildrenProp = isKitLayoutFile;
-            }
-
-            if (ts.isObjectBindingPattern(node.name)) {
-                for (const element of node.name.elements) {
-                    if (
-                        !ts.isIdentifier(element.name) ||
-                        (element.propertyName && !ts.isIdentifier(element.propertyName)) ||
-                        !!element.dotDotDotToken
-                    ) {
-                        withUnknown = true;
-                    } else {
-                        const name = element.propertyName
-                            ? (element.propertyName as ts.Identifier).text
-                            : element.name.text;
-                        if (isKitRouteFile) {
-                            if (name === 'data') {
-                                props.push(
-                                    `data: import('./$types.js').${
-                                        isKitLayoutFile ? 'LayoutData' : 'PageData'
-                                    }`
-                                );
-                            }
-                            if (name === 'form' && !isKitLayoutFile) {
-                                props.push(`form: import('./$types.js').ActionData`);
-                            }
-                        } else if (element.initializer) {
-                            const type = ts.isAsExpression(element.initializer)
-                                ? element.initializer.type.getText()
-                                : ts.isStringLiteral(element.initializer)
-                                  ? 'string'
-                                  : ts.isNumericLiteral(element.initializer)
-                                    ? 'number'
-                                    : element.initializer.kind === ts.SyntaxKind.TrueKeyword ||
-                                        element.initializer.kind === ts.SyntaxKind.FalseKeyword
-                                      ? 'boolean'
-                                      : ts.isIdentifier(element.initializer)
-                                        ? `typeof ${element.initializer.text}`
-                                        : 'unknown';
-                            props.push(`${name}?: ${type}`);
-                        } else {
-                            props.push(`${name}: unknown`);
-                        }
-                    }
-                }
-
-                if (isKitLayoutFile) {
-                    props.push(`children: import('svelte').Snippet`);
-                }
-
-                if (props.length > 0) {
-                    propsStr =
-                        `{ ${props.join(', ')} }` +
-                        (withUnknown ? ' & Record<string, unknown>' : '');
-                } else if (withUnknown) {
-                    propsStr = 'Record<string, unknown>';
-                } else {
-                    propsStr = 'Record<string, never>';
-                }
-            } else {
-                propsStr = 'Record<string, unknown>';
-            }
-
-            // Create a virtual type alias for the unnamed generic and reuse it for the props return type
-            // so that rename, find references etc works seamlessly across components
-            if (this.isTsFile) {
-                this.$props.generic = '$$ComponentProps';
-                if (props.length > 0 || withUnknown) {
-                    preprendStr(
-                        this.str,
-                        node.parent.pos + this.astOffset,
-                        surroundWithIgnoreComments(`;type $$ComponentProps = ${propsStr};`)
-                    );
-                    preprendStr(
-                        this.str,
-                        node.name.end + this.astOffset,
-                        `: ${this.$props.generic}`
-                    );
-                }
-            } else {
+            if (comment && /\/\*\*[^@]*?@type\s*{\s*{.*}\s*}\s*\*\//.test(comment)) {
+                // Create a virtual type alias for the unnamed generic and reuse it for the props return type
+                // so that rename, find references etc works seamlessly across components
                 this.$props.comment = '/** @type {$$ComponentProps} */';
-                if (props.length > 0 || withUnknown) {
-                    preprendStr(
-                        this.str,
-                        node.pos + this.astOffset,
-                        `/** @typedef {${propsStr}} $$ComponentProps */${this.$props.comment}`
-                    );
+                const type_start = this.str.original.indexOf('@type', start);
+                this.str.overwrite(type_start, type_start + 5, '@typedef');
+                const end = this.str.original.indexOf('*/', start);
+                this.str.overwrite(end, end + 2, ' $$ComponentProps */' + this.$props.comment);
+            } else {
+                // Complex comment or simple `@type {AType}` comment which we just use as-is.
+                // For the former this means things like rename won't work properly across components.
+                this.$props.comment = comment || '';
+            }
+        }
+
+        if (this.$props.comment) {
+            // User uses JsDoc
+            return;
+        }
+
+        // Do a best-effort to extract the props from the object literal
+        let propsStr = '';
+        let withUnknown = false;
+        let props = [];
+
+        const isKitRouteFile = internalHelpers.isKitRouteFile(this.basename);
+        const isKitLayoutFile = isKitRouteFile && this.basename.includes('layout');
+
+        if (ts.isObjectBindingPattern(node.name)) {
+            for (const element of node.name.elements) {
+                if (
+                    !ts.isIdentifier(element.name) ||
+                    (element.propertyName && !ts.isIdentifier(element.propertyName)) ||
+                    !!element.dotDotDotToken
+                ) {
+                    withUnknown = true;
+                } else {
+                    const name = element.propertyName
+                        ? (element.propertyName as ts.Identifier).text
+                        : element.name.text;
+                    if (isKitRouteFile) {
+                        // TODO once we know we can assume SvelteKit 2.16+, simplify this to always using LayoutProps/PageProps
+                        if (name === 'data') {
+                            props.push(
+                                `data: import('./$types.js').${
+                                    isKitLayoutFile ? 'LayoutData' : 'PageData'
+                                }`
+                            );
+                        }
+                        if (name === 'form' && !isKitLayoutFile) {
+                            props.push(`form: import('./$types.js').ActionData`);
+                        }
+                        if (name === 'params') {
+                            props.push(
+                                `params: import('./$types.js').${
+                                    isKitLayoutFile ? 'LayoutProps' : 'PageProps'
+                                }['params']`
+                            );
+                        }
+                    } else if (element.initializer) {
+                        const initializer =
+                            ts.isCallExpression(element.initializer) &&
+                            ts.isIdentifier(element.initializer.expression) &&
+                            element.initializer.expression.text === '$bindable'
+                                ? element.initializer.arguments[0]
+                                : element.initializer;
+
+                        const type = !initializer
+                            ? 'any'
+                            : ts.isAsExpression(initializer)
+                              ? initializer.type.getText()
+                              : ts.isStringLiteral(initializer)
+                                ? 'string'
+                                : ts.isNumericLiteral(initializer)
+                                  ? 'number'
+                                  : initializer.kind === ts.SyntaxKind.TrueKeyword ||
+                                      initializer.kind === ts.SyntaxKind.FalseKeyword
+                                    ? 'boolean'
+                                    : ts.isIdentifier(initializer) &&
+                                        initializer.text !== 'undefined'
+                                      ? `typeof ${initializer.text}`
+                                      : ts.isArrowFunction(initializer)
+                                        ? 'Function'
+                                        : ts.isObjectLiteralExpression(initializer)
+                                          ? 'Record<string, any>'
+                                          : ts.isArrayLiteralExpression(initializer)
+                                            ? 'any[]'
+                                            : 'any';
+
+                        props.push(`${name}?: ${type}`);
+                    } else {
+                        props.push(`${name}: any`);
+                    }
                 }
+            }
+
+            if (isKitLayoutFile) {
+                props.push(`children: import('svelte').Snippet`);
+            }
+
+            if (props.length > 0) {
+                propsStr =
+                    `{ ${props.join(', ')} }` + (withUnknown ? ' & Record<string, any>' : '');
+            } else if (withUnknown) {
+                propsStr = 'Record<string, any>';
+            } else {
+                propsStr = 'Record<string, never>';
+            }
+        } else {
+            propsStr = 'Record<string, any>';
+        }
+
+        // Create a virtual type alias for the unnamed generic and reuse it for the props return type
+        // so that rename, find references etc works seamlessly across components
+        if (this.isTsFile) {
+            this.$props.type = '$$ComponentProps';
+            if (props.length > 0 || withUnknown) {
+                preprendStr(
+                    this.str,
+                    node.parent.pos + this.astOffset,
+                    surroundWithIgnoreComments(`;type $$ComponentProps = ${propsStr};`)
+                );
+                preprendStr(this.str, node.name.end + this.astOffset, `: ${this.$props.type}`);
+            }
+        } else {
+            this.$props.comment = '/** @type {$$ComponentProps} */';
+            if (props.length > 0 || withUnknown) {
+                preprendStr(
+                    this.str,
+                    node.pos + this.astOffset,
+                    `/** @typedef {${propsStr}} $$ComponentProps */${this.$props.comment}`
+                );
             }
         }
     }
@@ -465,16 +519,26 @@ export class ExportedNames {
         this.getters.add(node.text);
     }
 
-    createClassGetters(): string {
-        return Array.from(this.getters)
-            .map(
-                (name) =>
-                    // getters are const/classes/functions, which are always defined.
-                    // We have to remove the `| undefined` from the type here because it was necessary to
-                    // be added in a previous step so people are not expected to provide these as props.
-                    `\n    get ${name}() { return __sveltets_2_nonNullable(this.$$prop_def.${name}) }`
-            )
-            .join('');
+    createClassGetters(generics = ''): string {
+        if (this.isRunesMode()) {
+            // In runes mode, exports are no longer part of props
+            return Array.from(this.getters)
+                .map(
+                    (name) =>
+                        `\n    get ${name}() { return ${internalHelpers.renderName}${generics}().exports.${name} }`
+                )
+                .join('');
+        } else {
+            return Array.from(this.getters)
+                .map(
+                    (name) =>
+                        // getters are const/classes/functions, which are always defined.
+                        // We have to remove the `| undefined` from the type here because it was necessary to
+                        // be added in a previous step so people are not expected to provide these as props.
+                        `\n    get ${name}() { return __sveltets_2_nonNullable(this.$$prop_def.${name}) }`
+                )
+                .join('');
+        }
     }
 
     createClassAccessors(): string {
@@ -529,41 +593,34 @@ export class ExportedNames {
         }
     }
 
-    addImplicitChildrenExport(hasParams: boolean): void {
-        if (this.exports.has('children')) return;
-
-        this.exports.set('children', {
-            isLet: true,
-            implicitChildren: hasParams ? 'has_params' : 'empty'
-        });
-    }
-
     /**
      * Adds export to map
      */
     private addExport(
-        name: ts.Identifier,
+        name: ts.ModuleExportName,
         isLet: boolean,
-        target: ts.Identifier = null,
+        target: ts.ModuleExportName = null,
         type: ts.TypeNode = null,
-        required = false
+        required = false,
+        isNamedExport = false
     ): void {
         const existingDeclaration = this.possibleExports.get(name.text);
-
         if (target) {
             this.exports.set(name.text, {
                 isLet: isLet || existingDeclaration?.isLet,
                 type: type?.getText() || existingDeclaration?.type,
                 identifierText: target.text,
                 required: required || existingDeclaration?.required,
-                doc: this.getDoc(target) || existingDeclaration?.doc
+                doc: this.getDoc(target) || existingDeclaration?.doc,
+                isNamedExport
             });
         } else {
             this.exports.set(name.text, {
                 isLet: isLet || existingDeclaration?.isLet,
                 type: existingDeclaration?.type,
                 required: existingDeclaration?.required,
-                doc: existingDeclaration?.doc
+                doc: existingDeclaration?.doc,
+                isNamedExport
             });
         }
 
@@ -591,7 +648,7 @@ export class ExportedNames {
         });
     }
 
-    private getDoc(target: ts.BindingName) {
+    private getDoc(target: ts.BindingName | ts.ModuleExportName) {
         let doc = undefined;
         // Traverse `a` one up. If the declaration is part of a declaration list,
         // the comment is at this point already
@@ -613,44 +670,24 @@ export class ExportedNames {
     /**
      * Creates a string from the collected props
      *
-     * @param isTsFile Whether this is a TypeScript file or not.
      * @param uses$$propsOr$$restProps whether the file references the $$props or $$restProps variable
      */
     createPropsStr(uses$$propsOr$$restProps: boolean): string {
         const names = Array.from(this.exports.entries());
 
-        if (this.$props.generic) {
-            const others = names.filter(
-                ([, { isLet, implicitChildren }]) => !isLet || !!implicitChildren
-            );
-            return (
-                '{} as any as ' +
-                this.$props.generic +
-                (others.length
-                    ? ' & { ' + this.createReturnElementsType(others).join(',') + ' }'
-                    : '')
-            );
-        }
-
-        if (this.$props.comment) {
-            // Try our best to incorporate createReturnElementsType here
-            const others = names.filter(
-                ([, { isLet, implicitChildren }]) => !isLet || !!implicitChildren
-            );
-            let idx = this.$props.comment.indexOf('@type');
-            if (idx !== -1 && /[\s{]/.test(this.$props.comment[idx + 5]) && others.length > 0) {
-                idx = this.$props.comment.indexOf('{', idx);
-                if (idx !== -1) {
-                    idx++;
-                    return (
-                        this.$props.comment.slice(0, idx) +
-                        `{${this.createReturnElementsType(others, false)}} & ` +
-                        this.$props.comment.slice(idx) +
-                        '({})'
-                    );
-                }
+        if (this.isRunesMode()) {
+            if (this.$props.type) {
+                return '{} as any as ' + this.$props.type;
             }
-            return this.$props.comment + '({})';
+
+            if (this.$props.comment) {
+                return this.$props.comment + '({})';
+            }
+
+            // Necessary, because {} roughly equals to any
+            return this.isTsFile
+                ? '{} as Record<string, never>'
+                : '/** @type {Record<string, never>} */ ({})';
         }
 
         if (this.uses$$Props) {
@@ -695,38 +732,95 @@ export class ExportedNames {
         return `{${returnElements.join(' , ')}} as {${returnElementsType.join(', ')}}`;
     }
 
-    private createReturnElements(
-        names: Array<[string, ExportedName]>,
-        dontAddTypeDef: boolean
-    ): string[] {
-        return names.map(([key, value]) => {
-            if (value.implicitChildren) {
-                return `children: ${
-                    value.implicitChildren === 'empty'
-                        ? '__sveltets_2_snippet()'
-                        : '$$implicit_children'
-                }`;
-            }
-            // Important to not use shorthand props for rename functionality
-            return `${dontAddTypeDef && value.doc ? `\n${value.doc}` : ''}${
-                value.identifierText || key
-            }: ${key}`;
-        });
+    hasNoProps() {
+        if (this.isRunesMode()) {
+            return !this.$props.type && !this.$props.comment;
+        }
+
+        const names = Array.from(this.exports.entries());
+        return names.length === 0;
     }
 
-    private createReturnElementsType(names: Array<[string, ExportedName]>, addDoc = true) {
-        return names.map(([key, value]) => {
-            if (value.implicitChildren) {
-                return `children?: ${
-                    value.implicitChildren === 'empty'
-                        ? `import('svelte').Snippet`
-                        : 'typeof $$implicit_children'
-                }`;
+    createBindingsStr(): string {
+        if (this.isRunesMode()) {
+            // will be just the empty strings for zero bindings, which is impossible to create a binding for, so it works out fine
+            return `__sveltets_$$bindings('${this.$props.bindings.join("', '")}')`;
+        } else {
+            return '""';
+        }
+    }
+
+    /**
+     * In runes mode, exports are no longer part of props because you cannot `bind:` to them,
+     * which is why we need a separate return type for them. In Svelte 5, the isomorphic component
+     * needs them separate, too.
+     */
+    createExportsStr(): string {
+        const names = Array.from(this.exports.entries());
+        const others = names.filter(
+            ([, { isLet, isNamedExport }]) => !isLet || (this.isRunesMode() && isNamedExport)
+        );
+        const needsAccessors = this.usesAccessors && names.length > 0 && !this.isRunesMode(); // runes mode doesn't support accessors
+
+        if (this.isSvelte5Plus) {
+            let str = '';
+
+            if (others.length > 0 || this.isRunesMode() || needsAccessors) {
+                const exports = needsAccessors ? names : others;
+
+                if (others.length > 0 || needsAccessors) {
+                    if (this.isTsFile) {
+                        str +=
+                            // Reference imports that have a type, else they are marked as unused if nothing in the component references them
+                            `, exports: {${this.createReturnElements(this.isRunesMode() ? others : [], false, true)}} as any as { ` +
+                            this.createReturnElementsType(exports, undefined, true).join(',') +
+                            ' }';
+                    } else {
+                        str += `, exports: /** @type {{${this.createReturnElementsType(exports, false, true)}}} */ ({})`;
+                    }
+                } else {
+                    // Always add that, in TS5.5+ the type for Exports is infered to never when this is not present, which breaks types.
+                    // Don't cast to `Record<string, never>` because that will break the union type we use elsewhere
+                    str += ', exports: {}';
+                }
+
+                str += `, bindings: ${this.createBindingsStr()}`;
+            } else {
+                // always add that, in TS5.5+ the type for Exports is infered to never when this is not present, which breaks types
+                str += `, exports: {}, bindings: ${this.createBindingsStr()}`;
             }
 
+            return str;
+        }
+
+        return '';
+    }
+
+    private createReturnElements(
+        names: Array<[string, ExportedName]>,
+        dontAddTypeDef: boolean,
+        onlyTyped = false
+    ): string[] {
+        return names
+            .map(([key, value]) => {
+                if (onlyTyped && !value.type) return;
+                // Important to not use shorthand props for rename functionality
+                return `${dontAddTypeDef && value.doc ? `\n${value.doc}` : ''}${
+                    value.identifierText || key
+                }: ${key}`;
+            })
+            .filter(Boolean);
+    }
+
+    private createReturnElementsType(
+        names: Array<[string, ExportedName]>,
+        addDoc = true,
+        forceRequired = false
+    ) {
+        return names.map(([key, value]) => {
             const identifier = `${value.doc && addDoc ? `\n${value.doc}` : ''}${
                 value.identifierText || key
-            }${value.required ? '' : '?'}`;
+            }${value.required || forceRequired ? '' : '?'}`;
             if (!value.type) {
                 return `${identifier}: typeof ${key}`;
             }
@@ -736,16 +830,42 @@ export class ExportedNames {
     }
 
     createOptionalPropsArray(): string[] {
-        return Array.from(this.exports.entries())
-            .filter(([_, entry]) => !entry.required)
-            .map(([name, entry]) => `'${entry.identifierText || name}'`);
+        if (this.isRunesMode()) {
+            return [];
+        } else {
+            return Array.from(this.exports.entries())
+                .filter(([_, entry]) => !entry.required)
+                .map(([name, entry]) => `'${entry.identifierText || name}'`);
+        }
     }
 
     getExportsMap() {
         return this.exports;
     }
 
-    usesChildrenIn$propsRune() {
-        return this.$props.mayHaveChildrenProp;
+    hasExports(): boolean {
+        const names = Array.from(this.exports.entries());
+        return this.usesAccessors ? names.length > 0 : names.some(([, { isLet }]) => !isLet);
+    }
+
+    hasPropsRune() {
+        return this.isSvelte5Plus && !!(this.$props.type || this.$props.comment);
+    }
+
+    checkGlobalsForRunes(globals: string[]) {
+        const runes = ['$state', '$derived', '$effect']; // no need to check for props, already handled through other means in here
+        this.hasRunesGlobals =
+            this.isSvelte5Plus && globals.some((global) => runes.includes(global));
+    }
+
+    enterRunesMode() {
+        this.isRunes = true;
+    }
+
+    /**
+     * True if uses runes or top level await or await in template expressions
+     */
+    isRunesMode() {
+        return this.hasRunesGlobals || this.hasPropsRune() || this.isRunes;
     }
 }

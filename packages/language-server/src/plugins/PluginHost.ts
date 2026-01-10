@@ -7,6 +7,7 @@ import {
     CancellationToken,
     CodeAction,
     CodeActionContext,
+    CodeLens,
     Color,
     ColorInformation,
     ColorPresentation,
@@ -15,6 +16,7 @@ import {
     CompletionList,
     DefinitionLink,
     Diagnostic,
+    DocumentHighlight,
     FoldingRange,
     FormattingOptions,
     Hover,
@@ -32,7 +34,9 @@ import {
     TextDocumentIdentifier,
     TextEdit,
     WorkspaceEdit,
-    InlayHint
+    InlayHint,
+    WorkspaceSymbol,
+    DocumentSymbol
 } from 'vscode-languageserver';
 import { DocumentManager, getNodeIfIsInHTMLStartTag } from '../lib/documents';
 import { Logger } from '../logger';
@@ -170,6 +174,22 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
             });
         }
 
+        let itemDefaults: CompletionList['itemDefaults'];
+        if (completions.length === 1) {
+            itemDefaults = completions[0]?.result.itemDefaults;
+        } else {
+            // don't apply items default to the result of other plugins
+            for (const completion of completions) {
+                const itemDefaults = completion.result.itemDefaults;
+                if (!itemDefaults) {
+                    continue;
+                }
+                completion.result.items.forEach((item) => {
+                    item.commitCharacters ??= itemDefaults.commitCharacters;
+                });
+            }
+        }
+
         let flattenedCompletions = flatten(
             completions.map((completion) => completion.result.items)
         );
@@ -193,7 +213,10 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
             );
         }
 
-        return CompletionList.create(flattenedCompletions, isIncomplete);
+        const result = CompletionList.create(flattenedCompletions, isIncomplete);
+        result.itemDefaults = itemDefaults;
+
+        return result;
     }
 
     async resolveCompletion(
@@ -279,14 +302,78 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
     ): Promise<SymbolInformation[]> {
         const document = this.getDocument(textDocument.uri);
 
+        // VSCode requested document symbols twice for the outline view and the sticky scroll
+        // Manually delay here and don't use low priority as one of them will return no symbols
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        if (cancellationToken.isCancellationRequested) {
+            return [];
+        }
+
         return flatten(
             await this.execute<SymbolInformation[]>(
                 'getDocumentSymbols',
                 [document, cancellationToken],
                 ExecuteMode.Collect,
-                'low'
+                'high'
             )
         );
+    }
+
+    private comparePosition(pos1: Position, pos2: Position) {
+        if (pos1.line < pos2.line) return -1;
+        if (pos1.line > pos2.line) return 1;
+        if (pos1.character < pos2.character) return -1;
+        if (pos1.character > pos2.character) return 1;
+        return 0;
+    }
+
+    private rangeContains(parent: Range, child: Range) {
+        return (
+            this.comparePosition(parent.start, child.start) <= 0 &&
+            this.comparePosition(child.end, parent.end) <= 0
+        );
+    }
+
+    async getHierarchicalDocumentSymbols(
+        textDocument: TextDocumentIdentifier,
+        cancellationToken: CancellationToken
+    ): Promise<DocumentSymbol[]> {
+        const flat = await this.getDocumentSymbols(textDocument, cancellationToken);
+        const symbols = flat
+            .map((s) =>
+                DocumentSymbol.create(
+                    s.name,
+                    undefined,
+                    s.kind,
+                    s.location.range,
+                    s.location.range,
+                    []
+                )
+            )
+            .sort((a, b) => {
+                const start = this.comparePosition(a.range.start, b.range.start);
+                if (start !== 0) return start;
+                return this.comparePosition(b.range.end, a.range.end);
+            });
+
+        const stack: DocumentSymbol[] = [];
+        const roots: DocumentSymbol[] = [];
+
+        for (const node of symbols) {
+            while (stack.length > 0 && !this.rangeContains(stack.at(-1)!.range, node.range)) {
+                stack.pop();
+            }
+
+            if (stack.length > 0) {
+                stack.at(-1)!.children!.push(node);
+            } else {
+                roots.push(node);
+            }
+
+            stack.push(node);
+        }
+
+        return roots;
     }
 
     async getDefinitions(
@@ -411,13 +498,14 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
     async findReferences(
         textDocument: TextDocumentIdentifier,
         position: Position,
-        context: ReferenceContext
+        context: ReferenceContext,
+        cancellationToken?: CancellationToken
     ): Promise<Location[] | null> {
         const document = this.getDocument(textDocument.uri);
 
         return await this.execute<any>(
             'findReferences',
-            [document, position, context],
+            [document, position, context, cancellationToken],
             ExecuteMode.FirstNonNull,
             'high'
         );
@@ -519,13 +607,14 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
 
     getImplementation(
         textDocument: TextDocumentIdentifier,
-        position: Position
+        position: Position,
+        cancellationToken?: CancellationToken
     ): Promise<Location[] | null> {
         const document = this.getDocument(textDocument.uri);
 
         return this.execute<Location[] | null>(
             'getImplementation',
-            [document, position],
+            [document, position, cancellationToken],
             ExecuteMode.FirstNonNull,
             'high'
         );
@@ -599,6 +688,21 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         );
     }
 
+    async getCodeLens(textDocument: TextDocumentIdentifier) {
+        const document = this.getDocument(textDocument.uri);
+        if (!document) {
+            throw new Error('Cannot call methods on an unopened document');
+        }
+
+        const result = await this.execute<CodeLens[]>(
+            'getCodeLens',
+            [document],
+            ExecuteMode.Collect,
+            'smart'
+        );
+        return flatten(result.filter(Boolean));
+    }
+
     async getFoldingRanges(textDocument: TextDocumentIdentifier): Promise<FoldingRange[]> {
         const document = this.getDocument(textDocument.uri);
 
@@ -612,6 +716,57 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         );
 
         return result;
+    }
+
+    async resolveCodeLens(
+        textDocument: TextDocumentIdentifier,
+        codeLens: CodeLens,
+        cancellationToken: CancellationToken
+    ) {
+        const document = this.getDocument(textDocument.uri);
+        if (!document) {
+            throw new Error('Cannot call methods on an unopened document');
+        }
+
+        return (
+            (await this.execute<CodeLens>(
+                'resolveCodeLens',
+                [document, codeLens, cancellationToken],
+                ExecuteMode.FirstNonNull,
+                'smart'
+            )) ?? codeLens
+        );
+    }
+
+    findDocumentHighlight(
+        textDocument: TextDocumentIdentifier,
+        position: Position
+    ): Promise<DocumentHighlight[] | null> {
+        const document = this.getDocument(textDocument.uri);
+        if (!document) {
+            throw new Error('Cannot call methods on an unopened document');
+        }
+
+        return (
+            this.execute<DocumentHighlight[] | null>(
+                'findDocumentHighlight',
+                [document, position],
+                ExecuteMode.FirstNonNull,
+                'high'
+            ) ?? [] // fall back to empty array to prevent fallback to word-based highlighting
+        );
+    }
+
+    async getWorkspaceSymbols(
+        query: string,
+        token: CancellationToken
+    ): Promise<WorkspaceSymbol[] | null> {
+        return await this.execute<WorkspaceSymbol[]>(
+            'getWorkspaceSymbols',
+            [query, token],
+            ExecuteMode.FirstNonNull,
+            'high'
+        );
     }
 
     onWatchFileChanges(onWatchFileChangesParas: OnWatchFileChangesPara[]): void {

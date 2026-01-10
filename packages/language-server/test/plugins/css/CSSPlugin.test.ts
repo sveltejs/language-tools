@@ -9,7 +9,9 @@ import {
     CompletionContext,
     SelectionRange,
     CompletionTriggerKind,
-    FoldingRangeKind
+    FoldingRangeKind,
+    DocumentHighlight,
+    DocumentHighlightKind
 } from 'vscode-languageserver';
 import { DocumentManager, Document } from '../../../src/lib/documents';
 import { CSSPlugin } from '../../../src/plugins';
@@ -70,7 +72,8 @@ describe('CSS Plugin', () => {
                     kind: 'markdown',
                     value:
                         "Specifies the height of the content area, padding area or border area \\(depending on 'box\\-sizing'\\) of certain boxes\\.\n\n" +
-                        '(Edge 12, Firefox 1, Safari 1, Chrome 1, IE 4, Opera 7)\n\nSyntax: &lt;viewport\\-length&gt;\\{1,2\\}\n\n' +
+                        '![Baseline icon](data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgiIGhlaWdodD0iMTAiIHZpZXdCb3g9IjAgMCA1NDAgMzAwIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgogIDxzdHlsZT4KICAgIC5ncmVlbi1zaGFwZSB7CiAgICAgIGZpbGw6ICNDNEVFRDA7IC8qIExpZ2h0IG1vZGUgKi8KICAgIH0KCiAgICBAbWVkaWEgKHByZWZlcnMtY29sb3Itc2NoZW1lOiBkYXJrKSB7CiAgICAgIC5ncmVlbi1zaGFwZSB7CiAgICAgICAgZmlsbDogIzEyNTIyNTsgLyogRGFyayBtb2RlICovCiAgICAgIH0KICAgIH0KICA8L3N0eWxlPgogIDxwYXRoIGQ9Ik00MjAgMzBMMzkwIDYwTDQ4MCAxNTBMMzkwIDI0MEwzMzAgMTgwTDMwMCAyMTBMMzkwIDMwMEw1NDAgMTUwTDQyMCAzMFoiIGNsYXNzPSJncmVlbi1zaGFwZSIvPgogIDxwYXRoIGQ9Ik0xNTAgMEwzMCAxMjBMNjAgMTUwTDE1MCA2MEwyMTAgMTIwTDI0MCA5MEwxNTAgMFoiIGNsYXNzPSJncmVlbi1zaGFwZSIvPgogIDxwYXRoIGQ9Ik0zOTAgMEw0MjAgMzBMMTUwIDMwMEwwIDE1MEwzMCAxMjBMMTUwIDI0MEwzOTAgMFoiIGZpbGw9IiMxRUE0NDYiLz4KPC9zdmc+) _Widely available across major browsers (Baseline since 2015)_\n\n' +
+                        'Syntax: auto | &lt;length\\-percentage \\[0,∞\\]&gt; | min\\-content | max\\-content | fit\\-content | fit\\-content\\(&lt;length\\-percentage \\[0,∞\\]&gt;\\) | &lt;calc\\-size\\(\\)&gt; | &lt;anchor\\-size\\(\\)&gt;\n\n' +
                         '[MDN Reference](https://developer.mozilla.org/docs/Web/CSS/height)'
                 },
                 range: Range.create(0, 12, 0, 24)
@@ -102,7 +105,8 @@ describe('CSS Plugin', () => {
                 documentation: {
                     kind: 'markdown',
                     value:
-                        'Defines character set of the document\\.\n\n(Edge 12, Firefox 1, Safari 4, Chrome 2, IE 5, Opera 9)\n\n' +
+                        'Defines character set of the document\\.\n\n' +
+                        '![Baseline icon](data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgiIGhlaWdodD0iMTAiIHZpZXdCb3g9IjAgMCA1NDAgMzAwIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgogIDxzdHlsZT4KICAgIC5ncmVlbi1zaGFwZSB7CiAgICAgIGZpbGw6ICNDNEVFRDA7IC8qIExpZ2h0IG1vZGUgKi8KICAgIH0KCiAgICBAbWVkaWEgKHByZWZlcnMtY29sb3Itc2NoZW1lOiBkYXJrKSB7CiAgICAgIC5ncmVlbi1zaGFwZSB7CiAgICAgICAgZmlsbDogIzEyNTIyNTsgLyogRGFyayBtb2RlICovCiAgICAgIH0KICAgIH0KICA8L3N0eWxlPgogIDxwYXRoIGQ9Ik00MjAgMzBMMzkwIDYwTDQ4MCAxNTBMMzkwIDI0MEwzMzAgMTgwTDMwMCAyMTBMMzkwIDMwMEw1NDAgMTUwTDQyMCAzMFoiIGNsYXNzPSJncmVlbi1zaGFwZSIvPgogIDxwYXRoIGQ9Ik0xNTAgMEwzMCAxMjBMNjAgMTUwTDE1MCA2MEwyMTAgMTIwTDI0MCA5MEwxNTAgMFoiIGNsYXNzPSJncmVlbi1zaGFwZSIvPgogIDxwYXRoIGQ9Ik0zOTAgMEw0MjAgMzBMMTUwIDMwMEwwIDE1MEwzMCAxMjBMMTUwIDI0MEwzOTAgMFoiIGZpbGw9IiMxRUE0NDYiLz4KPC9zdmc+) _Widely available across major browsers (Baseline since 2015)_\n\n' +
                         '[MDN Reference](https://developer.mozilla.org/docs/Web/CSS/@charset)'
                 },
                 textEdit: TextEdit.insert(Position.create(0, 7), '@charset'),
@@ -341,6 +345,38 @@ describe('CSS Plugin', () => {
                         },
                         newText: 'hwb(240 0% -25400%)'
                     }
+                },
+                {
+                    label: 'lab(3880.51% 6388.69 -8701.22)',
+                    textEdit: {
+                        newText: 'lab(3880.51% 6388.69 -8701.22)',
+                        range: {
+                            end: {
+                                character: 21,
+                                line: 0
+                            },
+                            start: {
+                                character: 17,
+                                line: 0
+                            }
+                        }
+                    }
+                },
+                {
+                    label: 'lch(3880.51% 10794.75 306.29)',
+                    textEdit: {
+                        newText: 'lch(3880.51% 10794.75 306.29)',
+                        range: {
+                            end: {
+                                character: 21,
+                                line: 0
+                            },
+                            start: {
+                                character: 17,
+                                line: 0
+                            }
+                        }
+                    }
                 }
             ]);
         });
@@ -497,6 +533,87 @@ describe('CSS Plugin', () => {
                 { startLine: 1, endLine: 6, kind: FoldingRangeKind.Region },
                 { startLine: 2, endLine: 3 },
                 { startLine: 4, endLine: 5 }
+            ]);
+        });
+    });
+
+    describe('document highlight', () => {
+        it('provide document highlight', () => {
+            const { plugin, document } = setup('<style>.hi {} button.hi {}</style>');
+
+            const highlight = plugin.findDocumentHighlight(document, Position.create(0, 9));
+
+            assert.deepStrictEqual(highlight, <DocumentHighlight[]>[
+                {
+                    range: {
+                        start: {
+                            line: 0,
+                            character: 7
+                        },
+                        end: {
+                            line: 0,
+                            character: 10
+                        }
+                    },
+                    kind: DocumentHighlightKind.Write
+                },
+                {
+                    range: {
+                        start: {
+                            line: 0,
+                            character: 20
+                        },
+                        end: {
+                            line: 0,
+                            character: 23
+                        }
+                    },
+                    kind: DocumentHighlightKind.Read
+                }
+            ]);
+        });
+
+        it('provide document highlight for style attribute', () => {
+            const { plugin, document } = setup('<div style="position: relative"></div>');
+
+            const highlight = plugin.findDocumentHighlight(document, Position.create(0, 13));
+
+            assert.deepStrictEqual(highlight, <DocumentHighlight[]>[
+                {
+                    range: {
+                        start: {
+                            line: 0,
+                            character: 12
+                        },
+                        end: {
+                            line: 0,
+                            character: 20
+                        }
+                    },
+                    kind: DocumentHighlightKind.Read
+                }
+            ]);
+        });
+
+        it('provide word highlight for unsupported languages', () => {
+            const { plugin, document } = setup('<style lang="postcss">.hi {}</style>');
+
+            const highlight = plugin.findDocumentHighlight(document, Position.create(0, 25));
+
+            assert.deepStrictEqual(highlight, <DocumentHighlight[]>[
+                {
+                    range: {
+                        start: {
+                            line: 0,
+                            character: 22
+                        },
+                        end: {
+                            line: 0,
+                            character: 25
+                        }
+                    },
+                    kind: DocumentHighlightKind.Text
+                }
             ]);
         });
     });

@@ -1,5 +1,3 @@
-// @ts-ignore
-import { Warning } from 'svelte/types/compiler/interfaces';
 import {
     CancellationToken,
     Diagnostic,
@@ -63,7 +61,18 @@ async function tryGetDiagnostics(
         if (cancellationToken?.isCancellationRequested) {
             return [];
         }
-        return (((res.stats as any)?.warnings || res.warnings || []) as Warning[])
+
+        let ignoreScriptWarnings = false;
+        let ignoreStyleWarnings = false;
+        let ignoreTemplateWarnings = false;
+        if (!document.config?.preprocess || !!document.config.isFallbackConfig) {
+            ignoreTemplateWarnings = !!document.getLanguageAttribute('template');
+            ignoreStyleWarnings = !!document.getLanguageAttribute('style');
+            const scriptAttr = document.getLanguageAttribute('script');
+            ignoreScriptWarnings = !!scriptAttr && scriptAttr !== 'ts';
+        }
+
+        return (res.warnings || [])
             .filter((warning) => settings[warning.code] !== 'ignore')
             .map((warning) => {
                 const start = warning.start || { line: 1, column: 0 };
@@ -81,7 +90,15 @@ async function tryGetDiagnostics(
             })
             .map((diag) => mapObjWithRangeToOriginal(transpiled, diag))
             .map((diag) => adjustMappings(diag, document))
-            .filter((diag) => isNoFalsePositive(diag, document));
+            .filter((diag) =>
+                isNoFalsePositive(
+                    diag,
+                    document,
+                    ignoreScriptWarnings,
+                    ignoreStyleWarnings,
+                    ignoreTemplateWarnings
+                )
+            );
     } catch (err) {
         return createParserErrorDiagnostic(err, document)
             .map((diag) => mapObjWithRangeToOriginal(transpiled, diag))
@@ -290,8 +307,28 @@ function getErrorMessage(error: any, source: string, hint = '') {
     );
 }
 
-function isNoFalsePositive(diag: Diagnostic, doc: Document): boolean {
-    if (diag.code !== 'unused-export-let') {
+function isNoFalsePositive(
+    diag: Diagnostic,
+    doc: Document,
+    ignoreScriptWarnings: boolean,
+    ignoreStyleWarnings: boolean,
+    ignoreTemplateWarnings: boolean
+): boolean {
+    if (
+        (ignoreTemplateWarnings || ignoreScriptWarnings) &&
+        (typeof diag.code !== 'string' || !diag.code.startsWith('a11y'))
+    ) {
+        return false;
+    }
+
+    if (
+        ignoreStyleWarnings &&
+        (diag.code === 'css-unused-selector' || diag.code === 'css_unused_selector')
+    ) {
+        return false;
+    }
+
+    if (diag.code !== 'unused-export-let' && diag.code !== 'export_let_unused') {
         return true;
     }
 
@@ -328,7 +365,7 @@ function adjustMappings(diag: Diagnostic, doc: Document): Diagnostic {
     diag.range = moveRangeStartToEndIfNecessary(diag.range);
 
     if (
-        diag.code === 'css-unused-selector' &&
+        (diag.code === 'css-unused-selector' || diag.code === 'css_unused_selector') &&
         doc.styleInfo &&
         !isInTag(diag.range.start, doc.styleInfo)
     ) {

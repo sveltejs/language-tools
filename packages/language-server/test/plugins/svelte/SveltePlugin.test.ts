@@ -12,6 +12,9 @@ import * as importPackage from '../../../src/importPackage';
 import sinon from 'sinon';
 import { join } from 'path';
 import { pathToUrl, urlToPath } from '../../../src/utils';
+import { VERSION } from 'svelte/compiler';
+
+const isSvelte5Plus = Number(VERSION.split('.')[0]) >= 5;
 
 describe('Svelte Plugin', () => {
     function setup(
@@ -35,9 +38,11 @@ describe('Svelte Plugin', () => {
         const diagnostics = await plugin.getDiagnostics(document);
         const diagnostic = Diagnostic.create(
             Range.create(1, 0, 1, 21),
-            'A11y: <img> element should have an alt attribute',
+            isSvelte5Plus
+                ? '`<img>` element should have an alt attribute\nhttps://svelte.dev/e/a11y_missing_attribute'
+                : 'A11y: <img> element should have an alt attribute',
             DiagnosticSeverity.Warning,
-            'a11y-missing-attribute',
+            isSvelte5Plus ? 'a11y_missing_attribute' : 'a11y-missing-attribute',
             'svelte'
         );
 
@@ -49,10 +54,12 @@ describe('Svelte Plugin', () => {
 
         const diagnostics = await plugin.getDiagnostics(document);
         const diagnostic = Diagnostic.create(
-            Range.create(0, 10, 0, 18),
-            'whatever is not declared',
+            Range.create(0, isSvelte5Plus ? 5 : 10, 0, 18),
+            isSvelte5Plus
+                ? '`bind:whatever` is not a valid binding\nhttps://svelte.dev/e/bind_invalid_name'
+                : 'whatever is not declared',
             DiagnosticSeverity.Error,
-            'binding-undeclared',
+            isSvelte5Plus ? 'bind_invalid_name' : 'binding-undeclared',
             'svelte'
         );
 

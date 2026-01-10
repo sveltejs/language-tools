@@ -32,6 +32,7 @@ import { TsPlugin } from './tsplugin';
 import { addFindComponentReferencesListener } from './typescript/findComponentReferences';
 import { addFindFileReferencesListener } from './typescript/findFileReferences';
 import { setupSvelteKit } from './sveltekit';
+import { resolveCodeLensMiddleware } from './middlewares';
 
 namespace TagCloseRequest {
     export const type: RequestType<TextDocumentPositionParams, string, any> = new RequestType(
@@ -39,13 +40,24 @@ namespace TagCloseRequest {
     );
 }
 
-let lsApi: { getLS(): LanguageClient } | undefined;
+let lsApi:
+    | {
+          getLS(): LanguageClient;
+          restartLS(showNotification: boolean): Promise<void>;
+      }
+    | undefined;
 
 export function activate(context: ExtensionContext) {
     // The extension is activated on TS/JS/Svelte files because else it might be too late to configure the TS plugin:
     // If we only activate on Svelte file and the user opens a TS file first, the configuration command is issued too late.
     // We wait until there's a Svelte file open and only then start the actual language client.
     const tsPlugin = new TsPlugin(context);
+
+    context.subscriptions.push(
+        commands.registerCommand('svelte.restartLanguageServer', async () => {
+            await lsApi?.restartLS(true);
+        })
+    );
 
     if (workspace.textDocuments.some((doc) => doc.languageId === 'svelte')) {
         lsApi = activateSvelteLanguageServer(context);
@@ -149,7 +161,10 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
         console.log('setting server runtime to', serverRuntime);
     }
 
+    // Manually create the output channel so that it'll be reused and won't lose focus during restarts
+    const outputChannel = window.createOutputChannel('Svelte', 'svelte');
     const clientOptions: LanguageClientOptions = {
+        outputChannel,
         documentSelector: [{ scheme: 'file', language: 'svelte' }],
         revealOutputChannelOn: RevealOutputChannelOn.Never,
         synchronize: {
@@ -160,6 +175,7 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
                 'emmet',
                 'javascript',
                 'typescript',
+                'js/ts',
                 'css',
                 'less',
                 'scss',
@@ -173,6 +189,7 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
                 emmet: workspace.getConfiguration('emmet'),
                 typescript: workspace.getConfiguration('typescript'),
                 javascript: workspace.getConfiguration('javascript'),
+                'js/ts': workspace.getConfiguration('js/ts'),
                 css: workspace.getConfiguration('css'),
                 less: workspace.getConfiguration('less'),
                 scss: workspace.getConfiguration('scss'),
@@ -180,10 +197,13 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
             },
             dontFilterIncompleteCompletions: true, // VSCode filters client side and is smarter at it than us
             isTrusted: workspace.isTrusted
+        },
+        middleware: {
+            resolveCodeLens: resolveCodeLensMiddleware
         }
     };
 
-    let ls = createLanguageServer(serverOptions, clientOptions);
+    const ls = createLanguageServer(serverOptions, clientOptions);
     ls.start().then(() => {
         const tagRequestor = (document: TextDocument, position: Position) => {
             const param = ls.code2ProtocolConverter.asTextDocumentPositionParams(
@@ -218,12 +238,6 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
         }
     });
 
-    context.subscriptions.push(
-        commands.registerCommand('svelte.restartLanguageServer', async () => {
-            await restartLS(true);
-        })
-    );
-
     let restartingLs = false;
     async function restartLS(showNotification: boolean) {
         if (restartingLs) {
@@ -231,9 +245,8 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
         }
 
         restartingLs = true;
-        await ls.stop();
-        ls = createLanguageServer(serverOptions, clientOptions);
-        await ls.start();
+        outputChannel.clear();
+        await ls.restart();
         if (showNotification) {
             window.showInformationMessage('Svelte language server restarted.');
         }
@@ -254,6 +267,10 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
     addCompilePreviewCommand(getLS, context);
 
     addExtracComponentCommand(getLS, context);
+
+    addMigrateToSvelte5Command(getLS, context);
+
+    addOpenLinkCommand(context);
 
     languages.setLanguageConfiguration('svelte', {
         indentationRules: {
@@ -317,7 +334,8 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
     });
 
     return {
-        getLS
+        getLS,
+        restartLS
     };
 }
 
@@ -487,6 +505,30 @@ function addExtracComponentCommand(getLS: () => LanguageClient, context: Extensi
                     arguments: [uri, { uri, range, filePath }]
                 });
             });
+        })
+    );
+}
+
+function addMigrateToSvelte5Command(getLS: () => LanguageClient, context: ExtensionContext) {
+    context.subscriptions.push(
+        commands.registerTextEditorCommand('svelte.migrate_to_svelte_5', async (editor) => {
+            if (editor?.document?.languageId !== 'svelte') {
+                return;
+            }
+
+            const uri = editor.document.uri.toString();
+            getLS().sendRequest(ExecuteCommandRequest.type, {
+                command: 'migrate_to_svelte_5',
+                arguments: [uri]
+            });
+        })
+    );
+}
+
+function addOpenLinkCommand(context: ExtensionContext) {
+    context.subscriptions.push(
+        commands.registerCommand('svelte.openLink', (url: string) => {
+            commands.executeCommand('vscode.open', Uri.parse(url));
         })
     );
 }

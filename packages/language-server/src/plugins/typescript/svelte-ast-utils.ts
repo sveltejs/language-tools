@@ -8,6 +8,7 @@ export interface SvelteNode {
     end: number;
     type: string;
     parent?: SvelteNode;
+    [key: string]: any;
 }
 
 type HTMLLike = 'Element' | 'InlineComponent' | 'Body' | 'Window';

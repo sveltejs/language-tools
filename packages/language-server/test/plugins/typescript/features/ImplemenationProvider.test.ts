@@ -29,7 +29,7 @@ describe('ImplementationProvider', function () {
         );
         const lsAndTsDocResolver = new LSAndTSDocResolver(
             docManager,
-            [testDir],
+            [pathToUrl(testDir)],
             new LSConfigManager()
         );
         const provider = new ImplementationProviderImpl(lsAndTsDocResolver);

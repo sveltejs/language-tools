@@ -1,20 +1,27 @@
-import { GenerateConfig } from '../types';
+import { GenerateConfig, Resource } from '../types';
 
-export default async function generate(config: GenerateConfig) {
-    const ts = `
+const defaultScriptTemplate = `
+/** @type {import('./$types').RequestHandler} */
+export async function GET() {
+    return new Response();
+};
+`;
+
+const tsScriptTemplate = `
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async () => {
     return new Response();
 };
-    `.trim();
+`;
 
-    const js = `
-/** @type {import('./$types').RequestHandler} */
-export async function GET() {
-    return new Response();
-};
-    `.trim();
+export default async function (config: GenerateConfig): ReturnType<Resource['generate']> {
+    const { withTs } = config.kind;
+    let template = defaultScriptTemplate;
 
-    return config.type === 'js' ? js : ts;
+    if (withTs) {
+        template = tsScriptTemplate;
+    }
+
+    return template.trim();
 }

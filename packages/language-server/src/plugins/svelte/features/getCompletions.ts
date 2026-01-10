@@ -9,10 +9,10 @@ import {
     MarkupKind
 } from 'vscode-languageserver';
 import { SvelteTag, documentation, getLatestOpeningTag } from './SvelteTags';
-import { isInTag, Document } from '../../../lib/documents';
+import { Document } from '../../../lib/documents';
 import { AttributeContext, getAttributeContextAtPosition } from '../../../lib/documents/parseHtml';
 import { getModifierData } from './getModifierData';
-import { attributeCanHaveEventModifier } from './utils';
+import { attributeCanHaveEventModifier, inStyleOrScript } from './utils';
 
 const HTML_COMMENT_START = '<!--';
 
@@ -34,20 +34,16 @@ export function getCompletions(
     svelteDoc: SvelteDocument,
     position: Position
 ): CompletionList | null {
-    const offset = svelteDoc.offsetAt(position);
+    if (inStyleOrScript(svelteDoc, position)) {
+        return null;
+    }
 
-    const isInStyleOrScript =
-        isInTag(position, svelteDoc.style) ||
-        isInTag(position, svelteDoc.script) ||
-        isInTag(position, svelteDoc.moduleScript);
+    const offset = svelteDoc.offsetAt(position);
     const lastCharactersBeforePosition = svelteDoc
         .getText()
         // use last 10 characters, should cover 99% of all cases
         .substr(Math.max(offset - 10, 0), Math.min(offset, 10));
     const precededByOpeningBracket = /[\s\S]*{\s*[#:/@]\w*$/.test(lastCharactersBeforePosition);
-    if (isInStyleOrScript) {
-        return null;
-    }
 
     if (precededByOpeningBracket) {
         return getTagCompletionsWithinMoustache();
@@ -113,6 +109,48 @@ function getEventModifierCompletion(attributeContext: AttributeContext): Complet
     return CompletionList.create(items);
 }
 
+const atCompletionItems = createCompletionItems([
+    { tag: 'html', label: 'html' },
+    { tag: 'debug', label: 'debug' },
+    { tag: 'const', label: 'const' },
+    { tag: 'render', label: 'render' },
+    { tag: 'attach', label: 'attach' }
+]);
+
+const hashtagCompletionItems = createCompletionItems([
+    { tag: 'if', label: 'if', insertText: 'if $1}\n\t$2\n{/if' },
+    { tag: 'each', label: 'each', insertText: 'each $1 as $2}\n\t$3\n{/each' },
+    {
+        tag: 'await',
+        label: 'await :then',
+        insertText: 'await $1}\n\t$2\n{:then $3} \n\t$4\n{/await'
+    },
+    {
+        tag: 'await',
+        label: 'await then',
+        insertText: 'await $1 then $2}\n\t$3\n{/await'
+    },
+    { tag: 'key', label: 'key', insertText: 'key $1}\n\t$2\n{/key' },
+    { tag: 'snippet', label: 'snippet', insertText: 'snippet $1($2)}\n\t$3\n{/snippet' }
+]);
+
+const beginningAwaitOpenCompletionItems = createCompletionItems([
+    { tag: 'await', label: 'then' },
+    { tag: 'await', label: 'catch' }
+]);
+
+const beginningEachOpenCompletionItems = createCompletionItems([{ tag: 'each', label: 'else' }]);
+
+const beginningIfOpenCompletionItems = createCompletionItems([
+    { tag: 'if', label: 'else' },
+    { tag: 'if', label: 'else if' }
+]);
+
+const endAwaitOpenCompletionItems = createCompletionItems([{ tag: 'await', label: 'await' }]);
+const endEachOpenCompletionItems = createCompletionItems([{ tag: 'each', label: 'each' }]);
+const endIfOpenCompletionItems = createCompletionItems([{ tag: 'if', label: 'if' }]);
+const endKeyOpenCompletionItems = createCompletionItems([{ tag: 'key', label: 'key' }]);
+
 /**
  * Get completions with regard to trigger character.
  */
@@ -122,45 +160,19 @@ function getCompletionsWithRegardToTriggerCharacter(
     offset: number
 ) {
     if (triggerCharacter === '@') {
-        return createCompletionItems([
-            { tag: 'html', label: 'html' },
-            { tag: 'debug', label: 'debug' },
-            { tag: 'const', label: 'const' },
-            { tag: 'render', label: 'render' }
-        ]);
+        return atCompletionItems;
     }
 
     if (triggerCharacter === '#') {
-        return createCompletionItems([
-            { tag: 'if', label: 'if', insertText: 'if $1}\n\t$2\n{/if' },
-            { tag: 'each', label: 'each', insertText: 'each $1 as $2}\n\t$3\n{/each' },
-            {
-                tag: 'await',
-                label: 'await :then',
-                insertText: 'await $1}\n\t$2\n{:then $3} \n\t$4\n{/await'
-            },
-            {
-                tag: 'await',
-                label: 'await then',
-                insertText: 'await $1 then $2}\n\t$3\n{/await'
-            },
-            { tag: 'key', label: 'key', insertText: 'key $1}\n\t$2\n{/key' },
-            { tag: 'snippet', label: 'snippet', insertText: 'snippet $1($2)}\n\t$3\n{/snippet' }
-        ]);
+        return hashtagCompletionItems;
     }
 
     if (triggerCharacter === ':') {
         return showCompletionWithRegardsToOpenedTags(
             {
-                awaitOpen: createCompletionItems([
-                    { tag: 'await', label: 'then' },
-                    { tag: 'await', label: 'catch' }
-                ]),
-                eachOpen: createCompletionItems([{ tag: 'each', label: 'else' }]),
-                ifOpen: createCompletionItems([
-                    { tag: 'if', label: 'else' },
-                    { tag: 'if', label: 'else if' }
-                ])
+                awaitOpen: beginningAwaitOpenCompletionItems,
+                eachOpen: beginningEachOpenCompletionItems,
+                ifOpen: beginningIfOpenCompletionItems
             },
             svelteDoc,
             offset
@@ -170,10 +182,10 @@ function getCompletionsWithRegardToTriggerCharacter(
     if (triggerCharacter === '/') {
         return showCompletionWithRegardsToOpenedTags(
             {
-                awaitOpen: createCompletionItems([{ tag: 'await', label: 'await' }]),
-                eachOpen: createCompletionItems([{ tag: 'each', label: 'each' }]),
-                ifOpen: createCompletionItems([{ tag: 'if', label: 'if' }]),
-                keyOpen: createCompletionItems([{ tag: 'key', label: 'key' }])
+                awaitOpen: endAwaitOpenCompletionItems,
+                eachOpen: endEachOpenCompletionItems,
+                ifOpen: endIfOpenCompletionItems,
+                keyOpen: endKeyOpenCompletionItems
             },
             svelteDoc,
             offset

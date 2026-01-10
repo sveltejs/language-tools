@@ -12,7 +12,7 @@ export class HoverProviderImpl implements HoverProvider {
     constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
 
     async doHover(document: Document, position: Position): Promise<Hover | null> {
-        const { lang, tsDoc } = await this.getLSAndTSDoc(document);
+        const { lang, tsDoc, userPreferences } = await this.getLSAndTSDoc(document);
 
         const eventHoverInfo = this.getEventHoverInfo(lang, document, tsDoc, position);
         if (eventHoverInfo) {
@@ -20,12 +20,25 @@ export class HoverProviderImpl implements HoverProvider {
         }
 
         const offset = tsDoc.offsetAt(tsDoc.getGeneratedPosition(position));
-        const info = lang.getQuickInfoAtPosition(tsDoc.filePath, offset);
+        const info = lang.getQuickInfoAtPosition(
+            tsDoc.filePath,
+            offset,
+            userPreferences.maximumHoverLength
+        );
         if (!info) {
             return null;
         }
 
-        const declaration = ts.displayPartsToString(info.displayParts);
+        let declaration = ts.displayPartsToString(info.displayParts);
+        if (
+            tsDoc.isSvelte5Plus &&
+            declaration.includes('(alias)') &&
+            declaration.includes('__sveltets_2_IsomorphicComponent')
+        ) {
+            // info ends with "import ComponentName"
+            declaration = declaration.substring(declaration.lastIndexOf('import'));
+        }
+
         const documentation = getMarkdownDocumentation(info.documentation, info.tags);
 
         // https://microsoft.github.io/language-server-protocol/specification#textDocument_hover

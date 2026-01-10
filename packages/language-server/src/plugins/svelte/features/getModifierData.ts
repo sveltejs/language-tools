@@ -57,7 +57,7 @@ export function getModifierData(): ModifierData[] {
 
 ${item.documentation}
 
-https://svelte.dev/docs#template-syntax-element-directives-on-eventname`
+https://v4.svelte.dev/docs/element-directives#on-eventname`
         }
     }));
 }

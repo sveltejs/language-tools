@@ -3,6 +3,7 @@ import {
     CancellationToken,
     CodeAction,
     CodeActionContext,
+    CodeLens,
     CompletionContext,
     CompletionList,
     Diagnostic,
@@ -49,6 +50,47 @@ export class SveltePlugin
 
     constructor(private configManager: LSConfigManager) {}
 
+    async getCodeLens(document: Document): Promise<CodeLens[] | null> {
+        if (!this.featureEnabled('runesLegacyModeCodeLens')) return null;
+        if (!document.isSvelte5) return null;
+
+        const doc = await this.getSvelteDoc(document);
+
+        try {
+            const result = await doc.getCompiled();
+            // @ts-ignore
+            const runes = result.metadata.runes as boolean;
+
+            return [
+                {
+                    range: {
+                        start: { line: 0, character: 0 },
+                        end: { line: 0, character: 0 }
+                    },
+                    command: {
+                        title: runes ? 'Runes mode' : 'Legacy mode',
+                        command: 'svelte.openLink',
+                        arguments: ['https://svelte.dev/docs/svelte/legacy-overview']
+                    }
+                }
+            ];
+        } catch (e) {
+            // show an empty code lens in case of a compilation error to prevent code from jumping around
+            return [
+                {
+                    range: {
+                        start: { line: 0, character: 0 },
+                        end: { line: 0, character: 0 }
+                    },
+                    command: {
+                        title: '',
+                        command: ''
+                    }
+                }
+            ];
+        }
+    }
+
     async getDiagnostics(
         document: Document,
         cancellationToken?: CancellationToken
@@ -68,8 +110,13 @@ export class SveltePlugin
     async getCompiledResult(document: Document): Promise<SvelteCompileResult | null> {
         try {
             const svelteDoc = await this.getSvelteDoc(document);
-            // @ts-ignore is 'client' in Svelte 5
-            return svelteDoc.getCompiledWith({ generate: 'dom' });
+            const options: any = { generate: 'dom' }; // 'client' in Svelte 5
+            // @ts-ignore Svelte 5 only; we gotta write it like this else Svelte 4 fails on unknown key
+            if (document.config?.compilerOptions?.experimental) {
+                // @ts-ignore Svelte 5 only
+                options.experimental = document.config.compilerOptions.experimental;
+            }
+            return await svelteDoc.getCompiledWith(options);
         } catch (error) {
             return null;
         }
@@ -85,11 +132,9 @@ export class SveltePlugin
         /**
          * Prettier v2 can't use v3 plugins and vice versa. Therefore, we need to check
          * which version of prettier is used in the workspace and import the correct
-         * version of the Svelte plugin. If user uses Prettier >= 3 and has no Svelte plugin
-         * then fall back to our built-in versions which are both v2 and compatible with
+         * version of the Svelte plugin. If user uses Prettier < 3 and has no Svelte plugin
+         * then fall back to our built-in versions which are both v3 and compatible with
          * each other.
-         * TODO switch this around at some point to load Prettier v3 by default because it's
-         * more likely that users have that installed.
          */
         const importFittingPrettier = async () => {
             const getConfig = async (p: any) => {
@@ -162,6 +207,15 @@ export class SveltePlugin
         if (fileInfo.ignored) {
             Logger.debug('File is ignored, formatting skipped');
             return [];
+        }
+
+        if (isFallback || !(await hasSveltePluginLoaded(prettier, resolvedPlugins))) {
+            // If the user uses Svelte 5 but doesn't have prettier installed, we need to provide
+            // the compiler path to the plugin so it can use its parser method; else it will crash.
+            const svelteCompilerInfo = getPackageInfo('svelte', filePath);
+            if (svelteCompilerInfo.version.major >= 5) {
+                config.svelte5CompilerPath = svelteCompilerInfo.path + '/compiler';
+            }
         }
 
         // Prettier v3 format is async, v2 is not
@@ -288,6 +342,10 @@ export class SveltePlugin
         command: string,
         args?: any[]
     ): Promise<WorkspaceEdit | string | null> {
+        if (command === 'migrate_to_svelte_5') {
+            return this.migrate(document);
+        }
+
         if (!this.featureEnabled('codeActions')) {
             return null;
         }
@@ -297,6 +355,36 @@ export class SveltePlugin
             return executeCommand(svelteDoc, command, args);
         } catch (error) {
             return null;
+        }
+    }
+
+    private migrate(document: Document): WorkspaceEdit | string {
+        try {
+            const compiler = document.compiler as any;
+            if (!compiler.migrate) {
+                return 'Your installed Svelte version does not support migration';
+            }
+
+            const migrated = compiler.migrate(document.getText(), {
+                filename: document.getFilePath() ?? undefined
+            });
+
+            return {
+                changes: {
+                    [document.uri]: [
+                        TextEdit.replace(
+                            Range.create(
+                                document.positionAt(0),
+                                document.positionAt(document.getTextLength())
+                            ),
+                            migrated.code
+                        )
+                    ]
+                }
+            };
+        } catch (error: any) {
+            Logger.error('Failed to migrate Svelte file', error);
+            return error?.message ?? 'Failed to migrate Svelte file';
         }
     }
 

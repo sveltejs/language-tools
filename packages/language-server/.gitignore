@@ -1,3 +1,4 @@
 dist/
 .vscode/
 node_modules/
+!test/plugins/typescript/features/diagnostics/fixtures/exports-map-svelte/node_modules/package

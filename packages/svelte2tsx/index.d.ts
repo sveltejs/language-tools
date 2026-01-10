@@ -108,6 +108,10 @@ export interface EmitDtsConfig {
      * set to `src/lib` by default.
      */
     libRoot?: string;
+    /**
+     * Name of your tsconfig file, if it's not the standard `tsconfig.json` or `jsconfig.json` 
+     */
+    tsconfig?: string;
 }
 
 // to make typo fix non-breaking, continue to export the old name but mark it as deprecated
@@ -130,6 +134,13 @@ export function emitDts(config: EmitDtsConfig): Promise<void>;
  * static top level `ts` namespace, it must be passed as a parameter.
  */
 export const internalHelpers: {
+    get_global_types: (
+        tsSystem: ts.System,
+        isSvelte3: boolean,
+        sveltePath: string,
+        typesPath: string,
+        hiddenFolderPath?: string,
+    ) => string[],
     isKitFile: (
         fileName: string,
         options: InternalHelpers.KitFilesSettings
@@ -163,6 +174,7 @@ export const internalHelpers: {
             hasTypeDefinition: boolean;
         }
     >,
+	renderName: string
 };
 
 /**

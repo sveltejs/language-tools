@@ -1,7 +1,7 @@
 {
     "scopeName": "markdown.svelte.codeblock",
     "fileTypes": [],
-    "injectionSelector": "L:text.html.markdown",
+    "injectionSelector": "L:text.html.markdown, L:source.mdx",
     "patterns": [
         {
             "include": "#svelte-code-block"

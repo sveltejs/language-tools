@@ -5,8 +5,10 @@ import { surroundWithIgnoreComments } from '../../utils/ignore';
 import { throwError } from '../utils/error';
 
 export class Generics {
+    /** The whole `T extends boolean` */
     private definitions: string[] = [];
     private typeReferences: string[] = [];
+    /** The `T` in `T extends boolean` */
     private references: string[] = [];
     genericsAttr: Node | undefined;
 
@@ -93,6 +95,10 @@ export class Generics {
         return this.typeReferences;
     }
 
+    getReferences() {
+        return this.references;
+    }
+
     toDefinitionString(addIgnore = false) {
         const surround = addIgnore ? surroundWithIgnoreComments : (str: string) => str;
         return this.definitions.length ? surround(`<${this.definitions.join(',')}>`) : '';
@@ -100,6 +106,10 @@ export class Generics {
 
     toReferencesString() {
         return this.references.length ? `<${this.references.join(',')}>` : '';
+    }
+
+    toReferencesAnyString() {
+        return this.references.length ? `<${this.references.map(() => 'any').join(',')}>` : '';
     }
 
     has() {

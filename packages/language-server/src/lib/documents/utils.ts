@@ -72,7 +72,16 @@ function extractTags(
      * If that is BEFORE `{#X`, we are inside a moustache tag.
      */
     function isNotInsideControlFlowTag(tag: Node) {
-        const nodes = rootNodes.slice(rootNodes.indexOf(tag));
+        const tagIndex = rootNodes.indexOf(tag);
+        // Quick check: if the tag has nothing before it, it can't be inside a control flow tag
+        // This also works around a case where the tag is treated as under a control flow tag when vscode-html-languageservice parses something wrong
+        if (tagIndex === 0) {
+            const startContent = text.substring(0, tag.start);
+            if (startContent.trim() === '') {
+                return true;
+            }
+        }
+        const nodes = rootNodes.slice(tagIndex);
         const rootContentAfterTag = nodes
             .map((node, idx) => {
                 const start = node.startTagEnd ? node.end : node.start + (node.tag?.length || 0);
@@ -143,8 +152,12 @@ export function extractScriptTags(
         return null;
     }
 
-    const script = scripts.find((s) => s.attributes['context'] !== 'module');
-    const moduleScript = scripts.find((s) => s.attributes['context'] === 'module');
+    const script = scripts.find(
+        (s) => s.attributes['context'] !== 'module' && !('module' in s.attributes)
+    );
+    const moduleScript = scripts.find(
+        (s) => s.attributes['context'] === 'module' || 'module' in s.attributes
+    );
     return { script, moduleScript };
 }
 
@@ -308,12 +321,14 @@ export function updateRelativeImport(oldPath: string, newPath: string, relativeI
  */
 export function getNodeIfIsInComponentStartTag(
     html: HTMLDocument,
+    document: Document,
     offset: number
 ): Node | undefined {
     const node = html.findNodeAt(offset);
     if (
         !!node.tag &&
-        node.tag[0] === node.tag[0].toUpperCase() &&
+        (node.tag[0] === node.tag[0].toUpperCase() ||
+            (document.isSvelte5 && node.tag.includes('.'))) &&
         (!node.startTagEnd || offset < node.startTagEnd)
     ) {
         return node;
@@ -448,4 +463,12 @@ export function isInsideMoustacheTag(html: string, tagStart: number | null, posi
         const charactersInNode = html.substring(tagStart, position);
         return charactersInNode.lastIndexOf('{') > charactersInNode.lastIndexOf('}');
     }
+}
+
+export function inStyleOrScript(document: Document, position: Position) {
+    return (
+        isInTag(position, document.styleInfo) ||
+        isInTag(position, document.scriptInfo) ||
+        isInTag(position, document.moduleScriptInfo)
+    );
 }

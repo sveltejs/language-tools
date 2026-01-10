@@ -99,34 +99,50 @@ export class SnapshotManager {
 
     private readonly projectFileToOriginalCasing: Map<string, string>;
     private getCanonicalFileName: GetCanonicalFileName;
+    private watchingCanonicalDirectories: Map<string, ts.WatchDirectoryFlags> | undefined;
 
     private readonly watchExtensions = [
         ts.Extension.Dts,
+        ts.Extension.Dcts,
+        ts.Extension.Dmts,
         ts.Extension.Js,
+        ts.Extension.Cjs,
+        ts.Extension.Mjs,
         ts.Extension.Jsx,
         ts.Extension.Ts,
+        ts.Extension.Mts,
+        ts.Extension.Cts,
         ts.Extension.Tsx,
-        ts.Extension.Json
+        ts.Extension.Json,
+        '.svelte'
     ];
 
     constructor(
         private globalSnapshotsManager: GlobalSnapshotsManager,
         private fileSpec: TsFilesSpec,
         private workspaceRoot: string,
+        private tsSystem: ts.System,
         projectFiles: string[],
-        useCaseSensitiveFileNames = ts.sys.useCaseSensitiveFileNames
+        wildcardDirectories: ts.MapLike<ts.WatchDirectoryFlags> | undefined
     ) {
         this.onSnapshotChange = this.onSnapshotChange.bind(this);
         this.globalSnapshotsManager.onChange(this.onSnapshotChange);
-        this.documents = new FileMap(useCaseSensitiveFileNames);
+        this.documents = new FileMap(tsSystem.useCaseSensitiveFileNames);
         this.projectFileToOriginalCasing = new Map();
-        this.getCanonicalFileName = createGetCanonicalFileName(useCaseSensitiveFileNames);
+        this.getCanonicalFileName = createGetCanonicalFileName(tsSystem.useCaseSensitiveFileNames);
 
         projectFiles.forEach((originalCasing) =>
             this.projectFileToOriginalCasing.set(
                 this.getCanonicalFileName(originalCasing),
                 originalCasing
             )
+        );
+
+        this.watchingCanonicalDirectories = new Map(
+            Object.entries(wildcardDirectories ?? {}).map(([dir, flags]) => [
+                this.getCanonicalFileName(dir),
+                flags
+            ])
         );
     }
 
@@ -144,16 +160,45 @@ export class SnapshotManager {
         }
     }
 
-    updateProjectFiles(): void {
-        const { include, exclude } = this.fileSpec;
+    areIgnoredFromNewFileWatch(watcherNewFiles: string[]): boolean {
+        const { include } = this.fileSpec;
 
         // Since we default to not include anything,
         //  just don't waste time on this
+        if (include?.length === 0 || !this.watchingCanonicalDirectories) {
+            return true;
+        }
+
+        for (const newFile of watcherNewFiles) {
+            const path = this.getCanonicalFileName(normalizePath(newFile));
+            if (this.projectFileToOriginalCasing.has(path)) {
+                continue;
+            }
+
+            for (const [dir, flags] of this.watchingCanonicalDirectories) {
+                if (path.startsWith(dir)) {
+                    if (!(flags & ts.WatchDirectoryFlags.Recursive)) {
+                        const relative = path.slice(dir.length);
+                        if (relative.includes('/')) {
+                            continue;
+                        }
+                    }
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    updateProjectFiles(): void {
+        const { include, exclude } = this.fileSpec;
+
         if (include?.length === 0) {
             return;
         }
 
-        const projectFiles = ts.sys
+        const projectFiles = this.tsSystem
             .readDirectory(this.workspaceRoot, this.watchExtensions, exclude, include)
             .map(normalizePath);
 
@@ -217,6 +262,11 @@ export class SnapshotManager {
         return Array.from(this.projectFileToOriginalCasing.values());
     }
 
+    isProjectFile(fileName: string): boolean {
+        fileName = normalizePath(fileName);
+        return this.projectFileToOriginalCasing.has(this.getCanonicalFileName(fileName));
+    }
+
     private logStatistics() {
         const date = new Date();
         // Don't use setInterval because that will keep tests running forever
@@ -238,6 +288,16 @@ export class SnapshotManager {
                     `Total: ${allFiles.length}`
             );
         }
+    }
+
+    allFilesAreJsOrDts() {
+        for (const doc of this.documents.values()) {
+            if (doc.scriptKind === ts.ScriptKind.TS || doc.scriptKind === ts.ScriptKind.TSX) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     dispose() {

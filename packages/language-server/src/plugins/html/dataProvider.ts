@@ -87,6 +87,76 @@ const svelteAttributes: IAttributeData[] = [
             'To get a reference to a DOM node, use bind:this. If used on a component, gets a reference to that component instance.'
     }
 ];
+
+// directives that takes a variable. Don't specify the variable here and let typescript handle it
+const svelteDirectiveKeywords: IAttributeData[] = [
+    {
+        name: 'use:',
+        description: 'Actions are functions that are called when an element is mounted.',
+        references: [
+            {
+                name: 'Svelte.dev Reference',
+                url: 'https://svelte.dev/docs/svelte/use'
+            }
+        ]
+    },
+    {
+        name: 'transition:',
+        description:
+            'A transition is triggered by an element entering or leaving the DOM as a result of a state change.',
+        references: [
+            {
+                name: 'Svelte.dev Reference',
+                url: 'https://svelte.dev/docs/svelte/transition'
+            }
+        ]
+    },
+    {
+        name: 'in:',
+        description:
+            'The in: and out: directives are identical to transition:, except that the resulting transitions are not bidirectional.',
+        references: [
+            {
+                name: 'Svelte.dev Reference',
+                url: 'https://svelte.dev/docs/svelte/in-and-out'
+            }
+        ]
+    },
+    {
+        name: 'out:',
+        description:
+            'The in: and out: directives are identical to transition:, except that the resulting transitions are not bidirectional.',
+        references: [
+            {
+                name: 'Svelte.dev Reference',
+                url: 'https://svelte.dev/docs/svelte/in-and-out'
+            }
+        ]
+    },
+    {
+        name: 'animate:',
+        description:
+            'An animation is triggered when the contents of a keyed each block are re-ordered.',
+        references: [
+            {
+                name: 'Svelte.dev Reference',
+                url: 'https://svelte.dev/docs/svelte/animate'
+            }
+        ]
+    },
+    {
+        name: 'style:',
+        description:
+            'The style: directive provides a shorthand for setting multiple styles on an element.',
+        references: [
+            {
+                name: 'Svelte.dev Reference',
+                url: 'https://svelte.dev/docs/svelte/style'
+            }
+        ]
+    }
+];
+
 const sveltekitAttributes: IAttributeData[] = [
     {
         name: 'data-sveltekit-keepfocus',
@@ -296,6 +366,17 @@ const svelteTags: ITagData[] = [
                     'Named slots allow consumers to target specific areas. They can also have fallback content.'
             }
         ]
+    },
+    {
+        name: 'svelte:boundary',
+        description:
+            'Represents a boundary in the application. Can catch errors and show fallback UI',
+        attributes: [
+            {
+                name: 'onerror',
+                description: 'Called when an error occured within the boundary'
+            }
+        ]
     }
 ];
 
@@ -405,6 +486,7 @@ export const svelteHtmlDataProvider = newHTMLDataProvider('svelte-builtin', {
     version: 1,
     globalAttributes: [
         ...htmlData.globalAttributes!,
+        ...svelteDirectiveKeywords,
         ...svelteEvents,
         ...svelteAttributes,
         ...sveltekitAttributes
@@ -418,6 +500,18 @@ export const svelteHtmlDataProvider = newHTMLDataProvider('svelte-builtin', {
             values: unique(set.values)
         })) ?? []
 });
+
+const originalProvideAttributes =
+    svelteHtmlDataProvider.provideAttributes.bind(svelteHtmlDataProvider);
+
+svelteHtmlDataProvider.provideAttributes = (tag: string) => {
+    if (tag === 'svelte:boundary' || tag === 'svelte:options') {
+        // We don't want the global attributes for these tags
+        return svelteTags.find((t) => t.name === tag)?.attributes ?? [];
+    }
+
+    return originalProvideAttributes(tag);
+};
 
 function isEvent(attr: IAttributeData) {
     return attr.name.startsWith('on');

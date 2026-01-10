@@ -273,3 +273,7 @@ function isNewGroup(sourceFile: ts.SourceFile, topLevelImportDecl: ts.Node, scan
 
     return false;
 }
+
+export function getTopLevelImports(sourceFile: ts.SourceFile): ts.ImportDeclaration[] {
+    return sourceFile.statements.filter(ts.isImportDeclaration).sort((a, b) => a.end - b.end);
+}

@@ -13,6 +13,7 @@ import {
     CallHierarchyOutgoingCall,
     CodeAction,
     CodeActionContext,
+    CodeLens,
     Color,
     ColorInformation,
     ColorPresentation,
@@ -20,6 +21,7 @@ import {
     CompletionList,
     DefinitionLink,
     Diagnostic,
+    DocumentHighlight,
     FoldingRange,
     FormattingOptions,
     Hover,
@@ -33,7 +35,8 @@ import {
     SymbolInformation,
     TextDocumentIdentifier,
     TextEdit,
-    WorkspaceEdit
+    WorkspaceEdit,
+    WorkspaceSymbol
 } from 'vscode-languageserver-types';
 import { Document } from '../lib/documents';
 
@@ -150,7 +153,8 @@ export interface FindReferencesProvider {
     findReferences(
         document: Document,
         position: Position,
-        context: ReferenceContext
+        context: ReferenceContext,
+        cancellationToken?: CancellationToken
     ): Promise<Location[] | null>;
 }
 
@@ -187,7 +191,11 @@ export interface LinkedEditingRangesProvider {
 }
 
 export interface ImplementationProvider {
-    getImplementation(document: Document, position: Position): Resolvable<Location[] | null>;
+    getImplementation(
+        document: Document,
+        position: Position,
+        cancellationToken?: CancellationToken
+    ): Resolvable<Location[] | null>;
 }
 
 export interface TypeDefinitionProvider {
@@ -211,6 +219,15 @@ export interface CallHierarchyProvider {
     ): Resolvable<CallHierarchyOutgoingCall[] | null>;
 }
 
+export interface CodeLensProvider {
+    getCodeLens(document: Document): Resolvable<CodeLens[] | null>;
+    resolveCodeLens(
+        document: Document,
+        codeLensToResolve: CodeLens,
+        cancellationToken?: CancellationToken
+    ): Resolvable<CodeLens>;
+}
+
 export interface OnWatchFileChangesPara {
     fileName: string;
     changeType: FileChangeType;
@@ -226,6 +243,20 @@ export interface InlayHintProvider {
 
 export interface FoldingRangeProvider {
     getFoldingRanges(document: Document): Resolvable<FoldingRange[]>;
+}
+
+export interface DocumentHighlightProvider {
+    findDocumentHighlight(
+        document: Document,
+        position: Position
+    ): Resolvable<DocumentHighlight[] | null>;
+}
+
+export interface WorkspaceSymbolsProvider {
+    getWorkspaceSymbols(
+        query: string,
+        cancellationToken?: CancellationToken
+    ): Resolvable<WorkspaceSymbol[] | null>;
 }
 
 export interface OnWatchFileChanges {
@@ -257,7 +288,10 @@ type ProviderBase = DiagnosticsProvider &
     TypeDefinitionProvider &
     InlayHintProvider &
     CallHierarchyProvider &
-    FoldingRangeProvider;
+    FoldingRangeProvider &
+    CodeLensProvider &
+    DocumentHighlightProvider &
+    WorkspaceSymbolsProvider;
 
 export type LSProvider = ProviderBase & BackwardsCompatibleDefinitionsProvider;
 

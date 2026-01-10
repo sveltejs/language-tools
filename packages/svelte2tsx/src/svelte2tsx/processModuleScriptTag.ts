@@ -9,11 +9,13 @@ import { throwError } from './utils/error';
 import { is$$SlotsDeclaration } from './nodes/slot';
 import { is$$PropsDeclaration } from './nodes/ExportedNames';
 
-export function processModuleScriptTag(
-    str: MagicString,
-    script: Node,
-    implicitStoreValues: ImplicitStoreValues
-) {
+export interface ModuleAst {
+    htmlx: string;
+    tsAst: ts.SourceFile;
+    astOffset: number;
+}
+
+export function createModuleAst(str: MagicString, script: Node): ModuleAst {
     const htmlx = str.original;
     const scriptContent = htmlx.substring(script.content.start, script.content.end);
     const tsAst = ts.createSourceFile(
@@ -23,7 +25,19 @@ export function processModuleScriptTag(
         true,
         ts.ScriptKind.TS
     );
+
     const astOffset = script.content.start;
+
+    return { htmlx, tsAst, astOffset };
+}
+
+export function processModuleScriptTag(
+    str: MagicString,
+    script: Node,
+    implicitStoreValues: ImplicitStoreValues,
+    moduleAst: ModuleAst
+) {
+    const { htmlx, tsAst, astOffset } = moduleAst;
 
     const generics = new Generics(str, astOffset, script);
     if (generics.genericsAttr) {

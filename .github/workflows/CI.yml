@@ -1,16 +1,19 @@
 name: CI
 on: pull_request
+permissions:
+  contents: read # to fetch code (actions/checkout)
 
 jobs:
   test:
+    permissions: {}
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
-      - uses: pnpm/action-setup@v2.2.4
-      - uses: actions/setup-node@v3
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: "18.x"
+          node-version: "20.x"
           cache: pnpm
 
       # Get projects set up
@@ -23,15 +26,42 @@ jobs:
         env:
           CI: true
 
-  lint:
+  test-svelte5:
+    permissions: {}
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
-      - uses: pnpm/action-setup@v2.2.4
-      - uses: actions/setup-node@v3
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: "18.x"
+          node-version: "20.x"
+          cache: pnpm
+
+      # Lets us use one-liner JSON manipulations the package.json files
+      - run: "npm install -g json"
+
+      # Get projects set up
+      - run: json -I -f package.json -e 'this.pnpm={"overrides":{"svelte":"^5.0.0-next.100"}}'
+      - run: pnpm install --no-frozen-lockfile
+      - run: pnpm bootstrap
+      - run: pnpm build
+
+      # Run any tests
+      - run: pnpm test
+        env:
+          CI: true
+
+  lint:
+    permissions: {}
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20.x"
           cache: pnpm
 
       # Get projects set up

@@ -1,5 +1,5 @@
 ///<reference types="svelte" />
-;function render() {
+;function $$render() {
 
 	 let boxes = [
 		{width: 3, height: 4},
@@ -22,5 +22,5 @@ async () => {
 }};
 return { props: {boxes: boxes , constant: constant}, slots: {}, events: {} }}
 
-export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial(['boxes','constant'], __sveltets_2_with_any_event(render()))) {
+export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial(['boxes','constant'], __sveltets_2_with_any_event($$render()))) {
 }

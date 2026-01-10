@@ -1,6 +1,12 @@
-import { isBeforeOrEqualToPosition, modifyLines, regexLastIndexOf } from '../src/utils';
+import {
+    isBeforeOrEqualToPosition,
+    modifyLines,
+    normalizePath,
+    regexLastIndexOf
+} from '../src/utils';
 import { Position } from 'vscode-languageserver';
 import * as assert from 'assert';
+import { URI } from 'vscode-uri';
 
 describe('utils', () => {
     describe('#isBeforeOrEqualToPosition', () => {
@@ -59,6 +65,30 @@ describe('utils', () => {
                 return _;
             });
             assert.deepStrictEqual(idxs, [0, 1, 2, 3]);
+        });
+    });
+
+    describe('path normalization on Windows', () => {
+        it('should lowercase drive letters and normalize slashes', () => {
+            assert.strictEqual(
+                normalizePath('C:\\Users\\Test\\project\\file.ts'),
+                'c:/Users/Test/project/file.ts'
+            );
+
+            assert.strictEqual(
+                normalizePath('D:/Some/Other/Path/file.ts'),
+                'd:/Some/Other/Path/file.ts'
+            );
+
+            assert.strictEqual(
+                normalizePath('e:\\Mixed/Slashes\\Path/file.ts'),
+                'e:/Mixed/Slashes/Path/file.ts'
+            );
+
+            assert.strictEqual(
+                normalizePath('/already/normalized/path/file.ts'),
+                '/already/normalized/path/file.ts'
+            );
         });
     });
 });

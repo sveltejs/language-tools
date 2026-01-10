@@ -1,1 +1,1 @@
-  { svelteHTML.createElement("input", {   "type":`radio`,"value":`Plain`,});/*Ωignore_startΩ*/() => tortilla = __sveltets_2_any(null);/*Ωignore_endΩ*/}
+  { svelteHTML.createElement("input", {    "type":`radio`,"value":`Plain`,});tortilla = __sveltets_2_any(null);}

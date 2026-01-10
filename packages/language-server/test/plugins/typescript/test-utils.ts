@@ -6,7 +6,16 @@ import { DocumentManager, Document } from '../../../src/lib/documents';
 import { FileMap } from '../../../src/lib/documents/fileCollection';
 import { LSConfigManager } from '../../../src/ls-config';
 import { LSAndTSDocResolver } from '../../../src/plugins';
-import { createGetCanonicalFileName, normalizePath, pathToUrl } from '../../../src/utils';
+import {
+    createGetCanonicalFileName,
+    normalizePath,
+    pathToUrl,
+    urlToPath
+} from '../../../src/utils';
+import { VERSION } from 'svelte/compiler';
+import { findTsConfigPath } from '../../../src/plugins/typescript/utils';
+
+const isSvelte5Plus = Number(VERSION.split('.')[0]) >= 5;
 
 export function createVirtualTsSystem(currentDirectory: string): ts.System {
     const virtualFs = new FileMap<string>();
@@ -88,12 +97,30 @@ export function createVirtualTsSystem(currentDirectory: string): ts.System {
         },
         getModifiedTime(path) {
             return modifiedTime.get(normalizePath(toAbsolute(path)));
+        },
+        readDirectory(path, _extensions, _exclude, include, _depth) {
+            if (include && (include.length != 1 || include[0] !== '**/*')) {
+                throw new Error(
+                    'include pattern matching not implemented. Mock it if the test needs it. Pattern: ' +
+                        include
+                );
+            }
+
+            const normalizedPath = getCanonicalFileName(normalizePath(toAbsolute(path)));
+            return Array.from(virtualFs.keys()).filter((fileName) =>
+                fileName.startsWith(normalizedPath)
+            );
         }
     };
 
     return virtualSystem;
 
     function triggerWatch(normalizedPath: string, kind: ts.FileWatcherEventKind) {
+        // if watcher is not set yet. don't trigger it
+        if (!watchers.has(normalizedPath)) {
+            return;
+        }
+
         let timeoutsOfPath = watchTimeout.get(normalizedPath);
 
         if (!timeoutsOfPath) {
@@ -185,7 +212,12 @@ export function createSnapshotTester<
         }
 
         if (existsSync(inputFile)) {
-            const _it = dir.endsWith('.only') ? it.only : it;
+            const _it =
+                dir.endsWith('.v5') && !isSvelte5Plus
+                    ? it.skip
+                    : dir.endsWith('.only')
+                      ? it.only
+                      : it;
             _it(dir.substring(__dirname.length), () => executeTest(inputFile, testOptions));
         } else {
             const _describe = dir.endsWith('.only') ? describe.only : describe;
@@ -239,10 +271,6 @@ export async function updateSnapshotIfFailedOrEmpty({
 }
 
 export async function createJsonSnapshotFormatter(dir: string) {
-    if (!process.argv.includes('--auto')) {
-        return (_obj: any) => '';
-    }
-
     const prettierOptions = await resolveConfig(dir);
 
     return (obj: any) =>
@@ -252,37 +280,56 @@ export async function createJsonSnapshotFormatter(dir: string) {
         });
 }
 
-export function serviceWarmup(suite: Mocha.Suite, testDir: string, rootUri = pathToUrl(testDir)) {
+export function serviceWarmup(
+    suite: Mocha.Suite,
+    testDir: string,
+    rootUri = pathToUrl(testDir),
+    tsconfigPath: string | undefined = undefined
+) {
     const defaultTimeout = suite.timeout();
 
     // allow to set a higher timeout for slow machines from cli flag
     const warmupTimeout = Math.max(defaultTimeout, 5_000);
     suite.timeout(warmupTimeout);
-    before(async () => {
+    before(() => warmup(tsconfigPath));
+
+    suite.timeout(defaultTimeout);
+
+    async function warmup(configFilePath: string | undefined = undefined) {
         const start = Date.now();
         console.log('Warming up language service...');
 
         const docManager = new DocumentManager(
             (textDocument) => new Document(textDocument.uri, textDocument.text)
         );
+
         const lsAndTsDocResolver = new LSAndTSDocResolver(
             docManager,
             [rootUri],
             new LSConfigManager()
         );
 
-        const filePath = join(testDir, 'DoesNotMater.svelte');
-        const document = docManager.openClientDocument(<any>{
-            uri: pathToUrl(filePath),
-            text: ts.sys.readFile(filePath) || ''
-        });
+        configFilePath ??= findTsConfigPath(
+            join(testDir, 'DoesNotMater.svelte'),
+            [rootUri],
+            ts.sys.fileExists,
+            createGetCanonicalFileName(ts.sys.useCaseSensitiveFileNames)
+        );
 
-        await lsAndTsDocResolver.getLSAndTSDoc(document);
+        const ls = await lsAndTsDocResolver.getTSServiceByConfigPath(
+            configFilePath,
+            configFilePath ? dirname(configFilePath) : urlToPath(rootUri)!
+        );
+        ls.getService();
+
+        const projectReferences = ls.getResolvedProjectReferences();
+
+        if (projectReferences.length) {
+            await Promise.all(projectReferences.map((ref) => warmup(ref.configFilePath)));
+        }
 
         console.log(`Service warming up done in ${Date.now() - start}ms`);
-    });
-
-    suite.timeout(defaultTimeout);
+    }
 }
 
 export function recursiveServiceWarmup(

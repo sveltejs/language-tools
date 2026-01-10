@@ -3,30 +3,7 @@ import { ConfigManager } from './config-manager';
 import { Logger } from './logger';
 import { SvelteSnapshotManager } from './svelte-snapshots';
 import { createSvelteSys } from './svelte-sys';
-import { ensureRealSvelteFilePath, isVirtualSvelteFilePath } from './utils';
-
-// TODO remove when we update to typescript 5.0
-declare module 'typescript/lib/tsserverlibrary' {
-    interface LanguageServiceHost {
-        /** @deprecated supply resolveModuleNameLiterals instead for resolution that can handle newer resolution modes like nodenext */
-        resolveModuleNames?(
-            moduleNames: string[],
-            containingFile: string,
-            reusedNames: string[] | undefined,
-            redirectedReference: ts.ResolvedProjectReference | undefined,
-            options: ts.CompilerOptions,
-            containingSourceFile?: ts.SourceFile
-        ): (ts.ResolvedModule | undefined)[];
-        resolveModuleNameLiterals?(
-            moduleLiterals: readonly ts.StringLiteralLike[],
-            containingFile: string,
-            redirectedReference: ts.ResolvedProjectReference | undefined,
-            options: ts.CompilerOptions,
-            containingSourceFile: ts.SourceFile,
-            reusedNames: readonly ts.StringLiteralLike[] | undefined
-        ): readonly ts.ResolvedModuleWithFailedLookupLocations[];
-    }
-}
+import { ensureRealSvelteFilePath, isSvelteFilePath, isVirtualSvelteFilePath } from './utils';
 
 /**
  * Caches resolved modules.
@@ -101,7 +78,7 @@ export function patchModuleLoader(
     lsHost: ts.LanguageServiceHost,
     project: ts.server.Project,
     configManager: ConfigManager
-): void {
+): { dispose: () => void } {
     const svelteSys = createSvelteSys(typescript, logger);
     const moduleCache = new ModuleResolutionCache(project.projectService);
     const origResolveModuleNames = lsHost.resolveModuleNames?.bind(lsHost);
@@ -110,6 +87,8 @@ export function patchModuleLoader(
     if (lsHost.resolveModuleNameLiterals) {
         lsHost.resolveModuleNameLiterals = resolveModuleNameLiterals;
     } else {
+        // TODO do we need to keep this around? We're requiring 5.0 now, so TS doesn't need it,
+        // but would this break when other TS plugins are used and we no longer provide it?
         lsHost.resolveModuleNames = resolveModuleNames;
     }
 
@@ -120,9 +99,17 @@ export function patchModuleLoader(
         return origRemoveFile(info, fileExists, detachFromProject);
     };
 
-    configManager.onConfigurationChanged(() => {
+    const onConfigChanged = () => {
         moduleCache.clear();
-    });
+    };
+    configManager.onConfigurationChanged(onConfigChanged);
+
+    return {
+        dispose() {
+            configManager.removeConfigurationChangeListener(onConfigChanged);
+            moduleCache.clear();
+        }
+    };
 
     function resolveModuleNames(
         moduleNames: string[],
@@ -153,12 +140,22 @@ export function patchModuleLoader(
 
         return resolved.map((tsResolvedModule, idx) => {
             const moduleName = moduleNames[idx];
-            if (tsResolvedModule || !ensureRealSvelteFilePath(moduleName).endsWith('.svelte')) {
+            if (
+                !isSvelteFilePath(moduleName) ||
+                // corresponding .d.ts files take precedence over .svelte files
+                tsResolvedModule?.resolvedFileName.endsWith('.d.ts') ||
+                tsResolvedModule?.resolvedFileName.endsWith('.d.svelte.ts')
+            ) {
                 return tsResolvedModule;
             }
 
-            return resolveSvelteModuleNameFromCache(moduleName, containingFile, compilerOptions)
-                .resolvedModule;
+            const result = resolveSvelteModuleNameFromCache(
+                moduleName,
+                containingFile,
+                compilerOptions
+            ).resolvedModule;
+            // .svelte takes precedence over .svelte.ts etc
+            return result ?? tsResolvedModule;
         });
     }
 
@@ -230,14 +227,20 @@ export function patchModuleLoader(
 
         return resolved.map((tsResolvedModule, idx) => {
             const moduleName = moduleLiterals[idx].text;
+            const resolvedModule = tsResolvedModule.resolvedModule;
+
             if (
-                tsResolvedModule.resolvedModule ||
-                !ensureRealSvelteFilePath(moduleName).endsWith('.svelte')
+                !isSvelteFilePath(moduleName) ||
+                // corresponding .d.ts files take precedence over .svelte files
+                resolvedModule?.resolvedFileName.endsWith('.d.ts') ||
+                resolvedModule?.resolvedFileName.endsWith('.d.svelte.ts')
             ) {
                 return tsResolvedModule;
             }
 
-            return resolveSvelteModuleNameFromCache(moduleName, containingFile, options);
+            const result = resolveSvelteModuleNameFromCache(moduleName, containingFile, options);
+            // .svelte takes precedence over .svelte.ts etc
+            return result.resolvedModule ? result : tsResolvedModule;
         });
     }
 
@@ -254,6 +257,7 @@ export function patchModuleLoader(
         }
 
         const resolvedModule = resolveSvelteModuleName(moduleName, containingFile, options);
+
         moduleCache.set(moduleName, containingFile, resolvedModule);
         return {
             resolvedModule: resolvedModule

@@ -6,10 +6,12 @@ import {
     CancellationToken,
     CodeAction,
     CodeActionContext,
+    CodeLens,
     CompletionContext,
     CompletionList,
     DefinitionLink,
     Diagnostic,
+    DocumentHighlight,
     FileChangeType,
     FoldingRange,
     Hover,
@@ -26,19 +28,27 @@ import {
     SymbolInformation,
     SymbolKind,
     TextDocumentContentChangeEvent,
-    WorkspaceEdit
+    WorkspaceEdit,
+    WorkspaceSymbol
 } from 'vscode-languageserver';
-import { Document, getTextInRange, mapSymbolInformationToOriginal } from '../../lib/documents';
+import {
+    Document,
+    DocumentManager,
+    getTextInRange,
+    mapSymbolInformationToOriginal
+} from '../../lib/documents';
 import { LSConfigManager, LSTypescriptConfig } from '../../ls-config';
-import { isNotNullOrUndefined, isZeroLengthRange } from '../../utils';
+import { isNotNullOrUndefined, isZeroLengthRange, pathToUrl } from '../../utils';
 import {
     AppCompletionItem,
     AppCompletionList,
     CallHierarchyProvider,
     CodeActionsProvider,
+    CodeLensProvider,
     CompletionsProvider,
     DefinitionsProvider,
     DiagnosticsProvider,
+    DocumentHighlightProvider,
     DocumentSymbolsProvider,
     FileReferencesProvider,
     FileRename,
@@ -56,11 +66,11 @@ import {
     SignatureHelpProvider,
     TypeDefinitionProvider,
     UpdateImportsProvider,
-    UpdateTsOrJsFile
+    UpdateTsOrJsFile,
+    WorkspaceSymbolsProvider
 } from '../interfaces';
 import { LSAndTSDocResolver } from './LSAndTSDocResolver';
 import { ignoredBuildDirectories } from './SnapshotManager';
-import { CallHierarchyProviderImpl } from './features/CallHierarchyProvider';
 import { CodeActionsProviderImpl } from './features/CodeActionsProvider';
 import { CompletionResolveInfo, CompletionsProviderImpl } from './features/CompletionProvider';
 import { DiagnosticsProviderImpl } from './features/DiagnosticsProvider';
@@ -83,14 +93,19 @@ import {
     is$storeVariableIn$storeDeclaration,
     isTextSpanInGeneratedCode
 } from './features/utils';
+import { DocumentHighlightProviderImpl } from './features/DocumentHighlightProvider';
 import { isAttributeName, isAttributeShorthand, isEventHandler } from './svelte-ast-utils';
 import {
     convertToLocationForReferenceOrDefinition,
     convertToLocationRange,
-    getScriptKindFromFileName,
     isInScript,
+    isSvelte2tsxShimFile,
+    isSvelteFilePath,
     symbolKindFromString
 } from './utils';
+import { CallHierarchyProviderImpl } from './features/CallHierarchyProvider';
+import { CodeLensProviderImpl } from './features/CodeLensProvider';
+import { WorkspaceSymbolsProviderImpl } from './features/WorkspaceSymbolProvider';
 
 export class TypeScriptPlugin
     implements
@@ -107,17 +122,21 @@ export class TypeScriptPlugin
         SelectionRangeProvider,
         SignatureHelpProvider,
         SemanticTokensProvider,
+        DocumentHighlightProvider,
         ImplementationProvider,
         TypeDefinitionProvider,
         InlayHintProvider,
         CallHierarchyProvider,
         FoldingRangeProvider,
+        CodeLensProvider,
+        WorkspaceSymbolsProvider,
         OnWatchFileChanges,
         CompletionsProvider<CompletionResolveInfo>,
         UpdateTsOrJsFile
 {
     __name = 'ts';
     private readonly configManager: LSConfigManager;
+    private readonly documentManager: DocumentManager;
     private readonly lsAndTsDocResolver: LSAndTSDocResolver;
     private readonly completionProvider: CompletionsProviderImpl;
     private readonly codeActionsProvider: CodeActionsProviderImpl;
@@ -137,13 +156,18 @@ export class TypeScriptPlugin
     private readonly inlayHintProvider: InlayHintProviderImpl;
     private readonly foldingRangeProvider: FoldingRangeProviderImpl;
     private readonly callHierarchyProvider: CallHierarchyProviderImpl;
+    private readonly codLensProvider: CodeLensProviderImpl;
+    private readonly documentHeightProvider: DocumentHighlightProviderImpl;
+    private readonly workspaceSymbolsProvider: WorkspaceSymbolsProvider;
 
     constructor(
         configManager: LSConfigManager,
         lsAndTsDocResolver: LSAndTSDocResolver,
-        workspaceUris: string[]
+        workspaceUris: string[],
+        documentManager: DocumentManager
     ) {
         this.configManager = configManager;
+        this.documentManager = documentManager;
         this.lsAndTsDocResolver = lsAndTsDocResolver;
         this.completionProvider = new CompletionsProviderImpl(
             this.lsAndTsDocResolver,
@@ -154,7 +178,10 @@ export class TypeScriptPlugin
             this.completionProvider,
             configManager
         );
-        this.updateImportsProvider = new UpdateImportsProviderImpl(this.lsAndTsDocResolver);
+        this.updateImportsProvider = new UpdateImportsProviderImpl(
+            this.lsAndTsDocResolver,
+            ts.sys.useCaseSensitiveFileNames
+        );
         this.diagnosticsProvider = new DiagnosticsProviderImpl(
             this.lsAndTsDocResolver,
             configManager
@@ -182,6 +209,17 @@ export class TypeScriptPlugin
             workspaceUris
         );
         this.foldingRangeProvider = new FoldingRangeProviderImpl(
+            this.lsAndTsDocResolver,
+            configManager
+        );
+        this.codLensProvider = new CodeLensProviderImpl(
+            this.lsAndTsDocResolver,
+            this.findReferencesProvider,
+            this.implementationProvider,
+            this.configManager
+        );
+        this.documentHeightProvider = new DocumentHighlightProviderImpl(this.lsAndTsDocResolver);
+        this.workspaceSymbolsProvider = new WorkspaceSymbolsProviderImpl(
             this.lsAndTsDocResolver,
             configManager
         );
@@ -363,7 +401,7 @@ export class TypeScriptPlugin
     }
 
     async getDefinitions(document: Document, position: Position): Promise<DefinitionLink[]> {
-        const { lang, tsDoc } = await this.lsAndTsDocResolver.getLSAndTSDoc(document);
+        const { lang, tsDoc, lsContainer } = await this.lsAndTsDocResolver.getLSAndTSDoc(document);
 
         const defs = lang.getDefinitionAndBoundSpan(
             tsDoc.filePath,
@@ -374,12 +412,12 @@ export class TypeScriptPlugin
             return [];
         }
 
-        const snapshots = new SnapshotMap(this.lsAndTsDocResolver);
+        const snapshots = new SnapshotMap(this.lsAndTsDocResolver, lsContainer);
         snapshots.set(tsDoc.filePath, tsDoc);
 
         const result = await Promise.all(
             defs.definitions.map(async (def) => {
-                if (def.fileName.endsWith('svelte-shims.d.ts')) {
+                if (isSvelte2tsxShimFile(def.fileName)) {
                     return;
                 }
 
@@ -493,7 +531,7 @@ export class TypeScriptPlugin
     }
 
     async onWatchFileChanges(onWatchFileChangesParas: OnWatchFileChangesPara[]): Promise<void> {
-        let doneUpdateProjectFiles = false;
+        const newFiles: string[] = [];
 
         for (const { fileName, changeType } of onWatchFileChangesParas) {
             const pathParts = fileName.split(/\/|\\/);
@@ -513,27 +551,35 @@ export class TypeScriptPlugin
                 continue;
             }
 
-            const scriptKind = getScriptKindFromFileName(fileName);
-            if (scriptKind === ts.ScriptKind.Unknown) {
-                // We don't deal with svelte files here
-                continue;
-            }
+            const isSvelteFile = isSvelteFilePath(fileName);
+            const isClientSvelteFile =
+                isSvelteFile && this.documentManager.get(pathToUrl(fileName))?.openedByClient;
 
             if (changeType === FileChangeType.Deleted) {
-                await this.lsAndTsDocResolver.deleteSnapshot(fileName);
+                if (!isClientSvelteFile) {
+                    await this.lsAndTsDocResolver.deleteSnapshot(fileName);
+                }
                 continue;
             }
 
             if (changeType === FileChangeType.Created) {
-                if (!doneUpdateProjectFiles) {
-                    doneUpdateProjectFiles = true;
-                    await this.lsAndTsDocResolver.updateProjectFiles();
+                newFiles.push(fileName);
+                continue;
+            }
+
+            if (isSvelteFile) {
+                if (!isClientSvelteFile) {
+                    await this.lsAndTsDocResolver.updateExistingSvelteFile(fileName);
                 }
-                await this.lsAndTsDocResolver.invalidateModuleCache(fileName);
                 continue;
             }
 
             await this.lsAndTsDocResolver.updateExistingTsOrJsFile(fileName);
+        }
+
+        if (newFiles.length) {
+            await this.lsAndTsDocResolver.updateProjectFiles(newFiles);
+            await this.lsAndTsDocResolver.invalidateModuleCache(newFiles);
         }
     }
 
@@ -591,8 +637,12 @@ export class TypeScriptPlugin
         );
     }
 
-    async getImplementation(document: Document, position: Position): Promise<Location[] | null> {
-        return this.implementationProvider.getImplementation(document, position);
+    async getImplementation(
+        document: Document,
+        position: Position,
+        cancellationToken?: CancellationToken
+    ): Promise<Location[] | null> {
+        return this.implementationProvider.getImplementation(document, position, cancellationToken);
     }
 
     async getTypeDefinition(document: Document, position: Position): Promise<Location[] | null> {
@@ -641,11 +691,33 @@ export class TypeScriptPlugin
         return this.foldingRangeProvider.getFoldingRanges(document);
     }
 
-    /**
-     * @internal Public for tests only
-     */
-    public getSnapshotManager(fileName: string) {
-        return this.lsAndTsDocResolver.getSnapshotManager(fileName);
+    getCodeLens(document: Document): Promise<CodeLens[] | null> {
+        return this.codLensProvider.getCodeLens(document);
+    }
+
+    resolveCodeLens(
+        document: Document,
+        codeLensToResolve: CodeLens,
+        cancellationToken?: CancellationToken
+    ): Promise<CodeLens> {
+        return this.codLensProvider.resolveCodeLens(document, codeLensToResolve, cancellationToken);
+    }
+
+    async findDocumentHighlight(
+        document: Document,
+        position: Position
+    ): Promise<DocumentHighlight[] | null> {
+        return this.documentHeightProvider.findDocumentHighlight(document, position);
+    }
+
+    async getWorkspaceSymbols(
+        query: string,
+        cancellationToken?: CancellationToken
+    ): Promise<WorkspaceSymbol[] | null> {
+        if (!this.featureEnabled('workspaceSymbols')) {
+            return null;
+        }
+        return this.workspaceSymbolsProvider.getWorkspaceSymbols(query, cancellationToken);
     }
 
     private featureEnabled(feature: keyof LSTypescriptConfig) {

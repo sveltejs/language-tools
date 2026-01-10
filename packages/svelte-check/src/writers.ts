@@ -38,10 +38,7 @@ export class HumanFriendlyWriter implements Writer {
         }
 
         if (this.isVerbose) {
-            this.stream.write('\n');
-            this.stream.write('====================================\n');
-            this.stream.write(`Loading svelte-check in workspace: ${workspaceDir}`);
-            this.stream.write('\n');
+            this.stream.write(`Loading svelte-check in workspace: ${workspaceDir}\n`);
             this.stream.write('Getting Svelte diagnostics...\n');
             this.stream.write('\n');
         }
@@ -57,15 +54,10 @@ export class HumanFriendlyWriter implements Writer {
                 `${workspaceDir}${sep}${pc.green(filename)}:${line + 1}:${character + 1}\n`
             );
 
-            // Show some context around diagnostic range
-            const codePrevLine = this.getLine(diagnostic.range.start.line - 1, text);
-            const codeLine = this.getCodeLine(diagnostic, text);
-            const codeNextLine = this.getLine(diagnostic.range.end.line + 1, text);
-            const code = codePrevLine + codeLine + codeNextLine;
-
             let msg;
             if (this.isVerbose) {
-                msg = `${diagnostic.message} ${source}\n${pc.cyan(code)}`;
+                const code = this.formatRelatedCode(diagnostic, text);
+                msg = `${diagnostic.message} ${source}\n${pc.cyan(code.trimEnd())}`;
             } else {
                 msg = `${diagnostic.message} ${source}`;
             }
@@ -78,6 +70,20 @@ export class HumanFriendlyWriter implements Writer {
 
             this.stream.write('\n');
         });
+    }
+
+    private formatRelatedCode(diagnostic: Diagnostic, text: string) {
+        if (!text) {
+            return '';
+        }
+
+        // Show some context around diagnostic range
+        const codePrevLine = this.getLine(diagnostic.range.start.line - 1, text);
+        const codeLine = this.getCodeLine(diagnostic, text);
+        const codeNextLine = this.getLine(diagnostic.range.end.line + 1, text);
+        const code = codePrevLine + codeLine + codeNextLine;
+
+        return code;
     }
 
     private getCodeLine(diagnostic: Diagnostic, text: string) {
@@ -108,7 +114,9 @@ export class HumanFriendlyWriter implements Writer {
         warningCount: number,
         fileCountWithProblems: number
     ) {
-        this.stream.write('====================================\n');
+        if (fileCountWithProblems) {
+            this.stream.write('====================================\n');
+        }
         const message = [
             'svelte-check found ',
             `${errorCount} ${errorCount === 1 ? 'error' : 'errors'} and `,

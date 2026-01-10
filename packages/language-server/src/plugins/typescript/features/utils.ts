@@ -1,5 +1,5 @@
 import ts from 'typescript';
-import { Position } from 'vscode-languageserver';
+import { Position, Range } from 'vscode-languageserver';
 import {
     Document,
     getLineAtPosition,
@@ -12,6 +12,8 @@ import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { or } from '../../../utils';
 import { FileMap } from '../../../lib/documents/fileCollection';
 import { LSConfig } from '../../../ls-config';
+import { LanguageServiceContainer } from '../service';
+import { internalHelpers } from 'svelte2tsx';
 
 type NodePredicate = (node: ts.Node) => boolean;
 
@@ -39,7 +41,7 @@ export function getComponentAtPosition(
         return null;
     }
 
-    const node = getNodeIfIsInComponentStartTag(doc.html, doc.offsetAt(originalPosition));
+    const node = getNodeIfIsInComponentStartTag(doc.html, doc, doc.offsetAt(originalPosition));
     if (!node) {
         return null;
     }
@@ -50,21 +52,15 @@ export function getComponentAtPosition(
         doc.positionAt(node.start + symbolPosWithinNode + 1)
     );
 
-    let def = lang.getDefinitionAtPosition(tsDoc.filePath, tsDoc.offsetAt(generatedPosition))?.[0];
-
-    while (def != null && def.kind !== ts.ScriptElementKind.classElement) {
-        const newDef = lang.getDefinitionAtPosition(tsDoc.filePath, def.textSpan.start)?.[0];
-        if (newDef?.fileName === def.fileName && newDef?.textSpan.start === def.textSpan.start) {
-            break;
-        }
-        def = newDef;
-    }
-
+    const def = lang.getDefinitionAtPosition(
+        tsDoc.filePath,
+        tsDoc.offsetAt(generatedPosition)
+    )?.[0];
     if (!def) {
         return null;
     }
 
-    return JsOrTsComponentInfoProvider.create(lang, def);
+    return JsOrTsComponentInfoProvider.create(lang, def, tsDoc.isSvelte5Plus);
 }
 
 export function isComponentAtPosition(
@@ -84,11 +80,12 @@ export function isComponentAtPosition(
         return false;
     }
 
-    return !!getNodeIfIsInComponentStartTag(doc.html, doc.offsetAt(originalPosition));
+    return !!getNodeIfIsInComponentStartTag(doc.html, doc, doc.offsetAt(originalPosition));
 }
 
 export const IGNORE_START_COMMENT = '/*Ωignore_startΩ*/';
 export const IGNORE_END_COMMENT = '/*Ωignore_endΩ*/';
+export const IGNORE_POSITION_COMMENT = '/*Ωignore_positionΩ*/';
 
 /**
  * Surrounds given string with a start/end comment which marks it
@@ -109,6 +106,10 @@ export function isInGeneratedCode(text: string, start: number, end: number = sta
     // if lastEnd === nextEnd, this means that the str was found at the index
     // up to which is searched for it
     return (lastStart > lastEnd || lastEnd === nextEnd) && lastStart < nextEnd;
+}
+
+export function startsWithIgnoredPosition(text: string, offset: number) {
+    return text.slice(offset).startsWith(IGNORE_POSITION_COMMENT);
 }
 
 /**
@@ -145,7 +146,10 @@ export function getStoreOffsetOf$storeDeclaration(text: string, $storeVarStart: 
 
 export class SnapshotMap {
     private map = new FileMap<DocumentSnapshot>();
-    constructor(private resolver: LSAndTSDocResolver) {}
+    constructor(
+        private resolver: LSAndTSDocResolver,
+        private sourceLs: LanguageServiceContainer
+    ) {}
 
     set(fileName: string, snapshot: DocumentSnapshot) {
         this.map.set(fileName, snapshot);
@@ -157,12 +161,18 @@ export class SnapshotMap {
 
     async retrieve(fileName: string) {
         let snapshot = this.get(fileName);
-        if (!snapshot) {
-            const snap = await this.resolver.getSnapshot(fileName);
-            this.set(fileName, snap);
-            snapshot = snap;
+        if (snapshot) {
+            return snapshot;
         }
-        return snapshot;
+
+        const snap =
+            this.sourceLs.snapshotManager.get(fileName) ??
+            // should not happen in most cases,
+            // the file should be in the project otherwise why would we know about it
+            (await this.resolver.getOrCreateSnapshot(fileName));
+
+        this.set(fileName, snap);
+        return snap;
     }
 }
 
@@ -290,7 +300,11 @@ function nodeAndParentsSatisfyRespectivePredicates<T extends ts.Node>(
 
 const isRenderFunction = nodeAndParentsSatisfyRespectivePredicates<
     ts.FunctionDeclaration & { name: ts.Identifier }
->((node) => ts.isFunctionDeclaration(node) && node?.name?.getText() === 'render', ts.isSourceFile);
+>(
+    (node) =>
+        ts.isFunctionDeclaration(node) && node?.name?.getText() === internalHelpers.renderName,
+    ts.isSourceFile
+);
 
 const isRenderFunctionBody = nodeAndParentsSatisfyRespectivePredicates(
     ts.isBlock,
@@ -300,11 +314,11 @@ const isRenderFunctionBody = nodeAndParentsSatisfyRespectivePredicates(
 export const isReactiveStatement = nodeAndParentsSatisfyRespectivePredicates<ts.LabeledStatement>(
     (node) => ts.isLabeledStatement(node) && node.label.getText() === '$',
     or(
-        // function render() {
+        // function $$render() {
         //     $: x2 = __sveltets_2_invalidate(() => x * x)
         // }
         isRenderFunctionBody,
-        // function render() {
+        // function $$render() {
         //     ;() => {$: x, update();
         // }
         nodeAndParentsSatisfyRespectivePredicates(
@@ -415,8 +429,25 @@ export function findChildOfKind(node: ts.Node, kind: ts.SyntaxKind): ts.Node | u
     }
 }
 
-export function getNewScriptStartTag(lsConfig: Readonly<LSConfig>) {
+export function getNewScriptStartTag(lsConfig: Readonly<LSConfig>, newLine: string) {
     const lang = lsConfig.svelte.defaultScriptLanguage;
     const scriptLang = lang === 'none' ? '' : ` lang="${lang}"`;
-    return `<script${scriptLang}>${ts.sys.newLine}`;
+    return `<script${scriptLang}>${newLine}`;
+}
+
+export function checkRangeMappingWithGeneratedSemi(
+    originalRange: Range,
+    generatedRange: Range,
+    tsDoc: SvelteDocumentSnapshot
+) {
+    const originalLength = originalRange.end.character - originalRange.start.character;
+    const generatedLength = generatedRange.end.character - generatedRange.start.character;
+
+    // sourcemap off by one character issue + a generated semicolon
+    if (
+        originalLength === generatedLength - 2 &&
+        tsDoc.getFullText()[tsDoc.offsetAt(generatedRange.end) - 1] === ';'
+    ) {
+        originalRange.end.character += 1;
+    }
 }

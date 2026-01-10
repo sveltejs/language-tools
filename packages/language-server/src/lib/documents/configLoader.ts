@@ -4,11 +4,12 @@ import { CompileOptions } from 'svelte/types/compiler/interfaces';
 // @ts-ignore
 import { PreprocessorGroup } from 'svelte/types/compiler/preprocess';
 import { importSveltePreprocess } from '../../importPackage';
-import _glob from 'fast-glob';
+import { fdir } from 'fdir';
 import _path from 'path';
 import _fs from 'fs';
 import { pathToFileURL, URL } from 'url';
 import { FileMap } from './fileCollection';
+import ts from 'typescript';
 
 export type InternalPreprocessorGroup = PreprocessorGroup & {
     /**
@@ -46,6 +47,8 @@ const _dynamicImport = new Function('modulePath', 'return import(modulePath)') a
     modulePath: URL
 ) => Promise<any>;
 
+const configRegex = /\/svelte\.config\.(js|cjs|mjs)$/;
+
 /**
  * Loads svelte.config.{js,cjs,mjs} files. Provides both a synchronous and asynchronous
  * interface to get a config file because snapshots need access to it synchronously.
@@ -60,7 +63,7 @@ export class ConfigLoader {
     private disabled = false;
 
     constructor(
-        private globSync: typeof _glob.sync,
+        private globSync: typeof fdir,
         private fs: Pick<typeof _fs, 'existsSync'>,
         private path: Pick<typeof _path, 'dirname' | 'relative' | 'join'>,
         private dynamicImport: typeof _dynamicImport
@@ -83,12 +86,19 @@ export class ConfigLoader {
         Logger.log('Trying to load configs for', directory);
 
         try {
-            const pathResults = this.globSync('**/svelte.config.{js,cjs,mjs}', {
-                cwd: directory,
-                // the second pattern is necessary because else fast-glob treats .tmp/../node_modules/.. as a valid match for some reason
-                ignore: ['**/node_modules/**', '**/.*/**'],
-                onlyFiles: true
-            });
+            const pathResults = new this.globSync({})
+                .withPathSeparator('/')
+                .exclude((_, path) => {
+                    // no / at the start, path could start with node_modules
+                    return path.includes('node_modules/') || path.includes('/.') || path[0] === '.';
+                })
+                .filter((path, isDir) => {
+                    return !isDir && configRegex.test(path);
+                })
+                .withRelativePaths()
+                .crawl(directory)
+                .sync();
+
             const someConfigIsImmediateFileInDirectory =
                 pathResults.length > 0 && pathResults.some((res) => !this.path.dirname(res));
             if (!someConfigIsImmediateFileInDirectory) {
@@ -249,25 +259,50 @@ export class ConfigLoader {
     }
 
     private useFallbackPreprocessor(path: string, foundConfig: boolean): SvelteConfig {
-        Logger.log(
-            (foundConfig
-                ? 'Found svelte.config.js but there was an error loading it. '
-                : 'No svelte.config.js found. ') +
-                'Using https://github.com/sveltejs/svelte-preprocess as fallback'
-        );
-        const sveltePreprocess = importSveltePreprocess(path);
-        return {
-            preprocess: sveltePreprocess({
-                // 4.x does not have transpileOnly anymore, but if the user has version 3.x
-                // in his repo, that one is loaded instead, for which we still need this.
-                typescript: <any>{
-                    transpileOnly: true,
-                    compilerOptions: { sourceMap: true, inlineSourceMap: false }
-                }
-            }),
-            isFallbackConfig: true
-        };
+        try {
+            const sveltePreprocess = importSveltePreprocess(path);
+            Logger.log(
+                (foundConfig
+                    ? 'Found svelte.config.js but there was an error loading it. '
+                    : 'No svelte.config.js found. ') +
+                    'Using https://github.com/sveltejs/svelte-preprocess as fallback'
+            );
+            return {
+                preprocess: sveltePreprocess({
+                    // 4.x does not have transpileOnly anymore, but if the user has version 3.x
+                    // in his repo, that one is loaded instead, for which we still need this.
+                    typescript: {
+                        transpileOnly: true,
+                        compilerOptions: { sourceMap: true, inlineSourceMap: false }
+                    }
+                }),
+                isFallbackConfig: true
+            };
+        } catch (e) {
+            // User doesn't have svelte-preprocess installed, provide a barebones TS preprocessor
+            return {
+                preprocess: {
+                    // @ts-ignore name property exists in Svelte 4 onwards
+                    name: 'svelte-language-tools-ts-fallback-preprocessor',
+                    script: ({ content, attributes, filename }) => {
+                        if (attributes.lang !== 'ts') return;
+
+                        const { outputText, sourceMapText } = ts.transpileModule(content, {
+                            fileName: filename,
+                            compilerOptions: {
+                                module: ts.ModuleKind.ESNext,
+                                target: ts.ScriptTarget.ESNext,
+                                sourceMap: true,
+                                verbatimModuleSyntax: true
+                            }
+                        });
+                        return { code: outputText, map: sourceMapText };
+                    }
+                },
+                isFallbackConfig: true
+            };
+        }
     }
 }
 
-export const configLoader = new ConfigLoader(_glob.sync, _fs, _path, _dynamicImport);
+export const configLoader = new ConfigLoader(fdir, _fs, _path, _dynamicImport);

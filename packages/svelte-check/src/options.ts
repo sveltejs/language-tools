@@ -65,15 +65,24 @@ export function parseOptions(cb: (opts: SvelteCheckCliOptions) => any) {
             'Filters the diagnostics to display. `error` will output only errors while `warning` will output warnings and errors.',
             'warning'
         )
+        // read by sade and preprocessor like sass
+        .option('--color', 'Force enabling of color output', false)
+        .option('--no-color', 'Force disabling of color output', false)
         .action((opts) => {
             const workspaceUri = getWorkspaceUri(opts);
+            const tsconfig = getTsconfig(opts, workspaceUri.fsPath);
+
+            if (opts.ignore && tsconfig) {
+                throwError('`--ignore` only has an effect when using `--no-tsconfig`');
+            }
+
             cb({
                 workspaceUri,
                 outputFormat: getOutputFormat(opts),
                 watch: !!opts.watch,
                 preserveWatchOutput: !!opts.preserveWatchOutput,
-                tsconfig: getTsconfig(opts, workspaceUri.fsPath),
-                filePathsToIgnore: getFilepathsToIgnore(opts),
+                tsconfig,
+                filePathsToIgnore: opts.ignore?.split(',') || [],
                 failOnWarnings: !!opts['fail-on-warnings'],
                 compilerWarnings: getCompilerWarnings(opts),
                 diagnosticSources: getDiagnosticSources(opts),
@@ -90,7 +99,14 @@ const outputFormats = ['human', 'human-verbose', 'machine', 'machine-verbose'] a
 type OutputFormat = (typeof outputFormats)[number];
 
 function getOutputFormat(opts: Record<string, any>): OutputFormat {
-    return outputFormats.includes(opts.output) ? opts.output : 'human-verbose';
+    if (outputFormats.includes(opts.output)) {
+        return opts.output;
+    } else if (process.env.CLAUDECODE === '1') {
+        // https://github.com/sveltejs/language-tools/issues/2868
+        return 'machine';
+    } else {
+        return 'human-verbose';
+    }
 }
 
 function getWorkspaceUri(opts: Record<string, any>) {
@@ -141,9 +157,13 @@ function getTsconfig(myArgs: Record<string, any>, workspacePath: string) {
         tsconfig = path.join(workspacePath, tsconfig);
     }
     if (tsconfig && !fs.existsSync(tsconfig)) {
-        throw new Error('Could not find tsconfig/jsconfig file at ' + myArgs.tsconfig);
+        throwError('Could not find tsconfig/jsconfig file at ' + myArgs.tsconfig);
     }
     return tsconfig;
+}
+
+function throwError(msg: string) {
+    throw new Error('Invalid svelte-check CLI args: ' + msg);
 }
 
 function getCompilerWarnings(opts: Record<string, any>) {
@@ -167,8 +187,8 @@ function getCompilerWarnings(opts: Record<string, any>) {
     }
 }
 
-const diagnosticSources = ['js', 'css', 'svelte'] as const;
-type DiagnosticSource = (typeof diagnosticSources)[number];
+type DiagnosticSource = 'js' | 'css' | 'svelte';
+const diagnosticSources: DiagnosticSource[] = ['js', 'css', 'svelte'];
 
 function getDiagnosticSources(opts: Record<string, any>): DiagnosticSource[] {
     const sources = opts['diagnostic-sources'];
@@ -178,10 +198,6 @@ function getDiagnosticSources(opts: Record<string, any>): DiagnosticSource[] {
               ?.map((s: string) => s.trim())
               .filter((s: any) => diagnosticSources.includes(s))
         : diagnosticSources;
-}
-
-function getFilepathsToIgnore(opts: Record<string, any>): string[] {
-    return opts.ignore?.split(',') || [];
 }
 
 const thresholds = ['warning', 'error'] as const;

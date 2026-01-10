@@ -1,4 +1,4 @@
-import { walk } from 'estree-walker';
+import { BaseNode, walk } from 'estree-walker';
 import { EOL } from 'os';
 // @ts-ignore
 import { TemplateNode } from 'svelte/types/compiler/interfaces';
@@ -25,6 +25,8 @@ import ts from 'typescript';
 // but the AST returned by svelte/compiler does. Type as any as a workaround.
 type Node = any;
 
+type Ast = Awaited<ReturnType<SvelteDocument['getCompiled']>>['ast'];
+
 /**
  * Get applicable quick fixes.
  */
@@ -41,7 +43,6 @@ export async function getQuickfixActions(
     const transpiled = await svelteDoc.getTranspiled();
     const content = transpiled.getText();
     const lineOffsets = getLineOffsets(content);
-    const { html } = ast;
 
     const codeActions: CodeAction[] = [];
 
@@ -52,7 +53,7 @@ export async function getQuickfixActions(
                 transpiled,
                 content,
                 lineOffsets,
-                html,
+                ast,
                 diagnostic
             ))
         );
@@ -66,7 +67,7 @@ async function createQuickfixActions(
     transpiled: ITranspiledSvelteDocument,
     content: string,
     lineOffsets: number[],
-    html: TemplateNode,
+    ast: Ast,
     diagnostic: Diagnostic
 ): Promise<CodeAction[]> {
     const {
@@ -80,7 +81,21 @@ async function createQuickfixActions(
         pos: diagnosticStartOffset,
         end: diagnosticEndOffset
     };
-    const node = findTagForRange(html, offsetRange);
+    const { html, instance, module } = ast;
+    const tree = [html, instance, module].find((part) => {
+        return (
+            part?.start != null &&
+            offsetRange.pos >= part.start &&
+            part?.end != null &&
+            offsetRange.pos <= part.end &&
+            part?.end != null &&
+            offsetRange.end <= part.end &&
+            part?.start != null &&
+            offsetRange.end >= part.start
+        );
+    });
+
+    const node = findTagForRange(tree!, offsetRange, tree === html);
 
     const codeActions: CodeAction[] = [];
 
@@ -103,7 +118,8 @@ async function createQuickfixActions(
             content,
             lineOffsets,
             node,
-            diagnostic
+            diagnostic,
+            tree === html
         )
     );
 
@@ -146,14 +162,15 @@ function createSvelteIgnoreQuickfixAction(
     content: string,
     lineOffsets: number[],
     node: Node,
-    diagnostic: Diagnostic
+    diagnostic: Diagnostic,
+    isHtml: boolean
 ): CodeAction {
     return CodeAction.create(
         getCodeActionTitle(diagnostic),
         {
             documentChanges: [
                 TextDocumentEdit.create(textDocument, [
-                    getSvelteIgnoreEdit(transpiled, content, lineOffsets, node, diagnostic)
+                    getSvelteIgnoreEdit(transpiled, content, lineOffsets, node, diagnostic, isHtml)
                 ])
             ]
         },
@@ -190,7 +207,8 @@ function getSvelteIgnoreEdit(
     content: string,
     lineOffsets: number[],
     node: Node,
-    diagnostic: Diagnostic
+    diagnostic: Diagnostic,
+    isHtml: boolean
 ) {
     const { code } = diagnostic;
 
@@ -207,7 +225,10 @@ function getSvelteIgnoreEdit(
     const indent = getIndent(afterStartLineStart);
 
     // TODO: Make all code action's new line consistent
-    const ignore = `${indent}<!-- svelte-ignore ${code} -->${EOL}`;
+    let ignore = `${indent}// svelte-ignore ${code}${EOL}${indent}`;
+    if (isHtml) {
+        ignore = `${indent}<!-- svelte-ignore ${code} -->${EOL}`;
+    }
     const position = Position.create(nodeStartPosition.line, 0);
 
     return mapObjWithRangeToOriginal(transpiled, TextEdit.insert(position, ignore));
@@ -215,18 +236,20 @@ function getSvelteIgnoreEdit(
 
 const elementOrComponent = ['Component', 'Element', 'InlineComponent'];
 
-function findTagForRange(html: Node, range: ts.TextRange) {
-    let nearest = html;
+function findTagForRange(ast: BaseNode, range: ts.TextRange, isHtml: boolean) {
+    let nearest: BaseNode = ast;
 
-    walk(html, {
+    walk(ast, {
         enter(node, parent) {
-            const { type } = node;
-            const isBlock = 'block' in node || node.type.toLowerCase().includes('block');
-            const isFragment = type === 'Fragment';
-            const keepLooking = isFragment || elementOrComponent.includes(type) || isBlock;
-            if (!keepLooking) {
-                this.skip();
-                return;
+            if (isHtml) {
+                const { type } = node;
+                const isBlock = 'block' in node || node.type.toLowerCase().includes('block');
+                const isFragment = type === 'Fragment';
+                const keepLooking = isFragment || elementOrComponent.includes(type) || isBlock;
+                if (!keepLooking) {
+                    this.skip();
+                    return;
+                }
             }
 
             if (within(node, range) && parent === nearest) {

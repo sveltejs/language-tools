@@ -21,7 +21,8 @@ const defaultLSConfig: LSConfig = {
         codeActions: { enable: true },
         selectionRange: { enable: true },
         signatureHelp: { enable: true },
-        semanticTokens: { enable: true }
+        semanticTokens: { enable: true },
+        workspaceSymbols: { enable: true }
     },
     css: {
         enable: true,
@@ -63,6 +64,7 @@ const defaultLSConfig: LSConfig = {
         hover: { enable: true },
         codeActions: { enable: true },
         selectionRange: { enable: true },
+        runesLegacyModeCodeLens: { enable: true },
         defaultScriptLanguage: 'none'
     }
 };
@@ -102,6 +104,9 @@ export interface LSTypescriptConfig {
         enable: boolean;
     };
     semanticTokens: {
+        enable: boolean;
+    };
+    workspaceSymbols: {
         enable: boolean;
     };
 }
@@ -188,6 +193,7 @@ export interface LSSvelteConfig {
     selectionRange: {
         enable: boolean;
     };
+    runesLegacyModeCodeLens: { enable: boolean };
     defaultScriptLanguage: 'none' | 'ts';
 }
 
@@ -201,6 +207,13 @@ export interface TSUserConfig {
     suggest?: TSSuggestConfig;
     format?: TsFormatConfig;
     inlayHints?: TsInlayHintsConfig;
+    referencesCodeLens?: TsReferenceCodeLensConfig;
+    implementationsCodeLens?: TsImplementationCodeLensConfig;
+    workspaceSymbols?: TsWorkspaceSymbolsConfig;
+}
+
+interface TsJsSharedConfig {
+    hover?: { maximumLength?: number };
 }
 
 /**
@@ -219,6 +232,20 @@ export interface TsUserPreferencesConfig {
     includePackageJsonAutoImports?: ts.UserPreferences['includePackageJsonAutoImports'];
 
     preferTypeOnlyAutoImports?: ts.UserPreferences['preferTypeOnlyAutoImports'];
+
+    autoImportSpecifierExcludeRegexes?: string[];
+
+    organizeImports?: TsOrganizeImportPreferencesConfig;
+}
+
+interface TsOrganizeImportPreferencesConfig {
+    accentCollation: ts.UserPreferences['organizeImportsAccentCollation'];
+    caseFirst: ts.UserPreferences['organizeImportsCaseFirst'] | 'default';
+    caseSensitivity: ts.UserPreferences['organizeImportsIgnoreCase'];
+    collation: ts.UserPreferences['organizeImportsCollation'];
+    locale: ts.UserPreferences['organizeImportsLocale'];
+    numericCollation: ts.UserPreferences['organizeImportsNumericCollation'];
+    typeOrder: ts.UserPreferences['organizeImportsTypeOrder'] | 'auto';
 }
 
 /**
@@ -252,7 +279,27 @@ export interface TsInlayHintsConfig {
     variableTypes: { enabled: boolean; suppressWhenTypeMatchesName: boolean } | undefined;
 }
 
+export interface TsReferenceCodeLensConfig {
+    showOnAllFunctions?: boolean | undefined;
+    enabled: boolean;
+}
+
+export interface TsImplementationCodeLensConfig {
+    enabled: boolean;
+    showOnInterfaceMethods?: boolean | undefined;
+}
+
+export interface TsWorkspaceSymbolsConfig {
+    excludeLibrarySymbols?: boolean;
+}
+
 export type TsUserConfigLang = 'typescript' | 'javascript';
+
+interface TsUserConfigLangMap {
+    typescript?: TSUserConfig;
+    javascript?: TSUserConfig;
+    'js/ts'?: TsJsSharedConfig;
+}
 
 /**
  * The config as the vscode-css-languageservice understands it
@@ -285,6 +332,11 @@ export class LSConfigManager {
         typescript: {},
         javascript: {}
     };
+    private rawTsUserConfig: Record<TsUserConfigLang, TSUserConfig> = {
+        typescript: {},
+        javascript: {}
+    };
+
     private resolvedAutoImportExcludeCache = new FileMap<string[]>();
     private tsFormatCodeOptions: Record<TsUserConfigLang, ts.FormatCodeSettings> = {
         typescript: this.getDefaultFormatCodeOptions(),
@@ -392,10 +444,12 @@ export class LSConfigManager {
         );
     }
 
-    updateTsJsUserPreferences(config: Record<TsUserConfigLang, TSUserConfig>): void {
+    updateTsJsUserPreferences(config: TsUserConfigLangMap): void {
+        const shared = config['js/ts'];
         (['typescript', 'javascript'] as const).forEach((lang) => {
             if (config[lang]) {
-                this._updateTsUserPreferences(lang, config[lang]);
+                this._updateTsUserPreferences(lang, config[lang], shared);
+                this.rawTsUserConfig[lang] = config[lang];
             }
         });
         this.notifyListeners();
@@ -415,7 +469,11 @@ export class LSConfigManager {
         this.notifyListeners();
     }
 
-    private _updateTsUserPreferences(lang: TsUserConfigLang, config: TSUserConfig) {
+    private _updateTsUserPreferences(
+        lang: TsUserConfigLang,
+        config: TSUserConfig,
+        shared?: TsJsSharedConfig
+    ) {
         const { inlayHints } = config;
 
         this.tsUserPreferences[lang] = {
@@ -439,6 +497,7 @@ export class LSConfigManager {
             includeCompletionsWithObjectLiteralMethodSnippets:
                 config.suggest?.objectLiteralMethodSnippets?.enabled ?? true,
             preferTypeOnlyAutoImports: config.preferences?.preferTypeOnlyAutoImports,
+            maximumHoverLength: shared?.hover?.maximumLength,
 
             // Although we don't support incompletion cache.
             // But this will make ts resolve the module specifier more aggressively
@@ -455,21 +514,55 @@ export class LSConfigManager {
             includeInlayPropertyDeclarationTypeHints: inlayHints?.propertyDeclarationTypes?.enabled,
             includeInlayVariableTypeHintsWhenTypeMatchesName:
                 inlayHints?.variableTypes?.suppressWhenTypeMatchesName === false,
+            interactiveInlayHints: true,
 
-            interactiveInlayHints: true
+            autoImportSpecifierExcludeRegexes:
+                config.preferences?.autoImportSpecifierExcludeRegexes,
+
+            organizeImportsAccentCollation: config.preferences?.organizeImports?.accentCollation,
+            organizeImportsCollation: config.preferences?.organizeImports?.collation,
+            organizeImportsCaseFirst: this.withDefaultAsUndefined(
+                config.preferences?.organizeImports?.caseFirst,
+                'default'
+            ),
+            organizeImportsIgnoreCase: this.withDefaultAsUndefined(
+                config.preferences?.organizeImports?.caseSensitivity,
+                'auto'
+            ),
+            organizeImportsLocale: config.preferences?.organizeImports?.locale,
+            organizeImportsNumericCollation: config.preferences?.organizeImports?.numericCollation,
+            organizeImportsTypeOrder: this.withDefaultAsUndefined(
+                config.preferences?.organizeImports?.typeOrder,
+                'auto'
+            ),
+
+            excludeLibrarySymbolsInNavTo: config.workspaceSymbols?.excludeLibrarySymbols ?? true
         };
     }
 
-    getTsUserPreferences(lang: TsUserConfigLang, workspacePath: string | null): ts.UserPreferences {
+    private withDefaultAsUndefined<T, O extends T>(value: T, def: O): Exclude<T, O> | undefined {
+        return value === def ? undefined : (value as Exclude<T, O>);
+    }
+
+    getTsUserPreferences(
+        lang: TsUserConfigLang,
+        normalizedWorkspacePath: string | null
+    ): ts.UserPreferences {
         const userPreferences = this.tsUserPreferences[lang];
 
-        if (!workspacePath || !userPreferences.autoImportFileExcludePatterns) {
+        if (!normalizedWorkspacePath || !userPreferences.autoImportFileExcludePatterns) {
             return userPreferences;
         }
 
-        let autoImportFileExcludePatterns = this.resolvedAutoImportExcludeCache.get(workspacePath);
+        let autoImportFileExcludePatterns =
+            this.resolvedAutoImportExcludeCache.get(normalizedWorkspacePath);
 
         if (!autoImportFileExcludePatterns) {
+            const version = ts.version.split('.');
+            const major = parseInt(version[0]);
+            const minor = parseInt(version[1]);
+
+            const gte5_4 = major > 5 || (major === 5 && minor >= 4);
             autoImportFileExcludePatterns = userPreferences.autoImportFileExcludePatterns.map(
                 (p) => {
                     // Normalization rules: https://github.com/microsoft/TypeScript/pull/49578
@@ -479,23 +572,30 @@ export class LSConfigManager {
                         return p;
                     }
 
-                    return path.join(
-                        workspacePath,
-                        p.startsWith('*')
-                            ? '/' + slashNormalized
-                            : isRelative
-                              ? p
-                              : '/**/' + slashNormalized
-                    );
+                    // https://github.com/microsoft/vscode/pull/202762
+                    // ts 5.4+ supports leading wildcards
+                    const wildcardPrefix = gte5_4 ? '' : path.parse(normalizedWorkspacePath).root;
+                    return p.startsWith('*')
+                        ? wildcardPrefix + slashNormalized
+                        : isRelative
+                          ? path.join(normalizedWorkspacePath, p)
+                          : wildcardPrefix + '**/' + slashNormalized;
                 }
             );
-            this.resolvedAutoImportExcludeCache.set(workspacePath, autoImportFileExcludePatterns);
+            this.resolvedAutoImportExcludeCache.set(
+                normalizedWorkspacePath,
+                autoImportFileExcludePatterns
+            );
         }
 
         return {
             ...userPreferences,
             autoImportFileExcludePatterns
         };
+    }
+
+    getClientTsUserConfig(lang: TsUserConfigLang): TSUserConfig {
+        return this.rawTsUserConfig[lang];
     }
 
     updateCssConfig(config: CssConfig | undefined): void {
@@ -534,7 +634,7 @@ export class LSConfigManager {
         return this.htmlConfig;
     }
 
-    updateTsJsFormateConfig(config: Record<TsUserConfigLang, TSUserConfig>): void {
+    updateTsJsFormateConfig(config: TsUserConfigLangMap): void {
         (['typescript', 'javascript'] as const).forEach((lang) => {
             if (config[lang]) {
                 this._updateTsFormatConfig(lang, config[lang]);

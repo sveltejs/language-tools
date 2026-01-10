@@ -1,10 +1,11 @@
 import ts from 'typescript';
 import { Position, Range, SelectionRange } from 'vscode-languageserver';
-import { Document, mapSelectionRangeToParent } from '../../../lib/documents';
+import { Document, mapRangeToOriginal } from '../../../lib/documents';
 import { SelectionRangeProvider } from '../../interfaces';
 import { SvelteDocumentSnapshot } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { convertRange } from '../utils';
+import { checkRangeMappingWithGeneratedSemi } from './utils';
 
 export class SelectionRangeProviderImpl implements SelectionRangeProvider {
     constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
@@ -20,7 +21,7 @@ export class SelectionRangeProviderImpl implements SelectionRangeProvider {
             tsDoc.offsetAt(tsDoc.getGeneratedPosition(position))
         );
         const selectionRange = this.toSelectionRange(tsDoc, tsSelectionRange);
-        const mappedRange = mapSelectionRangeToParent(tsDoc, selectionRange);
+        const mappedRange = this.mapSelectionRangeToParent(tsDoc, document, selectionRange);
 
         return this.filterOutUnmappedRange(mappedRange);
     }
@@ -33,6 +34,26 @@ export class SelectionRangeProviderImpl implements SelectionRangeProvider {
             range: convertRange(snapshot, textSpan),
             parent: parent && this.toSelectionRange(snapshot, parent)
         };
+    }
+
+    private mapSelectionRangeToParent(
+        tsDoc: SvelteDocumentSnapshot,
+        document: Document,
+        selectionRange: SelectionRange
+    ): SelectionRange {
+        const { range, parent } = selectionRange;
+        const originalRange = mapRangeToOriginal(tsDoc, range);
+
+        checkRangeMappingWithGeneratedSemi(originalRange, range, tsDoc);
+
+        if (!parent) {
+            return SelectionRange.create(originalRange);
+        }
+
+        return SelectionRange.create(
+            originalRange,
+            this.mapSelectionRangeToParent(tsDoc, document, parent)
+        );
     }
 
     private filterOutUnmappedRange(selectionRange: SelectionRange): SelectionRange | null {

@@ -22,7 +22,8 @@ import {
     InlayHintRequest,
     SemanticTokensRefreshRequest,
     InlayHintRefreshRequest,
-    DidChangeWatchedFilesNotification
+    DidChangeWatchedFilesNotification,
+    RelativePattern
 } from 'vscode-languageserver';
 import { IPCMessageReader, IPCMessageWriter, createConnection } from 'vscode-languageserver/node';
 import { DiagnosticsManager } from './lib/DiagnosticsManager';
@@ -44,7 +45,11 @@ import { debounceThrottle, isNotNullOrUndefined, normalizeUri, urlToPath } from 
 import { FallbackWatcher } from './lib/FallbackWatcher';
 import { configLoader } from './lib/documents/configLoader';
 import { setIsTrusted } from './importPackage';
-import { SORT_IMPORT_CODE_ACTION_KIND } from './plugins/typescript/features/CodeActionsProvider';
+import {
+    SORT_IMPORT_CODE_ACTION_KIND,
+    ADD_MISSING_IMPORTS_CODE_ACTION_KIND,
+    REMOVE_UNUSED_IMPORTS_CODE_ACTION_KIND
+} from './plugins/typescript/features/CodeActionsProvider';
 import { createLanguageServices } from './plugins/css/service';
 import { FileSystemProvider } from './plugins/css/FileSystemProvider';
 
@@ -98,6 +103,17 @@ export function startServer(options?: LSOptions) {
     const pluginHost = new PluginHost(docManager);
     let sveltePlugin: SveltePlugin = undefined as any;
     let watcher: FallbackWatcher | undefined;
+    let pendingWatchPatterns: RelativePattern[] = [];
+    let watchDirectory: (patterns: RelativePattern[]) => void = (patterns) => {
+        pendingWatchPatterns = patterns;
+    };
+
+    // Include Svelte files to better deal with scenarios such as switching git branches
+    // where files that are not opened in the client could change
+    const watchExtensions = ['.ts', '.js', '.mts', '.mjs', '.cjs', '.cts', '.json', '.svelte'];
+    const nonRecursiveWatchPattern =
+        '*.{' + watchExtensions.map((ext) => ext.slice(1)).join(',') + '}';
+    const recursiveWatchPattern = '**/' + nonRecursiveWatchPattern;
 
     connection.onInitialize((evt) => {
         const workspaceUris = evt.workspaceFolders?.map((folder) => folder.uri.toString()) ?? [
@@ -108,10 +124,14 @@ export function startServer(options?: LSOptions) {
             Logger.error('No workspace path set');
         }
 
-        if (!evt.capabilities.workspace?.didChangeWatchedFiles) {
+        if (!evt.capabilities.workspace?.didChangeWatchedFiles?.dynamicRegistration) {
             const workspacePaths = workspaceUris.map(urlToPath).filter(isNotNullOrUndefined);
-            watcher = new FallbackWatcher('**/*.{ts,js}', workspacePaths);
+            watcher = new FallbackWatcher(watchExtensions, workspacePaths);
             watcher.onDidChangeWatchedFiles(onDidChangeWatchedFiles);
+
+            watchDirectory = (patterns) => {
+                watcher?.watchDirectory(patterns);
+            };
         }
 
         const isTrusted: boolean = evt.initializationOptions?.isTrusted ?? true;
@@ -183,9 +203,15 @@ export function startServer(options?: LSOptions) {
                 new LSAndTSDocResolver(docManager, normalizedWorkspaceUris, configManager, {
                     notifyExceedSizeLimit: notifyTsServiceExceedSizeLimit,
                     onProjectReloaded: refreshCrossFilesSemanticFeatures,
-                    watch: true
+                    watch: true,
+                    nonRecursiveWatchPattern,
+                    watchDirectory: (patterns) => watchDirectory(patterns),
+                    reportConfigError(diagnostic) {
+                        connection?.sendDiagnostics(diagnostic);
+                    }
                 }),
-                normalizedWorkspaceUris
+                normalizedWorkspaceUris,
+                docManager
             )
         );
 
@@ -248,6 +274,8 @@ export function startServer(options?: LSOptions) {
                               CodeActionKind.QuickFix,
                               CodeActionKind.SourceOrganizeImports,
                               SORT_IMPORT_CODE_ACTION_KIND,
+                              ADD_MISSING_IMPORTS_CODE_ACTION_KIND,
+                              REMOVE_UNUSED_IMPORTS_CODE_ACTION_KIND,
                               ...(clientSupportApplyEditCommand ? [CodeActionKind.Refactor] : [])
                           ].filter(
                               clientSupportedCodeActionKinds &&
@@ -270,6 +298,7 @@ export function startServer(options?: LSOptions) {
                               'constant_scope_2',
                               'constant_scope_3',
                               'extract_to_svelte_component',
+                              'migrate_to_svelte_5',
                               'Infer function return type'
                           ]
                       }
@@ -293,24 +322,53 @@ export function startServer(options?: LSOptions) {
                 typeDefinitionProvider: true,
                 inlayHintProvider: true,
                 callHierarchyProvider: true,
-                foldingRangeProvider: true
+                foldingRangeProvider: true,
+                codeLensProvider: {
+                    resolveProvider: true
+                },
+                documentHighlightProvider:
+                    evt.initializationOptions?.configuration?.svelte?.plugin?.svelte
+                        ?.documentHighlight?.enable ?? true,
+                workspaceSymbolProvider: true
             }
         };
     });
 
     connection.onInitialized(() => {
-        if (
-            !watcher &&
-            configManager.getClientCapabilities()?.workspace?.didChangeWatchedFiles
-                ?.dynamicRegistration
-        ) {
-            connection?.client.register(DidChangeWatchedFilesNotification.type, {
-                watchers: [
-                    {
-                        globPattern: '**/*.{ts,js,mts,mjs,cjs,cts,json}'
-                    }
-                ]
-            });
+        if (watcher) {
+            return;
+        }
+
+        const didChangeWatchedFiles =
+            configManager.getClientCapabilities()?.workspace?.didChangeWatchedFiles;
+
+        if (!didChangeWatchedFiles?.dynamicRegistration) {
+            return;
+        }
+
+        // still watch the roots since some files might be referenced but not included in the project
+        connection?.client.register(DidChangeWatchedFilesNotification.type, {
+            watchers: [
+                {
+                    // Editors have exclude configs, such as VSCode with `files.watcherExclude`,
+                    // which means it's safe to watch recursively here
+                    globPattern: recursiveWatchPattern
+                }
+            ]
+        });
+
+        if (didChangeWatchedFiles.relativePatternSupport) {
+            watchDirectory = (patterns) => {
+                connection?.client.register(DidChangeWatchedFilesNotification.type, {
+                    watchers: patterns.map((pattern) => ({
+                        globPattern: pattern
+                    }))
+                });
+            };
+            if (pendingWatchPatterns.length) {
+                watchDirectory(pendingWatchPatterns);
+                pendingWatchPatterns = [];
+            }
         }
     });
 
@@ -371,12 +429,19 @@ export function startServer(options?: LSOptions) {
     connection.onColorPresentation((evt) =>
         pluginHost.getColorPresentations(evt.textDocument, evt.range, evt.color)
     );
-    connection.onDocumentSymbol((evt, cancellationToken) =>
-        pluginHost.getDocumentSymbols(evt.textDocument, cancellationToken)
-    );
+    connection.onDocumentSymbol((evt, cancellationToken) => {
+        if (
+            configManager.getClientCapabilities()?.textDocument?.documentSymbol
+                ?.hierarchicalDocumentSymbolSupport
+        ) {
+            return pluginHost.getHierarchicalDocumentSymbols(evt.textDocument, cancellationToken);
+        } else {
+            return pluginHost.getDocumentSymbols(evt.textDocument, cancellationToken);
+        }
+    });
     connection.onDefinition((evt) => pluginHost.getDefinitions(evt.textDocument, evt.position));
-    connection.onReferences((evt) =>
-        pluginHost.findReferences(evt.textDocument, evt.position, evt.context)
+    connection.onReferences((evt, cancellationToken) =>
+        pluginHost.findReferences(evt.textDocument, evt.position, evt.context, cancellationToken)
     );
 
     connection.onCodeAction((evt, cancellationToken) =>
@@ -421,8 +486,8 @@ export function startServer(options?: LSOptions) {
         pluginHost.getSelectionRanges(evt.textDocument, evt.positions)
     );
 
-    connection.onImplementation((evt) =>
-        pluginHost.getImplementation(evt.textDocument, evt.position)
+    connection.onImplementation((evt, cancellationToken) =>
+        pluginHost.getImplementation(evt.textDocument, evt.position, cancellationToken)
     );
 
     connection.onTypeDefinition((evt) =>
@@ -430,6 +495,22 @@ export function startServer(options?: LSOptions) {
     );
 
     connection.onFoldingRanges((evt) => pluginHost.getFoldingRanges(evt.textDocument));
+
+    connection.onCodeLens((evt) => pluginHost.getCodeLens(evt.textDocument));
+    connection.onCodeLensResolve((codeLens, token) => {
+        const data = codeLens.data as TextDocumentIdentifier;
+
+        if (!data) {
+            return codeLens;
+        }
+
+        return pluginHost.resolveCodeLens(data, codeLens, token);
+    });
+    connection.onDocumentHighlight((evt) =>
+        pluginHost.findDocumentHighlight(evt.textDocument, evt.position)
+    );
+
+    connection.onWorkspaceSymbol((evt, token) => pluginHost.getWorkspaceSymbols(evt.query, token));
 
     const diagnosticsManager = new DiagnosticsManager(
         connection.sendDiagnostics,
@@ -536,15 +617,13 @@ export function startServer(options?: LSOptions) {
             return null;
         }
 
-        if (doc) {
-            const compiled = await sveltePlugin.getCompiledResult(doc);
-            if (compiled) {
-                const js = compiled.js;
-                const css = compiled.css;
-                return { js, css };
-            } else {
-                return null;
-            }
+        const compiled = await sveltePlugin.getCompiledResult(doc);
+        if (compiled) {
+            const js = compiled.js;
+            const css = compiled.css;
+            return { js, css };
+        } else {
+            return null;
         }
     });
 

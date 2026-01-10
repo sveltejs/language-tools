@@ -7,8 +7,11 @@ import { FindComponentReferencesProviderImpl } from '../../../../src/plugins/typ
 import { LSAndTSDocResolver } from '../../../../src/plugins/typescript/LSAndTSDocResolver';
 import { pathToUrl } from '../../../../src/utils';
 import { serviceWarmup } from '../test-utils';
+import { Location } from 'vscode-html-languageservice';
+import { VERSION } from 'svelte/compiler';
 
 const testDir = path.join(__dirname, '..', 'testfiles');
+const isSvelte5Plus = +VERSION.split('.')[0] >= 5;
 
 describe('FindComponentReferencesProvider', function () {
     serviceWarmup(this, testDir);
@@ -54,20 +57,7 @@ describe('FindComponentReferencesProvider', function () {
 
         const results = await provider.findComponentReferences(document.uri.toString());
 
-        assert.deepStrictEqual(results, [
-            {
-                range: {
-                    start: {
-                        line: 8,
-                        character: 15
-                    },
-                    end: {
-                        line: 8,
-                        character: 22
-                    }
-                },
-                uri: getUri('find-component-references-parent.svelte')
-            },
+        const expected: Location[] = [
             {
                 range: {
                     start: {
@@ -120,6 +110,22 @@ describe('FindComponentReferencesProvider', function () {
                 },
                 uri: getUri('find-component-references-parent2.svelte')
             }
-        ]);
+        ];
+        if (!isSvelte5Plus) {
+            expected.unshift({
+                range: {
+                    start: {
+                        line: 8,
+                        character: 15
+                    },
+                    end: {
+                        line: 8,
+                        character: 22
+                    }
+                },
+                uri: getUri('find-component-references-parent.svelte')
+            });
+        }
+        assert.deepStrictEqual(results, expected);
     });
 });

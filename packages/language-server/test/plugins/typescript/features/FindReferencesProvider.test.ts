@@ -10,8 +10,10 @@ import { __resetCache } from '../../../../src/plugins/typescript/service';
 import { pathToUrl } from '../../../../src/utils';
 import { serviceWarmup } from '../test-utils';
 import { FindComponentReferencesProviderImpl } from '../../../../src/plugins/typescript/features/FindComponentReferencesProvider';
+import { VERSION } from 'svelte/compiler';
 
 const testDir = path.join(__dirname, '..');
+const isSvelte5Plus = +VERSION.split('.')[0] >= 5;
 
 describe('FindReferencesProvider', function () {
     serviceWarmup(this, testDir);
@@ -29,7 +31,11 @@ describe('FindReferencesProvider', function () {
             (textDocument) => new Document(textDocument.uri, textDocument.text)
         );
         const lsConfigManager = new LSConfigManager();
-        const lsAndTsDocResolver = new LSAndTSDocResolver(docManager, [testDir], lsConfigManager);
+        const lsAndTsDocResolver = new LSAndTSDocResolver(
+            docManager,
+            [pathToUrl(testDir)],
+            lsConfigManager
+        );
         const provider = new FindReferencesProviderImpl(
             lsAndTsDocResolver,
             new FindComponentReferencesProviderImpl(lsAndTsDocResolver)
@@ -338,19 +344,6 @@ describe('FindReferencesProvider', function () {
         {
             range: {
                 start: {
-                    line: 8,
-                    character: 15
-                },
-                end: {
-                    line: 8,
-                    character: 22
-                }
-            },
-            uri: getUri('find-component-references-parent.svelte')
-        },
-        {
-            range: {
-                start: {
                     line: 1,
                     character: 9
                 },
@@ -401,6 +394,21 @@ describe('FindReferencesProvider', function () {
             uri: getUri('find-component-references-parent2.svelte')
         }
     ];
+    if (!isSvelte5Plus) {
+        componentReferences.unshift({
+            range: {
+                start: {
+                    line: 8,
+                    character: 15
+                },
+                end: {
+                    line: 8,
+                    character: 22
+                }
+            },
+            uri: getUri('find-component-references-parent.svelte')
+        });
+    }
 
     it('can find component references from script tag', async () => {
         const { provider, document, openDoc } = setup('find-component-references-child.svelte');

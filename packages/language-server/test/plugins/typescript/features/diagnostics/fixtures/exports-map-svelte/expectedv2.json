@@ -1,0 +1,36 @@
+[
+    {
+        "code": 2307,
+        "message": "Cannot find module 'package' or its corresponding type declarations.",
+        "range": {
+            "end": {
+                "character": 45,
+                "line": 1
+            },
+            "start": {
+                "character": 36,
+                "line": 1
+            }
+        },
+        "severity": 1,
+        "source": "ts",
+        "tags": []
+    },
+    {
+        "code": 2307,
+        "message": "Cannot find module 'package/y' or its corresponding type declarations.",
+        "range": {
+            "start": {
+                "character": 38,
+                "line": 3
+            },
+            "end": {
+                "character": 49,
+                "line": 3
+            }
+        },
+        "severity": 1,
+        "source": "ts",
+        "tags": []
+    }
+]

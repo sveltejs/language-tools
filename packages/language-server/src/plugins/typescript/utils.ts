@@ -70,15 +70,17 @@ export function isSvelteFilePath(filePath: string) {
 }
 
 export function isVirtualSvelteFilePath(filePath: string) {
-    return filePath.endsWith('.svelte.ts');
+    return filePath.endsWith('.d.svelte.ts');
 }
 
 export function toRealSvelteFilePath(filePath: string) {
-    return filePath.slice(0, -'.ts'.length);
+    return filePath.slice(0, -11 /* 'd.svelte.ts'.length */) + 'svelte';
 }
 
-export function toVirtualSvelteFilePath(filePath: string) {
-    return filePath.endsWith('.ts') ? filePath : filePath + '.ts';
+export function toVirtualSvelteFilePath(svelteFilePath: string) {
+    return isVirtualSvelteFilePath(svelteFilePath)
+        ? svelteFilePath
+        : svelteFilePath.slice(0, -6 /* 'svelte'.length */) + 'd.svelte.ts';
 }
 
 export function ensureRealSvelteFilePath(filePath: string) {
@@ -369,5 +371,16 @@ export function hasTsExtensions(fileName: string) {
         fileName.endsWith(ts.Extension.Dts) ||
         fileName.endsWith(ts.Extension.Tsx) ||
         fileName.endsWith(ts.Extension.Ts)
+    );
+}
+
+export function isSvelte2tsxShimFile(fileName: string | undefined) {
+    return fileName?.endsWith('svelte-shims.d.ts') || fileName?.endsWith('svelte-shims-v4.d.ts');
+}
+
+export function cloneRange(range: Range): Range {
+    return Range.create(
+        Position.create(range.start.line, range.start.character),
+        Position.create(range.end.line, range.end.character)
     );
 }
