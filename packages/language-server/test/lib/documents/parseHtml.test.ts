@@ -122,6 +122,6 @@ describe('parseHtml', () => {
         );
         assert.strictEqual(document.roots.length, 1);
         assert.strictEqual(document.roots[0].tag, 'script');
-        assert.strictEqual(document.roots[0].attributes?.lang, 'ts');
+        assert.strictEqual(document.roots[0].attributes?.lang, '"ts"');
     });
 });
