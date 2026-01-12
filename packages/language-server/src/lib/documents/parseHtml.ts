@@ -37,14 +37,19 @@ function preprocess(text: string) {
     let scanner = createScanner(text);
     let token = scanner.scan();
     let currentStartTagStart: number | null = null;
+    let moustacheCheckStart = 0;
+    let moustacheCheckEnd = 0;
+    let lastToken = token;
 
     while (token !== TokenType.EOS) {
         const offset = scanner.getTokenOffset();
+        let blanked = false;
 
         switch (token) {
             case TokenType.StartTagOpen:
                 if (shouldBlankStartOrEndTagLike(offset)) {
                     blankStartOrEndTagLike(offset);
+                    blanked = true;
                 } else {
                     currentStartTagStart = offset;
                 }
@@ -53,6 +58,7 @@ function preprocess(text: string) {
             case TokenType.StartTagClose:
                 if (shouldBlankStartOrEndTagLike(offset)) {
                     blankStartOrEndTagLike(offset);
+                    blanked = true;
                 } else {
                     currentStartTagStart = null;
                 }
@@ -71,13 +77,23 @@ function preprocess(text: string) {
                     shouldBlankStartOrEndTagLike(offset)
                 ) {
                     blankStartOrEndTagLike(offset);
+                    blanked = true;
                 }
                 break;
 
-            case TokenType.Content:
+            case TokenType.Content: {
+                moustacheCheckEnd = scanner.getTokenEnd();
+                if (token !== lastToken) {
+                    moustacheCheckStart = offset;
+                }
                 break;
+            }
         }
 
+        // blanked, so the token type is invalid
+        if (!blanked) {
+            lastToken = token;
+        }
         token = scanner.scan();
     }
 
@@ -87,7 +103,21 @@ function preprocess(text: string) {
         if (currentStartTagStart != null) {
             return isInsideMoustacheTag(text, currentStartTagStart, offset);
         }
-        return isInsideMoustacheTag(text, null, offset);
+
+        const index = text
+            .substring(moustacheCheckStart, moustacheCheckEnd)
+            .lastIndexOf('{', offset);
+
+        const lastMustacheTagStart = index === -1 ? null : moustacheCheckStart + index;
+        if (lastMustacheTagStart == null) {
+            return false;
+        }
+
+        return isInsideMoustacheTag(
+            text.substring(lastMustacheTagStart),
+            null,
+            offset - lastMustacheTagStart
+        );
     }
 
     function blankStartOrEndTagLike(offset: number) {

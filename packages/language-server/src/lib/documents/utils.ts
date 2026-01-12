@@ -442,34 +442,27 @@ export function getLangAttribute(...tags: Array<TagInformation | null>): string 
 
 /**
  * Checks whether given position is inside a moustache tag (which includes control flow tags)
- * using a simple bracket matching heuristic which can fail for braces inside strings/comments.
+ * using a simple bracket matching heuristic which might fail under conditions like
+ * `{#if {a: true}.a}`
  */
 export function isInsideMoustacheTag(html: string, tagStart: number | null, position: number) {
     if (tagStart === null) {
         // Not inside <tag ... >
         const charactersBeforePosition = html.substring(0, position);
-        tagStart = Math.max(
-            // TODO: make this just check for '{'?
-            // Theoretically, someone could do {a < b} in a simple moustache tag
-            charactersBeforePosition.lastIndexOf('{#'),
-            charactersBeforePosition.lastIndexOf('{:'),
-            charactersBeforePosition.lastIndexOf('{@')
+        return (
+            Math.max(
+                // TODO make this just check for '{'?
+                // Theoretically, someone could do {a < b} in a simple moustache tag
+                charactersBeforePosition.lastIndexOf('{#'),
+                charactersBeforePosition.lastIndexOf('{:'),
+                charactersBeforePosition.lastIndexOf('{@')
+            ) > charactersBeforePosition.lastIndexOf('}')
         );
-        if (tagStart === -1) {
-            return false;
-        }
+    } else {
+        // Inside <tag ... >
+        const charactersInNode = html.substring(tagStart, position);
+        return charactersInNode.lastIndexOf('{') > charactersInNode.lastIndexOf('}');
     }
-
-    let depth = 0;
-    for (let i = tagStart; i < position; i++) {
-        const char = html[i];
-        if (char === '{') {
-            depth++;
-        } else if (char === '}' && depth > 0) {
-            depth--;
-        }
-    }
-    return depth > 0;
 }
 
 export function inStyleOrScript(document: Document, position: Position) {
