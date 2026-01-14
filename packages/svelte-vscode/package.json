@@ -473,7 +473,14 @@
                     "keyword.operator.bitwise.shift",
                     "meta.brace.angle",
                     "punctuation.definition.tag"
-                ]
+                ],
+                "tokenTypes": {
+                    "punctuation.definition.template-expression": "other",
+                    "entity.name.type.instance.jsdoc": "other",
+                    "entity.name.function.tagged-template": "other",
+                    "meta.import string.quoted": "other",
+                    "variable.other.jsdoc": "other"
+                }
             },
             {
                 "scopeName": "svelte.pug",
