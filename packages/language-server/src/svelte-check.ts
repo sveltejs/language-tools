@@ -12,7 +12,7 @@ import {
     SveltePlugin,
     TypeScriptPlugin
 } from './plugins';
-import { FileSystemProvider } from './plugins/css/FileSystemProvider';
+import { FileSystemProvider } from './lib/FileSystemProvider';
 import { createLanguageServices } from './plugins/css/service';
 import { JSOrTSDocumentSnapshot } from './plugins/typescript/DocumentSnapshot';
 import { isInGeneratedCode } from './plugins/typescript/features/utils';
