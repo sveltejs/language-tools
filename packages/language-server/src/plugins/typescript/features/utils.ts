@@ -451,3 +451,98 @@ export function checkRangeMappingWithGeneratedSemi(
         originalRange.end.character += 1;
     }
 }
+
+/** Returns the list of registered custom elements and their description (from JSDoc) */
+export function getCustomElementsTags(
+    lang: ts.LanguageService,
+    lsContainer: LanguageServiceContainer,
+    tsDoc: SvelteDocumentSnapshot
+): string[] {
+    const info = getCustomElementDocumentationSymbols(lang, lsContainer, tsDoc);
+    if (!info) {
+        return [];
+    }
+
+    const symbols = info.type.getProperties().filter((s) => ts.symbolName(s).includes('-'));
+    return symbols.map((s) => s.name);
+}
+
+export function getCustomElementsDocument(
+    lang: ts.LanguageService,
+    lsContainer: LanguageServiceContainer,
+    tsDoc: SvelteDocumentSnapshot,
+    tagName: string
+): string | null {
+    const info = getCustomElementDocumentationSymbols(lang, lsContainer, tsDoc);
+    if (!info) {
+        return null;
+    }
+
+    const tag = info.type.getProperty(tagName);
+    return tag && tag.name.includes('-')
+        ? ts.displayPartsToString(tag.getDocumentationComment(info.typeChecker))
+        : null;
+}
+
+function getCustomElementDocumentationSymbols(
+    lang: ts.LanguageService,
+    lsContainer: LanguageServiceContainer,
+    tsDoc: SvelteDocumentSnapshot
+): { type: ts.Type; typeChecker: ts.TypeChecker } | null {
+    const program = lang.getProgram();
+    const sourceFile = program?.getSourceFile(tsDoc.filePath);
+    const typeChecker = program?.getTypeChecker();
+    if (!typeChecker || !sourceFile) {
+        return null;
+    }
+
+    const typingsNamespace = lsContainer.getTsConfigSvelteOptions().namespace;
+
+    const typingsNamespaceSymbol = findTypingsNamespaceSymbol(
+        typingsNamespace,
+        typeChecker,
+        sourceFile
+    );
+
+    if (!typingsNamespaceSymbol) {
+        return null;
+    }
+
+    const elements = typeChecker
+        .getExportsOfModule(typingsNamespaceSymbol)
+        .find((symbol) => symbol.name === 'IntrinsicElements');
+
+    if (!elements || !(elements.flags & ts.SymbolFlags.Interface)) {
+        return null;
+    }
+
+    const type = typeChecker.getDeclaredTypeOfSymbol(elements);
+
+    return { type, typeChecker };
+}
+
+function findTypingsNamespaceSymbol(
+    namespaceExpression: string,
+    typeChecker: ts.TypeChecker,
+    sourceFile: ts.SourceFile
+) {
+    if (!namespaceExpression || typeof namespaceExpression !== 'string') {
+        return;
+    }
+
+    const [first, ...rest] = namespaceExpression.split('.');
+
+    let symbol: ts.Symbol | undefined = typeChecker
+        .getSymbolsInScope(sourceFile, ts.SymbolFlags.Namespace)
+        .find((symbol) => symbol.name === first);
+
+    for (const part of rest) {
+        if (!symbol) {
+            return;
+        }
+
+        symbol = typeChecker.getExportsOfModule(symbol).find((symbol) => symbol.name === part);
+    }
+
+    return symbol;
+}

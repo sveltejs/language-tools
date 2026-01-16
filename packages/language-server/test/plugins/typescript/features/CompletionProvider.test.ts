@@ -294,9 +294,16 @@ describe('CompletionProviderImpl', function () {
         );
 
         const item = completions!.items.find((item) => item.label === 'custom-element');
+        assert.ok(item);
+        await completionProvider.resolveCompletion(document, item);
+        delete item.data;
 
         assert.deepStrictEqual(item, <CompletionItem>{
             label: 'custom-element',
+            documentation: {
+                value: 'Custom doc for custom element',
+                kind: 'markdown'
+            },
             kind: CompletionItemKind.Property,
             commitCharacters: [],
             textEdit: {
