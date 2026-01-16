@@ -408,7 +408,9 @@ export class LSConfigManager {
         this.notifyListeners();
     }
 
-    getEmmetConfig(): VSCodeEmmetConfig {
+    getEmmetConfig(): VSCodeEmmetConfig & {
+        extensionsPath?: string[];
+    } {
         return this.emmetConfig;
     }
 

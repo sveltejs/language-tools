@@ -1,4 +1,8 @@
-import { doComplete as doEmmetComplete } from '@vscode/emmet-helper';
+import {
+    doComplete as doEmmetComplete,
+    FileService,
+    updateExtensionsPath
+} from '@vscode/emmet-helper';
 import {
     getLanguageService,
     HTMLDocument,
@@ -44,6 +48,7 @@ import path from 'path';
 import { Logger } from '../../logger';
 import { indentBasedFoldingRangeForTag } from '../../lib/foldingRange/indentFolding';
 import { wordHighlightForTag } from '../../lib/documentHighlight/wordHighlight';
+import { URI } from 'vscode-uri';
 
 // https://github.com/microsoft/vscode/blob/c6f507deeb99925e713271b1048f21dbaab4bd54/extensions/html/language-configuration.json#L34
 const wordPattern = /(-?\d*\.\d\w*)|([^`~!@$^&*()=+[{\]}\|;:'",.<>\/\s]+)/g;
@@ -68,19 +73,38 @@ export class HTMLPlugin
     private styleScriptTemplate = new Set(['template', 'style', 'script']);
 
     private htmlTriggerCharacters = ['.', ':', '<', '"', '=', '/'];
+    private loadedEmmetExtensionsPaths = '';
 
     constructor(
         docManager: DocumentManager,
-        private configManager: LSConfigManager
+        private configManager: LSConfigManager,
+        private fileSystemProvider: FileService,
+        private workspaceFolders: { name: string; uri: string }[]
     ) {
-        configManager.onChange(() =>
-            this.lang.setDataProviders(false, this.getCustomDataProviders())
-        );
+        configManager.onChange(() => {
+            this.lang.setDataProviders(false, this.getCustomDataProviders());
+            this.reloadEmmetExtensionsIfNeeded();
+        });
+        this.reloadEmmetExtensionsIfNeeded();
         const sync = (document: Document) => {
             this.documents.set(document, document.html);
         };
         docManager.on('documentChange', sync);
         docManager.on('documentOpen', sync);
+    }
+
+    private reloadEmmetExtensionsIfNeeded() {
+        const emmetConfig = this.configManager.getEmmetConfig();
+        const extensionsPath = emmetConfig.extensionsPath || [];
+        const joinedPaths = Array.from(extensionsPath).sort().join(',');
+        if (this.loadedEmmetExtensionsPaths !== joinedPaths) {
+            this.loadedEmmetExtensionsPaths = joinedPaths;
+            updateExtensionsPath(
+                extensionsPath,
+                this.fileSystemProvider,
+                this.workspaceFolders.map((folder) => URI.parse(folder.uri))
+            ).catch((err) => Logger.error(err));
+        }
     }
 
     doHover(document: Document, position: Position): Hover | null {
