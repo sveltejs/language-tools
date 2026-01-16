@@ -11,7 +11,7 @@ import { SvelteDocumentSnapshot } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { getMarkdownDocumentation } from '../previewer';
 import { convertRange } from '../utils';
-import { getComponentAtPosition, getCustomElementsSymbols } from './utils';
+import { getComponentAtPosition, getCustomElementsDocument } from './utils';
 import { LanguageServiceContainer } from '../service';
 
 export class HoverProviderImpl implements HoverProvider {
@@ -88,10 +88,7 @@ export class HoverProviderImpl implements HoverProvider {
             return;
         }
 
-        const customElementsSymbols = getCustomElementsSymbols(lang, lsContainer, tsDoc);
-        let customElement = customElementsSymbols.find((t) => t.name == tag.tag!);
-
-        return customElement?.documentation;
+        return getCustomElementsDocument(lang, lsContainer, tsDoc, tag.tag) ?? undefined;
     }
 
     private getEventHoverInfo(

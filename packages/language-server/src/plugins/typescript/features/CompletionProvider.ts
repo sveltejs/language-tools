@@ -46,7 +46,8 @@ import { getJsDocTemplateCompletion } from './getJsDocTemplateCompletion';
 import {
     checkRangeMappingWithGeneratedSemi,
     getComponentAtPosition,
-    getCustomElementsSymbols,
+    getCustomElementsDocument,
+    getCustomElementsTags,
     getFormatCodeBasis,
     getNewScriptStartTag,
     isKitTypePath,
@@ -60,6 +61,7 @@ export interface CompletionResolveInfo
         TextDocumentIdentifier {
     position: Position;
     __is_sveltekit$typeImport?: boolean;
+    __is_custom_element?: boolean;
 }
 
 type validTriggerCharacter = '.' | '"' | "'" | '`' | '/' | '@' | '<' | '#';
@@ -552,25 +554,27 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
             return;
         }
 
-        let tags = getCustomElementsSymbols(lang, lsContainer, tsDoc).filter((t) =>
-            t.name.startsWith(tag.tag!)
+        let tags = getCustomElementsTags(lang, lsContainer, tsDoc).filter((t) =>
+            t.startsWith(tag.tag!)
         );
 
         const tagNameEnd = tag.start + 1 + (tag.tag?.length ?? 0);
         const replacementRange = toRange(document, tag.start + 1, tagNameEnd);
 
         return tags.map(
-            (t) =>
+            (tag) =>
                 ({
-                    label: t.name,
-                    documentation: {
-                        value: t.documentation,
-                        kind: 'markdown'
+                    label: tag,
+                    data: {
+                        uri: document.uri,
+                        position,
+                        name: tag,
+                        __is_custom_element: true
                     },
                     kind: CompletionItemKind.Property,
-                    textEdit: TextEdit.replace(cloneRange(replacementRange), t.name),
+                    textEdit: TextEdit.replace(cloneRange(replacementRange), tag),
                     commitCharacters: []
-                }) as CompletionItem
+                }) as AppCompletionItem<CompletionResolveInfo>
         );
     }
 
@@ -898,7 +902,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
         cancellationToken?: CancellationToken
     ): Promise<AppCompletionItem<CompletionResolveInfo>> {
         const { data: comp } = completionItem;
-        const { tsDoc, lang, userPreferences } =
+        const { tsDoc, lang, userPreferences, lsContainer } =
             await this.lsAndTsDocResolver.getLSAndTSDoc(document);
 
         const filePath = tsDoc.filePath;
@@ -908,6 +912,14 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
             tsDoc.scriptKind
         );
         if (!comp || !filePath || cancellationToken?.isCancellationRequested) {
+            return completionItem;
+        }
+
+        if (comp.__is_custom_element) {
+            const doc = getCustomElementsDocument(lang, lsContainer, tsDoc, comp.name);
+            if (doc) {
+                completionItem.documentation = { value: doc, kind: MarkupKind.Markdown };
+            }
             return completionItem;
         }
 

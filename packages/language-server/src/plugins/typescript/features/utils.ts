@@ -453,16 +453,47 @@ export function checkRangeMappingWithGeneratedSemi(
 }
 
 /** Returns the list of registered custom elements and their description (from JSDoc) */
-export function getCustomElementsSymbols(
+export function getCustomElementsTags(
     lang: ts.LanguageService,
     lsContainer: LanguageServiceContainer,
     tsDoc: SvelteDocumentSnapshot
-): { name: string; documentation: string }[] {
+): string[] {
+    const info = getCustomElementDocumentationSymbols(lang, lsContainer, tsDoc);
+    if (!info) {
+        return [];
+    }
+
+    const symbols = info.type.getProperties().filter((s) => ts.symbolName(s).includes('-'));
+    return symbols.map((s) => s.name);
+}
+
+export function getCustomElementsDocument(
+    lang: ts.LanguageService,
+    lsContainer: LanguageServiceContainer,
+    tsDoc: SvelteDocumentSnapshot,
+    tagName: string
+): string | null {
+    const info = getCustomElementDocumentationSymbols(lang, lsContainer, tsDoc);
+    if (!info) {
+        return null;
+    }
+
+    const tag = info.type.getProperty(tagName);
+    return tag && tag.name.includes('-')
+        ? ts.displayPartsToString(tag.getDocumentationComment(info.typeChecker))
+        : null;
+}
+
+function getCustomElementDocumentationSymbols(
+    lang: ts.LanguageService,
+    lsContainer: LanguageServiceContainer,
+    tsDoc: SvelteDocumentSnapshot
+): { type: ts.Type; typeChecker: ts.TypeChecker } | null {
     const program = lang.getProgram();
     const sourceFile = program?.getSourceFile(tsDoc.filePath);
     const typeChecker = program?.getTypeChecker();
     if (!typeChecker || !sourceFile) {
-        return [];
+        return null;
     }
 
     const typingsNamespace = lsContainer.getTsConfigSvelteOptions().namespace;
@@ -474,7 +505,7 @@ export function getCustomElementsSymbols(
     );
 
     if (!typingsNamespaceSymbol) {
-        return [];
+        return null;
     }
 
     const elements = typeChecker
@@ -482,19 +513,12 @@ export function getCustomElementsSymbols(
         .find((symbol) => symbol.name === 'IntrinsicElements');
 
     if (!elements || !(elements.flags & ts.SymbolFlags.Interface)) {
-        return [];
+        return null;
     }
 
-    return typeChecker
-        .getDeclaredTypeOfSymbol(elements)
-        .getProperties()
-        .filter((s) => ts.symbolName(s).includes('-'))
-        .map((s) => {
-            return {
-                name: ts.symbolName(s),
-                documentation: ts.displayPartsToString(s.getDocumentationComment(typeChecker))
-            };
-        });
+    const type = typeChecker.getDeclaredTypeOfSymbol(elements);
+
+    return { type, typeChecker };
 }
 
 function findTypingsNamespaceSymbol(
