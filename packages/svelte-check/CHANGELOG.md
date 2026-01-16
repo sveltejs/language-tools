@@ -1,5 +1,17 @@
 # Changelog
 
+## 4.3.5
+
+### Patch Changes
+
+-   fix: ensure await-block type is preserved in the latest Svelte version ([#2895](https://github.com/sveltejs/language-tools/pull/2895))
+
+## 4.3.4
+
+### Patch Changes
+
+-   chore: use machine format when run by Claude Code ([#2870](https://github.com/sveltejs/language-tools/pull/2870))
+
 ## 4.3.3
 
 ### Patch Changes

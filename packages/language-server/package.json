@@ -1,6 +1,6 @@
 {
     "name": "svelte-language-server",
-    "version": "0.17.21",
+    "version": "0.17.23",
     "description": "A language server for Svelte",
     "main": "dist/src/index.js",
     "typings": "dist/src/index",

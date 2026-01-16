@@ -1,6 +1,6 @@
 {
     "name": "svelte2tsx",
-    "version": "0.7.45",
+    "version": "0.7.46",
     "description": "Convert Svelte components to TSX for type checking",
     "author": "The Svelte Community",
     "license": "MIT",
@@ -50,7 +50,7 @@
         "build": "rollup -c",
         "prepublishOnly": "npm run build",
         "dev": "rollup -c -w",
-        "test": "mocha test/test.ts"
+        "test": "mocha test/test.ts --no-experimental-strip-types"
     },
     "files": [
         "index.mjs",
