@@ -455,31 +455,6 @@ export function getLangAttribute(...tags: Array<TagInformation | null>): string 
     return attribute.replace(/^text\//, '');
 }
 
-/**
- * Checks whether given position is inside a moustache tag (which includes control flow tags)
- * using a simple bracket matching heuristic which might fail under conditions like
- * `{#if {a: true}.a}`
- */
-export function isInsideMoustacheTag(html: string, tagStart: number | null, position: number) {
-    if (tagStart === null) {
-        // Not inside <tag ... >
-        const charactersBeforePosition = html.substring(0, position);
-        return (
-            Math.max(
-                // TODO make this just check for '{'?
-                // Theoretically, someone could do {a < b} in a simple moustache tag
-                charactersBeforePosition.lastIndexOf('{#'),
-                charactersBeforePosition.lastIndexOf('{:'),
-                charactersBeforePosition.lastIndexOf('{@')
-            ) > charactersBeforePosition.lastIndexOf('}')
-        );
-    } else {
-        // Inside <tag ... >
-        const charactersInNode = html.substring(tagStart, position);
-        return charactersInNode.lastIndexOf('{') > charactersInNode.lastIndexOf('}');
-    }
-}
-
 export function inStyleOrScript(document: Document, position: Position) {
     return (
         isInTag(position, document.styleInfo) ||

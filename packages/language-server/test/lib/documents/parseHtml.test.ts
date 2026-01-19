@@ -114,4 +114,59 @@ describe('parseHtml', () => {
             )
         );
     });
+
+    it('can parse html with destructured snippet and type annotation', () => {
+        testRootElements(
+            parseHtml(
+                `{#snippet foo({ props }: { props?: Record<string, unknown> })}{/snippet}
+                <Foo checked={a} />
+                <style></style>`
+            )
+        );
+    });
+
+    it('can parse html with destructured snippet and type annotation', () => {
+        testRootElements(
+            parseHtml(
+                `{#snippet foo({ props }: { props?: Record<string, unknown> })}{/snippet}
+                <Foo checked={a} />
+                <style></style>`
+            )
+        );
+    });
+
+    it('can parse html with destructured event handler', () => {
+        testRootElements(
+            parseHtml(
+                `<Foo on:click={({ detail }) => handleClick(detail)} />
+                <style></style>`
+            )
+        );
+    });
+
+    it('can parse html with object literal in event handler', () => {
+        testRootElements(
+            parseHtml(
+                `<Foo on:click={(e) => { if ({ x }.x <= 0) {} }} />
+                <style></style>`
+            )
+        );
+    });
+
+    it('ignore { inside string', () => {
+        testRootElements(
+            parseHtml(
+                `<Foo title={foo("}") > 1} />
+                <style></style>`
+            )
+        );
+    });
+
+    it('ignore } inside template string', () => {
+        testRootElements(parseHtml('<Foo title={foo(`${a}}`) < 1} />\n<style></style>'));
+    });
+
+    it('ignore } inside template string (nested)', () => {
+        testRootElements(parseHtml('<Foo title={foo(`${hi(`${a}}}`)`) < 1} />\n<style></style>'));
+    });
 });

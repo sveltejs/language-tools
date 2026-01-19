@@ -8,7 +8,6 @@ import {
     Position
 } from 'vscode-html-languageservice';
 import { Document } from './Document';
-import { isInsideMoustacheTag } from './utils';
 
 const parser = getLanguageService();
 
@@ -38,8 +37,8 @@ function preprocess(text: string) {
     let token = scanner.scan();
     let currentStartTagStart: number | null = null;
     let moustacheCheckStart = 0;
-    let moustacheCheckEnd = 0;
     let lastToken = token;
+    let unclosedBlockOrMoustache: BracketCheckState | null = null;
 
     while (token !== TokenType.EOS) {
         const offset = scanner.getTokenOffset();
@@ -52,6 +51,8 @@ function preprocess(text: string) {
                     blanked = true;
                 } else {
                     currentStartTagStart = offset;
+                    unclosedBlockOrMoustache = null;
+                    moustacheCheckStart = offset;
                 }
                 break;
 
@@ -61,11 +62,14 @@ function preprocess(text: string) {
                     blanked = true;
                 } else {
                     currentStartTagStart = null;
+                    unclosedBlockOrMoustache = null;
+                    moustacheCheckStart = offset;
                 }
                 break;
 
             case TokenType.StartTagSelfClose:
                 currentStartTagStart = null;
+                unclosedBlockOrMoustache = null;
                 break;
 
             // <Foo checked={a < 1}>
@@ -82,12 +86,15 @@ function preprocess(text: string) {
                 break;
 
             case TokenType.Content: {
-                moustacheCheckEnd = scanner.getTokenEnd();
                 if (token !== lastToken) {
                     moustacheCheckStart = offset;
                 }
                 break;
             }
+
+            case TokenType.EndTagOpen:
+                unclosedBlockOrMoustache = null;
+                break;
         }
 
         // blanked, so the token type is invalid
@@ -100,24 +107,22 @@ function preprocess(text: string) {
     return text;
 
     function shouldBlankStartOrEndTagLike(offset: number) {
-        if (currentStartTagStart != null) {
-            return isInsideMoustacheTag(text, currentStartTagStart, offset);
+        if (currentStartTagStart !== null && unclosedBlockOrMoustache === null) {
+            const indexOfBracket = text.substring(currentStartTagStart, offset).indexOf('{');
+            if (indexOfBracket !== -1) {
+                moustacheCheckStart = currentStartTagStart + indexOfBracket;
+            }
         }
 
-        const index = text
-            .substring(moustacheCheckStart, moustacheCheckEnd)
-            .lastIndexOf('{', offset);
-
-        const lastMustacheTagStart = index === -1 ? null : moustacheCheckStart + index;
-        if (lastMustacheTagStart == null) {
-            return false;
-        }
-
-        return isInsideMoustacheTag(
-            text.substring(lastMustacheTagStart),
-            null,
-            offset - lastMustacheTagStart
+        const unclosed = matchUnclosedMoustacheTag(
+            text,
+            moustacheCheckStart,
+            offset,
+            unclosedBlockOrMoustache
         );
+        moustacheCheckStart = offset;
+        unclosedBlockOrMoustache = unclosed;
+        return unclosed !== null;
     }
 
     function blankStartOrEndTagLike(offset: number) {
@@ -213,4 +218,88 @@ export function getAttributeContextAtPosition(
 
 function inStartTag(offset: number, node: Node) {
     return offset > node.start && node.startTagEnd != undefined && offset < node.startTagEnd;
+}
+
+const backtickCode = '`'.charCodeAt(0);
+const bracketStartCode = '{'.charCodeAt(0);
+const bracketEndCode = '}'.charCodeAt(0);
+
+interface BracketCheckState {
+    depth: number;
+    stringChar: number | null;
+}
+
+/**
+ * Checks whether given position is inside a moustache tag (which includes control flow tags)
+ * using a simple bracket matching algorithm.
+ */
+function matchUnclosedMoustacheTag(
+    html: string,
+    start: number,
+    position: number,
+    lastState: BracketCheckState | null = null
+): BracketCheckState | null {
+    let depth = lastState?.depth ?? 0;
+    let stringChar: number | null = lastState?.stringChar ?? null;
+
+    let templateStack: number[] = [];
+    for (let index = start; index < position; index++) {
+        const char = html.charCodeAt(index);
+        switch (char) {
+            case bracketStartCode:
+                if (stringChar === null) {
+                    depth++;
+                }
+                break;
+            case bracketEndCode:
+                if (stringChar === null && depth > 0) {
+                    depth--;
+                }
+                if (templateStack.length > 0 && depth === 0) {
+                    depth = templateStack.pop() || 0;
+                    stringChar = backtickCode;
+                }
+                break;
+            case 39: // '
+            case 34: // "
+                if (stringChar === char) {
+                    stringChar = null;
+                } else if (stringChar === null) {
+                    stringChar = char;
+                }
+                break;
+
+            case backtickCode:
+                if (stringChar === backtickCode) {
+                    stringChar = null;
+                } else if (stringChar === null) {
+                    stringChar = backtickCode;
+                }
+                break;
+            case 92: // \
+                if (stringChar !== null) {
+                    // skip next character
+                    index++;
+                }
+                break;
+            case 36: // $
+                if (
+                    stringChar === backtickCode &&
+                    html.charCodeAt(index + 1) === bracketStartCode
+                ) {
+                    templateStack.push(depth);
+                    depth = 0;
+                    stringChar = null;
+                    index++;
+                }
+                break;
+        }
+    }
+
+    return depth > 0 ? { depth, stringChar } : null;
+}
+
+export function isInsideMoustacheTag(html: string, tagStart: number, position: number): boolean {
+    const unclosed = matchUnclosedMoustacheTag(html, tagStart, position);
+    return unclosed !== null;
 }
