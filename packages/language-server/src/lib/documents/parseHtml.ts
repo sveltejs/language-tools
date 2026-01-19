@@ -107,13 +107,6 @@ function preprocess(text: string) {
     return text;
 
     function shouldBlankStartOrEndTagLike(offset: number) {
-        if (currentStartTagStart !== null && unclosedBlockOrMoustache === null) {
-            const indexOfBracket = text.substring(currentStartTagStart, offset).indexOf('{');
-            if (indexOfBracket !== -1) {
-                moustacheCheckStart = currentStartTagStart + indexOfBracket;
-            }
-        }
-
         const unclosed = matchUnclosedMoustacheTag(
             text,
             moustacheCheckStart,
