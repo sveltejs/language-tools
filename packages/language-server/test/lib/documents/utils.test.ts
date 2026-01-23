@@ -4,7 +4,8 @@ import {
     extractStyleTag,
     extractScriptTags,
     updateRelativeImport,
-    getWordAt
+    getWordAt,
+    matchUnclosedMoustacheTag
 } from '../../../src/lib/documents/utils';
 import { Position } from 'vscode-languageserver';
 
@@ -440,6 +441,39 @@ describe('document/utils', () => {
 
         it('returns empty string when only whitespace', () => {
             assert.equal(getWordAt('a  a', 2), '');
+        });
+    });
+
+    describe('#isInsideMoustacheTag', () => {
+        it('detects position inside moustache tag', () => {
+            const state = matchUnclosedMoustacheTag(
+                '<div on:click={() => console.log("hello")}></div>',
+                0,
+                20
+            );
+            assert.strictEqual(state?.depth, 1);
+        });
+
+        it('detects position after template literal', () => {
+            const state = matchUnclosedMoustacheTag('<Foo a={`a}`}></div>', 0, 11);
+            assert.strictEqual(state?.depth, 1);
+        });
+
+        it('detects position after nested template literals', () => {
+            const state = matchUnclosedMoustacheTag('<Foo a={`${`}`}`}></div>', 0, 15);
+            assert.strictEqual(state?.depth, 1);
+        });
+
+        it('detects position after nested template literals with interpolation', () => {
+            const state = matchUnclosedMoustacheTag('<Foo a={`${hi(`${a}}`)}`)></div>', 0, 22);
+            assert.strictEqual(state?.templateStack?.length, 1);
+        });
+
+        it('resumes with last state', () => {
+            const html = '<Foo a={`${hi(`${a}}{`)}`)></div>';
+            let state = matchUnclosedMoustacheTag(html, 0, 15);
+            state = matchUnclosedMoustacheTag(html, 15, 23, state);
+            assert.deepStrictEqual(state, { depth: 0, stringChar: null, templateStack: [1] });
         });
     });
 });

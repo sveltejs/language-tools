@@ -41,7 +41,7 @@ import {
     FoldingRangeProvider,
     DocumentHighlightProvider
 } from '../interfaces';
-import { toRange } from '../../lib/documents/utils';
+import { isInsideMoustacheTag, toRange } from '../../lib/documents/utils';
 import { isNotNullOrUndefined, possiblyComponent } from '../../utils';
 import { importPrettier } from '../../importPackage';
 import path from 'path';
@@ -49,7 +49,6 @@ import { Logger } from '../../logger';
 import { indentBasedFoldingRangeForTag } from '../../lib/foldingRange/indentFolding';
 import { wordHighlightForTag } from '../../lib/documentHighlight/wordHighlight';
 import { URI } from 'vscode-uri';
-import { isInsideMoustacheTag } from '../../lib/documents/parseHtml';
 
 // https://github.com/microsoft/vscode/blob/c6f507deeb99925e713271b1048f21dbaab4bd54/extensions/html/language-configuration.json#L34
 const wordPattern = /(-?\d*\.\d\w*)|([^`~!@$^&*()=+[{\]}\|;:'",.<>\/\s]+)/g;

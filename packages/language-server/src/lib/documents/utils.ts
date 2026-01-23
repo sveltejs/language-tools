@@ -470,6 +470,7 @@ const bracketEndCode = '}'.charCodeAt(0);
 export interface BracketCheckState {
     depth: number;
     stringChar: number | null;
+    templateStack?: number[];
 }
 
 /**
@@ -484,8 +485,8 @@ export function matchUnclosedMoustacheTag(
 ): BracketCheckState | null {
     let depth = lastState?.depth ?? 0;
     let stringChar: number | null = lastState?.stringChar ?? null;
+    let templateStack: number[] = lastState?.templateStack ?? [];
 
-    let templateStack: number[] = [];
     for (let index = start; index < position; index++) {
         const char = html.charCodeAt(index);
         switch (char) {
@@ -495,12 +496,14 @@ export function matchUnclosedMoustacheTag(
                 }
                 break;
             case bracketEndCode:
-                if (stringChar === null && depth > 0) {
-                    depth--;
-                }
-                if (templateStack.length > 0 && depth === 0) {
-                    depth = templateStack.pop() || 0;
-                    stringChar = backtickCode;
+                if (stringChar === null) {
+                    if (depth > 0) {
+                        depth--;
+                    }
+                    if (templateStack.length > 0 && depth === 0) {
+                        depth = templateStack.pop() || 0;
+                        stringChar = backtickCode;
+                    }
                 }
                 break;
             case 39: // '
@@ -539,7 +542,7 @@ export function matchUnclosedMoustacheTag(
         }
     }
 
-    return depth > 0 ? { depth, stringChar } : null;
+    return depth > 0 || templateStack.length > 0 ? { depth, stringChar, templateStack } : null;
 }
 
 export function isInsideMoustacheTag(html: string, tagStart: number, position: number): boolean {
