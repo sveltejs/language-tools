@@ -1,4 +1,9 @@
-import { Position, Range, TextDocument } from 'vscode-languageserver';
+import {
+    Position,
+    Range,
+    TextDocument,
+    TextDocumentContentChangeEvent
+} from 'vscode-languageserver';
 import { getLineOffsets, offsetAt, positionAt } from './utils';
 
 /**
@@ -86,14 +91,32 @@ export abstract class WritableDocument extends ReadableDocument {
     abstract setText(text: string): void;
 
     /**
-     * Update the text between two positions.
-     * @param text The new text slice
-     * @param start Start offset of the new text
-     * @param end End offset of the new text
+     * Batch update the document with the LSP change events.
      */
-    update(text: string, start: number, end: number): void {
-        this.lineOffsets = undefined;
+    update(changes: TextDocumentContentChangeEvent[]): void {
+        const pendingChanges: { text: string; start: number; end: number }[] = [];
+        for (const change of changes) {
+            let start = 0;
+            let end = 0;
+            if ('range' in change) {
+                start = this.offsetAt(change.range.start);
+                end = this.offsetAt(change.range.end);
+            } else {
+                end = this.getTextLength();
+            }
+
+            pendingChanges.push({ text: change.text, start, end });
+        }
+
+        // VSCode already sends the change in this order,
+        // But it's not written in the spec, so sorting it just to be sure.
+        const sortedDescending = pendingChanges.sort((a, b) => b.end - a.end);
         const content = this.getText();
-        this.setText(content.slice(0, start) + text + content.slice(end));
+        let newText = content;
+        for (const change of sortedDescending) {
+            newText = newText.slice(0, change.start) + change.text + newText.slice(change.end);
+        }
+        this.lineOffsets = undefined;
+        this.setText(newText);
     }
 }
