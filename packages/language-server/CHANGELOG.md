@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.17.24
+
+### Patch Changes
+
+-   perf: only parse html once in a batch update ([#2923](https://github.com/sveltejs/language-tools/pull/2923))
+
+-   feat: support emmet.extensionsPath config ([#2918](https://github.com/sveltejs/language-tools/pull/2918))
+
+-   feat: custom element JSDoc documentation for completion/hover ([#2879](https://github.com/sveltejs/language-tools/pull/2879))
+
 ## 0.17.23
 
 ### Patch Changes
