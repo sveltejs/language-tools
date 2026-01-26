@@ -221,6 +221,7 @@ export class SveltePlugin
         // Prettier v3 format is async, v2 is not
         const formattedCode = await prettier.format(document.getText(), {
             ...config,
+            filepath: filePath,
             plugins: Array.from(
                 new Set([...resolvedPlugins, ...(await getSveltePlugin(resolvedPlugins))])
             ),

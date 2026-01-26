@@ -75,6 +75,7 @@ describe('Svelte Plugin', () => {
     });
 
     describe('#formatDocument', () => {
+        const defaultDocumentPath = '/hello.svelte';
         function stubPrettierV2(config: any) {
             const formatStub = sinon.stub().returns('formatted');
 
@@ -130,7 +131,8 @@ describe('Svelte Plugin', () => {
             sinon.assert.calledOnceWithExactly(formatStub, 'unformatted', {
                 fromConfig: true,
                 plugins: [],
-                parser: 'svelte'
+                parser: 'svelte',
+                filepath: defaultDocumentPath
             });
         });
 
@@ -146,7 +148,8 @@ describe('Svelte Plugin', () => {
                 plugins: [
                     require.resolve('prettier-plugin-svelte', { paths: [urlToPath(documentUri)!] })
                 ],
-                parser: 'svelte'
+                parser: 'svelte',
+                filepath: urlToPath(documentUri)
             });
         });
 
@@ -166,6 +169,7 @@ describe('Svelte Plugin', () => {
                 fallbackConfig: true,
                 plugins: [],
                 parser: 'svelte',
+                filepath: defaultDocumentPath,
                 ...defaultSettings
             });
         });
@@ -177,6 +181,7 @@ describe('Svelte Plugin', () => {
                 useTabs: false,
                 plugins: [],
                 parser: 'svelte',
+                filepath: defaultDocumentPath,
                 ...defaultSettings
             });
         });
@@ -188,6 +193,7 @@ describe('Svelte Plugin', () => {
                 useTabs: false,
                 plugins: [],
                 parser: 'svelte',
+                filepath: defaultDocumentPath,
                 ...defaultSettings
             });
         });
