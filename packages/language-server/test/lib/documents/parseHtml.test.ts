@@ -167,6 +167,28 @@ describe('parseHtml', () => {
     });
 
     it('ignore } inside template string (nested)', () => {
-        testRootElements(parseHtml('<Foo title={foo(`${hi(`${a}}}`)`) < 1} />\n<style></style>'));
+        testRootElements(parseHtml('<Foo title={foo(`${hi(`${a}}`)}`) < 1} />\n<style></style>'));
+    });
+
+    it('parse attribute short-hand', () => {
+        const document = parseHtml(
+            `<Foo disabled {ariaLabel} />
+            <style></style>`
+        );
+        const fooNode = document.roots.find((r) => r.tag === 'Foo');
+        assert.ok(fooNode);
+        const ariaLabelValue = fooNode.attributes?.['ariaLabel'];
+        assert.strictEqual(ariaLabelValue, '{ariaLabel}');
+    });
+
+    it('parse expression', () => {
+        const document = parseHtml(
+            `<Foo disabled ariaLabel={""} />
+            <style></style>`
+        );
+        const fooNode = document.roots.find((r) => r.tag === 'Foo');
+        assert.ok(fooNode);
+        const ariaLabelValue = fooNode.attributes?.['ariaLabel'];
+        assert.strictEqual(ariaLabelValue, '{""}');
     });
 });

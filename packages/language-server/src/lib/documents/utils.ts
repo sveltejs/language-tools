@@ -464,88 +464,160 @@ export function inStyleOrScript(document: Document, position: Position) {
 }
 
 const backtickCode = '`'.charCodeAt(0);
-const bracketStartCode = '{'.charCodeAt(0);
-const bracketEndCode = '}'.charCodeAt(0);
+const braceStartCode = '{'.charCodeAt(0);
+const braceEndCode = '}'.charCodeAt(0);
+const singleQuoteCode = "'".charCodeAt(0);
+const doubleQuoteCode = '"'.charCodeAt(0);
+const forwardSlashCode = '/'.charCodeAt(0);
+const starCode = '*'.charCodeAt(0);
+const crCode = '\r'.charCodeAt(0);
+const lfCode = '\n'.charCodeAt(0);
+const escapeCode = 92; // '\'
 
-export interface BracketCheckState {
-    depth: number;
-    stringChar: number | null;
-    templateStack?: number[];
+interface BraceMatchResult {
+    terminated: boolean;
+    endOffset: number;
 }
-
 /**
- * Checks whether given position is inside a moustache tag (which includes control flow tags)
- * using a simple bracket matching algorithm.
+ * Matches until braces are balanced using a simple parsing logic.
+ * Should only be called when positioned at an opening brace.
  */
-export function matchUnclosedMoustacheTag(
-    html: string,
-    start: number,
-    position: number,
-    lastState: BracketCheckState | null = null
-): BracketCheckState | null {
-    let depth = lastState?.depth ?? 0;
-    let stringChar: number | null = lastState?.stringChar ?? null;
-    let templateStack: number[] = lastState?.templateStack ?? [];
+export function scanMatchingBraces(html: string, startOffset: number): BraceMatchResult {
+    if (html.charCodeAt(startOffset) !== braceStartCode) {
+        return { terminated: true, endOffset: startOffset };
+    }
 
-    for (let index = start; index < position; index++) {
+    let depth = 0;
+    let templateStack: number[] | undefined;
+    let index = startOffset;
+
+    while (index < html.length) {
         const char = html.charCodeAt(index);
         switch (char) {
-            case bracketStartCode:
-                if (stringChar === null) {
-                    depth++;
+            case braceStartCode:
+                depth++;
+                break;
+            case braceEndCode:
+                if (depth > 0) {
+                    depth--;
+                }
+                if (depth === 0 && templateStack !== undefined && templateStack.length > 0) {
+                    depth = templateStack.pop() || 0;
+                    scanTemplateString();
                 }
                 break;
-            case bracketEndCode:
-                if (stringChar === null) {
-                    if (depth > 0) {
-                        depth--;
-                    }
-                    if (templateStack.length > 0 && depth === 0) {
-                        depth = templateStack.pop() || 0;
-                        stringChar = backtickCode;
-                    }
-                }
+            case singleQuoteCode:
+            case doubleQuoteCode: {
+                index++;
+                scanString(char);
                 break;
-            case 39: // '
-            case 34: // "
-                if (stringChar === char) {
-                    stringChar = null;
-                } else if (stringChar === null) {
-                    stringChar = char;
-                }
-                break;
+            }
 
             case backtickCode:
-                if (stringChar === backtickCode) {
-                    stringChar = null;
-                } else if (stringChar === null) {
-                    stringChar = backtickCode;
+                index++;
+                scanTemplateString();
+                break;
+            case forwardSlashCode: {
+                // /
+                const nextChar = html.charCodeAt(index + 1);
+                if (nextChar === forwardSlashCode) {
+                    skipToNewLine();
+                } else if (nextChar === starCode) {
+                    skipToEndOfMultiLineComment();
                 }
                 break;
-            case 92: // \
-                if (stringChar !== null) {
-                    // skip next character
-                    index++;
-                }
-                break;
-            case 36: // $
-                if (
-                    stringChar === backtickCode &&
-                    html.charCodeAt(index + 1) === bracketStartCode
-                ) {
-                    templateStack.push(depth);
-                    depth = 0;
-                    stringChar = null;
-                    index++;
-                }
-                break;
+            }
+            // Theoretically it could be a regex here. But it clashes with an end block and self-close tag.
+            // There is also /[/]/ that makes it hard to do a simple scan. So we skip regex handling for now.
+        }
+
+        index++;
+        if (depth === 0 && (templateStack === undefined || templateStack.length === 0)) {
+            return { terminated: true, endOffset: index };
         }
     }
 
-    return depth > 0 || templateStack.length > 0 ? { depth, stringChar, templateStack } : null;
+    return { terminated: false, endOffset: index };
+
+    function scanString(quote: number) {
+        while (index < html.length) {
+            const char = html.charCodeAt(index);
+            if (char === quote || char == lfCode) {
+                return;
+            }
+            if (char === escapeCode) {
+                index += 2;
+                continue;
+            }
+            index++;
+        }
+    }
+
+    function scanTemplateString() {
+        while (index < html.length) {
+            const char = html.charCodeAt(index);
+            switch (char) {
+                case backtickCode:
+                    return;
+
+                case 36: // $
+                    if (html.charCodeAt(index + 1) === braceStartCode) {
+                        templateStack = templateStack || [];
+                        templateStack.push(depth);
+                        depth = 0;
+                        return;
+                    }
+                    break;
+
+                case 92: // \
+                    // skip next character
+                    index++;
+                    break;
+            }
+            index++;
+        }
+        return;
+    }
+
+    function skipToNewLine() {
+        while (index < html.length) {
+            const char = html.charCodeAt(index);
+            if (char === crCode || char === lfCode) {
+                return;
+            }
+            index++;
+        }
+    }
+
+    function skipToEndOfMultiLineComment() {
+        index += 2; // skip /*
+        while (index < html.length) {
+            const char = html.charCodeAt(index);
+            if (char === starCode && html.charCodeAt(index + 1) === forwardSlashCode) {
+                index += 2;
+                return;
+            }
+            index++;
+        }
+    }
 }
 
-export function isInsideMoustacheTag(html: string, tagStart: number, position: number): boolean {
-    const unclosed = matchUnclosedMoustacheTag(html, tagStart, position);
-    return unclosed !== null;
+export function isInsideMoustacheTag(text: string, tagStart: number, offset: number): boolean {
+    const firstBraceIndex = text.indexOf('{', tagStart);
+    if (firstBraceIndex > offset) {
+        return false;
+    }
+    let index = firstBraceIndex;
+    while (index < offset) {
+        if (text.charCodeAt(index) !== braceStartCode) {
+            index++;
+            continue;
+        }
+        const result = scanMatchingBraces(text, index);
+        if (!result.terminated) {
+            return true;
+        }
+        index = result.endOffset;
+    }
+    return index > offset;
 }
