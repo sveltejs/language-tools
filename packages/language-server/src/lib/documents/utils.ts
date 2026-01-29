@@ -473,6 +473,7 @@ const starCode = '*'.charCodeAt(0);
 const crCode = '\r'.charCodeAt(0);
 const lfCode = '\n'.charCodeAt(0);
 const escapeCode = 92; // '\'
+const dollarCode = '$'.charCodeAt(0);
 
 interface BraceMatchResult {
     terminated: boolean;
@@ -523,12 +524,13 @@ export function scanMatchingBraces(html: string, startOffset: number): BraceMatc
                 if (nextChar === forwardSlashCode) {
                     skipToNewLine();
                 } else if (nextChar === starCode) {
+                    index += 2; // skip /*
                     skipToEndOfMultiLineComment();
                 }
+                // Theoretically it could be a regex here. But it clashes with an end block and self-close tag.
+                // There is also /[/]/ that makes it hard to do a simple scan. So we skip regex handling for now.
                 break;
             }
-            // Theoretically it could be a regex here. But it clashes with an end block and self-close tag.
-            // There is also /[/]/ that makes it hard to do a simple scan. So we skip regex handling for now.
         }
 
         index++;
@@ -560,7 +562,7 @@ export function scanMatchingBraces(html: string, startOffset: number): BraceMatc
                 case backtickCode:
                     return;
 
-                case 36: // $
+                case dollarCode: // $
                     if (html.charCodeAt(index + 1) === braceStartCode) {
                         templateStack = templateStack || [];
                         templateStack.push(depth);
@@ -569,7 +571,7 @@ export function scanMatchingBraces(html: string, startOffset: number): BraceMatc
                     }
                     break;
 
-                case 92: // \
+                case escapeCode: // \
                     // skip next character
                     index++;
                     break;
@@ -590,7 +592,6 @@ export function scanMatchingBraces(html: string, startOffset: number): BraceMatc
     }
 
     function skipToEndOfMultiLineComment() {
-        index += 2; // skip /*
         while (index < html.length) {
             const char = html.charCodeAt(index);
             if (char === starCode && html.charCodeAt(index + 1) === forwardSlashCode) {
