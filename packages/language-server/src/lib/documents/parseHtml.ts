@@ -4,9 +4,9 @@ import {
     ScannerState,
     Node,
     Position,
-    getDefaultHTMLDataProvider
+    getDefaultHTMLDataProvider,
+    getLanguageService
 } from 'vscode-html-languageservice';
-import { createScanner } from 'vscode-html-languageservice/lib/umd/parser/htmlScanner';
 import { Document } from './Document';
 import { scanMatchingBraces } from './utils';
 
@@ -16,6 +16,8 @@ const voidElements = new Set(
         .filter((tag) => tag.void)
         .map((tag) => tag.name)
 );
+const createScanner = getLanguageService()
+    .createScanner as typeof import('vscode-html-languageservice/lib/esm/parser/htmlScanner').createScanner;
 
 const braceStartCode = '{'.charCodeAt(0);
 const singleQuoteCode = "'".charCodeAt(0);
