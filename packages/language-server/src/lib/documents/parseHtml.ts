@@ -1,9 +1,9 @@
 import {
     HTMLDocument,
-    TokenType,
-    ScannerState,
     Node,
     Position,
+    ScannerState,
+    TokenType,
     getDefaultHTMLDataProvider,
     getLanguageService
 } from 'vscode-html-languageservice';
@@ -40,7 +40,6 @@ export function parseHtml(text: string): HTMLDocument {
     let endTagName: string | undefined = undefined;
     let pendingAttribute: string | null = null;
     let token = scanner.scan();
-    let currentStartTag: HTMLNode | null = null;
 
     while (token !== TokenType.EOS) {
         switch (token) {
@@ -48,7 +47,6 @@ export function parseHtml(text: string): HTMLDocument {
                 const child = new HTMLNode(scanner.getTokenOffset(), text.length, [], curr);
                 curr.children.push(child);
                 curr = child;
-                currentStartTag = curr;
                 break;
             case TokenType.StartTag:
                 curr.tag = scanner.getTokenText();
@@ -56,7 +54,6 @@ export function parseHtml(text: string): HTMLDocument {
             case TokenType.StartTagClose:
                 if (curr.parent) {
                     curr.end = scanner.getTokenEnd(); // might be later set to end tag position
-                    currentStartTag = null;
                     if (scanner.getTokenLength()) {
                         curr.startTagEnd = scanner.getTokenEnd();
                         if (curr.tag && voidElements.has(curr.tag)) {
@@ -75,7 +72,6 @@ export function parseHtml(text: string): HTMLDocument {
                     curr.end = scanner.getTokenEnd();
                     curr.startTagEnd = scanner.getTokenEnd();
                     curr = curr.parent;
-                    currentStartTag = null;
                 }
                 break;
             case TokenType.EndTagOpen:
