@@ -1,6 +1,7 @@
 import assert from 'assert';
 import { HTMLDocument } from 'vscode-html-languageservice';
-import { parseHtml } from '../../../src/lib/documents/parseHtml';
+import { getAttributeContextAtPosition, parseHtml } from '../../../src/lib/documents/parseHtml';
+import { Document } from '../../../src/lib/documents';
 
 describe('parseHtml', () => {
     const testRootElements = (document: HTMLDocument) => {
@@ -191,4 +192,48 @@ describe('parseHtml', () => {
         const ariaLabelValue = fooNode.attributes?.['ariaLabel'];
         assert.strictEqual(ariaLabelValue, '{""}');
     });
+
+    it('parse expression with spaces around equals', () => {
+        const document = parseHtml(`<Foo disabled ariaLabel = {""} />`);
+        const fooNode = document.roots.find((r) => r.tag === 'Foo');
+        assert.ok(fooNode);
+        const ariaLabelValue = fooNode.attributes?.['ariaLabel'];
+        assert.strictEqual(ariaLabelValue, '{""}');
+    });
+
+    it('parse attributes with interpolation', () => {
+        const document = parseHtml(`<Foo ariaLabel="a{b > c ? "": ""} c" />`);
+        const fooNode = document.roots.find((r) => r.tag === 'Foo');
+        assert.ok(fooNode);
+        const ariaLabelValue = fooNode.attributes?.['ariaLabel'];
+        assert.strictEqual(ariaLabelValue, `"a{b > c ? "": ""} c"`);
+    });
+});
+
+describe('getAttributeContextAtPosition', () => {
+    it('extract attribute name', () => {
+        const document = setupDocument('<div disabled />');
+        const result = getAttributeContextAtPosition(document, { line: 0, character: 6 });
+        assert.strictEqual(result?.name, 'disabled');
+        assert.strictEqual(result.inValue, false);
+    });
+
+    it('extract attribute after interpolated attribute', () => {
+        const document = setupDocument('<Foo a={a > b} b= />');
+        const result = getAttributeContextAtPosition(document, { line: 0, character: 17 });
+        assert.strictEqual(result?.name, 'b');
+        assert.strictEqual(result.inValue, true);
+    });
+
+    it('extract attribute value range', () => {
+        const document = setupDocument('<Foo a="a > b" />');
+        const result = getAttributeContextAtPosition(document, { line: 0, character: 8 });
+        assert.strictEqual(result?.name, 'a');
+        assert.strictEqual(result.inValue, true);
+        assert.deepStrictEqual(result?.valueRange, [8, 13]);
+    });
+
+    function setupDocument(content: string) {
+        return new Document('file:///test/Test.svelte', content);
+    }
 });

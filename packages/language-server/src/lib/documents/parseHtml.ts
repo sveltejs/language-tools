@@ -23,6 +23,11 @@ const doubleQuoteCode = '"'.charCodeAt(0);
 
 /**
  * adopted from https://github.com/microsoft/vscode-html-languageservice/blob/10daf45dc16b4f4228987cf7cddf3a7dbbdc7570/src/parser/htmlParser.ts
+ * differences:
+ *
+ * 1. parse expression tag in Whitespace state
+ * 2. parse attribute with interpolation in AttributeValue state
+ * 3. detect svelte blocks/tags in Content state
  */
 export function parseHtml(text: string): HTMLDocument {
     let scanner = createScanner(text, undefined, undefined, true);
@@ -31,7 +36,7 @@ export function parseHtml(text: string): HTMLDocument {
     let curr = htmlDocument;
     let endTagStart: number = -1;
     let endTagName: string | undefined = undefined;
-    let pendingAttribute: Attribute | null = null;
+    let pendingAttribute: string | null = null;
     let token = scanner.scan();
     let currentStartTag: HTMLNode | null = null;
 
@@ -97,52 +102,52 @@ export function parseHtml(text: string): HTMLDocument {
                 }
                 break;
             case TokenType.AttributeName: {
-                const offset = scanner.getTokenOffset();
-                if (text.charCodeAt(offset) === braceStartCode) {
-                    scanMatchingBraces(text, offset);
-                }
-
-                pendingAttribute = {
-                    name: scanner.getTokenText(),
-                    valueFull: null,
-                    start: offset
-                };
-                let attributes = curr.attributeList;
+                pendingAttribute = scanner.getTokenText();
+                let attributes = curr.attributes;
                 if (!attributes) {
-                    curr.attributeList = attributes = [];
+                    curr.attributes = attributes = {};
                 }
-                attributes.push(pendingAttribute);
+                attributes[pendingAttribute] = null;
                 break;
             }
 
             case TokenType.DelimiterAssign: {
-                const afterBrace = scanner.getTokenEnd();
-                if (text.charCodeAt(afterBrace) === braceStartCode) {
-                    const valueEnd = skipTemplateExpression(afterBrace);
-                    finishAttribute(afterBrace, valueEnd);
+                const afterAssign = scanner.getTokenEnd();
+                if (text.charCodeAt(afterAssign) === braceStartCode) {
+                    const result = scanMatchingBraces(text, afterAssign);
+                    restartScannerAt(result.endOffset, ScannerState.WithinTag);
+                    finishAttribute(afterAssign, result.endOffset);
                 }
                 break;
             }
             case TokenType.Whitespace: {
                 const afterWhitespace = scanner.getTokenEnd();
-                // spread or attribute short-hand
                 if (text.charCodeAt(afterWhitespace) === braceStartCode) {
-                    parseSpreadOrShorthandAttribute(afterWhitespace);
+                    // <div a = {...}
+                    if (scanner.getScannerState() === ScannerState.BeforeAttributeValue) {
+                        const result = scanMatchingBraces(text, afterWhitespace);
+                        restartScannerAt(result.endOffset, ScannerState.WithinTag);
+                        finishAttribute(afterWhitespace, result.endOffset);
+                    } else {
+                        // spread or attribute short-hand
+                        parseSpreadOrShorthandAttribute(afterWhitespace);
+                    }
                 }
                 break;
             }
-            case TokenType.AttributeValue: {
-                const start = scanner.getTokenOffset();
-                const expressionTagEnd = skipExpressionInCurrentRange();
-                finishAttribute(start, expressionTagEnd);
+            case TokenType.AttributeValue:
+                parseAttributeValue();
                 break;
-            }
 
             case TokenType.Content: {
-                skipExpressionInCurrentRange();
+                const expressionEnd = skipExpressionInCurrentRange();
+                if (expressionEnd > scanner.getTokenEnd()) {
+                    restartScannerAt(expressionEnd, ScannerState.WithinContent);
+                }
                 break;
             }
         }
+
         token = scanner.scan();
     }
     while (curr.parent) {
@@ -156,12 +161,6 @@ export function parseHtml(text: string): HTMLDocument {
         findNodeAt: htmlDocument.findNodeAt.bind(htmlDocument)
     };
 
-    function skipTemplateExpression(startOffset: number): number {
-        const result = scanMatchingBraces(text, startOffset);
-        restartScannerAt(result.endOffset);
-        return result.endOffset;
-    }
-
     function skipExpressionInCurrentRange() {
         const start = scanner.getTokenOffset();
         const end = scanner.getTokenEnd();
@@ -174,50 +173,57 @@ export function parseHtml(text: string): HTMLDocument {
             const matchResult = scanMatchingBraces(text, index);
             index = matchResult.endOffset;
         }
-        if (index > end) {
-            restartScannerAt(index);
-            return index;
-        }
 
-        return end;
+        return Math.max(index, end);
     }
 
-    function restartScannerAt(offset: number) {
-        if (offset === scanner.getTokenEnd()) {
+    function restartScannerAt(offset: number, scannerState: ScannerState) {
+        if (offset <= scanner.getTokenEnd()) {
             return;
         }
-        scanner = createScanner(
-            text,
-            offset,
-            currentStartTag != null ? ScannerState.WithinTag : ScannerState.WithinContent,
-            /* emitPseudoCloseTags*/ true
-        );
+        scanner = createScanner(text, offset, scannerState, /* emitPseudoCloseTags*/ true);
     }
 
     function finishAttribute(start: number, end: number) {
-        if (!pendingAttribute) {
+        if (!pendingAttribute || !curr.attributes) {
             return;
         }
-        pendingAttribute.valueFullRange = [start, end];
-        pendingAttribute.valueFull = text.substring(start, end);
+
+        curr.attributes[pendingAttribute] = text.substring(start, end);
         pendingAttribute = null;
     }
 
     function parseSpreadOrShorthandAttribute(startOffset: number) {
-        const end = skipTemplateExpression(startOffset);
+        const scanResult = scanMatchingBraces(text, startOffset);
+        const end = scanResult.endOffset;
+        restartScannerAt(end, ScannerState.WithinTag);
         const expressionStart = startOffset + 1;
         const expressionEnd = end - 1;
         const expression = text.substring(expressionStart, expressionEnd).trim();
         if (text.substring(expressionStart).startsWith('...')) {
             return;
         }
-        curr.attributeList ??= [];
-        curr.attributeList.push({
-            name: expression,
-            start: startOffset,
-            valueFullRange: [startOffset, end],
-            valueFull: text.substring(startOffset, end)
-        });
+
+        curr.attributes ??= {};
+        curr.attributes[expression] = text.substring(startOffset, end);
+    }
+
+    function parseAttributeValue() {
+        const quote = text.charCodeAt(scanner.getTokenOffset());
+        // <a href=a >
+        if (!isQuote(quote)) {
+            finishAttribute(scanner.getTokenOffset(), scanner.getTokenEnd());
+            return;
+        }
+        const start = scanner.getTokenOffset();
+        const tokenEnd = scanner.getTokenEnd();
+        let expressionTagEnd = skipExpressionInCurrentRange();
+        if (expressionTagEnd > tokenEnd) {
+            const indexOfQuote = text.indexOf(String.fromCharCode(quote), expressionTagEnd);
+            expressionTagEnd = indexOfQuote !== -1 ? indexOfQuote + 1 : text.length;
+            restartScannerAt(expressionTagEnd, ScannerState.WithinTag);
+        }
+        finishAttribute(start, expressionTagEnd);
     }
 }
 
@@ -235,66 +241,108 @@ export function getAttributeContextAtPosition(
     const offset = document.offsetAt(position);
     const { html } = document;
     const tag = html.findNodeAt(offset);
-    const text = document.getText();
 
-    if (
-        !inStartTag(offset, tag) ||
-        !tag.attributes ||
-        !(tag instanceof HTMLNode && tag.attributeList)
-    ) {
+    if (!inStartTag(offset, tag) || !tag.attributes) {
         return null;
     }
 
-    for (const attr of tag.attributeList) {
-        if (offset < attr.start) {
-            continue;
-        }
-        const nameEnd = attr.start + attr.name.length;
-        if (offset <= nameEnd) {
-            return {
-                name: attr.name,
-                inValue: false,
-                elementTag: tag
-            };
-        }
-        if (attr.valueFullRange) {
-            const [valueStart, valueEnd] = attr.valueFullRange;
-            if (offset >= valueStart && offset <= valueEnd) {
-                let [start, end] = attr.valueFullRange;
-                if (isQuote(text.charCodeAt(valueStart))) {
+    const text = document.getText();
+    const beforeStartTagEnd = text.substring(0, tag.startTagEnd);
+
+    let scanner = createScanner(beforeStartTagEnd, tag.start);
+
+    let token = scanner.scan();
+    let currentAttributeName: string | undefined;
+    const inTokenRange = () =>
+        scanner.getTokenOffset() <= offset && offset <= scanner.getTokenEnd();
+    while (token != TokenType.EOS) {
+        // adopted from https://github.com/microsoft/vscode-html-languageservice/blob/2f7ae4df298ac2c299a40e9024d118f4a9dc0c68/src/services/htmlCompletion.ts#L402
+        if (token === TokenType.AttributeName) {
+            currentAttributeName = scanner.getTokenText();
+
+            if (inTokenRange()) {
+                return {
+                    elementTag: tag,
+                    name: currentAttributeName,
+                    inValue: false
+                };
+            }
+        } else if (token === TokenType.DelimiterAssign) {
+            const afterAssign = scanner.getTokenEnd();
+            if (afterAssign === offset && currentAttributeName) {
+                const nextToken = scanner.scan();
+
+                return {
+                    elementTag: tag,
+                    name: currentAttributeName,
+                    inValue: true,
+                    valueRange: [
+                        offset,
+                        nextToken === TokenType.AttributeValue ? scanner.getTokenEnd() : offset
+                    ]
+                };
+            }
+            if (text.charCodeAt(afterAssign) === braceStartCode) {
+                const scanResult = scanMatchingBraces(text, afterAssign);
+                restartScannerAt(scanResult.endOffset, ScannerState.WithinTag);
+            }
+        } else if (token === TokenType.AttributeValue) {
+            if (inTokenRange() && currentAttributeName) {
+                let start = scanner.getTokenOffset();
+                let end = scanner.getTokenEnd();
+
+                if (isQuote(text.charCodeAt(start))) {
                     start++;
-                }
-                if (isQuote(text.charCodeAt(valueEnd - 1))) {
                     end--;
                 }
+
                 return {
-                    name: attr.name,
-                    inValue: true,
                     elementTag: tag,
+                    name: currentAttributeName,
+                    inValue: true,
                     valueRange: [start, end]
                 };
             }
+            currentAttributeName = undefined;
+        } else if (token === TokenType.Whitespace) {
+            const afterWhitespace = scanner.getTokenEnd();
+            if (text.charCodeAt(afterWhitespace) === braceStartCode) {
+                // <div a = {...}
+                if (scanner.getScannerState() === ScannerState.BeforeAttributeValue) {
+                    const scanResult = scanMatchingBraces(text, afterWhitespace);
+                    restartScannerAt(scanResult.endOffset, ScannerState.WithinTag);
+                } else {
+                    // spread or attribute short-hand
+                    parseSpreadOrShorthandAttribute(afterWhitespace);
+                }
+            }
+        }
+        token = scanner.scan();
+
+        function parseSpreadOrShorthandAttribute(startOffset: number) {
+            const scanResult = scanMatchingBraces(text, startOffset);
+            const end = scanResult.endOffset;
+            restartScannerAt(end, ScannerState.WithinTag);
         }
     }
 
     return null;
+
+    function restartScannerAt(offset: number, scannerState: ScannerState) {
+        if (offset <= scanner.getTokenEnd()) {
+            return;
+        }
+
+        scanner = createScanner(beforeStartTagEnd, offset, scannerState);
+    }
 }
 
 function isQuote(charCode: number) {
-    return (
-        charCode === singleQuoteCode || charCode === doubleQuoteCode
-    );
+    return charCode === singleQuoteCode || charCode === doubleQuoteCode;
 }
 
 function inStartTag(offset: number, node: Node) {
     return offset > node.start && node.startTagEnd != undefined && offset < node.startTagEnd;
-}
-
-interface Attribute {
-    name: string;
-    valueFullRange?: [number, number];
-    valueFull: string | null;
-    start: number;
 }
 
 /**
@@ -305,23 +353,7 @@ export class HTMLNode implements Node {
     closed: boolean = false;
     startTagEnd: number | undefined;
     endTagStart: number | undefined;
-    attributeList: Attribute[] | undefined;
-    private attributesCache: { [name: string]: string | null } | undefined;
-
-    get attributes(): { [name: string]: string | null } | undefined {
-        if (this.attributesCache) {
-            return this.attributesCache;
-        }
-        if (!this.attributeList) {
-            return undefined;
-        }
-        const attrs: { [name: string]: string | null } = {};
-        for (const attr of this.attributeList) {
-            attrs[attr.name] = attr.valueFull;
-        }
-        this.attributesCache = attrs;
-        return attrs;
-    }
+    attributes?: { [name: string]: string | null } | undefined;
 
     get attributeNames(): string[] {
         return this.attributes ? Object.keys(this.attributes) : [];
