@@ -293,6 +293,12 @@ export class HoistableInterfaces {
         }
     }
 
+    addDisallowed(names: string[]) {
+        for (const name of names) {
+            this.disallowed_values.add(name);
+        }
+    }
+
     /**
      * Traverses the AST to collect import statements and top-level interfaces,
      * then determines which interfaces can be hoisted.
