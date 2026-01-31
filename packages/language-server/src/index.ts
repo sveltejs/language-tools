@@ -1,8 +1,9 @@
 import { createConnection, createServer, createTypeScriptProject, loadTsdkByPath } from '@volar/language-server/node';
-import { create as createCssScriptServicePlugin } from 'volar-service-css';
+import { create as createCssServicePlugin } from 'volar-service-css';
 import { create as createHtmlServicePlugin } from 'volar-service-html';
 import { create as createTypeScriptServicePlugins } from 'volar-service-typescript';
 import { svelteLanguagePlugin } from './languagePlugin';
+import { create as createSvelteServicePlugin } from './svelteService';
 
 const connection = createConnection();
 const server = createServer(connection);
@@ -15,7 +16,8 @@ connection.onInitialize(params => {
         params,
         createTypeScriptProject(tsdk.typescript, undefined, () => [svelteLanguagePlugin]),
         [
-            createCssScriptServicePlugin(),
+            createSvelteServicePlugin(),
+            createCssServicePlugin(),
             createHtmlServicePlugin(),
             ...createTypeScriptServicePlugins(tsdk.typescript, tsdk.diagnosticMessages),
         ]

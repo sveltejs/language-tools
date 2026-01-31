@@ -1,11 +1,8 @@
 name: CI
 on: pull_request
-permissions:
-  contents: read # to fetch code (actions/checkout)
 
 jobs:
   test:
-    permissions: {}
     runs-on: ubuntu-latest
 
     steps:
@@ -13,7 +10,7 @@ jobs:
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "20.x"
+          node-version: "18.x"
           cache: pnpm
 
       # Get projects set up
@@ -27,7 +24,6 @@ jobs:
           CI: true
 
   test-svelte5:
-    permissions: {}
     runs-on: ubuntu-latest
 
     steps:
@@ -35,7 +31,7 @@ jobs:
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "20.x"
+          node-version: "18.x"
           cache: pnpm
 
       # Lets us use one-liner JSON manipulations the package.json files
@@ -53,7 +49,6 @@ jobs:
           CI: true
 
   lint:
-    permissions: {}
     runs-on: ubuntu-latest
 
     steps:
@@ -61,7 +56,7 @@ jobs:
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "20.x"
+          node-version: "18.x"
           cache: pnpm
 
       # Get projects set up

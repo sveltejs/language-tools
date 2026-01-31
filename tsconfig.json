@@ -1,13 +1,19 @@
 {
-	"extends": "./tsconfig.base.json",
-	"files": [],
-	"include": [],
-	"references": [
-		{
-			"path": "./packages/svelte-check/tsconfig.json"
-		},
-		{
-			"path": "./packages/svelte-vscode/tsconfig.json"
-		},
-	]
+"extends": "./tsconfig.base.json",
+"files": [],
+"include": [],
+"references": [
+{
+"path": "./packages/language-server/tsconfig.json"
+},
+{
+"path": "./packages/typescript-plugin/tsconfig.json"
+},
+{
+"path": "./packages/svelte-check/tsconfig.json"
+},
+{
+"path": "./packages/svelte-vscode/tsconfig.json"
+}
+]
 }
