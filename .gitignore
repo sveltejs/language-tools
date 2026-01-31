@@ -33,7 +33,7 @@ bower_components
 build/Release
 
 # Dependency directories
-node_modules/
+/node_modules/
 jspm_packages/
 
 # TypeScript v1 declaration files
@@ -73,3 +73,6 @@ out
 # syntaxes
 postcss.json
 svelte.tmLanguage.json
+
+# Ignore AI artifacts
+.crush/

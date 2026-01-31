@@ -4,7 +4,7 @@
     "version": "0.0.0",
     "type": "module",
     "main": "./out/index.js",
-    "bin": "./bin/svelte-check",
+    "bin": "./bin/svelte-check.js",
     "author": "The Svelte Community",
     "license": "MIT",
     "repository": {
@@ -23,6 +23,9 @@
         "url": "https://github.com/sveltejs/language-tools/issues"
     },
     "homepage": "https://github.com/sveltejs/language-tools#readme",
+    "engines": {
+        "node": ">= 18.0.0"
+    },
     "devDependencies": {
         "@types/yargs": "^17.0.32"
     },
@@ -30,13 +33,14 @@
         "@volar/kit": "~2.3.0",
         "volar-service-typescript": "0.0.51",
         "svelte-language-server": "0.0.0",
-        "chokidar": "^3.4.1",
+        "chokidar": "^4.0.1",
         "kleur": "^4.1.5",
         "yargs": "^17.7.2",
         "fast-glob": "^3.2.7"
     },
     "peerDependencies": {
-        "svelte": "^3.55.0 || ^4.0.0-next.0 || ^4.0.0 || ^5.0.0-next.0"
+        "svelte": "^4.0.0 || ^5.0.0-next.0",
+        "typescript": ">=5.0.0"
     },
     "scripts": {
         "build": "rollup -c && node ./dist/src/index.js --workspace ./test --tsconfig ./tsconfig.json",

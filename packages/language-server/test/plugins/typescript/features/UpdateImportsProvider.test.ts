@@ -33,7 +33,10 @@ describe('UpdateImportsProviderImpl', function () {
             new LSConfigManager(),
             { tsSystem: { ...ts.sys, useCaseSensitiveFileNames } }
         );
-        const updateImportsProvider = new UpdateImportsProviderImpl(lsAndTsDocResolver);
+        const updateImportsProvider = new UpdateImportsProviderImpl(
+            lsAndTsDocResolver,
+            useCaseSensitiveFileNames
+        );
         const filePath = join(updateImportTestDir, filename);
         const fileUri = pathToUrl(filePath);
         const document = docManager.openClientDocument(<any>{

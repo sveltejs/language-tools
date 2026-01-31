@@ -23,7 +23,7 @@
 ;;↲           [generated] line 15                                                                                                                     
 ;             [generated] subset                                                                                                                      
 <                                                                                                                                                     
-</script>↲    [original] line 14 (rest generated at line 119)                                                                                         
+</script>↲    [original] line 14 (rest generated at lines 119, 120)                                                                                   
                                                                                                                                                       
 ;;↲           [generated] line 15                                                                                                                     
  ;↲           [generated] subset                                                                                                                      
@@ -78,11 +78,11 @@ import•{↲     [generated] line 23
    ╚}•from•'../../../config';                                                                                                                         
    ╚}•from•'../../../config';↲    [original] line 27 (rest generated at line 36)                                                                      
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
-function render() {                                                                                                                                   {/**
-function•render()•{↲    [generated] line 28                                                                                                           
+function $$render() {                                                                                                                                 {/**
+function•$$render()•{↲    [generated] line 28                                                                                                         
 s                                                                                                                                                     
  s                                                                                                                                                    
-<script>↲               [original] line 16 (rest generated at lines 15, 29)                                                                           
+<script>↲                 [original] line 16 (rest generated at lines 15, 29)                                                                         
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                                                                                                                                                       {/**
 ↲            [generated] line 29                                                                                                                      
@@ -251,69 +251,105 @@ s
 ;                                                                                                                                                     {/**
 ;↲            [generated] line 118                                                                                                                    
 <                                                                                                                                                     
-</script>↲    [original] line 109 (rest generated at line 121)                                                                                        
+</script>↲    [original] line 109 (rest generated at lines 119, 121, 122)                                                                             
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
 async () => {                                                                                                                                         {/**
-============#     Originless mappings                                                                                                                 
 async•()•=>•{↲    [generated] line 119                                                                                                                
-             ↲                                                                                                                                        
+async•()•=>•{     [generated] subset                                                                                                                  
+<                                                                                                                                                     
+</script>↲        [original] line 109 (rest generated at lines 118, 121, 122)                                                                         
+                                                                                                                                                      
+async•()•=>•{↲    [generated] line 119                                                                                                                
+             ↲    [generated] subset                                                                                                                  
          ↲                                                                                                                                            
-</script>↲        [original] line 14 (rest generated at line 15)                                                                                      
+</script>↲        [original] line 14 (rest generated at lines 15, 120)                                                                                
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                                                                                                                                                       {/**
-
+↲             [generated] line 120                                                                                                                    
+         ↲                                                                                                                                            
+</script>↲    [original] line 14 (rest generated at lines 15, 119)                                                                                    
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                                                                                                                                                       {/**
 ↲             [generated] line 121                                                                                                                    
          ↲                                                                                                                                            
-</script>↲    [original] line 109 (rest generated at line 118)                                                                                        
+</script>↲    [original] line 109 (rest generated at lines 118, 119, 122)                                                                             
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                                                                                                                                                       {/**
-
+↲             [generated] line 122                                                                                                                    
+         ↲                                                                                                                                            
+</script>↲    [original] line 109 (rest generated at lines 118, 119, 121)                                                                             
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                                                                                                                                                       {/**
 ↲            [generated] line 123                                                                                                                     
         ↲                                                                                                                                             
-</style>↲    [original] line 259                                                                                                                      
+</style>↲    [original] line 259 (rest generated at line 124)                                                                                         
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                                                                                                                                                       {/**
-
+↲            [generated] line 124                                                                                                                     
+        ↲                                                                                                                                             
+</style>↲    [original] line 259 (rest generated at line 123)                                                                                         
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
  { svelteHTML.createElement("svelte:head", {});                                                                                                       {/**
 •{•svelteHTML.createElement("svelte:head",•{});↲    [generated] line 125                                                                              
 s                                              ↲                                                                                                      
  s           ↲                                                                                                                                        
-<svelte:head>↲                                      [original] line 261                                                                               
+<svelte:head>↲                                      [original] line 261 (rest generated at line 126)                                                  
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
      { svelteHTML.createElement("title", {});selected.section.title;  selected.chapter.title;    }                                                    {/**
-   #                                                                                                   Originless mappings                            
    ╚•{•svelteHTML.createElement("title",•{});selected.section.title;••selected.chapter.title;••••}↲    [generated] line 126                           
+   ╚                                                                                                   [generated] subset                             
+   ↲                                                                                                                                                  
+                ↲                                                                                                                                     
+   <svelte:head>↲                                                                                      [original] line 261 (rest generated at line 125)
+                                                                                                                                                      
+   ╚•{•svelteHTML.createElement("title",•{});selected.section.title;••selected.chapter.title;••••}↲    [generated] line 126                           
+    •{•svelteHTML.createElement("title",•{});selected.section.title;••selected.chapter.title;••••}↲    [generated] subset                             
     <                            title       selected.section.title}• selected.chapter.title}•  / ↲                                                   
     <title  selected.section.title}•   selected.chapter.title}•                  /      ↲                                                             
-   ╚<title>{selected.section.title}•/•{selected.chapter.title}•••Svelte•Tutorial</title>↲              [original] line 262                            
+   ╚<title>{selected.section.title}•/•{selected.chapter.title}•••Svelte•Tutorial</title>↲              [original] line 262 (rest generated at lines 127, 128)
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                                                                                                                                                       {/**
-
+↲                                                                                         [generated] line 127                                        
+                                                                                     ↲                                                                
+╚<title>{selected.section.title}•/•{selected.chapter.title}•••Svelte•Tutorial</title>↲    [original] line 262 (rest generated at lines 126, 128)      
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
      { svelteHTML.createElement("meta", {   "name":`twitter:title`,"content":`Svelte tutorial`,});}                                                   {/**
-   #                                                                                                    Originless mappings                           
    ╚•{•svelteHTML.createElement("meta",•{•••"name":`twitter:title`,"content":`Svelte•tutorial`,});}↲    [generated] line 128                          
+   ╚                                                                                                    [generated] subset                            
+   ↲                                                                                                                                                  
+                                                                                        ↲                                                             
+   ╚<title>{selected.section.title}•/•{selected.chapter.title}•••Svelte•Tutorial</title>↲               [original] line 262 (rest generated at lines 126, 127)
+                                                                                                                                                      
+   ╚•{•svelteHTML.createElement("meta",•{•••"name":`twitter:title`,"content":`Svelte•tutorial`,});}↲    [generated] line 128                          
+    •{•svelteHTML.createElement("meta",•{•••"name":`twitter:title`,"content":`Svelte•tutorial`,});}↲    [generated] subset                            
     <                            meta    "•"n ame=  twitter:title" c ontent=  Svelte•tutorial"     ↲                                                  
                                            #                                                            Order-breaking mappings                       
     <meta name="twitter:title"•content="Svelte•tutorial" ↲                                                                                            
-   ╚<meta•name="twitter:title"•content="Svelte•tutorial">↲                                              [original] line 264                           
+   ╚<meta•name="twitter:title"•content="Svelte•tutorial">↲                                              [original] line 264 (rest generated at line 129)
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
      { svelteHTML.createElement("meta", {   "name":`twitter:description`,"content":`${selected.section.title} / ${selected.chapter.title}`,});}       {/**
-   #                                                                                                                                                Originless mappings
    ╚•{•svelteHTML.createElement("meta",•{•••"name":`twitter:description`,"content":`${selected.section.title}•/•${selected.chapter.title}`,});}↲    [generated] line 129
+   ╚                                                                                                                                                [generated] subset
+   ↲                                                                                                                                                  
+                                                         ↲                                                                                            
+   ╚<meta•name="twitter:title"•content="Svelte•tutorial">↲                                                                                          [original] line 264 (rest generated at line 128)
+                                                                                                                                                      
+   ╚•{•svelteHTML.createElement("meta",•{•••"name":`twitter:description`,"content":`${selected.section.title}•/•${selected.chapter.title}`,});}↲    [generated] line 129
+    •{•svelteHTML.createElement("meta",•{•••"name":`twitter:description`,"content":`${selected.section.title}•/•${selected.chapter.title}`,});}↲    [generated] subset
     <                            meta    "•"n ame=  twitter:description" c ontent=   {selected.section.title}•/• {selected.chapter.title}"     ↲      
                                            #                                                                                                        Order-breaking mappings
     <meta name="twitter:description"•content="{selected.section.title}•/•{selected.chapter.title}" ↲                                                  
-   ╚<meta•name="twitter:description"•content="{selected.section.title}•/•{selected.chapter.title}">↲                                                [original] line 265 
+   ╚<meta•name="twitter:description"•content="{selected.section.title}•/•{selected.chapter.title}">↲                                                [original] line 265 (rest generated at line 130)
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
      { svelteHTML.createElement("meta", {   "name":`Description`,"content":`${selected.section.title} / ${selected.chapter.title}`,});}               {/**
-   #                                                                                                                                        Originless mappings
    ╚•{•svelteHTML.createElement("meta",•{•••"name":`Description`,"content":`${selected.section.title}•/•${selected.chapter.title}`,});}↲    [generated] line 130
+   ╚                                                                                                                                        [generated] subset
+   ↲                                                                                                                                                  
+                                                                                                   ↲                                                  
+   ╚<meta•name="twitter:description"•content="{selected.section.title}•/•{selected.chapter.title}">↲                                        [original] line 265 (rest generated at line 129)
+                                                                                                                                                      
+   ╚•{•svelteHTML.createElement("meta",•{•••"name":`Description`,"content":`${selected.section.title}•/•${selected.chapter.title}`,});}↲    [generated] line 130
+    •{•svelteHTML.createElement("meta",•{•••"name":`Description`,"content":`${selected.section.title}•/•${selected.chapter.title}`,});}↲    [generated] subset
     <                            meta    "•"n ame=  Description" c ontent=   {selected.section.title}•/• {selected.chapter.title}"     ↲              
                                            #                                                                                                Order-breaking mappings
     <meta name="Description"•content="{selected.section.title}•/•{selected.chapter.title}" ↲                                                          
@@ -323,102 +359,164 @@ s                                              ↲
 •}↲                [generated] line 131                                                                                                               
 / ↲                                                                                                                                                   
  /            ↲                                                                                                                                       
-</svelte:head>↲    [original] line 267                                                                                                                
+</svelte:head>↲    [original] line 267 (rest generated at line 132)                                                                                   
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                                                                                                                                                       {/**
-
+↲                  [generated] line 132                                                                                                               
+              ↲                                                                                                                                       
+</svelte:head>↲    [original] line 267 (rest generated at line 131)                                                                                   
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
   { svelteHTML.createElement("svelte:window", { "bind:innerWidth":width,});/*Ωignore_startΩ*/() => width = __sveltets_2_any(null);/*Ωignore_endΩ*/}   {/**
 ••{•svelteHTML.createElement("svelte:window",•{•"bind:innerWidth":width,});/*Ωignore_startΩ*/()•=>•width•=•__sveltets_2_any(null);/*Ωignore_endΩ*/}↲    [generated] line 133
-<>                                             ib                 width}                                                                           ↲    
- #=============================================#                                                                                                        Order-breaking mappings
-<              bi               width} >↲                                                                                                               
-<svelte:window•bind:innerWidth={width}/>↲                                                                                                               [original] line 269 
+<>                                             { bind:innerWidth= width}                                                                           ↲    
+ #=============================================#=                                                                                                       Order-breaking mappings
+<              bind:innerWidth={width} >↲                                                                                                               
+<svelte:window•bind:innerWidth={width}/>↲                                                                                                               [original] line 269 (rest generated at line 134)
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                                                                                                                                                       {/**
-
+↲                                            [generated] line 134                                                                                     
+                                        ↲                                                                                                             
+<svelte:window•bind:innerWidth={width}/>↲    [original] line 269 (rest generated at line 133)                                                         
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
  { svelteHTML.createElement("div", { "class":`tutorial-outer`,});                                                                                     {/**
 •{•svelteHTML.createElement("div",•{•"class":`tutorial-outer`,});↲    [generated] line 135                                                            
 <                            div    "c lass=  tutorial-outer"    ↲                                                                                    
                                     #                                 Order-breaking mappings                                                         
 <div class="tutorial-outer" ↲                                                                                                                         
-<div•class="tutorial-outer">↲                                         [original] line 271                                                             
+<div•class="tutorial-outer">↲                                         [original] line 271 (rest generated at line 136)                                
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
      { svelteHTML.createElement("div", { "class":`viewport offset-${offset}`,});                                                                      {/**
-   #                                                                                 Originless mappings                                              
    ╚•{•svelteHTML.createElement("div",•{•"class":`viewport•offset-${offset}`,});↲    [generated] line 136                                             
+   ╚                                                                                 [generated] subset                                               
+   ↲                                                                                                                                                  
+                               ↲                                                                                                                      
+   <div•class="tutorial-outer">↲                                                     [original] line 271 (rest generated at line 135)                 
+                                                                                                                                                      
+   ╚•{•svelteHTML.createElement("div",•{•"class":`viewport•offset-${offset}`,});↲    [generated] line 136                                             
+    •{•svelteHTML.createElement("div",•{•"class":`viewport•offset-${offset}`,});↲    [generated] subset                                               
     <                            div    "c lass=  viewport•offset- {offset}"    ↲                                                                     
                                         #                                            Order-breaking mappings                                          
     <div class="viewport•offset-{offset}" ↲                                                                                                           
-   ╚<div•class="viewport•offset-{offset}">↲                                          [original] line 272                                              
+   ╚<div•class="viewport•offset-{offset}">↲                                          [original] line 272 (rest generated at line 137)                 
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
          { svelteHTML.createElement("div", { "class":`tutorial-text`,});                                                                              {/**
-      =#                                                                     Originless mappings                                                      
       ╚╚•{•svelteHTML.createElement("div",•{•"class":`tutorial-text`,});↲    [generated] line 137                                                     
+      ╚╚                                                                     [generated] subset                                                       
+      ↲                                                                                                                                               
+                                             ↲                                                                                                        
+      ╚<div•class="viewport•offset-{offset}">↲                               [original] line 272 (rest generated at line 136)                         
+                                                                                                                                                      
+      ╚╚•{•svelteHTML.createElement("div",•{•"class":`tutorial-text`,});↲    [generated] line 137                                                     
+        •{•svelteHTML.createElement("div",•{•"class":`tutorial-text`,});↲    [generated] subset                                                       
         <                            div    "c lass=  tutorial-text"    ↲                                                                             
                                             #                                Order-breaking mappings                                                  
         <div class="tutorial-text" ↲                                                                                                                  
-      ╚╚<div•class="tutorial-text">↲                                         [original] line 273                                                      
+      ╚╚<div•class="tutorial-text">↲                                         [original] line 273 (rest generated at line 138)                         
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
              { svelteHTML.createElement("div", { "class":`table-of-contents`,});                                                                      {/**
-         ==#                                                                         Originless mappings                                              
          ╚╚╚•{•svelteHTML.createElement("div",•{•"class":`table-of-contents`,});↲    [generated] line 138                                             
+         ╚╚╚                                                                         [generated] subset                                               
+         ↲                                                                                                                                            
+                                      ↲                                                                                                               
+         ╚╚<div•class="tutorial-text">↲                                              [original] line 273 (rest generated at line 137)                 
+                                                                                                                                                      
+         ╚╚╚•{•svelteHTML.createElement("div",•{•"class":`table-of-contents`,});↲    [generated] line 138                                             
+            •{•svelteHTML.createElement("div",•{•"class":`table-of-contents`,});↲    [generated] subset                                               
             <                            div    "c lass=  table-of-contents"    ↲                                                                     
                                                 #                                    Order-breaking mappings                                          
             <div class="table-of-contents" ↲                                                                                                          
-         ╚╚╚<div•class="table-of-contents">↲                                         [original] line 274                                              
+         ╚╚╚<div•class="table-of-contents">↲                                         [original] line 274 (rest generated at line 139)                 
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                   { const $$_stnetnoCfOelbaT4C = __sveltets_2_ensureComponent(TableOfContents); new $$_stnetnoCfOelbaT4C({ target: __sveltets_2_any(), props: {  sections,slug,selected,}});}{/**
-            ===#                                                                                                                                                                                  Originless mappings
             ╚╚╚╚••{•const•$$_stnetnoCfOelbaT4C•=•__sveltets_2_ensureComponent(TableOfContents);•new•$$_stnetnoCfOelbaT4C({•target:•__sveltets_2_any(),•props:•{••sections,slug,selected,}});}↲    [generated] line 139
+            ╚╚╚╚                                                                                                                                                                                  [generated] subset
+            ↲                                                                                                                                                                                     
+                                              ↲                                                                                                                                                   
+            ╚╚╚<div•class="table-of-contents">↲                                                                                                                                                   [original] line 274 (rest generated at line 138)
+                                                                                                                                                                                                  
+            ╚╚╚╚••{•const•$$_stnetnoCfOelbaT4C•=•__sveltets_2_ensureComponent(TableOfContents);•new•$$_stnetnoCfOelbaT4C({•target:•__sveltets_2_any(),•props:•{••sections,slug,selected,}});}↲    [generated] line 139
+                ••{•const•$$_stnetnoCfOelbaT4C•=•__sveltets_2_ensureComponent(TableOfContents);•new•$$_stnetnoCfOelbaT4C({•target:•__sveltets_2_any(),•props:•{••sections,slug,selected,}});}↲    [generated] subset
                 <>                                                            TableOfContents                                                                  ••sections}slug}selected}     ↲    
                  #============================================================                                                                                  #                                 Order-breaking mappings
                 <TableOfContents  sections}• slug}• selected} >↲                                                                                                                                  
-            ╚╚╚╚<TableOfContents•{sections}•{slug}•{selected}/>↲                                                                                                                                  [original] line 275 
+            ╚╚╚╚<TableOfContents•{sections}•{slug}•{selected}/>↲                                                                                                                                  [original] line 275 (rest generated at line 140)
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
              }                                                                                                                                        {/**
-         ==#           Originless mappings                                                                                                            
-         ╚╚╚•}↲        [generated] line 140                                                                                                           
+         ╚╚╚•}↲                                                  [generated] line 140                                                                 
+         ╚╚╚                                                     [generated] subset                                                                   
+         ↲                                                                                                                                            
+                                                            ↲                                                                                         
+         ╚╚╚╚<TableOfContents•{sections}•{slug}•{selected}/>↲    [original] line 275 (rest generated at line 139)                                     
+                                                                                                                                                      
+         ╚╚╚•}↲                                                  [generated] line 140                                                                 
+            •}↲                                                  [generated] subset                                                                   
             / ↲                                                                                                                                       
              /    ↲                                                                                                                                   
-         ╚╚╚</div>↲    [original] line 276                                                                                                            
+         ╚╚╚</div>↲                                              [original] line 276 (rest generated at lines 141, 142)                               
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                                                                                                                                                       {/**
-
+↲             [generated] line 141                                                                                                                    
+         ↲                                                                                                                                            
+╚╚╚</div>↲    [original] line 276 (rest generated at lines 140, 142)                                                                                  
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
              { const $$_div3 = svelteHTML.createElement("div", {  "class":`chapter-markup`,});scrollable = $$_div3;                                   {/**
-         ==#                                                                                                            Originless mappings           
          ╚╚╚•{•const•$$_div3•=•svelteHTML.createElement("div",•{••"class":`chapter-markup`,});scrollable•=•$$_div3;↲    [generated] line 142          
+         ╚╚╚                                                                                                            [generated] subset            
+         ↲                                                                                                                                            
+                  ↲                                                                                                                                   
+         ╚╚╚</div>↲                                                                                                     [original] line 276 (rest generated at lines 140, 141)
+                                                                                                                                                      
+         ╚╚╚•{•const•$$_div3•=•svelteHTML.createElement("div",•{••"class":`chapter-markup`,});scrollable•=•$$_div3;↲    [generated] line 142          
+            •{•const•$$_div3•=•svelteHTML.createElement("div",•{••"class":`chapter-markup`,});scrollable•=•$$_div3;↲    [generated] subset            
             <                                            div    "•c lass=  chapter-markup"    scrollable}          ↲                                  
                                                                  #                                                      Order-breaking mappings       
             <div class="chapter-markup"•           scrollable} ↲                                                                                      
-         ╚╚╚<div•class="chapter-markup"•bind:this={scrollable}>↲                                                        [original] line 278           
+         ╚╚╚<div•class="chapter-markup"•bind:this={scrollable}>↲                                                        [original] line 278 (rest generated at line 143)
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                  chapter.html;                                                                                                                        {/**
-            ===#                         Originless mappings                                                                                          
-            ╚╚╚╚•chapter.html;↲          [generated] line 143                                                                                         
+            ╚╚╚╚•chapter.html;↲                                        [generated] line 143                                                           
+            ╚╚╚╚                                                       [generated] subset                                                             
+            ↲                                                                                                                                         
+                                                                  ↲                                                                                   
+            ╚╚╚<div•class="chapter-markup"•bind:this={scrollable}>↲    [original] line 278 (rest generated at line 142)                               
+                                                                                                                                                      
+            ╚╚╚╚•chapter.html;↲                                        [generated] line 143                                                           
+                •chapter.html;↲                                        [generated] subset                                                             
                 {chapter.html}↲                                                                                                                       
                 {      chapter.html}↲                                                                                                                 
-            ╚╚╚╚{@html•chapter.html}↲    [original] line 279                                                                                          
+            ╚╚╚╚{@html•chapter.html}↲                                  [original] line 279 (rest generated at lines 144, 145)                         
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                                                                                                                                                       {/**
-
+↲                            [generated] line 144                                                                                                     
+                        ↲                                                                                                                             
+╚╚╚╚{@html•chapter.html}↲    [original] line 279 (rest generated at lines 143, 145)                                                                   
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                  { svelteHTML.createElement("div", { "class":`controls`,});                                                                           {/**
-            ===#                                                                Originless mappings                                                   
             ╚╚╚╚•{•svelteHTML.createElement("div",•{•"class":`controls`,});↲    [generated] line 145                                                  
+            ╚╚╚╚                                                                [generated] subset                                                    
+            ↲                                                                                                                                         
+                                    ↲                                                                                                                 
+            ╚╚╚╚{@html•chapter.html}↲                                           [original] line 279 (rest generated at lines 143, 144)                
+                                                                                                                                                      
+            ╚╚╚╚•{•svelteHTML.createElement("div",•{•"class":`controls`,});↲    [generated] line 145                                                  
+                •{•svelteHTML.createElement("div",•{•"class":`controls`,});↲    [generated] subset                                                    
                 <                            div    "c lass=  controls"    ↲                                                                          
                                                     #                           Order-breaking mappings                                               
                 <div class="controls" ↲                                                                                                               
-            ╚╚╚╚<div•class="controls">↲                                         [original] line 281                                                   
+            ╚╚╚╚<div•class="controls">↲                                         [original] line 281 (rest generated at line 146)                      
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                     if(chapter.app_b){                                                                                                                {/**
-               ====#                        Originless mappings                                                                                       
-               ╚╚╚╚╚if(chapter.app_b){↲     [generated] line 146                                                                                      
+               ╚╚╚╚╚if(chapter.app_b){↲       [generated] line 146                                                                                    
+               ╚╚╚╚╚                          [generated] subset                                                                                      
+               ↲                                                                                                                                      
+                                         ↲                                                                                                            
+               ╚╚╚╚<div•class="controls">↲    [original] line 281 (rest generated at line 145)                                                        
+                                                                                                                                                      
+               ╚╚╚╚╚if(chapter.app_b){↲       [generated] line 146                                                                                    
+                    if(chapter.app_b){↲       [generated] subset                                                                                      
                     {  chapter.app_b} ↲                                                                                                               
                     {    chapter.app_b}↲                                                                                                              
-               ╚╚╚╚╚{#if•chapter.app_b}↲    [original] line 282                                                                                       
+               ╚╚╚╚╚{#if•chapter.app_b}↲      [original] line 282                                                                                     
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                                                                                                                                                       {/**
                   ╚╚╚╚╚╚↲                                                               [generated] line 147                                          
@@ -429,42 +527,68 @@ s                                              ↲
                   ╚╚╚╚╚╚↲                                                               [generated] line 147                                          
                         ↲                                                               [generated] subset                                            
                                                             ↲                                                                                         
-                  ╚╚╚╚╚╚╚matches•the•expected•end•result•-->↲                           [original] line 284                                           
+                  ╚╚╚╚╚╚╚matches•the•expected•end•result•-->↲                           [original] line 284 (rest generated at line 148)              
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                           { svelteHTML.createElement("button", {   "class":`show`,"on:click":() => completed ? reset() : complete(),});               {/**
-                  =====#                                                                                                                    Originless mappings
                   ╚╚╚╚╚╚••{•svelteHTML.createElement("button",•{•••"class":`show`,"on:click":()•=>•completed•?•reset()•:•complete(),});↲    [generated] line 148
+                  ╚╚╚╚╚╚                                                                                                                    [generated] subset
+                  ↲                                                                                                                                   
+                                                            ↲                                                                                         
+                  ╚╚╚╚╚╚╚matches•the•expected•end•result•-->↲                                                                               [original] line 284 (rest generated at line 147)
+                                                                                                                                                      
+                  ╚╚╚╚╚╚••{•svelteHTML.createElement("button",•{•••"class":`show`,"on:click":()•=>•completed•?•reset()•:•complete(),});↲    [generated] line 148
+                        ••{•svelteHTML.createElement("button",•{•••"class":`show`,"on:click":()•=>•completed•?•reset()•:•complete(),});↲    [generated] subset
                         <>                            button    "•"c lass=  show" c    lick =()•=>•completed•?•reset()•:•complete()}   ↲              
                          #============================            #                                                                         Order-breaking mappings
                         <button class="show"•   click=" ()•=>•completed•?•reset()•:•complete()} >↲                                                    
-                  ╚╚╚╚╚╚<button•class="show"•on:click="{()•=>•completed•?•reset()•:•complete()}">↲                                          [original] line 285 
+                  ╚╚╚╚╚╚<button•class="show"•on:click="{()•=>•completed•?•reset()•:•complete()}">↲                                          [original] line 285 (rest generated at line 149)
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                             completed ? 'Reset' : 'Show me';                                                                                          {/**
-                     ======#                                      Originless mappings                                                                 
-                     ╚╚╚╚╚╚╚completed•?•'Reset'•:•'Show•me';↲     [generated] line 149                                                                
+                     ╚╚╚╚╚╚╚completed•?•'Reset'•:•'Show•me';↲                                            [generated] line 149                         
+                     ╚╚╚╚╚╚╚                                                                             [generated] subset                           
+                     ↲                                                                                                                                
+                                                                                                    ↲                                                 
+                     ╚╚╚╚╚╚<button•class="show"•on:click="{()•=>•completed•?•reset()•:•complete()}">↲    [original] line 285 (rest generated at line 148)
+                                                                                                                                                      
+                     ╚╚╚╚╚╚╚completed•?•'Reset'•:•'Show•me';↲                                            [generated] line 149                         
+                            completed•?•'Reset'•:•'Show•me';↲                                            [generated] subset                           
                             completed•?•'Reset'•:•'Show•me'}↲                                                                                         
                              completed•?•'Reset'•:•'Show•me'}↲                                                                                        
-                     ╚╚╚╚╚╚╚{completed•?•'Reset'•:•'Show•me'}↲    [original] line 286                                                                 
+                     ╚╚╚╚╚╚╚{completed•?•'Reset'•:•'Show•me'}↲                                           [original] line 286 (rest generated at line 150)
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                          }                                                                                                                            {/**
-                  =====#              Originless mappings                                                                                             
-                  ╚╚╚╚╚╚•}↲           [generated] line 150                                                                                            
+                  ╚╚╚╚╚╚•}↲                                    [generated] line 150                                                                   
+                  ╚╚╚╚╚╚                                       [generated] subset                                                                     
+                  ↲                                                                                                                                   
+                                                          ↲                                                                                           
+                  ╚╚╚╚╚╚╚{completed•?•'Reset'•:•'Show•me'}↲    [original] line 286 (rest generated at line 149)                                       
+                                                                                                                                                      
+                  ╚╚╚╚╚╚•}↲                                    [generated] line 150                                                                   
+                        •}↲                                    [generated] subset                                                                     
                         / ↲                                                                                                                           
                          /       ↲                                                                                                                    
-                  ╚╚╚╚╚╚</button>↲    [original] line 287                                                                                             
+                  ╚╚╚╚╚╚</button>↲                             [original] line 287                                                                    
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                     }                                                                                                                                 {/**
                ╚╚╚╚╚}↲        [generated] line 151                                                                                                    
                ╚╚╚╚╚{↲                                                                                                                                
                ╚╚╚╚╚{    ↲                                                                                                                            
-               ╚╚╚╚╚{/if}↲    [original] line 288                                                                                                     
+               ╚╚╚╚╚{/if}↲    [original] line 288 (rest generated at lines 152, 153)                                                                  
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                                                                                                                                                       {/**
-
+↲              [generated] line 152                                                                                                                   
+          ↲                                                                                                                                           
+╚╚╚╚╚{/if}↲    [original] line 288 (rest generated at lines 151, 153)                                                                                 
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                     if(selected.next){                                                                                                                {/**
-               ====#                        Originless mappings                                                                                       
                ╚╚╚╚╚if(selected.next){↲     [generated] line 153                                                                                      
+               ╚╚╚╚╚                        [generated] subset                                                                                        
+               ↲                                                                                                                                      
+                         ↲                                                                                                                            
+               ╚╚╚╚╚{/if}↲                  [original] line 288 (rest generated at lines 151, 152)                                                    
+                                                                                                                                                      
+               ╚╚╚╚╚if(selected.next){↲     [generated] line 153                                                                                      
+                    if(selected.next){↲     [generated] subset                                                                                        
                     {  selected.next} ↲                                                                                                               
                     {    selected.next}↲                                                                                                              
                ╚╚╚╚╚{#if•selected.next}↲    [original] line 290                                                                                       
@@ -480,68 +604,119 @@ s                                              ↲
                ╚╚╚╚╚}↲        [generated] line 155                                                                                                    
                ╚╚╚╚╚{↲                                                                                                                                
                ╚╚╚╚╚{    ↲                                                                                                                            
-               ╚╚╚╚╚{/if}↲    [original] line 292                                                                                                     
+               ╚╚╚╚╚{/if}↲    [original] line 292 (rest generated at line 156)                                                                        
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                  }                                                                                                                                    {/**
-            ===#           Originless mappings                                                                                                        
             ╚╚╚╚•}↲        [generated] line 156                                                                                                       
+            ╚╚╚╚           [generated] subset                                                                                                         
+            ↲                                                                                                                                         
+                      ↲                                                                                                                               
+            ╚╚╚╚╚{/if}↲    [original] line 292 (rest generated at line 155)                                                                           
+                                                                                                                                                      
+            ╚╚╚╚•}↲        [generated] line 156                                                                                                       
+                •}↲        [generated] subset                                                                                                         
                 / ↲                                                                                                                                   
                  /    ↲                                                                                                                               
-            ╚╚╚╚</div>↲    [original] line 293                                                                                                        
+            ╚╚╚╚</div>↲    [original] line 293 (rest generated at lines 157, 158)                                                                     
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                                                                                                                                                       {/**
-
+↲              [generated] line 157                                                                                                                   
+          ↲                                                                                                                                           
+╚╚╚╚</div>↲    [original] line 293 (rest generated at lines 156, 158)                                                                                 
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                  { svelteHTML.createElement("div", { "class":`improve-chapter`,});                                                                    {/**
-            ===#                                                                       Originless mappings                                            
             ╚╚╚╚•{•svelteHTML.createElement("div",•{•"class":`improve-chapter`,});↲    [generated] line 158                                           
+            ╚╚╚╚                                                                       [generated] subset                                             
+            ↲                                                                                                                                         
+                      ↲                                                                                                                               
+            ╚╚╚╚</div>↲                                                                [original] line 293 (rest generated at lines 156, 157)         
+                                                                                                                                                      
+            ╚╚╚╚•{•svelteHTML.createElement("div",•{•"class":`improve-chapter`,});↲    [generated] line 158                                           
+                •{•svelteHTML.createElement("div",•{•"class":`improve-chapter`,});↲    [generated] subset                                             
                 <                            div    "c lass=  improve-chapter"    ↲                                                                   
                                                     #                                  Order-breaking mappings                                        
                 <div class="improve-chapter" ↲                                                                                                        
-            ╚╚╚╚<div•class="improve-chapter">↲                                         [original] line 295                                            
+            ╚╚╚╚<div•class="improve-chapter">↲                                         [original] line 295 (rest generated at line 159)               
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                      { svelteHTML.createElement("a", {   "class":`no-underline`,"href":improve_link,});   }                                           {/**
-               ====#                                                                                            Originless mappings                   
                ╚╚╚╚╚•{•svelteHTML.createElement("a",•{•••"class":`no-underline`,"href":improve_link,});•••}↲    [generated] line 159                  
+               ╚╚╚╚╚                                                                                            [generated] subset                    
+               ↲                                                                                                                                      
+                                                ↲                                                                                                     
+               ╚╚╚╚<div•class="improve-chapter">↲                                                               [original] line 295 (rest generated at line 158)
+                                                                                                                                                      
+               ╚╚╚╚╚•{•svelteHTML.createElement("a",•{•••"class":`no-underline`,"href":improve_link,});•••}↲    [generated] line 159                  
+                    •{•svelteHTML.createElement("a",•{•••"class":`no-underline`,"href":improve_link,});•••}↲    [generated] subset                    
                     <                            a    "•{c lass=  no-underline" h ref= improve_link}   E / ↲                                          
                                                         #                                                       Order-breaking mappings               
                     <a class="no-underline"•href={improve_link} E                 /  ↲                                                                
-               ╚╚╚╚╚<a•class="no-underline"•href={improve_link}>Edit•this•chapter</a>↲                          [original] line 296                   
+               ╚╚╚╚╚<a•class="no-underline"•href={improve_link}>Edit•this•chapter</a>↲                          [original] line 296 (rest generated at line 160)
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                  }                                                                                                                                    {/**
-            ===#           Originless mappings                                                                                                        
-            ╚╚╚╚•}↲        [generated] line 160                                                                                                       
+            ╚╚╚╚•}↲                                                                    [generated] line 160                                           
+            ╚╚╚╚                                                                       [generated] subset                                             
+            ↲                                                                                                                                         
+                                                                                  ↲                                                                   
+            ╚╚╚╚╚<a•class="no-underline"•href={improve_link}>Edit•this•chapter</a>↲    [original] line 296 (rest generated at line 159)               
+                                                                                                                                                      
+            ╚╚╚╚•}↲                                                                    [generated] line 160                                           
+                •}↲                                                                    [generated] subset                                             
                 / ↲                                                                                                                                   
                  /    ↲                                                                                                                               
-            ╚╚╚╚</div>↲    [original] line 297                                                                                                        
+            ╚╚╚╚</div>↲                                                                [original] line 297 (rest generated at line 161)               
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
              }                                                                                                                                        {/**
-         ==#           Originless mappings                                                                                                            
-         ╚╚╚•}↲        [generated] line 161                                                                                                           
+         ╚╚╚•}↲         [generated] line 161                                                                                                          
+         ╚╚╚            [generated] subset                                                                                                            
+         ↲                                                                                                                                            
+                   ↲                                                                                                                                  
+         ╚╚╚╚</div>↲    [original] line 297 (rest generated at line 160)                                                                              
+                                                                                                                                                      
+         ╚╚╚•}↲         [generated] line 161                                                                                                          
+            •}↲         [generated] subset                                                                                                            
             / ↲                                                                                                                                       
              /    ↲                                                                                                                                   
-         ╚╚╚</div>↲    [original] line 298                                                                                                            
+         ╚╚╚</div>↲     [original] line 298 (rest generated at line 162)                                                                              
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
          }                                                                                                                                            {/**
-      =#           Originless mappings                                                                                                                
-      ╚╚•}↲        [generated] line 162                                                                                                               
+      ╚╚•}↲         [generated] line 162                                                                                                              
+      ╚╚            [generated] subset                                                                                                                
+      ↲                                                                                                                                               
+               ↲                                                                                                                                      
+      ╚╚╚</div>↲    [original] line 298 (rest generated at line 161)                                                                                  
+                                                                                                                                                      
+      ╚╚•}↲         [generated] line 162                                                                                                              
+        •}↲         [generated] subset                                                                                                                
         / ↲                                                                                                                                           
          /    ↲                                                                                                                                       
-      ╚╚</div>↲    [original] line 299                                                                                                                
+      ╚╚</div>↲     [original] line 299 (rest generated at lines 163, 164)                                                                            
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                                                                                                                                                       {/**
-
+↲            [generated] line 163                                                                                                                     
+        ↲                                                                                                                                             
+╚╚</div>↲    [original] line 299 (rest generated at lines 162, 164)                                                                                   
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
          { svelteHTML.createElement("div", { "class":`tutorial-repl`,});                                                                              {/**
-      =#                                                                     Originless mappings                                                      
       ╚╚•{•svelteHTML.createElement("div",•{•"class":`tutorial-repl`,});↲    [generated] line 164                                                     
+      ╚╚                                                                     [generated] subset                                                       
+      ↲                                                                                                                                               
+              ↲                                                                                                                                       
+      ╚╚</div>↲                                                              [original] line 299 (rest generated at lines 162, 163)                   
+                                                                                                                                                      
+      ╚╚•{•svelteHTML.createElement("div",•{•"class":`tutorial-repl`,});↲    [generated] line 164                                                     
+        •{•svelteHTML.createElement("div",•{•"class":`tutorial-repl`,});↲    [generated] subset                                                       
         <                            div    "c lass=  tutorial-repl"    ↲                                                                             
                                             #                                Order-breaking mappings                                                  
         <div class="tutorial-repl" ↲                                                                                                                  
-      ╚╚<div•class="tutorial-repl">↲                                         [original] line 301                                                      
+      ╚╚<div•class="tutorial-repl">↲                                         [original] line 301 (rest generated at line 165)                         
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
              { const $$_lpeR3C = __sveltets_2_ensureComponent(Repl); const $$_lpeR3 = new $$_lpeR3C({ target: __sveltets_2_any(), props: {               "workersUrl":`workers`,svelteUrl,rollupUrl,"orientation":mobile ? 'columns' : 'rows',"fixed":mobile,"injectedJS":mapbox_setup,"relaxed":true,}});repl = $$_lpeR3;$$_lpeR3.$on("change", handle_change);}{/**
-         ==#                                                                                                                                                                                                                                                                                                                                                          Originless mappings
+         ╚╚╚•{•const•$$_lpeR3C•=•__sveltets_2_ensureComponent(Repl);•const•$$_lpeR3•=•new•$$_lpeR3C({•target:•__sveltets_2_any(),•props:•{•••••••••••••••"workersUrl":`workers`,svelteUrl,rollupUrl,"orientation":mobile•?•'columns'•:•'rows',"fixed":mobile,"injectedJS":mapbox_setup,"relaxed":true,}});repl•=•$$_lpeR3;$$_lpeR3.$on("change",•handle_change);}↲    [generated] line 165
+         ╚╚╚                                                                                                                                                                                                                                                                                                                                                          [generated] subset
+         ↲                                                                                                                                                                                                                                                                                                                                                            
+                                      ↲                                                                                                                                                                                                                                                                                                                               
+         ╚╚<div•class="tutorial-repl">↲                                                                                                                                                                                                                                                                                                                               [original] line 301 (rest generated at line 164)
+                                                                                                                                                                                                                                                                                                                                                                      
          ╚╚╚•{•const•$$_lpeR3C•=•__sveltets_2_ensureComponent(Repl);•const•$$_lpeR3•=•new•$$_lpeR3C({•target:•__sveltets_2_any(),•props:•{•••••••••••••••"workersUrl":`workers`,svelteUrl,rollupUrl,"orientation":mobile•?•'columns'•:•'rows',"fixed":mobile,"injectedJS":mapbox_setup,"relaxed":true,}});repl•=•$$_lpeR3;$$_lpeR3.$on("change",•handle_change);}↲    [generated] line 165
             •{•const•$$_lpeR3C•=•__sveltets_2_ensureComponent(Repl);•const•$$_lpeR3•=•new•$$_lpeR3C({•target:•__sveltets_2_any(),•props:•{                                                                                                                                                                                                                            [generated] subset
             <                                                 Repl                                                                                                                                                                                                                                                                                                    
@@ -614,28 +789,48 @@ s                                              ↲
                                                                                                                                                         •                                                                                                                                                                                                        ↲    [generated] subset
                                                                                                                                                         ╚                                                                                                                                                                                                        ↲    
           ╚   ↲                                                                                                                                                                                                                                                                                                                                                       
-         ╚╚╚/>↲                                                                                                                                                                                                                                                                                                                                                       [original] line 312 
+         ╚╚╚/>↲                                                                                                                                                                                                                                                                                                                                                       [original] line 312 (rest generated at line 166)
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
          }                                                                                                                                            {/**
-      =#           Originless mappings                                                                                                                
       ╚╚•}↲        [generated] line 166                                                                                                               
+      ╚╚           [generated] subset                                                                                                                 
+      ↲                                                                                                                                               
+           ↲                                                                                                                                          
+      ╚╚╚/>↲       [original] line 312 (rest generated at line 165)                                                                                   
+                                                                                                                                                      
+      ╚╚•}↲        [generated] line 166                                                                                                               
+        •}↲        [generated] subset                                                                                                                 
         / ↲                                                                                                                                           
          /    ↲                                                                                                                                       
-      ╚╚</div>↲    [original] line 313                                                                                                                
+      ╚╚</div>↲    [original] line 313 (rest generated at line 167)                                                                                   
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
      }                                                                                                                                                {/**
-   #           Originless mappings                                                                                                                    
-   ╚•}↲        [generated] line 167                                                                                                                   
+   ╚•}↲         [generated] line 167                                                                                                                  
+   ╚            [generated] subset                                                                                                                    
+   ↲                                                                                                                                                  
+           ↲                                                                                                                                          
+   ╚╚</div>↲    [original] line 313 (rest generated at line 166)                                                                                      
+                                                                                                                                                      
+   ╚•}↲         [generated] line 167                                                                                                                  
+    •}↲         [generated] subset                                                                                                                    
     / ↲                                                                                                                                               
      /    ↲                                                                                                                                           
-   ╚</div>↲    [original] line 314                                                                                                                    
+   ╚</div>↲     [original] line 314 (rest generated at lines 168, 169)                                                                                
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                                                                                                                                                       {/**
-
+↲           [generated] line 168                                                                                                                      
+       ↲                                                                                                                                              
+╚</div>↲    [original] line 314 (rest generated at lines 167, 169)                                                                                    
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
     if(mobile){                                                                                                                                       {/**
-   #                 Originless mappings                                                                                                              
    ╚if(mobile){↲     [generated] line 169                                                                                                             
+   ╚                 [generated] subset                                                                                                               
+   ↲                                                                                                                                                  
+          ↲                                                                                                                                           
+   ╚</div>↲          [original] line 314 (rest generated at lines 167, 168)                                                                           
+                                                                                                                                                      
+   ╚if(mobile){↲     [generated] line 169                                                                                                             
+    if(mobile){↲     [generated] subset                                                                                                               
     {  mobile} ↲                                                                                                                                      
     {    mobile}↲                                                                                                                                     
    ╚{#if•mobile}↲    [original] line 316                                                                                                              
@@ -661,5 +856,5 @@ s                                              ↲
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
 return { props: {slug: slug , chapter: chapter}, slots: {}, events: {} }}
 
-export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial(__sveltets_2_with_any_event(render()))) {
+export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial(__sveltets_2_with_any_event($$render()))) {
 }

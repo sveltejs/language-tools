@@ -10,6 +10,10 @@
 	{#await foo then bar}{bar}{/await}
 {/snippet}
 
+{#snippet defaultValue(x = '')}
+	<div>asd{x}</div>
+{/snippet}
+
 {@render foo(1)}
 {@render bar()}
 {@render await_inside()}
@@ -34,4 +38,18 @@
 	implicit children
 </List>
 
+<List data={[1, 2, 3]}>
+	{#snippet row1(item)}
+		{item}
+	{/snippet}
+	<p>html between snippets</p>
+	{#snippet row2(item)}
+		{item}
+	{/snippet}
+</List>
+
 {@render children()}
+
+{#snippet jsDoc(/**@type {number}*/a)}
+	{a}
+{/snippet}

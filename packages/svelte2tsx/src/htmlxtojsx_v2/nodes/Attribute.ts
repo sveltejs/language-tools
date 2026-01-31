@@ -113,7 +113,7 @@ export function handleAttribute(
         if (
             !preserveCase &&
             !svgAttributes.find((x) => x == name) &&
-            !(element instanceof Element && element.tagName.includes('-')) &&
+            !(element instanceof Element && element.isCustomElement()) &&
             !(svelte5Plus && name.startsWith('on'))
         ) {
             return name.toLowerCase();
@@ -128,7 +128,14 @@ export function handleAttribute(
 
     if (attributeValueIsOfType(attr.value, 'AttributeShorthand')) {
         // For the attribute shorthand, the name will be the mapped part
-        addAttribute([[attr.value[0].start, attr.value[0].end]]);
+        let [start, end] = [attr.value[0].start, attr.value[0].end];
+        if (start === end) {
+            // Loose parsing mode, we have an empty attribute value, e.g. {}
+            // For proper intellisense we need to make this a non-empty expression.
+            start--;
+            str.overwrite(start, end, ' ', { contentOnly: true });
+        }
+        addAttribute([[start, end]]);
         return;
     } else {
         let name =
@@ -153,7 +160,7 @@ export function handleAttribute(
     const attributeValue: TransformationArray = [];
 
     if (attr.value === true) {
-        attributeValue.push('true');
+        attributeValue.push(attr.name === 'popover' ? '""' : 'true');
         addAttribute(attributeName, attributeValue);
         return;
     }
@@ -208,7 +215,14 @@ export function handleAttribute(
 
             addAttribute(attributeName, attributeValue);
         } else if (attrVal.type == 'MustacheTag') {
-            attributeValue.push(rangeWithTrailingPropertyAccess(str.original, attrVal.expression));
+            let [start, end] = rangeWithTrailingPropertyAccess(str.original, attrVal.expression);
+            if (start === end) {
+                // Loose parsing mode, we have an empty attribute value, e.g. attr={}
+                // For proper intellisense we need to make this a non-empty expression.
+                start--;
+                str.overwrite(start, end, ' ', { contentOnly: true });
+            }
+            attributeValue.push([start, end]);
             addAttribute(attributeName, attributeValue);
         }
         return;

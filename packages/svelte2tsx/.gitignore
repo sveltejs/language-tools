@@ -1,5 +1,6 @@
 .DS_Store
-node_modules
+/node_modules
+/test/emitDts/samples/cross-package-generic-types/node_modules/.svelte2tsx-language-server-files
 /index.js
 /index.js.map
 /index.mjs

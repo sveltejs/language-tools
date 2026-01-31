@@ -21,14 +21,14 @@
         "editor",
         "language-server"
     ],
-    "author": "James Birtles <jameshbirtles@gmail.com> and the Svelte Language Tools contributors",
+    "author": "The Svelte Community",
     "license": "MIT",
     "bugs": {
         "url": "https://github.com/sveltejs/language-tools/issues"
     },
     "homepage": "https://github.com/sveltejs/language-tools#readme",
     "engines": {
-        "node": ">= 16.0.0"
+        "node": ">= 18.0.0"
     },
     "dependencies": {
         "@jridgewell/sourcemap-codec": "^1.4.15",

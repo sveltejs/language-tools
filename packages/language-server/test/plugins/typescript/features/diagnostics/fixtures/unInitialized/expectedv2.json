@@ -1,6 +1,22 @@
 [
     {
-        "range": { "start": { "line": 3, "character": 4 }, "end": { "line": 3, "character": 6 } },
+        "range": { "start": { "line": 5, "character": 4 }, "end": { "line": 5, "character": 6 } },
+        "severity": 1,
+        "source": "ts",
+        "message": "Variable 'hi' is used before being assigned.",
+        "code": 2454,
+        "tags": []
+    },
+    {
+        "range": { "start": { "line": 7, "character": 4 }, "end": { "line": 7, "character": 7 } },
+        "severity": 1,
+        "source": "ts",
+        "message": "Variable 'hi3' is used before being assigned.",
+        "code": 2454,
+        "tags": []
+    },
+    {
+        "range": { "start": { "line": 16, "character": 1 }, "end": { "line": 16, "character": 3 } },
         "severity": 1,
         "source": "ts",
         "message": "Variable 'hi' is used before being assigned.",

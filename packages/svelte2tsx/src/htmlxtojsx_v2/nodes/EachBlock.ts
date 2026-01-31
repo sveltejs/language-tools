@@ -1,6 +1,11 @@
 import MagicString from 'magic-string';
 import { BaseNode } from '../../interfaces';
-import { getEnd, transform, TransformationArray } from '../utils/node-utils';
+import {
+    getEnd,
+    isImplicitlyClosedBlock,
+    transform,
+    TransformationArray
+} from '../utils/node-utils';
 
 /**
  * Transform #each into a for-of loop
@@ -21,43 +26,51 @@ import { getEnd, transform, TransformationArray } from '../utils/node-utils';
  *   `ensureArray` will error that there are more args than expected
  */
 export function handleEach(str: MagicString, eachBlock: BaseNode): void {
-    const startEnd = str.original.indexOf('}', eachBlock.key?.end || eachBlock.context.end) + 1;
+    const startEnd =
+        str.original.indexOf(
+            '}',
+            eachBlock.key?.end || eachBlock.context?.end || eachBlock.expression.end
+        ) + 1;
     let transforms: TransformationArray;
     // {#each true, [1,2]} is valid but for (const x of true, [1,2]) is not if not wrapped with braces
     const containsComma = str.original
         .substring(eachBlock.expression.start, eachBlock.expression.end)
         .includes(',');
     const expressionEnd = getEnd(eachBlock.expression);
-    const contextEnd = getEnd(eachBlock.context);
+    const contextEnd = eachBlock.context && getEnd(eachBlock.context);
     const arrayAndItemVarTheSame =
+        !!eachBlock.context &&
         str.original.substring(eachBlock.expression.start, expressionEnd) ===
-        str.original.substring(eachBlock.context.start, contextEnd);
+            str.original.substring(eachBlock.context.start, contextEnd);
     if (arrayAndItemVarTheSame) {
         transforms = [
             `{ const $$_each = __sveltets_2_ensureArray(${containsComma ? '(' : ''}`,
             [eachBlock.expression.start, eachBlock.expression.end],
             `${containsComma ? ')' : ''}); for(let `,
-            [eachBlock.context.start, contextEnd],
+            [eachBlock.context!.start, contextEnd!],
             ' of $$_each){'
         ];
     } else {
         transforms = [
             'for(let ',
-            [eachBlock.context.start, contextEnd],
+            eachBlock.context ? [eachBlock.context.start, contextEnd] : '$$each_item',
             ` of __sveltets_2_ensureArray(${containsComma ? '(' : ''}`,
             [eachBlock.expression.start, eachBlock.expression.end],
-            `${containsComma ? ')' : ''})){`
+            `${containsComma ? ')' : ''})){${eachBlock.context ? '' : '$$each_item;'}`
         ];
     }
     if (eachBlock.index) {
-        const indexStart = str.original.indexOf(eachBlock.index, eachBlock.context.end);
+        const indexStart = str.original.indexOf(
+            eachBlock.index,
+            eachBlock.context?.end || eachBlock.expression.end
+        );
         const indexEnd = indexStart + eachBlock.index.length;
         transforms.push('let ', [indexStart, indexEnd], ' = 1;');
     }
     if (eachBlock.key) {
         transforms.push([eachBlock.key.start, eachBlock.key.end], ';');
     }
-    transform(str, eachBlock.start, startEnd, startEnd, transforms);
+    transform(str, eachBlock.start, startEnd, transforms);
 
     const endEach = str.original.lastIndexOf('{', eachBlock.end - 1);
     // {/each} -> } or {:else} -> }
@@ -67,10 +80,18 @@ export function handleEach(str: MagicString, eachBlock: BaseNode): void {
         str.overwrite(elseStart, elseEnd + 1, '}' + (arrayAndItemVarTheSame ? '}' : ''), {
             contentOnly: true
         });
-        str.remove(endEach, eachBlock.end);
+
+        if (!isImplicitlyClosedBlock(endEach, eachBlock)) {
+            str.remove(endEach, eachBlock.end);
+        }
     } else {
-        str.overwrite(endEach, eachBlock.end, '}' + (arrayAndItemVarTheSame ? '}' : ''), {
-            contentOnly: true
-        });
+        const closing = '}' + (arrayAndItemVarTheSame ? '}' : '');
+        if (isImplicitlyClosedBlock(endEach, eachBlock)) {
+            str.prependLeft(eachBlock.end, closing);
+        } else {
+            str.overwrite(endEach, eachBlock.end, closing, {
+                contentOnly: true
+            });
+        }
     }
 }

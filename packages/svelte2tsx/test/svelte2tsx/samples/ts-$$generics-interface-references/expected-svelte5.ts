@@ -5,7 +5,7 @@ interface ReferencedByGeneric {
         b: true;
         f: Foo;
     }
-function render/*Ωignore_startΩ*/<A,B extends ReferencedByGeneric>/*Ωignore_endΩ*/() {
+function $$render/*Ωignore_startΩ*/<A,B extends ReferencedByGeneric>/*Ωignore_endΩ*/() {
 
     
     interface ReferencesGeneric {
@@ -20,16 +20,16 @@ function render/*Ωignore_startΩ*/<A,B extends ReferencedByGeneric>/*Ωignore_e
      let b: B/*Ωignore_startΩ*/;b = __sveltets_2_any(b);/*Ωignore_endΩ*/;
 ;
 async () => {};
-return { props: {a: a , b: b} as {a: ReferencesGeneric, b: B}, slots: {}, events: {} }}
+return { props: {a: a , b: b} as {a: ReferencesGeneric, b: B}, exports: {}, bindings: "", slots: {}, events: {} }}
 class __sveltets_Render<A,B extends ReferencedByGeneric> {
     props() {
-        return render<A,B>().props;
+        return $$render<A,B>().props;
     }
     events() {
-        return __sveltets_2_with_any_event(render<A,B>()).events;
+        return __sveltets_2_with_any_event($$render<A,B>()).events;
     }
     slots() {
-        return render<A,B>().slots;
+        return $$render<A,B>().slots;
     }
     bindings() { return ""; }
     exports() { return {}; }

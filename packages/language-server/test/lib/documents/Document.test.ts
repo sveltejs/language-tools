@@ -20,7 +20,12 @@ describe('Document', () => {
 
         document.setText('Hello, world!');
         assert.strictEqual(document.version, 1);
-        document.update('svelte', 7, 12);
+        document.update([
+            {
+                text: 'svelte',
+                range: { start: { line: 0, character: 7 }, end: { line: 0, character: 12 } }
+            }
+        ]);
         assert.strictEqual(document.version, 2);
     });
 
@@ -77,8 +82,28 @@ describe('Document', () => {
 
     it('updates the text range', () => {
         const document = new Document('file:///hello.svelte', 'Hello, world!');
-        document.update('svelte', 7, 12);
+        document.update([
+            {
+                text: 'svelte',
+                range: { start: { line: 0, character: 7 }, end: { line: 0, character: 12 } }
+            }
+        ]);
         assert.strictEqual(document.getText(), 'Hello, svelte!');
+    });
+
+    it('updates multiple text ranges', () => {
+        const document = new Document('file:///hello.svelte', 'Hello, world! This is a test.');
+        document.update([
+            {
+                text: 'example',
+                range: { start: { line: 0, character: 24 }, end: { line: 0, character: 28 } }
+            },
+            {
+                text: 'Svelte!\n',
+                range: { start: { line: 0, character: 7 }, end: { line: 0, character: 13 } }
+            }
+        ]);
+        assert.strictEqual(document.getText(), 'Hello, Svelte!\n This is a example.');
     });
 
     it('gets the correct position from offset', () => {

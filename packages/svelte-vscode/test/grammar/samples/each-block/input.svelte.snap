@@ -62,3 +62,69 @@
 #  ^^^^ source.svelte meta.special.each.svelte meta.special.end.svelte keyword.control.svelte
 #      ^ source.svelte meta.special.each.svelte meta.special.end.svelte punctuation.definition.block.end.svelte
 >
+>{#each v}
+#^ source.svelte meta.special.each.svelte meta.special.start.svelte punctuation.definition.block.begin.svelte
+# ^ source.svelte meta.special.each.svelte meta.special.start.svelte punctuation.definition.keyword.svelte
+#  ^^^^ source.svelte meta.special.each.svelte meta.special.start.svelte keyword.control.svelte
+#      ^ source.svelte meta.special.each.svelte meta.special.start.svelte
+#       ^ source.svelte meta.special.each.svelte meta.special.start.svelte meta.embedded.expression.svelte source.ts
+#        ^ source.svelte meta.special.each.svelte meta.special.start.svelte punctuation.definition.block.end.svelte
+>    this should be seen as text 
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.svelte text.svelte
+>{/each}
+#^ source.svelte meta.special.each.svelte meta.special.end.svelte punctuation.definition.block.begin.svelte
+# ^ source.svelte meta.special.each.svelte meta.special.end.svelte punctuation.definition.keyword.svelte
+#  ^^^^ source.svelte meta.special.each.svelte meta.special.end.svelte keyword.control.svelte
+#      ^ source.svelte meta.special.each.svelte meta.special.end.svelte punctuation.definition.block.end.svelte
+>
+>{#each v }
+#^ source.svelte meta.special.each.svelte meta.special.start.svelte punctuation.definition.block.begin.svelte
+# ^ source.svelte meta.special.each.svelte meta.special.start.svelte punctuation.definition.keyword.svelte
+#  ^^^^ source.svelte meta.special.each.svelte meta.special.start.svelte keyword.control.svelte
+#      ^ source.svelte meta.special.each.svelte meta.special.start.svelte
+#       ^ source.svelte meta.special.each.svelte meta.special.start.svelte meta.embedded.expression.svelte source.ts
+#        ^ source.svelte meta.special.each.svelte meta.special.start.svelte
+#         ^ source.svelte meta.special.each.svelte meta.special.start.svelte punctuation.definition.block.end.svelte
+>    this should be seen as text 
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.svelte text.svelte
+>{/each}
+#^ source.svelte meta.special.each.svelte meta.special.end.svelte punctuation.definition.block.begin.svelte
+# ^ source.svelte meta.special.each.svelte meta.special.end.svelte punctuation.definition.keyword.svelte
+#  ^^^^ source.svelte meta.special.each.svelte meta.special.end.svelte keyword.control.svelte
+#      ^ source.svelte meta.special.each.svelte meta.special.end.svelte punctuation.definition.block.end.svelte
+>
+>{#each v, i}
+#^ source.svelte meta.special.each.svelte meta.special.start.svelte punctuation.definition.block.begin.svelte
+# ^ source.svelte meta.special.each.svelte meta.special.start.svelte punctuation.definition.keyword.svelte
+#  ^^^^ source.svelte meta.special.each.svelte meta.special.start.svelte keyword.control.svelte
+#      ^ source.svelte meta.special.each.svelte meta.special.start.svelte
+#       ^ source.svelte meta.special.each.svelte meta.special.start.svelte meta.embedded.expression.svelte source.ts
+#        ^ source.svelte meta.special.each.svelte meta.special.start.svelte punctuation.separator.svelte
+#         ^^ source.svelte meta.special.each.svelte meta.special.start.svelte meta.embedded.expression.svelte source.ts
+#           ^ source.svelte meta.special.each.svelte meta.special.start.svelte punctuation.definition.block.end.svelte
+>    this should be seen as text 
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.svelte text.svelte
+>{/each}
+#^ source.svelte meta.special.each.svelte meta.special.end.svelte punctuation.definition.block.begin.svelte
+# ^ source.svelte meta.special.each.svelte meta.special.end.svelte punctuation.definition.keyword.svelte
+#  ^^^^ source.svelte meta.special.each.svelte meta.special.end.svelte keyword.control.svelte
+#      ^ source.svelte meta.special.each.svelte meta.special.end.svelte punctuation.definition.block.end.svelte
+>
+>{#each v , i}
+#^ source.svelte meta.special.each.svelte meta.special.start.svelte punctuation.definition.block.begin.svelte
+# ^ source.svelte meta.special.each.svelte meta.special.start.svelte punctuation.definition.keyword.svelte
+#  ^^^^ source.svelte meta.special.each.svelte meta.special.start.svelte keyword.control.svelte
+#      ^ source.svelte meta.special.each.svelte meta.special.start.svelte
+#       ^ source.svelte meta.special.each.svelte meta.special.start.svelte meta.embedded.expression.svelte source.ts
+#        ^ source.svelte meta.special.each.svelte meta.special.start.svelte
+#         ^ source.svelte meta.special.each.svelte meta.special.start.svelte punctuation.separator.svelte
+#          ^^ source.svelte meta.special.each.svelte meta.special.start.svelte meta.embedded.expression.svelte source.ts
+#            ^ source.svelte meta.special.each.svelte meta.special.start.svelte punctuation.definition.block.end.svelte
+>    this should be seen as text 
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.svelte text.svelte
+>{/each}
+#^ source.svelte meta.special.each.svelte meta.special.end.svelte punctuation.definition.block.begin.svelte
+# ^ source.svelte meta.special.each.svelte meta.special.end.svelte punctuation.definition.keyword.svelte
+#  ^^^^ source.svelte meta.special.each.svelte meta.special.end.svelte keyword.control.svelte
+#      ^ source.svelte meta.special.each.svelte meta.special.end.svelte punctuation.definition.block.end.svelte
+>

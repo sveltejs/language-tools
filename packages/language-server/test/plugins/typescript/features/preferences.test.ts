@@ -64,7 +64,14 @@ describe('ts user preferences', function () {
             typescript: { ...getPreferences(), ...preferences },
             javascript: { ...getPreferences(), ...preferences }
         });
-        return new LSAndTSDocResolver(docManager, [pathToUrl(testFilesDir)], configManager);
+        return {
+            lsAndTsDocResolver: new LSAndTSDocResolver(
+                docManager,
+                [pathToUrl(testFilesDir)],
+                configManager
+            ),
+            configManager
+        };
     }
 
     function getDefaultPreferences(): TsUserPreferencesConfig {
@@ -73,17 +80,15 @@ describe('ts user preferences', function () {
             importModuleSpecifier: 'non-relative',
             importModuleSpecifierEnding: undefined,
             quoteStyle: 'single',
-            includePackageJsonAutoImports: undefined
+            includePackageJsonAutoImports: undefined,
+            organizeImports: undefined
         };
     }
 
     it('provides auto import completion according to preferences', async () => {
         const { docManager, document } = setup('code-action.svelte');
-        const lsAndTsDocResolver = createLSAndTSDocResolver(docManager);
-        const completionProvider = new CompletionsProviderImpl(
-            lsAndTsDocResolver,
-            new LSConfigManager()
-        );
+        const { lsAndTsDocResolver, configManager } = createLSAndTSDocResolver(docManager);
+        const completionProvider = new CompletionsProviderImpl(lsAndTsDocResolver, configManager);
 
         const completions = await completionProvider.getCompletions(
             document,
@@ -102,15 +107,13 @@ describe('ts user preferences', function () {
         context: CodeActionContext
     ) {
         const { docManager, document } = setup(filename);
-        const lsAndTsDocResolver = createLSAndTSDocResolver(docManager);
-        const completionProvider = new CompletionsProviderImpl(
-            lsAndTsDocResolver,
-            new LSConfigManager()
-        );
+        const { lsAndTsDocResolver, configManager } = createLSAndTSDocResolver(docManager);
+        const completionProvider = new CompletionsProviderImpl(lsAndTsDocResolver, configManager);
+
         const codeActionProvider = new CodeActionsProviderImpl(
             lsAndTsDocResolver,
             completionProvider,
-            new LSConfigManager()
+            configManager
         );
 
         const codeAction = await codeActionProvider.getCodeActions(document, range, context);
@@ -137,7 +140,7 @@ describe('ts user preferences', function () {
 
     it('provides auto import suggestions according to preferences', async () => {
         const { docManager, document } = setup('code-action.svelte');
-        const lsAndTsDocResolver = createLSAndTSDocResolver(docManager, {
+        const { lsAndTsDocResolver, configManager } = createLSAndTSDocResolver(docManager, {
             suggest: {
                 autoImports: false,
                 includeAutomaticOptionalChainCompletions: undefined,
@@ -147,10 +150,7 @@ describe('ts user preferences', function () {
                 includeCompletionsWithSnippetText: undefined
             }
         });
-        const completionProvider = new CompletionsProviderImpl(
-            lsAndTsDocResolver,
-            new LSConfigManager()
-        );
+        const completionProvider = new CompletionsProviderImpl(lsAndTsDocResolver, configManager);
 
         const completions = await completionProvider.getCompletions(
             document,
@@ -165,14 +165,14 @@ describe('ts user preferences', function () {
 
     function setupImportModuleSpecifierEndingJs() {
         const { docManager, document } = setup('module-specifier-js.svelte');
-        const lsAndTsDocResolver = createLSAndTSDocResolver(docManager, {
+        const { lsAndTsDocResolver, configManager } = createLSAndTSDocResolver(docManager, {
             preferences: {
                 ...getDefaultPreferences(),
                 importModuleSpecifierEnding: 'js'
             }
         });
 
-        return { document, lsAndTsDocResolver };
+        return { document, lsAndTsDocResolver, configManager };
     }
 
     it('provides auto import for svelte component when importModuleSpecifierEnding is js', async () => {
@@ -248,16 +248,13 @@ describe('ts user preferences', function () {
 
     async function testExcludeDefinitionDir(pattern: string) {
         const { docManager, document } = setup('code-action.svelte');
-        const lsAndTsDocResolver = createLSAndTSDocResolver(docManager, {
+        const { lsAndTsDocResolver, configManager } = createLSAndTSDocResolver(docManager, {
             preferences: {
                 ...getDefaultPreferences(),
                 autoImportFileExcludePatterns: [pattern]
             }
         });
-        const completionProvider = new CompletionsProviderImpl(
-            lsAndTsDocResolver,
-            new LSConfigManager()
-        );
+        const completionProvider = new CompletionsProviderImpl(lsAndTsDocResolver, configManager);
 
         const completions = await completionProvider.getCompletions(
             document,
@@ -279,5 +276,25 @@ describe('ts user preferences', function () {
 
     it('exclude auto import (**/ pattern)', async () => {
         await testExcludeDefinitionDir('**/definition');
+    });
+
+    it('exclude auto import outside of the root', async () => {
+        const { docManager, document } = setup('code-action-outside-root.svelte');
+        const { lsAndTsDocResolver, configManager } = createLSAndTSDocResolver(docManager, {
+            preferences: {
+                ...getDefaultPreferences(),
+                autoImportFileExcludePatterns: ['definitions.ts']
+            }
+        });
+        const completionProvider = new CompletionsProviderImpl(lsAndTsDocResolver, configManager);
+
+        const completions = await completionProvider.getCompletions(
+            document,
+            Position.create(4, 7)
+        );
+
+        const item = completions?.items.find((item) => item.label === 'blubb');
+
+        assert.equal(item, undefined);
     });
 });

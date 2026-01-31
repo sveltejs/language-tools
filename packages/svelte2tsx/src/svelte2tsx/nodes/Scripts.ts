@@ -35,7 +35,11 @@ export class Scripts {
             if (
                 tag.attributes &&
                 tag.attributes.find(
-                    (a) => a.name == 'context' && a.value.length == 1 && a.value[0].raw == 'module'
+                    (a) =>
+                        (a.name == 'context' &&
+                            a.value.length == 1 &&
+                            a.value[0].raw == 'module') ||
+                        a.name === 'module'
                 )
             ) {
                 moduleScriptTag = tag;

@@ -1,19 +1,19 @@
 ///<reference types="svelte" />
-;function render<T extends Record<string, any>>() {
+;function $$render<T extends Record<string, any>>() {
 
      let init: T/*Ωignore_startΩ*/;init = __sveltets_2_any(init);/*Ωignore_endΩ*/;
 ;
 async () => {};
-return { props: {init: init} as {init: T}, slots: {}, events: {} }}
+return { props: {init: init} as {init: T}, exports: {}, bindings: "", slots: {}, events: {} }}
 class __sveltets_Render<T extends Record<string, any>> {
     props() {
-        return render<T>().props;
+        return $$render<T>().props;
     }
     events() {
-        return __sveltets_2_with_any_event(render<T>()).events;
+        return __sveltets_2_with_any_event($$render<T>()).events;
     }
     slots() {
-        return render<T>().slots;
+        return $$render<T>().slots;
     }
     bindings() { return ""; }
     exports() { return {}; }

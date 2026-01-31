@@ -20,6 +20,11 @@
         "plugin"
     ],
     "author": "The Svelte Community",
+    "homepage": "https://github.com/sveltejs/language-tools/tree/master/packages/typescript-plugin",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/sveltejs/language-tools/tree/master/packages/typescript-plugin"
+    },
     "license": "MIT",
     "dependencies": {
         "@volar/typescript": "~2.3.0",

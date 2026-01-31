@@ -14,15 +14,21 @@ try { const $$_value = await (foo as Promise<void>);{ const result: any = $$_val
     
 }}
 
-item as string;  
+item as string; { }
 
- var foo/*Ωignore_startΩ*/: import('svelte').Snippet<[string]>/*Ωignore_endΩ*/ = (bar: string) => {async () => { };return __sveltets_2_any(0)};
+ const foo/*Ωignore_positionΩ*/ = (bar: string)/*Ωignore_startΩ*/: ReturnType<import('svelte').Snippet>/*Ωignore_endΩ*/ => { async ()/*Ωignore_positionΩ*/ => { };return __sveltets_2_any(0)};
 
- var foo2/*Ωignore_startΩ*/: import('svelte').Snippet<[string]>/*Ωignore_endΩ*/ = (bar : string) => {async () => { };return __sveltets_2_any(0)};
+ const foo2/*Ωignore_positionΩ*/ = (bar : string)/*Ωignore_startΩ*/: ReturnType<import('svelte').Snippet>/*Ωignore_endΩ*/ => { async ()/*Ωignore_positionΩ*/ => { };return __sveltets_2_any(0)};
 
- var foo3/*Ωignore_startΩ*/: import('svelte').Snippet<[string | number]>/*Ωignore_endΩ*/ = (bar    : string | number) => {async () => { };return __sveltets_2_any(0)};
+ const foo3/*Ωignore_positionΩ*/ = (bar    : string | number)/*Ωignore_startΩ*/: ReturnType<import('svelte').Snippet>/*Ωignore_endΩ*/ => { async ()/*Ωignore_positionΩ*/ => { };return __sveltets_2_any(0)};
 
- var foo3/*Ωignore_startΩ*/: import('svelte').Snippet<[string | number, (str: string)=>void]>/*Ωignore_endΩ*/ = (bar    : string | number, baz     : (str: string)=>void) => {async () => { };return __sveltets_2_any(0)};
+ const foo4/*Ωignore_positionΩ*/ = (bar    : string | number, baz     : (str: string)=>void)/*Ωignore_startΩ*/: ReturnType<import('svelte').Snippet>/*Ωignore_endΩ*/ => { async ()/*Ωignore_positionΩ*/ => { };return __sveltets_2_any(0)};
+
+ const foo5/*Ωignore_positionΩ*/ = (bar: {baz: string})/*Ωignore_startΩ*/: ReturnType<import('svelte').Snippet>/*Ωignore_endΩ*/ => { async ()/*Ωignore_positionΩ*/ => { };return __sveltets_2_any(0)};
+
+ const foo6/*Ωignore_positionΩ*/ = (bar?: string)/*Ωignore_startΩ*/: ReturnType<import('svelte').Snippet>/*Ωignore_endΩ*/ => { async ()/*Ωignore_positionΩ*/ => { };return __sveltets_2_any(0)};
+
+ const foo7/*Ωignore_positionΩ*/ = (bar, baz = '')/*Ωignore_startΩ*/: ReturnType<import('svelte').Snippet>/*Ωignore_endΩ*/ => { async ()/*Ωignore_positionΩ*/ => { };return __sveltets_2_any(0)};
 
 ;__sveltets_2_ensureSnippet(foo(bar as string));
 

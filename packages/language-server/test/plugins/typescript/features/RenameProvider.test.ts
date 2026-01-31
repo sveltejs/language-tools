@@ -953,8 +953,6 @@ describe('RenameProvider', function () {
 
         const result = await provider.rename(renameRunes, Position.create(1, 54), 'newName');
 
-        console.log(JSON.stringify(result, null, 2));
-
         assert.deepStrictEqual(result, {
             changes: {
                 [getUri('rename-runes.svelte')]: [

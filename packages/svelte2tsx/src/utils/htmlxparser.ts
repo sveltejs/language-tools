@@ -114,7 +114,7 @@ function blankVerbatimContent(htmlx: string, verbatimElements: Node[]) {
 export function parseHtmlx(
     htmlx: string,
     parse: typeof import('svelte/compiler').parse,
-    options: { emitOnTemplateError?: boolean }
+    options: { emitOnTemplateError?: boolean; svelte5Plus: boolean }
 ) {
     //Svelte tries to parse style and script tags which doesn't play well with typescript, so we blank them out.
     //HTMLx spec says they should just be retained after processing as is, so this is fine
@@ -122,10 +122,16 @@ export function parseHtmlx(
     const deconstructed = blankVerbatimContent(htmlx, verbatimElements);
 
     //extract the html content parsed as htmlx this excludes our script and style tags
-    const parsingCode = options.emitOnTemplateError
-        ? blankPossiblyErrorOperatorOrPropertyAccess(deconstructed)
-        : deconstructed;
-    const htmlxAst = parse(parsingCode).html as any;
+    const parsingCode =
+        options.emitOnTemplateError && !options.svelte5Plus
+            ? blankPossiblyErrorOperatorOrPropertyAccess(deconstructed)
+            : deconstructed;
+    const htmlxAst = (
+        parse(
+            parsingCode,
+            options.svelte5Plus ? ({ loose: options.emitOnTemplateError } as any) : undefined
+        ) as any
+    ).html;
 
     //restore our script and style tags as nodes to maintain validity with HTMLx
     for (const s of verbatimElements) {

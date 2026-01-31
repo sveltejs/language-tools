@@ -29,7 +29,7 @@ describe('TypeDefinitionProvider', function () {
         );
         const lsAndTsDocResolver = new LSAndTSDocResolver(
             docManager,
-            [testDir],
+            [pathToUrl(testDir)],
             new LSConfigManager()
         );
         const provider = new TypeDefinitionProviderImpl(lsAndTsDocResolver);

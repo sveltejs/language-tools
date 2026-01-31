@@ -1,11 +1,13 @@
 {
     "compilerOptions": {
         "strict": true,
+        "allowJs": true,
+        "target": "ESNext",
         /**
           This is actually not needed, but makes the tests faster
           because TS does not look up other types.
         */
         "types": ["svelte"]
     },
-    "exclude": ["./svelte-native/**/*", "./node16/**/*"]
+    "exclude": ["./svelte-native/**/*", "./node16/**/*", "project-reference/**/*"]
 }

@@ -60,7 +60,7 @@ describe('CompletionProviderImpl', function () {
             uri: pathToUrl(filePath),
             text: ts.sys.readFile(filePath) || ''
         });
-        return { completionProvider, document, docManager };
+        return { completionProvider, document, docManager, lsConfigManager };
     }
 
     it('provides completions', async () => {
@@ -170,6 +170,34 @@ describe('CompletionProviderImpl', function () {
         });
     }
 
+    it('provide completion with items default when supported', async () => {
+        const { completionProvider, document, lsConfigManager } = setup('completions.svelte');
+
+        lsConfigManager.updateClientCapabilities({
+            textDocument: {
+                completion: {
+                    completionList: {
+                        itemDefaults: ['commitCharacters']
+                    }
+                }
+            }
+        });
+
+        const completions = await completionProvider.getCompletions(
+            document,
+            Position.create(0, 49),
+            {
+                triggerKind: CompletionTriggerKind.TriggerCharacter,
+                triggerCharacter: '.'
+            }
+        );
+
+        assert.deepStrictEqual(completions?.itemDefaults?.commitCharacters, ['.', ',', ';', '(']);
+
+        const first = completions!.items[0];
+        assert.strictEqual(first.commitCharacters, undefined);
+    });
+
     it('provides event completions', async () => {
         const { completionProvider, document } = setup('component-events-completion.svelte');
 
@@ -191,6 +219,7 @@ describe('CompletionProviderImpl', function () {
 
         assert.deepStrictEqual(eventCompletions, <CompletionItem[]>[
             {
+                commitCharacters: [],
                 detail: 'aa: CustomEvent<boolean>',
                 documentation: '',
                 label: 'on:aa',
@@ -199,6 +228,7 @@ describe('CompletionProviderImpl', function () {
                 textEdit: undefined
             },
             {
+                commitCharacters: [],
                 detail: 'ab: MouseEvent',
                 documentation: {
                     kind: 'markdown',
@@ -210,6 +240,7 @@ describe('CompletionProviderImpl', function () {
                 textEdit: undefined
             },
             {
+                commitCharacters: [],
                 detail: 'ac: any',
                 documentation: '',
                 label: 'on:ac',
@@ -263,10 +294,18 @@ describe('CompletionProviderImpl', function () {
         );
 
         const item = completions!.items.find((item) => item.label === 'custom-element');
+        assert.ok(item);
+        await completionProvider.resolveCompletion(document, item);
+        delete item.data;
 
         assert.deepStrictEqual(item, <CompletionItem>{
             label: 'custom-element',
+            documentation: {
+                value: 'Custom doc for custom element',
+                kind: 'markdown'
+            },
             kind: CompletionItemKind.Property,
+            commitCharacters: [],
             textEdit: {
                 range: { start: { line: 0, character: 1 }, end: { line: 0, character: 2 } },
                 newText: 'custom-element'
@@ -309,6 +348,7 @@ describe('CompletionProviderImpl', function () {
 
         assert.deepStrictEqual(eventCompletions, <CompletionItem[]>[
             {
+                commitCharacters: [],
                 detail: 'aa: CustomEvent<boolean>',
                 documentation: '',
                 label: 'on:aa',
@@ -329,6 +369,7 @@ describe('CompletionProviderImpl', function () {
                 }
             },
             {
+                commitCharacters: [],
                 detail: 'ab: MouseEvent',
                 documentation: {
                     kind: 'markdown',
@@ -352,6 +393,7 @@ describe('CompletionProviderImpl', function () {
                 }
             },
             {
+                commitCharacters: [],
                 detail: 'ac: any',
                 documentation: '',
                 label: 'on:ac',
@@ -389,6 +431,7 @@ describe('CompletionProviderImpl', function () {
 
         assert.deepStrictEqual(eventCompletions, <CompletionItem[]>[
             {
+                commitCharacters: [],
                 detail: 'c: CustomEvent<boolean>',
                 documentation: {
                     kind: 'markdown',
@@ -417,6 +460,7 @@ describe('CompletionProviderImpl', function () {
 
         assert.deepStrictEqual(eventCompletions, <CompletionItem[]>[
             {
+                commitCharacters: [],
                 detail: 'event1: CustomEvent<null>',
                 documentation: '',
                 label: 'on:event1',
@@ -437,6 +481,7 @@ describe('CompletionProviderImpl', function () {
                 }
             },
             {
+                commitCharacters: [],
                 detail: 'event2: CustomEvent<string>',
                 documentation: {
                     kind: 'markdown',
@@ -477,6 +522,7 @@ describe('CompletionProviderImpl', function () {
 
         assert.deepStrictEqual(eventCompletions, <CompletionItem[]>[
             {
+                commitCharacters: [],
                 detail: 'event1: CustomEvent<string> | CustomEvent<number>',
                 label: 'on:event1',
                 sortText: '-1',
@@ -1101,6 +1147,7 @@ describe('CompletionProviderImpl', function () {
 
         assert.deepStrictEqual(slotLetCompletions, <CompletionItem[]>[
             {
+                commitCharacters: [],
                 detail: 'let1: boolean',
                 documentation: '',
                 label: 'let:let1',
@@ -1121,6 +1168,7 @@ describe('CompletionProviderImpl', function () {
                 }
             },
             {
+                commitCharacters: [],
                 detail: 'let2: string',
                 documentation: {
                     kind: 'markdown',
@@ -1195,6 +1243,66 @@ describe('CompletionProviderImpl', function () {
                 range: {
                     end: {
                         character: 15,
+                        line: 1
+                    },
+                    start: {
+                        character: 11,
+                        line: 1
+                    }
+                }
+            }
+        });
+    });
+
+    it('provides import statement completion with brackets', async () => {
+        const { completionProvider, document } = setup('importstatementcompletions2.svelte');
+
+        const completions = await completionProvider.getCompletions(
+            document,
+            {
+                line: 1,
+                character: 15
+            },
+            {
+                triggerKind: CompletionTriggerKind.Invoked
+            }
+        );
+
+        const item = completions?.items.find((item) => item.label === 'blubb');
+
+        delete item?.data;
+
+        assert.deepStrictEqual(item, {
+            additionalTextEdits: [
+                {
+                    newText: 'import ',
+                    range: {
+                        end: {
+                            character: 11,
+                            line: 1
+                        },
+                        start: {
+                            character: 4,
+                            line: 1
+                        }
+                    }
+                }
+            ],
+            label: 'blubb',
+            insertText: 'import { blubb$1 } from "../definitions";',
+            insertTextFormat: 2,
+            kind: CompletionItemKind.Function,
+            sortText: '11',
+            commitCharacters: undefined,
+            preselect: undefined,
+            labelDetails: {
+                description: '../definitions'
+            },
+            textEdit: {
+                newText: '{ blubb$1 } from "../definitions";',
+                range: {
+                    end: {
+                        character: 16,
                         line: 1
                     },
                     start: {
@@ -1290,7 +1398,7 @@ describe('CompletionProviderImpl', function () {
             insertText: undefined,
             insertTextFormat: undefined,
             labelDetails: undefined,
-            commitCharacters: ['.', ',', ';', '('],
+            commitCharacters: [],
             textEdit: {
                 newText: '@hi',
                 range: {
@@ -1715,7 +1823,13 @@ describe('CompletionProviderImpl', function () {
             [Position.create(9, 26), 'namespace import after tag name'],
             [Position.create(9, 35), 'namespace import before tag end'],
             [Position.create(10, 27), 'object namespace after tag name'],
-            [Position.create(10, 36), 'object namespace before tag end']
+            [Position.create(10, 36), 'object namespace before tag end'],
+            [Position.create(11, 27), 'object namespace + reexport after tag name'],
+            [Position.create(11, 36), 'object namespace + reexport before tag end'],
+            [Position.create(12, 37), 'constructor signature after tag name'],
+            [Position.create(12, 46), 'constructor signature before tag end'],
+            [Position.create(12, 37), 'overloaded constructor signature after tag name'],
+            [Position.create(12, 46), 'overloaded constructor signature before tag end']
         ];
 
         for (const [position, name] of namespacedComponentTestList) {
@@ -1733,5 +1847,90 @@ describe('CompletionProviderImpl', function () {
     // Hacky, but it works. Needed due to testing both new and old transformation
     after(() => {
         __resetCache();
+    });
+
+    // -------------------- put tests that only run in Svelte 5 below this line and everything else above --------------------
+    if (!isSvelte5Plus) return;
+
+    it(`provide props completions for rune-mode component`, async () => {
+        const { completionProvider, document } = setup('component-props-completion-rune.svelte');
+
+        const completions = await completionProvider.getCompletions(
+            document,
+            {
+                line: 5,
+                character: 20
+            },
+            {
+                triggerKind: CompletionTriggerKind.Invoked
+            }
+        );
+
+        const item = completions?.items.find((item) => item.label === 'a');
+        assert.ok(item);
+    });
+
+    it(`provide props completions for v5+ Component type`, async () => {
+        const { completionProvider, document } = setup('component-props-completion-rune.svelte');
+
+        const completions = await completionProvider.getCompletions(
+            document,
+            {
+                line: 6,
+                character: 15
+            },
+            {
+                triggerKind: CompletionTriggerKind.Invoked
+            }
+        );
+
+        const item = completions?.items.find((item) => item.label === 'hi');
+        assert.ok(item);
+    });
+
+    it('provides namespace component completions for Svelte 5+', async () => {
+        const { completionProvider, document } = setup('namespaced-v5.svelte');
+
+        const completions = await completionProvider.getCompletions(
+            document,
+            Position.create(4, 12),
+            {
+                triggerKind: CompletionTriggerKind.Invoked
+            }
+        );
+
+        const item = completions?.items.find((item) => item.label === 'ComponentDef');
+        assert.ok(item);
+    });
+
+    it('use correct position for component tag auto-import', async () => {
+        const { completionProvider, document } = setup('importcompletions_unclose-tag.svelte');
+
+        const completionsAssumption = await completionProvider.getCompletions(
+            document,
+            Position.create(0, 4)
+        );
+
+        const itemAssumption = completionsAssumption?.items.find(
+            (item) => item.label === 'Completions'
+        );
+        assert.ok(
+            itemAssumption,
+            `expected this to exist. Otherwise, the "Completions" assertion is wrong`
+        );
+
+        const completions = await completionProvider.getCompletions(
+            document,
+            Position.create(1, 2)
+        );
+
+        const item = completions?.items.find((item) => item.label === 'EmptytextImported');
+        assert.ok(item);
+
+        const shouldNotExistItem = completions?.items.find((item) => item.label === 'Completions');
+        assert.ok(
+            !shouldNotExistItem,
+            'expected auto-import be filtered out by current identifier'
+        );
     });
 });

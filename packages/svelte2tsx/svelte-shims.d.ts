@@ -1,3 +1,5 @@
+// @ts-nocheck
+// nocheck because we don't want to adjust this anymore (only used for Svelte 3)
 // Whenever a ambient declaration changes, its number should be increased
 // This way, we avoid the situation where multiple ambient versions of svelte2tsx
 // are loaded and their declarations conflict each other
@@ -138,7 +140,6 @@ type KeysMatching<Obj, V> = {[K in keyof Obj]-?: Obj[K] extends V ? K : never}[k
 /** @internal PRIVATE API, DO NOT USE */
 declare type __sveltets_2_CustomEvents<T> = {[K in KeysMatching<T, CustomEvent>]: T[K] extends CustomEvent ? T[K]['detail']: T[K]}
 
-declare var process: NodeJS.Process & { browser: boolean }
 declare function __sveltets_2_ensureRightProps<Props>(props: Props): {};
 declare function __sveltets_2_instanceOf<T = any>(type: AConstructorTypeOf<T>): T;
 declare function __sveltets_2_allPropsType(): SvelteAllProps

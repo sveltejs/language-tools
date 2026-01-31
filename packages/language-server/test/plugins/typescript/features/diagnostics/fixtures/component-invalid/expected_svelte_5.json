@@ -17,7 +17,7 @@
         },
         "severity": 1,
         "source": "ts",
-        "message": "Type 'boolean' is not assignable to type 'never'.",
+        "message": "Type 'true' is not assignable to type 'never'.",
         "code": 2322,
         "tags": []
     },
@@ -28,7 +28,7 @@
         },
         "severity": 1,
         "source": "ts",
-        "message": "Argument of type 'typeof DoesntWork' is not assignable to parameter of type 'ConstructorOfATypedSvelteComponent | Component<any, any, any> | null | undefined'.\n\nPossible causes:\n- You use the instance type of a component where you should use the constructor type\n- Type definitions are missing for this Svelte Component. ",
+        "message": "Argument of type 'typeof DoesntWork' is not assignable to parameter of type 'ConstructorOfATypedSvelteComponent | Component<any, any, any> | null | undefined'.\n  Type 'typeof DoesntWork' is not assignable to type 'ConstructorOfATypedSvelteComponent'.\n    Type 'DoesntWork' is missing the following properties from type 'ATypedSvelteComponent': $$prop_def, $$events_def, $$slot_def, $on\n\nPossible causes:\n- You use the instance type of a component where you should use the constructor type\n- Type definitions are missing for this Svelte Component. ",
         "code": 2345,
         "tags": []
     },
@@ -39,7 +39,7 @@
         },
         "severity": 1,
         "source": "ts",
-        "message": "Argument of type 'typeof DoesntWork' is not assignable to parameter of type 'ConstructorOfATypedSvelteComponent | Component<any, any, any> | null | undefined'.\n\nPossible causes:\n- You use the instance type of a component where you should use the constructor type\n- Type definitions are missing for this Svelte Component. ",
+        "message": "Argument of type 'typeof DoesntWork' is not assignable to parameter of type 'ConstructorOfATypedSvelteComponent | Component<any, any, any> | null | undefined'.\n  Type 'typeof DoesntWork' is not assignable to type 'ConstructorOfATypedSvelteComponent'.\n    Type 'DoesntWork' is missing the following properties from type 'ATypedSvelteComponent': $$prop_def, $$events_def, $$slot_def, $on\n\nPossible causes:\n- You use the instance type of a component where you should use the constructor type\n- Type definitions are missing for this Svelte Component. ",
         "code": 2345,
         "tags": []
     },
@@ -50,7 +50,7 @@
         },
         "severity": 1,
         "source": "ts",
-        "message": "Argument of type 'typeof DoesntWork' is not assignable to parameter of type 'ConstructorOfATypedSvelteComponent | Component<any, any, any> | null | undefined'.\n\nPossible causes:\n- You use the instance type of a component where you should use the constructor type\n- Type definitions are missing for this Svelte Component. ",
+        "message": "Argument of type 'typeof DoesntWork' is not assignable to parameter of type 'ConstructorOfATypedSvelteComponent | Component<any, any, any> | null | undefined'.\n  Type 'typeof DoesntWork' is not assignable to type 'ConstructorOfATypedSvelteComponent'.\n    Type 'DoesntWork' is missing the following properties from type 'ATypedSvelteComponent': $$prop_def, $$events_def, $$slot_def, $on\n\nPossible causes:\n- You use the instance type of a component where you should use the constructor type\n- Type definitions are missing for this Svelte Component. ",
         "code": 2345,
         "tags": []
     }

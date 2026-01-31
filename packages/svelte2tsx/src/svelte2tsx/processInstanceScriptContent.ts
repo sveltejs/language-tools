@@ -1,6 +1,6 @@
 import MagicString from 'magic-string';
 import { Node } from 'estree-walker';
-import ts from 'typescript';
+import ts, { VariableDeclaration } from 'typescript';
 import { getBinaryAssignmentExpr, isNotPropertyNameOfImport, moveNode } from './utils/tsAst';
 import { ExportedNames, is$$PropsDeclaration } from './nodes/ExportedNames';
 import { ImplicitTopLevelNames } from './nodes/ImplicitTopLevelNames';
@@ -16,6 +16,7 @@ import {
     handleImportDeclaration
 } from './nodes/handleImportDeclaration';
 import { InterfacesAndTypes } from './nodes/InterfacesAndTypes';
+import { ModuleAst } from './processModuleScriptTag';
 
 export interface InstanceScriptProcessResult {
     exportedNames: ExportedNames;
@@ -25,12 +26,15 @@ export interface InstanceScriptProcessResult {
     uses$$slots: boolean;
     uses$$SlotsInterface: boolean;
     generics: Generics;
+    /** Can only be true in Svelte 5 */
+    hasTopLevelAwait: boolean;
 }
 
 interface PendingStoreResolution {
     node: ts.Identifier;
     parent: ts.Node;
     scope: Scope;
+    isPropsId: boolean;
 }
 
 export function processInstanceScriptContent(
@@ -39,10 +43,11 @@ export function processInstanceScriptContent(
     events: ComponentEvents,
     implicitStoreValues: ImplicitStoreValues,
     mode: 'ts' | 'dts',
-    hasModuleScript: boolean,
+    moduleAst: ModuleAst | undefined,
     isTSFile: boolean,
     basename: string,
-    isSvelte5Plus: boolean
+    isSvelte5Plus: boolean,
+    isRunes: boolean
 ): InstanceScriptProcessResult {
     const htmlx = str.original;
     const scriptContent = htmlx.substring(script.content.start, script.content.end);
@@ -54,25 +59,45 @@ export function processInstanceScriptContent(
         ts.ScriptKind.TS
     );
     const astOffset = script.content.start;
-    const exportedNames = new ExportedNames(str, astOffset, basename, isTSFile, isSvelte5Plus);
+    const exportedNames = new ExportedNames(
+        str,
+        astOffset,
+        basename,
+        isTSFile,
+        isSvelte5Plus,
+        isRunes
+    );
     const generics = new Generics(str, astOffset, script);
     const interfacesAndTypes = new InterfacesAndTypes();
+
+    if (moduleAst) {
+        moduleAst.tsAst.forEachChild((n) =>
+            exportedNames.hoistableInterfaces.analyzeModuleScriptNode(n)
+        );
+    }
 
     const implicitTopLevelNames = new ImplicitTopLevelNames(str, astOffset);
     let uses$$props = false;
     let uses$$restProps = false;
     let uses$$slots = false;
     let uses$$SlotsInterface = false;
+    let hasTopLevelAwait = false;
 
     //track if we are in a declaration scope
     let isDeclaration = false;
 
+    //track the variable declaration node
+    let variableDeclarationNode: VariableDeclaration | null = null;
+
     //track $store variables since we are only supposed to give top level scopes special treatment, and users can declare $blah variables at higher scopes
     //which prevents us just changing all instances of Identity that start with $
-    const pendingStoreResolutions: PendingStoreResolution[] = [];
+    let pendingStoreResolutions: PendingStoreResolution[] = [];
 
     let scope = new Scope();
     const rootScope = scope;
+
+    //track is the variable declared as `props` comes from `$props()`
+    let isPropsDeclarationRune = false;
 
     const pushScope = () => (scope = new Scope(scope));
     const popScope = () => (scope = scope.parent);
@@ -109,6 +134,17 @@ export function processInstanceScriptContent(
             return;
         }
 
+        //if we are in a variable declaration and the identifier is `props` we check the initializer
+        if (
+            ident.text === 'props' &&
+            variableDeclarationNode &&
+            variableDeclarationNode.initializer &&
+            ts.isCallExpression(variableDeclarationNode.initializer) &&
+            variableDeclarationNode.initializer.getText() === '$props()'
+        ) {
+            isPropsDeclarationRune = true;
+        }
+
         if (isDeclaration || ts.isParameter(parent)) {
             if (
                 isNotPropertyNameOfImport(ident) &&
@@ -133,6 +169,17 @@ export function processInstanceScriptContent(
                     !ts.isTypeAliasDeclaration(parent) &&
                     !ts.isInterfaceDeclaration(parent)
                 ) {
+                    let isPropsId = false;
+                    if (
+                        text === '$props' &&
+                        ts.isPropertyAccessExpression(parent) &&
+                        parent.parent &&
+                        ts.isCallExpression(parent.parent) &&
+                        parent.parent.arguments.length === 0
+                    ) {
+                        const text = parent.getText();
+                        isPropsId = text === '$props.id';
+                    }
                     // Handle the const { ...props } = $props() case
                     const is_rune =
                         (text === '$props' || text === '$derived' || text === '$state') &&
@@ -140,7 +187,7 @@ export function processInstanceScriptContent(
                         ts.isVariableDeclaration(parent.parent) &&
                         parent.parent.name.getText().includes(text.slice(1));
                     if (!is_rune) {
-                        pendingStoreResolutions.push({ node: ident, parent, scope });
+                        pendingStoreResolutions.push({ node: ident, parent, scope, isPropsId });
                     }
                 }
             }
@@ -150,6 +197,10 @@ export function processInstanceScriptContent(
     const walk = (node: ts.Node, parent: ts.Node) => {
         type onLeaveCallback = () => void;
         const onLeaveCallbacks: onLeaveCallback[] = [];
+
+        if (parent === tsAst) {
+            exportedNames.hoistableInterfaces.analyzeInstanceScriptNode(node);
+        }
 
         generics.addIfIsGeneric(node);
 
@@ -203,7 +254,10 @@ export function processInstanceScriptContent(
         if (ts.isVariableDeclaration(node)) {
             events.checkIfIsStringLiteralDeclaration(node);
             events.checkIfDeclarationInstantiatedEventDispatcher(node);
-            implicitStoreValues.addVariableDeclaration(node);
+            // Only top level declarations can be stores
+            if (node.parent?.parent?.parent === tsAst) {
+                implicitStoreValues.addVariableDeclaration(node);
+            }
         }
 
         if (ts.isCallExpression(node)) {
@@ -212,7 +266,11 @@ export function processInstanceScriptContent(
 
         if (ts.isVariableDeclaration(parent) && parent.name == node) {
             isDeclaration = true;
-            onLeaveCallbacks.push(() => (isDeclaration = false));
+            variableDeclarationNode = parent;
+            onLeaveCallbacks.push(() => {
+                isDeclaration = false;
+                variableDeclarationNode = null;
+            });
         }
 
         if (ts.isBindingElement(parent) && parent.name == node) {
@@ -256,6 +314,11 @@ export function processInstanceScriptContent(
             implicitTopLevelNames.handleReactiveStatement(node, binaryExpression);
         }
 
+        // Check for top-level await expressions
+        if (isSvelte5Plus && ts.isAwaitExpression(node) && scope === rootScope) {
+            hasTopLevelAwait = true;
+        }
+
         // Defensively call function (checking for undefined) because it got added only recently (TS 4.0)
         // and therefore might break people using older TS versions
         // Don't transform in ts mode because <type>value type assertions are valid in this case
@@ -273,13 +336,17 @@ export function processInstanceScriptContent(
     tsAst.forEachChild((n) => walk(n, tsAst));
 
     //resolve stores
+    if (isPropsDeclarationRune) {
+        //we filter out every pendingStore resolution that `isPropsId` if the variable names `props` comes from `$props()`
+        pendingStoreResolutions = pendingStoreResolutions.filter(({ isPropsId }) => !isPropsId);
+    }
     pendingStoreResolutions.map(resolveStore);
 
     // declare implicit reactive variables we found in the script
     implicitTopLevelNames.modifyCode(rootScope.declared);
     implicitStoreValues.modifyCode(astOffset, str);
 
-    handleFirstInstanceImport(tsAst, astOffset, hasModuleScript, str);
+    handleFirstInstanceImport(tsAst, astOffset, !!moduleAst, str);
 
     // move interfaces and types out of the render function if they are referenced
     // by a $$Generic, otherwise it will be used before being defined after the transformation
@@ -288,12 +355,30 @@ export function processInstanceScriptContent(
         moveNode(node, str, astOffset, script.start, tsAst);
     }
 
+    exportedNames.hoistableInterfaces.addDisallowed(implicitStoreValues.getAccessedStores());
+
+    const hoisted = exportedNames.hoistableInterfaces.moveHoistableInterfaces(
+        str,
+        astOffset,
+        script.start + 1, // +1 because imports are also moved at that position, and we want to move interfaces after imports
+        generics.getReferences()
+    );
+
     if (mode === 'dts') {
         // Transform interface declarations to type declarations because indirectly
         // using interfaces inside the return type of a function is forbidden.
         // This is not a problem for intellisense/type inference but it will
         // break dts generation (file will not be generated).
-        transformInterfacesToTypes(tsAst, str, astOffset, nodesToMove);
+        if (hoisted) {
+            transformInterfacesToTypes(
+                tsAst,
+                str,
+                astOffset,
+                [...hoisted.values()].concat(nodesToMove)
+            );
+        } else {
+            transformInterfacesToTypes(tsAst, str, astOffset, nodesToMove);
+        }
     }
 
     return {
@@ -303,7 +388,8 @@ export function processInstanceScriptContent(
         uses$$restProps,
         uses$$slots,
         uses$$SlotsInterface,
-        generics
+        generics,
+        hasTopLevelAwait
     };
 }
 

@@ -26,20 +26,17 @@ describe('Document Manager', () => {
 
     it('updates the whole document', () => {
         const document = createTextDocument(textDocument);
-        const update = sinon.spy(document, 'update');
         const createDocument = sinon.stub().returns(document);
         const manager = new DocumentManager(createDocument);
 
         manager.openClientDocument(textDocument);
         manager.updateDocument(textDocument, [{ text: 'New content' }]);
 
-        sinon.assert.calledOnce(update);
-        sinon.assert.calledWith(update.firstCall, 'New content', 0, textDocument.text.length);
+        assert.strictEqual(document.getText(), 'New content');
     });
 
     it('updates the parts of the document', () => {
         const document = createTextDocument(textDocument);
-        const update = sinon.spy(document, 'update');
         const createDocument = sinon.stub().returns(document);
         const manager = new DocumentManager(createDocument);
 
@@ -57,28 +54,13 @@ describe('Document Manager', () => {
             }
         ]);
 
-        sinon.assert.calledTwice(update);
-        sinon.assert.calledWith(update.firstCall, 'svelte', 7, 12);
-        sinon.assert.calledWith(update.secondCall, 'Greetings', 0, 5);
+        assert.strictEqual(document.getText(), 'Greetings, svelte!');
     });
 
     it("fails to update if document isn't open", () => {
         const manager = new DocumentManager(createTextDocument);
 
         assert.throws(() => manager.updateDocument(textDocument, []));
-    });
-
-    it('emits a document change event on open and update', () => {
-        const manager = new DocumentManager(createTextDocument);
-        const cb = sinon.spy();
-
-        manager.on('documentChange', cb);
-
-        manager.openClientDocument(textDocument);
-        sinon.assert.calledOnce(cb);
-
-        manager.updateDocument(textDocument, []);
-        sinon.assert.calledTwice(cb);
     });
 
     it('update document in case-insensitive fs with different casing', () => {

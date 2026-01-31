@@ -1,7 +1,7 @@
 ///<reference types="svelte" />
 ;
 import { createEventDispatcher } from 'svelte';
-function render/*Ωignore_startΩ*/<A,B extends keyof A,C extends boolean>/*Ωignore_endΩ*/() {
+function $$render/*Ωignore_startΩ*/<A,B extends keyof A,C extends boolean>/*Ωignore_endΩ*/() {
 
     
 
@@ -23,19 +23,19 @@ function render/*Ωignore_startΩ*/<A,B extends keyof A,C extends boolean>/*Ωig
 async () => {
 
  { __sveltets_createSlot("default", { c,});}};
-return { props: {a: a , b: b , c: c , getA: getA} as {a: A, b: B, c: C, getA?: typeof getA}, exports: {} as any as { getA: typeof getA }, slots: {'default': {c:c}}, events: {...__sveltets_2_toEventTypings<{a: A}>()} }}
+return { props: {a: a , b: b , c: c , getA: getA} as {a: A, b: B, c: C, getA?: typeof getA}, exports: {} as any as { getA: typeof getA }, bindings: "", slots: {'default': {c:c}}, events: {...__sveltets_2_toEventTypings<{a: A}>()} }}
 class __sveltets_Render<A,B extends keyof A,C extends boolean> {
     props() {
-        return render<A,B,C>().props;
+        return $$render<A,B,C>().props;
     }
     events() {
-        return __sveltets_2_with_any_event(render<A,B,C>()).events;
+        return __sveltets_2_with_any_event($$render<A,B,C>()).events;
     }
     slots() {
-        return render<A,B,C>().slots;
+        return $$render<A,B,C>().slots;
     }
     bindings() { return ""; }
-    exports() { return render<A,B,C>().exports; }
+    exports() { return $$render<A,B,C>().exports; }
 }
 
 interface $$IsomorphicComponent {

@@ -1,3 +1,4 @@
+import { get_global_types } from './files';
 import {
     isHooksFile,
     isKitFile,
@@ -23,5 +24,7 @@ export const internalHelpers = {
     upsertKitFile,
     toVirtualPos,
     toOriginalPos,
-    findExports
+    findExports,
+    get_global_types,
+    renderName: '$$render'
 };

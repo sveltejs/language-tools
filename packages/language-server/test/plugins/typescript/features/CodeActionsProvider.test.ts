@@ -1,5 +1,7 @@
 import * as assert from 'assert';
 import * as path from 'path';
+import { VERSION } from 'svelte/compiler';
+import { internalHelpers } from 'svelte2tsx';
 import ts from 'typescript';
 import {
     CancellationTokenSource,
@@ -12,16 +14,17 @@ import {
 import { Document, DocumentManager } from '../../../../src/lib/documents';
 import { LSConfigManager } from '../../../../src/ls-config';
 import {
+    ADD_MISSING_IMPORTS_CODE_ACTION_KIND,
     CodeActionsProviderImpl,
+    REMOVE_UNUSED_IMPORTS_CODE_ACTION_KIND,
     SORT_IMPORT_CODE_ACTION_KIND
 } from '../../../../src/plugins/typescript/features/CodeActionsProvider';
 import { CompletionsProviderImpl } from '../../../../src/plugins/typescript/features/CompletionProvider';
+import { DiagnosticCode } from '../../../../src/plugins/typescript/features/DiagnosticsProvider';
 import { LSAndTSDocResolver } from '../../../../src/plugins/typescript/LSAndTSDocResolver';
 import { __resetCache } from '../../../../src/plugins/typescript/service';
 import { pathToUrl } from '../../../../src/utils';
 import { recursiveServiceWarmup } from '../test-utils';
-import { DiagnosticCode } from '../../../../src/plugins/typescript/features/DiagnosticsProvider';
-import { VERSION } from 'svelte/compiler';
 
 const testDir = path.join(__dirname, '..');
 const indent = ' '.repeat(4);
@@ -65,7 +68,7 @@ describe('CodeActionsProvider', function () {
         const filePath = getFullPath(filename);
         const document = docManager.openClientDocument(<any>{
             uri: pathToUrl(filePath),
-            text: harmonizeNewLines(ts.sys.readFile(filePath) || '')
+            text: ts.sys.readFile(filePath) || ''
         });
         return { provider, document, docManager, lsAndTsDocResolver };
     }
@@ -879,6 +882,91 @@ describe('CodeActionsProvider', function () {
         assert.deepStrictEqual(codeActions, []);
     });
 
+    it('provides quickfix to add async to a function', async () => {
+        const { provider, document } = setup('fix-add-async.svelte');
+
+        const codeActions = await provider.getCodeActions(
+            document,
+            Range.create(Position.create(6, 8), Position.create(6, 9)),
+            {
+                diagnostics: [
+                    {
+                        code: 1308,
+                        message:
+                            "'await' expressions are only allowed within async functions and at the top levels of modules.",
+                        range: Range.create(Position.create(6, 8), Position.create(6, 13)),
+                        source: 'ts'
+                    }
+                ],
+                only: [CodeActionKind.QuickFix]
+            }
+        );
+
+        assert.deepStrictEqual(codeActions, [
+            {
+                edit: {
+                    documentChanges: [
+                        {
+                            edits: [
+                                {
+                                    newText: 'async ',
+                                    range: {
+                                        end: {
+                                            character: 4,
+                                            line: 5
+                                        },
+                                        start: {
+                                            character: 4,
+                                            line: 5
+                                        }
+                                    }
+                                }
+                            ],
+                            textDocument: {
+                                uri: getUri('fix-add-async.svelte'),
+                                version: null
+                            }
+                        }
+                    ]
+                },
+                kind: 'quickfix',
+                title: 'Add async modifier to containing function'
+            },
+            {
+                data: {
+                    fixId: 'fixAwaitInSyncFunction',
+                    fixName: 'fixAwaitInSyncFunction',
+                    uri: getUri('fix-add-async.svelte')
+                },
+                kind: 'quickfix',
+                title: "Add all missing 'async' modifiers"
+            }
+        ]);
+    });
+
+    it("don't provides quickfix to add async to the script tag", async () => {
+        const { provider, document } = setup('fix-add-async.svelte');
+
+        const codeActions = await provider.getCodeActions(
+            document,
+            Range.create(Position.create(2, 8), Position.create(2, 9)),
+            {
+                diagnostics: [
+                    {
+                        code: 1308,
+                        message:
+                            "'await' expressions are only allowed within async functions and at the top levels of modules.",
+                        range: Range.create(Position.create(2, 8), Position.create(2, 13)),
+                        source: 'ts'
+                    }
+                ],
+                only: [CodeActionKind.QuickFix]
+            }
+        );
+
+        assert.deepStrictEqual(codeActions, []);
+    });
+
     it('provide quick fix to fix all errors when possible', async () => {
         const { provider, document } = setup('codeactions.svelte');
 
@@ -1153,8 +1241,8 @@ describe('CodeActionsProvider', function () {
                     edits: [
                         {
                             newText:
-                                `\n${indent}import FixAllImported2 from \"./importing/FixAllImported2.svelte\";\n` +
-                                `${indent}import { FixAllImported3 } from \"./importing/c\";\n`,
+                                `\n${indent}import { FixAllImported3 } from \"./importing/c\";` +
+                                `\n${indent}import FixAllImported2 from \"./importing/FixAllImported2.svelte\";\n`,
                             range: {
                                 start: {
                                     character: 18,
@@ -1463,6 +1551,96 @@ describe('CodeActionsProvider', function () {
         ]);
     });
 
+    it('removes unused imports', async () => {
+        const { provider, document } = setup('codeactions.svelte');
+
+        const codeActions = await provider.getCodeActions(
+            document,
+            Range.create(Position.create(1, 4), Position.create(1, 5)),
+            {
+                diagnostics: [],
+                only: [REMOVE_UNUSED_IMPORTS_CODE_ACTION_KIND]
+            }
+        );
+        (<TextDocumentEdit>codeActions[0]?.edit?.documentChanges?.[0])?.edits.forEach(
+            (edit) => (edit.newText = harmonizeNewLines(edit.newText))
+        );
+
+        assert.deepStrictEqual(codeActions, [
+            {
+                edit: {
+                    documentChanges: [
+                        {
+                            edits: [
+                                {
+                                    newText:
+                                        "import { C } from 'blubb';\n" +
+                                        "import { A } from 'bla';\n",
+
+                                    range: {
+                                        start: {
+                                            character: 0,
+                                            line: 1
+                                        },
+                                        end: {
+                                            character: 0,
+                                            line: 2
+                                        }
+                                    }
+                                },
+                                {
+                                    newText: '',
+                                    range: {
+                                        start: {
+                                            character: 0,
+                                            line: 2
+                                        },
+                                        end: {
+                                            character: 0,
+                                            line: 3
+                                        }
+                                    }
+                                },
+                                {
+                                    newText: '',
+                                    range: {
+                                        start: {
+                                            character: 0,
+                                            line: 3
+                                        },
+                                        end: {
+                                            character: 0,
+                                            line: 4
+                                        }
+                                    }
+                                },
+                                {
+                                    newText: '',
+                                    range: {
+                                        start: {
+                                            character: 0,
+                                            line: 4
+                                        },
+                                        end: {
+                                            character: 0,
+                                            line: 5
+                                        }
+                                    }
+                                }
+                            ],
+                            textDocument: {
+                                uri: getUri('codeactions.svelte'),
+                                version: null
+                            }
+                        }
+                    ]
+                },
+                kind: REMOVE_UNUSED_IMPORTS_CODE_ACTION_KIND,
+                title: 'Remove Unused Imports'
+            }
+        ]);
+    });
+
     it('organizes imports with module script', async () => {
         const { provider, document } = setup('organize-imports-with-module.svelte');
 
@@ -1755,20 +1933,9 @@ describe('CodeActionsProvider', function () {
                                             line: 1
                                         }
                                     }
-                                },
-                                {
-                                    newText: "import { } from './somepng.png';\n",
-                                    range: {
-                                        end: {
-                                            character: 0,
-                                            line: 4
-                                        },
-                                        start: {
-                                            character: 4,
-                                            line: 3
-                                        }
-                                    }
                                 }
+                                // Because the generated code adds a ; after the last import, the
+                                // second import is not appearing in the edits here
                             ],
                             textDocument: {
                                 uri: getUri('organize-imports-leading-comment.svelte'),
@@ -1891,8 +2058,8 @@ describe('CodeActionsProvider', function () {
                         },
                         // is from generated code
                         textRange: {
-                            pos: 179,
-                            end: 213
+                            pos: 181,
+                            end: 215
                         }
                     }
                 ],
@@ -2010,6 +2177,116 @@ describe('CodeActionsProvider', function () {
         ]);
     });
 
+    it('organize imports without leftover indentation', async () => {
+        const { provider, document } = setup('organize-import-all-remove.svelte');
+
+        const codeActions = await provider.getCodeActions(
+            document,
+            Range.create(Position.create(1, 4), Position.create(1, 5)),
+            {
+                diagnostics: [],
+                only: [CodeActionKind.SourceOrganizeImports]
+            }
+        );
+
+        assert.deepStrictEqual(codeActions, [
+            {
+                title: 'Organize Imports',
+                edit: {
+                    documentChanges: [
+                        {
+                            textDocument: {
+                                uri: getUri('organize-import-all-remove.svelte'),
+                                version: null
+                            },
+                            edits: [
+                                {
+                                    range: {
+                                        start: {
+                                            line: 1,
+                                            character: 4
+                                        },
+                                        end: {
+                                            line: 2,
+                                            character: 4
+                                        }
+                                    },
+                                    newText: ''
+                                },
+                                {
+                                    range: {
+                                        start: {
+                                            line: 2,
+                                            character: 4
+                                        },
+                                        end: {
+                                            line: 3,
+                                            character: 0
+                                        }
+                                    },
+                                    newText: ''
+                                },
+                                {
+                                    range: {
+                                        start: {
+                                            line: 4,
+                                            character: 4
+                                        },
+                                        end: {
+                                            line: 5,
+                                            character: 4
+                                        }
+                                    },
+                                    newText: ''
+                                },
+                                {
+                                    range: {
+                                        start: {
+                                            line: 5,
+                                            character: 4
+                                        },
+                                        end: {
+                                            line: 6,
+                                            character: 0
+                                        }
+                                    },
+                                    newText: ''
+                                },
+                                {
+                                    range: {
+                                        start: {
+                                            line: 1,
+                                            character: 0
+                                        },
+                                        end: {
+                                            line: 1,
+                                            character: 4
+                                        }
+                                    },
+                                    newText: ''
+                                },
+                                {
+                                    range: {
+                                        start: {
+                                            line: 4,
+                                            character: 0
+                                        },
+                                        end: {
+                                            line: 4,
+                                            character: 4
+                                        }
+                                    },
+                                    newText: ''
+                                }
+                            ]
+                        }
+                    ]
+                },
+                kind: 'source.organizeImports'
+            }
+        ]);
+    });
+
     it('should do extract into function refactor', async () => {
         const { provider, document } = setup('codeactions.svelte');
 
@@ -2039,13 +2316,13 @@ describe('CodeActionsProvider', function () {
                         },
                         // is from generated code
                         textRange: {
-                            pos: 179,
-                            end: 213
+                            pos: 181,
+                            end: 215
                         }
                     }
                 ],
                 command: 'function_scope_0',
-                title: "Extract to inner function in function 'render'"
+                title: `Extract to inner function in function '${internalHelpers.renderName}'`
             },
             title: 'Extract to function'
         });
@@ -2153,5 +2430,272 @@ describe('CodeActionsProvider', function () {
     // Hacky, but it works. Needed due to testing both new and old transformation
     after(() => {
         __resetCache();
+    });
+
+    it('provides source action for adding all missing imports', async () => {
+        const { provider, document } = setup('codeaction-custom-fix-all-component5.svelte');
+
+        const range = Range.create(Position.create(4, 1), Position.create(4, 15));
+
+        // Request the specific source action
+        const codeActions = await provider.getCodeActions(document, range, {
+            diagnostics: [], // Diagnostics might not be needed here if we only want the source action by kind
+            only: [ADD_MISSING_IMPORTS_CODE_ACTION_KIND]
+        });
+
+        assert.ok(codeActions.length > 0, 'No code actions found');
+
+        // Find the action by its kind
+        const addImportsAction = codeActions.find((action) => action.data);
+
+        // Ensure the action was found and has data (as it's now deferred)
+        assert.ok(addImportsAction, 'Add missing imports action should be found');
+        assert.ok(
+            addImportsAction.data,
+            'Add missing imports action should have data for resolution'
+        );
+
+        // Resolve the action to get the edits
+        const resolvedAction = await provider.resolveCodeAction(document, addImportsAction);
+
+        // Assert the edits on the resolved action
+        assert.ok(resolvedAction.edit, 'Resolved action should have an edit');
+        (<TextDocumentEdit>resolvedAction.edit?.documentChanges?.[0])?.edits.forEach(
+            (edit) => (edit.newText = harmonizeNewLines(edit.newText))
+        );
+
+        assert.deepStrictEqual(resolvedAction.edit, {
+            documentChanges: [
+                {
+                    edits: [
+                        {
+                            newText:
+                                `\n${indent}import FixAllImported from \"./importing/FixAllImported.svelte\";\n` +
+                                `${indent}import FixAllImported2 from \"./importing/FixAllImported2.svelte\";\n`,
+                            range: {
+                                start: {
+                                    character: 18,
+                                    line: 0
+                                },
+                                end: {
+                                    character: 18,
+                                    line: 0
+                                }
+                            }
+                        }
+                    ],
+                    textDocument: {
+                        uri: getUri('codeaction-custom-fix-all-component5.svelte'),
+                        version: null
+                    }
+                }
+            ]
+        });
+
+        // Optional: Verify the kind and title remain correct on the resolved action
+        assert.strictEqual(resolvedAction.kind, ADD_MISSING_IMPORTS_CODE_ACTION_KIND);
+        assert.strictEqual(resolvedAction.title, 'Add all missing imports');
+    });
+
+    it('provides source action for adding all missing imports only when imports are missing', async () => {
+        const { provider, document } = setup('codeaction-custom-fix-all-component6.svelte');
+
+        const codeActions = await provider.getCodeActions(
+            document,
+            Range.create(Position.create(1, 4), Position.create(1, 5)),
+            {
+                diagnostics: [], // No diagnostics = no missing imports
+                only: [ADD_MISSING_IMPORTS_CODE_ACTION_KIND]
+            }
+        );
+
+        assert.deepStrictEqual(codeActions, []);
+    });
+
+    it('provides code action for adding lang="ts"', async () => {
+        const { provider, document } = setup('codeaction-add-lang-ts.svelte');
+
+        const codeActions = await provider.getCodeActions(
+            document,
+            Range.create(Position.create(0, 0), Position.create(0, 1)),
+            {
+                diagnostics: [
+                    {
+                        code: 8010,
+                        message: 'Type annotations can only be used in TypeScript files.',
+                        range: Range.create(Position.create(1, 18), Position.create(1, 24)),
+                        source: 'ts'
+                    }
+                ],
+                only: [CodeActionKind.QuickFix]
+            }
+        );
+
+        assert.deepStrictEqual(codeActions, <CodeAction[]>[
+            {
+                title: 'Add lang="ts" to <script> tag',
+                kind: CodeActionKind.QuickFix,
+                edit: {
+                    documentChanges: [
+                        {
+                            edits: [
+                                {
+                                    newText: ' lang="ts"',
+                                    range: {
+                                        start: {
+                                            character: 7,
+                                            line: 0
+                                        },
+                                        end: {
+                                            character: 7,
+                                            line: 0
+                                        }
+                                    }
+                                },
+                                {
+                                    newText: ' lang="ts"',
+                                    range: {
+                                        start: {
+                                            character: 7,
+                                            line: 6
+                                        },
+                                        end: {
+                                            character: 7,
+                                            line: 6
+                                        }
+                                    }
+                                }
+                            ],
+                            textDocument: {
+                                uri: getUri('codeaction-add-lang-ts.svelte'),
+                                version: null
+                            }
+                        }
+                    ]
+                }
+            }
+        ]);
+    });
+
+    if (!isSvelte5Plus) {
+        return;
+    }
+
+    it('organizes imports with top-level snippets', async () => {
+        const { provider, document } = setup('organize-imports-snippet.svelte');
+
+        const codeActions = await provider.getCodeActions(
+            document,
+            Range.create(Position.create(4, 15), Position.create(4, 15)),
+            {
+                diagnostics: [],
+                only: [CodeActionKind.SourceOrganizeImports]
+            }
+        );
+
+        (<TextDocumentEdit>codeActions[0]?.edit?.documentChanges?.[0])?.edits.forEach(
+            (edit) => (edit.newText = harmonizeNewLines(edit.newText))
+        );
+
+        assert.deepStrictEqual(codeActions, [
+            {
+                edit: {
+                    documentChanges: [
+                        {
+                            edits: [
+                                {
+                                    newText: '',
+                                    range: {
+                                        end: {
+                                            character: 0,
+                                            line: 5
+                                        },
+                                        start: {
+                                            character: 4,
+                                            line: 4
+                                        }
+                                    }
+                                },
+                                {
+                                    newText: '',
+                                    range: {
+                                        end: {
+                                            character: 4,
+                                            line: 4
+                                        },
+                                        start: {
+                                            character: 0,
+                                            line: 4
+                                        }
+                                    }
+                                }
+                            ],
+                            textDocument: {
+                                uri: getUri('organize-imports-snippet.svelte'),
+                                version: null
+                            }
+                        }
+                    ]
+                },
+                kind: 'source.organizeImports',
+                title: 'Organize Imports'
+            }
+        ]);
+    });
+
+    it('provides code action for adding <script lang="ts"', async () => {
+        const { provider, document } = setup('codeaction-add-lang-ts-no-script.svelte');
+
+        const codeActions = await provider.getCodeActions(
+            document,
+            Range.create(Position.create(0, 0), Position.create(0, 1)),
+            {
+                diagnostics: [
+                    {
+                        code: 8010,
+                        message: 'Type annotations can only be used in TypeScript files.',
+                        range: Range.create(Position.create(1, 18), Position.create(1, 24)),
+                        source: 'ts'
+                    }
+                ],
+                only: [CodeActionKind.QuickFix]
+            }
+        );
+
+        (<TextDocumentEdit>codeActions[0]?.edit?.documentChanges?.[0])?.edits.forEach(
+            (edit) => (edit.newText = harmonizeNewLines(edit.newText))
+        );
+
+        assert.deepStrictEqual(codeActions, <CodeAction[]>[
+            {
+                title: 'Add <script lang="ts"> tag',
+                kind: CodeActionKind.QuickFix,
+                edit: {
+                    documentChanges: [
+                        {
+                            edits: [
+                                {
+                                    newText: '<script lang="ts"></script>\n',
+                                    range: {
+                                        start: {
+                                            character: 0,
+                                            line: 0
+                                        },
+                                        end: {
+                                            character: 0,
+                                            line: 0
+                                        }
+                                    }
+                                }
+                            ],
+                            textDocument: {
+                                uri: getUri('codeaction-add-lang-ts-no-script.svelte'),
+                                version: null
+                            }
+                        }
+                    ]
+                }
+            }
+        ]);
     });
 });

@@ -1,5 +1,5 @@
 ///<reference types="svelte" />
-;function render() {                                                                                                                                  {/**
+;function $$render() {                                                                                                                                {/**
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
 async () => {  for(let item of __sveltets_2_ensureArray(items)){                                                                                      {/**
 ============#                                                        Originless mappings                                                              
@@ -19,10 +19,12 @@ async•()•=>•{••for(let•item•of•__sveltets_2_ensureArray(items)){
 }↲          [generated] line 5                                                                                                                        
 {↲                                                                                                                                                    
 {      ↲                                                                                                                                              
-{/each}↲    [original] line 3                                                                                                                         
+{/each}↲    [original] line 3 (rest generated at line 6)                                                                                              
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                                                                                                                                                       {/**
-
+↲           [generated] line 6                                                                                                                        
+       ↲                                                                                                                                              
+{/each}↲    [original] line 3 (rest generated at line 5)                                                                                              
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
    for(let item of __sveltets_2_ensureArray(items)){let i = 1;                                                                                        {/**
 •••for(let•item•of•__sveltets_2_ensureArray(items)){let•i•=•1;↲    [generated] line 7                                                                 
@@ -41,10 +43,12 @@ async•()•=>•{••for(let•item•of•__sveltets_2_ensureArray(items)){
 }↲          [generated] line 9                                                                                                                        
 {↲                                                                                                                                                    
 {      ↲                                                                                                                                              
-{/each}↲    [original] line 7                                                                                                                         
+{/each}↲    [original] line 7 (rest generated at line 10)                                                                                             
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                                                                                                                                                       {/**
-
+↲           [generated] line 10                                                                                                                       
+       ↲                                                                                                                                              
+{/each}↲    [original] line 7 (rest generated at line 9)                                                                                              
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
     for(let { id, name, qty } of __sveltets_2_ensureArray(items)){let i = 1;id;                                                                       {/**
 ••••for(let•{•id,•name,•qty•}•of•__sveltets_2_ensureArray(items)){let•i•=•1;id;↲    [generated] line 11                                               
@@ -63,10 +67,12 @@ async•()•=>•{••for(let•item•of•__sveltets_2_ensureArray(items)){
 }↲          [generated] line 13                                                                                                                       
 {↲                                                                                                                                                    
 {      ↲                                                                                                                                              
-{/each}↲    [original] line 11                                                                                                                        
+{/each}↲    [original] line 11 (rest generated at line 14)                                                                                            
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                                                                                                                                                       {/**
-
+↲           [generated] line 14                                                                                                                       
+       ↲                                                                                                                                              
+{/each}↲    [original] line 11 (rest generated at line 13)                                                                                            
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
   for(let { id, ...rest } of __sveltets_2_ensureArray(objects)){                                                                                      {/**
 ••for(let•{•id,•...rest•}•of•__sveltets_2_ensureArray(objects)){↲    [generated] line 15                                                              
@@ -86,10 +92,12 @@ async•()•=>•{••for(let•item•of•__sveltets_2_ensureArray(items)){
 }↲          [generated] line 17                                                                                                                       
 {↲                                                                                                                                                    
 {      ↲                                                                                                                                              
-{/each}↲    [original] line 15                                                                                                                        
+{/each}↲    [original] line 15 (rest generated at line 18)                                                                                            
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                                                                                                                                                       {/**
-
+↲           [generated] line 18                                                                                                                       
+       ↲                                                                                                                                              
+{/each}↲    [original] line 15 (rest generated at line 17)                                                                                            
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
   for(let [id, ...rest] of __sveltets_2_ensureArray(items)){                                                                                          {/**
 ••for(let•[id,•...rest]•of•__sveltets_2_ensureArray(items)){↲    [generated] line 19                                                                  
@@ -109,10 +117,12 @@ async•()•=>•{••for(let•item•of•__sveltets_2_ensureArray(items)){
 }↲          [generated] line 21                                                                                                                       
 {↲                                                                                                                                                    
 {      ↲                                                                                                                                              
-{/each}↲    [original] line 19                                                                                                                        
+{/each}↲    [original] line 19 (rest generated at line 22)                                                                                            
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                                                                                                                                                       {/**
-
+↲           [generated] line 22                                                                                                                       
+       ↲                                                                                                                                              
+{/each}↲    [original] line 19 (rest generated at line 21)                                                                                            
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
   for(let todo of __sveltets_2_ensureArray(todos)){                                                                                                   {/**
 ••for(let•todo•of•__sveltets_2_ensureArray(todos)){↲    [generated] line 23                                                                           
@@ -142,5 +152,5 @@ async•()•=>•{••for(let•item•of•__sveltets_2_ensureArray(items)){
 };
 return { props: /** @type {Record<string, never>} */ ({}), slots: {}, events: {} }}
 
-export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial(__sveltets_2_with_any_event(render()))) {
+export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial(__sveltets_2_with_any_event($$render()))) {
 }

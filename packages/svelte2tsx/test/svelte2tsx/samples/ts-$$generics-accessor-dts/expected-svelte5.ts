@@ -1,6 +1,6 @@
 import { SvelteComponentTyped } from "svelte"
 
-;function render/*Ωignore_startΩ*/<A>/*Ωignore_endΩ*/() {
+;function $$render/*Ωignore_startΩ*/<A>/*Ωignore_endΩ*/() {
 
     
 
@@ -9,19 +9,19 @@ import { SvelteComponentTyped } from "svelte"
 async () => {
 
   { svelteHTML.createElement("svelte:options", {"accessors":true,});}};
-return { props: {a: a} as {a: A}, exports: {} as any as { a: A }, slots: {}, events: {} }}
+return { props: {a: a} as {a: A}, exports: {} as any as { a: A }, bindings: "", slots: {}, events: {} }}
 class __sveltets_Render<A> {
     props() {
-        return render<A>().props;
+        return $$render<A>().props;
     }
     events() {
-        return __sveltets_2_with_any_event(render<A>()).events;
+        return __sveltets_2_with_any_event($$render<A>()).events;
     }
     slots() {
-        return render<A>().slots;
+        return $$render<A>().slots;
     }
     bindings() { return ""; }
-    exports() { return render<A>().exports; }
+    exports() { return $$render<A>().exports; }
 }
 
 interface $$IsomorphicComponent {

@@ -1,4 +1,6 @@
 /// <reference lib="dom" />
+// @ts-nocheck
+// nocheck because we don't want to adjust this anymore (only used for Svelte 3)
 
 declare namespace svelteHTML {
 

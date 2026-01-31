@@ -25,7 +25,11 @@ describe('HoverProvider', function () {
             (textDocument) => new Document(textDocument.uri, textDocument.text)
         );
         const lsConfigManager = new LSConfigManager();
-        const lsAndTsDocResolver = new LSAndTSDocResolver(docManager, [testDir], lsConfigManager);
+        const lsAndTsDocResolver = new LSAndTSDocResolver(
+            docManager,
+            [pathToUrl(testDir)],
+            lsConfigManager
+        );
         const provider = new HoverProviderImpl(lsAndTsDocResolver);
         const document = openDoc(filename);
         return { provider, document };
@@ -184,6 +188,35 @@ describe('HoverProvider', function () {
                 start: {
                     character: 1,
                     line: 14
+                }
+            }
+        });
+    });
+
+    it('provides formatted hover info for custom elements', async () => {
+        const { provider, document } = setup('hoverinfo.svelte');
+
+        assert.deepStrictEqual(await provider.doHover(document, Position.create(13, 7)), <Hover>{
+            contents: {
+                value: 'Custom doc for custom element',
+                kind: 'markdown'
+            }
+        });
+    });
+
+    it('provides formatted hover info for custom elements properties', async () => {
+        const { provider, document } = setup('hoverinfo.svelte');
+
+        assert.deepStrictEqual(await provider.doHover(document, Position.create(13, 18)), <Hover>{
+            contents: '```typescript\n(property) foo: string\n```\n---\nbar',
+            range: {
+                end: {
+                    character: 19,
+                    line: 13
+                },
+                start: {
+                    character: 16,
+                    line: 13
                 }
             }
         });

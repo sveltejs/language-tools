@@ -1,0 +1,10 @@
+{
+    "compilerOptions": {
+        "composite": true,
+        "strict": true,
+        "paths": {
+            "hi2": ["./imported.ts"]
+        },
+        "types": []
+    }
+}

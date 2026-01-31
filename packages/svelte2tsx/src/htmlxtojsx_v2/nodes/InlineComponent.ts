@@ -33,10 +33,12 @@ export class InlineComponent {
     private propsTransformation: TransformationArray = [];
     private eventsTransformation: TransformationArray = [];
     private slotLetsTransformation?: [TransformationArray, TransformationArray];
+    private snippetPropsTransformation: TransformationArray = [];
     private endTransformation: TransformationArray = [];
     private startTagStart: number;
     private startTagEnd: number;
     private isSelfclosing: boolean;
+    private tagNameEnd: number;
     public child?: any;
 
     // Add const $$xxx = ... only if the variable name is actually used
@@ -63,7 +65,7 @@ export class InlineComponent {
         this.startTagStart = this.node.start;
         this.startTagEnd = this.computeStartTagEnd();
 
-        const tagEnd = this.startTagStart + this.node.name.length + 1;
+        const tagEnd = (this.tagNameEnd = this.startTagStart + this.node.name.length + 1);
         // Ensure deleted characters are mapped to the attributes object so we
         // get autocompletion when triggering it on a whitespace.
         if (/\s/.test(str.original.charAt(tagEnd))) {
@@ -159,6 +161,12 @@ export class InlineComponent {
         this.slotLetsTransformation[1].push(...transformation, ',');
     }
 
+    addImplicitSnippetProp(name: [number, number], transforms: TransformationArray): void {
+        this.addProp([name], transforms);
+
+        this.snippetPropsTransformation.push(this.str.original.slice(name[0], name[1]));
+    }
+
     /**
      * Add something right after the start tag end.
      */
@@ -191,9 +199,16 @@ export class InlineComponent {
             this.endTransformation.push('}');
         }
 
+        const snippetPropVariables = this.snippetPropsTransformation?.join(', ');
+        const snippetPropVariablesDeclaration = snippetPropVariables
+            ? surroundWithIgnoreComments(
+                  `const {${snippetPropVariables}} = ${this.name}.$$prop_def;`
+              )
+            : '';
+
         if (this.isSelfclosing) {
             this.endTransformation.push('}');
-            transform(this.str, this.startTagStart, this.startTagEnd, this.startTagEnd, [
+            transform(this.str, this.startTagStart, this.startTagEnd, [
                 // Named slot transformations go first inside a outer block scope because
                 // <Comp let:xx {x} /> means "use the x of let:x", and without a separate
                 // block scope this would give a "used before defined" error
@@ -203,29 +218,48 @@ export class InlineComponent {
                 ...this.startEndTransformation,
                 ...this.eventsTransformation,
                 ...defaultSlotLetTransformation,
+                snippetPropVariablesDeclaration,
                 ...this.endTransformation
             ]);
         } else {
-            const endStart =
-                this.str.original
-                    .substring(this.node.start, this.node.end)
-                    .lastIndexOf(`</${this.node.name}`) + this.node.start;
-            if (!this.node.name.startsWith('svelte:')) {
+            let endStart = this.str.original
+                .substring(this.node.start, this.node.end)
+                .lastIndexOf(`</${this.node.name}`);
+            if (endStart === -1) {
+                // Can happen in loose parsing mode when there's no closing tag
+                endStart = this.node.end;
+                this.startTagEnd = Math.max(this.node.end - 1, this.tagNameEnd);
+            } else {
+                endStart += this.node.start;
+            }
+
+            if (!this.node.name.startsWith('svelte:') && endStart !== this.node.end) {
                 // Ensure the end tag is mapped, too. </Component> -> Component}
                 this.endTransformation.push([endStart + 2, endStart + this.node.name.length + 2]);
             }
             this.endTransformation.push('}');
 
-            transform(this.str, this.startTagStart, this.startTagEnd, this.startTagEnd, [
+            let transformationEnd = this.startTagEnd;
+
+            // The transformation is the whole start tag + <, ex: <Comp
+            // To avoid the "cannot move inside itself" error,
+            // manually remove the first character and let the transform function skip removing unused
+            if (transformationEnd === this.tagNameEnd) {
+                transformationEnd = this.startTagStart;
+                this.str.remove(this.startTagStart, this.startTagStart + 1);
+            }
+
+            transform(this.str, this.startTagStart, transformationEnd, [
                 // See comment above why this goes first
                 ...namedSlotLetTransformation,
                 ...this.startTransformation,
                 ...this.propsTransformation,
                 ...this.startEndTransformation,
                 ...this.eventsTransformation,
+                snippetPropVariablesDeclaration,
                 ...defaultSlotLetTransformation
             ]);
-            transform(this.str, endStart, this.node.end, this.node.end, this.endTransformation);
+            transform(this.str, endStart, this.node.end, this.endTransformation);
         }
     }
 
