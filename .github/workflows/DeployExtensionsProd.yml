@@ -5,14 +5,8 @@ on:
     tags:
       - "extensions-*"
 
-permissions: {}
-
 jobs:
   deploy:
-    # prevents this action from running on forks
-    if: github.repository == 'sveltejs/language-tools'
-    permissions:
-      contents: write # to create release (adjust package.json etc)
     runs-on: ubuntu-latest
 
     steps:
@@ -20,7 +14,7 @@ jobs:
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "22.x"
+          node-version: "18.x"
           registry-url: "https://registry.npmjs.org"
           cache: pnpm
 
