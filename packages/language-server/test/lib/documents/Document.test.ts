@@ -91,7 +91,8 @@ describe('Document', () => {
         assert.strictEqual(document.getText(), 'Hello, svelte!');
     });
 
-    it('updates multiple text ranges', () => {
+    it('updates multiple text ranges (end to start)', () => {
+        // offset can be calculated by the original document content
         const document = new Document('file:///hello.svelte', 'Hello, world! This is a test.');
         document.update([
             {
@@ -101,6 +102,22 @@ describe('Document', () => {
             {
                 text: 'Svelte!\n',
                 range: { start: { line: 0, character: 7 }, end: { line: 0, character: 13 } }
+            }
+        ]);
+        assert.strictEqual(document.getText(), 'Hello, Svelte!\n This is a example.');
+    });
+
+    it('updates multiple text ranges (start to end)', () => {
+        // offset needs to be recalculated after applying each edit
+        const document = new Document('file:///hello.svelte', 'Hello, world! This is a test.');
+        document.update([
+            {
+                text: 'Svelte!\n',
+                range: { start: { line: 0, character: 7 }, end: { line: 0, character: 13 } }
+            },
+            {
+                text: 'example',
+                range: { start: { line: 1, character: 11 }, end: { line: 1, character: 15 } }
             }
         ]);
         assert.strictEqual(document.getText(), 'Hello, Svelte!\n This is a example.');

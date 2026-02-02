@@ -94,29 +94,17 @@ export abstract class WritableDocument extends ReadableDocument {
      * Batch update the document with the LSP change events.
      */
     update(changes: TextDocumentContentChangeEvent[]): void {
-        const pendingChanges: { text: string; start: number; end: number }[] = [];
+        let newText = this.getText();
         for (const change of changes) {
-            let start = 0;
-            let end = 0;
             if ('range' in change) {
-                start = this.offsetAt(change.range.start);
-                end = this.offsetAt(change.range.end);
+                const lineOffsets = getLineOffsets(newText);
+                const start = offsetAt(change.range.start, newText, lineOffsets);
+                const end = offsetAt(change.range.end, newText, lineOffsets);
+                newText = newText.slice(0, start) + change.text + newText.slice(end);
             } else {
-                end = this.getTextLength();
+                newText = change.text;
             }
-
-            pendingChanges.push({ text: change.text, start, end });
         }
-
-        // VSCode already sends the change in this order,
-        // But it's not written in the spec, so sorting it just to be sure.
-        const sortedDescending = pendingChanges.sort((a, b) => b.end - a.end);
-        const content = this.getText();
-        let newText = content;
-        for (const change of sortedDescending) {
-            newText = newText.slice(0, change.start) + change.text + newText.slice(change.end);
-        }
-        this.lineOffsets = undefined;
         this.setText(newText);
     }
 }
