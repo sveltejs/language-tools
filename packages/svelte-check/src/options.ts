@@ -25,8 +25,7 @@ export function parseOptions(cb: (opts: SvelteCheckCliOptions) => any) {
         )
         .option(
             '--output',
-            'What output format to use. Options are human, human-verbose, machine, machine-verbose.',
-            'human-verbose'
+            'What output format to use. Options are human, human-verbose, machine, machine-verbose.'
         )
         .option(
             '--watch',
@@ -99,7 +98,7 @@ const outputFormats = ['human', 'human-verbose', 'machine', 'machine-verbose'] a
 type OutputFormat = (typeof outputFormats)[number];
 
 function getOutputFormat(opts: Record<string, any>): OutputFormat {
-    if (outputFormats.includes(opts.output)) {
+    if (opts.output && outputFormats.includes(opts.output)) {
         return opts.output;
     } else if (process.env.CLAUDECODE === '1') {
         // https://github.com/sveltejs/language-tools/issues/2868
