@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.17.25
+
+### Patch Changes
+
+-   fix: apply text synchronize change in order ([#2927](https://github.com/sveltejs/language-tools/pull/2927))
+
 ## 0.17.24
 
 ### Patch Changes
