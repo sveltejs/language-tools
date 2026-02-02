@@ -133,9 +133,6 @@ importers:
       picocolors:
         specifier: ^1.0.0
         version: 1.0.0
-      sade:
-        specifier: ^1.7.4
-        version: 1.8.1
     devDependencies:
       '@rollup/plugin-commonjs':
         specifier: ^24.0.0
@@ -152,9 +149,6 @@ importers:
       '@rollup/plugin-typescript':
         specifier: ^10.0.0
         version: 10.0.1(rollup@3.7.5)(tslib@2.5.2)(typescript@5.9.2)
-      '@types/sade':
-        specifier: ^1.7.2
-        version: 1.7.4
       builtin-modules:
         specifier: ^3.3.0
         version: 3.3.0
@@ -852,9 +846,6 @@ packages:
   '@types/mocha@9.1.1':
     resolution: {integrity: sha512-Z61JK7DKDtdKTWwLeElSEBcWGRLY8g95ic5FoQqI9CMx0ns/Ghep3B4DfcEimiKMvtamNVULVNKEsiwV3aQmXw==}
 
-  '@types/mri@1.1.1':
-    resolution: {integrity: sha512-nJOuiTlsvmClSr3+a/trTSx4DTuY/VURsWGKSf/eeavh0LRMqdsK60ti0TlwM5iHiGOK3/Ibkxsbr7i9rzGreA==}
-
   '@types/node@12.20.55':
     resolution: {integrity: sha512-J8xLz7q2OFulZ2cyGTLE1TbbZcjpno7FaN6zdJNrgAdrJ+DZzh/uFR6YrTb4C+nXakvud8Q4+rbhoIWlYQbUFQ==}
 
@@ -863,9 +854,6 @@ packages:
 
   '@types/resolve@1.20.2':
     resolution: {integrity: sha512-60BCwRFOZCQhDncwQdxxeOEEkbc5dIMccYLwbxsS4TUNeVECQ/pBJ0j09mrHOl/JJvpRPGwO9SvE4nR2Nb/a4Q==}
-
-  '@types/sade@1.7.4':
-    resolution: {integrity: sha512-6ys13kmtlY0aIOz4KtMdeBD9BHs6vSE3aRcj4vAZqXjypT2el8WZt6799CMjElVgh1cbOH/t3vrpQ4IpwytcPA==}
 
   '@types/semver@7.7.0':
     resolution: {integrity: sha512-k107IF4+Xr7UHjwDc7Cfd6PRQfbdkiRabXGRjo07b4WyPahFBZCZ1sE+BNxYIJPPg73UkfOsVOLwqVc/6ETrIA==}
@@ -1778,10 +1766,6 @@ packages:
   run-parallel@1.2.0:
     resolution: {integrity: sha512-5l4VyZR86LZ/lDxZTR6jqL8AFE2S0IFLMP26AbjsLVADxHdhB/c0GUsH+y39UfCi3dzz8OlQuPmnaJOMoDHQBA==}
 
-  sade@1.8.1:
-    resolution: {integrity: sha512-xal3CZX1Xlo/k4ApwCFrHVACi9fBqJ7V+mwhBsuf/1IOKbBy098Fex+Wa/5QMubw09pSZ/u8EY8PWgevJsXp1A==}
-    engines: {node: '>=6'}
-
   safe-buffer@5.2.1:
     resolution: {integrity: sha512-rp3So07KcdmmKbGvgaNxQSJr7bGVSVk5S9Eq1F+ppbRo70+YeaDxkw5Dd8NPN+GD6bjnYm2VuPuCXmpuYvmCXQ==}
 
@@ -2662,8 +2646,6 @@ snapshots:
 
   '@types/mocha@9.1.1': {}
 
-  '@types/mri@1.1.1': {}
-
   '@types/node@12.20.55': {}
 
   '@types/node@18.19.46':
@@ -2671,10 +2653,6 @@ snapshots:
       undici-types: 5.26.5
 
   '@types/resolve@1.20.2': {}
-
-  '@types/sade@1.7.4':
-    dependencies:
-      '@types/mri': 1.1.1
 
   '@types/semver@7.7.0': {}
 
@@ -3584,10 +3562,6 @@ snapshots:
   run-parallel@1.2.0:
     dependencies:
       queue-microtask: 1.2.3
-
-  sade@1.8.1:
-    dependencies:
-      mri: 1.2.0
 
   safe-buffer@5.2.1: {}
 
