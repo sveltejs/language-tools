@@ -173,6 +173,9 @@ importers:
       svelte-language-server:
         specifier: workspace:*
         version: link:../language-server
+      svelte2tsx:
+        specifier: workspace:*
+        version: link:../svelte2tsx
       typescript:
         specifier: ^5.9.2
         version: 5.9.2

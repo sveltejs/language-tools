@@ -17,6 +17,13 @@ import {
     MachineFriendlyWriter,
     Writer
 } from './writers';
+import {
+    emitSvelteFiles,
+    mapDiagnosticsToSources,
+    runTypeScriptDiagnostics,
+    toDiagnostics,
+    writeOverlayTsconfig
+} from './incremental';
 
 type Result = {
     fileCount: number;
@@ -329,6 +336,195 @@ function instantiateWriter(opts: SvelteCheckCliOptions): Writer {
     }
 }
 
+function writeDiagnostics(
+    workspaceUri: URI,
+    writer: Writer,
+    diagnostics: Array<{ filePath: string; text: string; diagnostics: Diagnostic[] }>
+): Result {
+    writer.start(workspaceUri.fsPath);
+
+    const result: Result = {
+        fileCount: diagnostics.length,
+        errorCount: 0,
+        warningCount: 0,
+        fileCountWithProblems: 0
+    };
+
+    for (const diagnostic of diagnostics) {
+        writer.file(
+            diagnostic.diagnostics,
+            workspaceUri.fsPath,
+            path.relative(workspaceUri.fsPath, diagnostic.filePath),
+            diagnostic.text
+        );
+
+        let fileHasProblems = false;
+
+        diagnostic.diagnostics.forEach((d: Diagnostic) => {
+            if (d.severity === DiagnosticSeverity.Error) {
+                result.errorCount += 1;
+                fileHasProblems = true;
+            } else if (d.severity === DiagnosticSeverity.Warning) {
+                result.warningCount += 1;
+                fileHasProblems = true;
+            }
+        });
+
+        if (fileHasProblems) {
+            result.fileCountWithProblems += 1;
+        }
+    }
+
+    writer.completion(
+        result.fileCount,
+        result.errorCount,
+        result.warningCount,
+        result.fileCountWithProblems
+    );
+
+    return result;
+}
+
+async function getSvelteDiagnosticsForIncremental(
+    opts: SvelteCheckCliOptions
+): Promise<Array<{ filePath: string; text: string; diagnostics: Diagnostic[] }>> {
+    const sources = opts.diagnosticSources;
+    if (!sources.includes('svelte') && !sources.includes('css')) {
+        return [];
+    }
+
+    const svelteCheckOptions: SvelteCheckOptions = {
+        compilerWarnings: opts.compilerWarnings,
+        diagnosticSources: sources.filter((source) => source !== 'js'),
+        watch: false
+    };
+
+    const svelteCheck = new SvelteCheck(opts.workspaceUri.fsPath, svelteCheckOptions);
+    await openAllDocuments(opts.workspaceUri, opts.filePathsToIgnore, svelteCheck);
+    return svelteCheck.getDiagnostics();
+}
+
+async function runIncrementalOnce(
+    opts: SvelteCheckCliOptions,
+    writer: Writer
+): Promise<Result | null> {
+    if (!opts.tsconfig) {
+        throw new Error('`--incremental` requires a tsconfig/jsconfig file');
+    }
+
+    const emitResult = await emitSvelteFiles(
+        opts.workspaceUri.fsPath,
+        opts.filePathsToIgnore,
+        opts.incremental
+    );
+    const overlayTsconfig = writeOverlayTsconfig(
+        opts.tsconfig,
+        emitResult,
+        opts.incremental
+    );
+    const tsDiagnostics = mapDiagnosticsToSources(
+        runTypeScriptDiagnostics(
+            overlayTsconfig,
+            opts.tsgo,
+            opts.incremental,
+            opts.workspaceUri.fsPath
+        ),
+        emitResult
+    );
+
+    const svelteDiagnostics = await getSvelteDiagnosticsForIncremental(opts);
+    const diagnosticsByFile = new Map<
+        string,
+        { filePath: string; text: string; diagnostics: Diagnostic[] }
+    >();
+
+    for (const entry of svelteDiagnostics) {
+        diagnosticsByFile.set(entry.filePath, {
+            filePath: entry.filePath,
+            text: entry.text,
+            diagnostics: entry.diagnostics
+        });
+    }
+
+    for (const diag of tsDiagnostics) {
+        const filePath = diag.filePath;
+        const entry =
+            diagnosticsByFile.get(filePath) ??
+            {
+                filePath,
+                text: fs.existsSync(filePath) ? fs.readFileSync(filePath, 'utf-8') : '',
+                diagnostics: []
+            };
+        entry.diagnostics.push(...toDiagnostics([diag]));
+        diagnosticsByFile.set(filePath, entry);
+    }
+
+    return writeDiagnostics(opts.workspaceUri, writer, Array.from(diagnosticsByFile.values()));
+}
+
+async function watchIncremental(opts: SvelteCheckCliOptions, writer: Writer) {
+    let pending: NodeJS.Timeout | undefined;
+    let running = false;
+    let rerun = false;
+    const userIgnored = createIgnored(opts.filePathsToIgnore);
+
+    const run = async () => {
+        if (running) {
+            rerun = true;
+            return;
+        }
+        running = true;
+        try {
+            await runIncrementalOnce(opts, writer);
+        } catch (err: any) {
+            writer.failure(err);
+        } finally {
+            running = false;
+            if (rerun) {
+                rerun = false;
+                run();
+            }
+        }
+    };
+
+    const schedule = () => {
+        clearTimeout(pending);
+        pending = setTimeout(run, 300);
+    };
+
+    await run();
+
+    watch([], {
+        ignored: (path, stats) => {
+            if (
+                path.includes('node_modules') ||
+                path.includes('.git') ||
+                (stats?.isFile() && (!FILE_ENDING_REGEX.test(path) || VITE_CONFIG_REGEX.test(path)))
+            ) {
+                return true;
+            }
+
+            if (userIgnored.length !== 0) {
+                const workspaceRelative = path.startsWith(opts.workspaceUri.fsPath)
+                    ? path.slice(opts.workspaceUri.fsPath.length + 1)
+                    : path;
+                for (const i of userIgnored) {
+                    if (i(workspaceRelative)) {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        },
+        ignoreInitial: true
+    })
+        .on('add', schedule)
+        .on('unlink', schedule)
+        .on('change', schedule)
+        .add(opts.workspaceUri.fsPath);
+}
+
 parseOptions(async (opts) => {
     try {
         const writer = instantiateWriter(opts);
@@ -340,7 +536,20 @@ parseOptions(async (opts) => {
             watch: opts.watch
         };
 
-        if (opts.watch) {
+        if (opts.incremental && opts.watch) {
+            await watchIncremental(opts, writer);
+        } else if (opts.incremental) {
+            const result = await runIncrementalOnce(opts, writer);
+            if (
+                result &&
+                result.errorCount === 0 &&
+                (!opts.failOnWarnings || result.warningCount === 0)
+            ) {
+                process.exit(0);
+            } else {
+                process.exit(1);
+            }
+        } else if (opts.watch) {
             // Wire callbacks that can reference the watcher instance created below
             let watcher: DiagnosticsWatcher;
             svelteCheckOptions.onProjectReload = () => {

@@ -38,6 +38,9 @@
     },
     "scripts": {
         "build": "cd ../svelte2tsx && pnpm build && cd ../language-server && pnpm build && cd ../svelte-check && rollup -c && node ./dist/src/index.js --workspace ./test --tsconfig ./tsconfig.json",
+        "sanity:incremental": "rollup -c && node ./dist/src/index.js --workspace ./test --tsconfig ./tsconfig.json --incremental",
+        "sanity:error": "rollup -c && node ./dist/src/index.js --workspace ./test-incremental-error --tsconfig ./tsconfig.json",
+        "sanity:incremental:error": "rollup -c && node ./dist/src/index.js --workspace ./test-incremental-error --tsconfig ./tsconfig.json --incremental",
         "prepublishOnly": "pnpm build",
         "test": "pnpm build"
     },
@@ -52,6 +55,7 @@
         "rollup": "3.7.5",
         "rollup-plugin-cleanup": "^3.2.0",
         "rollup-plugin-copy": "^3.4.0",
+        "svelte2tsx": "workspace:*",
         "svelte": "^4.2.19",
         "svelte-language-server": "workspace:*",
         "typescript": "^5.9.2",
