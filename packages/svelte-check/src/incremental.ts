@@ -16,6 +16,8 @@ type ManifestEntry = {
     mtimeMs: number;
     size: number;
     isTsFile: boolean;
+    compilerWarnings?: Diagnostic[];
+    cssDiagnostics?: Diagnostic[];
 };
 
 type Manifest = {
@@ -30,6 +32,7 @@ export type EmitResult = {
     emitDir: string;
     manifestPath: string;
     entries: ManifestEntry[];
+    changedFiles: string[];
 };
 
 export type ParsedDiagnostic = {
@@ -67,6 +70,7 @@ export async function emitSvelteFiles(
     const manifest = loadManifest(manifestPath);
     const svelteFiles = await findSvelteFiles(workspacePath, filePathsToIgnore);
     const currentSet = new Set(svelteFiles);
+    const changedFiles: string[] = [];
 
     // Remove deleted files
     for (const [sourcePath, entry] of Object.entries(manifest.entries)) {
@@ -102,6 +106,7 @@ export async function emitSvelteFiles(
         if (!hasChanged) {
             continue;
         }
+        changedFiles.push(sourcePath);
 
         fs.mkdirSync(path.dirname(outPath), { recursive: true });
 
@@ -151,7 +156,8 @@ export async function emitSvelteFiles(
         cacheDir,
         emitDir,
         manifestPath,
-        entries: Object.values(manifest.entries)
+        entries: Object.values(manifest.entries),
+        changedFiles
     };
 }
 
@@ -454,8 +460,11 @@ function buildVirtualSvelteSpecs(
     if (!specs) {
         return [];
     }
+    const resolvedExclude = excludeSpecs?.map((value) =>
+        resolveConfigSpecForMatch(value, tsconfigDir)
+    );
     return specs
-        .filter((spec) => matchesSvelteFiles(spec, tsconfigDir, excludeSpecs))
+        .filter((spec) => matchesSvelteFiles(spec, tsconfigDir, resolvedExclude))
         .map((spec) => toVirtualConfigSpec(spec, tsconfigDir));
 }
 
@@ -474,11 +483,13 @@ function buildVirtualSvelteFileSpecs(
 function matchesSvelteFiles(
     spec: string,
     tsconfigDir: string,
-    excludeSpecs?: string[]
+    resolvedExcludeSpecs?: string[]
 ): boolean {
+    if (hasNonSvelteExtension(spec)) {
+        return false;
+    }
     const include = resolveConfigSpecForMatch(spec, tsconfigDir);
-    const exclude = excludeSpecs?.map((value) => resolveConfigSpecForMatch(value, tsconfigDir));
-    return ts.sys.readDirectory(tsconfigDir, ['.svelte'], exclude, [include]).length > 0;
+    return ts.sys.readDirectory(tsconfigDir, ['.svelte'], resolvedExcludeSpecs, [include]).length > 0;
 }
 
 function resolveConfigSpecForMatch(spec: string, baseDir: string): string {
@@ -508,6 +519,11 @@ function toVirtualConfigSpec(
 
 function hasGlob(spec: string): boolean {
     return /[*?[\]]/.test(spec);
+}
+
+function hasNonSvelteExtension(spec: string): boolean {
+    const ext = path.posix.extname(spec.toLowerCase());
+    return !!ext && ext !== '.svelte';
 }
 
 function deleteEntry(entry: ManifestEntry) {
@@ -545,6 +561,38 @@ function writeManifest(manifestPath: string, manifest: Manifest) {
         entries: manifest.entries
     };
     fs.writeFileSync(manifestPath, JSON.stringify(data, null, 2), 'utf-8');
+}
+
+export function updateDiagnosticsCache(
+    manifestPath: string,
+    caches: {
+        compilerWarningsByFile?: Map<string, Diagnostic[]>;
+        cssDiagnosticsByFile?: Map<string, Diagnostic[]>;
+    }
+) {
+    const hasCompilerWarnings = !!caches.compilerWarningsByFile?.size;
+    const hasCssDiagnostics = !!caches.cssDiagnosticsByFile?.size;
+    if (!hasCompilerWarnings && !hasCssDiagnostics) {
+        return;
+    }
+    const manifest = loadManifest(manifestPath);
+    if (caches.compilerWarningsByFile) {
+        for (const [filePath, warnings] of caches.compilerWarningsByFile) {
+            const entry = manifest.entries[filePath];
+            if (entry) {
+                entry.compilerWarnings = warnings;
+            }
+        }
+    }
+    if (caches.cssDiagnosticsByFile) {
+        for (const [filePath, diagnostics] of caches.cssDiagnosticsByFile) {
+            const entry = manifest.entries[filePath];
+            if (entry) {
+                entry.cssDiagnostics = diagnostics;
+            }
+        }
+    }
+    writeManifest(manifestPath, manifest);
 }
 
 function resolveSvelte2tsxShims(): string[] {

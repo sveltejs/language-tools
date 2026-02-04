@@ -19,8 +19,10 @@ import {
 } from './writers';
 import {
     emitSvelteFiles,
+    EmitResult,
     mapCliDiagnosticsToLsp,
     runTypeScriptDiagnostics,
+    updateDiagnosticsCache,
     writeOverlayTsconfig
 } from './incremental';
 
@@ -59,6 +61,19 @@ async function openAllDocuments(
         .withPromise();
 
     for (const absFilePath of absFilePaths) {
+        const text = fs.readFileSync(absFilePath, 'utf-8');
+        svelteCheck.upsertDocument(
+            {
+                uri: URI.file(absFilePath).toString(),
+                text
+            },
+            true
+        );
+    }
+}
+
+async function openDocuments(filePaths: string[], svelteCheck: SvelteCheck) {
+    for (const absFilePath of filePaths) {
         const text = fs.readFileSync(absFilePath, 'utf-8');
         svelteCheck.upsertDocument(
             {
@@ -385,22 +400,129 @@ function writeDiagnostics(
 }
 
 async function getSvelteDiagnosticsForIncremental(
-    opts: SvelteCheckCliOptions
-): Promise<Array<{ filePath: string; text: string; diagnostics: Diagnostic[] }>> {
+    opts: SvelteCheckCliOptions,
+    emitResult: EmitResult
+): Promise<{
+    diagnostics: Array<{ filePath: string; text: string; diagnostics: Diagnostic[] }>;
+    compilerWarningsByFile: Map<string, Diagnostic[]>;
+    cssDiagnosticsByFile: Map<string, Diagnostic[]>;
+}> {
     const sources = opts.diagnosticSources;
     if (!sources.includes('svelte') && !sources.includes('css')) {
-        return [];
+        return {
+            diagnostics: [],
+            compilerWarningsByFile: new Map(),
+            cssDiagnosticsByFile: new Map()
+        };
     }
 
-    const svelteCheckOptions: SvelteCheckOptions = {
-        compilerWarnings: opts.compilerWarnings,
-        diagnosticSources: sources.filter((source) => source !== 'js'),
-        watch: false
-    };
+    const diagnosticsByFile = new Map<
+        string,
+        { filePath: string; text: string; diagnostics: Diagnostic[] }
+    >();
+    const compilerWarningsByFile = new Map<string, Diagnostic[]>();
+    const cssDiagnosticsByFile = new Map<string, Diagnostic[]>();
+    const changedFiles = new Set(emitResult.changedFiles);
+    const filesNeedingDiagnostics: string[] = [];
+    const enabledSources = sources.filter((source) => source !== 'js');
 
-    const svelteCheck = new SvelteCheck(opts.workspaceUri.fsPath, svelteCheckOptions);
-    await openAllDocuments(opts.workspaceUri, opts.filePathsToIgnore, svelteCheck);
-    return svelteCheck.getDiagnostics();
+    for (const entry of emitResult.entries) {
+        const needsSvelte =
+            sources.includes('svelte') &&
+            (!entry.compilerWarnings || changedFiles.has(entry.sourcePath));
+        const needsCss =
+            sources.includes('css') &&
+            (!entry.cssDiagnostics || changedFiles.has(entry.sourcePath));
+        if (needsSvelte || needsCss) {
+            filesNeedingDiagnostics.push(entry.sourcePath);
+            continue;
+        }
+
+        if (sources.includes('svelte') && entry.compilerWarnings) {
+            const text = fs.readFileSync(entry.sourcePath, 'utf-8');
+            diagnosticsByFile.set(entry.sourcePath, {
+                filePath: entry.sourcePath,
+                text,
+                diagnostics: [...entry.compilerWarnings]
+            });
+        }
+        if (sources.includes('css') && entry.cssDiagnostics) {
+            const existing =
+                diagnosticsByFile.get(entry.sourcePath) ??
+                {
+                    filePath: entry.sourcePath,
+                    text: fs.readFileSync(entry.sourcePath, 'utf-8'),
+                    diagnostics: []
+                };
+            existing.diagnostics.push(...entry.cssDiagnostics);
+            diagnosticsByFile.set(entry.sourcePath, existing);
+        }
+    }
+
+    if (enabledSources.length && filesNeedingDiagnostics.length > 0) {
+        const svelteCheck = new SvelteCheck(opts.workspaceUri.fsPath, {
+            compilerWarnings: opts.compilerWarnings,
+            diagnosticSources: enabledSources,
+            watch: false
+        });
+        await openDocuments(filesNeedingDiagnostics, svelteCheck);
+        const runDiagnostics = await svelteCheck.getDiagnostics();
+        for (const entry of runDiagnostics) {
+            diagnosticsByFile.set(entry.filePath, entry);
+            if (sources.includes('svelte')) {
+                compilerWarningsByFile.set(
+                    entry.filePath,
+                    entry.diagnostics.filter((diag) => diag.source === 'svelte')
+                );
+            }
+            if (sources.includes('css')) {
+                cssDiagnosticsByFile.set(
+                    entry.filePath,
+                    entry.diagnostics.filter((diag) => diag.source === 'css')
+                );
+            }
+        }
+        for (const filePath of filesNeedingDiagnostics) {
+            if (sources.includes('svelte') && !compilerWarningsByFile.has(filePath)) {
+                compilerWarningsByFile.set(filePath, []);
+            }
+            if (sources.includes('css') && !cssDiagnosticsByFile.has(filePath)) {
+                cssDiagnosticsByFile.set(filePath, []);
+            }
+            if (!diagnosticsByFile.has(filePath)) {
+                const text = fs.readFileSync(filePath, 'utf-8');
+                const diagnostics: Diagnostic[] = [];
+                if (sources.includes('svelte')) {
+                    diagnostics.push(...(compilerWarningsByFile.get(filePath) ?? []));
+                }
+                if (sources.includes('css')) {
+                    diagnostics.push(...(cssDiagnosticsByFile.get(filePath) ?? []));
+                }
+                diagnosticsByFile.set(filePath, {
+                    filePath,
+                    text,
+                    diagnostics
+                });
+            }
+        }
+    }
+
+    for (const entry of emitResult.entries) {
+        if (!diagnosticsByFile.has(entry.sourcePath)) {
+            const text = fs.readFileSync(entry.sourcePath, 'utf-8');
+            diagnosticsByFile.set(entry.sourcePath, {
+                filePath: entry.sourcePath,
+                text,
+                diagnostics: []
+            });
+        }
+    }
+
+    return {
+        diagnostics: Array.from(diagnosticsByFile.values()),
+        compilerWarningsByFile,
+        cssDiagnosticsByFile
+    };
 }
 
 async function runIncrementalOnce(
@@ -431,7 +553,12 @@ async function runIncrementalOnce(
         emitResult
     );
 
-    const svelteDiagnostics = await getSvelteDiagnosticsForIncremental(opts);
+    const { diagnostics: svelteDiagnostics, compilerWarningsByFile, cssDiagnosticsByFile } =
+        await getSvelteDiagnosticsForIncremental(opts, emitResult);
+    updateDiagnosticsCache(emitResult.manifestPath, {
+        compilerWarningsByFile,
+        cssDiagnosticsByFile
+    });
     const diagnosticsByFile = new Map<
         string,
         { filePath: string; text: string; diagnostics: Diagnostic[] }
