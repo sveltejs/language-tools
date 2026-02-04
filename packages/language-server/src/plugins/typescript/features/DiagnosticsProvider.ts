@@ -1,4 +1,4 @@
-import ts from 'typescript';
+import ts, { flattenDiagnosticMessageText } from 'typescript';
 import { CancellationToken, Diagnostic, DiagnosticSeverity, Range } from 'vscode-languageserver';
 import {
     Document,
@@ -101,8 +101,25 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
             diagnostics.push(...checker.call(lang, tsDoc.filePath));
         }
 
+        return mapAndFilterDiagnostics(diagnostics, document, tsDoc, isTypescript, lang);
+    }
+
+    private async getLSAndTSDoc(document: Document) {
+        return this.lsAndTsDocResolver.getLSAndTSDoc(document);
+    }
+}
+
+export function mapAndFilterDiagnostics(
+    diagnostics: ts.Diagnostic[],
+    document: Document,
+    tsDoc: SvelteDocumentSnapshot,
+    isTypescript: boolean,
+    lang?: ts.LanguageService
+): Diagnostic[] {
+    const notGenerated = isNotGenerated(tsDoc.getFullText());
+
+    if (lang) {
         const additionalStoreDiagnostics: ts.Diagnostic[] = [];
-        const notGenerated = isNotGenerated(tsDoc.getFullText());
         for (const diagnostic of diagnostics) {
             if (
                 (diagnostic.code === DiagnosticCode.NO_OVERLOAD_MATCHES_CALL ||
@@ -132,46 +149,46 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
             }
         }
         diagnostics.push(...additionalStoreDiagnostics);
+    }
 
-        diagnostics = diagnostics
-            .filter(notGenerated)
-            .filter(not(isUnusedReactiveStatementLabel))
-            .filter((diagnostics) => !expectedTransitionThirdArgument(diagnostics, tsDoc, lang));
+    diagnostics = diagnostics
+        .filter(notGenerated)
+        .filter(not(isUnusedReactiveStatementLabel))
+        .filter((diagnostic) =>
+            !expectedTransitionThirdArgument(diagnostic, tsDoc, lang)
+        );
 
+    if (lang) {
         diagnostics = resolveNoopsInReactiveStatements(lang, diagnostics);
+    }
 
-        const mapRange = rangeMapper(tsDoc, document, lang);
-        const noFalsePositive = isNoFalsePositive(document, tsDoc);
-        const converted: Diagnostic[] = [];
+    const mapRange = rangeMapper(tsDoc, document, lang);
+    const noFalsePositive = isNoFalsePositive(document, tsDoc);
+    const converted: Diagnostic[] = [];
 
-        for (const tsDiag of diagnostics) {
-            let diagnostic: Diagnostic = {
-                range: convertRange(tsDoc, tsDiag),
-                severity: mapSeverity(tsDiag.category),
-                source: isTypescript ? 'ts' : 'js',
-                message: ts.flattenDiagnosticMessageText(tsDiag.messageText, '\n'),
-                code: tsDiag.code,
-                tags: getDiagnosticTag(tsDiag)
-            };
-            diagnostic = mapRange(diagnostic);
+    for (const tsDiag of diagnostics) {
+        let diagnostic: Diagnostic = {
+            range: convertRange(tsDoc, tsDiag),
+            severity: mapSeverity(tsDiag.category),
+            source: isTypescript ? 'ts' : 'js',
+            message: ts.flattenDiagnosticMessageText(tsDiag.messageText, '\n'),
+            code: tsDiag.code,
+            tags: getDiagnosticTag(tsDiag)
+        };
+        diagnostic = mapRange(diagnostic);
 
-            moveBindingErrorMessage(tsDiag, tsDoc, diagnostic, document);
+        moveBindingErrorMessage(tsDiag, tsDoc, diagnostic, document);
 
-            if (!hasNoNegativeLines(diagnostic) || !noFalsePositive(diagnostic)) {
-                continue;
-            }
-
-            diagnostic = adjustIfNecessary(diagnostic, tsDoc.isSvelte5Plus);
-            diagnostic = swapDiagRangeStartEndIfNecessary(diagnostic);
-            converted.push(diagnostic);
+        if (!hasNoNegativeLines(diagnostic) || !noFalsePositive(diagnostic)) {
+            continue;
         }
 
-        return converted;
+        diagnostic = adjustIfNecessary(diagnostic, tsDoc.isSvelte5Plus);
+        diagnostic = swapDiagRangeStartEndIfNecessary(diagnostic);
+        converted.push(diagnostic);
     }
 
-    private async getLSAndTSDoc(document: Document) {
-        return this.lsAndTsDocResolver.getLSAndTSDoc(document);
-    }
+    return converted;
 }
 
 function moveBindingErrorMessage(
@@ -231,17 +248,19 @@ function moveBindingErrorMessage(
 function rangeMapper(
     snapshot: SvelteDocumentSnapshot,
     document: Document,
-    lang: ts.LanguageService
+    lang?: ts.LanguageService
 ): (value: Diagnostic) => Diagnostic {
-    const get$$PropsDefWithCache = memoize(() => get$$PropsDef(lang, snapshot));
+    const get$$PropsDefWithCache = memoize(() =>
+        lang ? get$$PropsDef(lang, snapshot) : undefined
+    );
     const get$$PropsAliasInfoWithCache = memoize(() =>
-        get$$PropsAliasForInfo(get$$PropsDefWithCache, lang, document)
+        lang ? get$$PropsAliasForInfo(get$$PropsDefWithCache, lang, document) : undefined
     );
 
     return (diagnostic) => {
         let range = mapRangeToOriginal(snapshot, diagnostic.range);
 
-        if (range.start.line < 0) {
+        if (range.start.line < 0 && lang) {
             range =
                 movePropsErrorRangeBackIfNecessary(
                     diagnostic,
@@ -605,7 +624,7 @@ function movePropsErrorRangeBackIfNecessary(
 function expectedTransitionThirdArgument(
     diagnostic: ts.Diagnostic,
     tsDoc: SvelteDocumentSnapshot,
-    lang: ts.LanguageService
+    lang?: ts.LanguageService
 ) {
     if (
         diagnostic.code !== DiagnosticCode.EXPECTED_N_ARGUMENTS ||
@@ -630,6 +649,10 @@ function expectedTransitionThirdArgument(
                   { start: node.getStart(), length: node.getWidth() },
                   ts.isCallExpression
               );
+
+    if (!lang) {
+        return flattenDiagnosticMessageText(diagnostic.messageText, '\n').includes(' 3');
+    }
 
     const signature =
         callExpression && lang.getProgram()?.getTypeChecker().getResolvedSignature(callExpression);

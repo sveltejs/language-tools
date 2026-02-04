@@ -19,9 +19,8 @@ import {
 } from './writers';
 import {
     emitSvelteFiles,
-    mapDiagnosticsToSources,
+    mapCliDiagnosticsToLsp,
     runTypeScriptDiagnostics,
-    toDiagnostics,
     writeOverlayTsconfig
 } from './incremental';
 
@@ -422,7 +421,7 @@ async function runIncrementalOnce(
         emitResult,
         opts.incremental
     );
-    const tsDiagnostics = mapDiagnosticsToSources(
+    const tsDiagnostics = mapCliDiagnosticsToLsp(
         runTypeScriptDiagnostics(
             overlayTsconfig,
             opts.tsgo,
@@ -446,17 +445,16 @@ async function runIncrementalOnce(
         });
     }
 
-    for (const diag of tsDiagnostics) {
-        const filePath = diag.filePath;
-        const entry =
-            diagnosticsByFile.get(filePath) ??
+    for (const entry of tsDiagnostics) {
+        const existing =
+            diagnosticsByFile.get(entry.filePath) ??
             {
-                filePath,
-                text: fs.existsSync(filePath) ? fs.readFileSync(filePath, 'utf-8') : '',
+                filePath: entry.filePath,
+                text: entry.text,
                 diagnostics: []
             };
-        entry.diagnostics.push(...toDiagnostics([diag]));
-        diagnosticsByFile.set(filePath, entry);
+        existing.diagnostics.push(...entry.diagnostics);
+        diagnosticsByFile.set(entry.filePath, existing);
     }
 
     return writeDiagnostics(opts.workspaceUri, writer, Array.from(diagnosticsByFile.values()));

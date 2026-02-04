@@ -1,12 +1,12 @@
-import { TraceMap, originalPositionFor } from '@jridgewell/trace-mapping';
 import { fdir } from 'fdir';
 import * as fs from 'fs';
 import * as path from 'path';
 import { spawnSync } from 'child_process';
 import { svelte2tsx } from 'svelte2tsx';
-import { parse, VERSION as svelteVersion } from 'svelte/compiler';
+import { parse, VERSION as svelteVersion, VERSION } from 'svelte/compiler';
 import ts from 'typescript';
 import { Diagnostic, DiagnosticSeverity, Range } from 'vscode-languageserver-protocol';
+import { mapSvelteCheckDiagnostics } from 'svelte-language-server';
 
 type ManifestEntry = {
     sourcePath: string;
@@ -34,7 +34,8 @@ export type EmitResult = {
 
 export type ParsedDiagnostic = {
     filePath: string;
-    range: Range;
+    line: number;
+    character: number;
     severity: DiagnosticSeverity;
     code: number;
     message: string;
@@ -43,6 +44,15 @@ export type ParsedDiagnostic = {
 const MANIFEST_VERSION = 1;
 const CACHE_DIR_NAME = '.svelte-check';
 const EMIT_SUBDIR = 'svelte';
+
+function toPosixPath(value: string) {
+    return value.replace(/\\/g, '/');
+}
+
+function toRelativePosix(baseDir: string, targetPath: string) {
+    const relative = path.relative(baseDir, targetPath);
+    return toPosixPath(relative || '.');
+}
 
 export async function emitSvelteFiles(
     workspacePath: string,
@@ -69,9 +79,20 @@ export async function emitSvelteFiles(
     for (const sourcePath of svelteFiles) {
         const stats = fs.statSync(sourcePath);
         const entry = manifest.entries[sourcePath];
+        const text = fs.readFileSync(sourcePath, 'utf-8');
+        const isTsFile = isTsSvelte(text);
+        const { outPath, dtsPath } = getOutputPaths(workspacePath, emitDir, sourcePath, isTsFile);
+        const mapPath = `${outPath}.map`;
+
+        const outPathChanged = !!entry && entry.outPath !== outPath;
+        if (outPathChanged) {
+            deleteEntry(entry);
+        }
+
         const hasChanged =
             !incremental ||
             !entry ||
+            outPathChanged ||
             entry.mtimeMs !== stats.mtimeMs ||
             entry.size !== stats.size ||
             !fs.existsSync(entry.outPath) ||
@@ -82,12 +103,6 @@ export async function emitSvelteFiles(
             continue;
         }
 
-        const text = fs.readFileSync(sourcePath, 'utf-8');
-        const isTsFile = isTsSvelte(text);
-        const outPath = getOutputPath(workspacePath, emitDir, sourcePath, isTsFile);
-        const mapPath = `${outPath}.map`;
-        const dtsPath = outPath.replace(/\.svelte\.(ts|js)$/, '.svelte.d.ts');
-
         fs.mkdirSync(path.dirname(outPath), { recursive: true });
 
         const tsx = svelte2tsx(text, {
@@ -96,7 +111,7 @@ export async function emitSvelteFiles(
             filename: sourcePath,
             isTsFile,
             mode: 'ts',
-            emitOnTemplateError: true
+            emitOnTemplateError: false
         });
 
         const map = tsx.map as any;
@@ -106,9 +121,7 @@ export async function emitSvelteFiles(
         }
 
         const mapFileName = path.basename(mapPath);
-        const code = map
-            ? `${tsx.code}\n//# sourceMappingURL=${mapFileName}\n`
-            : tsx.code;
+        const code = map ? `${tsx.code}\n//# sourceMappingURL=${mapFileName}\n` : tsx.code;
 
         fs.writeFileSync(outPath, code, 'utf-8');
         if (map) {
@@ -150,6 +163,7 @@ export function writeOverlayTsconfig(
     const cacheDir = emitResult.cacheDir;
     const overlayPath = path.join(cacheDir, 'tsconfig.json');
     const tsBuildInfoFile = path.join(cacheDir, 'tsbuildinfo.json');
+    const overlayDir = path.dirname(overlayPath);
 
     const configFile = ts.readConfigFile(tsconfigPath, ts.sys.readFile);
     if (configFile.error) {
@@ -161,32 +175,44 @@ export function writeOverlayTsconfig(
             })
         );
     }
-    const { config } = configFile;
-    const baseRootDirs = config?.compilerOptions?.rootDirs ?? [];
-    const baseRootDirsAbs = baseRootDirs.map((dir: string) =>
-        path.resolve(path.dirname(tsconfigPath), dir)
-    );
-    const rootDirs = Array.from(new Set([...baseRootDirsAbs, cacheDir]));
-
     const parsed = ts.parseJsonConfigFileContent(
-        config,
+        configFile.config,
         ts.sys,
         path.dirname(tsconfigPath)
     );
-    const baseFiles = parsed.fileNames.filter((fileName) => !fileName.endsWith('.svelte'));
-    const emittedFiles = emitResult.entries.flatMap((entry) => [entry.outPath, entry.dtsPath]);
-    const shimFiles = resolveSvelte2tsxShims();
+    const baseRootDirs =
+        parsed.options.rootDirs ?? configFile.config?.compilerOptions?.rootDirs ?? [];
+    const baseRootDirsAbs = baseRootDirs.map((dir: string) =>
+        path.resolve(path.join(path.dirname(tsconfigPath)), dir)
+    );
+    const rootDirs = Array.from(new Set([...baseRootDirsAbs, path.join(cacheDir, 'svelte')])).map(
+        (dir) => toRelativePosix(overlayDir, dir)
+    );
+    const tsconfigDir = path.dirname(tsconfigPath);
+    const include = rebaseConfigSpecs(parsed.raw?.include, tsconfigDir, overlayDir);
+    const exclude = rebaseConfigSpecs(parsed.raw?.exclude, tsconfigDir, overlayDir);
+    const configFiles = rebaseConfigSpecs(parsed.raw?.files, tsconfigDir, overlayDir)?.filter(
+        (fileName) => !fileName.endsWith('.svelte')
+    );
+    const emittedFiles = emitResult.entries
+        .flatMap((entry) => [entry.outPath, entry.dtsPath])
+        .map((fileName) => toRelativePosix(overlayDir, fileName));
+    const shimFiles = resolveSvelte2tsxShims().map((fileName) =>
+        toRelativePosix(overlayDir, fileName)
+    );
 
     const overlay = {
-        extends: tsconfigPath,
+        extends: toRelativePosix(overlayDir, tsconfigPath),
         compilerOptions: {
             rootDirs,
             allowArbitraryExtensions: true,
             noEmit: true,
             incremental,
-            tsBuildInfoFile
+            tsBuildInfoFile: toRelativePosix(overlayDir, tsBuildInfoFile)
         },
-        files: Array.from(new Set([...baseFiles, ...emittedFiles, ...shimFiles]))
+        files: Array.from(new Set([...(configFiles ?? []), ...emittedFiles, ...shimFiles])),
+        ...(include !== undefined ? { include } : {}),
+        ...(exclude !== undefined ? { exclude } : {})
     };
 
     fs.writeFileSync(overlayPath, JSON.stringify(overlay, null, 2), 'utf-8');
@@ -199,17 +225,14 @@ export function runTypeScriptDiagnostics(
     incremental: boolean,
     cwd: string
 ): ParsedDiagnostic[] {
-    const args = [
-        '-p',
-        tsconfigPath,
-        '--pretty',
-        'false',
-        '--noErrorTruncation'
-    ];
+    const args = ['-p', tsconfigPath, '--pretty', 'false', '--noErrorTruncation'];
 
     if (incremental) {
         args.push('--incremental');
-        args.push('--tsBuildInfoFile', path.join(path.dirname(tsconfigPath), 'tsbuildinfo.json'));
+        args.push(
+            '--tsBuildInfoFile',
+            toPosixPath(path.join(path.dirname(tsconfigPath), 'tsbuildinfo.json'))
+        );
     }
 
     const command = useTsgo ? 'tsgo' : process.execPath;
@@ -224,51 +247,72 @@ export function runTypeScriptDiagnostics(
     return parseDiagnostics(output, cwd);
 }
 
-export function mapDiagnosticsToSources(
+export function mapCliDiagnosticsToLsp(
     diagnostics: ParsedDiagnostic[],
     emitResult: EmitResult
-): ParsedDiagnostic[] {
+): Array<{ filePath: string; text: string; diagnostics: Diagnostic[] }> {
     const entryByOutPath = new Map(
         emitResult.entries.map((entry) => [path.normalize(entry.outPath), entry])
     );
-
-    return diagnostics.map((diag) => {
-        const entry = entryByOutPath.get(path.normalize(diag.filePath));
-        if (!entry || !fs.existsSync(entry.mapPath)) {
-            return diag;
+    const diagnosticsByFile = new Map<string, ParsedDiagnostic[]>();
+    for (const diagnostic of diagnostics) {
+        const key = path.normalize(diagnostic.filePath);
+        const existing = diagnosticsByFile.get(key);
+        if (existing) {
+            existing.push(diagnostic);
+        } else {
+            diagnosticsByFile.set(key, [diagnostic]);
         }
+    }
 
-        const map = JSON.parse(fs.readFileSync(entry.mapPath, 'utf-8'));
-        const traceMap = new TraceMap(map);
-        const start = originalPositionFor(traceMap, {
-            line: diag.range.start.line + 1,
-            column: diag.range.start.character
-        });
+    const results = new Map<
+        string,
+        { filePath: string; text: string; diagnostics: Diagnostic[] }
+    >();
 
-        if (!start.line || start.column === null) {
-            return diag;
+    for (const [filePath, fileDiagnostics] of diagnosticsByFile.entries()) {
+        const entry = entryByOutPath.get(filePath);
+        if (entry) {
+            const sourceText = fs.readFileSync(entry.sourcePath, 'utf-8');
+            const generatedText = fs.readFileSync(entry.outPath, 'utf-8');
+            const tsDiagnostics = fileDiagnostics.map((diag) =>
+                cliDiagnosticToTsDiagnostic(diag, entry.outPath, generatedText, entry.isTsFile)
+            );
+            const mappedDiagnostics = mapSvelteCheckDiagnostics(
+                entry.sourcePath,
+                sourceText,
+                entry.isTsFile,
+                tsDiagnostics
+            );
+
+            results.set(entry.sourcePath, {
+                filePath: entry.sourcePath,
+                text: sourceText,
+                diagnostics: mappedDiagnostics
+            });
+        } else {
+            const text = fs.existsSync(filePath) ? fs.readFileSync(filePath, 'utf-8') : '';
+            const source = isTypescriptFile(filePath) ? 'ts' : 'js';
+            const mappedDiagnostics = fileDiagnostics.map((diag) => ({
+                range: Range.create(
+                    { line: diag.line, character: diag.character },
+                    { line: diag.line, character: diag.character + 1 }
+                ),
+                severity: diag.severity,
+                code: diag.code,
+                message: diag.message,
+                source
+            }));
+
+            results.set(filePath, {
+                filePath,
+                text,
+                diagnostics: mappedDiagnostics
+            });
         }
+    }
 
-        const sourcePath = map.sources?.[0] || entry.sourcePath;
-        return {
-            ...diag,
-            filePath: sourcePath,
-            range: Range.create(
-                { line: start.line - 1, character: start.column },
-                { line: start.line - 1, character: start.column + 1 }
-            )
-        };
-    });
-}
-
-export function toDiagnostics(parsed: ParsedDiagnostic[]): Diagnostic[] {
-    return parsed.map((diag) => ({
-        range: diag.range,
-        severity: diag.severity,
-        code: diag.code,
-        message: diag.message,
-        source: 'ts'
-    }));
+    return Array.from(results.values());
 }
 
 function parseDiagnostics(output: string, baseDir: string): ParsedDiagnostic[] {
@@ -282,21 +326,15 @@ function parseDiagnostics(output: string, baseDir: string): ParsedDiagnostic[] {
             continue;
         }
         const [, filePath, lineStr, colStr, severity, codeStr, message] = match;
-        const resolvedPath = path.isAbsolute(filePath)
-            ? filePath
-            : path.resolve(baseDir, filePath);
+        const resolvedPath = path.isAbsolute(filePath) ? filePath : path.resolve(baseDir, filePath);
         const lineNum = Math.max(0, Number(lineStr) - 1);
         const colNum = Math.max(0, Number(colStr) - 1);
         diagnostics.push({
             filePath: resolvedPath,
-            range: Range.create(
-                { line: lineNum, character: colNum },
-                { line: lineNum, character: colNum + 1 }
-            ),
+            line: lineNum,
+            character: colNum,
             severity:
-                severity === 'warning'
-                    ? DiagnosticSeverity.Warning
-                    : DiagnosticSeverity.Error,
+                severity === 'warning' ? DiagnosticSeverity.Warning : DiagnosticSeverity.Error,
             code: Number(codeStr),
             message
         });
@@ -309,15 +347,82 @@ function isTsSvelte(text: string): boolean {
     return /<script[^>]*\blang\s*=\s*["'](ts|typescript)["'][^>]*>/i.test(text);
 }
 
-function getOutputPath(
+function isTypescriptFile(filePath: string): boolean {
+    return /\.(ts|tsx|mts|cts)$/.test(filePath);
+}
+
+function cliDiagnosticToTsDiagnostic(
+    diag: ParsedDiagnostic,
+    filePath: string,
+    generatedText: string,
+    isTsFile: boolean
+): ts.Diagnostic {
+    const sourceFile = ts.createSourceFile(
+        filePath,
+        generatedText,
+        ts.ScriptTarget.Latest,
+        true,
+        isTsFile ? ts.ScriptKind.TS : ts.ScriptKind.JS
+    );
+    const start = sourceFile.getPositionOfLineAndCharacter(diag.line, diag.character);
+
+    return {
+        file: sourceFile,
+        start,
+        length: (() => {
+            const text = generatedText.slice(start, start + 100);
+            const match = /^[a-zA-Z0-9_$]+/.exec(text);
+            return match ? match[0].length : 1;
+        })(),
+        category:
+            diag.severity === DiagnosticSeverity.Warning
+                ? ts.DiagnosticCategory.Warning
+                : ts.DiagnosticCategory.Error,
+        code: diag.code,
+        messageText: diag.message,
+        source: 'ts'
+    };
+}
+
+function getOutputPaths(
     workspacePath: string,
     emitDir: string,
     sourcePath: string,
     isTsFile: boolean
-): string {
+): { outPath: string; dtsPath: string } {
     const relPath = path.relative(workspacePath, sourcePath);
     const base = relPath.replace(/\.svelte$/, `.svelte.${isTsFile ? 'ts' : 'js'}`);
-    return path.join(emitDir, base);
+    const baseOutputPath = path.join(emitDir, base);
+    const outPath = path.join(
+        path.dirname(baseOutputPath),
+        `++${path.basename(baseOutputPath)}`
+    );
+    const dtsPath = baseOutputPath.replace(/\.svelte\.(ts|js)$/, '.svelte.d.ts');
+    return {
+        outPath: outPath.replace(/\\/g, '/'),
+        dtsPath: dtsPath.replace(/\\/g, '/')
+    };
+}
+
+function rebaseConfigSpecs(
+    specs: unknown,
+    fromDir: string,
+    toDir: string
+): string[] | undefined {
+    if (!Array.isArray(specs)) {
+        return undefined;
+    }
+    return specs.map((spec) => rebaseConfigSpec(String(spec), fromDir, toDir));
+}
+
+function rebaseConfigSpec(spec: string, fromDir: string, toDir: string): string {
+    const configDirPattern = /^\$\{configDir\}/i;
+    const resolved = configDirPattern.test(spec)
+        ? path.resolve(fromDir, spec.replace(configDirPattern, '.'))
+        : path.isAbsolute(spec)
+          ? spec
+          : path.resolve(fromDir, spec);
+    return toRelativePosix(toDir, resolved);
 }
 
 function deleteEntry(entry: ManifestEntry) {
@@ -359,11 +464,9 @@ function writeManifest(manifestPath: string, manifest: Manifest) {
 
 function resolveSvelte2tsxShims(): string[] {
     const shimNames = [
-        'svelte-shims.d.ts',
-        'svelte-shims-v4.d.ts',
-        'svelte-jsx.d.ts',
-        'svelte-jsx-v4.d.ts',
-        'svelte-native-jsx.d.ts'
+        Number(VERSION.split('.')) < 4 ? 'svelte-shims.d.ts' : 'svelte-shims-v4.d.ts',
+        Number(VERSION.split('.')) < 4 ? 'svelte-jsx.d.ts' : 'svelte-jsx-v4.d.ts'
+        // 'svelte-native-jsx.d.ts' // TODO read tsconfig/svelte.config.js to see if it's enabled
     ];
     const resolved: string[] = [];
     for (const name of shimNames) {
