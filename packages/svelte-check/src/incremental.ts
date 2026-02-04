@@ -189,17 +189,24 @@ export function writeOverlayTsconfig(
         (dir) => toRelativePosix(overlayDir, dir)
     );
     const tsconfigDir = path.dirname(tsconfigPath);
-    const include = rebaseConfigSpecs(parsed.raw?.include, tsconfigDir, overlayDir);
-    const exclude = rebaseConfigSpecs(parsed.raw?.exclude, tsconfigDir, overlayDir);
-    const configFiles = rebaseConfigSpecs(parsed.raw?.files, tsconfigDir, overlayDir)?.filter(
+    const rawInclude = normalizeConfigSpecs(parsed.raw?.include);
+    const rawExclude = normalizeConfigSpecs(parsed.raw?.exclude);
+    const rawFiles = normalizeConfigSpecs(parsed.raw?.files);
+    const include = rebaseConfigSpecs(rawInclude, tsconfigDir, overlayDir);
+    const exclude = rebaseConfigSpecs(rawExclude, tsconfigDir, overlayDir);
+    const configFiles = rebaseConfigSpecs(rawFiles, tsconfigDir, overlayDir)?.filter(
         (fileName) => !fileName.endsWith('.svelte')
     );
-    const emittedFiles = emitResult.entries
-        .flatMap((entry) => [entry.outPath, entry.dtsPath])
-        .map((fileName) => toRelativePosix(overlayDir, fileName));
+    const virtualInclude = [
+        ...buildVirtualSvelteSpecs(rawInclude, rawExclude, tsconfigDir),
+        ...buildVirtualSvelteFileSpecs(rawFiles, tsconfigDir)
+    ];
+    const virtualExclude = buildVirtualSvelteSpecs(rawExclude, undefined, tsconfigDir);
     const shimFiles = resolveSvelte2tsxShims().map((fileName) =>
         toRelativePosix(overlayDir, fileName)
     );
+    const mergedInclude = dedupeStrings([...(include ?? []), ...virtualInclude]);
+    const mergedExclude = dedupeStrings([...(exclude ?? []), ...virtualExclude]);
 
     const overlay = {
         extends: toRelativePosix(overlayDir, tsconfigPath),
@@ -210,9 +217,9 @@ export function writeOverlayTsconfig(
             incremental,
             tsBuildInfoFile: toRelativePosix(overlayDir, tsBuildInfoFile)
         },
-        files: Array.from(new Set([...(configFiles ?? []), ...emittedFiles, ...shimFiles])),
-        ...(include !== undefined ? { include } : {}),
-        ...(exclude !== undefined ? { exclude } : {})
+        files: Array.from(new Set([...(configFiles ?? []), ...shimFiles])),
+        ...(mergedInclude.length ? { include: mergedInclude } : {}),
+        ...(mergedExclude.length ? { exclude: mergedExclude } : {})
     };
 
     fs.writeFileSync(overlayPath, JSON.stringify(overlay, null, 2), 'utf-8');
@@ -423,6 +430,84 @@ function rebaseConfigSpec(spec: string, fromDir: string, toDir: string): string 
           ? spec
           : path.resolve(fromDir, spec);
     return toRelativePosix(toDir, resolved);
+}
+
+function normalizeConfigSpecs(specs: unknown): string[] | undefined {
+    if (specs === undefined || specs === null) {
+        return undefined;
+    }
+    if (Array.isArray(specs)) {
+        return specs.map((spec) => String(spec));
+    }
+    return [String(specs)];
+}
+
+function dedupeStrings(values: string[]): string[] {
+    return Array.from(new Set(values));
+}
+
+function buildVirtualSvelteSpecs(
+    specs: string[] | undefined,
+    excludeSpecs: string[] | undefined,
+    tsconfigDir: string
+): string[] {
+    if (!specs) {
+        return [];
+    }
+    return specs
+        .filter((spec) => matchesSvelteFiles(spec, tsconfigDir, excludeSpecs))
+        .map((spec) => toVirtualConfigSpec(spec, tsconfigDir));
+}
+
+function buildVirtualSvelteFileSpecs(
+    specs: string[] | undefined,
+    tsconfigDir: string
+): string[] {
+    if (!specs) {
+        return [];
+    }
+    return specs
+        .filter((spec) => spec.toLowerCase().endsWith('.svelte'))
+        .map((spec) => toVirtualConfigSpec(spec, tsconfigDir, { addPrefixForFile: true }));
+}
+
+function matchesSvelteFiles(
+    spec: string,
+    tsconfigDir: string,
+    excludeSpecs?: string[]
+): boolean {
+    const include = resolveConfigSpecForMatch(spec, tsconfigDir);
+    const exclude = excludeSpecs?.map((value) => resolveConfigSpecForMatch(value, tsconfigDir));
+    return ts.sys.readDirectory(tsconfigDir, ['.svelte'], exclude, [include]).length > 0;
+}
+
+function resolveConfigSpecForMatch(spec: string, baseDir: string): string {
+    const configDirPattern = /^\$\{configDir\}/i;
+    if (configDirPattern.test(spec)) {
+        return path.resolve(baseDir, spec.replace(configDirPattern, '.'));
+    }
+    return spec;
+}
+
+function toVirtualConfigSpec(
+    spec: string,
+    tsconfigDir: string,
+    options?: { addPrefixForFile?: boolean }
+): string {
+    const resolved = resolveConfigSpecForMatch(spec, tsconfigDir);
+    const relative = toRelativePosix(tsconfigDir, path.resolve(tsconfigDir, resolved));
+    let virtualSpec = toPosixPath(path.posix.join(EMIT_SUBDIR, relative));
+    if (options?.addPrefixForFile && !hasGlob(spec) && /\.svelte$/i.test(virtualSpec)) {
+        const dir = path.posix.dirname(virtualSpec);
+        const base = path.posix.basename(virtualSpec);
+        virtualSpec = `${dir}/++${base}`;
+    }
+    virtualSpec = virtualSpec.replace(/\.svelte(?=$|\/)/gi, '.svelte.*');
+    return virtualSpec;
+}
+
+function hasGlob(spec: string): boolean {
+    return /[*?[\]]/.test(spec);
 }
 
 function deleteEntry(entry: ManifestEntry) {
