@@ -49,6 +49,11 @@ const SVELTE_KIT_DIR = '.svelte-kit';
 const CACHE_DIR_NAME = '.svelte-check';
 const EMIT_SUBDIR = 'svelte';
 
+/**
+ * Determines the cache directory location for svelte-check output.
+ * Uses `.svelte-kit/.svelte-check` if a SvelteKit project is detected,
+ * otherwise falls back to `.svelte-check` in the workspace root.
+ */
 function getCacheDir(workspacePath: string): string {
     const svelteKitDir = path.join(workspacePath, SVELTE_KIT_DIR);
     if (fs.existsSync(svelteKitDir) && fs.statSync(svelteKitDir).isDirectory()) {
@@ -66,6 +71,15 @@ function toRelativePosix(baseDir: string, targetPath: string) {
     return toPosixPath(relative || '.');
 }
 
+/**
+ * Transforms Svelte files into TypeScript/JavaScript using svelte2tsx and writes them to a cache directory.
+ * Supports incremental builds by tracking file modification times and sizes in a manifest.
+ *
+ * @param workspacePath - Root directory of the project
+ * @param filePathsToIgnore - Glob patterns for files to exclude from processing
+ * @param incremental - When true, only reprocesses files that have changed since the last run
+ * @returns Paths to cache/emit directories, manifest, processed entries, and list of changed files
+ */
 export async function emitSvelteFiles(
     workspacePath: string,
     filePathsToIgnore: string[],
@@ -170,6 +184,19 @@ export async function emitSvelteFiles(
     };
 }
 
+/**
+ * Creates an overlay tsconfig.json that extends the project's tsconfig with additional
+ * configuration needed for type-checking Svelte files. This includes:
+ * - Adding the emit directory to `rootDirs` so TypeScript can resolve our virtual Svelte modules
+ * - Rebasing include/exclude patterns to work from the cache directory
+ * - Including svelte2tsx shim files for proper type definitions
+ * - Configuring incremental build settings when enabled
+ *
+ * @param tsconfigPath - Path to the project's original tsconfig.json
+ * @param emitResult - Result from emitSvelteFiles containing cache directory paths
+ * @param incremental - Whether to enable TypeScript incremental compilation
+ * @returns Path to the generated overlay tsconfig.json
+ */
 export function writeOverlayTsconfig(
     tsconfigPath: string,
     emitResult: EmitResult,
@@ -255,6 +282,16 @@ export function writeOverlayTsconfig(
     return overlayPath;
 }
 
+/**
+ * Spawns a TypeScript compiler process (tsc or tsgo) to perform type-checking
+ * and collects the diagnostics from its output.
+ *
+ * @param tsconfigPath - Path to the tsconfig.json to use for compilation
+ * @param useTsgo - When true, uses the experimental native TypeScript compiler (tsgo)
+ * @param incremental - Whether to enable incremental compilation for faster subsequent runs
+ * @param cwd - Working directory for the TypeScript compiler process
+ * @returns Parsed diagnostics containing file paths, positions, severity, and messages
+ */
 export function runTypeScriptDiagnostics(
     tsconfigPath: string,
     useTsgo: boolean,
@@ -318,6 +355,16 @@ export function runTypeScriptDiagnostics(
     });
 }
 
+/**
+ * Maps TypeScript CLI diagnostics back to their original Svelte source files.
+ * For Svelte files, uses source maps to translate positions from the generated
+ * TypeScript/JavaScript back to the original Svelte markup.
+ * For non-Svelte files (TS/JS), passes diagnostics through with minimal transformation.
+ *
+ * @param diagnostics - Raw diagnostics parsed from TypeScript compiler output
+ * @param emitResult - Emit result containing the mapping between source and generated files
+ * @returns Diagnostics grouped by file with positions mapped to original sources
+ */
 export function mapCliDiagnosticsToLsp(
     diagnostics: ParsedDiagnostic[],
     emitResult: EmitResult
@@ -386,6 +433,14 @@ export function mapCliDiagnosticsToLsp(
     return Array.from(results.values());
 }
 
+/**
+ * Parses TypeScript compiler output into structured diagnostic objects.
+ * Expects diagnostics in the format: `file(line,col): error|warning TSxxxx: message`
+ *
+ * @param output - Raw stdout/stderr output from the TypeScript compiler
+ * @param baseDir - Base directory for resolving relative file paths
+ * @returns Array of parsed diagnostics with absolute file paths and 0-based positions
+ */
 function parseDiagnostics(output: string, baseDir: string): ParsedDiagnostic[] {
     const diagnostics: ParsedDiagnostic[] = [];
     const lines = output.split(/\r?\n/);
@@ -414,6 +469,9 @@ function parseDiagnostics(output: string, baseDir: string): ParsedDiagnostic[] {
     return diagnostics;
 }
 
+/**
+ * Checks if a Svelte file contains a TypeScript script block (lang="ts" or lang="typescript").
+ */
 function isTsSvelte(text: string): boolean {
     return /<script[^>]*\blang\s*=\s*["'](ts|typescript)["'][^>]*>/i.test(text);
 }
@@ -422,6 +480,17 @@ function isTypescriptFile(filePath: string): boolean {
     return /\.(ts|tsx|mts|cts)$/.test(filePath);
 }
 
+/**
+ * Converts a CLI-parsed diagnostic into a TypeScript Diagnostic object.
+ * Creates a source file from the generated text to calculate precise byte positions
+ * and infer the length of the error span from identifier boundaries.
+ *
+ * @param diag - Parsed diagnostic from CLI output
+ * @param filePath - Path to the generated TypeScript/JavaScript file
+ * @param generatedText - Content of the generated file for position calculation
+ * @param isTsFile - Whether the source Svelte file uses TypeScript
+ * @returns TypeScript Diagnostic object suitable for further processing
+ */
 function cliDiagnosticToTsDiagnostic(
     diag: ParsedDiagnostic,
     filePath: string,
@@ -455,6 +524,20 @@ function cliDiagnosticToTsDiagnostic(
     };
 }
 
+/**
+ * Computes the output file paths for a Svelte source file.
+ * The result is a file path for for the actual generated code (prefixed with `++`
+ * to prevent conflicts with other files) and a file path for the declaration file
+ * which is the same as the original file but with a `.d.ts` extension.
+ * We do this so that TypeScript can resolve imports to '.svelte' files even with module resolution
+ * set to 'node16' or 'nodenext'.
+ *
+ * @param workspacePath - Root directory of the project
+ * @param emitDir - Directory where generated files are written
+ * @param sourcePath - Path to the source Svelte file
+ * @param isTsFile - Whether the Svelte file uses TypeScript (affects extension)
+ * @returns Paths for the generated code file (.ts/.js) and declaration file (.d.ts)
+ */
 function getOutputPaths(
     workspacePath: string,
     emitDir: string,
@@ -472,6 +555,10 @@ function getOutputPaths(
     };
 }
 
+/**
+ * Rebases an array of tsconfig path specifications from one directory to another.
+ * Used when creating the overlay tsconfig to make relative paths work correctly.
+ */
 function rebaseConfigSpecs(specs: unknown, fromDir: string, toDir: string): string[] | undefined {
     if (!Array.isArray(specs)) {
         return undefined;
@@ -479,8 +566,16 @@ function rebaseConfigSpecs(specs: unknown, fromDir: string, toDir: string): stri
     return specs.map((spec) => rebaseConfigSpec(String(spec), fromDir, toDir));
 }
 
+/**
+ * Rebases a single tsconfig path specification from one directory to another.
+ *
+ * @param spec - The path specification to rebase (e.g., "./src", "${configDir}/lib")
+ * @param fromDir - The directory the spec is currently relative to
+ * @param toDir - The directory the spec should be relative to after rebasing
+ * @returns The rebased path in POSIX format
+ */
 function rebaseConfigSpec(spec: string, fromDir: string, toDir: string): string {
-    const configDirPattern = /^\$\{configDir\}/i;
+    const configDirPattern = /^\$\{configDir\}/i; // {configDir} is a special placeholder for the project root directory
     const resolved = configDirPattern.test(spec)
         ? path.resolve(fromDir, spec.replace(configDirPattern, '.'))
         : path.isAbsolute(spec)
@@ -489,6 +584,10 @@ function rebaseConfigSpec(spec: string, fromDir: string, toDir: string): string 
     return toRelativePosix(toDir, resolved);
 }
 
+/**
+ * Normalizes tsconfig include/exclude/files specifications to a string array.
+ * Handles undefined, null, single values, and arrays uniformly.
+ */
 function normalizeConfigSpecs(specs: unknown): string[] | undefined {
     if (specs === undefined || specs === null) {
         return undefined;
@@ -513,6 +612,17 @@ function safeUnlink(filePath: string) {
     }
 }
 
+/**
+ * Loads the incremental build manifest from disk.
+ * The manifest tracks which files have been processed and their metadata
+ * to enable incremental rebuilds. Returns an empty manifest if the file
+ * doesn't exist, is corrupt, or has an incompatible version.
+ * Converts relative paths stored in the manifest to absolute paths for processing.
+ *
+ * @param manifestPath - Path to the manifest.json file
+ * @param workspacePath - Workspace root for resolving relative paths
+ * @returns The loaded manifest with absolute paths, or a fresh empty manifest
+ */
 function loadManifest(manifestPath: string, workspacePath: string): Manifest {
     if (!fs.existsSync(manifestPath)) {
         return { version: MANIFEST_VERSION, entries: {} };
@@ -540,6 +650,15 @@ function loadManifest(manifestPath: string, workspacePath: string): Manifest {
     }
 }
 
+/**
+ * Persists the incremental build manifest to disk.
+ * Converts all absolute paths to relative paths before writing to ensure
+ * the manifest remains portable across different machines/environments.
+ *
+ * @param manifestPath - Path where the manifest.json should be written
+ * @param manifest - The manifest data with absolute paths
+ * @param workspacePath - Workspace root for computing relative paths
+ */
 function writeManifest(manifestPath: string, manifest: Manifest, workspacePath: string) {
     // Convert absolute paths to relative for storage
     const relativeEntries: Record<string, ManifestEntry> = {};
@@ -560,6 +679,15 @@ function writeManifest(manifestPath: string, manifest: Manifest, workspacePath: 
     fs.writeFileSync(manifestPath, JSON.stringify(data, null, 2), 'utf-8');
 }
 
+/**
+ * Updates the manifest with Svelte compiler warnings and CSS diagnostics.
+ * These diagnostics are cached per-file to avoid recomputing them on incremental runs
+ * when the source files haven't changed.
+ *
+ * @param manifestPath - Path to the manifest.json file
+ * @param workspacePath - Workspace root for path resolution
+ * @param caches - Maps of file paths to their compiler warnings and CSS diagnostics
+ */
 export function updateDiagnosticsCache(
     manifestPath: string,
     workspacePath: string,
@@ -593,6 +721,13 @@ export function updateDiagnosticsCache(
     writeManifest(manifestPath, manifest, workspacePath);
 }
 
+/**
+ * Resolves the paths to svelte2tsx shim declaration files.
+ * These shims provide type definitions for Svelte-specific globals and JSX.
+ * Uses different shim versions based on the installed Svelte version (v3 vs v4+).
+ *
+ * @returns Array of absolute paths to the shim .d.ts files
+ */
 function resolveSvelte2tsxShims(): string[] {
     const shimNames = [
         Number(VERSION.split('.')) < 4 ? 'svelte-shims.d.ts' : 'svelte-shims-v4.d.ts',
@@ -610,6 +745,15 @@ function resolveSvelte2tsxShims(): string[] {
     return resolved;
 }
 
+/**
+ * Creates an array of predicate functions for testing if a path should be ignored.
+ * Supports patterns with `**` at the start (matches anywhere) or end (matches prefix).
+ * Throws if patterns contain `*` in unsupported positions.
+ *
+ * @param filePathsToIgnore - Array of ignore patterns (e.g., "node_modules/**", "**\/__tests__")
+ * @returns Array of functions that return true if a path matches the corresponding pattern
+ * @throws Error if a pattern uses unsupported glob syntax
+ */
 function createIgnored(filePathsToIgnore: string[]): Array<(path: string) => boolean> {
     return filePathsToIgnore.map((i) => {
         if (i.endsWith('**')) i = i.slice(0, -2);
@@ -634,6 +778,15 @@ function createIgnored(filePathsToIgnore: string[]): Array<(path: string) => boo
     });
 }
 
+/**
+ * Recursively finds all Svelte files in the workspace.
+ * Excludes `node_modules` directories and hidden directories (starting with `.`).
+ * Applies user-specified ignore patterns to filter results.
+ *
+ * @param workspacePath - Root directory to search from
+ * @param filePathsToIgnore - Patterns for files/directories to exclude
+ * @returns Array of absolute paths to all discovered Svelte files
+ */
 async function findSvelteFiles(
     workspacePath: string,
     filePathsToIgnore: string[]
