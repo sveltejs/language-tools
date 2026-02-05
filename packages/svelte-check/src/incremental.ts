@@ -45,8 +45,17 @@ export type ParsedDiagnostic = {
 };
 
 const MANIFEST_VERSION = 1;
+const SVELTE_KIT_DIR = '.svelte-kit';
 const CACHE_DIR_NAME = '.svelte-check';
 const EMIT_SUBDIR = 'svelte';
+
+function getCacheDir(workspacePath: string): string {
+    const svelteKitDir = path.join(workspacePath, SVELTE_KIT_DIR);
+    if (fs.existsSync(svelteKitDir) && fs.statSync(svelteKitDir).isDirectory()) {
+        return path.join(svelteKitDir, CACHE_DIR_NAME);
+    }
+    return path.join(workspacePath, CACHE_DIR_NAME);
+}
 
 function toPosixPath(value: string) {
     return value.replace(/\\/g, '/');
@@ -62,7 +71,7 @@ export async function emitSvelteFiles(
     filePathsToIgnore: string[],
     incremental: boolean
 ): Promise<EmitResult> {
-    const cacheDir = path.join(workspacePath, CACHE_DIR_NAME);
+    const cacheDir = getCacheDir(workspacePath);
     const emitDir = path.join(cacheDir, EMIT_SUBDIR);
     const manifestPath = path.join(cacheDir, 'manifest.json');
     fs.mkdirSync(emitDir, { recursive: true });
