@@ -552,7 +552,7 @@ async function runIncrementalOnce(
         compilerWarningsByFile,
         cssDiagnosticsByFile
     } = await getSvelteDiagnosticsForIncremental(opts, emitResult);
-    updateDiagnosticsCache(emitResult.manifestPath, {
+    updateDiagnosticsCache(emitResult.manifestPath, opts.workspaceUri.fsPath, {
         compilerWarningsByFile,
         cssDiagnosticsByFile
     });

@@ -76,7 +76,7 @@ export async function emitSvelteFiles(
     const manifestPath = path.join(cacheDir, 'manifest.json');
     fs.mkdirSync(emitDir, { recursive: true });
 
-    const manifest = loadManifest(manifestPath);
+    const manifest = loadManifest(manifestPath, workspacePath);
     const svelteFiles = await findSvelteFiles(workspacePath, filePathsToIgnore);
     const currentSet = new Set(svelteFiles);
     const changedFiles: string[] = [];
@@ -159,7 +159,7 @@ export async function emitSvelteFiles(
         };
     }
 
-    writeManifest(manifestPath, manifest);
+    writeManifest(manifestPath, manifest, workspacePath);
 
     return {
         cacheDir,
@@ -513,7 +513,7 @@ function safeUnlink(filePath: string) {
     }
 }
 
-function loadManifest(manifestPath: string): Manifest {
+function loadManifest(manifestPath: string, workspacePath: string): Manifest {
     if (!fs.existsSync(manifestPath)) {
         return { version: MANIFEST_VERSION, entries: {} };
     }
@@ -522,22 +522,47 @@ function loadManifest(manifestPath: string): Manifest {
         if (data.version !== MANIFEST_VERSION) {
             return { version: MANIFEST_VERSION, entries: {} };
         }
-        return data;
+        // Resolve relative paths to absolute
+        const resolvedEntries: Record<string, ManifestEntry> = {};
+        for (const [relKey, entry] of Object.entries(data.entries)) {
+            const absKey = path.resolve(workspacePath, relKey);
+            resolvedEntries[absKey] = {
+                ...entry,
+                sourcePath: path.resolve(workspacePath, entry.sourcePath),
+                outPath: path.resolve(workspacePath, entry.outPath),
+                mapPath: path.resolve(workspacePath, entry.mapPath),
+                dtsPath: path.resolve(workspacePath, entry.dtsPath)
+            };
+        }
+        return { version: data.version, entries: resolvedEntries };
     } catch {
         return { version: MANIFEST_VERSION, entries: {} };
     }
 }
 
-function writeManifest(manifestPath: string, manifest: Manifest) {
+function writeManifest(manifestPath: string, manifest: Manifest, workspacePath: string) {
+    // Convert absolute paths to relative for storage
+    const relativeEntries: Record<string, ManifestEntry> = {};
+    for (const [absKey, entry] of Object.entries(manifest.entries)) {
+        const relKey = toRelativePosix(workspacePath, absKey);
+        relativeEntries[relKey] = {
+            ...entry,
+            sourcePath: toRelativePosix(workspacePath, entry.sourcePath),
+            outPath: toRelativePosix(workspacePath, entry.outPath),
+            mapPath: toRelativePosix(workspacePath, entry.mapPath),
+            dtsPath: toRelativePosix(workspacePath, entry.dtsPath)
+        };
+    }
     const data: Manifest = {
         version: MANIFEST_VERSION,
-        entries: manifest.entries
+        entries: relativeEntries
     };
     fs.writeFileSync(manifestPath, JSON.stringify(data, null, 2), 'utf-8');
 }
 
 export function updateDiagnosticsCache(
     manifestPath: string,
+    workspacePath: string,
     caches: {
         compilerWarningsByFile?: Map<string, Diagnostic[]>;
         cssDiagnosticsByFile?: Map<string, Diagnostic[]>;
@@ -548,7 +573,7 @@ export function updateDiagnosticsCache(
     if (!hasCompilerWarnings && !hasCssDiagnostics) {
         return;
     }
-    const manifest = loadManifest(manifestPath);
+    const manifest = loadManifest(manifestPath, workspacePath);
     if (caches.compilerWarningsByFile) {
         for (const [filePath, warnings] of caches.compilerWarningsByFile) {
             const entry = manifest.entries[filePath];
@@ -565,7 +590,7 @@ export function updateDiagnosticsCache(
             }
         }
     }
-    writeManifest(manifestPath, manifest);
+    writeManifest(manifestPath, manifest, workspacePath);
 }
 
 function resolveSvelte2tsxShims(): string[] {
