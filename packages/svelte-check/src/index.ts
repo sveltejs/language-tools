@@ -447,13 +447,11 @@ async function getSvelteDiagnosticsForIncremental(
             });
         }
         if (sources.includes('css') && entry.cssDiagnostics) {
-            const existing =
-                diagnosticsByFile.get(entry.sourcePath) ??
-                {
-                    filePath: entry.sourcePath,
-                    text: fs.readFileSync(entry.sourcePath, 'utf-8'),
-                    diagnostics: []
-                };
+            const existing = diagnosticsByFile.get(entry.sourcePath) ?? {
+                filePath: entry.sourcePath,
+                text: fs.readFileSync(entry.sourcePath, 'utf-8'),
+                diagnostics: []
+            };
             existing.diagnostics.push(...entry.cssDiagnostics);
             diagnosticsByFile.set(entry.sourcePath, existing);
         }
@@ -538,13 +536,9 @@ async function runIncrementalOnce(
         opts.filePathsToIgnore,
         opts.incremental
     );
-    const overlayTsconfig = writeOverlayTsconfig(
-        opts.tsconfig,
-        emitResult,
-        opts.incremental
-    );
+    const overlayTsconfig = writeOverlayTsconfig(opts.tsconfig, emitResult, opts.incremental);
     const tsDiagnostics = mapCliDiagnosticsToLsp(
-        runTypeScriptDiagnostics(
+        await runTypeScriptDiagnostics(
             overlayTsconfig,
             opts.tsgo,
             opts.incremental,
@@ -553,8 +547,11 @@ async function runIncrementalOnce(
         emitResult
     );
 
-    const { diagnostics: svelteDiagnostics, compilerWarningsByFile, cssDiagnosticsByFile } =
-        await getSvelteDiagnosticsForIncremental(opts, emitResult);
+    const {
+        diagnostics: svelteDiagnostics,
+        compilerWarningsByFile,
+        cssDiagnosticsByFile
+    } = await getSvelteDiagnosticsForIncremental(opts, emitResult);
     updateDiagnosticsCache(emitResult.manifestPath, {
         compilerWarningsByFile,
         cssDiagnosticsByFile
@@ -573,13 +570,11 @@ async function runIncrementalOnce(
     }
 
     for (const entry of tsDiagnostics) {
-        const existing =
-            diagnosticsByFile.get(entry.filePath) ??
-            {
-                filePath: entry.filePath,
-                text: entry.text,
-                diagnostics: []
-            };
+        const existing = diagnosticsByFile.get(entry.filePath) ?? {
+            filePath: entry.filePath,
+            text: entry.text,
+            diagnostics: []
+        };
         existing.diagnostics.push(...entry.diagnostics);
         diagnosticsByFile.set(entry.filePath, existing);
     }

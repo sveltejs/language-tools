@@ -1,7 +1,7 @@
 import { fdir } from 'fdir';
 import * as fs from 'fs';
 import * as path from 'path';
-import { spawnSync } from 'child_process';
+import { spawn } from 'child_process';
 import { svelte2tsx } from 'svelte2tsx';
 import { parse, VERSION as svelteVersion, VERSION } from 'svelte/compiler';
 import ts from 'typescript';
@@ -200,19 +200,33 @@ export function writeOverlayTsconfig(
     const rawFiles = normalizeConfigSpecs(parsed.raw?.files);
     const include = rebaseConfigSpecs(rawInclude, tsconfigDir, overlayDir);
     const exclude = rebaseConfigSpecs(rawExclude, tsconfigDir, overlayDir);
-    const configFiles = rebaseConfigSpecs(rawFiles, tsconfigDir, overlayDir)?.filter(
-        (fileName) => !fileName.endsWith('.svelte')
-    );
-    const virtualInclude = [
-        ...buildVirtualSvelteSpecs(rawInclude, rawExclude, tsconfigDir),
-        ...buildVirtualSvelteFileSpecs(rawFiles, tsconfigDir)
-    ];
-    const virtualExclude = buildVirtualSvelteSpecs(rawExclude, undefined, tsconfigDir);
+    const configFiles = rebaseConfigSpecs(rawFiles, tsconfigDir, overlayDir);
+    // Turn include specs that match .svelte files into corresponding includes for our virtual files.
+    // We do this here instead of filtering on includes/excludes before deciding which Svelte files to
+    // virtualize because includes/excludes could only do starting points and module resolution could
+    // find other .svelte files which need to be included, too.
+    const virtualInclude = rawInclude
+        ?.filter((spec) => spec.endsWith('.svelte') || spec.endsWith('*'))
+        .map((spec) => {
+            const normalized = spec
+                .replace(/^\$\{configDir\}/i, '.')
+                .replace(/\.svelte$/, '.svelte.d.ts');
+            return `${EMIT_SUBDIR}/${normalized}`;
+        });
+    const mergedInclude = [...(include ?? []), ...(virtualInclude ?? [])];
+    // Same for excludes.
+    const virtualExclude = rawExclude
+        ?.filter((spec) => spec.endsWith('.svelte') || spec.endsWith('*'))
+        .map((spec) => {
+            const normalized = spec
+                .replace(/^\$\{configDir\}/i, '.')
+                .replace(/\.svelte$/, '.svelte.d.ts');
+            return `${EMIT_SUBDIR}/${normalized}`;
+        });
+    const mergedExclude = [...(exclude ?? []), ...(virtualExclude ?? [])];
     const shimFiles = resolveSvelte2tsxShims().map((fileName) =>
         toRelativePosix(overlayDir, fileName)
     );
-    const mergedInclude = dedupeStrings([...(include ?? []), ...virtualInclude]);
-    const mergedExclude = dedupeStrings([...(exclude ?? []), ...virtualExclude]);
 
     const overlay = {
         extends: toRelativePosix(overlayDir, tsconfigPath),
@@ -237,8 +251,20 @@ export function runTypeScriptDiagnostics(
     useTsgo: boolean,
     incremental: boolean,
     cwd: string
-): ParsedDiagnostic[] {
-    const args = ['-p', tsconfigPath, '--pretty', 'false', '--noErrorTruncation'];
+): Promise<ParsedDiagnostic[]> {
+    const args = [
+        useTsgo
+            ? path.join(
+                  path.dirname(require.resolve('@typescript/native-preview/package.json')),
+                  'bin/tsgo.js'
+              )
+            : require.resolve('typescript/bin/tsc'),
+        '-p',
+        tsconfigPath,
+        '--pretty',
+        'false',
+        '--noErrorTruncation'
+    ];
 
     if (incremental) {
         args.push('--incremental');
@@ -248,16 +274,39 @@ export function runTypeScriptDiagnostics(
         );
     }
 
-    const command = useTsgo ? 'tsgo' : process.execPath;
-    const commandArgs = useTsgo ? args : [require.resolve('typescript/bin/tsc'), ...args];
+    return new Promise<ParsedDiagnostic[]>((resolve, reject) => {
+        const proc = spawn('node', args, {
+            cwd,
+            stdio: ['ignore', 'pipe', 'pipe'],
+            env: process.env
+        });
+        let stdout = '';
+        let stderr = '';
 
-    const result = spawnSync(command, commandArgs, { encoding: 'utf-8', cwd });
-    if (result.error) {
-        throw result.error;
-    }
-    const output = `${result.stdout ?? ''}\n${result.stderr ?? ''}`;
+        proc.stdout.setEncoding('utf-8');
+        proc.stderr.setEncoding('utf-8');
 
-    return parseDiagnostics(output, cwd);
+        proc.stdout.on('data', (data: string) => {
+            stdout += data;
+        });
+
+        proc.stderr.on('data', (data: string) => {
+            stderr += data;
+        });
+
+        proc.on('error', (err: Error) => {
+            reject(err);
+        });
+
+        proc.on('close', () => {
+            const output = `${stdout}\n${stderr}`;
+            try {
+                resolve(parseDiagnostics(output, cwd));
+            } catch (e) {
+                reject(e);
+            }
+        });
+    });
 }
 
 export function mapCliDiagnosticsToLsp(
@@ -406,10 +455,7 @@ function getOutputPaths(
     const relPath = path.relative(workspacePath, sourcePath);
     const base = relPath.replace(/\.svelte$/, `.svelte.${isTsFile ? 'ts' : 'js'}`);
     const baseOutputPath = path.join(emitDir, base);
-    const outPath = path.join(
-        path.dirname(baseOutputPath),
-        `++${path.basename(baseOutputPath)}`
-    );
+    const outPath = path.join(path.dirname(baseOutputPath), `++${path.basename(baseOutputPath)}`);
     const dtsPath = baseOutputPath.replace(/\.svelte\.(ts|js)$/, '.svelte.d.ts');
     return {
         outPath: outPath.replace(/\\/g, '/'),
@@ -417,11 +463,7 @@ function getOutputPaths(
     };
 }
 
-function rebaseConfigSpecs(
-    specs: unknown,
-    fromDir: string,
-    toDir: string
-): string[] | undefined {
+function rebaseConfigSpecs(specs: unknown, fromDir: string, toDir: string): string[] | undefined {
     if (!Array.isArray(specs)) {
         return undefined;
     }
@@ -446,84 +488,6 @@ function normalizeConfigSpecs(specs: unknown): string[] | undefined {
         return specs.map((spec) => String(spec));
     }
     return [String(specs)];
-}
-
-function dedupeStrings(values: string[]): string[] {
-    return Array.from(new Set(values));
-}
-
-function buildVirtualSvelteSpecs(
-    specs: string[] | undefined,
-    excludeSpecs: string[] | undefined,
-    tsconfigDir: string
-): string[] {
-    if (!specs) {
-        return [];
-    }
-    const resolvedExclude = excludeSpecs?.map((value) =>
-        resolveConfigSpecForMatch(value, tsconfigDir)
-    );
-    return specs
-        .filter((spec) => matchesSvelteFiles(spec, tsconfigDir, resolvedExclude))
-        .map((spec) => toVirtualConfigSpec(spec, tsconfigDir));
-}
-
-function buildVirtualSvelteFileSpecs(
-    specs: string[] | undefined,
-    tsconfigDir: string
-): string[] {
-    if (!specs) {
-        return [];
-    }
-    return specs
-        .filter((spec) => spec.toLowerCase().endsWith('.svelte'))
-        .map((spec) => toVirtualConfigSpec(spec, tsconfigDir, { addPrefixForFile: true }));
-}
-
-function matchesSvelteFiles(
-    spec: string,
-    tsconfigDir: string,
-    resolvedExcludeSpecs?: string[]
-): boolean {
-    if (hasNonSvelteExtension(spec)) {
-        return false;
-    }
-    const include = resolveConfigSpecForMatch(spec, tsconfigDir);
-    return ts.sys.readDirectory(tsconfigDir, ['.svelte'], resolvedExcludeSpecs, [include]).length > 0;
-}
-
-function resolveConfigSpecForMatch(spec: string, baseDir: string): string {
-    const configDirPattern = /^\$\{configDir\}/i;
-    if (configDirPattern.test(spec)) {
-        return path.resolve(baseDir, spec.replace(configDirPattern, '.'));
-    }
-    return spec;
-}
-
-function toVirtualConfigSpec(
-    spec: string,
-    tsconfigDir: string,
-    options?: { addPrefixForFile?: boolean }
-): string {
-    const resolved = resolveConfigSpecForMatch(spec, tsconfigDir);
-    const relative = toRelativePosix(tsconfigDir, path.resolve(tsconfigDir, resolved));
-    let virtualSpec = toPosixPath(path.posix.join(EMIT_SUBDIR, relative));
-    if (options?.addPrefixForFile && !hasGlob(spec) && /\.svelte$/i.test(virtualSpec)) {
-        const dir = path.posix.dirname(virtualSpec);
-        const base = path.posix.basename(virtualSpec);
-        virtualSpec = `${dir}/++${base}`;
-    }
-    virtualSpec = virtualSpec.replace(/\.svelte(?=$|\/)/gi, '.svelte.*');
-    return virtualSpec;
-}
-
-function hasGlob(spec: string): boolean {
-    return /[*?[\]]/.test(spec);
-}
-
-function hasNonSvelteExtension(spec: string): boolean {
-    const ext = path.posix.extname(spec.toLowerCase());
-    return !!ext && ext !== '.svelte';
 }
 
 function deleteEntry(entry: ManifestEntry) {
