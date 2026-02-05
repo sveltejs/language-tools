@@ -41,6 +41,12 @@ export function svelte2tsx(
         accessors?: boolean;
         typingsNamespace?: string;
         noSvelteComponentTyped?: boolean;
+        /**
+         * If true, emits JSDoc annotations for types in JS files instead of TypeScript syntax.
+         * This is useful for svelte-check's incremental mode where the output needs to be
+         * valid JS that tsc can process without errors.
+         */
+        emitJsDoc?: boolean;
     } = { parse }
 ) {
     options.mode = options.mode || 'ts';
@@ -50,6 +56,7 @@ export function svelte2tsx(
     const basename = path.basename(options.filename || '');
     const svelte5Plus = Number(options.version![0]) > 4;
     const isTsFile = options?.isTsFile;
+    const emitJsDoc = options?.emitJsDoc ?? false;
 
     // process the htmlx as a svelte template
     let {
@@ -101,7 +108,15 @@ export function svelte2tsx(
         svelte5Plus
     );
     //move the instance script and process the content
-    let exportedNames = new ExportedNames(str, 0, basename, isTsFile, svelte5Plus, isRunes);
+    let exportedNames = new ExportedNames(
+        str,
+        0,
+        basename,
+        isTsFile,
+        svelte5Plus,
+        isRunes,
+        emitJsDoc
+    );
     let generics = new Generics(str, 0, { attributes: [] } as any);
     let uses$$SlotsInterface = false;
     let hasTopLevelAwait = false;
@@ -120,7 +135,8 @@ export function svelte2tsx(
             isTsFile,
             basename,
             svelte5Plus,
-            isRunes
+            isRunes,
+            emitJsDoc
         );
         uses$$props = uses$$props || res.uses$$props;
         uses$$restProps = uses$$restProps || res.uses$$restProps;
@@ -225,7 +241,8 @@ export function svelte2tsx(
         generics,
         isSvelte5: svelte5Plus,
         hasTopLevelAwait,
-        noSvelteComponentTyped: options.noSvelteComponentTyped
+        noSvelteComponentTyped: options.noSvelteComponentTyped,
+        emitJsDoc
     });
 
     if (options.mode === 'dts') {

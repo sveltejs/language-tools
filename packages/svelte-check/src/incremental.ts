@@ -139,7 +139,8 @@ export async function emitSvelteFiles(
             filename: sourcePath,
             isTsFile,
             mode: 'ts',
-            emitOnTemplateError: false
+            emitOnTemplateError: false,
+            emitJsDoc: true // without this, tsc/tsgo will choke on the syntactic errors and not emit semantic errors
         });
 
         const map = tsx.map as any;

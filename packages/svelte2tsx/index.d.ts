@@ -84,6 +84,12 @@ export function svelte2tsx(
          * Transpiled output may vary between versions.
          */
         version?: string;
+        /**
+         * If true, emits JSDoc annotations for types in JS files instead of TypeScript syntax.
+         * This is useful for svelte-check's incremental mode where the output needs to be
+         * valid JS that tsc can process without errors.
+         */
+        emitJsDoc?: boolean;
     }
 ): SvelteCompiledToTsx
 

@@ -60,7 +60,8 @@ export class ExportedNames {
         private basename: string,
         private isTsFile: boolean,
         private isSvelte5Plus: boolean,
-        private isRunes: boolean
+        private isRunes: boolean,
+        private emitJsDoc: boolean
     ) {}
 
     handleVariableStatement(node: ts.VariableStatement, parent: ts.Node): void {
@@ -86,9 +87,15 @@ export class ExportedNames {
                         // TS types are not allowed in JS files, but TS will still pick it up and the ignore comment will filter out the error
                         const kitType =
                             isKitExport && !type ? `: import('./$types.js').Snapshot` : '';
-                        const nameEnd = n.name.end + this.astOffset;
                         if (kitType) {
-                            preprendStr(this.str, nameEnd, surroundWithIgnoreComments(kitType));
+                            if (this.emitJsDoc && !this.isTsFile) {
+                                const kitTypeRef = kitType.slice(2);
+                                const nameStart = n.name.getStart() + this.astOffset;
+                                preprendStr(this.str, nameStart, `/** @type {${kitTypeRef}} */ `);
+                            } else {
+                                const nameEnd = n.name.end + this.astOffset;
+                                preprendStr(this.str, nameEnd, surroundWithIgnoreComments(kitType));
+                            }
                         }
                     }
                 });
@@ -440,16 +447,27 @@ export class ExportedNames {
                 const name = identifier.getText();
 
                 if (nameEnd === end) {
+                    if (kitType && this.emitJsDoc && !this.isTsFile) {
+                        const kitTypeRef = kitType.slice(2);
+                        const nameStart = identifier.getStart() + this.astOffset;
+                        preprendStr(this.str, nameStart, `/** @type {${kitTypeRef}} */ `);
+                    }
                     preprendStr(
                         this.str,
                         end,
                         surroundWithIgnoreComments(
-                            `${kitType};${name} = __sveltets_2_any(${name});`
+                            `${(this.isTsFile || !this.emitJsDoc) && kitType ? kitType : ''};${name} = __sveltets_2_any(${name});`
                         )
                     );
                 } else {
                     if (kitType) {
-                        preprendStr(this.str, nameEnd, surroundWithIgnoreComments(kitType));
+                        if (this.emitJsDoc && !this.isTsFile) {
+                            const kitTypeRef = kitType.slice(2);
+                            const nameStart = identifier.getStart() + this.astOffset;
+                            preprendStr(this.str, nameStart, `/** @type {${kitTypeRef}} */ `);
+                        } else {
+                            preprendStr(this.str, nameEnd, surroundWithIgnoreComments(kitType));
+                        }
                     }
                     preprendStr(
                         this.str,
@@ -458,7 +476,13 @@ export class ExportedNames {
                     );
                 }
             } else if (kitType) {
-                preprendStr(this.str, nameEnd, surroundWithIgnoreComments(kitType));
+                if (this.emitJsDoc && !this.isTsFile) {
+                    const kitTypeRef = kitType.slice(2);
+                    const nameStart = identifier.getStart() + this.astOffset;
+                    preprendStr(this.str, nameStart, `/** @type {${kitTypeRef}} */ `);
+                } else {
+                    preprendStr(this.str, nameEnd, surroundWithIgnoreComments(kitType));
+                }
             }
         };
 
