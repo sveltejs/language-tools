@@ -376,6 +376,7 @@ export function get_svelte2tsx_config(base: BaseConfig, sampleName: string): Sve
         typingsNamespace: 'svelteHTML',
         mode: sampleName.endsWith('-dts') ? 'dts' : 'ts',
         accessors: sampleName.startsWith('accessors-config'),
+        emitJsDoc: sampleName.startsWith('jsdoc-'),
         version: VERSION
     };
 }
