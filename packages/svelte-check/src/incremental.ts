@@ -1,4 +1,3 @@
-import { fdir } from 'fdir';
 import * as fs from 'fs';
 import * as path from 'path';
 import { spawn } from 'child_process';
@@ -7,6 +6,7 @@ import { parse, VERSION as svelteVersion, VERSION } from 'svelte/compiler';
 import ts from 'typescript';
 import { Diagnostic, DiagnosticSeverity, Range } from 'vscode-languageserver-protocol';
 import { mapSvelteCheckDiagnostics } from 'svelte-language-server';
+import { findSvelteFiles } from './utils';
 
 type ManifestEntry = {
     sourcePath: string;
@@ -25,14 +25,14 @@ type Manifest = {
     entries: Record<string, ManifestEntry>;
 };
 
-export type EmittedFile = ManifestEntry;
-
 export type EmitResult = {
     cacheDir: string;
     emitDir: string;
     manifestPath: string;
     entries: ManifestEntry[];
     changedFiles: string[];
+    workspacePath: string;
+    manifest: Manifest;
 };
 
 export type ParsedDiagnostic = {
@@ -106,8 +106,20 @@ export async function emitSvelteFiles(
     for (const sourcePath of svelteFiles) {
         const stats = fs.statSync(sourcePath);
         const entry = manifest.entries[sourcePath];
-        const text = fs.readFileSync(sourcePath, 'utf-8');
-        const isTsFile = isTsSvelte(text);
+
+        // When file stats match the cached entry, avoid reading the file just to determine isTsFile
+        const statsUnchanged =
+            !!entry && entry.mtimeMs === stats.mtimeMs && entry.size === stats.size;
+        let text: string | undefined;
+        let isTsFile: boolean;
+
+        if (statsUnchanged) {
+            isTsFile = entry.isTsFile;
+        } else {
+            text = fs.readFileSync(sourcePath, 'utf-8');
+            isTsFile = isTsSvelte(text);
+        }
+
         const { outPath, dtsPath } = getOutputPaths(workspacePath, emitDir, sourcePath, isTsFile);
         const mapPath = `${outPath}.map`;
 
@@ -120,8 +132,7 @@ export async function emitSvelteFiles(
             !incremental ||
             !entry ||
             outPathChanged ||
-            entry.mtimeMs !== stats.mtimeMs ||
-            entry.size !== stats.size ||
+            !statsUnchanged ||
             !fs.existsSync(entry.outPath) ||
             !fs.existsSync(entry.mapPath) ||
             !fs.existsSync(entry.dtsPath);
@@ -130,6 +141,10 @@ export async function emitSvelteFiles(
             continue;
         }
         changedFiles.push(sourcePath);
+
+        if (!text) {
+            text = fs.readFileSync(sourcePath, 'utf-8');
+        }
 
         fs.mkdirSync(path.dirname(outPath), { recursive: true });
 
@@ -181,7 +196,9 @@ export async function emitSvelteFiles(
         emitDir,
         manifestPath,
         entries: Object.values(manifest.entries),
-        changedFiles
+        changedFiles,
+        workspacePath,
+        manifest
     };
 }
 
@@ -510,6 +527,9 @@ function cliDiagnosticToTsDiagnostic(
     return {
         file: sourceFile,
         start,
+        // tsc CLI output doesn't include span lengths; approximate by matching
+        // the identifier at the error position. Falls back to length 1 for
+        // non-identifier positions (operators, string literals, etc.).
         length: (() => {
             const text = generatedText.slice(start, start + 100);
             const match = /^[a-zA-Z0-9_$]+/.exec(text);
@@ -685,13 +705,11 @@ function writeManifest(manifestPath: string, manifest: Manifest, workspacePath: 
  * These diagnostics are cached per-file to avoid recomputing them on incremental runs
  * when the source files haven't changed.
  *
- * @param manifestPath - Path to the manifest.json file
- * @param workspacePath - Workspace root for path resolution
+ * @param emitResult - The emit result containing the manifest and path information
  * @param caches - Maps of file paths to their compiler warnings and CSS diagnostics
  */
 export function updateDiagnosticsCache(
-    manifestPath: string,
-    workspacePath: string,
+    emitResult: EmitResult,
     caches: {
         compilerWarningsByFile?: Map<string, Diagnostic[]>;
         cssDiagnosticsByFile?: Map<string, Diagnostic[]>;
@@ -702,7 +720,7 @@ export function updateDiagnosticsCache(
     if (!hasCompilerWarnings && !hasCssDiagnostics) {
         return;
     }
-    const manifest = loadManifest(manifestPath, workspacePath);
+    const manifest = emitResult.manifest;
     if (caches.compilerWarningsByFile) {
         for (const [filePath, warnings] of caches.compilerWarningsByFile) {
             const entry = manifest.entries[filePath];
@@ -719,7 +737,7 @@ export function updateDiagnosticsCache(
             }
         }
     }
-    writeManifest(manifestPath, manifest, workspacePath);
+    writeManifest(emitResult.manifestPath, manifest, emitResult.workspacePath);
 }
 
 /**
@@ -731,8 +749,8 @@ export function updateDiagnosticsCache(
  */
 function resolveSvelte2tsxShims(): string[] {
     const shimNames = [
-        Number(VERSION.split('.')) < 4 ? 'svelte-shims.d.ts' : 'svelte-shims-v4.d.ts',
-        Number(VERSION.split('.')) < 4 ? 'svelte-jsx.d.ts' : 'svelte-jsx-v4.d.ts'
+        Number(VERSION.split('.')[0]) < 4 ? 'svelte-shims.d.ts' : 'svelte-shims-v4.d.ts',
+        Number(VERSION.split('.')[0]) < 4 ? 'svelte-jsx.d.ts' : 'svelte-jsx-v4.d.ts'
         // 'svelte-native-jsx.d.ts' // TODO read tsconfig/svelte.config.js to see if it's enabled
     ];
     const resolved: string[] = [];
@@ -744,73 +762,4 @@ function resolveSvelte2tsxShims(): string[] {
         }
     }
     return resolved;
-}
-
-/**
- * Creates an array of predicate functions for testing if a path should be ignored.
- * Supports patterns with `**` at the start (matches anywhere) or end (matches prefix).
- * Throws if patterns contain `*` in unsupported positions.
- *
- * @param filePathsToIgnore - Array of ignore patterns (e.g., "node_modules/**", "**\/__tests__")
- * @returns Array of functions that return true if a path matches the corresponding pattern
- * @throws Error if a pattern uses unsupported glob syntax
- */
-function createIgnored(filePathsToIgnore: string[]): Array<(path: string) => boolean> {
-    return filePathsToIgnore.map((i) => {
-        if (i.endsWith('**')) i = i.slice(0, -2);
-
-        if (i.startsWith('**')) {
-            i = i.slice(2);
-
-            if (i.includes('*'))
-                throw new Error(
-                    'Invalid svelte-check --ignore pattern: Only ** at the start or end is supported'
-                );
-
-            return (path) => path.includes(i);
-        }
-
-        if (i.includes('*'))
-            throw new Error(
-                'Invalid svelte-check --ignore pattern: Only ** at the start or end is supported'
-            );
-
-        return (path) => path.startsWith(i);
-    });
-}
-
-/**
- * Recursively finds all Svelte files in the workspace.
- * Excludes `node_modules` directories and hidden directories (starting with `.`).
- * Applies user-specified ignore patterns to filter results.
- *
- * @param workspacePath - Root directory to search from
- * @param filePathsToIgnore - Patterns for files/directories to exclude
- * @returns Array of absolute paths to all discovered Svelte files
- */
-async function findSvelteFiles(
-    workspacePath: string,
-    filePathsToIgnore: string[]
-): Promise<string[]> {
-    const offset = workspacePath.length + 1;
-    const ignored = createIgnored(filePathsToIgnore);
-    const isIgnored = (filePath: string) => {
-        const relative = filePath.slice(offset);
-        for (const i of ignored) {
-            if (i(relative)) {
-                return true;
-            }
-        }
-        return false;
-    };
-
-    return new fdir()
-        .filter((filePath) => filePath.endsWith('.svelte') && !isIgnored(filePath))
-        .exclude((_, filePath) => {
-            return filePath.includes('/node_modules/') || filePath.includes('/.');
-        })
-        .withPathSeparator('/')
-        .withFullPaths()
-        .crawl(workspacePath)
-        .withPromise();
 }

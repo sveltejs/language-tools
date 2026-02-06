@@ -4,7 +4,6 @@
 
 import { watch, FSWatcher } from 'chokidar';
 import * as fs from 'fs';
-import { fdir } from 'fdir';
 import * as path from 'path';
 import { SvelteCheck, SvelteCheckOptions } from 'svelte-language-server';
 import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver-protocol';
@@ -25,6 +24,7 @@ import {
     updateDiagnosticsCache,
     writeOverlayTsconfig
 } from './incremental';
+import { createIgnored, findSvelteFiles } from './utils';
 
 type Result = {
     fileCount: number;
@@ -38,38 +38,8 @@ async function openAllDocuments(
     filePathsToIgnore: string[],
     svelteCheck: SvelteCheck
 ) {
-    const offset = workspaceUri.fsPath.length + 1;
-    // We support a very limited subset of glob patterns: You can only have  ** at the end or the start
-    const ignored = createIgnored(filePathsToIgnore);
-    const isIgnored = (path: string) => {
-        path = path.slice(offset);
-        for (const i of ignored) {
-            if (i(path)) {
-                return true;
-            }
-        }
-        return false;
-    };
-    const absFilePaths = await new fdir()
-        .filter((path) => path.endsWith('.svelte') && !isIgnored(path))
-        .exclude((_, path) => {
-            return path.includes('/node_modules/') || path.includes('/.');
-        })
-        .withPathSeparator('/')
-        .withFullPaths()
-        .crawl(workspaceUri.fsPath)
-        .withPromise();
-
-    for (const absFilePath of absFilePaths) {
-        const text = fs.readFileSync(absFilePath, 'utf-8');
-        svelteCheck.upsertDocument(
-            {
-                uri: URI.file(absFilePath).toString(),
-                text
-            },
-            true
-        );
-    }
+    const absFilePaths = await findSvelteFiles(workspaceUri.fsPath, filePathsToIgnore);
+    await openDocuments(absFilePaths, svelteCheck);
 }
 
 async function openDocuments(filePaths: string[], svelteCheck: SvelteCheck) {
@@ -85,79 +55,14 @@ async function openDocuments(filePaths: string[], svelteCheck: SvelteCheck) {
     }
 }
 
-function createIgnored(filePathsToIgnore: string[]): Array<(path: string) => boolean> {
-    return filePathsToIgnore.map((i) => {
-        if (i.endsWith('**')) i = i.slice(0, -2);
-
-        if (i.startsWith('**')) {
-            i = i.slice(2);
-
-            if (i.includes('*'))
-                throw new Error(
-                    'Invalid svelte-check --ignore pattern: Only ** at the start or end is supported'
-                );
-
-            return (path) => path.includes(i);
-        }
-
-        if (i.includes('*'))
-            throw new Error(
-                'Invalid svelte-check --ignore pattern: Only ** at the start or end is supported'
-            );
-
-        return (path) => path.startsWith(i);
-    });
-}
-
 async function getDiagnostics(
     workspaceUri: URI,
     writer: Writer,
     svelteCheck: SvelteCheck
 ): Promise<Result | null> {
-    writer.start(workspaceUri.fsPath);
-
     try {
         const diagnostics = await svelteCheck.getDiagnostics();
-
-        const result: Result = {
-            fileCount: diagnostics.length,
-            errorCount: 0,
-            warningCount: 0,
-            fileCountWithProblems: 0
-        };
-
-        for (const diagnostic of diagnostics) {
-            writer.file(
-                diagnostic.diagnostics,
-                workspaceUri.fsPath,
-                path.relative(workspaceUri.fsPath, diagnostic.filePath),
-                diagnostic.text
-            );
-
-            let fileHasProblems = false;
-
-            diagnostic.diagnostics.forEach((d: Diagnostic) => {
-                if (d.severity === DiagnosticSeverity.Error) {
-                    result.errorCount += 1;
-                    fileHasProblems = true;
-                } else if (d.severity === DiagnosticSeverity.Warning) {
-                    result.warningCount += 1;
-                    fileHasProblems = true;
-                }
-            });
-
-            if (fileHasProblems) {
-                result.fileCountWithProblems += 1;
-            }
-        }
-
-        writer.completion(
-            result.fileCount,
-            result.errorCount,
-            result.warningCount,
-            result.fileCountWithProblems
-        );
-        return result;
+        return writeDiagnostics(workspaceUri, writer, diagnostics);
     } catch (err: any) {
         writer.failure(err);
         return null;
@@ -426,6 +331,7 @@ async function getSvelteDiagnosticsForIncremental(
     const filesNeedingDiagnostics: string[] = [];
     const enabledSources = sources.filter((source) => source !== 'js');
 
+    // Phase 1: Partition files into "needs fresh diagnostics" vs "use cached diagnostics"
     for (const entry of emitResult.entries) {
         const needsSvelte =
             sources.includes('svelte') &&
@@ -457,6 +363,7 @@ async function getSvelteDiagnosticsForIncremental(
         }
     }
 
+    // Phase 2: Run fresh diagnostics for changed/uncached files via the language server
     if (enabledSources.length && filesNeedingDiagnostics.length > 0) {
         const svelteCheck = new SvelteCheck(opts.workspaceUri.fsPath, {
             compilerWarnings: opts.compilerWarnings,
@@ -505,6 +412,7 @@ async function getSvelteDiagnosticsForIncremental(
         }
     }
 
+    // Phase 3: Ensure every entry has a diagnostics record (empty if no diagnostics)
     for (const entry of emitResult.entries) {
         if (!diagnosticsByFile.has(entry.sourcePath)) {
             const text = fs.readFileSync(entry.sourcePath, 'utf-8');
@@ -552,7 +460,7 @@ async function runIncrementalOnce(
         compilerWarningsByFile,
         cssDiagnosticsByFile
     } = await getSvelteDiagnosticsForIncremental(opts, emitResult);
-    updateDiagnosticsCache(emitResult.manifestPath, opts.workspaceUri.fsPath, {
+    updateDiagnosticsCache(emitResult, {
         compilerWarningsByFile,
         cssDiagnosticsByFile
     });
@@ -609,7 +517,7 @@ async function watchIncremental(opts: SvelteCheckCliOptions, writer: Writer) {
 
     const schedule = () => {
         clearTimeout(pending);
-        pending = setTimeout(run, 300);
+        pending = setTimeout(run, 1000);
     };
 
     await run();

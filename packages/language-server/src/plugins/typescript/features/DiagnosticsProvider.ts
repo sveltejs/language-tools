@@ -260,6 +260,8 @@ function rangeMapper(
     return (diagnostic) => {
         let range = mapRangeToOriginal(snapshot, diagnostic.range);
 
+        // When lang is unavailable (incremental CLI path), we can't remap negative-line
+        // diagnostics. This only affects deprecated $$Props syntax, so it's acceptable.
         if (range.start.line < 0 && lang) {
             range =
                 movePropsErrorRangeBackIfNecessary(
@@ -651,6 +653,9 @@ function expectedTransitionThirdArgument(
               );
 
     if (!lang) {
+        // Without a language service we can't resolve the signature to check parameter count.
+        // Fall back to checking the message text for " 3" (i.e. "Expected 3 arguments").
+        // This is only for the __sveltets_2_ensureTransition wrapper and unlikely to false-positive.
         return flattenDiagnosticMessageText(diagnostic.messageText, '\n').includes(' 3');
     }
 

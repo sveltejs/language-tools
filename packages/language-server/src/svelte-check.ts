@@ -38,7 +38,7 @@ export function mapSvelteCheckDiagnostics(
         version: document.compiler?.VERSION,
         transformOnTemplateError: false,
         typingsNamespace: 'svelteHTML'
-    } satisfies SvelteSnapshotOptions) as SvelteDocumentSnapshot;  
+    } satisfies SvelteSnapshotOptions) as SvelteDocumentSnapshot;
 
     return mapAndFilterDiagnostics(tsDiagnostics, document, snapshot, isTsFile, undefined);
 }

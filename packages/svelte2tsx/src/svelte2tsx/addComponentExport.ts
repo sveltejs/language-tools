@@ -140,7 +140,8 @@ class __sveltets_Render${genericsDef} {
         // - Constraints: Need to support Svelte 4 class component types, therefore we need to use __sveltets_2_ensureComponent to transform function components to classes
         // - Limitations: TypeScript is not able to preserve generics during said transformation (i.e. there's no way to express keeping the generic etc)
         // TODO Svelte 6/7: Switch this around and not use new Component in svelte2tsx anymore, which means we can remove the legacy class component. We need something like _ensureFnComponent then.
-        if (isTsFile || !emitJsDoc) {
+        const useTypeScriptSyntax = isTsFile || !emitJsDoc;
+        if (useTypeScriptSyntax) {
             statement +=
                 `\ninterface $$IsomorphicComponent {\n` +
                 `    new ${genericsDef}(options: import('svelte').ComponentConstructorOptions<${returnType('props') + (usesSlots ? '& {children?: any}' : '')}>): import('svelte').SvelteComponent<${returnType('props')}, ${returnType('events')}, ${returnType('slots')}> & { $$bindings?: ${returnType('bindings')} } & ${returnType('exports')};\n` +
@@ -305,25 +306,25 @@ declare function $$__sveltets_2_isomorphic_component<
         }
     } else {
         if (isSvelte5) {
+            // When emitting JSDoc (JS files in incremental mode), we use @typedef instead of
+            // TS type syntax, and must export the const so declaration-merging with @typedef works.
+            const useTypeScriptSyntax = isTsFile || !emitJsDoc;
             if (exportedNames.isRunesMode() && !usesSlots && !events.hasEvents()) {
                 statement =
-                // We have to export the component in JS mode when emitting JSDoc, else declaration-merging with the type definition will fail.
-                // That's because the declaration merging only happens if both type and value are exported or not exported,
-                // one cannot be private while the other is public - and @typedef implicitly makes the type public.
-                    `\n${awaitDeclaration}${doc}${isTsFile || !emitJsDoc ? '' : 'export '}const ${componentName} = __sveltets_2_fn_component(${renderCall});\n` +
+                    `\n${awaitDeclaration}${doc}${useTypeScriptSyntax ? '' : 'export '}const ${componentName} = __sveltets_2_fn_component(${renderCall});\n` +
                     // Surround the type with ignore comments so it is filtered out from go-to-definition etc,
                     // which for some editors can cause duplicates
                     surroundWithIgnoreComments(
-                        isTsFile || !emitJsDoc
+                        useTypeScriptSyntax
                             ? `type ${componentName} = ReturnType<typeof ${componentName}>;\n`
                             : `/** @typedef {ReturnType<typeof ${componentName}>} ${componentName} */\n`
                     ) +
                     `export default ${componentName};`;
             } else {
                 statement =
-                    `\n${awaitDeclaration}${doc}${isTsFile || !emitJsDoc ? '' : 'export '}const ${componentName} = __sveltets_2_isomorphic_component${usesSlots ? '_slots' : ''}(${propDef});\n` +
+                    `\n${awaitDeclaration}${doc}${useTypeScriptSyntax ? '' : 'export '}const ${componentName} = __sveltets_2_isomorphic_component${usesSlots ? '_slots' : ''}(${propDef});\n` +
                     surroundWithIgnoreComments(
-                        isTsFile || !emitJsDoc
+                        useTypeScriptSyntax
                             ? `type ${componentName} = InstanceType<typeof ${componentName}>;\n`
                             : `/** @typedef {InstanceType<typeof ${componentName}>} ${componentName} */\n`
                     ) +
