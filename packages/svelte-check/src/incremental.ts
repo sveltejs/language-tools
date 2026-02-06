@@ -39,6 +39,8 @@ export type ParsedDiagnostic = {
     filePath: string;
     line: number;
     character: number;
+    /** Span length in characters, parsed from tsc pretty-output ~~ underlines */
+    length: number;
     severity: DiagnosticSeverity;
     code: number;
     message: string;
@@ -251,14 +253,26 @@ export function writeOverlayTsconfig(
     const tsconfigDir = path.dirname(tsconfigPath);
     const rawInclude = normalizeConfigSpecs(parsed.raw?.include);
     const rawExclude = normalizeConfigSpecs(parsed.raw?.exclude);
-    const rawFiles = normalizeConfigSpecs(parsed.raw?.files);
+    const rawFiles = normalizeConfigSpecs(parsed.raw?.files) ?? [];
     const include = rebaseConfigSpecs(rawInclude, tsconfigDir, overlayDir);
     const exclude = rebaseConfigSpecs(rawExclude, tsconfigDir, overlayDir);
-    const configFiles = rebaseConfigSpecs(rawFiles, tsconfigDir, overlayDir);
-    // Turn include specs that match .svelte files into corresponding includes for our virtual files.
+    // Turn files/include/exclude specs that match .svelte files into corresponding includes for our virtual files.
     // We do this here instead of filtering on includes/excludes before deciding which Svelte files to
     // virtualize because includes/excludes could only do starting points and module resolution could
     // find other .svelte files which need to be included, too.
+    let configFiles = rebaseConfigSpecs(rawFiles, tsconfigDir, overlayDir) ?? [];
+    // Remove .svelte files from the files list to avoid TS6054; replace with .svelte.d.ts.
+    configFiles = configFiles.filter((file) => !file.endsWith('.svelte'));
+    configFiles = configFiles.concat(
+        rawFiles
+            .filter((file) => file.endsWith('.svelte'))
+            .map((file) => {
+                const normalized = file
+                    .replace(/^\$\{configDir\}/i, '.')
+                    .replace(/\.svelte$/, '.svelte.d.ts');
+                return `${EMIT_SUBDIR}/${normalized}`;
+            })
+    );
     const virtualInclude = rawInclude
         ?.filter((spec) => spec.endsWith('.svelte') || spec.endsWith('*'))
         .map((spec) => {
@@ -268,7 +282,6 @@ export function writeOverlayTsconfig(
             return `${EMIT_SUBDIR}/${normalized}`;
         });
     const mergedInclude = [...(include ?? []), ...(virtualInclude ?? [])];
-    // Same for excludes.
     const virtualExclude = rawExclude
         ?.filter((spec) => spec.endsWith('.svelte') || spec.endsWith('*'))
         .map((spec) => {
@@ -326,7 +339,7 @@ export function runTypeScriptDiagnostics(
         '-p',
         tsconfigPath,
         '--pretty',
-        'false',
+        'true',
         '--noErrorTruncation'
     ];
 
@@ -432,7 +445,7 @@ export function mapCliDiagnosticsToLsp(
             const mappedDiagnostics = fileDiagnostics.map((diag) => ({
                 range: Range.create(
                     { line: diag.line, character: diag.character },
-                    { line: diag.line, character: diag.character + 1 }
+                    { line: diag.line, character: diag.character + diag.length }
                 ),
                 severity: diag.severity,
                 code: diag.code,
@@ -451,21 +464,40 @@ export function mapCliDiagnosticsToLsp(
     return Array.from(results.values());
 }
 
+/** Strips ANSI escape codes from a string */
+function stripAnsi(str: string): string {
+    // eslint-disable-next-line no-control-regex
+    return str.replace(/\x1b\[[0-9;]*m/g, '');
+}
+
 /**
- * Parses TypeScript compiler output into structured diagnostic objects.
- * Expects diagnostics in the format: `file(line,col): error|warning TSxxxx: message`
+ * Parses TypeScript pretty-printed compiler output into structured diagnostic objects.
+ *
+ * With `--pretty true`, tsc outputs diagnostics in this format (after ANSI stripping):
+ *
+ *     file.ts:5:10 - error TS2322: Type 'string' is not assignable to type 'number'.
+ *
+ *     5     let count: number = 'oops';
+ *                               ~~~~~~
+ *
+ * We parse the header line for file/line/col/severity/code/message, then look ahead
+ * for a `~~~~~~` underline line to determine the exact error span length.
  *
  * @param output - Raw stdout/stderr output from the TypeScript compiler
  * @param baseDir - Base directory for resolving relative file paths
  * @returns Array of parsed diagnostics with absolute file paths and 0-based positions
  */
 function parseDiagnostics(output: string, baseDir: string): ParsedDiagnostic[] {
+    const clean = stripAnsi(output);
     const diagnostics: ParsedDiagnostic[] = [];
-    const lines = output.split(/\r?\n/);
-    const regex = /^(.*)\((\d+),(\d+)\): (error|warning) TS(\d+): (.*)$/;
+    const lines = clean.split(/\r?\n/);
+    // Pretty format: file.ts:5:10 - error TS2322: message
+    const headerRegex = /^(.+):(\d+):(\d+) - (error|warning) TS(\d+): (.*)$/;
+    // Tilde underline: optional leading whitespace followed by one or more tildes
+    const tildeRegex = /^(\s*)(~+)\s*$/;
 
-    for (const line of lines) {
-        const match = regex.exec(line.trim());
+    for (let i = 0; i < lines.length; i++) {
+        const match = headerRegex.exec(lines[i].trim());
         if (!match) {
             continue;
         }
@@ -473,10 +505,27 @@ function parseDiagnostics(output: string, baseDir: string): ParsedDiagnostic[] {
         const resolvedPath = path.isAbsolute(filePath) ? filePath : path.resolve(baseDir, filePath);
         const lineNum = Math.max(0, Number(lineStr) - 1);
         const colNum = Math.max(0, Number(colStr) - 1);
+
+        // Look ahead (up to 4 lines) for a ~~ underline to determine span length.
+        // The underline appears after the source context line in pretty output.
+        let length = 1;
+        for (let j = i + 1; j < Math.min(i + 5, lines.length); j++) {
+            const tildeMatch = tildeRegex.exec(lines[j]);
+            if (tildeMatch) {
+                length = tildeMatch[2].length;
+                break;
+            }
+            // Stop looking if we hit another diagnostic header
+            if (headerRegex.test(lines[j].trim())) {
+                break;
+            }
+        }
+
         diagnostics.push({
             filePath: resolvedPath,
             line: lineNum,
             character: colNum,
+            length,
             severity:
                 severity === 'warning' ? DiagnosticSeverity.Warning : DiagnosticSeverity.Error,
             code: Number(codeStr),
@@ -500,10 +549,10 @@ function isTypescriptFile(filePath: string): boolean {
 
 /**
  * Converts a CLI-parsed diagnostic into a TypeScript Diagnostic object.
- * Creates a source file from the generated text to calculate precise byte positions
- * and infer the length of the error span from identifier boundaries.
+ * Creates a source file from the generated text to calculate precise byte positions.
+ * Uses the span length parsed from tsc's ~~ underline output.
  *
- * @param diag - Parsed diagnostic from CLI output
+ * @param diag - Parsed diagnostic from CLI output (includes span length from ~~ underlines)
  * @param filePath - Path to the generated TypeScript/JavaScript file
  * @param generatedText - Content of the generated file for position calculation
  * @param isTsFile - Whether the source Svelte file uses TypeScript
@@ -527,14 +576,7 @@ function cliDiagnosticToTsDiagnostic(
     return {
         file: sourceFile,
         start,
-        // tsc CLI output doesn't include span lengths; approximate by matching
-        // the identifier at the error position. Falls back to length 1 for
-        // non-identifier positions (operators, string literals, etc.).
-        length: (() => {
-            const text = generatedText.slice(start, start + 100);
-            const match = /^[a-zA-Z0-9_$]+/.exec(text);
-            return match ? match[0].length : 1;
-        })(),
+        length: diag.length,
         category:
             diag.severity === DiagnosticSeverity.Warning
                 ? ts.DiagnosticCategory.Warning
