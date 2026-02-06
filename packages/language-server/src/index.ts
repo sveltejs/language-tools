@@ -4,5 +4,5 @@ export {
     mapSvelteCheckDiagnostics,
     SvelteCheck,
     SvelteCheckDiagnosticSource,
-    SvelteCheckOptions,
+    SvelteCheckOptions
 } from './svelte-check';

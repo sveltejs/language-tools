@@ -102,7 +102,11 @@ export class ExportedNames {
                         // TS types are not allowed in JS files, but TS will still pick it up and the ignore comment will filter out the error
                         const kitType =
                             isKitExport && !type ? `: import('./$types.js').Snapshot` : '';
-                        this.emitKitType(kitType, n.name.getStart() + this.astOffset, n.name.end + this.astOffset);
+                        this.emitKitType(
+                            kitType,
+                            n.name.getStart() + this.astOffset,
+                            n.name.end + this.astOffset
+                        );
                     }
                 });
             }

@@ -154,9 +154,7 @@ export function mapAndFilterDiagnostics(
     diagnostics = diagnostics
         .filter(notGenerated)
         .filter(not(isUnusedReactiveStatementLabel))
-        .filter((diagnostic) =>
-            !expectedTransitionThirdArgument(diagnostic, tsDoc, lang)
-        );
+        .filter((diagnostic) => !expectedTransitionThirdArgument(diagnostic, tsDoc, lang));
 
     if (lang) {
         diagnostics = resolveNoopsInReactiveStatements(lang, diagnostics);
