@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.3.6
+
+### Patch Changes
+
+-   fix: don't hoist type/snippet referencing $store ([#2926](https://github.com/sveltejs/language-tools/pull/2926))
+
 ## 4.3.5
 
 ### Patch Changes

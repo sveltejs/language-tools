@@ -124,18 +124,7 @@ export class DocumentManager {
             throw new Error('Cannot call methods on an unopened document');
         }
 
-        for (const change of changes) {
-            let start = 0;
-            let end = 0;
-            if ('range' in change) {
-                start = document.offsetAt(change.range.start);
-                end = document.offsetAt(change.range.end);
-            } else {
-                end = document.getTextLength();
-            }
-
-            document.update(change.text, start, end);
-        }
+        document.update(changes);
 
         this.notify('documentChange', document);
     }

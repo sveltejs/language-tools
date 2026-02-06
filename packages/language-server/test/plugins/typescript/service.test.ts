@@ -273,7 +273,12 @@ describe('service', () => {
         lang.getProgram();
 
         // ensure updated document also works
-        document2.update(' ', 0, 0);
+        document2.update([
+            {
+                text: ' ',
+                range: { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } }
+            }
+        ]);
         lang.getProgram();
 
         assert.doesNotThrow(() => {
@@ -327,7 +332,7 @@ describe('service', () => {
         const lang = ls.getService();
         lang.getProgram();
 
-        document2.update('<script', 0, document2.getTextLength());
+        document2.update([{ text: '<script' }]);
         ls.updateSnapshot(document2);
         ls.getService();
     });

@@ -1,4 +1,9 @@
-import { Position, Range, TextDocument } from 'vscode-languageserver';
+import {
+    Position,
+    Range,
+    TextDocument,
+    TextDocumentContentChangeEvent
+} from 'vscode-languageserver';
 import { getLineOffsets, offsetAt, positionAt } from './utils';
 
 /**
@@ -86,14 +91,20 @@ export abstract class WritableDocument extends ReadableDocument {
     abstract setText(text: string): void;
 
     /**
-     * Update the text between two positions.
-     * @param text The new text slice
-     * @param start Start offset of the new text
-     * @param end End offset of the new text
+     * Batch update the document with the LSP change events.
      */
-    update(text: string, start: number, end: number): void {
-        this.lineOffsets = undefined;
-        const content = this.getText();
-        this.setText(content.slice(0, start) + text + content.slice(end));
+    update(changes: TextDocumentContentChangeEvent[]): void {
+        let newText = this.getText();
+        for (const change of changes) {
+            if ('range' in change) {
+                const lineOffsets = getLineOffsets(newText);
+                const start = offsetAt(change.range.start, newText, lineOffsets);
+                const end = offsetAt(change.range.end, newText, lineOffsets);
+                newText = newText.slice(0, start) + change.text + newText.slice(end);
+            } else {
+                newText = change.text;
+            }
+        }
+        this.setText(newText);
     }
 }

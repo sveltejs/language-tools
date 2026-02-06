@@ -355,6 +355,8 @@ export function processInstanceScriptContent(
         moveNode(node, str, astOffset, script.start, tsAst);
     }
 
+    exportedNames.hoistableInterfaces.addDisallowed(implicitStoreValues.getAccessedStores());
+
     const hoisted = exportedNames.hoistableInterfaces.moveHoistableInterfaces(
         str,
         astOffset,
