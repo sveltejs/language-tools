@@ -1,6 +1,6 @@
 <script lang="ts">
     let count: number = 'oops';
-    let x = $state(0);
+    let x = 0;
     // prettier-ignore
     x ===
         '2';
