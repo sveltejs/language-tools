@@ -1,3 +1,4 @@
+/.vscode-test-web/
 /dist
 /node_modules
 /syntaxes/svelte.tmLanguage.json
