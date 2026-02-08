@@ -1,5 +1,6 @@
 import {
     isBeforeOrEqualToPosition,
+    makeLinksClickable,
     modifyLines,
     normalizePath,
     regexLastIndexOf
@@ -88,6 +89,62 @@ describe('utils', () => {
             assert.strictEqual(
                 normalizePath('/already/normalized/path/file.ts'),
                 '/already/normalized/path/file.ts'
+            );
+        });
+    });
+
+    describe('#makeLinksClickable', () => {
+        it('should convert a simple URL to a markdown link', () => {
+            assert.strictEqual(
+                makeLinksClickable('See https://example.com for more info'),
+                'See [https://example.com](https://example.com) for more info'
+            );
+        });
+
+        it('should convert multiple URLs', () => {
+            assert.strictEqual(
+                makeLinksClickable('Check https://example.com and https://other.com'),
+                'Check [https://example.com](https://example.com) and [https://other.com](https://other.com)'
+            );
+        });
+
+        it('should handle URLs with paths', () => {
+            assert.strictEqual(
+                makeLinksClickable(
+                    'See https://github.com/sveltejs/language-tools/tree/master/docs'
+                ),
+                'See [https://github.com/sveltejs/language-tools/tree/master/docs](https://github.com/sveltejs/language-tools/tree/master/docs)'
+            );
+        });
+
+        it('should handle URLs with query strings and fragments', () => {
+            assert.strictEqual(
+                makeLinksClickable('See https://svelte.dev/docs?tab=api#section'),
+                'See [https://svelte.dev/docs?tab=api#section](https://svelte.dev/docs?tab=api#section)'
+            );
+        });
+
+        it('should not convert already-markdown URLs', () => {
+            const alreadyMarkdown = 'See [example](https://example.com) for info';
+            assert.strictEqual(makeLinksClickable(alreadyMarkdown), alreadyMarkdown);
+        });
+
+        it('should handle text without URLs', () => {
+            const noUrl = 'This is just plain text without any URLs';
+            assert.strictEqual(makeLinksClickable(noUrl), noUrl);
+        });
+
+        it('should handle http URLs', () => {
+            assert.strictEqual(
+                makeLinksClickable('Check http://example.com'),
+                'Check [http://example.com](http://example.com)'
+            );
+        });
+
+        it('should handle URLs at the end of a sentence', () => {
+            assert.strictEqual(
+                makeLinksClickable('For more info: https://svelte.dev/docs'),
+                'For more info: [https://svelte.dev/docs](https://svelte.dev/docs)'
             );
         });
     });
