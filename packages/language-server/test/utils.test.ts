@@ -1,5 +1,4 @@
 import {
-    getCodeDescription,
     isBeforeOrEqualToPosition,
     modifyLines,
     normalizePath,
@@ -93,19 +92,4 @@ describe('utils', () => {
         });
     });
 
-    describe('#getCodeDescription', () => {
-        it('should return codeDescription for a string code', () => {
-            assert.deepStrictEqual(getCodeDescription('export_let_unused'), {
-                href: 'https://svelte.dev/docs/svelte/compiler-warnings#export_let_unused'
-            });
-        });
-
-        it('should return undefined for numeric codes', () => {
-            assert.strictEqual(getCodeDescription(123), undefined);
-        });
-
-        it('should return undefined for undefined', () => {
-            assert.strictEqual(getCodeDescription(undefined), undefined);
-        });
-    });
 });

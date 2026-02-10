@@ -14,10 +14,22 @@ import {
 import { Logger } from '../../../logger';
 import { CompilerWarningsSettings } from '../../../ls-config';
 import {
-    getCodeDescription,
     getLastPartOfPath,
     moveRangeStartToEndIfNecessary
 } from '../../../utils';
+
+/**
+ * Generates a codeDescription object for a Svelte diagnostic code.
+ * The href links to the Svelte error/warning documentation using the short URL format.
+ */
+function getCodeDescription(code: string | number | undefined): { href: string } | undefined {
+    if (code === undefined || typeof code === 'number') {
+        return undefined;
+    }
+    return {
+        href: `https://svelte.dev/e/${code}`
+    };
+}
 import { SvelteDocument, TranspileErrorSource } from '../SvelteDocument';
 
 /**

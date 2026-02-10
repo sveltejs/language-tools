@@ -403,16 +403,3 @@ export function traverseTypeString(str: string, start: number, endChar: string):
 
     return -1;
 }
-
-/**
- * Generates a codeDescription object for a Svelte diagnostic code.
- * The href links to the Svelte compiler warnings documentation.
- */
-export function getCodeDescription(code: string | number | undefined): { href: string } | undefined {
-    if (code === undefined || typeof code === 'number') {
-        return undefined;
-    }
-    return {
-        href: `https://svelte.dev/docs/svelte/compiler-warnings#${code}`
-    };
-}

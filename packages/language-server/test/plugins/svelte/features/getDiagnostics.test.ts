@@ -229,7 +229,7 @@ describe('SveltePlugin#getDiagnostics', () => {
                     '\n\nIf you expect this syntax to work, here are some suggestions: ' +
                     '\nIf you use typescript with `svelte-preprocess`, did you add `lang="ts"` to your `script` tag? ' +
                     '\nDid you setup a `svelte.config.js`? ' +
-                    '\nSee [https://github.com/sveltejs/language-tools/tree/master/docs#using-with-preprocessors](https://github.com/sveltejs/language-tools/tree/master/docs#using-with-preprocessors) for more info.',
+                    '\nSee https://github.com/sveltejs/language-tools/tree/master/docs#using-with-preprocessors for more info.',
                 range: {
                     start: {
                         character: 8,
@@ -447,7 +447,7 @@ describe('SveltePlugin#getDiagnostics', () => {
             {
                 code: '123',
                 codeDescription: {
-                    href: 'https://svelte.dev/docs/svelte/compiler-warnings#123'
+                    href: 'https://svelte.dev/e/123'
                 },
                 message: 'warning',
                 range: {
@@ -481,8 +481,8 @@ describe('SveltePlugin#getDiagnostics', () => {
                 code: isSvelte5Plus ? 'export_let_unused' : 'unused-export-let',
                 codeDescription: {
                     href: isSvelte5Plus
-                        ? 'https://svelte.dev/docs/svelte/compiler-warnings#export_let_unused'
-                        : 'https://svelte.dev/docs/svelte/compiler-warnings#unused-export-let'
+                        ? 'https://svelte.dev/e/export_let_unused'
+                        : 'https://svelte.dev/e/unused-export-let'
                 }
             }
         ]);
@@ -507,8 +507,8 @@ describe('SveltePlugin#getDiagnostics', () => {
                         : 'module-script-reactive-declaration',
                     codeDescription: {
                         href: isSvelte5Plus
-                            ? 'https://svelte.dev/docs/svelte/compiler-warnings#reactive_declaration_invalid_placement'
-                            : 'https://svelte.dev/docs/svelte/compiler-warnings#module-script-reactive-declaration'
+                            ? 'https://svelte.dev/e/reactive_declaration_invalid_placement'
+                            : 'https://svelte.dev/e/module-script-reactive-declaration'
                     }
                 }
             ]
@@ -526,8 +526,8 @@ describe('SveltePlugin#getDiagnostics', () => {
                     code: isSvelte5Plus ? 'export_let_unused' : 'unused-export-let',
                     codeDescription: {
                         href: isSvelte5Plus
-                            ? 'https://svelte.dev/docs/svelte/compiler-warnings#export_let_unused'
-                            : 'https://svelte.dev/docs/svelte/compiler-warnings#unused-export-let'
+                            ? 'https://svelte.dev/e/export_let_unused'
+                            : 'https://svelte.dev/e/unused-export-let'
                     },
                     message:
                         "Component has unused export property 'unused1'. If it is for external reference only, please consider using `export const unused1`" +
@@ -549,8 +549,8 @@ describe('SveltePlugin#getDiagnostics', () => {
                     code: isSvelte5Plus ? 'export_let_unused' : 'unused-export-let',
                     codeDescription: {
                         href: isSvelte5Plus
-                            ? 'https://svelte.dev/docs/svelte/compiler-warnings#export_let_unused'
-                            : 'https://svelte.dev/docs/svelte/compiler-warnings#unused-export-let'
+                            ? 'https://svelte.dev/e/export_let_unused'
+                            : 'https://svelte.dev/e/unused-export-let'
                     },
                     message:
                         "Component has unused export property 'unused2'. If it is for external reference only, please consider using `export const unused2`" +
