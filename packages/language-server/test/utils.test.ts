@@ -1,4 +1,5 @@
 import {
+    getCodeDescription,
     isBeforeOrEqualToPosition,
     makeLinksClickable,
     modifyLines,
@@ -146,6 +147,40 @@ describe('utils', () => {
                 makeLinksClickable('For more info: https://svelte.dev/docs'),
                 'For more info: [https://svelte.dev/docs](https://svelte.dev/docs)'
             );
+        });
+    });
+
+    describe('#getCodeDescription', () => {
+        it('should return codeDescription for a Svelte 5 underscore code', () => {
+            assert.deepStrictEqual(getCodeDescription('export_let_unused'), {
+                href: 'https://svelte.dev/docs/svelte/compiler-warnings#export_let_unused'
+            });
+        });
+
+        it('should normalize Svelte 4 hyphen codes to underscores', () => {
+            assert.deepStrictEqual(getCodeDescription('a11y-no-redundant-roles'), {
+                href: 'https://svelte.dev/docs/svelte/compiler-warnings#a11y_no_redundant_roles'
+            });
+        });
+
+        it('should handle codes with mixed hyphens and underscores', () => {
+            assert.deepStrictEqual(getCodeDescription('css-unused-selector'), {
+                href: 'https://svelte.dev/docs/svelte/compiler-warnings#css_unused_selector'
+            });
+        });
+
+        it('should return undefined for numeric codes', () => {
+            assert.strictEqual(getCodeDescription(123), undefined);
+        });
+
+        it('should return undefined for undefined', () => {
+            assert.strictEqual(getCodeDescription(undefined), undefined);
+        });
+
+        it('should handle simple string codes', () => {
+            assert.deepStrictEqual(getCodeDescription('warning'), {
+                href: 'https://svelte.dev/docs/svelte/compiler-warnings#warning'
+            });
         });
     });
 });

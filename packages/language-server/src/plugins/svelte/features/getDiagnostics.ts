@@ -14,6 +14,7 @@ import {
 import { Logger } from '../../../logger';
 import { CompilerWarningsSettings } from '../../../ls-config';
 import {
+    getCodeDescription,
     getLastPartOfPath,
     makeLinksClickable,
     moveRangeStartToEndIfNecessary
@@ -89,7 +90,10 @@ async function tryGetDiagnostics(
                             ? DiagnosticSeverity.Error
                             : DiagnosticSeverity.Warning,
                     source: 'svelte',
-                    code: warning.code
+                    code: warning.code,
+                    ...(getCodeDescription(warning.code) && {
+                        codeDescription: getCodeDescription(warning.code)
+                    })
                 };
             })
             .map((diag) => mapObjWithRangeToOriginal(transpiled, diag))
@@ -121,7 +125,10 @@ function createParserErrorDiagnostic(error: any, document: Document) {
         message: error.message,
         severity: DiagnosticSeverity.Error,
         source: 'svelte',
-        code: error.code
+        code: error.code,
+        ...(getCodeDescription(error.code) && {
+            codeDescription: getCodeDescription(error.code)
+        })
     };
 
     if (diagnostic.message.includes('expected')) {

@@ -229,7 +229,7 @@ describe('SveltePlugin#getDiagnostics', () => {
                     '\n\nIf you expect this syntax to work, here are some suggestions: ' +
                     '\nIf you use typescript with `svelte-preprocess`, did you add `lang="ts"` to your `script` tag? ' +
                     '\nDid you setup a `svelte.config.js`? ' +
-                    '\nSee https://github.com/sveltejs/language-tools/tree/master/docs#using-with-preprocessors for more info.',
+                    '\nSee [https://github.com/sveltejs/language-tools/tree/master/docs#using-with-preprocessors](https://github.com/sveltejs/language-tools/tree/master/docs#using-with-preprocessors) for more info.',
                 range: {
                     start: {
                         character: 8,
@@ -446,6 +446,9 @@ describe('SveltePlugin#getDiagnostics', () => {
         ).toEqual([
             {
                 code: '123',
+                codeDescription: {
+                    href: 'https://svelte.dev/docs/svelte/compiler-warnings#123'
+                },
                 message: 'warning',
                 range: {
                     start: {
@@ -472,10 +475,15 @@ describe('SveltePlugin#getDiagnostics', () => {
                 range: { start: { line: 1, character: 15 }, end: { line: 1, character: 27 } },
                 message:
                     "Component has unused export property 'name'. If it is for external reference only, please consider using `export const name`" +
-                    (isSvelte5Plus ? '\nhttps://svelte.dev/e/export_let_unused' : ''),
+                    (isSvelte5Plus ? '\n[https://svelte.dev/e/export_let_unused](https://svelte.dev/e/export_let_unused)' : ''),
                 severity: 2,
                 source: 'svelte',
-                code: isSvelte5Plus ? 'export_let_unused' : 'unused-export-let'
+                code: isSvelte5Plus ? 'export_let_unused' : 'unused-export-let',
+                codeDescription: {
+                    href: isSvelte5Plus
+                        ? 'https://svelte.dev/docs/svelte/compiler-warnings#export_let_unused'
+                        : 'https://svelte.dev/docs/svelte/compiler-warnings#unused_export_let'
+                }
             }
         ]);
     });
@@ -490,13 +498,18 @@ describe('SveltePlugin#getDiagnostics', () => {
                 {
                     range: { start: { line: 1, character: 4 }, end: { line: 1, character: 26 } },
                     message: isSvelte5Plus
-                        ? 'Reactive declarations only exist at the top level of the instance script\nhttps://svelte.dev/e/reactive_declaration_invalid_placement'
+                        ? 'Reactive declarations only exist at the top level of the instance script\n[https://svelte.dev/e/reactive_declaration_invalid_placement](https://svelte.dev/e/reactive_declaration_invalid_placement)'
                         : '$: has no effect in a module script',
                     severity: 2,
                     source: 'svelte',
                     code: isSvelte5Plus
                         ? 'reactive_declaration_invalid_placement'
-                        : 'module-script-reactive-declaration'
+                        : 'module-script-reactive-declaration',
+                    codeDescription: {
+                        href: isSvelte5Plus
+                            ? 'https://svelte.dev/docs/svelte/compiler-warnings#reactive_declaration_invalid_placement'
+                            : 'https://svelte.dev/docs/svelte/compiler-warnings#module_script_reactive_declaration'
+                    }
                 }
             ]
         );
@@ -511,9 +524,14 @@ describe('SveltePlugin#getDiagnostics', () => {
             [
                 {
                     code: isSvelte5Plus ? 'export_let_unused' : 'unused-export-let',
+                    codeDescription: {
+                        href: isSvelte5Plus
+                            ? 'https://svelte.dev/docs/svelte/compiler-warnings#export_let_unused'
+                            : 'https://svelte.dev/docs/svelte/compiler-warnings#unused_export_let'
+                    },
                     message:
                         "Component has unused export property 'unused1'. If it is for external reference only, please consider using `export const unused1`" +
-                        (isSvelte5Plus ? '\nhttps://svelte.dev/e/export_let_unused' : ''),
+                        (isSvelte5Plus ? '\n[https://svelte.dev/e/export_let_unused](https://svelte.dev/e/export_let_unused)' : ''),
                     range: {
                         start: {
                             line: 5,
@@ -529,9 +547,14 @@ describe('SveltePlugin#getDiagnostics', () => {
                 },
                 {
                     code: isSvelte5Plus ? 'export_let_unused' : 'unused-export-let',
+                    codeDescription: {
+                        href: isSvelte5Plus
+                            ? 'https://svelte.dev/docs/svelte/compiler-warnings#export_let_unused'
+                            : 'https://svelte.dev/docs/svelte/compiler-warnings#unused_export_let'
+                    },
                     message:
                         "Component has unused export property 'unused2'. If it is for external reference only, please consider using `export const unused2`" +
-                        (isSvelte5Plus ? '\nhttps://svelte.dev/e/export_let_unused' : ''),
+                        (isSvelte5Plus ? '\n[https://svelte.dev/e/export_let_unused](https://svelte.dev/e/export_let_unused)' : ''),
                     range: {
                         start: {
                             line: 6,
