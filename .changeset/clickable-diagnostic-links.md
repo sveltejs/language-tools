@@ -2,8 +2,8 @@
 'svelte-language-server': patch
 ---
 
-feat: make links in diagnostic messages clickable
+feat: add codeDescription for clickable error codes
 
-Convert URLs in Svelte compiler diagnostic messages to markdown links,
-enabling users to click them directly in IDEs that support markdown in
-diagnostics (e.g., VS Code after microsoft/vscode@166541c).
+Add codeDescription to Svelte diagnostics, enabling users to click error
+codes to navigate directly to the Svelte compiler warnings documentation.
+Uses the LSP 3.17 codeDescription API.

@@ -16,7 +16,6 @@ import { CompilerWarningsSettings } from '../../../ls-config';
 import {
     getCodeDescription,
     getLastPartOfPath,
-    makeLinksClickable,
     moveRangeStartToEndIfNecessary
 } from '../../../utils';
 import { SvelteDocument, TranspileErrorSource } from '../SvelteDocument';
@@ -84,7 +83,7 @@ async function tryGetDiagnostics(
                 const end = warning.end || start;
                 return {
                     range: Range.create(start.line - 1, start.column, end.line - 1, end.column),
-                    message: makeLinksClickable(warning.message),
+                    message: warning.message,
                     severity:
                         settings[warning.code] === 'error'
                             ? DiagnosticSeverity.Error
@@ -166,7 +165,7 @@ function createParserErrorDiagnostic(error: any, document: Document) {
     }
 
     // Convert URLs to clickable markdown links
-    diagnostic.message = makeLinksClickable(diagnostic.message);
+    diagnostic.message = diagnostic.message;
 
     return [diagnostic];
 }
@@ -195,7 +194,7 @@ function getPreprocessErrorDiagnostics(document: Document, error: any): Diagnost
 function getConfigLoadErrorDiagnostics(error: any): Diagnostic[] {
     return [
         {
-            message: makeLinksClickable('Error in svelte.config.js\n\n' + error),
+            message: 'Error in svelte.config.js\n\n' + error,
             range: Range.create(Position.create(0, 0), Position.create(0, 5)),
             severity: DiagnosticSeverity.Error,
             source: 'svelte'
@@ -215,7 +214,7 @@ function getStyleErrorDiagnostics(error: any, document: Document): Diagnostic[] 
 
     return [
         {
-            message: makeLinksClickable(getStyleErrorMessage()),
+            message: getStyleErrorMessage(),
             range: getStyleErrorRange(),
             severity: DiagnosticSeverity.Error,
             source: 'svelte(style)'
@@ -255,7 +254,7 @@ function getStyleErrorDiagnostics(error: any, document: Document): Diagnostic[] 
 function getScriptErrorDiagnostics(error: any, document: Document): Diagnostic[] {
     return [
         {
-            message: makeLinksClickable(getScriptErrorMessage()),
+            message: getScriptErrorMessage(),
             range: getScriptErrorRange(),
             severity: DiagnosticSeverity.Error,
             source: 'svelte(script)'
@@ -285,7 +284,7 @@ function getScriptErrorDiagnostics(error: any, document: Document): Diagnostic[]
 function getOtherErrorDiagnostics(error: any): Diagnostic[] {
     return [
         {
-            message: makeLinksClickable(getOtherErrorMessage()),
+            message: getOtherErrorMessage(),
             range: Range.create(Position.create(0, 0), Position.create(0, 5)),
             severity: DiagnosticSeverity.Warning,
             source: 'svelte'

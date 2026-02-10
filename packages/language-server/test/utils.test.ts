@@ -1,7 +1,6 @@
 import {
     getCodeDescription,
     isBeforeOrEqualToPosition,
-    makeLinksClickable,
     modifyLines,
     normalizePath,
     regexLastIndexOf
@@ -94,78 +93,10 @@ describe('utils', () => {
         });
     });
 
-    describe('#makeLinksClickable', () => {
-        it('should convert a simple URL to a markdown link', () => {
-            assert.strictEqual(
-                makeLinksClickable('See https://example.com for more info'),
-                'See [https://example.com](https://example.com) for more info'
-            );
-        });
-
-        it('should convert multiple URLs', () => {
-            assert.strictEqual(
-                makeLinksClickable('Check https://example.com and https://other.com'),
-                'Check [https://example.com](https://example.com) and [https://other.com](https://other.com)'
-            );
-        });
-
-        it('should handle URLs with paths', () => {
-            assert.strictEqual(
-                makeLinksClickable(
-                    'See https://github.com/sveltejs/language-tools/tree/master/docs'
-                ),
-                'See [https://github.com/sveltejs/language-tools/tree/master/docs](https://github.com/sveltejs/language-tools/tree/master/docs)'
-            );
-        });
-
-        it('should handle URLs with query strings and fragments', () => {
-            assert.strictEqual(
-                makeLinksClickable('See https://svelte.dev/docs?tab=api#section'),
-                'See [https://svelte.dev/docs?tab=api#section](https://svelte.dev/docs?tab=api#section)'
-            );
-        });
-
-        it('should not convert already-markdown URLs', () => {
-            const alreadyMarkdown = 'See [example](https://example.com) for info';
-            assert.strictEqual(makeLinksClickable(alreadyMarkdown), alreadyMarkdown);
-        });
-
-        it('should handle text without URLs', () => {
-            const noUrl = 'This is just plain text without any URLs';
-            assert.strictEqual(makeLinksClickable(noUrl), noUrl);
-        });
-
-        it('should handle http URLs', () => {
-            assert.strictEqual(
-                makeLinksClickable('Check http://example.com'),
-                'Check [http://example.com](http://example.com)'
-            );
-        });
-
-        it('should handle URLs at the end of a sentence', () => {
-            assert.strictEqual(
-                makeLinksClickable('For more info: https://svelte.dev/docs'),
-                'For more info: [https://svelte.dev/docs](https://svelte.dev/docs)'
-            );
-        });
-    });
-
     describe('#getCodeDescription', () => {
-        it('should return codeDescription for a Svelte 5 underscore code', () => {
+        it('should return codeDescription for a string code', () => {
             assert.deepStrictEqual(getCodeDescription('export_let_unused'), {
                 href: 'https://svelte.dev/docs/svelte/compiler-warnings#export_let_unused'
-            });
-        });
-
-        it('should normalize Svelte 4 hyphen codes to underscores', () => {
-            assert.deepStrictEqual(getCodeDescription('a11y-no-redundant-roles'), {
-                href: 'https://svelte.dev/docs/svelte/compiler-warnings#a11y_no_redundant_roles'
-            });
-        });
-
-        it('should handle codes with mixed hyphens and underscores', () => {
-            assert.deepStrictEqual(getCodeDescription('css-unused-selector'), {
-                href: 'https://svelte.dev/docs/svelte/compiler-warnings#css_unused_selector'
             });
         });
 
@@ -175,12 +106,6 @@ describe('utils', () => {
 
         it('should return undefined for undefined', () => {
             assert.strictEqual(getCodeDescription(undefined), undefined);
-        });
-
-        it('should handle simple string codes', () => {
-            assert.deepStrictEqual(getCodeDescription('warning'), {
-                href: 'https://svelte.dev/docs/svelte/compiler-warnings#warning'
-            });
         });
     });
 });

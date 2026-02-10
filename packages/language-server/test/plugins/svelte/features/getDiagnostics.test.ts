@@ -482,7 +482,7 @@ describe('SveltePlugin#getDiagnostics', () => {
                 codeDescription: {
                     href: isSvelte5Plus
                         ? 'https://svelte.dev/docs/svelte/compiler-warnings#export_let_unused'
-                        : 'https://svelte.dev/docs/svelte/compiler-warnings#unused_export_let'
+                        : 'https://svelte.dev/docs/svelte/compiler-warnings#unused-export-let'
                 }
             }
         ]);
@@ -508,7 +508,7 @@ describe('SveltePlugin#getDiagnostics', () => {
                     codeDescription: {
                         href: isSvelte5Plus
                             ? 'https://svelte.dev/docs/svelte/compiler-warnings#reactive_declaration_invalid_placement'
-                            : 'https://svelte.dev/docs/svelte/compiler-warnings#module_script_reactive_declaration'
+                            : 'https://svelte.dev/docs/svelte/compiler-warnings#module-script-reactive-declaration'
                     }
                 }
             ]
@@ -527,7 +527,7 @@ describe('SveltePlugin#getDiagnostics', () => {
                     codeDescription: {
                         href: isSvelte5Plus
                             ? 'https://svelte.dev/docs/svelte/compiler-warnings#export_let_unused'
-                            : 'https://svelte.dev/docs/svelte/compiler-warnings#unused_export_let'
+                            : 'https://svelte.dev/docs/svelte/compiler-warnings#unused-export-let'
                     },
                     message:
                         "Component has unused export property 'unused1'. If it is for external reference only, please consider using `export const unused1`" +
@@ -550,7 +550,7 @@ describe('SveltePlugin#getDiagnostics', () => {
                     codeDescription: {
                         href: isSvelte5Plus
                             ? 'https://svelte.dev/docs/svelte/compiler-warnings#export_let_unused'
-                            : 'https://svelte.dev/docs/svelte/compiler-warnings#unused_export_let'
+                            : 'https://svelte.dev/docs/svelte/compiler-warnings#unused-export-let'
                     },
                     message:
                         "Component has unused export property 'unused2'. If it is for external reference only, please consider using `export const unused2`" +

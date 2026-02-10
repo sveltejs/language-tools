@@ -405,33 +405,14 @@ export function traverseTypeString(str: string, start: number, endChar: string):
 }
 
 /**
- * Converts URLs in a string to markdown links, making them clickable in IDEs
- * that support markdown in diagnostic messages (e.g. VS Code).
- *
- * Example: "See https://example.com for more info"
- * Becomes: "See [https://example.com](https://example.com) for more info"
- */
-export function makeLinksClickable(text: string): string {
-    // Match URLs that are not already in markdown link format
-    // This regex matches http:// and https:// URLs
-    const urlRegex = /(?<!\]\()(?<!\[)(https?:\/\/[^\s\)>\]]+)/g;
-    return text.replace(urlRegex, '[$1]($1)');
-}
-
-/**
  * Generates a codeDescription object for a Svelte diagnostic code.
  * The href links to the Svelte compiler warnings documentation.
- *
- * For Svelte 4 codes (with hyphens like "a11y-no-redundant-roles"),
- * the code is normalized to underscores for the URL.
  */
 export function getCodeDescription(code: string | number | undefined): { href: string } | undefined {
     if (code === undefined || typeof code === 'number') {
         return undefined;
     }
-    // Normalize Svelte 4 hyphenated codes to underscores for the URL
-    const normalizedCode = code.replace(/-/g, '_');
     return {
-        href: `https://svelte.dev/docs/svelte/compiler-warnings#${normalizedCode}`
+        href: `https://svelte.dev/docs/svelte/compiler-warnings#${code}`
     };
 }
