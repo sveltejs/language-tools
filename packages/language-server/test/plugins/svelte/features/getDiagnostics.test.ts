@@ -229,7 +229,7 @@ describe('SveltePlugin#getDiagnostics', () => {
                     '\n\nIf you expect this syntax to work, here are some suggestions: ' +
                     '\nIf you use typescript with `svelte-preprocess`, did you add `lang="ts"` to your `script` tag? ' +
                     '\nDid you setup a `svelte.config.js`? ' +
-                    '\nSee https://github.com/sveltejs/language-tools/tree/master/docs#using-with-preprocessors for more info.',
+                    '\nSee [https://github.com/sveltejs/language-tools/tree/master/docs#using-with-preprocessors](https://github.com/sveltejs/language-tools/tree/master/docs#using-with-preprocessors) for more info.',
                 range: {
                     start: {
                         character: 8,
