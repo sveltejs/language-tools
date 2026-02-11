@@ -30,17 +30,6 @@ function getCodeDescription(code: string | number | undefined): { href: string }
         href: `https://svelte.dev/e/${code}`
     };
 }
-
-/**
- * Converts URLs in text to markdown links for IDE clickability.
- * Example: "See https://example.com" becomes "See [https://example.com](https://example.com)"
- */
-function makeLinksClickable(text: string): string {
-    // Match URLs that are not already in markdown link format
-    // Negative lookbehind to avoid matching URLs already in markdown [text](url) or (url)
-    const urlRegex = /(?<!\]\()(?<!\()https?:\/\/[^\s<>)\]]+/g;
-    return text.replace(urlRegex, (url) => `[${url}](${url})`);
-}
 import { SvelteDocument, TranspileErrorSource } from '../SvelteDocument';
 
 /**
@@ -106,7 +95,7 @@ async function tryGetDiagnostics(
                 const end = warning.end || start;
                 return {
                     range: Range.create(start.line - 1, start.column, end.line - 1, end.column),
-                    message: makeLinksClickable(warning.message),
+                    message: warning.message,
                     severity:
                         settings[warning.code] === 'error'
                             ? DiagnosticSeverity.Error
@@ -186,9 +175,6 @@ function createParserErrorDiagnostic(error: any, document: Document) {
                 '\nSee https://github.com/sveltejs/language-tools/tree/master/docs#using-with-preprocessors for more info.';
         }
     }
-
-    // Convert URLs to clickable markdown links
-    diagnostic.message = makeLinksClickable(diagnostic.message);
 
     return [diagnostic];
 }
