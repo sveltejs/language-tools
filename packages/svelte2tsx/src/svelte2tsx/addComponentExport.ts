@@ -66,6 +66,19 @@ function addGenericsComponentExport({
 }: AddComponentExportPara) {
     const genericsDef = generics.toDefinitionString();
     const genericsRef = generics.toReferencesString();
+    const useTSSyntax = isTsFile || !emitJsDoc;
+    const templateNames =
+        !useTSSyntax && genericsDef
+            ? genericsDef
+                  .slice(1, -1)
+                  .split(',')
+                  .map((part) => part.trim())
+                  .map((part) => part.split(/\s|=/)[0])
+                  .filter(Boolean)
+            : [];
+    const templateComment = templateNames.length
+        ? `/** @template ${templateNames.join(', ')} */\n`
+        : '';
 
     const doc = componentDocumentation.getFormatted();
     const className = fileName && classNameFromFilename(fileName, mode !== 'dts');
@@ -75,13 +88,13 @@ function addGenericsComponentExport({
     }
 
     const renderCall = hasTopLevelAwait
-        ? `(await ${internalHelpers.renderName}${genericsRef}())`
-        : `${internalHelpers.renderName}${genericsRef}()`;
+        ? `(await ${internalHelpers.renderName}${useTSSyntax ? genericsRef : ''}())`
+        : `${internalHelpers.renderName}${useTSSyntax ? genericsRef : ''}()`;
 
     // TODO once Svelte 4 compatibility is dropped, we can simplify this, because since TS 4.7 it is possible to use generics
     // like this: `typeof render<T>` - which wasn't possibly before, hence the class + methods workaround.
     let statement = `
-class __sveltets_Render${genericsDef} {
+${templateComment}class __sveltets_Render${useTSSyntax ? genericsDef : ''} {
     props() {
         return ${props(true, canHaveAnyProp, exportedNames, renderCall)}.props;
     }
@@ -98,12 +111,24 @@ class __sveltets_Render${genericsDef} {
         const renderType = hasTopLevelAwait
             ? `Awaited<ReturnType<typeof ${internalHelpers.renderName}${genericsRef}>>`
             : `ReturnType<typeof ${internalHelpers.renderName}${genericsRef}>`;
-        statement = `
+        if (useTSSyntax) {
+            statement = `
 class __sveltets_Render${genericsDef} {
     props(): ${renderType}['props'] { return null as any; }
     events(): ${renderType}['events'] { return null as any; }
     slots(): ${renderType}['slots'] { return null as any; }
 `;
+        } else {
+            statement = `
+${templateComment}class __sveltets_Render {
+    /** @returns {${renderType}['props']} */
+    props() { return /** @type {any} */ (null); }
+    /** @returns {${renderType}['events']} */
+    events() { return /** @type {any} */ (null); }
+    /** @returns {${renderType}['slots']} */
+    slots() { return /** @type {any} */ (null); }
+`;
+        }
     }
 
     statement += isSvelte5
@@ -140,8 +165,7 @@ class __sveltets_Render${genericsDef} {
         // - Constraints: Need to support Svelte 4 class component types, therefore we need to use __sveltets_2_ensureComponent to transform function components to classes
         // - Limitations: TypeScript is not able to preserve generics during said transformation (i.e. there's no way to express keeping the generic etc)
         // TODO Svelte 6/7: Switch this around and not use new Component in svelte2tsx anymore, which means we can remove the legacy class component. We need something like _ensureFnComponent then.
-        const useTypeScriptSyntax = isTsFile || !emitJsDoc;
-        if (useTypeScriptSyntax) {
+        if (useTSSyntax) {
             statement +=
                 `\ninterface $$IsomorphicComponent {\n` +
                 `    new ${genericsDef}(options: import('svelte').ComponentConstructorOptions<${returnType('props') + (usesSlots ? '& {children?: any}' : '')}>): import('svelte').SvelteComponent<${returnType('props')}, ${returnType('events')}, ${returnType('slots')}> & { $$bindings?: ${returnType('bindings')} } & ${returnType('exports')};\n` +
@@ -154,17 +178,6 @@ class __sveltets_Render${genericsDef} {
                 ) +
                 `export default ${className || '$$Component'};`;
         } else {
-            const templateNames = genericsDef
-                ? genericsDef
-                      .slice(1, -1)
-                      .split(',')
-                      .map((part) => part.trim())
-                      .map((part) => part.split(/\s|=/)[0])
-                      .filter(Boolean)
-                : [];
-            const templateComment = templateNames.length
-                ? `/** @template ${templateNames.join(', ')} */\n`
-                : '';
             const componentName = className || '$$Component';
             const componentType = `import('svelte').SvelteComponent<${returnType('props')}, ${returnType('events')}, ${returnType('slots')}> & { $$bindings?: ${returnType('bindings')} } & ${returnType('exports')}`;
             statement +=

@@ -22,6 +22,8 @@ function processSvelteTemplate(
         mode?: 'ts' | 'dts';
         typingsNamespace?: string;
         svelte5Plus: boolean;
+        emitJsDoc?: boolean;
+        isTsFile?: boolean;
     }
 ): TemplateProcessResult {
     const { htmlxAst, tags } = parseHtmlx(str.original, parse, options);
@@ -169,7 +171,8 @@ export function svelte2tsx(
         hasTopLevelAwait,
         svelte5Plus,
         isTsFile,
-        mode: options.mode
+        mode: options.mode,
+        emitJsDoc
     });
 
     // we need to process the module script after the instance script has moved otherwise we get warnings about moving edited items

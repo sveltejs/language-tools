@@ -29,10 +29,13 @@ import { Element } from './Element';
 export function handleSnippet(
     str: MagicString,
     snippetBlock: BaseNode,
-    component?: InlineComponent | Element
+    component?: InlineComponent | Element,
+    emitJsDoc = false,
+    isTsFile = false
 ): void {
     const isImplicitProp = component !== undefined;
     const endSnippet = str.original.lastIndexOf('{', snippetBlock.end - 1);
+    const usTSSyntax = isTsFile || !emitJsDoc;
 
     const afterSnippet = isImplicitProp
         ? `};return __sveltets_2_any(0)}`
@@ -116,7 +119,9 @@ export function handleSnippet(
             'const ',
             [snippetBlock.expression.start, snippetBlock.expression.end],
             IGNORE_POSITION_COMMENT,
-            ` = ${snippetBlock.typeParams ? `<${snippetBlock.typeParams}>` : ''}(`
+            ` = ${usTSSyntax ? '' : "/** @returns {ReturnType<import('svelte').Snippet>} */ "}${
+                usTSSyntax && snippetBlock.typeParams ? `<${snippetBlock.typeParams}>` : ''
+            }(`
         ];
 
         if (parameters) {
@@ -125,7 +130,9 @@ export function handleSnippet(
 
         transforms.push(
             ')',
-            surroundWithIgnoreComments(`: ReturnType<import('svelte').Snippet>`), // shows up nicely preserved on hover, other alternatives don't
+            usTSSyntax
+                ? surroundWithIgnoreComments(`: ReturnType<import('svelte').Snippet>`) // shows up nicely preserved on hover, other alternatives don't
+                : '',
             afterParameters
         );
 

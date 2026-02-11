@@ -57,7 +57,9 @@ export function handleBinding(
     parent: BaseNode,
     element: Element | InlineComponent,
     preserveBind: boolean,
-    isSvelte5Plus: boolean
+    isSvelte5Plus: boolean,
+    emitJsDoc: boolean,
+    isTsFile: boolean
 ): void {
     const isGetSetBinding = attr.expression.type === 'SequenceExpression';
     const [get, set] = isGetSetBinding ? (attr.expression as SequenceExpression).expressions : [];
@@ -93,11 +95,14 @@ export function handleBinding(
 
         // one way binding whose property is not on the element
         if (oneWayBindingAttributesNotOnElement.has(attr.name) && element instanceof Element) {
+            const useTypescriptSyntax = isTsFile || !emitJsDoc;
+            const bindingType = oneWayBindingAttributesNotOnElement.get(attr.name)!;
+            const bindingValue = useTypescriptSyntax
+                ? `null as ${bindingType}`
+                : `/** @type {${bindingType}} */ (null)`;
             element.appendToStartEnd([
                 [attr.expression.start, getEnd(attr.expression)],
-                `= ${surroundWithIgnoreComments(
-                    `null as ${oneWayBindingAttributesNotOnElement.get(attr.name)}`
-                )};`
+                `= ${surroundWithIgnoreComments(bindingValue)};`
             ]);
             return;
         }
