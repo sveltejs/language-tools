@@ -36,15 +36,17 @@ describe('Svelte Plugin', () => {
         const { plugin, document } = setup('<h1>Hello, world!</h1>\n<img src="hello.png">');
 
         const diagnostics = await plugin.getDiagnostics(document);
+        const code = isSvelte5Plus ? 'a11y_missing_attribute' : 'a11y-missing-attribute';
         const diagnostic = Diagnostic.create(
             Range.create(1, 0, 1, 21),
             isSvelte5Plus
                 ? '`<img>` element should have an alt attribute\nhttps://svelte.dev/e/a11y_missing_attribute'
                 : 'A11y: <img> element should have an alt attribute',
             DiagnosticSeverity.Warning,
-            isSvelte5Plus ? 'a11y_missing_attribute' : 'a11y-missing-attribute',
+            code,
             'svelte'
         );
+        diagnostic.codeDescription = { href: `https://svelte.dev/e/${code}` };
 
         assert.deepStrictEqual(diagnostics, [diagnostic]);
     });
@@ -53,15 +55,17 @@ describe('Svelte Plugin', () => {
         const { plugin, document } = setup('<div bind:whatever></div>');
 
         const diagnostics = await plugin.getDiagnostics(document);
+        const code = isSvelte5Plus ? 'bind_invalid_name' : 'binding-undeclared';
         const diagnostic = Diagnostic.create(
             Range.create(0, isSvelte5Plus ? 5 : 10, 0, 18),
             isSvelte5Plus
                 ? '`bind:whatever` is not a valid binding\nhttps://svelte.dev/e/bind_invalid_name'
                 : 'whatever is not declared',
             DiagnosticSeverity.Error,
-            isSvelte5Plus ? 'bind_invalid_name' : 'binding-undeclared',
+            code,
             'svelte'
         );
+        diagnostic.codeDescription = { href: `https://svelte.dev/e/${code}` };
 
         assert.deepStrictEqual(diagnostics, [diagnostic]);
     });
