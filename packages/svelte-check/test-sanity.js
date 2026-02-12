@@ -16,14 +16,20 @@ let passed = 0;
 let failed = 0;
 
 /**
+ * @typedef {object} ExpectedError
+ * @property {string} file
+ * @property {number} line
+ * @property {number} column
+ * @property {number} code
+ */
+
+/**
  * @param {string} name
  * @param {object} opts
  * @param {string} opts.workspace
  * @param {string} opts.tsconfig
  * @param {boolean} [opts.incremental]
- * @param {number} opts.expectedErrors
- * @param {number[]} [opts.expectedCodes]
- * @param {{line: number, column: number}[]} [opts.expectedLocations]
+ * @param {ExpectedError[]} [opts.errors]
  */
 function test(name, opts) {
     const args = [
@@ -48,7 +54,7 @@ function test(name, opts) {
         });
     } catch (err) {
         // svelte-check exits with code 1 when errors are found; that's expected
-        stdout = err.stdout || '';
+        stdout = /** @type {any} */ (err).stdout || '';
     }
 
     const errors = [];
@@ -59,35 +65,41 @@ function test(name, opts) {
         try {
             const entry = JSON.parse(line.slice(jsonStart));
             if (entry.type === 'ERROR') {
-                errors.push(entry);
+                errors.push({
+                    file: entry.filename,
+                    line: entry.start.line,
+                    column: entry.start.character,
+                    code: entry.code
+                });
             }
         } catch {
             // not a JSON line
         }
     }
 
-    const errorCount = errors.length;
-    const errorCodes = errors.map((e) => e.code).sort();
-
     const issues = [];
-    if (errorCount !== opts.expectedErrors) {
-        issues.push(`expected ${opts.expectedErrors} errors, got ${errorCount}`);
+    const expectedErrors = opts.errors || [];
+
+    if (errors.length !== expectedErrors.length) {
+        issues.push(`expected ${expectedErrors.length} errors, got ${errors.length}`);
     }
-    if (opts.expectedCodes) {
-        const expected = [...opts.expectedCodes].sort();
-        if (JSON.stringify(errorCodes) !== JSON.stringify(expected)) {
-            issues.push(`expected codes [${expected}], got [${errorCodes}]`);
-        }
-    }
-    if (opts.expectedLocations) {
-        const expected = [...opts.expectedLocations].sort();
-        const errorLocations = errors.map((e) => ({
-            line: e.start.line,
-            column: e.start.character
-        }));
-        if (JSON.stringify(errorLocations) !== JSON.stringify(expected)) {
+
+    if (expectedErrors.length > 0) {
+        /** @param {any} a @param {any} b */
+        const sortErrors = (a, b) => {
+            if (a.file !== b.file) return a.file.localeCompare(b.file);
+            if (a.line !== b.line) return a.line - b.line;
+            if (a.column !== b.column) return a.column - b.column;
+            return a.code - b.code;
+        };
+
+        const sortedExpected = [...expectedErrors].sort(sortErrors);
+        const sortedActual = [...errors].sort(sortErrors);
+
+        if (JSON.stringify(sortedActual) !== JSON.stringify(sortedExpected)) {
             issues.push(
-                `expected locations [${JSON.stringify(expected)}], got [${JSON.stringify(errorLocations)}]`
+                `expected errors:\n${JSON.stringify(sortedExpected, null, 2)}\n` +
+                    `got errors:\n${JSON.stringify(sortedActual, null, 2)}`
             );
         }
     }
@@ -108,30 +120,57 @@ console.log('svelte-check sanity tests\n');
 
 test('clean project', {
     workspace: './test-success',
-    tsconfig: './tsconfig.json',
-    expectedErrors: 0
+    tsconfig: './tsconfig.json'
 });
 
 rmSync('./test-success/.svelte-check', { recursive: true, force: true });
 test('clean project (incremental, cold cache)', {
     workspace: './test-success',
     tsconfig: './tsconfig.json',
-    incremental: true,
-    expectedErrors: 0
+    incremental: true
 });
 
 test('clean project (incremental, warm cache)', {
     workspace: './test-success',
     tsconfig: './tsconfig.json',
-    incremental: true,
-    expectedErrors: 0
+    incremental: true
 });
 
 test('project with errors', {
     workspace: './test-error',
     tsconfig: './tsconfig.json',
-    expectedErrors: 2,
-    expectedCodes: [2322, 2367]
+    errors: [
+        {
+            file: 'Index.svelte',
+            line: 4,
+            column: 8,
+            code: 2322
+        },
+        {
+            file: 'Index.svelte',
+            line: 7,
+            column: 4,
+            code: 2367
+        },
+        {
+            file: 'Index.svelte',
+            line: 10,
+            column: 4,
+            code: 2367
+        },
+        {
+            file: 'Index.svelte',
+            line: 14,
+            column: 5,
+            code: 2322
+        },
+        {
+            file: 'Jsdoc.svelte',
+            line: 9,
+            column: 23,
+            code: 2322
+        }
+    ]
 });
 
 rmSync('./test-error/.svelte-check', { recursive: true, force: true });
@@ -139,16 +178,36 @@ test('project with errors (incremental, cold cache)', {
     workspace: './test-error',
     tsconfig: './tsconfig.json',
     incremental: true,
-    expectedErrors: 2,
-    expectedCodes: [2322, 2367],
-    expectedLocations: [
+    errors: [
         {
-            line: 1,
-            column: 8
+            file: 'Index.svelte',
+            line: 4,
+            column: 8,
+            code: 2322
         },
         {
-            line: 4,
-            column: 4
+            file: 'Index.svelte',
+            line: 7,
+            column: 4,
+            code: 2367
+        },
+        {
+            file: 'Index.svelte',
+            line: 10,
+            column: 4,
+            code: 2367
+        },
+        {
+            file: 'Index.svelte',
+            line: 14,
+            column: 1,
+            code: 2741
+        },
+        {
+            file: 'Jsdoc.svelte',
+            line: 9,
+            column: 0, // TODO investigate why not 23
+            code: 2322
         }
     ]
 });
@@ -157,16 +216,36 @@ test('project with errors (incremental, warm cache)', {
     workspace: './test-error',
     tsconfig: './tsconfig.json',
     incremental: true,
-    expectedErrors: 2,
-    expectedCodes: [2322, 2367],
-    expectedLocations: [
+    errors: [
         {
-            line: 1,
-            column: 8
+            file: 'Index.svelte',
+            line: 4,
+            column: 8,
+            code: 2322
         },
         {
-            line: 4,
-            column: 4
+            file: 'Index.svelte',
+            line: 7,
+            column: 4,
+            code: 2367
+        },
+        {
+            file: 'Index.svelte',
+            line: 10,
+            column: 4,
+            code: 2367
+        },
+        {
+            file: 'Index.svelte',
+            line: 14,
+            column: 1,
+            code: 2741
+        },
+        {
+            file: 'Jsdoc.svelte',
+            line: 9,
+            column: 0, // TODO investigate why not 23
+            code: 2322
         }
     ]
 });

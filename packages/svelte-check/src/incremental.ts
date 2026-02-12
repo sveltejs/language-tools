@@ -150,45 +150,49 @@ export async function emitSvelteFiles(
 
         fs.mkdirSync(path.dirname(outPath), { recursive: true });
 
-        const tsx = svelte2tsx(text, {
-            parse,
-            version: svelteVersion,
-            filename: sourcePath,
-            isTsFile,
-            mode: 'ts',
-            emitOnTemplateError: false,
-            emitJsDoc: true // without this, tsc/tsgo will choke on the syntactic errors and not emit semantic errors
-        });
+        try {
+            const tsx = svelte2tsx(text, {
+                parse,
+                version: svelteVersion,
+                filename: sourcePath,
+                isTsFile,
+                mode: 'ts',
+                emitOnTemplateError: false,
+                emitJsDoc: true // without this, tsc/tsgo will choke on the syntactic errors and not emit semantic errors
+            });
 
-        const map = tsx.map as any;
-        if (map) {
-            map.sources = [sourcePath];
-            map.file = path.basename(outPath);
+            const map = tsx.map as any;
+            if (map) {
+                map.sources = [sourcePath];
+                map.file = path.basename(outPath);
+            }
+
+            const mapFileName = path.basename(mapPath);
+            const code = map ? `${tsx.code}\n//# sourceMappingURL=${mapFileName}\n` : tsx.code;
+
+            fs.writeFileSync(outPath, code, 'utf-8');
+            if (map) {
+                fs.writeFileSync(mapPath, JSON.stringify(map), 'utf-8');
+            } else if (fs.existsSync(mapPath)) {
+                fs.unlinkSync(mapPath);
+            }
+
+            const dtsImportPath = `./${path.basename(outPath)}`;
+            const dtsContent = `export { default } from "${dtsImportPath}";\nexport * from "${dtsImportPath}";\n`;
+            fs.writeFileSync(dtsPath, dtsContent, 'utf-8');
+
+            manifest.entries[sourcePath] = {
+                sourcePath,
+                outPath,
+                mapPath,
+                dtsPath,
+                mtimeMs: stats.mtimeMs,
+                size: stats.size,
+                isTsFile
+            };
+        } catch (e) {
+            // rely on the Svelte compiler to emit errors (when running the Svelte diagnostics)
         }
-
-        const mapFileName = path.basename(mapPath);
-        const code = map ? `${tsx.code}\n//# sourceMappingURL=${mapFileName}\n` : tsx.code;
-
-        fs.writeFileSync(outPath, code, 'utf-8');
-        if (map) {
-            fs.writeFileSync(mapPath, JSON.stringify(map), 'utf-8');
-        } else if (fs.existsSync(mapPath)) {
-            fs.unlinkSync(mapPath);
-        }
-
-        const dtsImportPath = `./${path.basename(outPath)}`;
-        const dtsContent = `export { default } from "${dtsImportPath}";\nexport * from "${dtsImportPath}";\n`;
-        fs.writeFileSync(dtsPath, dtsContent, 'utf-8');
-
-        manifest.entries[sourcePath] = {
-            sourcePath,
-            outPath,
-            mapPath,
-            dtsPath,
-            mtimeMs: stats.mtimeMs,
-            size: stats.size,
-            isTsFile
-        };
     }
 
     writeManifest(manifestPath, manifest, workspacePath);
@@ -242,8 +246,8 @@ export function writeOverlayTsconfig(
         ts.sys,
         path.dirname(tsconfigPath)
     );
-    const baseRootDirs =
-        parsed.options.rootDirs ?? configFile.config?.compilerOptions?.rootDirs ?? [];
+    const baseRootDirs = parsed.options.rootDirs ??
+        configFile.config?.compilerOptions?.rootDirs ?? ['.'];
     const baseRootDirsAbs = baseRootDirs.map((dir: string) =>
         path.resolve(path.join(path.dirname(tsconfigPath)), dir)
     );

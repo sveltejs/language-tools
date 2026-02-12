@@ -179,11 +179,14 @@ ${templateComment}class __sveltets_Render {
                 `export default ${className || '$$Component'};`;
         } else {
             const componentName = className || '$$Component';
-            const componentType = `import('svelte').SvelteComponent<${returnType('props')}, ${returnType('events')}, ${returnType('slots')}> & { $$bindings?: ${returnType('bindings')} } & ${returnType('exports')}`;
+            const componentType =
+                `(new ${genericsDef}(options: import('svelte').ComponentConstructorOptions<${returnType('props') + (usesSlots ? '& {children?: any}' : '')}>) => import('svelte').SvelteComponent<${returnType('props')}, ${returnType('events')}, ${returnType('slots')}> & { $$bindings?: ${returnType('bindings')} } & ${returnType('exports')}) & ` +
+                `(${genericsDef}(internal: unknown, props: ${propsType}) => ${returnType('exports')}) & ` +
+                `{z_$$bindings?: ${bindingsType}}`;
             statement +=
                 `\n${templateComment}` +
                 `/** @typedef {${componentType}} $$IsomorphicComponent */\n` +
-                `${doc}/** @type {$$IsomorphicComponent} */ export const ${componentName} = null;\n` +
+                `${doc}/** @type {$$IsomorphicComponent} */ export const ${componentName} = /** @type {any} */(null);\n` +
                 `/** @typedef {InstanceType<typeof ${componentName}>} ${componentName} */\n` +
                 `export default ${componentName};`;
         }
