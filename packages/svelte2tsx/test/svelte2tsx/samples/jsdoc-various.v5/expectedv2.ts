@@ -30,7 +30,7 @@ class __sveltets_Render {
 }
 
 /** @template T */
-/** @typedef {import('svelte').SvelteComponent<ReturnType<__sveltets_Render<T>['props']>, ReturnType<__sveltets_Render<T>['events']>, ReturnType<__sveltets_Render<T>['slots']>> & { $$bindings?: ReturnType<__sveltets_Render<T>['bindings']> } & ReturnType<__sveltets_Render<T>['exports']>} $$IsomorphicComponent */
-/** @type {$$IsomorphicComponent} */ export const Input__SvelteComponent_ = null;
+/** @typedef {(new <T>(options: import('svelte').ComponentConstructorOptions<ReturnType<__sveltets_Render<T>['props']>& {children?: any}>) => import('svelte').SvelteComponent<ReturnType<__sveltets_Render<T>['props']>, ReturnType<__sveltets_Render<T>['events']>, ReturnType<__sveltets_Render<T>['slots']>> & { $$bindings?: ReturnType<__sveltets_Render<T>['bindings']> } & ReturnType<__sveltets_Render<T>['exports']>) & (<T>(internal: unknown, props: ReturnType<__sveltets_Render<T>['props']> & {$$slots?: ReturnType<__sveltets_Render<T>['slots']>, children?: any}) => ReturnType<__sveltets_Render<T>['exports']>) & {z_$$bindings?: ReturnType<__sveltets_Render<any>['bindings']>}} $$IsomorphicComponent */
+/** @type {$$IsomorphicComponent} */ export const Input__SvelteComponent_ = /** @type {any} */(null);
 /** @typedef {InstanceType<typeof Input__SvelteComponent_>} Input__SvelteComponent_ */
 export default Input__SvelteComponent_;

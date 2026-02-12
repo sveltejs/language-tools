@@ -202,16 +202,31 @@ ${templateComment}class __sveltets_Render {
             (usesAccessors ? exportedNames.createClassAccessors() : '') +
             '\n}';
     } else {
-        statement +=
-            `\n\nimport { ${svelteComponentClass} as __SvelteComponentTyped__ } from "svelte" \n` +
-            `${doc}export default class${
-                className ? ` ${className}` : ''
-            }${genericsDef} extends __SvelteComponentTyped__<${returnType('props')}, ${returnType(
-                'events'
-            )}, ${returnType('slots')}> {` +
-            exportedNames.createClassGetters(genericsRef) +
-            (usesAccessors ? exportedNames.createClassAccessors() : '') +
-            '\n}';
+        if (useTSSyntax) {
+            statement +=
+                `\n\nimport { ${svelteComponentClass} as __SvelteComponentTyped__ } from "svelte" \n` +
+                `${doc}export default class${
+                    className ? ` ${className}` : ''
+                }${genericsDef} extends __SvelteComponentTyped__<${returnType('props')}, ${returnType(
+                    'events'
+                )}, ${returnType('slots')}> {` +
+                exportedNames.createClassGetters(genericsRef) +
+                (usesAccessors ? exportedNames.createClassAccessors() : '') +
+                '\n}';
+        } else {
+            statement +=
+                `\n\nimport { ${svelteComponentClass} as __SvelteComponentTyped__ } from "svelte" \n` +
+                `/**` +
+                templateNames.map((t) => ` * @template ${t}\n`).join('') +
+                ` * @extends {__SvelteComponentTyped__<${returnType('props')}, ${returnType('events')}, ${returnType('slots')}>}\n` +
+                ` */\n` +
+                `export default class${
+                    className ? ` ${className}` : ''
+                } extends __SvelteComponentTyped__ {` +
+                exportedNames.createClassGetters(genericsRef) +
+                (usesAccessors ? exportedNames.createClassAccessors() : '') +
+                '\n}';
+        }
     }
 
     str.append(statement);
