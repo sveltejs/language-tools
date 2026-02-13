@@ -65,9 +65,10 @@ export function createRenderFunction({
     }
 
     const slotTypeReference = uses$$SlotsInterface ? '<$$Slots>' : '';
-    const slotDeclaration = useTypescriptSyntax
-        ? `;const __sveltets_createSlot = __sveltets_2_createCreateSlot${slotTypeReference}();`
-        : `/** @type {ReturnType<typeof __sveltets_2_createCreateSlot${slotTypeReference}>} */ const __sveltets_createSlot = __sveltets_2_createCreateSlot();`;
+    const slotDeclaration =
+        useTypescriptSyntax || !slotTypeReference
+            ? `;const __sveltets_createSlot = __sveltets_2_createCreateSlot${slotTypeReference}();`
+            : `/** @type {ReturnType<typeof __sveltets_2_createCreateSlot${slotTypeReference}>} */ const __sveltets_createSlot = __sveltets_2_createCreateSlot();`;
     const slotsDeclaration =
         slots.size > 0 && mode !== 'dts' ? '\n' + surroundWithIgnoreComments(slotDeclaration) : '';
 
