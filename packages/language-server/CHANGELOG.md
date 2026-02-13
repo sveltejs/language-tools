@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.17.26
+
+### Patch Changes
+
+-   feat: add links to diagnostic error codes via codeDescription ([#2936](https://github.com/sveltejs/language-tools/pull/2936))
+
+-   chore: provide utils for svelte-check ([#2932](https://github.com/sveltejs/language-tools/pull/2932))
+
+-   Updated dependencies [[`0b8af82`](https://github.com/sveltejs/language-tools/commit/0b8af829a3ceadd0cd08754a9edcb6cc353cb20f)]:
+    -   svelte2tsx@0.7.48
+
 ## 0.17.25
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.48
+
+### Patch Changes
+
+-   chore: add option to output pure jsdoc-based JS files ([#2932](https://github.com/sveltejs/language-tools/pull/2932))
+
 ## 0.7.47
 
 ### Patch Changes
