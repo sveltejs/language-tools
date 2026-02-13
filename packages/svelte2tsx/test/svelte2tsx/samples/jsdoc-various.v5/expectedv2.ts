@@ -9,7 +9,7 @@ function $$render() {
   let { b } = $props();
   let rect;
 
-/*Ωignore_startΩ*//** @type {ReturnType<typeof __sveltets_2_createCreateSlot>} */ const __sveltets_createSlot = __sveltets_2_createCreateSlot();/*Ωignore_endΩ*/;
+/*Ωignore_startΩ*/;const __sveltets_createSlot = __sveltets_2_createCreateSlot();/*Ωignore_endΩ*/;
 async () => {
 
 
