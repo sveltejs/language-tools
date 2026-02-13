@@ -708,13 +708,13 @@ function loadManifest(manifestPath: string, workspacePath: string): Manifest {
         // Resolve relative paths to absolute
         const resolvedEntries: Record<string, ManifestEntry> = {};
         for (const [relKey, entry] of Object.entries(data.entries)) {
-            const absKey = path.resolve(workspacePath, relKey);
+            const absKey = toPosixPath(path.resolve(workspacePath, relKey));
             resolvedEntries[absKey] = {
                 ...entry,
-                sourcePath: path.resolve(workspacePath, entry.sourcePath),
-                outPath: path.resolve(workspacePath, entry.outPath),
-                mapPath: path.resolve(workspacePath, entry.mapPath),
-                dtsPath: path.resolve(workspacePath, entry.dtsPath)
+                sourcePath: toPosixPath(path.resolve(workspacePath, entry.sourcePath)),
+                outPath: toPosixPath(path.resolve(workspacePath, entry.outPath)),
+                mapPath: toPosixPath(path.resolve(workspacePath, entry.mapPath)),
+                dtsPath: toPosixPath(path.resolve(workspacePath, entry.dtsPath))
             };
         }
         return { version: data.version, entries: resolvedEntries };
