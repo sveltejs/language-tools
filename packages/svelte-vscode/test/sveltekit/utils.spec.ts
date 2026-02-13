@@ -113,7 +113,7 @@ describe('checkProjectKind', () => {
         it(name, async () => {
             setupMocks(config);
 
-            const utils = await import('../../src/sveltekit/utils');
+            const utils = await import('../../src/sveltekit/utils.js');
             const result = await utils.checkProjectKind('/test/path');
 
             expect(result[ex]).toBe(toBe);

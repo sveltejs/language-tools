@@ -15,7 +15,7 @@
         "changeset:publish": "changeset publish"
     },
     "dependencies": {
-        "typescript": "^5.9.2"
+        "typescript": "^6.0.0-beta"
     },
     "devDependencies": {
         "@changesets/cli": "^2.29.7",
