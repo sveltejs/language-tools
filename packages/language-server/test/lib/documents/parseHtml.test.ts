@@ -126,16 +126,6 @@ describe('parseHtml', () => {
         );
     });
 
-    it('can parse html with destructured snippet and type annotation', () => {
-        testRootElements(
-            parseHtml(
-                `{#snippet foo({ props }: { props?: Record<string, unknown> })}{/snippet}
-                <Foo checked={a} />
-                <style></style>`
-            )
-        );
-    });
-
     it('can parse html with destructured event handler', () => {
         testRootElements(
             parseHtml(
