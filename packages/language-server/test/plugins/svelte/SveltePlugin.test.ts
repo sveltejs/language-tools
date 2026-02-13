@@ -45,6 +45,9 @@ describe('Svelte Plugin', () => {
             isSvelte5Plus ? 'a11y_missing_attribute' : 'a11y-missing-attribute',
             'svelte'
         );
+        diagnostic.codeDescription = {
+            href: 'https://svelte.dev/docs/svelte/compiler-warnings#a11y_missing_attribute'
+        };
 
         assert.deepStrictEqual(diagnostics, [diagnostic]);
     });
@@ -62,6 +65,13 @@ describe('Svelte Plugin', () => {
             isSvelte5Plus ? 'bind_invalid_name' : 'binding-undeclared',
             'svelte'
         );
+
+        diagnostic.codeDescription = {
+            href: isSvelte5Plus
+                ? 'https://svelte.dev/docs/svelte/compiler-errors#bind_invalid_name'
+                : // doesn't actually exist but at least points to the page
+                  'https://svelte.dev/docs/svelte/compiler-errors#binding_undeclared'
+        };
 
         assert.deepStrictEqual(diagnostics, [diagnostic]);
     });
