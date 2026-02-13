@@ -94,6 +94,7 @@ class DiagnosticsWatcher {
                 if (
                     path.includes('node_modules') ||
                     path.includes('.git') ||
+                    stats?.isSocket() ||
                     (stats?.isFile() &&
                         (!FILE_ENDING_REGEX.test(path) || VITE_CONFIG_REGEX.test(path)))
                 ) {
