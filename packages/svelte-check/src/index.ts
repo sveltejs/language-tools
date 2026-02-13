@@ -431,12 +431,12 @@ async function getSvelteDiagnosticsForIncremental(
     };
 }
 
-async function runIncrementalOnce(
+async function runWithVirtualFiles(
     opts: SvelteCheckCliOptions,
     writer: Writer
 ): Promise<Result | null> {
     if (!opts.tsconfig) {
-        throw new Error('`--incremental` requires a tsconfig/jsconfig file');
+        throw new Error('`--incremental` / `--tsgo` requires a tsconfig/jsconfig file');
     }
 
     const emitResult = await emitSvelteFiles(
@@ -460,10 +460,12 @@ async function runIncrementalOnce(
         compilerWarningsByFile,
         cssDiagnosticsByFile
     } = await getSvelteDiagnosticsForIncremental(opts, emitResult);
-    updateDiagnosticsCache(emitResult, {
-        compilerWarningsByFile,
-        cssDiagnosticsByFile
-    });
+    if (opts.incremental) {
+        updateDiagnosticsCache(emitResult, {
+            compilerWarningsByFile,
+            cssDiagnosticsByFile
+        });
+    }
     const diagnosticsByFile = new Map<
         string,
         { filePath: string; text: string; diagnostics: Diagnostic[] }
@@ -490,7 +492,7 @@ async function runIncrementalOnce(
     return writeDiagnostics(opts.workspaceUri, writer, Array.from(diagnosticsByFile.values()));
 }
 
-async function watchIncremental(opts: SvelteCheckCliOptions, writer: Writer) {
+async function watchWithVirtualFiles(opts: SvelteCheckCliOptions, writer: Writer) {
     let pending: NodeJS.Timeout | undefined;
     let running = false;
     let rerun = false;
@@ -503,7 +505,7 @@ async function watchIncremental(opts: SvelteCheckCliOptions, writer: Writer) {
         }
         running = true;
         try {
-            await runIncrementalOnce(opts, writer);
+            await runWithVirtualFiles(opts, writer);
         } catch (err: any) {
             writer.failure(err);
         } finally {
@@ -564,10 +566,11 @@ parseOptions(async (opts) => {
             watch: opts.watch
         };
 
-        if (opts.incremental && opts.watch) {
-            await watchIncremental(opts, writer);
-        } else if (opts.incremental) {
-            const result = await runIncrementalOnce(opts, writer);
+        const useVirtualFiles = opts.incremental || opts.tsgo;
+        if (useVirtualFiles && opts.watch) {
+            await watchWithVirtualFiles(opts, writer);
+        } else if (useVirtualFiles) {
+            const result = await runWithVirtualFiles(opts, writer);
             if (
                 result &&
                 result.errorCount === 0 &&

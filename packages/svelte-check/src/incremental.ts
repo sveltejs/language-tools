@@ -92,16 +92,20 @@ export async function emitSvelteFiles(
     const manifestPath = path.join(cacheDir, 'manifest.json');
     fs.mkdirSync(emitDir, { recursive: true });
 
-    const manifest = loadManifest(manifestPath, workspacePath);
+    const manifest = incremental
+        ? loadManifest(manifestPath, workspacePath)
+        : { version: MANIFEST_VERSION, entries: {} as Record<string, ManifestEntry> };
     const svelteFiles = await findSvelteFiles(workspacePath, filePathsToIgnore);
     const currentSet = new Set(svelteFiles);
     const changedFiles: string[] = [];
 
-    // Remove deleted files
-    for (const [sourcePath, entry] of Object.entries(manifest.entries)) {
-        if (!currentSet.has(sourcePath)) {
-            deleteEntry(entry);
-            delete manifest.entries[sourcePath];
+    // Remove deleted files (only relevant for incremental builds with a persisted manifest)
+    if (incremental) {
+        for (const [sourcePath, entry] of Object.entries(manifest.entries)) {
+            if (!currentSet.has(sourcePath)) {
+                deleteEntry(entry);
+                delete manifest.entries[sourcePath];
+            }
         }
     }
 
@@ -195,7 +199,9 @@ export async function emitSvelteFiles(
         }
     }
 
-    writeManifest(manifestPath, manifest, workspacePath);
+    if (incremental) {
+        writeManifest(manifestPath, manifest, workspacePath);
+    }
 
     return {
         cacheDir,
