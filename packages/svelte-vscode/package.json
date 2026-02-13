@@ -4,13 +4,15 @@
     "private": true,
     "description": "Svelte language support for VS Code",
     "main": "dist/src/extension.js",
+    "browser": "dist/src/extension.browser.js",
     "scripts": {
         "build:grammar": "npx js-yaml syntaxes/svelte.tmLanguage.src.yaml > syntaxes/svelte.tmLanguage.json && npx js-yaml syntaxes/postcss.src.yaml > syntaxes/postcss.json",
         "build:ts": "tsc -p ./",
         "build": "npm run build:ts && npm run build:grammar",
         "vscode:prepublish": "npm install && npm run build && npm prune --production",
         "watch": "npm run build:grammar && tsc -w -p ./",
-        "test": "npm run build:grammar && node test/grammar/test.js && vitest --run"
+        "test": "npm run build:grammar && node test/grammar/test.js && vitest --run",
+        "run-in-browser": "vscode-test-web --browserType=chromium --extensionDevelopmentPath=."
     },
     "repository": {
         "type": "git",
@@ -55,6 +57,10 @@
                 "svelte.language-server.runtime-args"
             ],
             "description": "The extension requires workspace trust because it executes code specified by the workspace. Loading the user's node_modules and loading svelte config files is disabled when untrusted"
+        },
+        "virtualWorkspaces": {
+            "supported": "limited",
+            "description": "In web, only syntax highlighting, snippets, and language configuration are available."
         }
     },
     "contributes": {
@@ -552,7 +558,8 @@
         "commands": [
             {
                 "command": "svelte.restartLanguageServer",
-                "title": "Svelte: Restart Language Server"
+                "title": "Svelte: Restart Language Server",
+                "when": "!isWeb"
             },
             {
                 "command": "svelte.showCompiledCodeToSide",
@@ -560,59 +567,73 @@
                 "icon": {
                     "light": "icons/preview-right-light.svg",
                     "dark": "icons/preview-right-dark.svg"
-                }
+                },
+                "when": "!isWeb"
             },
             {
                 "command": "svelte.extractComponent",
-                "title": "Svelte: Extract Component"
+                "title": "Svelte: Extract Component",
+                "when": "!isWeb"
             },
             {
                 "command": "svelte.migrate_to_svelte_5",
-                "title": "Svelte: Migrate Component to Svelte 5 Syntax"
+                "title": "Svelte: Migrate Component to Svelte 5 Syntax",
+                "when": "!isWeb"
             },
             {
                 "command": "svelte.typescript.findAllFileReferences",
-                "title": "Svelte: Find File References"
+                "title": "Svelte: Find File References",
+                "when": "!isWeb"
             },
             {
                 "command": "svelte.typescript.findComponentReferences",
-                "title": "Svelte: Find Component References"
+                "title": "Svelte: Find Component References",
+                "when": "!isWeb"
             },
             {
                 "command": "svelte.kit.generateMultipleFiles",
-                "title": "SvelteKit: Create route"
+                "title": "SvelteKit: Create route",
+                "when": "!isWeb"
             },
             {
                 "command": "svelte.kit.generatePage",
-                "title": "SvelteKit: Create +page.svelte"
+                "title": "SvelteKit: Create +page.svelte",
+                "when": "!isWeb"
             },
             {
                 "command": "svelte.kit.generatePageLoad",
-                "title": "SvelteKit: Create +page.js/ts"
+                "title": "SvelteKit: Create +page.js/ts",
+                "when": "!isWeb"
             },
             {
                 "command": "svelte.kit.generatePageServerLoad",
-                "title": "SvelteKit: Create +page.server.js/ts"
+                "title": "SvelteKit: Create +page.server.js/ts",
+                "when": "!isWeb"
             },
             {
                 "command": "svelte.kit.generateLayout",
-                "title": "SvelteKit: Create +layout.svelte"
+                "title": "SvelteKit: Create +layout.svelte",
+                "when": "!isWeb"
             },
             {
                 "command": "svelte.kit.generateLayoutLoad",
-                "title": "SvelteKit: Create +layout.js/ts"
+                "title": "SvelteKit: Create +layout.js/ts",
+                "when": "!isWeb"
             },
             {
                 "command": "svelte.kit.generateLayoutServerLoad",
-                "title": "SvelteKit: Create +layout.server.js/ts"
+                "title": "SvelteKit: Create +layout.server.js/ts",
+                "when": "!isWeb"
             },
             {
                 "command": "svelte.kit.generateServer",
-                "title": "SvelteKit: Create +server.js/ts"
+                "title": "SvelteKit: Create +server.js/ts",
+                "when": "!isWeb"
             },
             {
                 "command": "svelte.kit.generateError",
-                "title": "SvelteKit: Create +error.svelte"
+                "title": "SvelteKit: Create +error.svelte",
+                "when": "!isWeb"
             }
         ],
         "menus": {
@@ -751,6 +772,7 @@
         "@types/node": "^18.0.0",
         "@types/semver": "^7.7.0",
         "@types/vscode": "^1.67",
+        "@vscode/test-web": "^0.0.78",
         "js-yaml": "^3.14.0",
         "semver": "^7.7.2",
         "tslib": "^2.4.0",
