@@ -1,5 +1,17 @@
 # Changelog
 
+## 4.4.0
+
+### Minor Changes
+
+-   feat: provide `--incremental` and `--tsgo` flags ([#2932](https://github.com/sveltejs/language-tools/pull/2932))
+
+### Patch Changes
+
+-   fix: ignore Unix domain sockets in file watcher to prevent crashes ([#2931](https://github.com/sveltejs/language-tools/pull/2931))
+
+-   fix: properly use machine output by default for Claude Code ([`e9f58d2`](https://github.com/sveltejs/language-tools/commit/e9f58d2379adf8dc4ea47b2fb3fad2797dd66f04))
+
 ## 4.3.6
 
 ### Patch Changes
