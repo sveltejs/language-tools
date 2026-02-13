@@ -27,6 +27,10 @@ export interface AddComponentExportPara {
     isSvelte5: boolean;
     hasTopLevelAwait: boolean;
     noSvelteComponentTyped?: boolean;
+    /**
+     * If true, emits JSDoc annotations for types in JS files instead of TypeScript syntax.
+     */
+    emitJsDoc?: boolean;
 }
 
 /**
@@ -52,14 +56,29 @@ function addGenericsComponentExport({
     mode,
     usesAccessors,
     str,
+    isTsFile,
     generics,
     usesSlots,
     isSvelte5,
     noSvelteComponentTyped,
-    hasTopLevelAwait
+    hasTopLevelAwait,
+    emitJsDoc
 }: AddComponentExportPara) {
     const genericsDef = generics.toDefinitionString();
     const genericsRef = generics.toReferencesString();
+    const useTSSyntax = isTsFile || !emitJsDoc;
+    const templateNames =
+        !useTSSyntax && genericsDef
+            ? genericsDef
+                  .slice(1, -1)
+                  .split(',')
+                  .map((part) => part.trim())
+                  .map((part) => part.split(/\s|=/)[0])
+                  .filter(Boolean)
+            : [];
+    const templateComment = templateNames.length
+        ? `/** @template ${templateNames.join(', ')} */\n`
+        : '';
 
     const doc = componentDocumentation.getFormatted();
     const className = fileName && classNameFromFilename(fileName, mode !== 'dts');
@@ -69,13 +88,13 @@ function addGenericsComponentExport({
     }
 
     const renderCall = hasTopLevelAwait
-        ? `(await ${internalHelpers.renderName}${genericsRef}())`
-        : `${internalHelpers.renderName}${genericsRef}()`;
+        ? `(await ${internalHelpers.renderName}${useTSSyntax ? genericsRef : ''}())`
+        : `${internalHelpers.renderName}${useTSSyntax ? genericsRef : ''}()`;
 
     // TODO once Svelte 4 compatibility is dropped, we can simplify this, because since TS 4.7 it is possible to use generics
     // like this: `typeof render<T>` - which wasn't possibly before, hence the class + methods workaround.
     let statement = `
-class __sveltets_Render${genericsDef} {
+${templateComment}class __sveltets_Render${useTSSyntax ? genericsDef : ''} {
     props() {
         return ${props(true, canHaveAnyProp, exportedNames, renderCall)}.props;
     }
@@ -92,12 +111,24 @@ class __sveltets_Render${genericsDef} {
         const renderType = hasTopLevelAwait
             ? `Awaited<ReturnType<typeof ${internalHelpers.renderName}${genericsRef}>>`
             : `ReturnType<typeof ${internalHelpers.renderName}${genericsRef}>`;
-        statement = `
+        if (useTSSyntax) {
+            statement = `
 class __sveltets_Render${genericsDef} {
     props(): ${renderType}['props'] { return null as any; }
     events(): ${renderType}['events'] { return null as any; }
     slots(): ${renderType}['slots'] { return null as any; }
 `;
+        } else {
+            statement = `
+${templateComment}class __sveltets_Render {
+    /** @returns {${renderType}['props']} */
+    props() { return /** @type {any} */ (null); }
+    /** @returns {${renderType}['events']} */
+    events() { return /** @type {any} */ (null); }
+    /** @returns {${renderType}['slots']} */
+    slots() { return /** @type {any} */ (null); }
+`;
+        }
     }
 
     statement += isSvelte5
@@ -134,17 +165,31 @@ class __sveltets_Render${genericsDef} {
         // - Constraints: Need to support Svelte 4 class component types, therefore we need to use __sveltets_2_ensureComponent to transform function components to classes
         // - Limitations: TypeScript is not able to preserve generics during said transformation (i.e. there's no way to express keeping the generic etc)
         // TODO Svelte 6/7: Switch this around and not use new Component in svelte2tsx anymore, which means we can remove the legacy class component. We need something like _ensureFnComponent then.
-        statement +=
-            `\ninterface $$IsomorphicComponent {\n` +
-            `    new ${genericsDef}(options: import('svelte').ComponentConstructorOptions<${returnType('props') + (usesSlots ? '& {children?: any}' : '')}>): import('svelte').SvelteComponent<${returnType('props')}, ${returnType('events')}, ${returnType('slots')}> & { $$bindings?: ${returnType('bindings')} } & ${returnType('exports')};\n` +
-            `    ${genericsDef}(internal: unknown, props: ${propsType}): ${returnType('exports')};\n` +
-            `    z_$$bindings?: ${bindingsType};\n` +
-            `}\n` +
-            `${doc}const ${className || '$$Component'}: $$IsomorphicComponent = null as any;\n` +
-            surroundWithIgnoreComments(
-                `type ${className || '$$Component'}${genericsDef} = InstanceType<typeof ${className || '$$Component'}${genericsRef}>;\n`
-            ) +
-            `export default ${className || '$$Component'};`;
+        if (useTSSyntax) {
+            statement +=
+                `\ninterface $$IsomorphicComponent {\n` +
+                `    new ${genericsDef}(options: import('svelte').ComponentConstructorOptions<${returnType('props') + (usesSlots ? '& {children?: any}' : '')}>): import('svelte').SvelteComponent<${returnType('props')}, ${returnType('events')}, ${returnType('slots')}> & { $$bindings?: ${returnType('bindings')} } & ${returnType('exports')};\n` +
+                `    ${genericsDef}(internal: unknown, props: ${propsType}): ${returnType('exports')};\n` +
+                `    z_$$bindings?: ${bindingsType};\n` +
+                `}\n` +
+                `${doc}const ${className || '$$Component'}: $$IsomorphicComponent = null as any;\n` +
+                surroundWithIgnoreComments(
+                    `type ${className || '$$Component'}${genericsDef} = InstanceType<typeof ${className || '$$Component'}${genericsRef}>;\n`
+                ) +
+                `export default ${className || '$$Component'};`;
+        } else {
+            const componentName = className || '$$Component';
+            const componentType =
+                `(new ${genericsDef}(options: import('svelte').ComponentConstructorOptions<${returnType('props') + (usesSlots ? '& {children?: any}' : '')}>) => import('svelte').SvelteComponent<${returnType('props')}, ${returnType('events')}, ${returnType('slots')}> & { $$bindings?: ${returnType('bindings')} } & ${returnType('exports')}) & ` +
+                `(${genericsDef}(internal: unknown, props: ${propsType}) => ${returnType('exports')}) & ` +
+                `{z_$$bindings?: ${bindingsType}}`;
+            statement +=
+                `\n${templateComment}` +
+                `/** @typedef {${componentType}} $$IsomorphicComponent */\n` +
+                `${doc}/** @type {$$IsomorphicComponent} */ export const ${componentName} = /** @type {any} */(null);\n` +
+                `/** @typedef {InstanceType<typeof ${componentName}>} ${componentName} */\n` +
+                `export default ${componentName};`;
+        }
     } else if (mode === 'dts') {
         statement +=
             `export type ${PropsName}${genericsDef} = ${returnType('props')};\n` +
@@ -157,16 +202,31 @@ class __sveltets_Render${genericsDef} {
             (usesAccessors ? exportedNames.createClassAccessors() : '') +
             '\n}';
     } else {
-        statement +=
-            `\n\nimport { ${svelteComponentClass} as __SvelteComponentTyped__ } from "svelte" \n` +
-            `${doc}export default class${
-                className ? ` ${className}` : ''
-            }${genericsDef} extends __SvelteComponentTyped__<${returnType('props')}, ${returnType(
-                'events'
-            )}, ${returnType('slots')}> {` +
-            exportedNames.createClassGetters(genericsRef) +
-            (usesAccessors ? exportedNames.createClassAccessors() : '') +
-            '\n}';
+        if (useTSSyntax) {
+            statement +=
+                `\n\nimport { ${svelteComponentClass} as __SvelteComponentTyped__ } from "svelte" \n` +
+                `${doc}export default class${
+                    className ? ` ${className}` : ''
+                }${genericsDef} extends __SvelteComponentTyped__<${returnType('props')}, ${returnType(
+                    'events'
+                )}, ${returnType('slots')}> {` +
+                exportedNames.createClassGetters(genericsRef) +
+                (usesAccessors ? exportedNames.createClassAccessors() : '') +
+                '\n}';
+        } else {
+            statement +=
+                `\n\nimport { ${svelteComponentClass} as __SvelteComponentTyped__ } from "svelte" \n` +
+                `/**` +
+                templateNames.map((t) => ` * @template ${t}\n`).join('') +
+                ` * @extends {__SvelteComponentTyped__<${returnType('props')}, ${returnType('events')}, ${returnType('slots')}>}\n` +
+                ` */\n` +
+                `export default class${
+                    className ? ` ${className}` : ''
+                } extends __SvelteComponentTyped__ {` +
+                exportedNames.createClassGetters(genericsRef) +
+                (usesAccessors ? exportedNames.createClassAccessors() : '') +
+                '\n}';
+        }
     }
 
     str.append(statement);
@@ -185,7 +245,8 @@ function addSimpleComponentExport({
     usesSlots,
     noSvelteComponentTyped,
     isSvelte5,
-    hasTopLevelAwait
+    hasTopLevelAwait,
+    emitJsDoc
 }: AddComponentExportPara) {
     const renderCall = hasTopLevelAwait
         ? `$${internalHelpers.renderName}`
@@ -276,20 +337,27 @@ declare function $$__sveltets_2_isomorphic_component<
         }
     } else {
         if (isSvelte5) {
+            // When emitting JSDoc (JS files in incremental mode), we use @typedef instead of
+            // TS type syntax, and must export the const so declaration-merging with @typedef works.
+            const useTypeScriptSyntax = isTsFile || !emitJsDoc;
             if (exportedNames.isRunesMode() && !usesSlots && !events.hasEvents()) {
                 statement =
-                    `\n${awaitDeclaration}${doc}const ${componentName} = __sveltets_2_fn_component(${renderCall});\n` +
+                    `\n${awaitDeclaration}${doc}${useTypeScriptSyntax ? '' : 'export '}const ${componentName} = __sveltets_2_fn_component(${renderCall});\n` +
                     // Surround the type with ignore comments so it is filtered out from go-to-definition etc,
                     // which for some editors can cause duplicates
                     surroundWithIgnoreComments(
-                        `type ${componentName} = ReturnType<typeof ${componentName}>;\n`
+                        useTypeScriptSyntax
+                            ? `type ${componentName} = ReturnType<typeof ${componentName}>;\n`
+                            : `/** @typedef {ReturnType<typeof ${componentName}>} ${componentName} */\n`
                     ) +
                     `export default ${componentName};`;
             } else {
                 statement =
-                    `\n${awaitDeclaration}${doc}const ${componentName} = __sveltets_2_isomorphic_component${usesSlots ? '_slots' : ''}(${propDef});\n` +
+                    `\n${awaitDeclaration}${doc}${useTypeScriptSyntax ? '' : 'export '}const ${componentName} = __sveltets_2_isomorphic_component${usesSlots ? '_slots' : ''}(${propDef});\n` +
                     surroundWithIgnoreComments(
-                        `type ${componentName} = InstanceType<typeof ${componentName}>;\n`
+                        useTypeScriptSyntax
+                            ? `type ${componentName} = InstanceType<typeof ${componentName}>;\n`
+                            : `/** @typedef {InstanceType<typeof ${componentName}>} ${componentName} */\n`
                     ) +
                     `export default ${componentName};`;
             }

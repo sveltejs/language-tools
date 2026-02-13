@@ -79,10 +79,14 @@ export function convertHtmlxToJsx(
         mode?: 'ts' | 'dts';
         typingsNamespace?: string;
         svelte5Plus: boolean;
+        emitJsDoc?: boolean;
+        isTsFile?: boolean;
     } = { svelte5Plus: false }
 ): TemplateProcessResult {
     options.typingsNamespace = options.typingsNamespace || 'svelteHTML';
     const preserveAttributeCase = options.namespace === 'foreign';
+    const emitJsDoc = options.emitJsDoc ?? false;
+    const isTsFile = options.isTsFile ?? false;
 
     const rootSnippets: Array<[number, number, Map<string, any>, string]> = [];
     let element: Element | InlineComponent | undefined;
@@ -246,7 +250,9 @@ export function convertHtmlxToJsx(
                                 (element instanceof Element &&
                                     element.tagName === 'svelte:boundary')
                                 ? element
-                                : undefined
+                                : undefined,
+                            emitJsDoc,
+                            isTsFile
                         );
                         if (parent === ast) {
                             // root snippet -> move to instance script or possibly even module script
@@ -350,7 +356,9 @@ export function convertHtmlxToJsx(
                             parent,
                             element,
                             options.typingsNamespace === 'svelteHTML',
-                            options.svelte5Plus
+                            options.svelte5Plus,
+                            emitJsDoc,
+                            isTsFile
                         );
                         break;
                     case 'Class':

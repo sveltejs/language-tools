@@ -19,6 +19,7 @@ export interface CreateRenderFunctionPara extends InstanceScriptProcessResult {
     svelte5Plus: boolean;
     isTsFile: boolean;
     mode?: 'ts' | 'dts';
+    emitJsDoc?: boolean;
 }
 
 export function createRenderFunction({
@@ -35,10 +36,17 @@ export function createRenderFunction({
     generics,
     hasTopLevelAwait,
     isTsFile,
-    mode
+    mode,
+    emitJsDoc = false
 }: CreateRenderFunctionPara) {
     const htmlx = str.original;
     let propsDecl = '';
+    const useTypescriptSyntax = isTsFile || !emitJsDoc;
+    const templateNames = useTypescriptSyntax ? [] : generics.getReferences();
+    const templateComment =
+        !useTypescriptSyntax && templateNames.length
+            ? `\n/** @template ${templateNames.join(', ')} */\n`
+            : '';
 
     if (uses$$props) {
         propsDecl += ' let $$props = __sveltets_2_allPropsType();';
@@ -56,15 +64,13 @@ export function createRenderFunction({
             '});';
     }
 
+    const slotTypeReference = uses$$SlotsInterface ? '<$$Slots>' : '';
+    const slotDeclaration =
+        useTypescriptSyntax || !slotTypeReference
+            ? `;const __sveltets_createSlot = __sveltets_2_createCreateSlot${slotTypeReference}();`
+            : `/** @type {ReturnType<typeof __sveltets_2_createCreateSlot${slotTypeReference}>} */ const __sveltets_createSlot = __sveltets_2_createCreateSlot();`;
     const slotsDeclaration =
-        slots.size > 0 && mode !== 'dts'
-            ? '\n' +
-              surroundWithIgnoreComments(
-                  ';const __sveltets_createSlot = __sveltets_2_createCreateSlot' +
-                      (uses$$SlotsInterface ? '<$$Slots>' : '') +
-                      '();'
-              )
-            : '';
+        slots.size > 0 && mode !== 'dts' ? '\n' + surroundWithIgnoreComments(slotDeclaration) : '';
 
     if (scriptTag) {
         //I couldn't get magicstring to let me put the script before the <> we prepend during conversion of the template to jsx, so we just close it instead
@@ -81,19 +87,25 @@ export function createRenderFunction({
             str.overwrite(
                 scriptTag.start + 1,
                 start - 1,
-                `${hasTopLevelAwait ? 'async ' : ''}function ${internalHelpers.renderName}`
+                `${templateComment}${hasTopLevelAwait ? 'async ' : ''}function ${internalHelpers.renderName}`
             );
-            str.overwrite(start - 1, start, isTsFile ? '<' : `<${IGNORE_START_COMMENT}`); // if the generics are unused, only this char is colored opaque
-            str.overwrite(
-                end,
-                scriptTagEnd,
-                `>${isTsFile ? '' : IGNORE_END_COMMENT}() {${propsDecl}\n`
-            );
+            if (useTypescriptSyntax) {
+                str.overwrite(start - 1, start, isTsFile ? '<' : `<${IGNORE_START_COMMENT}`); // if the generics are unused, only this char is colored opaque
+                str.overwrite(
+                    end,
+                    scriptTagEnd,
+                    `>${isTsFile ? '' : IGNORE_END_COMMENT}() {${propsDecl}\n`
+                );
+            } else {
+                str.overwrite(start - 1, start, '');
+                str.overwrite(start, end, '');
+                str.overwrite(end, scriptTagEnd, `() {${propsDecl}\n`);
+            }
         } else {
             str.overwrite(
                 scriptTag.start + 1,
                 scriptTagEnd,
-                `${hasTopLevelAwait ? 'async ' : ''}function ${internalHelpers.renderName}${generics.toDefinitionString(true)}() {${propsDecl}\n`
+                `${templateComment}${hasTopLevelAwait ? 'async ' : ''}function ${internalHelpers.renderName}${useTypescriptSyntax ? generics.toDefinitionString(true) : ''}() {${propsDecl}\n`
             );
         }
 
@@ -105,7 +117,7 @@ export function createRenderFunction({
     } else {
         str.prependRight(
             scriptDestination,
-            `;${hasTopLevelAwait ? 'async ' : ''}function ${internalHelpers.renderName}() {` +
+            `;${templateComment}${hasTopLevelAwait ? 'async ' : ''}function ${internalHelpers.renderName}${useTypescriptSyntax ? generics.toDefinitionString(true) : ''}() {` +
                 `${propsDecl}${slotsDeclaration}\nasync () => {`
         );
     }

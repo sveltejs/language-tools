@@ -1,3 +1,8 @@
 export * from './server';
 export { offsetAt } from './lib/documents';
-export { SvelteCheck, SvelteCheckOptions, SvelteCheckDiagnosticSource } from './svelte-check';
+export {
+    mapSvelteCheckDiagnostics,
+    SvelteCheck,
+    SvelteCheckDiagnosticSource,
+    SvelteCheckOptions
+} from './svelte-check';
