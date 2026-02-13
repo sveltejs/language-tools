@@ -475,7 +475,13 @@ describe('SveltePlugin#getDiagnostics', () => {
                     (isSvelte5Plus ? '\nhttps://svelte.dev/e/export_let_unused' : ''),
                 severity: 2,
                 source: 'svelte',
-                code: isSvelte5Plus ? 'export_let_unused' : 'unused-export-let'
+                code: isSvelte5Plus ? 'export_let_unused' : 'unused-export-let',
+                codeDescription: {
+                    href: isSvelte5Plus
+                        ? 'https://svelte.dev/docs/svelte/compiler-warnings#export_let_unused'
+                        : // doesn't actually exist but at least points to the page
+                          'https://svelte.dev/docs/svelte/compiler-warnings#unused_export_let'
+                }
             }
         ]);
     });
@@ -496,7 +502,12 @@ describe('SveltePlugin#getDiagnostics', () => {
                     source: 'svelte',
                     code: isSvelte5Plus
                         ? 'reactive_declaration_invalid_placement'
-                        : 'module-script-reactive-declaration'
+                        : 'module-script-reactive-declaration',
+                    codeDescription: {
+                        href: isSvelte5Plus
+                            ? 'https://svelte.dev/docs/svelte/compiler-warnings#reactive_declaration_invalid_placement'
+                            : 'https://svelte.dev/docs/svelte/compiler-warnings#module_script_reactive_declaration'
+                    }
                 }
             ]
         );
@@ -525,7 +536,13 @@ describe('SveltePlugin#getDiagnostics', () => {
                         }
                     },
                     severity: 2,
-                    source: 'svelte'
+                    source: 'svelte',
+                    codeDescription: {
+                        href: isSvelte5Plus
+                            ? 'https://svelte.dev/docs/svelte/compiler-warnings#export_let_unused'
+                            : // doesn't actually exist but at least points to the page
+                              'https://svelte.dev/docs/svelte/compiler-warnings#unused_export_let'
+                    }
                 },
                 {
                     code: isSvelte5Plus ? 'export_let_unused' : 'unused-export-let',
@@ -543,7 +560,13 @@ describe('SveltePlugin#getDiagnostics', () => {
                         }
                     },
                     severity: 2,
-                    source: 'svelte'
+                    source: 'svelte',
+                    codeDescription: {
+                        href: isSvelte5Plus
+                            ? 'https://svelte.dev/docs/svelte/compiler-warnings#export_let_unused'
+                            : // doesn't actually exist but at least points to the page
+                              'https://svelte.dev/docs/svelte/compiler-warnings#unused_export_let'
+                    }
                 }
             ]
         );

@@ -4,7 +4,6 @@
 
 import { watch, FSWatcher } from 'chokidar';
 import * as fs from 'fs';
-import { fdir } from 'fdir';
 import * as path from 'path';
 import { SvelteCheck, SvelteCheckOptions } from 'svelte-language-server';
 import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver-protocol';
@@ -17,6 +16,15 @@ import {
     MachineFriendlyWriter,
     Writer
 } from './writers';
+import {
+    emitSvelteFiles,
+    EmitResult,
+    mapCliDiagnosticsToLsp,
+    runTypeScriptDiagnostics,
+    updateDiagnosticsCache,
+    writeOverlayTsconfig
+} from './incremental';
+import { createIgnored, findSvelteFiles } from './utils';
 
 type Result = {
     fileCount: number;
@@ -30,29 +38,12 @@ async function openAllDocuments(
     filePathsToIgnore: string[],
     svelteCheck: SvelteCheck
 ) {
-    const offset = workspaceUri.fsPath.length + 1;
-    // We support a very limited subset of glob patterns: You can only have  ** at the end or the start
-    const ignored = createIgnored(filePathsToIgnore);
-    const isIgnored = (path: string) => {
-        path = path.slice(offset);
-        for (const i of ignored) {
-            if (i(path)) {
-                return true;
-            }
-        }
-        return false;
-    };
-    const absFilePaths = await new fdir()
-        .filter((path) => path.endsWith('.svelte') && !isIgnored(path))
-        .exclude((_, path) => {
-            return path.includes('/node_modules/') || path.includes('/.');
-        })
-        .withPathSeparator('/')
-        .withFullPaths()
-        .crawl(workspaceUri.fsPath)
-        .withPromise();
+    const absFilePaths = await findSvelteFiles(workspaceUri.fsPath, filePathsToIgnore);
+    await openDocuments(absFilePaths, svelteCheck);
+}
 
-    for (const absFilePath of absFilePaths) {
+async function openDocuments(filePaths: string[], svelteCheck: SvelteCheck) {
+    for (const absFilePath of filePaths) {
         const text = fs.readFileSync(absFilePath, 'utf-8');
         svelteCheck.upsertDocument(
             {
@@ -64,79 +55,14 @@ async function openAllDocuments(
     }
 }
 
-function createIgnored(filePathsToIgnore: string[]): Array<(path: string) => boolean> {
-    return filePathsToIgnore.map((i) => {
-        if (i.endsWith('**')) i = i.slice(0, -2);
-
-        if (i.startsWith('**')) {
-            i = i.slice(2);
-
-            if (i.includes('*'))
-                throw new Error(
-                    'Invalid svelte-check --ignore pattern: Only ** at the start or end is supported'
-                );
-
-            return (path) => path.includes(i);
-        }
-
-        if (i.includes('*'))
-            throw new Error(
-                'Invalid svelte-check --ignore pattern: Only ** at the start or end is supported'
-            );
-
-        return (path) => path.startsWith(i);
-    });
-}
-
 async function getDiagnostics(
     workspaceUri: URI,
     writer: Writer,
     svelteCheck: SvelteCheck
 ): Promise<Result | null> {
-    writer.start(workspaceUri.fsPath);
-
     try {
         const diagnostics = await svelteCheck.getDiagnostics();
-
-        const result: Result = {
-            fileCount: diagnostics.length,
-            errorCount: 0,
-            warningCount: 0,
-            fileCountWithProblems: 0
-        };
-
-        for (const diagnostic of diagnostics) {
-            writer.file(
-                diagnostic.diagnostics,
-                workspaceUri.fsPath,
-                path.relative(workspaceUri.fsPath, diagnostic.filePath),
-                diagnostic.text
-            );
-
-            let fileHasProblems = false;
-
-            diagnostic.diagnostics.forEach((d: Diagnostic) => {
-                if (d.severity === DiagnosticSeverity.Error) {
-                    result.errorCount += 1;
-                    fileHasProblems = true;
-                } else if (d.severity === DiagnosticSeverity.Warning) {
-                    result.warningCount += 1;
-                    fileHasProblems = true;
-                }
-            });
-
-            if (fileHasProblems) {
-                result.fileCountWithProblems += 1;
-            }
-        }
-
-        writer.completion(
-            result.fileCount,
-            result.errorCount,
-            result.warningCount,
-            result.fileCountWithProblems
-        );
-        return result;
+        return writeDiagnostics(workspaceUri, writer, diagnostics);
     } catch (err: any) {
         writer.failure(err);
         return null;
@@ -168,6 +94,7 @@ class DiagnosticsWatcher {
                 if (
                     path.includes('node_modules') ||
                     path.includes('.git') ||
+                    stats?.isSocket() ||
                     (stats?.isFile() &&
                         (!FILE_ENDING_REGEX.test(path) || VITE_CONFIG_REGEX.test(path)))
                 ) {
@@ -329,6 +256,306 @@ function instantiateWriter(opts: SvelteCheckCliOptions): Writer {
     }
 }
 
+function writeDiagnostics(
+    workspaceUri: URI,
+    writer: Writer,
+    diagnostics: Array<{ filePath: string; text: string; diagnostics: Diagnostic[] }>
+): Result {
+    writer.start(workspaceUri.fsPath);
+
+    const result: Result = {
+        fileCount: diagnostics.length,
+        errorCount: 0,
+        warningCount: 0,
+        fileCountWithProblems: 0
+    };
+
+    for (const diagnostic of diagnostics) {
+        writer.file(
+            diagnostic.diagnostics,
+            workspaceUri.fsPath,
+            path.relative(workspaceUri.fsPath, diagnostic.filePath),
+            diagnostic.text
+        );
+
+        let fileHasProblems = false;
+
+        diagnostic.diagnostics.forEach((d: Diagnostic) => {
+            if (d.severity === DiagnosticSeverity.Error) {
+                result.errorCount += 1;
+                fileHasProblems = true;
+            } else if (d.severity === DiagnosticSeverity.Warning) {
+                result.warningCount += 1;
+                fileHasProblems = true;
+            }
+        });
+
+        if (fileHasProblems) {
+            result.fileCountWithProblems += 1;
+        }
+    }
+
+    writer.completion(
+        result.fileCount,
+        result.errorCount,
+        result.warningCount,
+        result.fileCountWithProblems
+    );
+
+    return result;
+}
+
+async function getSvelteDiagnosticsForIncremental(
+    opts: SvelteCheckCliOptions,
+    emitResult: EmitResult
+): Promise<{
+    diagnostics: Array<{ filePath: string; text: string; diagnostics: Diagnostic[] }>;
+    compilerWarningsByFile: Map<string, Diagnostic[]>;
+    cssDiagnosticsByFile: Map<string, Diagnostic[]>;
+}> {
+    const sources = opts.diagnosticSources;
+    if (!sources.includes('svelte') && !sources.includes('css')) {
+        return {
+            diagnostics: [],
+            compilerWarningsByFile: new Map(),
+            cssDiagnosticsByFile: new Map()
+        };
+    }
+
+    const diagnosticsByFile = new Map<
+        string,
+        { filePath: string; text: string; diagnostics: Diagnostic[] }
+    >();
+    const compilerWarningsByFile = new Map<string, Diagnostic[]>();
+    const cssDiagnosticsByFile = new Map<string, Diagnostic[]>();
+    const changedFiles = new Set(emitResult.changedFiles);
+    const filesNeedingDiagnostics: string[] = [];
+    const enabledSources = sources.filter((source) => source !== 'js');
+
+    // Phase 1: Partition files into "needs fresh diagnostics" vs "use cached diagnostics"
+    for (const entry of emitResult.entries) {
+        const needsSvelte =
+            sources.includes('svelte') &&
+            (!entry.compilerWarnings || changedFiles.has(entry.sourcePath));
+        const needsCss =
+            sources.includes('css') &&
+            (!entry.cssDiagnostics || changedFiles.has(entry.sourcePath));
+        if (needsSvelte || needsCss) {
+            filesNeedingDiagnostics.push(entry.sourcePath);
+            continue;
+        }
+
+        if (sources.includes('svelte') && entry.compilerWarnings) {
+            const text = fs.readFileSync(entry.sourcePath, 'utf-8');
+            diagnosticsByFile.set(entry.sourcePath, {
+                filePath: entry.sourcePath,
+                text,
+                diagnostics: [...entry.compilerWarnings]
+            });
+        }
+        if (sources.includes('css') && entry.cssDiagnostics) {
+            const existing = diagnosticsByFile.get(entry.sourcePath) ?? {
+                filePath: entry.sourcePath,
+                text: fs.readFileSync(entry.sourcePath, 'utf-8'),
+                diagnostics: []
+            };
+            existing.diagnostics.push(...entry.cssDiagnostics);
+            diagnosticsByFile.set(entry.sourcePath, existing);
+        }
+    }
+
+    // Phase 2: Run fresh diagnostics for changed/uncached files via the language server
+    if (enabledSources.length && filesNeedingDiagnostics.length > 0) {
+        const svelteCheck = new SvelteCheck(opts.workspaceUri.fsPath, {
+            compilerWarnings: opts.compilerWarnings,
+            diagnosticSources: enabledSources,
+            watch: false
+        });
+        await openDocuments(filesNeedingDiagnostics, svelteCheck);
+        const runDiagnostics = await svelteCheck.getDiagnostics();
+        for (const entry of runDiagnostics) {
+            diagnosticsByFile.set(entry.filePath, entry);
+            if (sources.includes('svelte')) {
+                compilerWarningsByFile.set(
+                    entry.filePath,
+                    entry.diagnostics.filter((diag) => diag.source === 'svelte')
+                );
+            }
+            if (sources.includes('css')) {
+                cssDiagnosticsByFile.set(
+                    entry.filePath,
+                    entry.diagnostics.filter((diag) => diag.source === 'css')
+                );
+            }
+        }
+        for (const filePath of filesNeedingDiagnostics) {
+            if (sources.includes('svelte') && !compilerWarningsByFile.has(filePath)) {
+                compilerWarningsByFile.set(filePath, []);
+            }
+            if (sources.includes('css') && !cssDiagnosticsByFile.has(filePath)) {
+                cssDiagnosticsByFile.set(filePath, []);
+            }
+            if (!diagnosticsByFile.has(filePath)) {
+                const text = fs.readFileSync(filePath, 'utf-8');
+                const diagnostics: Diagnostic[] = [];
+                if (sources.includes('svelte')) {
+                    diagnostics.push(...(compilerWarningsByFile.get(filePath) ?? []));
+                }
+                if (sources.includes('css')) {
+                    diagnostics.push(...(cssDiagnosticsByFile.get(filePath) ?? []));
+                }
+                diagnosticsByFile.set(filePath, {
+                    filePath,
+                    text,
+                    diagnostics
+                });
+            }
+        }
+    }
+
+    // Phase 3: Ensure every entry has a diagnostics record (empty if no diagnostics)
+    for (const entry of emitResult.entries) {
+        if (!diagnosticsByFile.has(entry.sourcePath)) {
+            const text = fs.readFileSync(entry.sourcePath, 'utf-8');
+            diagnosticsByFile.set(entry.sourcePath, {
+                filePath: entry.sourcePath,
+                text,
+                diagnostics: []
+            });
+        }
+    }
+
+    return {
+        diagnostics: Array.from(diagnosticsByFile.values()),
+        compilerWarningsByFile,
+        cssDiagnosticsByFile
+    };
+}
+
+async function runWithVirtualFiles(
+    opts: SvelteCheckCliOptions,
+    writer: Writer
+): Promise<Result | null> {
+    if (!opts.tsconfig) {
+        throw new Error('`--incremental` / `--tsgo` requires a tsconfig/jsconfig file');
+    }
+
+    const emitResult = await emitSvelteFiles(
+        opts.workspaceUri.fsPath,
+        opts.filePathsToIgnore,
+        opts.incremental
+    );
+    const overlayTsconfig = writeOverlayTsconfig(opts.tsconfig, emitResult, opts.incremental);
+    const tsDiagnostics = mapCliDiagnosticsToLsp(
+        await runTypeScriptDiagnostics(
+            overlayTsconfig,
+            opts.tsgo,
+            opts.incremental,
+            opts.workspaceUri.fsPath
+        ),
+        emitResult
+    );
+
+    const {
+        diagnostics: svelteDiagnostics,
+        compilerWarningsByFile,
+        cssDiagnosticsByFile
+    } = await getSvelteDiagnosticsForIncremental(opts, emitResult);
+    if (opts.incremental) {
+        updateDiagnosticsCache(emitResult, {
+            compilerWarningsByFile,
+            cssDiagnosticsByFile
+        });
+    }
+    const diagnosticsByFile = new Map<
+        string,
+        { filePath: string; text: string; diagnostics: Diagnostic[] }
+    >();
+
+    for (const entry of svelteDiagnostics) {
+        diagnosticsByFile.set(entry.filePath, {
+            filePath: entry.filePath,
+            text: entry.text,
+            diagnostics: entry.diagnostics
+        });
+    }
+
+    for (const entry of tsDiagnostics) {
+        const existing = diagnosticsByFile.get(entry.filePath) ?? {
+            filePath: entry.filePath,
+            text: entry.text,
+            diagnostics: []
+        };
+        existing.diagnostics.push(...entry.diagnostics);
+        diagnosticsByFile.set(entry.filePath, existing);
+    }
+
+    return writeDiagnostics(opts.workspaceUri, writer, Array.from(diagnosticsByFile.values()));
+}
+
+async function watchWithVirtualFiles(opts: SvelteCheckCliOptions, writer: Writer) {
+    let pending: NodeJS.Timeout | undefined;
+    let running = false;
+    let rerun = false;
+    const userIgnored = createIgnored(opts.filePathsToIgnore);
+
+    const run = async () => {
+        if (running) {
+            rerun = true;
+            return;
+        }
+        running = true;
+        try {
+            await runWithVirtualFiles(opts, writer);
+        } catch (err: any) {
+            writer.failure(err);
+        } finally {
+            running = false;
+            if (rerun) {
+                rerun = false;
+                run();
+            }
+        }
+    };
+
+    const schedule = () => {
+        clearTimeout(pending);
+        pending = setTimeout(run, 1000);
+    };
+
+    await run();
+
+    watch([], {
+        ignored: (path, stats) => {
+            if (
+                path.includes('node_modules') ||
+                path.includes('.git') ||
+                (stats?.isFile() && (!FILE_ENDING_REGEX.test(path) || VITE_CONFIG_REGEX.test(path)))
+            ) {
+                return true;
+            }
+
+            if (userIgnored.length !== 0) {
+                const workspaceRelative = path.startsWith(opts.workspaceUri.fsPath)
+                    ? path.slice(opts.workspaceUri.fsPath.length + 1)
+                    : path;
+                for (const i of userIgnored) {
+                    if (i(workspaceRelative)) {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        },
+        ignoreInitial: true
+    })
+        .on('add', schedule)
+        .on('unlink', schedule)
+        .on('change', schedule)
+        .add(opts.workspaceUri.fsPath);
+}
+
 parseOptions(async (opts) => {
     try {
         const writer = instantiateWriter(opts);
@@ -340,7 +567,21 @@ parseOptions(async (opts) => {
             watch: opts.watch
         };
 
-        if (opts.watch) {
+        const useVirtualFiles = opts.incremental || opts.tsgo;
+        if (useVirtualFiles && opts.watch) {
+            await watchWithVirtualFiles(opts, writer);
+        } else if (useVirtualFiles) {
+            const result = await runWithVirtualFiles(opts, writer);
+            if (
+                result &&
+                result.errorCount === 0 &&
+                (!opts.failOnWarnings || result.warningCount === 0)
+            ) {
+                process.exit(0);
+            } else {
+                process.exit(1);
+            }
+        } else if (opts.watch) {
             // Wire callbacks that can reference the watcher instance created below
             let watcher: DiagnosticsWatcher;
             svelteCheckOptions.onProjectReload = () => {
