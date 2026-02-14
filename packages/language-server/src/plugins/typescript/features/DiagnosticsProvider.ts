@@ -64,7 +64,7 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
         const { lang, tsDoc } = await this.getLSAndTSDoc(document);
 
         if (
-            ['coffee', 'coffeescript'].includes(document.getLanguageAttribute('script')) ||
+            ['coffee', 'coffeescript', 'civet'].includes(document.getLanguageAttribute('script')) ||
             cancellationToken?.isCancellationRequested
         ) {
             return [];
