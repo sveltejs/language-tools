@@ -120,9 +120,7 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
     const serverModule = require.resolve(lsPath || 'svelte-language-server/bin/server.js');
     console.log('Loading server from ', serverModule);
 
-    // Add --experimental-modules flag for people using node 12 < version < 12.17
-    // Remove this in mid 2022 and bump vs code minimum required version to 1.55
-    const runExecArgv: string[] = ['--experimental-modules'];
+    const runExecArgv: string[] = [];
 
     const runtimeArgs = runtimeConfig.get<string[]>('runtime-args');
     if (runtimeArgs !== undefined) {
