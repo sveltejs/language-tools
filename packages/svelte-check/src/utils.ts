@@ -34,17 +34,19 @@ export function createIgnored(filePathsToIgnore: string[]): Array<(path: string)
 }
 
 /**
- * Recursively finds all Svelte files in the workspace.
+ * Recursively finds files in the workspace that match the provided filter.
  * Excludes `node_modules` directories and hidden directories (starting with `.`).
  * Applies user-specified ignore patterns to filter results.
  *
  * @param workspacePath - Root directory to search from
  * @param filePathsToIgnore - Patterns for files/directories to exclude
- * @returns Array of absolute paths to all discovered Svelte files
+ * @param filter - Predicate that decides whether a file should be included
+ * @returns Array of absolute paths to all discovered matching files
  */
-export async function findSvelteFiles(
+export async function findFiles(
     workspacePath: string,
-    filePathsToIgnore: string[]
+    filePathsToIgnore: string[],
+    filter: (filePath: string) => boolean
 ): Promise<string[]> {
     const offset = workspacePath.length + 1;
     const ignored = createIgnored(filePathsToIgnore);
@@ -59,7 +61,7 @@ export async function findSvelteFiles(
     };
 
     return new fdir()
-        .filter((filePath) => filePath.endsWith('.svelte') && !isIgnored(filePath))
+        .filter((filePath) => filter(filePath) && !isIgnored(filePath))
         .exclude((_, filePath) => {
             return filePath.includes('/node_modules/') || filePath.includes('/.');
         })

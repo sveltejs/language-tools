@@ -70,16 +70,17 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
             return [];
         }
 
-        const isTypescript =
-            tsDoc.scriptKind === ts.ScriptKind.TSX || tsDoc.scriptKind === ts.ScriptKind.TS;
-
         // Document preprocessing failed, show parser error instead
         if (tsDoc.parserError) {
             return [
                 {
                     range: tsDoc.parserError.range,
                     severity: DiagnosticSeverity.Error,
-                    source: isTypescript ? 'ts' : 'js',
+                    source:
+                        tsDoc.scriptKind === ts.ScriptKind.TSX ||
+                        tsDoc.scriptKind === ts.ScriptKind.TS
+                            ? 'ts'
+                            : 'js',
                     message: tsDoc.parserError.message,
                     code: tsDoc.parserError.code
                 }
@@ -101,7 +102,7 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
             diagnostics.push(...checker.call(lang, tsDoc.filePath));
         }
 
-        return mapAndFilterDiagnostics(diagnostics, document, tsDoc, isTypescript, lang);
+        return mapAndFilterDiagnostics(diagnostics, document, tsDoc, lang);
     }
 
     private async getLSAndTSDoc(document: Document) {
@@ -113,7 +114,6 @@ export function mapAndFilterDiagnostics(
     diagnostics: ts.Diagnostic[],
     document: Document,
     tsDoc: SvelteDocumentSnapshot,
-    isTypescript: boolean,
     lang?: ts.LanguageService
 ): Diagnostic[] {
     const notGenerated = isNotGenerated(tsDoc.getFullText());
@@ -160,6 +160,10 @@ export function mapAndFilterDiagnostics(
         diagnostics = resolveNoopsInReactiveStatements(lang, diagnostics);
     }
 
+    const source =
+        tsDoc.scriptKind === ts.ScriptKind.TSX || tsDoc.scriptKind === ts.ScriptKind.TS
+            ? 'ts'
+            : 'js';
     const mapRange = rangeMapper(tsDoc, document, lang);
     const noFalsePositive = isNoFalsePositive(document, tsDoc);
     const converted: Diagnostic[] = [];
@@ -168,7 +172,7 @@ export function mapAndFilterDiagnostics(
         let diagnostic: Diagnostic = {
             range: convertRange(tsDoc, tsDiag),
             severity: mapSeverity(tsDiag.category),
-            source: isTypescript ? 'ts' : 'js',
+            source,
             message: ts.flattenDiagnosticMessageText(tsDiag.messageText, '\n'),
             code: tsDiag.code,
             tags: getDiagnosticTag(tsDiag)

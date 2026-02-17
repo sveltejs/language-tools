@@ -1,5 +1,5 @@
 export * from './server';
-export { offsetAt } from './lib/documents';
+export { offsetAt, positionAt, getLineOffsets } from './lib/documents';
 export {
     mapSvelteCheckDiagnostics,
     SvelteCheck,

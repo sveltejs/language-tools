@@ -29,7 +29,6 @@ import { groupBy } from 'lodash';
 export function mapSvelteCheckDiagnostics(
     sourcePath: string,
     sourceText: string,
-    isTsFile: boolean,
     tsDiagnostics: ts.Diagnostic[]
 ): Diagnostic[] {
     const document = new Document(pathToUrl(sourcePath), sourceText);
@@ -37,10 +36,11 @@ export function mapSvelteCheckDiagnostics(
         parse: document.compiler?.parse,
         version: document.compiler?.VERSION,
         transformOnTemplateError: false,
-        typingsNamespace: 'svelteHTML'
+        typingsNamespace: 'svelteHTML',
+        emitJsDoc: true
     } satisfies SvelteSnapshotOptions) as SvelteDocumentSnapshot;
 
-    return mapAndFilterDiagnostics(tsDiagnostics, document, snapshot, isTsFile, undefined);
+    return mapAndFilterDiagnostics(tsDiagnostics, document, snapshot);
 }
 
 export type SvelteCheckDiagnosticSource = 'js' | 'css' | 'svelte';

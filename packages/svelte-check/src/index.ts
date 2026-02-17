@@ -24,7 +24,7 @@ import {
     updateDiagnosticsCache,
     writeOverlayTsconfig
 } from './incremental';
-import { createIgnored, findSvelteFiles } from './utils';
+import { createIgnored, findFiles } from './utils';
 
 type Result = {
     fileCount: number;
@@ -38,7 +38,9 @@ async function openAllDocuments(
     filePathsToIgnore: string[],
     svelteCheck: SvelteCheck
 ) {
-    const absFilePaths = await findSvelteFiles(workspaceUri.fsPath, filePathsToIgnore);
+    const absFilePaths = await findFiles(workspaceUri.fsPath, filePathsToIgnore, (filePath) =>
+        filePath.endsWith('.svelte')
+    );
     await openDocuments(absFilePaths, svelteCheck);
 }
 
