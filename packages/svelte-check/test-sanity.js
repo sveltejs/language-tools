@@ -66,7 +66,7 @@ function test(name, opts) {
             const entry = JSON.parse(line.slice(jsonStart));
             if (entry.type === 'ERROR') {
                 errors.push({
-                    file: entry.filename,
+                    file: entry.filename.replace(/\\/g, '/'),
                     line: entry.start.line,
                     column: entry.start.character,
                     code: entry.code
@@ -136,41 +136,49 @@ test('clean project (incremental, warm cache)', {
     incremental: true
 });
 
+const errors = [
+    {
+        file: 'Index.svelte',
+        line: 4,
+        column: 8,
+        code: 2322
+    },
+    {
+        file: 'Index.svelte',
+        line: 7,
+        column: 4,
+        code: 2367
+    },
+    {
+        file: 'Index.svelte',
+        line: 10,
+        column: 4,
+        code: 2367
+    },
+    {
+        file: 'Index.svelte',
+        line: 14,
+        column: 1,
+        code: 2741
+    },
+    {
+        file: 'Jsdoc.svelte',
+        line: 9,
+        column: 23,
+        code: 2322
+    },
+    {
+        file: 'src/routes/+page.ts',
+        line: 0,
+        column: 13,
+        code: 2322
+    }
+];
+
 test('project with errors', {
     workspace: './test-error',
     tsconfig: './tsconfig.json',
-    errors: [
-        {
-            file: 'Index.svelte',
-            line: 4,
-            column: 8,
-            code: 2322
-        },
-        {
-            file: 'Index.svelte',
-            line: 7,
-            column: 4,
-            code: 2367
-        },
-        {
-            file: 'Index.svelte',
-            line: 10,
-            column: 4,
-            code: 2367
-        },
-        {
-            file: 'Index.svelte',
-            line: 14,
-            column: 5,
-            code: 2322
-        },
-        {
-            file: 'Jsdoc.svelte',
-            line: 9,
-            column: 23,
-            code: 2322
-        }
-    ]
+    errors
 });
 
 rmSync('./test-error/.svelte-check', { recursive: true, force: true });
@@ -178,76 +186,14 @@ test('project with errors (incremental, cold cache)', {
     workspace: './test-error',
     tsconfig: './tsconfig.json',
     incremental: true,
-    errors: [
-        {
-            file: 'Index.svelte',
-            line: 4,
-            column: 8,
-            code: 2322
-        },
-        {
-            file: 'Index.svelte',
-            line: 7,
-            column: 4,
-            code: 2367
-        },
-        {
-            file: 'Index.svelte',
-            line: 10,
-            column: 4,
-            code: 2367
-        },
-        {
-            file: 'Index.svelte',
-            line: 14,
-            column: 1,
-            code: 2741
-        },
-        {
-            file: 'Jsdoc.svelte',
-            line: 9,
-            column: 0, // TODO investigate why not 23
-            code: 2322
-        }
-    ]
+    errors
 });
 
 test('project with errors (incremental, warm cache)', {
     workspace: './test-error',
     tsconfig: './tsconfig.json',
     incremental: true,
-    errors: [
-        {
-            file: 'Index.svelte',
-            line: 4,
-            column: 8,
-            code: 2322
-        },
-        {
-            file: 'Index.svelte',
-            line: 7,
-            column: 4,
-            code: 2367
-        },
-        {
-            file: 'Index.svelte',
-            line: 10,
-            column: 4,
-            code: 2367
-        },
-        {
-            file: 'Index.svelte',
-            line: 14,
-            column: 1,
-            code: 2741
-        },
-        {
-            file: 'Jsdoc.svelte',
-            line: 9,
-            column: 0, // TODO investigate why not 23
-            code: 2322
-        }
-    ]
+    errors
 });
 
 console.log(`\n${passed} passed, ${failed} failed`);

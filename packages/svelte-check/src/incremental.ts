@@ -1,23 +1,32 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { spawn } from 'child_process';
-import { svelte2tsx } from 'svelte2tsx';
+import { svelte2tsx, internalHelpers, InternalHelpers } from 'svelte2tsx';
 import { parse, VERSION as svelteVersion, VERSION } from 'svelte/compiler';
 import ts from 'typescript';
 import { Diagnostic, DiagnosticSeverity, Range } from 'vscode-languageserver-protocol';
-import { mapSvelteCheckDiagnostics } from 'svelte-language-server';
-import { findSvelteFiles } from './utils';
+import {
+    mapSvelteCheckDiagnostics,
+    offsetAt,
+    positionAt,
+    getLineOffsets
+} from 'svelte-language-server';
+import { pathToFileURL } from 'url';
+import { findFiles } from './utils';
 
 type ManifestEntry = {
     sourcePath: string;
     outPath: string;
-    mapPath: string;
-    dtsPath: string;
     mtimeMs: number;
     size: number;
-    isTsFile: boolean;
+    // Svelte file specific fields
+    dtsPath?: string;
+    isTsFile?: boolean;
     compilerWarnings?: Diagnostic[];
     cssDiagnostics?: Diagnostic[];
+    // Kit file specific fields
+    isKitFile?: boolean;
+    addedCode?: InternalHelpers.AddedCode[];
 };
 
 type Manifest = {
@@ -46,7 +55,7 @@ export type ParsedDiagnostic = {
     message: string;
 };
 
-const MANIFEST_VERSION = 1;
+const MANIFEST_VERSION = 2;
 const SVELTE_KIT_DIR = '.svelte-kit';
 const CACHE_DIR_NAME = '.svelte-check';
 const EMIT_SUBDIR = 'svelte';
@@ -74,6 +83,68 @@ function toRelativePosix(baseDir: string, targetPath: string) {
 }
 
 /**
+ * Default SvelteKit file paths used when svelte.config.js doesn't specify custom paths.
+ */
+const defaultKitFilesSettings: InternalHelpers.KitFilesSettings = {
+    paramsPath: 'src/params',
+    serverHooksPath: 'src/hooks.server',
+    clientHooksPath: 'src/hooks.client',
+    universalHooksPath: 'src/hooks'
+};
+
+/**
+ * This function encapsulates the import call in a way
+ * that TypeScript does not transpile `import()`.
+ * https://github.com/microsoft/TypeScript/issues/43329
+ */
+const dynamicImport = new Function('modulePath', 'return import(modulePath)') as (
+    modulePath: URL
+) => Promise<any>;
+
+/**
+ * Loads the svelte.config.js file and extracts SvelteKit file path settings.
+ * Falls back to default paths if config doesn't exist or doesn't specify custom paths.
+ *
+ * @param workspacePath - Root directory of the project
+ * @returns KitFilesSettings with paths for params, hooks files
+ */
+async function loadKitFilesSettings(
+    workspacePath: string
+): Promise<InternalHelpers.KitFilesSettings> {
+    const configExtensions = ['js', 'cjs', 'mjs'];
+    let configPath: string | undefined;
+
+    for (const ext of configExtensions) {
+        const tryPath = path.join(workspacePath, `svelte.config.${ext}`);
+        if (fs.existsSync(tryPath)) {
+            configPath = tryPath;
+            break;
+        }
+    }
+
+    if (!configPath) {
+        return defaultKitFilesSettings;
+    }
+
+    try {
+        const config = (await dynamicImport(pathToFileURL(configPath)))?.default;
+        if (!config?.kit?.files) {
+            return defaultKitFilesSettings;
+        }
+
+        const files = config.kit.files;
+        return {
+            paramsPath: files.params ?? defaultKitFilesSettings.paramsPath,
+            serverHooksPath: files.hooks?.server ?? defaultKitFilesSettings.serverHooksPath,
+            clientHooksPath: files.hooks?.client ?? defaultKitFilesSettings.clientHooksPath,
+            universalHooksPath: files.hooks?.universal ?? defaultKitFilesSettings.universalHooksPath
+        };
+    } catch {
+        return defaultKitFilesSettings;
+    }
+}
+
+/**
  * Transforms Svelte files into TypeScript/JavaScript using svelte2tsx and writes them to a cache directory.
  * Supports incremental builds by tracking file modification times and sizes in a manifest.
  *
@@ -95,18 +166,30 @@ export async function emitSvelteFiles(
     const manifest = incremental
         ? loadManifest(manifestPath, workspacePath)
         : { version: MANIFEST_VERSION, entries: {} as Record<string, ManifestEntry> };
-    const svelteFiles = await findSvelteFiles(workspacePath, filePathsToIgnore);
+    const kitFilesSettings = await loadKitFilesSettings(workspacePath);
+    const isJsOrTsFile = (filePath: string) => filePath.endsWith('.ts') || filePath.endsWith('.js');
+    const allRelevantFiles = await findFiles(
+        workspacePath,
+        filePathsToIgnore,
+        (filePath) =>
+            filePath.endsWith('.svelte') ||
+            (isJsOrTsFile(filePath) && internalHelpers.isKitFile(filePath, kitFilesSettings))
+    );
+    const svelteFiles: string[] = [];
+    const kitFiles: string[] = [];
+    for (const filePath of allRelevantFiles) {
+        if (filePath.endsWith('.svelte')) {
+            svelteFiles.push(filePath);
+        } else {
+            kitFiles.push(filePath);
+        }
+    }
     const currentSet = new Set(svelteFiles);
     const changedFiles: string[] = [];
 
     // Remove deleted files (only relevant for incremental builds with a persisted manifest)
     if (incremental) {
-        for (const [sourcePath, entry] of Object.entries(manifest.entries)) {
-            if (!currentSet.has(sourcePath)) {
-                deleteEntry(entry);
-                delete manifest.entries[sourcePath];
-            }
-        }
+        pruneDeletedManifestEntries(manifest, currentSet, (entry) => !entry.isKitFile);
     }
 
     for (const sourcePath of svelteFiles) {
@@ -114,12 +197,16 @@ export async function emitSvelteFiles(
         const entry = manifest.entries[sourcePath];
 
         // When file stats match the cached entry, avoid reading the file just to determine isTsFile
+        // (only for Svelte entries, not Kit entries which don't have isTsFile)
         const statsUnchanged =
-            !!entry && entry.mtimeMs === stats.mtimeMs && entry.size === stats.size;
+            !!entry &&
+            !entry.isKitFile &&
+            entry.mtimeMs === stats.mtimeMs &&
+            entry.size === stats.size;
         let text: string | undefined;
         let isTsFile: boolean;
 
-        if (statsUnchanged) {
+        if (statsUnchanged && entry.isTsFile !== undefined) {
             isTsFile = entry.isTsFile;
         } else {
             text = fs.readFileSync(sourcePath, 'utf-8');
@@ -127,7 +214,6 @@ export async function emitSvelteFiles(
         }
 
         const { outPath, dtsPath } = getOutputPaths(workspacePath, emitDir, sourcePath, isTsFile);
-        const mapPath = `${outPath}.map`;
 
         const outPathChanged = !!entry && entry.outPath !== outPath;
         if (outPathChanged) {
@@ -137,11 +223,11 @@ export async function emitSvelteFiles(
         const hasChanged =
             !incremental ||
             !entry ||
+            entry.isKitFile || // Force reprocess if it was previously a Kit entry
             outPathChanged ||
             !statsUnchanged ||
             !fs.existsSync(entry.outPath) ||
-            !fs.existsSync(entry.mapPath) ||
-            !fs.existsSync(entry.dtsPath);
+            (entry.dtsPath && !fs.existsSync(entry.dtsPath));
 
         if (!hasChanged) {
             continue;
@@ -165,21 +251,7 @@ export async function emitSvelteFiles(
                 emitJsDoc: true // without this, tsc/tsgo will choke on the syntactic errors and not emit semantic errors
             });
 
-            const map = tsx.map as any;
-            if (map) {
-                map.sources = [sourcePath];
-                map.file = path.basename(outPath);
-            }
-
-            const mapFileName = path.basename(mapPath);
-            const code = map ? `${tsx.code}\n//# sourceMappingURL=${mapFileName}\n` : tsx.code;
-
-            fs.writeFileSync(outPath, code, 'utf-8');
-            if (map) {
-                fs.writeFileSync(mapPath, JSON.stringify(map), 'utf-8');
-            } else if (fs.existsSync(mapPath)) {
-                fs.unlinkSync(mapPath);
-            }
+            fs.writeFileSync(outPath, tsx.code, 'utf-8');
 
             const dtsImportPath = `./${path.basename(outPath)}`;
             const dtsContent = `export { default } from "${dtsImportPath}";\nexport * from "${dtsImportPath}";\n`;
@@ -188,7 +260,6 @@ export async function emitSvelteFiles(
             manifest.entries[sourcePath] = {
                 sourcePath,
                 outPath,
-                mapPath,
                 dtsPath,
                 mtimeMs: stats.mtimeMs,
                 size: stats.size,
@@ -196,7 +267,71 @@ export async function emitSvelteFiles(
             };
         } catch (e) {
             // rely on the Svelte compiler to emit errors (when running the Svelte diagnostics)
+            safeUnlink(outPath);
+            safeUnlink(dtsPath);
+            delete manifest.entries[sourcePath];
         }
+    }
+
+    // Process SvelteKit files (route files, hooks, params)
+    const currentKitSet = new Set(kitFiles);
+
+    // Remove deleted Kit files
+    if (incremental) {
+        pruneDeletedManifestEntries(manifest, currentKitSet, (entry) => !!entry.isKitFile);
+    }
+
+    for (const sourcePath of kitFiles) {
+        const stats = fs.statSync(sourcePath);
+        const entry = manifest.entries[sourcePath];
+
+        const statsUnchanged =
+            !!entry && entry.mtimeMs === stats.mtimeMs && entry.size === stats.size;
+
+        const outPath = getKitOutputPath(workspacePath, emitDir, sourcePath);
+
+        const outPathChanged = !!entry && entry.outPath !== outPath;
+        if (outPathChanged) {
+            deleteEntry(entry);
+        }
+
+        const hasChanged =
+            !incremental || !entry || outPathChanged || !statsUnchanged || !fs.existsSync(outPath);
+
+        if (!hasChanged) {
+            continue;
+        }
+        changedFiles.push(sourcePath);
+
+        const text = fs.readFileSync(sourcePath, 'utf-8');
+        const isTsFile = sourcePath.endsWith('.ts');
+
+        const result = internalHelpers.upsertKitFile(ts, sourcePath, kitFilesSettings, () =>
+            ts.createSourceFile(
+                sourcePath,
+                text,
+                ts.ScriptTarget.Latest,
+                true,
+                isTsFile ? ts.ScriptKind.TS : ts.ScriptKind.JS
+            )
+        );
+
+        if (!result) {
+            // Not a Kit file or no transformations needed, skip
+            continue;
+        }
+
+        fs.mkdirSync(path.dirname(outPath), { recursive: true });
+        fs.writeFileSync(outPath, result.text, 'utf-8');
+
+        manifest.entries[sourcePath] = {
+            sourcePath,
+            outPath,
+            mtimeMs: stats.mtimeMs,
+            size: stats.size,
+            isKitFile: true,
+            addedCode: result.addedCode
+        };
     }
 
     if (incremental) {
@@ -273,34 +408,16 @@ export function writeOverlayTsconfig(
     let configFiles = rebaseConfigSpecs(rawFiles, tsconfigDir, overlayDir) ?? [];
     // Remove .svelte files from the files list to avoid TS6054; replace with .svelte.d.ts.
     configFiles = configFiles.filter((file) => !file.endsWith('.svelte'));
-    configFiles = configFiles.concat(
-        rawFiles
-            .filter((file) => file.endsWith('.svelte'))
-            .map((file) => {
-                const normalized = file
-                    .replace(/^\$\{configDir\}/i, '.')
-                    .replace(/\.svelte$/, '.svelte.d.ts');
-                return `${EMIT_SUBDIR}/${normalized}`;
-            })
-    );
-    const virtualInclude = rawInclude
-        ?.filter((spec) => spec.endsWith('.svelte') || spec.endsWith('*'))
-        .map((spec) => {
-            const normalized = spec
-                .replace(/^\$\{configDir\}/i, '.')
-                .replace(/\.svelte$/, '.svelte.d.ts');
-            return `${EMIT_SUBDIR}/${normalized}`;
-        });
+    configFiles = configFiles.concat(rawFiles.map((file) => toVirtualSvelteDtsSpec(file)));
+    const virtualInclude = rawInclude?.map((spec) => toVirtualSvelteDtsSpec(spec));
     const mergedInclude = [...(include ?? []), ...(virtualInclude ?? [])];
-    const virtualExclude = rawExclude
-        ?.filter((spec) => spec.endsWith('.svelte') || spec.endsWith('*'))
-        .map((spec) => {
-            const normalized = spec
-                .replace(/^\$\{configDir\}/i, '.')
-                .replace(/\.svelte$/, '.svelte.d.ts');
-            return `${EMIT_SUBDIR}/${normalized}`;
-        });
-    const mergedExclude = [...(exclude ?? []), ...(virtualExclude ?? [])];
+    const virtualExclude = rawExclude?.map((spec) => toVirtualSvelteDtsSpec(spec));
+    const upsertedExcludes = emitResult.entries.map((e) =>
+        toRelativePosix(overlayDir, e.sourcePath)
+    );
+    const mergedExclude = Array.from(
+        new Set([...(exclude ?? []), ...(virtualExclude ?? []), ...upsertedExcludes])
+    );
     const shimFiles = resolveSvelte2tsxShims().map((fileName) =>
         toRelativePosix(overlayDir, fileName)
     );
@@ -413,9 +530,21 @@ export function mapCliDiagnosticsToLsp(
     const entryByOutPath = new Map(
         emitResult.entries.map((entry) => [path.normalize(entry.outPath), entry])
     );
+    const excludedSourcePaths = new Set(
+        emitResult.entries
+            .map((e) => e.addedCode?.length && path.normalize(e.sourcePath))
+            .filter((p): p is string => !!p)
+    );
+
     const diagnosticsByFile = new Map<string, ParsedDiagnostic[]>();
     for (const diagnostic of diagnostics) {
         const key = path.normalize(diagnostic.filePath);
+        // Even though we try to exclude +page.js etc files that had code inserted (due to SvelteKit's zero types feature)
+        // we might still have them included through code in .svelte-kit/types importing them. So we exclude the diagnostics for these.
+        if (excludedSourcePaths.has(key)) {
+            continue;
+        }
+
         const existing = diagnosticsByFile.get(key);
         if (existing) {
             existing.push(diagnostic);
@@ -433,22 +562,66 @@ export function mapCliDiagnosticsToLsp(
         const entry = entryByOutPath.get(filePath);
         if (entry) {
             const sourceText = fs.readFileSync(entry.sourcePath, 'utf-8');
-            const generatedText = fs.readFileSync(entry.outPath, 'utf-8');
-            const tsDiagnostics = fileDiagnostics.map((diag) =>
-                cliDiagnosticToTsDiagnostic(diag, entry.outPath, generatedText, entry.isTsFile)
-            );
-            const mappedDiagnostics = mapSvelteCheckDiagnostics(
-                entry.sourcePath,
-                sourceText,
-                entry.isTsFile,
-                tsDiagnostics
-            );
 
-            results.set(entry.sourcePath, {
-                filePath: entry.sourcePath,
-                text: sourceText,
-                diagnostics: mappedDiagnostics
-            });
+            if (entry.isKitFile && entry.addedCode) {
+                // Kit file: use addedCode for position mapping
+                const source = isTypescriptFile(entry.sourcePath) ? 'ts' : 'js';
+                const generatedText = fs.readFileSync(entry.outPath, 'utf-8');
+                const sourceLineOffsets = getLineOffsets(sourceText);
+                const generatedLineOffsets = getLineOffsets(generatedText);
+                const mappedDiagnostics = fileDiagnostics.map((diag) => {
+                    const generatedOffset = offsetAt(
+                        { line: diag.line, character: diag.character },
+                        generatedText,
+                        generatedLineOffsets
+                    );
+                    const { pos: startOffset } = internalHelpers.toOriginalPos(
+                        generatedOffset,
+                        entry.addedCode!
+                    );
+                    const { pos: endOffset } = internalHelpers.toOriginalPos(
+                        generatedOffset + diag.length,
+                        entry.addedCode!
+                    );
+                    const startPos = positionAt(startOffset, sourceText, sourceLineOffsets);
+                    const endPos = positionAt(endOffset, sourceText, sourceLineOffsets);
+                    return {
+                        range: Range.create(startPos, endPos),
+                        severity: diag.severity,
+                        code: diag.code,
+                        message: diag.message,
+                        source
+                    };
+                });
+
+                results.set(entry.sourcePath, {
+                    filePath: entry.sourcePath,
+                    text: sourceText,
+                    diagnostics: mappedDiagnostics
+                });
+            } else {
+                // Svelte file: use source maps for position mapping
+                const generatedText = fs.readFileSync(entry.outPath, 'utf-8');
+                const tsDiagnostics = fileDiagnostics.map((diag) =>
+                    cliDiagnosticToTsDiagnostic(
+                        diag,
+                        entry.outPath,
+                        generatedText,
+                        entry.isTsFile ?? false
+                    )
+                );
+                const mappedDiagnostics = mapSvelteCheckDiagnostics(
+                    entry.sourcePath,
+                    sourceText,
+                    tsDiagnostics
+                );
+
+                results.set(entry.sourcePath, {
+                    filePath: entry.sourcePath,
+                    text: sourceText,
+                    diagnostics: mappedDiagnostics
+                });
+            }
         } else {
             const text = fs.existsSync(filePath) ? fs.readFileSync(filePath, 'utf-8') : '';
             const source = isTypescriptFile(filePath) ? 'ts' : 'js';
@@ -629,6 +802,20 @@ function getOutputPaths(
 }
 
 /**
+ * Computes the output file path for a SvelteKit route/hook/params file.
+ * Unlike Svelte files, Kit files keep their original filename (no ++ prefix needed).
+ *
+ * @param workspacePath - Root directory of the project
+ * @param emitDir - Directory where generated files are written
+ * @param sourcePath - Path to the source Kit file
+ * @returns Path for the generated code file
+ */
+function getKitOutputPath(workspacePath: string, emitDir: string, sourcePath: string): string {
+    const relPath = path.relative(workspacePath, sourcePath);
+    return toPosixPath(path.join(emitDir, relPath));
+}
+
+/**
  * Rebases an array of tsconfig path specifications from one directory to another.
  * Used when creating the overlay tsconfig to make relative paths work correctly.
  */
@@ -671,10 +858,27 @@ function normalizeConfigSpecs(specs: unknown): string[] | undefined {
     return [String(specs)];
 }
 
+function toVirtualSvelteDtsSpec(spec: string): string {
+    const normalized = spec.replace(/^\$\{configDir\}/i, '.').replace(/\.svelte$/, '.svelte.d.ts');
+    return `${EMIT_SUBDIR}/${normalized}`;
+}
+
 function deleteEntry(entry: ManifestEntry) {
     safeUnlink(entry.outPath);
-    safeUnlink(entry.mapPath);
-    safeUnlink(entry.dtsPath);
+    if (entry.dtsPath) safeUnlink(entry.dtsPath);
+}
+
+function pruneDeletedManifestEntries(
+    manifest: Manifest,
+    currentSet: Set<string>,
+    shouldConsiderEntry: (entry: ManifestEntry) => boolean
+) {
+    for (const [sourcePath, entry] of Object.entries(manifest.entries)) {
+        if (shouldConsiderEntry(entry) && !currentSet.has(sourcePath)) {
+            deleteEntry(entry);
+            delete manifest.entries[sourcePath];
+        }
+    }
 }
 
 function safeUnlink(filePath: string) {
@@ -713,8 +917,9 @@ function loadManifest(manifestPath: string, workspacePath: string): Manifest {
                 ...entry,
                 sourcePath: toPosixPath(path.resolve(workspacePath, entry.sourcePath)),
                 outPath: toPosixPath(path.resolve(workspacePath, entry.outPath)),
-                mapPath: toPosixPath(path.resolve(workspacePath, entry.mapPath)),
-                dtsPath: toPosixPath(path.resolve(workspacePath, entry.dtsPath))
+                dtsPath: entry.dtsPath
+                    ? toPosixPath(path.resolve(workspacePath, entry.dtsPath))
+                    : undefined
             };
         }
         return { version: data.version, entries: resolvedEntries };
@@ -741,8 +946,7 @@ function writeManifest(manifestPath: string, manifest: Manifest, workspacePath: 
             ...entry,
             sourcePath: toRelativePosix(workspacePath, entry.sourcePath),
             outPath: toRelativePosix(workspacePath, entry.outPath),
-            mapPath: toRelativePosix(workspacePath, entry.mapPath),
-            dtsPath: toRelativePosix(workspacePath, entry.dtsPath)
+            dtsPath: entry.dtsPath ? toRelativePosix(workspacePath, entry.dtsPath) : undefined
         };
     }
     const data: Manifest = {

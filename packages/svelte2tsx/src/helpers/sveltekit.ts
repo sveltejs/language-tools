@@ -152,26 +152,30 @@ function upsertKitRouteFile(
     // add type to load function if not explicitly typed
     const load = exports.get('load');
     if (load?.type === 'function' && load.node.parameters.length === 1 && !load.hasTypeDefinition) {
-        const pos = load.node.parameters[0].getEnd();
-        const inserted = surround(
-            `: import('./$types.js').${basename.includes('layout') ? 'Layout' : 'Page'}${
-                basename.includes('server') ? 'Server' : ''
-            }LoadEvent`
-        );
+        const load_type = `import('./$types.js').${basename.includes('layout') ? 'Layout' : 'Page'}${
+            basename.includes('server') ? 'Server' : ''
+        }Load`;
 
-        insert(pos, inserted);
+        if (isTsFile) {
+            const pos = load.node.parameters[0].getEnd();
+            const inserted = surround(`: ${load_type}Event`);
+            insert(pos, inserted);
+        } else {
+            addJsDocParamToFunction(surround, insert, ts, load.node, `${load_type}Event`);
+        }
     } else if (load?.type === 'var' && !load.hasTypeDefinition) {
-        // "const load = ..." will be transformed into
-        // "const load = (...) satisfies PageLoad"
-        insert(load.node.initializer.getStart(), surround('('));
-        insert(
-            load.node.initializer.getEnd(),
-            surround(
-                `) satisfies import('./$types.js').${basename.includes('layout') ? 'Layout' : 'Page'}${
-                    basename.includes('server') ? 'Server' : ''
-                }Load`
-            )
-        );
+        const load_type = `import('./$types.js').${basename.includes('layout') ? 'Layout' : 'Page'}${
+            basename.includes('server') ? 'Server' : ''
+        }Load`;
+
+        if (isTsFile) {
+            // "const load = ..." will be transformed into
+            // "const load = (...) satisfies PageLoad"
+            insert(load.node.initializer.getStart(), surround('('));
+            insert(load.node.initializer.getEnd(), surround(`) satisfies ${load_type}`));
+        } else {
+            addJsDocSatisfiesToVariable(surround, insert, load.node, load_type);
+        }
     }
 
     // add type to entries function if not explicitly typed
@@ -182,27 +186,50 @@ function upsertKitRouteFile(
         !entries.hasTypeDefinition &&
         !basename.includes('layout')
     ) {
-        if (!entries.node.type && entries.node.body) {
+        if (isTsFile && !entries.node.type && entries.node.body) {
             const returnPos = ts.isArrowFunction(entries.node)
                 ? entries.node.equalsGreaterThanToken.getStart()
                 : entries.node.body.getStart();
             const returnInsertion = surround(`: ReturnType<import('./$types.js').EntryGenerator> `);
             insert(returnPos, returnInsertion);
+        } else if (!isTsFile) {
+            addJsDocTypeToFunction(
+                surround,
+                insert,
+                entries.node,
+                `import('./$types.js').EntryGenerator`
+            );
         }
     }
 
     // add type to actions variable if not explicitly typed
     const actions = exports.get('actions');
     if (actions?.type === 'var' && !actions.hasTypeDefinition && actions.node.initializer) {
-        const pos = actions.node.initializer.getEnd();
-        const inserted = surround(` satisfies import('./$types.js').Actions`);
-        insert(pos, inserted);
+        if (isTsFile) {
+            const pos = actions.node.initializer.getEnd();
+            const inserted = surround(` satisfies import('./$types.js').Actions`);
+            insert(pos, inserted);
+        } else {
+            addJsDocSatisfiesToVariable(
+                surround,
+                insert,
+                actions.node,
+                `import('./$types.js').Actions`
+            );
+        }
     }
 
-    addTypeToVariable(exports, surround, insert, 'prerender', `boolean | 'auto'`);
-    addTypeToVariable(exports, surround, insert, 'trailingSlash', `'never' | 'always' | 'ignore'`);
-    addTypeToVariable(exports, surround, insert, 'ssr', `boolean`);
-    addTypeToVariable(exports, surround, insert, 'csr', `boolean`);
+    addTypeToVariable(exports, surround, insert, isTsFile, 'prerender', `boolean | 'auto'`);
+    addTypeToVariable(
+        exports,
+        surround,
+        insert,
+        isTsFile,
+        'trailingSlash',
+        `'never' | 'always' | 'ignore'`
+    );
+    addTypeToVariable(exports, surround, insert, isTsFile, 'ssr', `boolean`);
+    addTypeToVariable(exports, surround, insert, isTsFile, 'csr', `boolean`);
 
     // add types to GET/PUT/POST/PATCH/DELETE/OPTIONS/HEAD if not explicitly typed
     const insertApiMethod = (name: string) => {
@@ -211,6 +238,7 @@ function upsertKitRouteFile(
             exports,
             surround,
             insert,
+            isTsFile,
             name,
             `import('./$types.js').RequestEvent`,
             `Response | Promise<Response>`
@@ -251,7 +279,7 @@ function upsertKitParamsFile(
     const isTsFile = basename.endsWith('.ts');
     const exports = findExports(ts, source, isTsFile);
 
-    addTypeToFunction(ts, exports, surround, insert, 'match', 'string', 'boolean');
+    addTypeToFunction(ts, exports, surround, insert, isTsFile, 'match', 'string', 'boolean');
 
     return { addedCode, originalText: source.getFullText() };
 }
@@ -284,6 +312,7 @@ function upsertKitClientHooksFile(
         exports,
         surround,
         insert,
+        isTsFile,
         'handleError',
         `import('@sveltejs/kit').HandleClientError`
     );
@@ -315,7 +344,7 @@ function upsertKitServerHooksFile(
     const exports = findExports(ts, source, isTsFile);
 
     const addType = (name: string, type: string) => {
-        addTypeToFunction(ts, exports, surround, insert, name, type);
+        addTypeToFunction(ts, exports, surround, insert, isTsFile, name, type);
     };
 
     addType('handleError', `import('@sveltejs/kit').HandleServerError`);
@@ -348,7 +377,15 @@ function upsertKitUniversalHooksFile(
     const isTsFile = basename.endsWith('.ts');
     const exports = findExports(ts, source, isTsFile);
 
-    addTypeToFunction(ts, exports, surround, insert, 'reroute', `import('@sveltejs/kit').Reroute`);
+    addTypeToFunction(
+        ts,
+        exports,
+        surround,
+        insert,
+        isTsFile,
+        'reroute',
+        `import('@sveltejs/kit').Reroute`
+    );
 
     return { addedCode, originalText: source.getFullText() };
 }
@@ -365,14 +402,19 @@ function addTypeToVariable(
     >,
     surround: (text: string) => string,
     insert: (pos: number, inserted: string) => void,
+    isTsFile: boolean,
     name: string,
     type: string
 ) {
     const variable = exports.get(name);
     if (variable?.type === 'var' && !variable.hasTypeDefinition && variable.node.initializer) {
-        const pos = variable.node.name.getEnd();
-        const inserted = surround(` : ${type}`);
-        insert(pos, inserted);
+        if (isTsFile) {
+            const pos = variable.node.name.getEnd();
+            const inserted = surround(` : ${type}`);
+            insert(pos, inserted);
+        } else {
+            addJsDocTypeToVariable(surround, insert, variable.node, type);
+        }
     }
 }
 
@@ -389,25 +431,84 @@ function addTypeToFunction(
     >,
     surround: (text: string) => string,
     insert: (pos: number, inserted: string) => void,
+    isTsFile: boolean,
     name: string,
     type: string,
     returnType?: string
 ) {
     const fn = exports.get(name);
     if (fn?.type === 'function' && fn.node.parameters.length === 1 && !fn.hasTypeDefinition) {
-        const paramPos = fn.node.parameters[0].getEnd();
-        const paramInsertion = surround(!returnType ? `: Parameters<${type}>[0]` : `: ${type}`);
-        insert(paramPos, paramInsertion);
-        if (!fn.node.type && fn.node.body) {
-            const returnPos = ts.isArrowFunction(fn.node)
-                ? fn.node.equalsGreaterThanToken.getStart()
-                : fn.node.body.getStart();
-            const returnInsertion = surround(
-                !returnType ? `: ReturnType<${type}> ` : `: ${returnType} `
-            );
-            insert(returnPos, returnInsertion);
+        if (isTsFile) {
+            const paramPos = fn.node.parameters[0].getEnd();
+            const paramInsertion = surround(!returnType ? `: Parameters<${type}>[0]` : `: ${type}`);
+            insert(paramPos, paramInsertion);
+            if (!fn.node.type && fn.node.body) {
+                const returnPos = ts.isArrowFunction(fn.node)
+                    ? fn.node.equalsGreaterThanToken.getStart()
+                    : fn.node.body.getStart();
+                const returnInsertion = surround(
+                    !returnType ? `: ReturnType<${type}> ` : `: ${returnType} `
+                );
+                insert(returnPos, returnInsertion);
+            }
+        } else {
+            const jsdoc_type = returnType === undefined ? type : `(arg0: ${type}) => ${returnType}`;
+            addJsDocTypeToFunction(surround, insert, fn.node, jsdoc_type);
         }
     }
+}
+
+function addJsDocTypeToVariable(
+    surround: (text: string) => string,
+    insert: (pos: number, inserted: string) => void,
+    node: ts.VariableDeclaration,
+    type: string
+) {
+    if (!node.initializer) {
+        return;
+    }
+
+    insert(node.initializer.getStart(), surround(`/** @type {${type}} */ (`));
+    insert(node.initializer.getEnd(), surround(`)`));
+}
+
+function addJsDocSatisfiesToVariable(
+    surround: (text: string) => string,
+    insert: (pos: number, inserted: string) => void,
+    node: ts.VariableDeclaration,
+    type: string
+) {
+    if (!node.initializer) {
+        return;
+    }
+
+    insert(node.initializer.getStart(), surround(`/** @satisfies {${type}} */ (`));
+    insert(node.initializer.getEnd(), surround(`)`));
+}
+
+function addJsDocTypeToFunction(
+    surround: (text: string) => string,
+    insert: (pos: number, inserted: string) => void,
+    node: ts.FunctionDeclaration | ts.ArrowFunction | ts.FunctionExpression,
+    type: string
+) {
+    insert(node.getStart(), surround(`/** @type {${type}} */ `));
+}
+
+function addJsDocParamToFunction(
+    surround: (text: string) => string,
+    insert: (pos: number, inserted: string) => void,
+    ts: _ts,
+    node: ts.FunctionDeclaration | ts.ArrowFunction | ts.FunctionExpression,
+    type: string
+) {
+    const parameter = node.parameters[0];
+    if (!parameter) {
+        return;
+    }
+
+    const parameter_name = ts.isIdentifier(parameter.name) ? parameter.name.text : 'arg0';
+    insert(node.getStart(), surround(`/** @param {${type}} ${parameter_name} */ `));
 }
 
 function insertCode(addedCode: AddedCode[], pos: number, inserted: string) {
