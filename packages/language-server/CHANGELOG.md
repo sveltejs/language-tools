@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.17.27
+
+### Patch Changes
+
+-   fix: handle relative imports reaching outside working directory when using `--incremental/--tsgo` flags ([#2942](https://github.com/sveltejs/language-tools/pull/2942))
+
+-   fix: extract style/script tag followed by destructuring in the template ([#2921](https://github.com/sveltejs/language-tools/pull/2921))
+
+-   fix: support SvelteKit zero types in svelte-check --incremental ([#2939](https://github.com/sveltejs/language-tools/pull/2939))
+
+-   Updated dependencies [[`6a04679`](https://github.com/sveltejs/language-tools/commit/6a04679e600c7a9ecd0bcdb9476c4edd4bdf6e72), [`b914d01`](https://github.com/sveltejs/language-tools/commit/b914d0104ba5326cc607039313dd8993a6e141fd)]:
+    -   svelte2tsx@0.7.49
+
 ## 0.17.26
 
 ### Patch Changes
