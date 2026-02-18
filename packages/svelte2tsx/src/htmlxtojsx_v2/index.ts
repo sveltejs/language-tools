@@ -42,6 +42,10 @@ import { EventHandler } from '../svelte2tsx/nodes/event-handler';
 import { ComponentEvents } from '../svelte2tsx/nodes/ComponentEvents';
 import { analyze } from 'periscopic';
 import { handleAttachTag } from './nodes/AttachTag';
+import {
+    getExternalImportRewrite,
+    RewriteExternalImportsOptions
+} from '../helpers/rewriteExternalImports';
 
 export interface TemplateProcessResult {
     /**
@@ -81,6 +85,7 @@ export function convertHtmlxToJsx(
         svelte5Plus: boolean;
         emitJsDoc?: boolean;
         isTsFile?: boolean;
+        rewriteExternalImports?: RewriteExternalImportsOptions;
     } = { svelte5Plus: false }
 ): TemplateProcessResult {
     options.typingsNamespace = options.typingsNamespace || 'svelteHTML';
@@ -159,6 +164,56 @@ export function convertHtmlxToJsx(
         str.remove(node.start, node.end);
     };
 
+    const rewriteImportSpecifier = (importSpecifier: string) => {
+        if (!options.rewriteExternalImports) {
+            return importSpecifier;
+        }
+        const rewrite = getExternalImportRewrite(importSpecifier, options.rewriteExternalImports);
+        return rewrite?.rewritten ?? importSpecifier;
+    };
+
+    const rewriteImportsInComment = (comment: BaseNode) => {
+        if (!options.rewriteExternalImports) {
+            return;
+        }
+        const original = str.original.slice(comment.start, comment.end);
+        const rewritten = original.replace(
+            /import\(\s*(['"])([^'"]+)\1\s*\)/g,
+            (fullMatch, quote, importSpecifier) => {
+                const specifier = rewriteImportSpecifier(importSpecifier);
+                return specifier === importSpecifier
+                    ? fullMatch
+                    : `import(${quote}${specifier}${quote})`;
+            }
+        );
+
+        if (rewritten !== original) {
+            str.overwrite(comment.start, comment.end, rewritten);
+        }
+    };
+
+    const rewriteNodeCommentImports = (node: BaseNode) => {
+        if (!options.rewriteExternalImports) {
+            return;
+        }
+
+        const nodeWithcomments = node as BaseNode & {
+            leadingComments?: BaseNode[];
+            trailingComments?: BaseNode[];
+            innerComments?: BaseNode[];
+        };
+
+        for (const comment of nodeWithcomments.leadingComments ?? []) {
+            rewriteImportsInComment(comment);
+        }
+        for (const comment of nodeWithcomments.trailingComments ?? []) {
+            rewriteImportsInComment(comment);
+        }
+        for (const comment of nodeWithcomments.innerComments ?? []) {
+            rewriteImportsInComment(comment);
+        }
+    };
+
     const slotHandler = new SlotHandler(str.original);
     let templateScope = new TemplateScope();
 
@@ -212,12 +267,31 @@ export function convertHtmlxToJsx(
             }
 
             try {
+                rewriteNodeCommentImports(node as BaseNode);
+
                 switch (node.type) {
                     case 'Identifier':
                         handleIdentifier(node);
                         stores.handleIdentifier(node, parent, prop);
                         eventHandler.handleIdentifier(node, parent, prop);
                         break;
+                    case 'ImportExpression': {
+                        const source = (node as any).source;
+                        if (
+                            options.rewriteExternalImports &&
+                            source?.type === 'Literal' &&
+                            typeof source.value === 'string'
+                        ) {
+                            const rewrite = getExternalImportRewrite(
+                                source.value,
+                                options.rewriteExternalImports
+                            );
+                            if (rewrite) {
+                                str.overwrite(source.start + 1, source.end - 1, rewrite.rewritten);
+                            }
+                        }
+                        break;
+                    }
                     case 'IfBlock':
                         handleIf(str, node);
                         break;
