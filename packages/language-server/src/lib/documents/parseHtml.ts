@@ -137,6 +137,27 @@ export function parseHtml(text: string): HTMLDocument {
                 parseAttributeValue();
                 break;
 
+            case TokenType.Unknown: {
+                const tokenOffset = scanner.getTokenOffset();
+                if (
+                    isInsideTagScannerState() &&
+                    text.charCodeAt(tokenOffset) === '/'.charCodeAt(0)
+                ) {
+                    const nextCharCode = text.charCodeAt(tokenOffset + 1);
+                    if (nextCharCode === '/'.charCodeAt(0)) {
+                        const newlineOffset = text.indexOf('\n', tokenOffset + 2);
+                        const commentEndOffset = newlineOffset === -1 ? text.length : newlineOffset;
+                        restartScannerAt(commentEndOffset, ScannerState.WithinTag);
+                    } else if (nextCharCode === '*'.charCodeAt(0)) {
+                        const blockCommentEnd = text.indexOf('*/', tokenOffset + 2);
+                        const commentEndOffset =
+                            blockCommentEnd === -1 ? text.length : blockCommentEnd + 2;
+                        restartScannerAt(commentEndOffset, ScannerState.WithinTag);
+                    }
+                }
+                break;
+            }
+
             case TokenType.Content: {
                 const expressionEnd = skipExpressionInCurrentRange();
                 if (expressionEnd > scanner.getTokenEnd()) {
@@ -222,6 +243,16 @@ export function parseHtml(text: string): HTMLDocument {
             restartScannerAt(expressionTagEnd, ScannerState.WithinTag);
         }
         finishAttribute(start, expressionTagEnd);
+    }
+
+    function isInsideTagScannerState() {
+        const scannerState = scanner.getScannerState();
+        return (
+            scannerState === ScannerState.WithinTag ||
+            scannerState === ScannerState.AfterAttributeName ||
+            scannerState === ScannerState.BeforeAttributeValue ||
+            scannerState === ScannerState.AfterOpeningStartTag
+        );
     }
 }
 
