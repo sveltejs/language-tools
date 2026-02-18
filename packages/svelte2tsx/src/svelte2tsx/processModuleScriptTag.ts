@@ -8,6 +8,10 @@ import { is$$EventsDeclaration } from './nodes/ComponentEvents';
 import { throwError } from './utils/error';
 import { is$$SlotsDeclaration } from './nodes/slot';
 import { is$$PropsDeclaration } from './nodes/ExportedNames';
+import {
+    rewriteExternalImportsInNode,
+    RewriteExternalImportsOptions
+} from '../helpers/rewriteExternalImports';
 
 export interface ModuleAst {
     htmlx: string;
@@ -35,7 +39,8 @@ export function processModuleScriptTag(
     str: MagicString,
     script: Node,
     implicitStoreValues: ImplicitStoreValues,
-    moduleAst: ModuleAst
+    moduleAst: ModuleAst,
+    rewriteExternalImports?: RewriteExternalImportsOptions
 ) {
     const { htmlx, tsAst, astOffset } = moduleAst;
 
@@ -51,6 +56,16 @@ export function processModuleScriptTag(
     }
 
     const walk = (node: ts.Node) => {
+        if (rewriteExternalImports) {
+            rewriteExternalImportsInNode(ts, node, rewriteExternalImports, (specifier, rewrite) => {
+                str.overwrite(
+                    specifier.getStart(tsAst) + astOffset + 1,
+                    specifier.getEnd() + astOffset - 1,
+                    rewrite.rewritten
+                );
+            });
+        }
+
         resolveImplicitStoreValue(node, implicitStoreValues, str, astOffset);
 
         generics.throwIfIsGeneric(node);

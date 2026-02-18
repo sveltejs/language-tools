@@ -1,6 +1,10 @@
 import path from 'path';
 import type ts from 'typescript';
 import { findExports } from './typescript';
+import {
+    forEachExternalImportRewrite,
+    RewriteExternalImportsOptions
+} from './rewriteExternalImports';
 
 type _ts = typeof ts;
 
@@ -76,7 +80,11 @@ export function upsertKitFile(
     fileName: string,
     kitFilesSettings: KitFilesSettings,
     getSource: () => ts.SourceFile | undefined,
-    surround: (text: string) => string = (text) => text
+    surround: (text: string) => string = (text) => text,
+    rewriteExternalImports?: {
+        workspacePath: string;
+        generatedPath: string;
+    }
 ): { text: string; addedCode: AddedCode[] } {
     let basename = path.basename(fileName);
     const result =
@@ -127,7 +135,41 @@ export function upsertKitFile(
     }
     text += originalText.slice(pos);
 
+    if (rewriteExternalImports) {
+        const source = getSource();
+        if (source) {
+            const rewriteOptions: RewriteExternalImportsOptions = {
+                sourcePath: fileName,
+                generatedPath: rewriteExternalImports.generatedPath,
+                workspacePath: rewriteExternalImports.workspacePath
+            };
+            applyExternalImportRewritesToAddedCode(ts, source, addedCode, rewriteOptions);
+
+            let rewritePos = 0;
+            text = '';
+            for (const added of addedCode) {
+                text += originalText.slice(rewritePos, added.originalPos) + added.inserted;
+                rewritePos = added.originalPos;
+            }
+            text += originalText.slice(rewritePos);
+        }
+    }
+
     return { text, addedCode };
+}
+
+function applyExternalImportRewritesToAddedCode(
+    ts_impl: _ts,
+    source: ts.SourceFile,
+    addedCode: AddedCode[],
+    rewriteOptions: RewriteExternalImportsOptions
+) {
+    forEachExternalImportRewrite(ts_impl, source, rewriteOptions, (module_specifier, rewrite) => {
+        if (!rewrite.insertedPrefix) {
+            return;
+        }
+        insertCode(addedCode, module_specifier.getStart(source) + 1, rewrite.insertedPrefix);
+    });
 }
 
 function upsertKitRouteFile(

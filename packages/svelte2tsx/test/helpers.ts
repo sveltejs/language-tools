@@ -239,13 +239,19 @@ export function test_samples(dir: string, transform: TransformSampleFn, js: 'js'
             filename: svelteFile,
             sampleName: sample.name,
             emitOnTemplateError: sample.emitOnTemplateError,
-            preserveAttributeCase: sample.name.endsWith('-foreign-ns')
+            preserveAttributeCase: sample.name.endsWith('-foreign-ns'),
+            ...JSON.parse(sample.get('config.json') || '{}')
         };
 
         if (process.env.CI) {
             sample.checkDirectory({
                 required: ['*.svelte', `expectedv2.${js}`],
-                allowed: ['expected.js', `expected-svelte5.${js}`, 'expected.error.json']
+                allowed: [
+                    'expected.js',
+                    `expected-svelte5.${js}`,
+                    'expected.error.json',
+                    'config.json'
+                ]
             });
         } else {
             sample.checkDirectory({
@@ -254,7 +260,8 @@ export function test_samples(dir: string, transform: TransformSampleFn, js: 'js'
                     'expected.js',
                     `expectedv2.${js}`,
                     `expected-svelte5.${js}`,
-                    'expected.error.json'
+                    'expected.error.json',
+                    'config.json'
                 ]
             });
 
@@ -364,6 +371,7 @@ export function test_samples(dir: string, transform: TransformSampleFn, js: 'js'
 type BaseConfig = {
     emitOnTemplateError?: boolean;
     filename?: string;
+    rewriteExternalImports?: Svelte2TsxConfig['rewriteExternalImports'];
 };
 type Svelte2TsxConfig = Required<Parameters<typeof svelte2tsx>[1]>;
 
@@ -377,7 +385,8 @@ export function get_svelte2tsx_config(base: BaseConfig, sampleName: string): Sve
         mode: sampleName.endsWith('-dts') ? 'dts' : 'ts',
         accessors: sampleName.startsWith('accessors-config'),
         emitJsDoc: sampleName.startsWith('jsdoc-'),
-        version: VERSION
+        version: VERSION,
+        rewriteExternalImports: base.rewriteExternalImports
     };
 }
 

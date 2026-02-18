@@ -248,7 +248,11 @@ export async function emitSvelteFiles(
                 isTsFile,
                 mode: 'ts',
                 emitOnTemplateError: false,
-                emitJsDoc: true // without this, tsc/tsgo will choke on the syntactic errors and not emit semantic errors
+                emitJsDoc: true, // without this, tsc/tsgo will choke on the syntactic errors and not emit semantic errors
+                rewriteExternalImports: {
+                    workspacePath,
+                    generatedPath: outPath
+                }
             });
 
             fs.writeFileSync(outPath, tsx.code, 'utf-8');
@@ -306,14 +310,23 @@ export async function emitSvelteFiles(
         const text = fs.readFileSync(sourcePath, 'utf-8');
         const isTsFile = sourcePath.endsWith('.ts');
 
-        const result = internalHelpers.upsertKitFile(ts, sourcePath, kitFilesSettings, () =>
-            ts.createSourceFile(
-                sourcePath,
-                text,
-                ts.ScriptTarget.Latest,
-                true,
-                isTsFile ? ts.ScriptKind.TS : ts.ScriptKind.JS
-            )
+        const result = internalHelpers.upsertKitFile(
+            ts,
+            sourcePath,
+            kitFilesSettings,
+            () =>
+                ts.createSourceFile(
+                    sourcePath,
+                    text,
+                    ts.ScriptTarget.Latest,
+                    true,
+                    isTsFile ? ts.ScriptKind.TS : ts.ScriptKind.JS
+                ),
+            undefined,
+            {
+                workspacePath,
+                generatedPath: outPath
+            }
         );
 
         if (!result) {
@@ -532,7 +545,7 @@ export function mapCliDiagnosticsToLsp(
     );
     const excludedSourcePaths = new Set(
         emitResult.entries
-            .map((e) => e.addedCode?.length && path.normalize(e.sourcePath))
+            .map((e) => e.isKitFile && e.addedCode?.length && path.normalize(e.sourcePath))
             .filter((p): p is string => !!p)
     );
 
@@ -613,7 +626,13 @@ export function mapCliDiagnosticsToLsp(
                 const mappedDiagnostics = mapSvelteCheckDiagnostics(
                     entry.sourcePath,
                     sourceText,
-                    tsDiagnostics
+                    tsDiagnostics,
+                    {
+                        rewriteExternalImports: {
+                            workspacePath: emitResult.workspacePath,
+                            generatedPath: entry.outPath
+                        }
+                    }
                 );
 
                 results.set(entry.sourcePath, {

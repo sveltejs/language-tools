@@ -1,0 +1,7 @@
+{
+    "filename": "/x/y/input.svelte",
+    "rewriteExternalImports": {
+        "workspacePath": "/x/y",
+        "generatedPath": "/x/y/generated/input.svelte"
+    }
+}

@@ -11,6 +11,7 @@ import { createModuleAst, ModuleAst, processModuleScriptTag } from './processMod
 import path from 'path';
 import { parse, VERSION } from 'svelte/compiler';
 import { getTopLevelImports } from './utils/tsAst';
+import { RewriteExternalImportsOptions } from '../helpers/rewriteExternalImports';
 
 function processSvelteTemplate(
     str: MagicString,
@@ -24,6 +25,7 @@ function processSvelteTemplate(
         svelte5Plus: boolean;
         emitJsDoc?: boolean;
         isTsFile?: boolean;
+        rewriteExternalImports?: RewriteExternalImportsOptions;
     }
 ): TemplateProcessResult {
     const { htmlxAst, tags } = parseHtmlx(str.original, parse, options);
@@ -49,12 +51,25 @@ export function svelte2tsx(
          * valid JS that tsc can process without errors.
          */
         emitJsDoc?: boolean;
+        rewriteExternalImports?: {
+            workspacePath: string;
+            generatedPath: string;
+        };
     } = { parse }
 ) {
     options.mode = options.mode || 'ts';
     options.version = options.version || VERSION;
 
     const str = new MagicString(svelte);
+
+    const rewriteExternalImportsOptions: RewriteExternalImportsOptions | undefined =
+        options.rewriteExternalImports && options.filename
+            ? {
+                  sourcePath: options.filename,
+                  generatedPath: options.rewriteExternalImports.generatedPath,
+                  workspacePath: options.rewriteExternalImports.workspacePath
+              }
+            : undefined;
     const basename = path.basename(options.filename || '');
     const svelte5Plus = Number(options.version![0]) > 4;
     const isTsFile = options?.isTsFile;
@@ -77,7 +92,8 @@ export function svelte2tsx(
         isRunes
     } = processSvelteTemplate(str, options.parse || parse, {
         ...options,
-        svelte5Plus
+        svelte5Plus,
+        rewriteExternalImports: rewriteExternalImportsOptions
     });
 
     /* Rearrange the script tags so that module is first, and instance second followed finally by the template
@@ -138,7 +154,8 @@ export function svelte2tsx(
             basename,
             svelte5Plus,
             isRunes,
-            emitJsDoc
+            emitJsDoc,
+            rewriteExternalImportsOptions
         );
         uses$$props = uses$$props || res.uses$$props;
         uses$$restProps = uses$$restProps || res.uses$$restProps;
@@ -186,7 +203,8 @@ export function svelte2tsx(
                 svelte5Plus,
                 scriptTag || options.mode === 'ts' ? undefined : (input) => `</>;${input}<>`
             ),
-            moduleAst
+            moduleAst,
+            rewriteExternalImportsOptions
         );
         if (!scriptTag) {
             moduleAst.tsAst.forEachChild((node) =>

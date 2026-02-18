@@ -90,6 +90,11 @@ export function svelte2tsx(
          * valid JS that tsc can process without errors.
          */
         emitJsDoc?: boolean;
+        /**
+         * Rewrites relative imports that resolve outside the workspace so they stay valid
+         * from the generated file location.
+         */
+        rewriteExternalImports?: InternalHelpers.RewriteExternalImportsConfig;
     }
 ): SvelteCompiledToTsx
 
@@ -163,7 +168,8 @@ export const internalHelpers: {
         fileName: string,
         kitFilesSettings: InternalHelpers.KitFilesSettings,
         getSource: () => ts.SourceFile | undefined,
-        surround?: (code: string) => string
+        surround?: (code: string) => string,
+        rewriteExternalImports?: InternalHelpers.RewriteExternalImportsConfig
     ) => { text: string; addedCode: InternalHelpers.AddedCode[] } | undefined,
     toVirtualPos: (pos: number, addedCode: InternalHelpers.AddedCode[]) => number,
     toOriginalPos: (pos: number, addedCode: InternalHelpers.AddedCode[]) => {pos: number; inGenerated: boolean},
@@ -200,5 +206,10 @@ export namespace InternalHelpers {
         clientHooksPath: string;
         universalHooksPath: string;
         paramsPath: string;
+    }
+
+    export interface RewriteExternalImportsConfig {
+        workspacePath: string;
+        generatedPath: string;
     }
 }

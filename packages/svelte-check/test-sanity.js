@@ -139,25 +139,31 @@ test('clean project (incremental, warm cache)', {
 const errors = [
     {
         file: 'Index.svelte',
-        line: 4,
+        line: 3,
+        column: 21,
+        code: 2307
+    },
+    {
+        file: 'Index.svelte',
+        line: 5,
         column: 8,
         code: 2322
     },
     {
         file: 'Index.svelte',
-        line: 7,
+        line: 8,
         column: 4,
         code: 2367
     },
     {
         file: 'Index.svelte',
-        line: 10,
+        line: 11,
         column: 4,
         code: 2367
     },
     {
         file: 'Index.svelte',
-        line: 14,
+        line: 15,
         column: 1,
         code: 2741
     },
