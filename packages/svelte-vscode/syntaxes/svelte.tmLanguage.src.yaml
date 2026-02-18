@@ -391,10 +391,22 @@ repository:
 
   attributes:
     patterns:
+    - include: '#attributes-comments'
     - include: '#attributes-directives'
     - include: '#attributes-keyvalue'
     - include: '#attributes-attach'
     - include: '#attributes-interpolated'
+
+  # Comments within attributes
+  attributes-comments:
+    patterns:
+    # Single-line comment
+    - match: //.*$
+      name: comment.line.double-slash.svelte
+    # Block comment
+    - begin: /\*
+      end: \*/
+      name: comment.block.svelte
 
   # Attachments
   attributes-attach:

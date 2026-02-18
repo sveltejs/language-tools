@@ -198,6 +198,20 @@ describe('parseHtml', () => {
         const ariaLabelValue = fooNode.attributes?.['ariaLabel'];
         assert.strictEqual(ariaLabelValue, `"a{b > c ? "": ""} c"`);
     });
+
+    it('parse comments in attributes', () => {
+        testRootElements(
+            parseHtml(
+                `<Foo
+                // comment/>
+                checked={a}
+                /* another comment/> <div>ignore me</div> */
+                hello="bar"
+                />
+                <style></style>`
+            )
+        );
+    });
 });
 
 describe('getAttributeContextAtPosition', () => {
