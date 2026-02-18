@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.17.28
+
+### Patch Changes
+
+-   feat: support for comments in tags ([#2944](https://github.com/sveltejs/language-tools/pull/2944))
+
 ## 0.17.27
 
 ### Patch Changes
