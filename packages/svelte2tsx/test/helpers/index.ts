@@ -107,6 +107,22 @@ describe('Internal Helpers - upsertKitFile', () => {
         );
     });
 
+    it('leaves actions with existing jsdoc @satisfies as is', () => {
+        upsert(
+            '+page.server.js',
+            `/** @satisfies {import('./$types').Actions} */\nexport const actions = { default: async (e) => {} };`,
+            `/** @satisfies {import('./$types').Actions} */\nexport const actions = { default: async (e) => {} };`
+        );
+    });
+
+    it('leaves load const with existing jsdoc @satisfies as is', () => {
+        upsert(
+            '+page.js',
+            `/** @satisfies {import('./$types').PageLoad} */\nexport const load = (async (e) => {});`,
+            `/** @satisfies {import('./$types').PageLoad} */\nexport const load = (async (e) => {});`
+        );
+    });
+
     it('recognizes page@', () => {
         upsert('+page@.ts', `export const ssr = true;`, `export const ssr : boolean = true;`);
     });
