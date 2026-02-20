@@ -1,5 +1,13 @@
 # Changelog
 
+## 4.4.2
+
+### Patch Changes
+
+-   fix: resolve shims correctly in `--incremental/tsgo` mode ([`cd1ff2f`](https://github.com/sveltejs/language-tools/commit/cd1ff2f269f3401ad8a5924e208558de868a4f3c))
+
+-   fix: include `references` in generated `tsconfig.json` in `--incremental/tsgo` mode ([`1990f74`](https://github.com/sveltejs/language-tools/commit/1990f7477de44740109e75a7755a92385c195374))
+
 ## 4.4.1
 
 ### Patch Changes
