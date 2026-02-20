@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.50
+
+### Patch Changes
+
+-   fix: detect existing JSDoc `@satisfies` to prevent duplicate injection ([#2946](https://github.com/sveltejs/language-tools/pull/2946))
+
 ## 0.7.49
 
 ### Patch Changes
