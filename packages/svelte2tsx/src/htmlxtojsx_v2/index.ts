@@ -10,7 +10,11 @@ import { handleAttribute } from './nodes/Attribute';
 import { handleAwait } from './nodes/AwaitPendingCatchBlock';
 import { handleBinding } from './nodes/Binding';
 import { handleClassDirective } from './nodes/Class';
-import { handleComment } from './nodes/Comment';
+import {
+    handleComment,
+    handleLeadingStartComment,
+    handleTrailingEndComment
+} from './nodes/Comment';
 import { handleConstTag } from './nodes/ConstTag';
 import { handleDebug } from './nodes/DebugTag';
 import { handleEach } from './nodes/EachBlock';
@@ -371,6 +375,8 @@ export function convertHtmlxToJsx(
                         handleRenderTag(str, node);
                         break;
                     case 'AttachTag':
+                        handleLeadingStartComment(str, node as BaseNode, ast);
+                        handleTrailingEndComment(str, node as BaseNode, parent, ast);
                         handleAttachTag(node, element);
                         break;
                     case 'InlineComponent':
@@ -424,6 +430,8 @@ export function convertHtmlxToJsx(
                         handleComment(str, node);
                         break;
                     case 'Binding':
+                        handleLeadingStartComment(str, node as BaseNode, ast);
+                        handleTrailingEndComment(str, node as BaseNode, parent, ast);
                         handleBinding(
                             str,
                             node as BaseDirective,
@@ -442,18 +450,26 @@ export function convertHtmlxToJsx(
                         handleStyleDirective(str, node as StyleDirective, element as Element);
                         break;
                     case 'Action':
+                        handleLeadingStartComment(str, node as BaseNode, ast);
+                        handleTrailingEndComment(str, node as BaseNode, parent, ast);
                         stores.handleDirective(node, str);
                         handleActionDirective(node as BaseDirective, element as Element);
                         break;
                     case 'Transition':
+                        handleLeadingStartComment(str, node as BaseNode, ast);
+                        handleTrailingEndComment(str, node as BaseNode, parent, ast);
                         stores.handleDirective(node, str);
                         handleTransitionDirective(str, node as BaseDirective, element as Element);
                         break;
                     case 'Animation':
+                        handleLeadingStartComment(str, node as BaseNode, ast);
+                        handleTrailingEndComment(str, node as BaseNode, parent, ast);
                         stores.handleDirective(node, str);
                         handleAnimateDirective(str, node as BaseDirective, element as Element);
                         break;
                     case 'Attribute':
+                        handleLeadingStartComment(str, node, ast);
+                        handleTrailingEndComment(str, node as BaseNode, parent, ast);
                         handleAttribute(
                             str,
                             node as Attribute,
@@ -464,13 +480,19 @@ export function convertHtmlxToJsx(
                         );
                         break;
                     case 'Spread':
+                        handleLeadingStartComment(str, node as BaseNode, ast);
+                        handleTrailingEndComment(str, node as BaseNode, parent, ast);
                         handleSpread(node, element);
                         break;
                     case 'EventHandler':
+                        handleLeadingStartComment(str, node as BaseNode, ast);
+                        handleTrailingEndComment(str, node as BaseNode, parent, ast);
                         eventHandler.handleEventHandler(node, parent);
                         handleEventHandler(str, node as BaseDirective, element);
                         break;
                     case 'Let':
+                        handleLeadingStartComment(str, node as BaseNode, ast);
+                        handleTrailingEndComment(str, node as BaseNode, parent, ast);
                         handleLet(
                             str,
                             node,

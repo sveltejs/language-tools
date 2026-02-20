@@ -6,6 +6,8 @@ import {
     TransformationArray
 } from '../utils/node-utils';
 import { Element } from './Element';
+import { getLeadingCommentTransformation } from './Comment';
+import { getTrailingCommentTransformation } from './Comment';
 
 /**
  * transition|modifier:xxx(yyy)   --->   __sveltets_2_ensureTransition(xxx(svelte.mapElementTag('..'),(yyy)));
@@ -15,7 +17,9 @@ export function handleTransitionDirective(
     attr: BaseDirective,
     element: Element
 ): void {
+    const trailingComments = getTrailingCommentTransformation(attr);
     const transformations: TransformationArray = [
+        ...getLeadingCommentTransformation(attr),
         '__sveltets_2_ensureTransition(',
         getDirectiveNameStartEndIdx(str, attr),
         `(${element.typingsNamespace}.mapElementTag('${element.tagName}')`
@@ -27,6 +31,6 @@ export function handleTransitionDirective(
             ')'
         );
     }
-    transformations.push('));');
+    transformations.push('));', ...trailingComments);
     element.appendToStartEnd(transformations);
 }
