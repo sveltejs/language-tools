@@ -434,6 +434,10 @@ export function writeOverlayTsconfig(
     const shimFiles = resolveSvelte2tsxShims().map((fileName) =>
         toRelativePosix(overlayDir, fileName)
     );
+    const rebasedReferences = parsed.raw?.references?.map((ref: any) => ({
+        ...ref,
+        path: toRelativePosix(overlayDir, path.resolve(tsconfigDir, ref.path))
+    }));
 
     const overlay = {
         extends: toRelativePosix(overlayDir, tsconfigPath),
@@ -446,7 +450,8 @@ export function writeOverlayTsconfig(
         },
         files: Array.from(new Set([...(configFiles ?? []), ...shimFiles])),
         ...(mergedInclude.length ? { include: mergedInclude } : {}),
-        ...(mergedExclude.length ? { exclude: mergedExclude } : {})
+        ...(mergedExclude.length ? { exclude: mergedExclude } : {}),
+        ...(rebasedReferences ? { references: rebasedReferences } : {})
     };
 
     fs.writeFileSync(overlayPath, JSON.stringify(overlay, null, 2), 'utf-8');
