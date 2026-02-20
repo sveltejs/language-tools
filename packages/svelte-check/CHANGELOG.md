@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.4.3
+
+### Patch Changes
+
+-   fix: respect `@ts-ignore` etc comments within tags ([#2950](https://github.com/sveltejs/language-tools/pull/2950))
+
 ## 4.4.2
 
 ### Patch Changes
