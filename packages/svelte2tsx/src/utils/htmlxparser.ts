@@ -126,12 +126,13 @@ export function parseHtmlx(
         options.emitOnTemplateError && !options.svelte5Plus
             ? blankPossiblyErrorOperatorOrPropertyAccess(deconstructed)
             : deconstructed;
-    const htmlxAst = (
-        parse(
-            parsingCode,
-            options.svelte5Plus ? ({ loose: options.emitOnTemplateError } as any) : undefined
-        ) as any
-    ).html;
+    const parsed = parse(
+        parsingCode,
+        options.svelte5Plus ? ({ loose: options.emitOnTemplateError } as any) : undefined
+    ) as any;
+    const htmlxAst = parsed.html;
+
+    htmlxAst._comments = parsed._comments ?? parsed.comments ?? [];
 
     //restore our script and style tags as nodes to maintain validity with HTMLx
     for (const s of verbatimElements) {

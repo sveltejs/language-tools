@@ -10,6 +10,7 @@ import { Element } from './Element';
 import { InlineComponent } from './InlineComponent';
 import { surroundWithIgnoreComments } from '../../utils/ignore';
 import { SequenceExpression } from 'estree';
+import { getLeadingCommentTransformation, getTrailingCommentTransformation } from './Comment';
 
 /**
  * List of binding names that are transformed to sth like `binding = variable`.
@@ -63,6 +64,8 @@ export function handleBinding(
 ): void {
     const isGetSetBinding = attr.expression.type === 'SequenceExpression';
     const [get, set] = isGetSetBinding ? (attr.expression as SequenceExpression).expressions : [];
+    const leadingComments = getLeadingCommentTransformation(attr);
+    const trailingComments = getTrailingCommentTransformation(attr);
 
     // bind this
     if (attr.name === 'this' && supportsBindThis.includes(parent.type)) {
@@ -72,9 +75,21 @@ export function handleBinding(
         // the value becomes null, but we don't add it to the clause because it would introduce
         // worse DX for the 99% use case, and because null !== undefined which others might use to type the declaration.
         if (isGetSetBinding) {
-            element.appendToStartEnd(['(', [set.start, getEnd(set)], `)(${element.name});`]);
+            element.appendToStartEnd([
+                ...leadingComments,
+                '(',
+                [set.start, getEnd(set)],
+                `)(${element.name});`,
+                ...trailingComments
+            ]);
         } else {
-            appendOneWayBinding(attr, ` = ${element.name}`, element);
+            appendOneWayBinding(
+                attr,
+                ` = ${element.name}`,
+                element,
+                leadingComments,
+                trailingComments
+            );
         }
         return;
     }
@@ -83,13 +98,25 @@ export function handleBinding(
         // bind group on input
         if (element instanceof Element && attr.name == 'group' && parent.name == 'input') {
             // add reassignment to force TS to widen the type of the declaration (in case it's never reassigned anywhere else)
-            appendOneWayBinding(attr, ' = __sveltets_2_any(null)', element);
+            appendOneWayBinding(
+                attr,
+                ' = __sveltets_2_any(null)',
+                element,
+                leadingComments,
+                trailingComments
+            );
             return;
         }
 
         // one way binding
         if (oneWayBindingAttributes.has(attr.name) && element instanceof Element) {
-            appendOneWayBinding(attr, `= ${element.name}.${attr.name}`, element);
+            appendOneWayBinding(
+                attr,
+                `= ${element.name}.${attr.name}`,
+                element,
+                leadingComments,
+                trailingComments
+            );
             return;
         }
 
@@ -101,8 +128,10 @@ export function handleBinding(
                 ? `null as ${bindingType}`
                 : `/** @type {${bindingType}} */ (null)`;
             element.appendToStartEnd([
+                ...leadingComments,
                 [attr.expression.start, getEnd(attr.expression)],
-                `= ${surroundWithIgnoreComments(bindingValue)};`
+                `= ${surroundWithIgnoreComments(bindingValue)};`,
+                ...trailingComments
             ]);
             return;
         }
@@ -123,12 +152,18 @@ export function handleBinding(
         preserveBind && element instanceof Element
             ? // HTML typings - preserve the bind: prefix
               isShorthand
-                ? [`"${str.original.substring(attr.start, attr.end)}"`]
-                : ['"', [attr.start, str.original.lastIndexOf('=', attr.expression.start)], '"']
+                ? [...leadingComments, `"${str.original.substring(attr.start, attr.end)}"`]
+                : [
+                      ...leadingComments,
+                      '"',
+                      [attr.start, str.original.lastIndexOf('=', attr.expression.start)],
+                      '"'
+                  ]
             : // Other typings - remove the bind: prefix
               isShorthand
-              ? [[attr.expression.start, attr.expression.end]]
+              ? [...leadingComments, [attr.expression.start, attr.expression.end]]
               : [
+                    ...leadingComments,
                     [
                         attr.start + 'bind:'.length,
                         str.original.lastIndexOf('=', attr.expression.start)
@@ -137,7 +172,7 @@ export function handleBinding(
 
     const value: TransformationArray | undefined = isShorthand
         ? preserveBind && element instanceof Element
-            ? [rangeWithTrailingPropertyAccess(str.original, attr.expression)]
+            ? [rangeWithTrailingPropertyAccess(str.original, attr.expression), ...trailingComments]
             : undefined
         : isGetSetBinding
           ? [
@@ -145,9 +180,14 @@ export function handleBinding(
                 [get.start, get.end],
                 ',',
                 rangeWithTrailingPropertyAccess(str.original, set),
-                ')'
+                ')',
+                ...trailingComments
             ]
-          : [rangeWithTrailingPropertyAccess(str.original, attr.expression)];
+          : [rangeWithTrailingPropertyAccess(str.original, attr.expression), ...trailingComments];
+
+    if (!value) {
+        name.push(...trailingComments);
+    }
 
     if (isSvelte5Plus && element instanceof InlineComponent) {
         // To check if property is actually bindable
@@ -164,14 +204,18 @@ export function handleBinding(
 function appendOneWayBinding(
     attr: BaseDirective,
     assignment: string,
-    element: Element | InlineComponent
+    element: Element | InlineComponent,
+    leadingComments: TransformationArray,
+    trailingComments: TransformationArray
 ) {
     const expression = attr.expression;
     const end = getEnd(expression);
     const hasTypeAnnotation = expression.typeAnnotation || isTypescriptNode(expression);
     const array: TransformationArray = [
+        ...leadingComments,
         [expression.start, end],
-        assignment + (hasTypeAnnotation ? '' : ';')
+        assignment + (hasTypeAnnotation ? '' : ';'),
+        ...trailingComments
     ];
     if (hasTypeAnnotation) {
         array.push([end, expression.end], ';');
