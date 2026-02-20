@@ -1031,7 +1031,7 @@ function resolveSvelte2tsxShims(): string[] {
     const resolved: string[] = [];
     for (const name of shimNames) {
         try {
-            resolved.push(require.resolve(`svelte2tsx/${name}`));
+            resolved.push(require.resolve(`./${name}`));
         } catch {
             // ignore missing optional shims
         }
