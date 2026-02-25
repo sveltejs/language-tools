@@ -905,9 +905,7 @@ function rebasePathsConfig(
         const result: string[] = [];
         for (const spec of specs) {
             // ${configDir} placeholder should already be resolved here
-            const absoluteSpec = path.isAbsolute(spec)
-                ? spec
-                : path.resolve(pathsBaseDir, spec);
+            const absoluteSpec = path.isAbsolute(spec) ? spec : path.resolve(pathsBaseDir, spec);
             const rebasedSpec = toRelativePosix(overlayDir, absoluteSpec);
             result.push(rebasedSpec);
             let posixSpec = toPosixPath(spec);
