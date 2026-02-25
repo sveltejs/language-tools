@@ -447,7 +447,12 @@ async function runWithVirtualFiles(
         opts.filePathsToIgnore,
         opts.incremental
     );
-    const overlayTsconfig = writeOverlayTsconfig(opts.tsconfig, emitResult, opts.incremental);
+    const overlayTsconfig = writeOverlayTsconfig(
+        opts.tsconfig,
+        emitResult,
+        opts.incremental,
+        opts.tsgo
+    );
     const tsDiagnostics = mapCliDiagnosticsToLsp(
         await runTypeScriptDiagnostics(
             overlayTsconfig,
