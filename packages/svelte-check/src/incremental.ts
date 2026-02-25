@@ -902,9 +902,10 @@ function rebasePathsConfig(
         !useTsgo && options.baseUrl ? path.resolve(tsconfigDir, options.baseUrl) : tsconfigDir;
 
     for (const [key, specs] of Object.entries(options.paths)) {
-        rebased[key] = specs.flatMap((spec) => {
+        const result: string[] = [];
+        for (const spec of specs) {
             const rebasedSpec = rebaseConfigSpec(spec, pathsBaseDir, overlayDir);
-            const result = [rebasedSpec];
+            result.push(rebasedSpec);
             let posixSpec = toPosixPath(spec);
             if (path.isAbsolute(posixSpec)) {
                 const relativeToTsconfig = path.relative(pathsBaseDir, posixSpec);
@@ -913,9 +914,8 @@ function rebasePathsConfig(
             if (posixSpec.startsWith('./')) {
                 result.push('./' + EMIT_SUBDIR + '/' + posixSpec.slice(2));
             }
-
-            return result;
-        });
+        }
+        rebased[key] = result;
     }
     return rebased;
 }
