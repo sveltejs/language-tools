@@ -904,7 +904,11 @@ function rebasePathsConfig(
     for (const [key, specs] of Object.entries(options.paths)) {
         const result: string[] = [];
         for (const spec of specs) {
-            const rebasedSpec = rebaseConfigSpec(spec, pathsBaseDir, overlayDir);
+            // ${configDir} placeholder should already be resolved here
+            const absoluteSpec = path.isAbsolute(spec)
+                ? spec
+                : path.resolve(pathsBaseDir, spec);
+            const rebasedSpec = toRelativePosix(overlayDir, absoluteSpec);
             result.push(rebasedSpec);
             let posixSpec = toPosixPath(spec);
             if (path.isAbsolute(posixSpec)) {
