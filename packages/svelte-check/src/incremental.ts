@@ -894,27 +894,33 @@ function rebasePathsConfig(
     useTsgo: boolean
 ): Record<string, string[]> | undefined {
     if (!options.paths) {
-        return undefined;
+        return;
     }
 
     const rebased: Record<string, string[]> = {};
-    const pathsBaseDir =
-        !useTsgo && options.baseUrl ? path.resolve(tsconfigDir, options.baseUrl) : tsconfigDir;
+    let pathsBaseDir = tsconfigDir;
+    let baseUrl = useTsgo ? undefined : options.baseUrl;
+    if (baseUrl != null) {
+        pathsBaseDir = path.resolve(tsconfigDir, baseUrl);
+    } else if (typeof options.pathsBasePath === 'string') {
+        pathsBaseDir = options.pathsBasePath;
+    }
 
     for (const [key, specs] of Object.entries(options.paths)) {
         const result: string[] = [];
         for (const spec of specs) {
             // ${configDir} placeholder should already be resolved here
             const absoluteSpec = path.isAbsolute(spec) ? spec : path.resolve(pathsBaseDir, spec);
-            const rebasedSpec = toRelativePosix(overlayDir, absoluteSpec);
-            result.push(rebasedSpec);
-            let posixSpec = toPosixPath(spec);
-            if (path.isAbsolute(posixSpec)) {
-                const relativeToTsconfig = path.relative(pathsBaseDir, posixSpec);
-                posixSpec = './' + toPosixPath(relativeToTsconfig);
-            }
-            if (posixSpec.startsWith('./')) {
-                result.push('./' + EMIT_SUBDIR + '/' + posixSpec.slice(2));
+            result.push(baseUrl == null ? toRelativePosix(overlayDir, absoluteSpec) : spec);
+            const patternRelativeToTsconfig = toPosixPath(path.relative(tsconfigDir, absoluteSpec));
+            if (!patternRelativeToTsconfig.startsWith('../')) {
+                const viralSveltePattern = path.resolve(
+                    overlayDir,
+                    path.join(EMIT_SUBDIR, patternRelativeToTsconfig)
+                );
+                result.push(
+                    './' + toPosixPath(path.relative(baseUrl ?? overlayDir, viralSveltePattern))
+                );
             }
         }
         rebased[key] = result;
