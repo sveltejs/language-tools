@@ -899,9 +899,13 @@ function rebasePathsConfig(
 
     const rebased: Record<string, string[]> = {};
     let pathsBaseDir = tsconfigDir;
-    let baseUrl = useTsgo ? undefined : options.baseUrl;
-    if (baseUrl != null) {
-        pathsBaseDir = path.resolve(tsconfigDir, baseUrl);
+    let baseUrlAbsolute = useTsgo ? undefined : options.baseUrl;
+    if (baseUrlAbsolute != null) {
+        // should already be absolute, just to be sure.
+        if (!path.isAbsolute(baseUrlAbsolute)) {
+            baseUrlAbsolute = path.resolve(tsconfigDir, baseUrlAbsolute);
+        }
+        pathsBaseDir = path.resolve(tsconfigDir, baseUrlAbsolute);
     } else if (typeof options.pathsBasePath === 'string') {
         pathsBaseDir = options.pathsBasePath;
     }
@@ -911,16 +915,18 @@ function rebasePathsConfig(
         for (const spec of specs) {
             // ${configDir} placeholder should already be resolved here
             const absoluteSpec = path.isAbsolute(spec) ? spec : path.resolve(pathsBaseDir, spec);
-            result.push(baseUrl == null ? toRelativePosix(overlayDir, absoluteSpec) : spec);
+            result.push(baseUrlAbsolute == null ? toRelativePosix(overlayDir, absoluteSpec) : spec);
             const patternRelativeToTsconfig = toPosixPath(path.relative(tsconfigDir, absoluteSpec));
             if (!patternRelativeToTsconfig.startsWith('../')) {
                 const viralSveltePattern = path.resolve(
                     overlayDir,
                     path.join(EMIT_SUBDIR, patternRelativeToTsconfig)
                 );
-                result.push(
-                    './' + toPosixPath(path.relative(baseUrl ?? overlayDir, viralSveltePattern))
+                const relativeVirtualPattern = toRelativePosix(
+                    baseUrlAbsolute ?? overlayDir,
+                    viralSveltePattern
                 );
+                result.push('./' + relativeVirtualPattern);
             }
         }
         rebased[key] = result;
