@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.17.29
+
+### Patch Changes
+
+-   fix: pass filename to `warningFilter` ([#2959](https://github.com/sveltejs/language-tools/pull/2959))
+
 ## 0.17.28
 
 ### Patch Changes
