@@ -1,5 +1,15 @@
 # Changelog
 
+## 4.4.4
+
+### Patch Changes
+
+-   fix: more robust detection of `lang="ts"` attribute ([#2957](https://github.com/sveltejs/language-tools/pull/2957))
+
+-   fix: pass filename to `warningFilter` ([#2959](https://github.com/sveltejs/language-tools/pull/2959))
+
+-   fix: resolve svelte files under path alias in `--incremental/tsgo` mode ([#2955](https://github.com/sveltejs/language-tools/pull/2955))
+
 ## 4.4.3
 
 ### Patch Changes
