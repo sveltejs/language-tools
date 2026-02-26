@@ -30,9 +30,13 @@ export class GlobalSnapshotsManager {
 
     getByPrefix(path: string) {
         path = this.getCanonicalFileName(normalizePath(path));
-        return Array.from(this.documents.entries())
-            .filter((doc) => doc[0].startsWith(path))
-            .map((doc) => doc[1]);
+        const results: DocumentSnapshot[] = [];
+        for (const [key, value] of this.documents.entries()) {
+            if (key.startsWith(path)) {
+                results.push(value);
+            }
+        }
+        return results;
     }
 
     set(fileName: string, document: DocumentSnapshot) {
@@ -273,19 +277,23 @@ export class SnapshotManager {
         if (date.getTime() - this.lastLogged.getTime() > 60_000) {
             this.lastLogged = date;
 
-            const allFiles = Array.from(
-                new Set([...this.projectFileToOriginalCasing.keys(), ...this.documents.keys()])
-            );
+            const allFiles = new Set<string>();
+            for (const key of this.projectFileToOriginalCasing.keys()) allFiles.add(key);
+            for (const key of this.documents.keys()) allFiles.add(key);
+
+            let svelteCount = 0;
+            let nodeModulesCount = 0;
+            for (const name of allFiles) {
+                if (name.endsWith('.svelte')) svelteCount++;
+                if (name.includes('node_modules')) nodeModulesCount++;
+            }
+
             Logger.log(
                 'SnapshotManager File Statistics:\n' +
                     `Project files: ${this.projectFileToOriginalCasing.size}\n` +
-                    `Svelte files: ${
-                        allFiles.filter((name) => name.endsWith('.svelte')).length
-                    }\n` +
-                    `From node_modules: ${
-                        allFiles.filter((name) => name.includes('node_modules')).length
-                    }\n` +
-                    `Total: ${allFiles.length}`
+                    `Svelte files: ${svelteCount}\n` +
+                    `From node_modules: ${nodeModulesCount}\n` +
+                    `Total: ${allFiles.size}`
             );
         }
     }

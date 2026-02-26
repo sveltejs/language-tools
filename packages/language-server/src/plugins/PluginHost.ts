@@ -1,4 +1,3 @@
-import { flatten } from 'lodash';
 import { performance } from 'perf_hooks';
 import {
     CallHierarchyIncomingCall,
@@ -100,14 +99,14 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
             return [];
         }
 
-        return flatten(
+        return (
             await this.execute<Diagnostic[]>(
                 'getDiagnostics',
                 [document, cancellationToken],
                 ExecuteMode.Collect,
                 'high'
             )
-        );
+        ).flat();
     }
 
     async doHover(textDocument: TextDocumentIdentifier, position: Position): Promise<Hover | null> {
@@ -190,9 +189,9 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
             }
         }
 
-        let flattenedCompletions = flatten(
-            completions.map((completion) => completion.result.items)
-        );
+        let flattenedCompletions = completions
+            .map((completion) => completion.result.items)
+            .flat();
         const isIncomplete = completions.reduce(
             (incomplete, completion) => incomplete || completion.result.isIncomplete,
             false as boolean
@@ -242,14 +241,14 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
     ): Promise<TextEdit[]> {
         const document = this.getDocument(textDocument.uri);
 
-        return flatten(
+        return (
             await this.execute<TextEdit[]>(
                 'formatDocument',
                 [document, options],
                 ExecuteMode.Collect,
                 'high'
             )
-        );
+        ).flat();
     }
 
     async doTagComplete(
@@ -269,14 +268,14 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
     async getDocumentColors(textDocument: TextDocumentIdentifier): Promise<ColorInformation[]> {
         const document = this.getDocument(textDocument.uri);
 
-        return flatten(
+        return (
             await this.execute<ColorInformation[]>(
                 'getDocumentColors',
                 [document],
                 ExecuteMode.Collect,
                 'low'
             )
-        );
+        ).flat();
     }
 
     async getColorPresentations(
@@ -286,14 +285,14 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
     ): Promise<ColorPresentation[]> {
         const document = this.getDocument(textDocument.uri);
 
-        return flatten(
+        return (
             await this.execute<ColorPresentation[]>(
                 'getColorPresentations',
                 [document, range, color],
                 ExecuteMode.Collect,
                 'high'
             )
-        );
+        ).flat();
     }
 
     async getDocumentSymbols(
@@ -309,14 +308,14 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
             return [];
         }
 
-        return flatten(
+        return (
             await this.execute<SymbolInformation[]>(
                 'getDocumentSymbols',
                 [document, cancellationToken],
                 ExecuteMode.Collect,
                 'high'
             )
-        );
+        ).flat();
     }
 
     private comparePosition(pos1: Position, pos2: Position) {
@@ -382,14 +381,14 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
     ): Promise<DefinitionLink[] | Location[]> {
         const document = this.getDocument(textDocument.uri);
 
-        const definitions = flatten(
+        const definitions = (
             await this.execute<DefinitionLink[]>(
                 'getDefinitions',
                 [document, position],
                 ExecuteMode.Collect,
                 'high'
             )
-        );
+        ).flat();
 
         if (this.pluginHostConfig.definitionLinkSupport) {
             return definitions;
@@ -408,14 +407,14 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
     ): Promise<CodeAction[]> {
         const document = this.getDocument(textDocument.uri);
 
-        const actions = flatten(
+        const actions = (
             await this.execute<CodeAction[]>(
                 'getCodeActions',
                 [document, range, context, cancellationToken],
                 ExecuteMode.Collect,
                 'high'
             )
-        );
+        ).flat();
         // Sort Svelte actions below other actions as they are often less relevant
         actions.sort((a, b) => {
             const aPrio = a.title.startsWith('(svelte)') ? 1 : 0;
@@ -700,20 +699,20 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
             ExecuteMode.Collect,
             'smart'
         );
-        return flatten(result.filter(Boolean));
+        return result.filter(Boolean).flat();
     }
 
     async getFoldingRanges(textDocument: TextDocumentIdentifier): Promise<FoldingRange[]> {
         const document = this.getDocument(textDocument.uri);
 
-        const result = flatten(
+        const result = (
             await this.execute<FoldingRange[]>(
                 'getFoldingRanges',
                 [document],
                 ExecuteMode.Collect,
                 'high'
             )
-        );
+        ).flat();
 
         return result;
     }
