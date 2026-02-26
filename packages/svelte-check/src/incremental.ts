@@ -752,7 +752,32 @@ function parseDiagnostics(output: string, baseDir: string): ParsedDiagnostic[] {
  * Checks if a Svelte file contains a TypeScript script block (lang="ts" or lang="typescript").
  */
 function isTsSvelte(text: string): boolean {
-    return /<script[^>]*\blang\s*=\s*["'](ts|typescript)["'][^>]*>/i.test(text);
+    // Regex to match <script> tags and capture their attributes section.
+    //   - <script\b ...attributes... >
+    //   - Attributes: sequence of whitespace + name, optionally =value (double/single/unquoted)
+    const scriptTagRegex = /<script\b((?:\s+[^=>'"\/\s]+(?:=(?:"[^"]*"|'[^']*'|[^>\s]+))?)*)\s*>/gi;
+
+    // Regex to match a lang attribute (case-insensitive, with optional whitespace), capturing its value:
+    //   - Double quoted: "value" (group 1)
+    //   - Single quoted: 'value' (group 2)
+    //   - Unquoted: bareword (group 3)
+    const langAttrRegex = /\blang\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+))/i;
+
+    let scriptMatch: RegExpExecArray | null;
+    while ((scriptMatch = scriptTagRegex.exec(text)) !== null) {
+        const attrs = scriptMatch[1] ?? '';
+        const langMatch = langAttrRegex.exec(attrs);
+        if (!langMatch) {
+            continue;
+        }
+
+        const lang = (langMatch[1] ?? langMatch[2] ?? langMatch[3] ?? '').toLowerCase();
+        if (lang === 'ts' || lang === 'typescript') {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 function isTypescriptFile(filePath: string): boolean {
