@@ -471,7 +471,8 @@ describe('SveltePlugin#getDiagnostics', () => {
             {
                 range: { start: { line: 1, character: 15 }, end: { line: 1, character: 27 } },
                 message:
-                    "Component has unused export property 'name'. If it is for external reference only, please consider using `export const name`" +
+                    (isSvelte5Plus ? 'Component' : 'Diagnostics') +
+                    " has unused export property 'name'. If it is for external reference only, please consider using `export const name`" +
                     (isSvelte5Plus ? '\nhttps://svelte.dev/e/export_let_unused' : ''),
                 severity: 2,
                 source: 'svelte',
@@ -523,7 +524,8 @@ describe('SveltePlugin#getDiagnostics', () => {
                 {
                     code: isSvelte5Plus ? 'export_let_unused' : 'unused-export-let',
                     message:
-                        "Component has unused export property 'unused1'. If it is for external reference only, please consider using `export const unused1`" +
+                        (isSvelte5Plus ? 'Component' : 'Diagnostics_module_and_instance') +
+                        " has unused export property 'unused1'. If it is for external reference only, please consider using `export const unused1`" +
                         (isSvelte5Plus ? '\nhttps://svelte.dev/e/export_let_unused' : ''),
                     range: {
                         start: {
@@ -547,7 +549,8 @@ describe('SveltePlugin#getDiagnostics', () => {
                 {
                     code: isSvelte5Plus ? 'export_let_unused' : 'unused-export-let',
                     message:
-                        "Component has unused export property 'unused2'. If it is for external reference only, please consider using `export const unused2`" +
+                        (isSvelte5Plus ? 'Component' : 'Diagnostics_module_and_instance') +
+                        " has unused export property 'unused2'. If it is for external reference only, please consider using `export const unused2`" +
                         (isSvelte5Plus ? '\nhttps://svelte.dev/e/export_let_unused' : ''),
                     range: {
                         start: {
