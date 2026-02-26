@@ -1433,3 +1433,750 @@ describe('SvelteDocumentSnapshot.getChangeRange', () => {
         }
     });
 });
+
+describe('computeChangeRange with realistic full-file content', () => {
+    // A realistic Svelte component's svelte2tsx output (~100 lines)
+    const fullSvelte2tsxOutput = [
+        '///<reference types="svelte" />',
+        ';',
+        "    import { writable, derived } from 'svelte/store';",
+        "    import type { Writable } from 'svelte/store';",
+        '    export function formatCurrency(value: number): string {',
+        '        return `$${value.toFixed(2)}`;',
+        '    }',
+        ';;function $$render() {',
+        '',
+        "    import Button from './Button.svelte';",
+        "    import Modal from './Modal.svelte';",
+        "    import { onMount, onDestroy, createEventDispatcher } from 'svelte';",
+        "    import { fade, fly } from 'svelte/transition';",
+        "    import { quintOut } from 'svelte/easing';",
+        '',
+        '    interface Item {',
+        '        id: number;',
+        '        name: string;',
+        '        price: number;',
+        '        quantity: number;',
+        '    }',
+        '',
+        '    export let items: Item[] = [];',
+        '    export let title: string = "Shopping Cart";',
+        '    export let currency: string = "USD";',
+        '    export let onCheckout: ((total: number) => void) | undefined = undefined;',
+        '',
+        '    const dispatch = createEventDispatcher<{',
+        '        remove: { id: number };',
+        '        update: { id: number; quantity: number };',
+        '        clear: void;',
+        '    }>();',
+        '',
+        '    let showModal = false;',
+        '    let searchQuery = "";',
+        '    let sortBy: "name" | "price" | "quantity" = "name";',
+        '    let sortDirection: "asc" | "desc" = "asc";',
+        '',
+        '    const store: Writable<Item[]> = writable(items);',
+        '    /*Ωignore_startΩ*/;let $store = __sveltets_2_store_get(store);/*Ωignore_endΩ*/;',
+        '',
+        '    $: filteredItems = $store.filter((item: Item) =>',
+        '        item.name.toLowerCase().includes(searchQuery.toLowerCase())',
+        '    );',
+        '',
+        '    $: sortedItems = [...filteredItems].sort((a: Item, b: Item) => {',
+        '        const modifier = sortDirection === "asc" ? 1 : -1;',
+        '        if (sortBy === "name") return modifier * a.name.localeCompare(b.name);',
+        '        if (sortBy === "price") return modifier * (a.price - b.price);',
+        '        return modifier * (a.quantity - b.quantity);',
+        '    });',
+        '',
+        '    $: totalItems = $store.reduce((sum: number, item: Item) => sum + item.quantity, 0);',
+        '    $: totalPrice = $store.reduce((sum: number, item: Item) => sum + item.price * item.quantity, 0);',
+        '    $: isEmpty = $store.length === 0;',
+        '',
+        '    function addItem(item: Item): void {',
+        '        store.update((items: Item[]) => [...items, item]);',
+        '    }',
+        '',
+        '    function removeItem(id: number): void {',
+        '        store.update((items: Item[]) => items.filter((i: Item) => i.id !== id));',
+        '        dispatch("remove", { id });',
+        '    }',
+        '',
+        '    function updateQuantity(id: number, quantity: number): void {',
+        '        if (quantity <= 0) {',
+        '            removeItem(id);',
+        '            return;',
+        '        }',
+        '        store.update((items: Item[]) =>',
+        '            items.map((i: Item) => (i.id === id ? { ...i, quantity } : i))',
+        '        );',
+        '        dispatch("update", { id, quantity });',
+        '    }',
+        '',
+        '    function clearCart(): void {',
+        '        store.set([]);',
+        '        dispatch("clear");',
+        '    }',
+        '',
+        '    function handleCheckout(): void {',
+        '        if (onCheckout) {',
+        '            onCheckout(totalPrice);',
+        '        }',
+        '        showModal = true;',
+        '    }',
+        '',
+        '    let interval: ReturnType<typeof setInterval>;',
+        '    onMount(() => {',
+        '        interval = setInterval(() => {',
+        '            store.update((items: Item[]) => items);',
+        '        }, 60000);',
+        '    });',
+        '',
+        '    onDestroy(() => {',
+        '        clearInterval(interval);',
+        '    });',
+        '',
+        ';async () => {',
+        '',
+        ' { svelteHTML.createElement("div", { "class":`cart-container`,});',
+        '     { svelteHTML.createElement("header", { "class":`cart-header`,});',
+        '         { svelteHTML.createElement("h2", {});  title; }',
+        '         { svelteHTML.createElement("span", { "class":`badge`,});  totalItems; }',
+        '         { svelteHTML.createElement("input", {   "type":`text`,"placeholder":`Search items...`,"value":searchQuery,});  }',
+        '     }',
+        '',
+        '    if(!isEmpty){',
+        '         { svelteHTML.createElement("div", { "class":`sort-controls`,});',
+        '            { const $$_btn0 = __sveltets_2_ensureComponent(Button); new $$_btn0({ target: __sveltets_2_any(), props: { "variant":`secondary`,"size":`sm`,}});',
+        '                 sortBy;',
+        '            }',
+        '         }',
+        '',
+        '         { svelteHTML.createElement("ul", { "class":`item-list`,});',
+        '            { for(let item of sortedItems){',
+        '                 { svelteHTML.createElement("li", {   "class":`item`,});',
+        '                     { svelteHTML.createElement("span", { "class":`item-name`,});  item.name; }',
+        '                     { svelteHTML.createElement("span", { "class":`item-price`,});  formatCurrency(item.price); }',
+        '                     { svelteHTML.createElement("div", { "class":`quantity-controls`,});',
+        '                         { const $$_btn1 = __sveltets_2_ensureComponent(Button); new $$_btn1({ target: __sveltets_2_any(), props: { "size":`sm`,}});',
+        '                             ',
+        '                         }',
+        '                         { svelteHTML.createElement("span", {});  item.quantity; }',
+        '                         { const $$_btn2 = __sveltets_2_ensureComponent(Button); new $$_btn2({ target: __sveltets_2_any(), props: { "size":`sm`,}});',
+        '                             ',
+        '                         }',
+        '                     }',
+        '                     { const $$_btn3 = __sveltets_2_ensureComponent(Button); new $$_btn3({ target: __sveltets_2_any(), props: { "variant":`danger`,"size":`sm`,}});',
+        '                         ',
+        '                     }',
+        '                 }',
+        '            }}',
+        '         }',
+        '',
+        '         { svelteHTML.createElement("footer", { "class":`cart-footer`,});',
+        '             { svelteHTML.createElement("div", { "class":`total`,});',
+        '                 { svelteHTML.createElement("span", {});  }',
+        '                 { svelteHTML.createElement("span", { "class":`total-price`,});  formatCurrency(totalPrice); }',
+        '             }',
+        '             { svelteHTML.createElement("div", { "class":`actions`,});',
+        '                 { const $$_btn4 = __sveltets_2_ensureComponent(Button); new $$_btn4({ target: __sveltets_2_any(), props: { "variant":`secondary`,}});',
+        '                     ',
+        '                 }',
+        '                 { const $$_btn5 = __sveltets_2_ensureComponent(Button); new $$_btn5({ target: __sveltets_2_any(), props: { "variant":`primary`,}});',
+        '                     ',
+        '                 }',
+        '             }',
+        '         }',
+        '    }',
+        '',
+        '    if(isEmpty){',
+        '         { svelteHTML.createElement("div", { "class":`empty-cart`,});',
+        '             { svelteHTML.createElement("p", {});  }',
+        '         }',
+        '    }',
+        '',
+        '    if(showModal){',
+        '         { const $$_modal0 = __sveltets_2_ensureComponent(Modal); new $$_modal0({ target: __sveltets_2_any(), props: {  "title":`Checkout Complete`,}});',
+        '             { svelteHTML.createElement("p", {});  formatCurrency(totalPrice); }',
+        '         }',
+        '    }',
+        ' }',
+        '};',
+        'return { props: {items: items , title: title , currency: currency , onCheckout: onCheckout}, slots: {}, events: {} }}',
+        '',
+        "export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial(['items', 'title', 'currency', 'onCheckout'], __sveltets_2_with_any_event($$render()))) {",
+        '    get formatCurrency() { return formatCurrency }',
+        '}',
+        ''
+    ].join('\n');
+
+    // A realistic large TypeScript file (~200 lines) with classes, generics, and decorators
+    const fullTypeScriptFile = [
+        "import { Injectable, Inject } from '@nestjs/common';",
+        "import { InjectRepository } from '@nestjs/typeorm';",
+        "import { Repository, FindManyOptions, In, Like } from 'typeorm';",
+        "import { Cache } from '../decorators/cache';",
+        "import { Logger } from '../utils/logger';",
+        "import { EventEmitter } from 'events';",
+        'import type {',
+        '    User,',
+        '    UserCreateDto,',
+        '    UserUpdateDto,',
+        '    PaginatedResult,',
+        '    QueryOptions,',
+        '    SortField,',
+        '    FilterOperator,',
+        "} from '../types';",
+        '',
+        'const DEFAULT_PAGE_SIZE = 20;',
+        'const MAX_PAGE_SIZE = 100;',
+        'const CACHE_TTL = 300_000; // 5 minutes',
+        '',
+        'interface ServiceConfig {',
+        '    enableCache: boolean;',
+        '    maxRetries: number;',
+        '    retryDelay: number;',
+        '    defaultSort: SortField;',
+        '}',
+        '',
+        'type EventMap = {',
+        "    'user:created': User;",
+        "    'user:updated': { previous: User; current: User };",
+        "    'user:deleted': { id: string; deletedAt: Date };",
+        "    'cache:invalidated': { keys: string[] };",
+        '};',
+        '',
+        '@Injectable()',
+        'export class UserService extends EventEmitter {',
+        "    private readonly logger = new Logger('UserService');",
+        '    private cache = new Map<string, { data: User; expires: number }>();',
+        '    private pendingRequests = new Map<string, Promise<User | null>>();',
+        '',
+        '    constructor(',
+        '        @InjectRepository(User)',
+        '        private readonly userRepository: Repository<User>,',
+        "        @Inject('CONFIG')",
+        '        private readonly config: ServiceConfig,',
+        '    ) {',
+        '        super();',
+        "        this.logger.info('UserService initialized', {",
+        '            cache: config.enableCache,',
+        '            retries: config.maxRetries,',
+        '        });',
+        '    }',
+        '',
+        '    @Cache({ ttl: CACHE_TTL })',
+        '    async findById(id: string): Promise<User | null> {',
+        '        // Deduplicate concurrent requests for the same user',
+        '        if (this.pendingRequests.has(id)) {',
+        '            return this.pendingRequests.get(id)!;',
+        '        }',
+        '',
+        '        const promise = this._findByIdInternal(id);',
+        '        this.pendingRequests.set(id, promise);',
+        '',
+        '        try {',
+        '            return await promise;',
+        '        } finally {',
+        '            this.pendingRequests.delete(id);',
+        '        }',
+        '    }',
+        '',
+        '    private async _findByIdInternal(id: string): Promise<User | null> {',
+        '        if (this.config.enableCache) {',
+        '            const cached = this.cache.get(id);',
+        '            if (cached && cached.expires > Date.now()) {',
+        "                this.logger.debug('Cache hit', { id });",
+        '                return cached.data;',
+        '            }',
+        '        }',
+        '',
+        '        let lastError: Error | null = null;',
+        '        for (let attempt = 0; attempt < this.config.maxRetries; attempt++) {',
+        '            try {',
+        '                const user = await this.userRepository.findOne({ where: { id } });',
+        '                if (user && this.config.enableCache) {',
+        '                    this.cache.set(id, {',
+        '                        data: user,',
+        '                        expires: Date.now() + CACHE_TTL,',
+        '                    });',
+        '                }',
+        '                return user;',
+        '            } catch (error) {',
+        '                lastError = error as Error;',
+        '                this.logger.warn(`Attempt ${attempt + 1} failed`, {',
+        '                    id,',
+        '                    error: lastError.message,',
+        '                });',
+        '                await this.delay(this.config.retryDelay * (attempt + 1));',
+        '            }',
+        '        }',
+        '',
+        "        this.logger.error('All retries exhausted', {",
+        '            id,',
+        '            attempts: this.config.maxRetries,',
+        '            lastError: lastError?.message,',
+        '        });',
+        '        throw lastError;',
+        '    }',
+        '',
+        '    async findMany(options: QueryOptions = {}): Promise<PaginatedResult<User>> {',
+        '        const {',
+        '            page = 1,',
+        '            pageSize = DEFAULT_PAGE_SIZE,',
+        '            sort = this.config.defaultSort,',
+        '            filters = [],',
+        '        } = options;',
+        '',
+        '        const effectivePageSize = Math.min(Math.max(1, pageSize), MAX_PAGE_SIZE);',
+        '        const skip = (Math.max(1, page) - 1) * effectivePageSize;',
+        '',
+        '        const findOptions: FindManyOptions<User> = {',
+        '            skip,',
+        '            take: effectivePageSize,',
+        '            order: { [sort.field]: sort.direction } as any,',
+        '        };',
+        '',
+        '        if (filters.length > 0) {',
+        '            findOptions.where = this.buildWhereClause(filters);',
+        '        }',
+        '',
+        '        const [data, total] = await this.userRepository.findAndCount(findOptions);',
+        '',
+        '        return {',
+        '            data,',
+        '            total,',
+        '            page: Math.max(1, page),',
+        '            pageSize: effectivePageSize,',
+        '            totalPages: Math.ceil(total / effectivePageSize),',
+        '            hasNext: skip + effectivePageSize < total,',
+        '            hasPrevious: page > 1,',
+        '        };',
+        '    }',
+        '',
+        '    async create(dto: UserCreateDto): Promise<User> {',
+        '        const existingUser = await this.userRepository.findOne({',
+        '            where: { email: dto.email },',
+        '        });',
+        '',
+        '        if (existingUser) {',
+        '            throw new Error(`User with email ${dto.email} already exists`);',
+        '        }',
+        '',
+        '        const user = this.userRepository.create({',
+        '            ...dto,',
+        '            createdAt: new Date(),',
+        '            updatedAt: new Date(),',
+        '            isActive: true,',
+        '        });',
+        '',
+        '        const saved = await this.userRepository.save(user);',
+        '        this.invalidateListCache();',
+        "        this.emit('user:created', saved);",
+        "        this.logger.info('User created', { id: saved.id, email: saved.email });",
+        '        return saved;',
+        '    }',
+        '',
+        '    async update(id: string, dto: UserUpdateDto): Promise<User> {',
+        '        const existing = await this.findById(id);',
+        '        if (!existing) {',
+        '            throw new Error(`User with id ${id} not found`);',
+        '        }',
+        '',
+        '        const previous = { ...existing };',
+        '        Object.assign(existing, dto, { updatedAt: new Date() });',
+        '        const updated = await this.userRepository.save(existing);',
+        '',
+        '        this.cache.delete(id);',
+        '        this.invalidateListCache();',
+        "        this.emit('user:updated', { previous, current: updated });",
+        "        this.logger.info('User updated', { id, changes: Object.keys(dto) });",
+        '        return updated;',
+        '    }',
+        '',
+        '    async delete(id: string): Promise<void> {',
+        '        const existing = await this.findById(id);',
+        '        if (!existing) {',
+        '            throw new Error(`User with id ${id} not found`);',
+        '        }',
+        '',
+        '        await this.userRepository.remove(existing);',
+        '        this.cache.delete(id);',
+        '        this.invalidateListCache();',
+        "        this.emit('user:deleted', { id, deletedAt: new Date() });",
+        "        this.logger.info('User deleted', { id });",
+        '    }',
+        '',
+        '    async bulkDelete(ids: string[]): Promise<{ deleted: number; failed: string[] }> {',
+        '        const failed: string[] = [];',
+        '        let deleted = 0;',
+        '',
+        '        for (const id of ids) {',
+        '            try {',
+        '                await this.delete(id);',
+        '                deleted++;',
+        '            } catch (error) {',
+        "                this.logger.warn('Failed to delete user', {",
+        '                    id,',
+        '                    error: (error as Error).message,',
+        '                });',
+        '                failed.push(id);',
+        '            }',
+        '        }',
+        '',
+        '        return { deleted, failed };',
+        '    }',
+        '',
+        '    private buildWhereClause(',
+        '        filters: Array<{ field: string; operator: FilterOperator; value: unknown }>',
+        '    ): Record<string, unknown> {',
+        '        const where: Record<string, unknown> = {};',
+        '',
+        '        for (const filter of filters) {',
+        '            switch (filter.operator) {',
+        "                case 'eq':",
+        '                    where[filter.field] = filter.value;',
+        '                    break;',
+        "                case 'like':",
+        '                    where[filter.field] = Like(`%${filter.value}%`);',
+        '                    break;',
+        "                case 'in':",
+        '                    where[filter.field] = In(filter.value as unknown[]);',
+        '                    break;',
+        '                default:',
+        "                    this.logger.warn('Unknown filter operator', { operator: filter.operator });",
+        '            }',
+        '        }',
+        '',
+        '        return where;',
+        '    }',
+        '',
+        '    private invalidateListCache(): void {',
+        '        const invalidatedKeys: string[] = [];',
+        '        for (const [key] of this.cache) {',
+        "            if (key.startsWith('list:')) {",
+        '                this.cache.delete(key);',
+        '                invalidatedKeys.push(key);',
+        '            }',
+        '        }',
+        '        if (invalidatedKeys.length > 0) {',
+        "            this.emit('cache:invalidated', { keys: invalidatedKeys });",
+        '        }',
+        '    }',
+        '',
+        '    private delay(ms: number): Promise<void> {',
+        '        return new Promise((resolve) => setTimeout(resolve, ms));',
+        '    }',
+        '',
+        '    getStats(): {',
+        '        cacheSize: number;',
+        '        pendingRequests: number;',
+        '        cacheEnabled: boolean;',
+        '    } {',
+        '        return {',
+        '            cacheSize: this.cache.size,',
+        '            pendingRequests: this.pendingRequests.size,',
+        '            cacheEnabled: this.config.enableCache,',
+        '        };',
+        '    }',
+        '}',
+        '',
+        'export function createUserService(',
+        '    repository: Repository<User>,',
+        '    config?: Partial<ServiceConfig>',
+        '): UserService {',
+        '    const defaultConfig: ServiceConfig = {',
+        '        enableCache: true,',
+        '        maxRetries: 3,',
+        '        retryDelay: 1000,',
+        "        defaultSort: { field: 'createdAt', direction: 'desc' },",
+        '    };',
+        '    return new UserService(repository, { ...defaultConfig, ...config });',
+        '}',
+        ''
+    ].join('\n');
+
+    describe('realistic svelte2tsx output edits', () => {
+        it('handles adding a new reactive declaration in script section', () => {
+            const edited = fullSvelte2tsxOutput.replace(
+                '    $: isEmpty = $store.length === 0;',
+                '    $: isEmpty = $store.length === 0;\n    $: formattedTotal = formatCurrency(totalPrice);'
+            );
+            const range = assertValidChangeRange(fullSvelte2tsxOutput, edited);
+            // Change should be localized, not spanning the whole file
+            assert.ok(range.span.length < fullSvelte2tsxOutput.length / 2);
+        });
+
+        it('handles adding a new function to the script section', () => {
+            const newFn = [
+                '',
+                '    function toggleSort(): void {',
+                '        sortDirection = sortDirection === "asc" ? "desc" : "asc";',
+                '    }'
+            ].join('\n');
+            const edited = fullSvelte2tsxOutput.replace(
+                '    function clearCart(): void {',
+                newFn + '\n\n    function clearCart(): void {'
+            );
+            assertValidChangeRange(fullSvelte2tsxOutput, edited);
+        });
+
+        it('handles modifying a template element in the async block', () => {
+            const edited = fullSvelte2tsxOutput.replace(
+                '{ svelteHTML.createElement("h2", {});  title; }',
+                '{ svelteHTML.createElement("h1", { "class":`title`,});  title; " - "; currency; }'
+            );
+            assertValidChangeRange(fullSvelte2tsxOutput, edited);
+        });
+
+        it('handles adding a new import', () => {
+            const edited = fullSvelte2tsxOutput.replace(
+                "    import { onMount, onDestroy, createEventDispatcher } from 'svelte';",
+                "    import { onMount, onDestroy, createEventDispatcher, tick } from 'svelte';\n    import { spring } from 'svelte/motion';"
+            );
+            assertValidChangeRange(fullSvelte2tsxOutput, edited);
+        });
+
+        it('handles changing the props return type', () => {
+            const edited = fullSvelte2tsxOutput.replace(
+                'return { props: {items: items , title: title , currency: currency , onCheckout: onCheckout}, slots: {}, events: {} }}',
+                'return { props: {items: items , title: title , currency: currency , onCheckout: onCheckout , maxItems: maxItems}, slots: {}, events: {} }}'
+            );
+            assertValidChangeRange(fullSvelte2tsxOutput, edited);
+        });
+
+        it('handles changing the component export class', () => {
+            const edited = fullSvelte2tsxOutput.replace(
+                "export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial(['items', 'title', 'currency', 'onCheckout'], __sveltets_2_with_any_event($$render()))) {",
+                "export default class ShoppingCart__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial(['items', 'title', 'currency', 'onCheckout', 'maxItems'], __sveltets_2_with_any_event($$render()))) {"
+            );
+            assertValidChangeRange(fullSvelte2tsxOutput, edited);
+        });
+
+        it('handles adding a new template block with components', () => {
+            const newBlock = [
+                '',
+                '    if(searchQuery.length > 0){',
+                '         { svelteHTML.createElement("div", { "class":`search-results`,});',
+                '             { svelteHTML.createElement("p", {});  "Found "; filteredItems.length; " items"; }',
+                '         }',
+                '    }',
+                ''
+            ].join('\n');
+            const edited = fullSvelte2tsxOutput.replace(
+                '    if(isEmpty){',
+                newBlock + '\n    if(isEmpty){'
+            );
+            assertValidChangeRange(fullSvelte2tsxOutput, edited);
+        });
+
+        it('handles removing a store subscription', () => {
+            const edited = fullSvelte2tsxOutput
+                .replace(
+                    '    const store: Writable<Item[]> = writable(items);\n    /*Ωignore_startΩ*/;let $store = __sveltets_2_store_get(store);/*Ωignore_endΩ*/;\n',
+                    '    let items_internal: Item[] = [...items];\n'
+                )
+                .replace(/\$store/g, 'items_internal');
+            assertValidChangeRange(fullSvelte2tsxOutput, edited);
+        });
+
+        it('handles simultaneous script and template edits (simulating svelte2tsx regeneration)', () => {
+            // This simulates what happens when the user edits the Svelte source and
+            // svelte2tsx regenerates the entire output with changes in multiple sections
+            const edited = fullSvelte2tsxOutput
+                .replace(
+                    '    let showModal = false;',
+                    '    let showModal = false;\n    let isLoading = false;'
+                )
+                .replace(
+                    '        store.update((items: Item[]) => items);',
+                    '        isLoading = true;\n            store.update((items: Item[]) => items);\n            isLoading = false;'
+                )
+                .replace(
+                    '     { svelteHTML.createElement("header", { "class":`cart-header`,});',
+                    '     { svelteHTML.createElement("header", { "class":`cart-header`,});\n        if(isLoading){ { svelteHTML.createElement("div", { "class":`spinner`,}); } }'
+                );
+            assertValidChangeRange(fullSvelte2tsxOutput, edited);
+        });
+    });
+
+    describe('realistic TypeScript service file edits', () => {
+        it('handles adding a new method to the class', () => {
+            const newMethod = [
+                '',
+                '    async findByEmail(email: string): Promise<User | null> {',
+                '        return this.userRepository.findOne({ where: { email } });',
+                '    }',
+                ''
+            ].join('\n');
+            const edited = fullTypeScriptFile.replace(
+                '    async findMany(options: QueryOptions = {}): Promise<PaginatedResult<User>> {',
+                newMethod +
+                    '\n    async findMany(options: QueryOptions = {}): Promise<PaginatedResult<User>> {'
+            );
+            assertValidChangeRange(fullTypeScriptFile, edited);
+        });
+
+        it('handles modifying an existing method body', () => {
+            const edited = fullTypeScriptFile.replace(
+                '        const existingUser = await this.userRepository.findOne({\n            where: { email: dto.email },\n        });',
+                '        const existingUser = await this.userRepository.findOne({\n            where: { email: dto.email.toLowerCase().trim() },\n        });'
+            );
+            assertValidChangeRange(fullTypeScriptFile, edited);
+        });
+
+        it('handles adding a new import', () => {
+            const edited = fullTypeScriptFile.replace(
+                "import { Repository, FindManyOptions, In, Like } from 'typeorm';",
+                "import { Repository, FindManyOptions, In, Like, Between, MoreThan } from 'typeorm';"
+            );
+            const range = assertValidChangeRange(fullTypeScriptFile, edited);
+            // Change should be at the top of the file
+            assert.ok(range.span.start < 200);
+        });
+
+        it('handles adding a new type to the type imports', () => {
+            const edited = fullTypeScriptFile.replace(
+                "    FilterOperator,\n} from '../types';",
+                "    FilterOperator,\n    RoleType,\n    PermissionSet,\n} from '../types';"
+            );
+            assertValidChangeRange(fullTypeScriptFile, edited);
+        });
+
+        it('handles adding a new switch case', () => {
+            const edited = fullTypeScriptFile.replace(
+                "                case 'in':\n                    where[filter.field] = In(filter.value as unknown[]);\n                    break;",
+                "                case 'in':\n                    where[filter.field] = In(filter.value as unknown[]);\n                    break;\n                case 'between':\n                    where[filter.field] = Between((filter.value as [unknown, unknown])[0], (filter.value as [unknown, unknown])[1]);\n                    break;"
+            );
+            assertValidChangeRange(fullTypeScriptFile, edited);
+        });
+
+        it('handles refactoring: extracting a method', () => {
+            // Replace inline code with method call + add the extracted method
+            const edited = fullTypeScriptFile
+                .replace(
+                    '        const effectivePageSize = Math.min(Math.max(1, pageSize), MAX_PAGE_SIZE);',
+                    '        const effectivePageSize = this.clampPageSize(pageSize);'
+                )
+                .replace(
+                    '    private buildWhereClause(',
+                    '    private clampPageSize(pageSize: number): number {\n        return Math.min(Math.max(1, pageSize), MAX_PAGE_SIZE);\n    }\n\n    private buildWhereClause('
+                );
+            assertValidChangeRange(fullTypeScriptFile, edited);
+        });
+
+        it('handles changing the class declaration and constructor', () => {
+            const edited = fullTypeScriptFile
+                .replace(
+                    'export class UserService extends EventEmitter {',
+                    'export class UserService<T extends User = User> extends EventEmitter {'
+                )
+                .replace(
+                    '        private readonly userRepository: Repository<User>,',
+                    '        private readonly userRepository: Repository<T>,'
+                );
+            assertValidChangeRange(fullTypeScriptFile, edited);
+        });
+
+        it('handles removing an entire method', () => {
+            const edited = fullTypeScriptFile.replace(
+                /    async bulkDelete\(ids: string\[\]\)[\s\S]*?        return \{ deleted, failed \};\n    \}\n/,
+                ''
+            );
+            assertValidChangeRange(fullTypeScriptFile, edited);
+        });
+
+        it('handles renaming across multiple locations', () => {
+            const edited = fullTypeScriptFile
+                .replace(/enableCache/g, 'cacheEnabled')
+                .replace(/CACHE_TTL/g, 'CACHE_DURATION');
+            const range = assertValidChangeRange(fullTypeScriptFile, edited);
+            // Should span from first to last occurrence
+            assert.ok(range.span.length > 100);
+        });
+
+        it('handles adding error handling wrapper', () => {
+            const edited = fullTypeScriptFile
+                .replace(
+                    '    async create(dto: UserCreateDto): Promise<User> {\n        const existingUser',
+                    '    async create(dto: UserCreateDto): Promise<User> {\n        try {\n        const existingUser'
+                )
+                .replace(
+                    "        this.logger.info('User created', { id: saved.id, email: saved.email });\n        return saved;\n    }",
+                    "        this.logger.info('User created', { id: saved.id, email: saved.email });\n        return saved;\n        } catch (error) {\n            this.logger.error('Failed to create user', { email: dto.email, error });\n            throw error;\n        }\n    }"
+                );
+            assertValidChangeRange(fullTypeScriptFile, edited);
+        });
+    });
+
+    describe('incremental TS reparsing with realistic files', () => {
+        function verifyIncrementalReparse(oldText: string, newText: string, label: string) {
+            const changeRange = computeChangeRange(oldText, newText);
+
+            // Parse the original, then incrementally update
+            const original = ts.createSourceFile('test.ts', oldText, ts.ScriptTarget.Latest, true);
+            const incremental = ts.updateSourceFile(original, newText, changeRange);
+
+            // Full reparse for comparison
+            const full = ts.createSourceFile('test.ts', newText, ts.ScriptTarget.Latest, true);
+
+            // The resulting ASTs should produce the same text
+            assert.strictEqual(incremental.text, full.text, `${label}: text mismatch`);
+
+            // Both should have no parse errors (or the same errors)
+            const incrDiagnostics =
+                (incremental as unknown as { parseDiagnostics?: unknown[] }).parseDiagnostics ?? [];
+            const fullDiagnostics =
+                (full as unknown as { parseDiagnostics?: unknown[] }).parseDiagnostics ?? [];
+            assert.strictEqual(
+                incrDiagnostics.length,
+                fullDiagnostics.length,
+                `${label}: diagnostic count mismatch (incremental=${incrDiagnostics.length}, full=${fullDiagnostics.length})`
+            );
+        }
+
+        it('produces correct AST for adding a method to a TypeScript class', () => {
+            const newMethod =
+                '\n    async findByEmail(email: string): Promise<User | null> {\n        return this.userRepository.findOne({ where: { email } });\n    }\n';
+            const edited = fullTypeScriptFile.replace(
+                '    async findMany(',
+                newMethod + '\n    async findMany('
+            );
+            verifyIncrementalReparse(fullTypeScriptFile, edited, 'add method');
+        });
+
+        it('produces correct AST for modifying a string literal', () => {
+            const edited = fullTypeScriptFile.replace(
+                'const DEFAULT_PAGE_SIZE = 20;',
+                'const DEFAULT_PAGE_SIZE = 50;'
+            );
+            verifyIncrementalReparse(fullTypeScriptFile, edited, 'change constant');
+        });
+
+        it('produces correct AST for adding an import', () => {
+            const edited = fullTypeScriptFile.replace(
+                "import { Repository, FindManyOptions, In, Like } from 'typeorm';",
+                "import { Repository, FindManyOptions, In, Like, Between } from 'typeorm';"
+            );
+            verifyIncrementalReparse(fullTypeScriptFile, edited, 'add import');
+        });
+
+        it('produces correct AST for deleting a method', () => {
+            const edited = fullTypeScriptFile.replace(
+                /    private delay\(ms: number\): Promise<void> \{\n        return new Promise\(\(resolve\) => setTimeout\(resolve, ms\)\);\n    \}\n/,
+                ''
+            );
+            verifyIncrementalReparse(fullTypeScriptFile, edited, 'delete method');
+        });
+
+        it('produces correct AST for multiple edits across the file', () => {
+            const edited = fullTypeScriptFile
+                .replace('const MAX_PAGE_SIZE = 100;', 'const MAX_PAGE_SIZE = 200;')
+                .replace(
+                    "        this.logger.info('User created', { id: saved.id, email: saved.email });",
+                    "        this.logger.info('User created successfully', { id: saved.id, email: saved.email, name: saved.name });"
+                );
+            verifyIncrementalReparse(fullTypeScriptFile, edited, 'multiple edits');
+        });
+    });
+});
