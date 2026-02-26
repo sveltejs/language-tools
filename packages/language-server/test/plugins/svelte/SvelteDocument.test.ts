@@ -45,8 +45,8 @@ describe('Svelte Document', () => {
 
         sinon.assert.calledOnce(compileStub);
         const passedOptions = compileStub.firstCall.args[1];
-        assert.strictEqual(passedOptions.filename, parent.getFilePath() || '');
-        assert.strictEqual(passedOptions.generate, compileOptions.generate);
+        assert.strictEqual(passedOptions?.filename, parent.getFilePath() || '');
+        assert.strictEqual(passedOptions?.generate, compileOptions.generate);
     });
 
     describe('#transpiled (fallback)', () => {
