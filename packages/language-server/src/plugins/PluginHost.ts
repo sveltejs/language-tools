@@ -189,9 +189,7 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
             }
         }
 
-        let flattenedCompletions = completions
-            .map((completion) => completion.result.items)
-            .flat();
+        let flattenedCompletions = completions.map((completion) => completion.result.items).flat();
         const isIncomplete = completions.reduce(
             (incomplete, completion) => incomplete || completion.result.isIncomplete,
             false as boolean
