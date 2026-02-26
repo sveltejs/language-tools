@@ -373,12 +373,14 @@ export async function emitSvelteFiles(
  * @param tsconfigPath - Path to the project's original tsconfig.json
  * @param emitResult - Result from emitSvelteFiles containing cache directory paths
  * @param incremental - Whether to enable TypeScript incremental compilation
+ * @param useTsgo - Whether to configure for tsgo
  * @returns Path to the generated overlay tsconfig.json
  */
 export function writeOverlayTsconfig(
     tsconfigPath: string,
     emitResult: EmitResult,
-    incremental: boolean
+    incremental: boolean,
+    useTsgo: boolean
 ): string {
     const cacheDir = emitResult.cacheDir;
     const overlayPath = path.join(cacheDir, 'tsconfig.json');
@@ -439,6 +441,8 @@ export function writeOverlayTsconfig(
         path: toRelativePosix(overlayDir, path.resolve(tsconfigDir, ref.path))
     }));
 
+    const rebasedPaths = rebasePathsConfig(parsed.options, tsconfigDir, overlayDir, useTsgo);
+
     const overlay = {
         extends: toRelativePosix(overlayDir, tsconfigPath),
         compilerOptions: {
@@ -446,7 +450,8 @@ export function writeOverlayTsconfig(
             allowArbitraryExtensions: true,
             noEmit: true,
             incremental,
-            tsBuildInfoFile: toRelativePosix(overlayDir, tsBuildInfoFile)
+            tsBuildInfoFile: toRelativePosix(overlayDir, tsBuildInfoFile),
+            ...(rebasedPaths && Object.keys(rebasedPaths).length ? { paths: rebasedPaths } : {})
         },
         files: Array.from(new Set([...(configFiles ?? []), ...shimFiles])),
         ...(mergedInclude.length ? { include: mergedInclude } : {}),
@@ -880,6 +885,53 @@ function normalizeConfigSpecs(specs: unknown): string[] | undefined {
         return specs.map((spec) => String(spec));
     }
     return [String(specs)];
+}
+
+function rebasePathsConfig(
+    options: ts.CompilerOptions,
+    tsconfigDir: string,
+    overlayDir: string,
+    useTsgo: boolean
+): Record<string, string[]> | undefined {
+    if (!options.paths) {
+        return;
+    }
+
+    const rebased: Record<string, string[]> = {};
+    let pathsBaseDir = tsconfigDir;
+    let baseUrlAbsolute = useTsgo ? undefined : options.baseUrl;
+    if (baseUrlAbsolute != null) {
+        // should already be absolute, just to be sure.
+        if (!path.isAbsolute(baseUrlAbsolute)) {
+            baseUrlAbsolute = path.resolve(tsconfigDir, baseUrlAbsolute);
+        }
+        pathsBaseDir = path.resolve(tsconfigDir, baseUrlAbsolute);
+    } else if (typeof options.pathsBasePath === 'string') {
+        pathsBaseDir = options.pathsBasePath;
+    }
+
+    for (const [key, specs] of Object.entries(options.paths)) {
+        const result: string[] = [];
+        for (const spec of specs) {
+            // ${configDir} placeholder should already be resolved here
+            const absoluteSpec = path.isAbsolute(spec) ? spec : path.resolve(pathsBaseDir, spec);
+            result.push(baseUrlAbsolute == null ? toRelativePosix(overlayDir, absoluteSpec) : spec);
+            const patternRelativeToTsconfig = toPosixPath(path.relative(tsconfigDir, absoluteSpec));
+            if (!patternRelativeToTsconfig.startsWith('../')) {
+                const viralSveltePattern = path.resolve(
+                    overlayDir,
+                    path.join(EMIT_SUBDIR, patternRelativeToTsconfig)
+                );
+                const relativeVirtualPattern = toRelativePosix(
+                    baseUrlAbsolute ?? overlayDir,
+                    viralSveltePattern
+                );
+                result.push('./' + relativeVirtualPattern);
+            }
+        }
+        rebased[key] = result;
+    }
+    return rebased;
 }
 
 function toVirtualSvelteDtsSpec(spec: string): string {
