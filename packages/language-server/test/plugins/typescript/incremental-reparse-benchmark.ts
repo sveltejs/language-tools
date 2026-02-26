@@ -145,11 +145,7 @@ function generateSvelte2tsxOutput(numBindings: number): string {
         );
     }
 
-    lines.push(
-        '    ;() => {',
-        '    <>',
-        ''
-    );
+    lines.push('    ;() => {', '    <>', '');
 
     for (let i = 0; i < numBindings; i++) {
         lines.push(
@@ -240,7 +236,12 @@ function runSingleBenchmark(
     // Warm up - create a few source files and do incremental parses
     for (let i = 0; i < 5; i++) {
         ts.createSourceFile('benchmark.ts', editedSource, ts.ScriptTarget.Latest, true);
-        const sf = ts.createSourceFile('benchmark.ts', originalSource, ts.ScriptTarget.Latest, true);
+        const sf = ts.createSourceFile(
+            'benchmark.ts',
+            originalSource,
+            ts.ScriptTarget.Latest,
+            true
+        );
         ts.updateSourceFile(sf, editedSource, changeRange);
     }
 
@@ -353,7 +354,9 @@ function main() {
     for (const scenario of scenarios) {
         console.log(`\n${'─'.repeat(70)}`);
         console.log(`  ${scenario.label}`);
-        console.log(`  Source size: ${scenario.source.length} chars, ${scenario.source.split('\n').length} lines`);
+        console.log(
+            `  Source size: ${scenario.source.length} chars, ${scenario.source.split('\n').length} lines`
+        );
         console.log(`${'─'.repeat(70)}`);
 
         for (const editKind of scenario.editKinds) {
@@ -380,10 +383,16 @@ function main() {
 
             console.log();
             console.log(`  Edit: ${editKind}`);
-            console.log(`    Full reparse:        median ${formatMs(fullMedian)}, p95 ${formatMs(percentile(result.fullReparseMs, 95))}`);
-            console.log(`    Incremental reparse: median ${formatMs(incrMedian)}, p95 ${formatMs(percentile(result.incrementalReparseMs, 95))}`);
+            console.log(
+                `    Full reparse:        median ${formatMs(fullMedian)}, p95 ${formatMs(percentile(result.fullReparseMs, 95))}`
+            );
+            console.log(
+                `    Incremental reparse: median ${formatMs(incrMedian)}, p95 ${formatMs(percentile(result.incrementalReparseMs, 95))}`
+            );
             console.log(`    computeChangeRange:  median ${formatMs(changeRangeMedian)}`);
-            console.log(`    Net speedup (incl. computeChangeRange): ${(fullMedian / (incrMedian + changeRangeMedian)).toFixed(1)}x`);
+            console.log(
+                `    Net speedup (incl. computeChangeRange): ${(fullMedian / (incrMedian + changeRangeMedian)).toFixed(1)}x`
+            );
             console.log(`    Speedup (reparse only): ${speedup.toFixed(1)}x`);
         }
     }
@@ -396,10 +405,10 @@ function main() {
     console.log();
     console.log(
         'Source Size'.padEnd(14) +
-        'Edit Type'.padEnd(18) +
-        'Full'.padEnd(12) +
-        'Incremental'.padEnd(14) +
-        'Speedup'.padEnd(10)
+            'Edit Type'.padEnd(18) +
+            'Full'.padEnd(12) +
+            'Incremental'.padEnd(14) +
+            'Speedup'.padEnd(10)
     );
     console.log('─'.repeat(68));
 
@@ -410,17 +419,19 @@ function main() {
 
         console.log(
             `${(r.sourceSize / 1000).toFixed(1)}KB`.padEnd(14) +
-            r.editKind.padEnd(18) +
-            formatMs(fullMedian).padEnd(12) +
-            formatMs(incrMedian).padEnd(14) +
-            `${speedup.toFixed(1)}x`
+                r.editKind.padEnd(18) +
+                formatMs(fullMedian).padEnd(12) +
+                formatMs(incrMedian).padEnd(14) +
+                `${speedup.toFixed(1)}x`
         );
     }
 
     console.log();
 
     // Overall assessment
-    const speedups = allResults.map((r) => median(r.fullReparseMs) / median(r.incrementalReparseMs));
+    const speedups = allResults.map(
+        (r) => median(r.fullReparseMs) / median(r.incrementalReparseMs)
+    );
     const avgSpeedup = speedups.reduce((a, b) => a + b, 0) / speedups.length;
     const minSpeedup = Math.min(...speedups);
     const maxSpeedup = Math.max(...speedups);
@@ -430,9 +441,13 @@ function main() {
     console.log();
 
     if (avgSpeedup >= 2) {
-        console.log('RESULT: Significant improvement. Incremental reparsing is substantially faster.');
+        console.log(
+            'RESULT: Significant improvement. Incremental reparsing is substantially faster.'
+        );
     } else if (avgSpeedup >= 1.3) {
-        console.log('RESULT: Moderate improvement. Incremental reparsing provides measurable benefit.');
+        console.log(
+            'RESULT: Moderate improvement. Incremental reparsing provides measurable benefit.'
+        );
     } else {
         console.log('RESULT: Minimal improvement at the parser level for these file sizes.');
         console.log('Note: The real benefit may be larger in the full language service pipeline');
