@@ -73,7 +73,7 @@ export abstract class ReadableDocument implements TextDocument {
     }
 
     get lineCount(): number {
-        return this.getText().split(/\r?\n/).length;
+        return this.getLineOffsets().length;
     }
 
     abstract languageId: string;

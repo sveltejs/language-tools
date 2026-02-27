@@ -28,7 +28,7 @@ import {
 } from '../../../lib/documents';
 import { AttributeContext, getAttributeContextAtPosition } from '../../../lib/documents/parseHtml';
 import { LSConfigManager } from '../../../ls-config';
-import { flatten, getRegExpMatches, modifyLines, pathToUrl } from '../../../utils';
+import { getRegExpMatches, modifyLines, pathToUrl } from '../../../utils';
 import { AppCompletionItem, AppCompletionList, CompletionsProvider } from '../../interfaces';
 import { ComponentInfoProvider, ComponentPartInfo } from '../ComponentInfoProvider';
 import { SvelteDocumentSnapshot } from '../DocumentSnapshot';
@@ -98,6 +98,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
      * For performance reasons, try to reuse the last completion if possible.
      */
     private lastCompletion?: LastCompletion;
+    private existingImportsCache?: { uri: string; version: number; imports: Set<string> };
 
     private isValidTriggerCharacter(
         character: string | undefined
@@ -525,11 +526,20 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
     }
 
     private getExistingImports(document: Document) {
+        const uri = document.uri;
+        if (
+            this.existingImportsCache?.uri === uri &&
+            this.existingImportsCache.version === document.version
+        ) {
+            return this.existingImportsCache.imports;
+        }
         const rawImports = getRegExpMatches(scriptImportRegex, document.getText()).map((match) =>
             (match[1] ?? match[2]).split(',')
         );
-        const tidiedImports = flatten(rawImports).map((match) => match.trim());
-        return new Set(tidiedImports);
+        const tidiedImports = rawImports.flat().map((match) => match.trim());
+        const imports = new Set(tidiedImports);
+        this.existingImportsCache = { uri, version: document.version, imports };
+        return imports;
     }
 
     private getEventAndSlotLetCompletions(
@@ -847,8 +857,9 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
         name: string,
         source?: string
     ): boolean {
+        if (!source) return false;
         const importStatement = new RegExp(`import ${name} from ["'\`][\\s\\S]+\\.svelte["'\`]`);
-        return !!source && !!snapshot.getFullText().match(importStatement);
+        return importStatement.test(snapshot.getFullText());
     }
 
     private fixTextEditRange(
