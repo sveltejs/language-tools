@@ -291,9 +291,16 @@ export function svelte2tsx(
         };
     } else {
         str.prepend('///<reference types="svelte" />\n');
+        const code = str.toString();
+        const filename = options?.filename;
         return {
-            code: str.toString(),
-            map: str.generateMap({ hires: true, source: options?.filename }),
+            code,
+            get map() {
+                const map = str.generateMap({ hires: true, source: filename });
+                // Cache the result so subsequent accesses don't regenerate
+                Object.defineProperty(this, 'map', { value: map });
+                return map;
+            },
             exportedNames: exportedNames.getExportsMap(),
             events: events.createAPI(),
             // not part of the public API so people don't start using it
