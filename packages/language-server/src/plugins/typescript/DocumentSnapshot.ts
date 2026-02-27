@@ -32,6 +32,38 @@ import { surroundWithIgnoreComments } from './features/utils';
 import { configLoader } from '../../lib/documents/configLoader';
 
 /**
+ * Computes the change range between two snapshots by scanning for the first and last
+ * differing characters. This allows TypeScript to do incremental re-parsing instead of
+ * a full reparse when a snapshot changes.
+ */
+export function computeChangeRange(oldText: string, newText: string): ts.TextChangeRange {
+    const minLen = Math.min(oldText.length, newText.length);
+
+    // Scan from the front to find the first differing character
+    let prefixLen = 0;
+    while (prefixLen < minLen && oldText.charCodeAt(prefixLen) === newText.charCodeAt(prefixLen)) {
+        prefixLen++;
+    }
+
+    // Scan from the back to find the last differing character
+    let oldSuffixStart = oldText.length;
+    let newSuffixStart = newText.length;
+    while (
+        oldSuffixStart > prefixLen &&
+        newSuffixStart > prefixLen &&
+        oldText.charCodeAt(oldSuffixStart - 1) === newText.charCodeAt(newSuffixStart - 1)
+    ) {
+        oldSuffixStart--;
+        newSuffixStart--;
+    }
+
+    return {
+        span: { start: prefixLen, length: oldSuffixStart - prefixLen },
+        newLength: newSuffixStart - prefixLen
+    };
+}
+
+/**
  * An error which occurred while trying to parse/preprocess the svelte file contents.
  */
 export interface ParserError {
@@ -318,8 +350,8 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
         return this.text;
     }
 
-    getChangeRange() {
-        return undefined;
+    getChangeRange(oldSnapshot: ts.IScriptSnapshot) {
+        return computeChangeRange(oldSnapshot.getText(0, oldSnapshot.getLength()), this.text);
     }
 
     positionAt(offset: number) {
@@ -442,6 +474,7 @@ export class JSOrTSDocumentSnapshot extends IdentityMapper implements DocumentSn
     scriptInfo = null;
     originalText = this.text;
     kitFile = false;
+    private prevChangeRange?: ts.TextChangeRange;
     private lineOffsets?: number[];
     private internalLineOffsets?: number[];
     private addedCode: Array<{
@@ -483,8 +516,14 @@ export class JSOrTSDocumentSnapshot extends IdentityMapper implements DocumentSn
         return this.text;
     }
 
-    getChangeRange() {
-        return undefined;
+    getChangeRange(oldSnapshot: ts.IScriptSnapshot) {
+        // When this snapshot is mutated in-place via update(), TS may pass the same
+        // object as oldSnapshot (since it cached the reference before mutation).
+        // In that case, use the pre-computed change range from the last update.
+        if (oldSnapshot === this) {
+            return this.prevChangeRange;
+        }
+        return computeChangeRange(oldSnapshot.getText(0, oldSnapshot.getLength()), this.text);
     }
 
     positionAt(offset: number) {
@@ -536,6 +575,8 @@ export class JSOrTSDocumentSnapshot extends IdentityMapper implements DocumentSn
     }
 
     update(changes: TextDocumentContentChangeEvent[]): void {
+        const oldText = this.text;
+
         for (const change of changes) {
             let start = 0;
             let end = 0;
@@ -551,6 +592,7 @@ export class JSOrTSDocumentSnapshot extends IdentityMapper implements DocumentSn
         }
 
         this.adjustText();
+        this.prevChangeRange = computeChangeRange(oldText, this.text);
         this.version++;
         this.lineOffsets = undefined;
         this.internalLineOffsets = undefined;
