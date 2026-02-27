@@ -1,5 +1,17 @@
 import ts from 'typescript';
 
+/**
+ * Cache for reusing internal TypeScript ASTs across svelte2tsx invocations.
+ * Pass the same cache object on repeated calls for the same file to enable
+ * incremental TS reparsing of script contents via `ts.updateSourceFile()`.
+ */
+export interface Svelte2TsxCache {
+    instanceScriptAst?: ts.SourceFile;
+    instanceScriptContent?: string;
+    moduleScriptAst?: ts.SourceFile;
+    moduleScriptContent?: string;
+}
+
 export interface SvelteCompiledToTsx {
     code: string;
     map: import("magic-string").SourceMap;
@@ -95,6 +107,12 @@ export function svelte2tsx(
          * from the generated file location.
          */
         rewriteExternalImports?: InternalHelpers.RewriteExternalImportsConfig;
+        /**
+         * Optional cache for reusing internal TypeScript ASTs across invocations.
+         * Pass the same object for repeated calls on the same file to enable
+         * incremental TS reparsing (~2x faster script parsing).
+         */
+        cache?: Svelte2TsxCache;
     }
 ): SvelteCompiledToTsx
 
