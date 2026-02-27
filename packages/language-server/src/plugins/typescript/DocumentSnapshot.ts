@@ -1,7 +1,7 @@
 import { EncodedSourceMap, TraceMap, originalPositionFor } from '@jridgewell/trace-mapping';
 // @ts-ignore
 import { TemplateNode } from 'svelte/types/compiler/interfaces';
-import { svelte2tsx, IExportedNames, internalHelpers } from 'svelte2tsx';
+import { svelte2tsx, IExportedNames, internalHelpers, Svelte2TsxCache } from 'svelte2tsx';
 import ts from 'typescript';
 import { Position, Range, TextDocumentContentChangeEvent } from 'vscode-languageserver';
 import {
@@ -186,6 +186,9 @@ export namespace DocumentSnapshot {
     }
 }
 
+/** Per-file cache for reusing internal TypeScript ASTs across svelte2tsx invocations */
+const svelte2tsxCacheMap = new Map<string, Svelte2TsxCache>();
+
 /**
  * Tries to preprocess the svelte document and convert the contents into better analyzable js/ts(x) content.
  */
@@ -205,10 +208,17 @@ function preprocessSvelteFile(document: Document, options: SvelteSnapshotOptions
         : ts.ScriptKind.JS;
 
     try {
+        const filePath = document.getFilePath() ?? '';
+        let cache = svelte2tsxCacheMap.get(filePath);
+        if (!cache) {
+            cache = {};
+            svelte2tsxCacheMap.set(filePath, cache);
+        }
+
         const tsx = svelte2tsx(text, {
             parse: options.parse,
             version: options.version,
-            filename: document.getFilePath() ?? undefined,
+            filename: filePath || undefined,
             isTsFile: scriptKind === ts.ScriptKind.TS,
             mode: 'ts',
             typingsNamespace: options.typingsNamespace,
@@ -218,7 +228,8 @@ function preprocessSvelteFile(document: Document, options: SvelteSnapshotOptions
                 document.config?.compilerOptions?.accessors ??
                 document.config?.compilerOptions?.customElement,
             emitJsDoc: options.emitJsDoc,
-            rewriteExternalImports: options.rewriteExternalImports
+            rewriteExternalImports: options.rewriteExternalImports,
+            cache
         });
         text = tsx.code;
         tsxMap = tsx.map as EncodedSourceMap;
