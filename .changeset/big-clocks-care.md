@@ -1,5 +1,5 @@
 ---
-"svelte-language-server": patch
+'svelte-language-server': patch
 ---
 
 perf: micro-optimizations in hot paths
