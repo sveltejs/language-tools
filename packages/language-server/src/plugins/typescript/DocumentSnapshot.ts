@@ -359,11 +359,11 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
                     return;
                 }
                 const parent = foundNode;
-                // Spread so the "parent" property isn't added to the original ast,
-                // causing an infinite loop
-                foundNode = { ...node };
+                // Use Object.create so the "parent" property isn't added to the original ast,
+                // causing an infinite loop. This is cheaper than spreading all properties.
+                foundNode = Object.create(node);
                 if (parent) {
-                    foundNode.parent = parent;
+                    foundNode!.parent = parent;
                 }
             }
         });

@@ -2,7 +2,7 @@ import { FSWatcher, watch } from 'chokidar';
 import { readFile } from 'fs';
 import globrex from 'globrex';
 import { join } from 'path';
-import { flatten, isNotNullOrUndefined, normalizePath } from '../../utils';
+import { isNotNullOrUndefined, normalizePath } from '../../utils';
 
 const varRegex = /^\s*(--\w+.*?):\s*?([^;]*)/;
 
@@ -95,6 +95,6 @@ export class GlobalVars {
     }
 
     getGlobalVars(): GlobalVar[] {
-        return flatten([...this.globalVars.values()]);
+        return [...this.globalVars.values()].flat();
     }
 }
