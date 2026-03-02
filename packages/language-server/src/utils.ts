@@ -294,7 +294,9 @@ export function getIndent(text: string) {
 export function possiblyComponent(node: Node): boolean;
 export function possiblyComponent(tagName: string): boolean;
 export function possiblyComponent(nodeOrTagName: Node | string): boolean {
-    const charCode = (typeof nodeOrTagName === 'object' ? nodeOrTagName.tag : nodeOrTagName)?.charCodeAt(0);
+    const charCode = (
+        typeof nodeOrTagName === 'object' ? nodeOrTagName.tag : nodeOrTagName
+    )?.charCodeAt(0);
     return charCode !== undefined && charCode >= /* A */ 65 && charCode <= /* Z */ 90;
 }
 

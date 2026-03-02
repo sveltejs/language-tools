@@ -39,7 +39,8 @@ export class DocumentHighlightProviderImpl implements DocumentHighlightProvider 
             return null;
         }
 
-        const result = highlights.flatMap((highlight) => highlight.highlightSpans)
+        const result = highlights
+            .flatMap((highlight) => highlight.highlightSpans)
             .filter(this.notInGeneratedCode(tsDoc.getFullText()))
             .map((highlight) =>
                 DocumentHighlight.create(
