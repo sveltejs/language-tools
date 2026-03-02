@@ -486,8 +486,7 @@ function addTypeToFunction(
             insert(paramPos, paramInsertion);
             if (!fn.node.type && fn.node.body) {
                 const isAsync =
-                    fn.node.modifiers?.some((m) => m.kind === ts.SyntaxKind.AsyncKeyword) ??
-                    false;
+                    fn.node.modifiers?.some((m) => m.kind === ts.SyntaxKind.AsyncKeyword) ?? false;
                 let effectiveReturnType = returnType;
                 if (isAsync && returnType) {
                     // Async functions must return Promise<T>, not T | Promise<T>
@@ -502,9 +501,7 @@ function addTypeToFunction(
                     ? fn.node.equalsGreaterThanToken.getStart()
                     : fn.node.body.getStart();
                 const returnInsertion = surround(
-                    !effectiveReturnType
-                        ? `: ReturnType<${type}> `
-                        : `: ${effectiveReturnType} `
+                    !effectiveReturnType ? `: ReturnType<${type}> ` : `: ${effectiveReturnType} `
                 );
                 insert(returnPos, returnInsertion);
             }
