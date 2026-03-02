@@ -1,0 +1,11 @@
+{
+    "name": "@test/shared",
+    "version": "1.0.0",
+    "type": "module",
+    "exports": {
+        "./components": {
+            "types": "./src/lib/components/index.ts",
+            "svelte": "./src/lib/components/index.ts"
+        }
+    }
+}

@@ -7,7 +7,7 @@
  */
 
 const { execFileSync } = require('child_process');
-const { rmSync } = require('fs');
+const { rmSync, mkdirSync, symlinkSync, existsSync } = require('fs');
 const path = require('path');
 
 const CLI = path.join(__dirname, 'dist', 'src', 'index.js');
@@ -200,6 +200,39 @@ test('project with errors (incremental, warm cache)', {
     tsconfig: './tsconfig.json',
     incremental: true,
     errors
+});
+
+// --- Monorepo / dependency .svelte.d.ts generation tests ---
+// Create workspace symlink (can't be committed via git due to node_modules gitignore)
+const monorepoSymlinkDir = path.join(__dirname, 'test-monorepo', 'app', 'node_modules', '@test');
+const monorepoSymlink = path.join(monorepoSymlinkDir, 'shared');
+if (!existsSync(monorepoSymlink)) {
+    mkdirSync(monorepoSymlinkDir, { recursive: true });
+    symlinkSync('../../../shared', monorepoSymlink);
+}
+
+const monorepoErrors = [
+    {
+        file: 'App.svelte',
+        line: 8,
+        column: 8,
+        code: 2322
+    }
+];
+
+rmSync('./test-monorepo/app/.svelte-check', { recursive: true, force: true });
+test('monorepo dependency (incremental, cold cache)', {
+    workspace: './test-monorepo/app',
+    tsconfig: './tsconfig.json',
+    incremental: true,
+    errors: monorepoErrors
+});
+
+test('monorepo dependency (incremental, warm cache)', {
+    workspace: './test-monorepo/app',
+    tsconfig: './tsconfig.json',
+    incremental: true,
+    errors: monorepoErrors
 });
 
 console.log(`\n${passed} passed, ${failed} failed`);

@@ -27,11 +27,22 @@ type ManifestEntry = {
     // Kit file specific fields
     isKitFile?: boolean;
     addedCode?: InternalHelpers.AddedCode[];
+    // Dependency package fields
+    isDependency?: boolean;
 };
 
 type Manifest = {
     version: number;
     entries: Record<string, ManifestEntry>;
+};
+
+export type DependencySveltePackage = {
+    /** Package name, e.g. "@greengage/shared" */
+    name: string;
+    /** Absolute path to the package root (resolved from node_modules) */
+    packagePath: string;
+    /** .svelte files in this package that lack a companion .d.ts */
+    files: string[];
 };
 
 export type EmitResult = {
@@ -42,6 +53,7 @@ export type EmitResult = {
     changedFiles: string[];
     workspacePath: string;
     manifest: Manifest;
+    dependencyPackages: DependencySveltePackage[];
 };
 
 export type ParsedDiagnostic = {
@@ -55,7 +67,7 @@ export type ParsedDiagnostic = {
     message: string;
 };
 
-const MANIFEST_VERSION = 2;
+const MANIFEST_VERSION = 3;
 const SVELTE_KIT_DIR = '.svelte-kit';
 const CACHE_DIR_NAME = '.svelte-check';
 const EMIT_SUBDIR = 'svelte';
@@ -142,6 +154,120 @@ async function loadKitFilesSettings(
     } catch {
         return defaultKitFilesSettings;
     }
+}
+
+/**
+ * Checks if a .svelte file has a companion declaration file (.svelte.d.ts or .d.svelte.ts).
+ */
+function hasSvelteDeclaration(sveltePath: string): boolean {
+    const dtsPath = sveltePath + '.d.ts'; // Button.svelte.d.ts
+    const altDtsPath = sveltePath.replace(/\.svelte$/, '.d.svelte.ts'); // Button.d.svelte.ts
+    return fs.existsSync(dtsPath) || fs.existsSync(altDtsPath);
+}
+
+/**
+ * Sanitizes a package name for use as a directory name.
+ * e.g. "@greengage/shared" -> "greengage-shared"
+ */
+function sanitizePackageName(name: string): string {
+    return name.replace(/[@/]/g, '-').replace(/^-/, '');
+}
+
+/**
+ * Scans direct dependencies for .svelte files that lack companion .d.ts declarations.
+ * These files need virtual declarations generated so tsc/tsgo can type-check them.
+ *
+ * Works with any package manager that uses symlinks for workspace packages (pnpm, npm, yarn).
+ * Also handles non-workspace packages that ship .svelte without declarations.
+ *
+ * @param workspacePath - Root directory of the project
+ * @param filePathsToIgnore - Glob patterns for files to exclude
+ * @returns Array of dependency packages with their untyped .svelte files
+ */
+async function findDependencySvelteFiles(
+    workspacePath: string,
+    filePathsToIgnore: string[]
+): Promise<DependencySveltePackage[]> {
+    const pkgJsonPath = path.join(workspacePath, 'package.json');
+    if (!fs.existsSync(pkgJsonPath)) {
+        return [];
+    }
+
+    let pkgJson: Record<string, any>;
+    try {
+        pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf-8'));
+    } catch {
+        return [];
+    }
+
+    const allDeps: Record<string, string> = {
+        ...pkgJson.dependencies,
+        ...pkgJson.devDependencies,
+        ...pkgJson.optionalDependencies
+    };
+
+    const results: DependencySveltePackage[] = [];
+
+    for (const [name, version] of Object.entries(allDeps)) {
+        if (!version) continue;
+
+        const nmPath = path.join(workspacePath, 'node_modules', name);
+        let realPath: string;
+        try {
+            const stat = fs.lstatSync(nmPath);
+            if (!stat.isSymbolicLink() && !stat.isDirectory()) continue;
+            realPath = fs.realpathSync(nmPath);
+        } catch {
+            continue;
+        }
+
+        // Skip if this resolves to within the workspace (it's the project itself)
+        if (realPath === path.resolve(workspacePath)) continue;
+
+        // Find .svelte files that lack companion declarations
+        let svelteFiles: string[];
+        try {
+            svelteFiles = await findFiles(realPath, filePathsToIgnore, (filePath) =>
+                filePath.endsWith('.svelte')
+            );
+        } catch {
+            continue;
+        }
+
+        if (svelteFiles.length === 0) continue;
+
+        const untypedFiles = svelteFiles.filter((f) => !hasSvelteDeclaration(f));
+        if (untypedFiles.length === 0) continue;
+
+        results.push({
+            name,
+            packagePath: realPath,
+            files: untypedFiles
+        });
+    }
+
+    return results;
+}
+
+/**
+ * Computes output paths for a dependency package's .svelte file.
+ * Paths are relative to the package root so the emit dir mirrors the package's internal structure.
+ * This is critical for rootDirs: the relative path from packageRoot to the .svelte file
+ * must match the relative path from the emit dir to the .svelte.d.ts file.
+ */
+function getDependencyOutputPaths(
+    pkgEmitDir: string,
+    relToPackageRoot: string,
+    isTsFile: boolean
+): { outPath: string; dtsPath: string } {
+    const base = relToPackageRoot.replace(/\.svelte$/, `.svelte.${isTsFile ? 'ts' : 'js'}`);
+    const baseOutputPath = path.join(pkgEmitDir, base);
+    const outPath = path.join(path.dirname(baseOutputPath), `++${path.basename(baseOutputPath)}`);
+    const dtsPath = baseOutputPath.replace(/\.svelte\.(ts|js)$/, '.svelte.d.ts');
+    return {
+        outPath: toPosixPath(outPath),
+        dtsPath: toPosixPath(dtsPath)
+    };
 }
 
 /**
@@ -347,6 +473,112 @@ export async function emitSvelteFiles(
         };
     }
 
+    // Process dependency packages: find .svelte files without companion .d.ts declarations
+    const dependencyPackages = await findDependencySvelteFiles(workspacePath, filePathsToIgnore);
+
+    for (const pkg of dependencyPackages) {
+        const sanitizedName = sanitizePackageName(pkg.name);
+        const pkgEmitDir = path.join(emitDir, 'deps', sanitizedName);
+
+        // Prune deleted dependency files from manifest
+        if (incremental) {
+            const depFileSet = new Set(pkg.files);
+            pruneDeletedManifestEntries(
+                manifest,
+                depFileSet,
+                (entry) => !!entry.isDependency && entry.sourcePath.startsWith(pkg.packagePath)
+            );
+        }
+
+        for (const sourcePath of pkg.files) {
+            const stats = fs.statSync(sourcePath);
+            const entry = manifest.entries[sourcePath];
+
+            const statsUnchanged =
+                !!entry &&
+                entry.isDependency &&
+                entry.mtimeMs === stats.mtimeMs &&
+                entry.size === stats.size;
+
+            let text: string | undefined;
+            let isTsFile: boolean;
+
+            if (statsUnchanged && entry.isTsFile !== undefined) {
+                isTsFile = entry.isTsFile;
+            } else {
+                text = fs.readFileSync(sourcePath, 'utf-8');
+                isTsFile = isTsSvelte(text);
+            }
+
+            const relToPackageRoot = path.relative(pkg.packagePath, sourcePath);
+            const { outPath, dtsPath } = getDependencyOutputPaths(
+                pkgEmitDir,
+                relToPackageRoot,
+                isTsFile
+            );
+
+            const outPathChanged = !!entry && entry.outPath !== outPath;
+            if (outPathChanged) {
+                deleteEntry(entry);
+            }
+
+            const hasChanged =
+                !incremental ||
+                !entry ||
+                outPathChanged ||
+                !statsUnchanged ||
+                !fs.existsSync(outPath) ||
+                (dtsPath && !fs.existsSync(dtsPath));
+
+            if (!hasChanged) {
+                continue;
+            }
+            changedFiles.push(sourcePath);
+
+            if (!text) {
+                text = fs.readFileSync(sourcePath, 'utf-8');
+            }
+
+            fs.mkdirSync(path.dirname(outPath), { recursive: true });
+
+            try {
+                const tsx = svelte2tsx(text, {
+                    parse,
+                    version: svelteVersion,
+                    filename: sourcePath,
+                    isTsFile,
+                    mode: 'ts',
+                    emitOnTemplateError: false,
+                    emitJsDoc: true,
+                    rewriteExternalImports: {
+                        workspacePath: pkg.packagePath,
+                        generatedPath: outPath
+                    }
+                });
+
+                fs.writeFileSync(outPath, tsx.code, 'utf-8');
+
+                const dtsImportPath = `./${path.basename(outPath)}`;
+                const dtsContent = `export { default } from "${dtsImportPath}";\nexport * from "${dtsImportPath}";\n`;
+                fs.writeFileSync(dtsPath, dtsContent, 'utf-8');
+
+                manifest.entries[sourcePath] = {
+                    sourcePath,
+                    outPath,
+                    dtsPath,
+                    mtimeMs: stats.mtimeMs,
+                    size: stats.size,
+                    isTsFile,
+                    isDependency: true
+                };
+            } catch {
+                safeUnlink(outPath);
+                safeUnlink(dtsPath);
+                delete manifest.entries[sourcePath];
+            }
+        }
+    }
+
     if (incremental) {
         writeManifest(manifestPath, manifest, workspacePath);
     }
@@ -358,7 +590,8 @@ export async function emitSvelteFiles(
         entries: Object.values(manifest.entries),
         changedFiles,
         workspacePath,
-        manifest
+        manifest,
+        dependencyPackages
     };
 }
 
@@ -407,9 +640,18 @@ export function writeOverlayTsconfig(
     const baseRootDirsAbs = baseRootDirs.map((dir: string) =>
         path.resolve(path.join(path.dirname(tsconfigPath)), dir)
     );
-    const rootDirs = Array.from(new Set([...baseRootDirsAbs, path.join(cacheDir, 'svelte')])).map(
-        (dir) => toRelativePosix(overlayDir, dir)
-    );
+    // Build rootDirs: base dirs + emit dir + dependency package dirs
+    const dependencyRootDirs: string[] = [];
+    for (const pkg of emitResult.dependencyPackages) {
+        const sanitizedName = sanitizePackageName(pkg.name);
+        const pkgEmitDir = path.join(cacheDir, 'svelte', 'deps', sanitizedName);
+        // Pair the package's real path with its emit dir so TypeScript can find
+        // .svelte.d.ts declarations via rootDirs when resolving .svelte imports
+        dependencyRootDirs.push(pkg.packagePath, pkgEmitDir);
+    }
+    const rootDirs = Array.from(
+        new Set([...baseRootDirsAbs, path.join(cacheDir, 'svelte'), ...dependencyRootDirs])
+    ).map((dir) => toRelativePosix(overlayDir, dir));
     const tsconfigDir = path.dirname(tsconfigPath);
     const rawInclude = normalizeConfigSpecs(parsed.raw?.include);
     const rawExclude = normalizeConfigSpecs(parsed.raw?.exclude);

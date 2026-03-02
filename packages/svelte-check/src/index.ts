@@ -336,6 +336,10 @@ async function getSvelteDiagnosticsForIncremental(
 
     // Phase 1: Partition files into "needs fresh diagnostics" vs "use cached diagnostics"
     for (const entry of emitResult.entries) {
+        // Skip dependency package files — we only report Svelte/CSS diagnostics for the project's own files
+        if (entry.isDependency) {
+            continue;
+        }
         const needsSvelte =
             sources.includes('svelte') &&
             (!entry.compilerWarnings || changedFiles.has(entry.sourcePath));
@@ -417,6 +421,7 @@ async function getSvelteDiagnosticsForIncremental(
 
     // Phase 3: Ensure every entry has a diagnostics record (empty if no diagnostics)
     for (const entry of emitResult.entries) {
+        if (entry.isDependency) continue;
         if (!diagnosticsByFile.has(entry.sourcePath)) {
             const text = fs.readFileSync(entry.sourcePath, 'utf-8');
             diagnosticsByFile.set(entry.sourcePath, {
