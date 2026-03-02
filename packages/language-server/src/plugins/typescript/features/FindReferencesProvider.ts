@@ -1,7 +1,7 @@
 import ts from 'typescript';
 import { CancellationToken, Location, Position, ReferenceContext } from 'vscode-languageserver';
 import { Document } from '../../../lib/documents';
-import { flatten, isNotNullOrUndefined, normalizePath, pathToUrl } from '../../../utils';
+import { isNotNullOrUndefined, normalizePath, pathToUrl } from '../../../utils';
 import { FindComponentReferencesProvider, FindReferencesProvider } from '../../interfaces';
 import { SvelteDocumentSnapshot } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
@@ -66,7 +66,7 @@ export class FindReferencesProviderImpl implements FindReferencesProvider {
                 return componentReferences;
             }
         }
-        const references = flatten(rawReferences.map((ref) => ref.references));
+        const references = rawReferences.flatMap((ref) => ref.references);
 
         references.push(
             ...(await this.getStoreReferences(
@@ -137,7 +137,7 @@ export class FindReferencesProviderImpl implements FindReferencesProvider {
                         storeReference.textSpan.start
                     )
                 ) || [];
-            storeReferences = flatten(additionalReferences.map((ref) => ref.references));
+            storeReferences = additionalReferences.flatMap((ref) => ref.references);
         }
 
         // If user started finding references at store, find references for $store, too
@@ -167,7 +167,7 @@ export class FindReferencesProviderImpl implements FindReferencesProvider {
                     snapshot.filePath,
                     get$storeOffsetOf$storeDeclaration(snapshot.getFullText(), ref.textSpan.start)
                 ) || [];
-            $storeReferences.push(...flatten(additionalReferences.map((ref) => ref.references)));
+            $storeReferences.push(...additionalReferences.flatMap((ref) => ref.references));
         }
 
         return [...storeReferences, ...$storeReferences];

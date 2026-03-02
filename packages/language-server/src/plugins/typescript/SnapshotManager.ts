@@ -278,14 +278,22 @@ export class SnapshotManager {
             this.lastLogged = date;
 
             const allFiles = new Set<string>();
-            for (const key of this.projectFileToOriginalCasing.keys()) allFiles.add(key);
-            for (const key of this.documents.keys()) allFiles.add(key);
+            for (const key of this.projectFileToOriginalCasing.keys()) {
+                allFiles.add(key);
+            }
+            for (const key of this.documents.keys()) {
+                allFiles.add(key);
+            }
 
             let svelteCount = 0;
             let nodeModulesCount = 0;
             for (const name of allFiles) {
-                if (name.endsWith('.svelte')) svelteCount++;
-                if (name.includes('node_modules')) nodeModulesCount++;
+                if (name.endsWith('.svelte')) {
+                    svelteCount++;
+                }
+                if (name.includes('node_modules')) {
+                    nodeModulesCount++;
+                }
             }
 
             Logger.log(

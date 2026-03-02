@@ -1,5 +1,5 @@
 import { Location, Position, Range } from 'vscode-languageserver';
-import { flatten, isNotNullOrUndefined, pathToUrl, urlToPath } from '../../../utils';
+import { isNotNullOrUndefined, pathToUrl, urlToPath } from '../../../utils';
 import { FindComponentReferencesProvider } from '../../interfaces';
 import { DocumentSnapshot, SvelteDocumentSnapshot } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
@@ -39,7 +39,7 @@ export class FindComponentReferencesProviderImpl implements FindComponentReferen
         snapshots.set(tsDoc.filePath, tsDoc);
 
         const locations = await Promise.all(
-            flatten(references.map((ref) => ref.references)).map(async (ref) => {
+            references.flatMap((ref) => ref.references).map(async (ref) => {
                 if (ref.isDefinition) {
                     return null;
                 }

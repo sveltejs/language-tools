@@ -80,10 +80,6 @@ export function getLastPartOfPath(path: string): string {
     return lastSeparator === -1 ? path : path.slice(lastSeparator + 1);
 }
 
-export function flatten<T>(arr: Array<T | T[]>): T[] {
-    return (arr as T[][]).flat();
-}
-
 /**
  * Map or keep original (passthrough) if the mapper returns undefined.
  */
@@ -298,8 +294,8 @@ export function getIndent(text: string) {
 export function possiblyComponent(node: Node): boolean;
 export function possiblyComponent(tagName: string): boolean;
 export function possiblyComponent(nodeOrTagName: Node | string): boolean {
-    const firstChar = (typeof nodeOrTagName === 'object' ? nodeOrTagName.tag : nodeOrTagName)?.[0];
-    return !!firstChar && firstChar >= 'A' && firstChar <= 'Z';
+    const charCode = (typeof nodeOrTagName === 'object' ? nodeOrTagName.tag : nodeOrTagName)?.charCodeAt(0);
+    return charCode !== undefined && charCode >= /* A */ 65 && charCode <= /* Z */ 90;
 }
 
 /**

@@ -98,8 +98,6 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
      * For performance reasons, try to reuse the last completion if possible.
      */
     private lastCompletion?: LastCompletion;
-    private existingImportsCache?: { uri: string; version: number; imports: Set<string> };
-
     private isValidTriggerCharacter(
         character: string | undefined
     ): character is validTriggerCharacter {
@@ -526,20 +524,11 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
     }
 
     private getExistingImports(document: Document) {
-        const uri = document.uri;
-        if (
-            this.existingImportsCache?.uri === uri &&
-            this.existingImportsCache.version === document.version
-        ) {
-            return this.existingImportsCache.imports;
-        }
         const rawImports = getRegExpMatches(scriptImportRegex, document.getText()).map((match) =>
             (match[1] ?? match[2]).split(',')
         );
         const tidiedImports = rawImports.flat().map((match) => match.trim());
-        const imports = new Set(tidiedImports);
-        this.existingImportsCache = { uri, version: document.version, imports };
-        return imports;
+        return new Set(tidiedImports);
     }
 
     private getEventAndSlotLetCompletions(

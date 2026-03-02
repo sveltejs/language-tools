@@ -2,7 +2,7 @@ import ts from 'typescript';
 import { Position, DocumentHighlight } from 'vscode-languageserver-protocol';
 import { DocumentHighlightKind, Range } from 'vscode-languageserver-types';
 import { Document, inStyleOrScript } from '../../../lib/documents';
-import { flatten, isSamePosition } from '../../../utils';
+import { isSamePosition } from '../../../utils';
 import { DocumentHighlightProvider } from '../../interfaces';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { convertToLocationRange } from '../utils';
@@ -39,7 +39,7 @@ export class DocumentHighlightProviderImpl implements DocumentHighlightProvider 
             return null;
         }
 
-        const result = flatten(highlights.map((highlight) => highlight.highlightSpans))
+        const result = highlights.flatMap((highlight) => highlight.highlightSpans)
             .filter(this.notInGeneratedCode(tsDoc.getFullText()))
             .map((highlight) =>
                 DocumentHighlight.create(
