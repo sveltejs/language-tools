@@ -37,7 +37,7 @@ type Manifest = {
 };
 
 export type DependencySveltePackage = {
-    /** Package name, e.g. "@greengage/shared" */
+    /** Package name, e.g. "@my-org/shared" */
     name: string;
     /** Absolute path to the package root (resolved from node_modules) */
     packagePath: string;
@@ -167,7 +167,7 @@ function hasSvelteDeclaration(sveltePath: string): boolean {
 
 /**
  * Sanitizes a package name for use as a directory name.
- * e.g. "@greengage/shared" -> "greengage-shared"
+ * e.g. "@my-org/shared" -> "my-org-shared"
  */
 function sanitizePackageName(name: string): string {
     return name.replace(/[@/]/g, '-').replace(/^-/, '');
