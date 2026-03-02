@@ -1,11 +1,31 @@
 import * as assert from 'assert';
 import * as fs from 'fs';
-import { join } from 'path';
+import { join, relative, sep } from 'path';
 import { emitDts } from '../../src';
 import { VERSION } from 'svelte/compiler';
 
 function rimraf(path: string) {
     ((fs as any).rmSync || fs.rmdirSync)(path, { recursive: true, force: true });
+}
+
+/**
+ * Recursively find .d.ts and .d.ts.map files under `dir`, excluding
+ * `declarationDir`, `expected`, and `node_modules` directories.
+ */
+function findDtsFiles(dir: string, declarationDir: string): string[] {
+    const results: string[] = [];
+    const skip = new Set(['expected', 'node_modules', declarationDir]);
+    function walk(current: string) {
+        for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
+            if (entry.isDirectory()) {
+                if (!skip.has(entry.name)) walk(join(current, entry.name));
+            } else if (entry.name.endsWith('.d.ts') || entry.name.endsWith('.d.ts.map')) {
+                results.push(join(current, entry.name));
+            }
+        }
+    }
+    walk(dir);
+    return results;
 }
 
 async function testEmitDts(sample: string) {
@@ -15,12 +35,23 @@ async function testEmitDts(sample: string) {
         return; // skip
     }
 
+    const spuriousFiles: string[] = [];
+    const config = fs.existsSync(join(cwd, 'config.json'))
+        ? JSON.parse(fs.readFileSync(join(cwd, 'config.json'), 'utf-8'))
+        : {};
+    const declarationDir: string = config.declarationDir ?? 'package';
+    const preExistingTopDirs = new Set(
+        fs.readdirSync(cwd, { withFileTypes: true })
+            .filter((e) => e.isDirectory())
+            .map((e) => e.name)
+    );
+
     try {
-        const config = fs.existsSync(join(cwd, 'config.json'))
-            ? JSON.parse(fs.readFileSync(join(cwd, 'config.json'), 'utf-8'))
-            : {};
+
+        const preExistingDts = new Set(findDtsFiles(cwd, declarationDir));
+
         await emitDts({
-            declarationDir: 'package',
+            declarationDir,
             svelteShimsPath: require.resolve(
                 join(
                     process.cwd(),
@@ -30,12 +61,25 @@ async function testEmitDts(sample: string) {
             ...config,
             libRoot: config.libRoot ? join(cwd, config.libRoot) : join(cwd, 'src')
         });
-        const actual_files = fs.readdirSync(join(cwd, 'package'));
+
+        // Assert no .d.ts files were written outside declarationDir
+        const newDts = findDtsFiles(cwd, declarationDir).filter((f) => !preExistingDts.has(f));
+        spuriousFiles.push(...newDts);
+        assert.deepStrictEqual(
+            newDts.map((f) => relative(cwd, f)),
+            [],
+            'emitDts wrote declaration files outside declarationDir'
+        );
+
+        const actual_files = fs.readdirSync(join(cwd, declarationDir));
 
         if (!fs.existsSync(join(cwd, 'expected'))) {
             fs.mkdirSync(join(cwd, 'expected'), { recursive: true });
             for (const file of actual_files) {
-                fs.copyFileSync(join(cwd, 'package', file), join(cwd, 'expected', file));
+                fs.copyFileSync(
+                    join(cwd, declarationDir, file),
+                    join(cwd, 'expected', file)
+                );
             }
         } else {
             const expectedFiles = fs.readdirSync(join(cwd, 'expected'));
@@ -58,7 +102,7 @@ async function testEmitDts(sample: string) {
                     .readFileSync(join(cwd, 'expected', file), 'utf-8')
                     .replace(/\r\n/g, '\n');
                 const actualContent = fs
-                    .readFileSync(join(cwd, 'package', file), 'utf-8')
+                    .readFileSync(join(cwd, declarationDir, file), 'utf-8')
                     .replace(/\r\n/g, '\n');
                 assert.strictEqual(
                     actualContent,
@@ -68,7 +112,18 @@ async function testEmitDts(sample: string) {
             }
         }
     } finally {
-        rimraf(join(cwd, 'package'));
+        rimraf(join(cwd, declarationDir));
+        for (const f of spuriousFiles) {
+            const topLevel = relative(cwd, f).split(sep)[0];
+            if (!preExistingTopDirs.has(topLevel)) {
+                // Directory was created by emitDts — safe to remove the whole tree
+                rimraf(join(cwd, topLevel));
+            } else {
+                // Pre-existing directory — only remove the specific files
+                try { fs.unlinkSync(f); } catch { /* ignore */ }
+                try { fs.unlinkSync(f + '.map'); } catch { /* ignore */ }
+            }
+        }
     }
 }
 
