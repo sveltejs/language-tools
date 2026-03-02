@@ -71,7 +71,15 @@ describe('Internal Helpers - upsertKitFile', () => {
         upsert(
             '+server.ts',
             `export async function GET(e) {}`,
-            `export async function GET(e: import('./$types.js').RequestEvent) : Response | Promise<Response> {}`
+            `export async function GET(e: import('./$types.js').RequestEvent) : Promise<Response> {}`
+        );
+    });
+
+    it('upserts GET non-async function', () => {
+        upsert(
+            '+server.ts',
+            `export function GET(e) { return new Response(); }`,
+            `export function GET(e: import('./$types.js').RequestEvent) : Response | Promise<Response> { return new Response(); }`
         );
     });
 

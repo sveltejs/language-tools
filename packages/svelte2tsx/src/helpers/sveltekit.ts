@@ -485,11 +485,26 @@ function addTypeToFunction(
             const paramInsertion = surround(!returnType ? `: Parameters<${type}>[0]` : `: ${type}`);
             insert(paramPos, paramInsertion);
             if (!fn.node.type && fn.node.body) {
+                const isAsync =
+                    fn.node.modifiers?.some((m) => m.kind === ts.SyntaxKind.AsyncKeyword) ??
+                    false;
+                let effectiveReturnType = returnType;
+                if (isAsync && returnType) {
+                    // Async functions must return Promise<T>, not T | Promise<T>
+                    const promisePart = returnType
+                        .split(' | ')
+                        .find((t) => t.startsWith('Promise<'));
+                    if (promisePart) {
+                        effectiveReturnType = promisePart;
+                    }
+                }
                 const returnPos = ts.isArrowFunction(fn.node)
                     ? fn.node.equalsGreaterThanToken.getStart()
                     : fn.node.body.getStart();
                 const returnInsertion = surround(
-                    !returnType ? `: ReturnType<${type}> ` : `: ${returnType} `
+                    !effectiveReturnType
+                        ? `: ReturnType<${type}> `
+                        : `: ${effectiveReturnType} `
                 );
                 insert(returnPos, returnInsertion);
             }
