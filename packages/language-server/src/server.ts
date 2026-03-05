@@ -23,10 +23,18 @@ import {
     SemanticTokensRefreshRequest,
     InlayHintRefreshRequest,
     DidChangeWatchedFilesNotification,
-    RelativePattern
+    RelativePattern,
+    DocumentDiagnosticRequest,
+    DocumentDiagnosticParams,
+    DocumentDiagnosticReport,
+    DiagnosticRefreshRequest
 } from 'vscode-languageserver';
 import { IPCMessageReader, IPCMessageWriter, createConnection } from 'vscode-languageserver/node';
-import { DiagnosticsManager } from './lib/DiagnosticsManager';
+import {
+    DiagnosticsManager,
+    PullDiagnosticsManager,
+    PushDiagnosticsManager
+} from './lib/DiagnosticsManager';
 import { Document, DocumentManager } from './lib/documents';
 import { getSemanticTokenLegends } from './lib/semanticToken/semanticTokenLegend';
 import { Logger } from './logger';
@@ -52,6 +60,7 @@ import {
 } from './plugins/typescript/features/CodeActionsProvider';
 import { createLanguageServices } from './plugins/css/service';
 import { FileSystemProvider } from './lib/FileSystemProvider';
+import { setTimeout } from 'timers/promises';
 
 namespace TagCloseRequest {
     export const type: RequestType<TextDocumentPositionParams, string | null, any> =
@@ -224,6 +233,32 @@ export function startServer(options?: LSOptions) {
         const clientSupportedCodeActionKinds =
             clientCodeActionCapabilities?.codeActionLiteralSupport?.codeActionKind.valueSet;
 
+        if (evt.capabilities.textDocument?.diagnostic) {
+            const refreshDiagnostics = evt.capabilities.workspace?.diagnostics?.refreshSupport;
+            diagnosticsManager = new PullDiagnosticsManager(
+                connection.sendDiagnostics,
+                refreshDiagnostics
+                    ? () => connection.sendRequest(DiagnosticRefreshRequest.method)
+                    : () => {}
+            );
+
+            connection.onRequest(
+                DocumentDiagnosticRequest.type,
+                async (
+                    evt: DocumentDiagnosticParams,
+                    token
+                ): Promise<DocumentDiagnosticReport | null> => {
+                    await setTimeout(150);
+                    if (token.isCancellationRequested) {
+                        console.log('Diagnostic request cancelled');
+                        return null;
+                    }
+                    const diagnostics = await pluginHost.getDiagnostics(evt.textDocument, token);
+                    return { items: diagnostics, kind: 'full' };
+                }
+            );
+        }
+
         return {
             capabilities: {
                 textDocumentSync: {
@@ -333,7 +368,11 @@ export function startServer(options?: LSOptions) {
                 documentHighlightProvider:
                     evt.initializationOptions?.configuration?.svelte?.plugin?.svelte
                         ?.documentHighlight?.enable ?? true,
-                workspaceSymbolProvider: true
+                workspaceSymbolProvider: true,
+                diagnosticProvider: {
+                    interFileDependencies: true,
+                    workspaceDiagnostics: false
+                }
             }
         };
     });
@@ -516,7 +555,7 @@ export function startServer(options?: LSOptions) {
 
     connection.onWorkspaceSymbol((evt, token) => pluginHost.getWorkspaceSymbols(evt.query, token));
 
-    const diagnosticsManager = new DiagnosticsManager(
+    let diagnosticsManager: DiagnosticsManager = new PushDiagnosticsManager(
         connection.sendDiagnostics,
         docManager,
         pluginHost.getDiagnostics.bind(pluginHost)

@@ -14,7 +14,14 @@ export type GetDiagnostics = (
     cancellationToken?: CancellationToken
 ) => Thenable<Diagnostic[]>;
 
-export class DiagnosticsManager {
+export interface DiagnosticsManager {
+    scheduleUpdate(document: Document): void;
+    scheduleUpdateAll(): void;
+    removeDiagnostics(document: Document): void;
+    cancelStarted(uri: string): void;
+}
+
+export class PushDiagnosticsManager implements DiagnosticsManager {
     constructor(
         private sendDiagnostics: SendDiagnostics,
         private docManager: DocumentManager,
@@ -93,5 +100,39 @@ export class DiagnosticsManager {
             this.update(doc);
         });
         this.pendingUpdates.clear();
-    }, 700);
+    }, 500);
+}
+
+export class PullDiagnosticsManager implements DiagnosticsManager {
+    constructor(
+        private sendDiagnostics: SendDiagnostics,
+        private sendRefreshDiagnostics: () => void,
+    ) {}
+
+    private refreshTimeout: NodeJS.Timeout | null = null;
+
+    scheduleUpdate(document: Document): void {
+        // No-op, diagnostics are pulled by the client.
+    }
+
+    scheduleUpdateAll(): void {
+        if (this.refreshTimeout) {
+            clearTimeout(this.refreshTimeout);
+        }
+        this.refreshTimeout = setTimeout(() => {
+            this.sendRefreshDiagnostics();
+            this.refreshTimeout = null;
+        }, 500);
+    }
+
+    removeDiagnostics(document: Document): void {
+        this.sendDiagnostics({
+            uri: document.getURL(),
+            diagnostics: []
+        });
+    }
+
+    cancelStarted(uri: string): void {
+        // No-op, diagnostics are pulled by the client.
+    }
 }

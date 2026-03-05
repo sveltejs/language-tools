@@ -50,6 +50,7 @@ import {
     OnWatchFileChangesPara,
     Plugin
 } from './interfaces';
+import path from 'path';
 
 enum ExecuteMode {
     None,
@@ -85,6 +86,8 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         cancellationToken?: CancellationToken
     ): Promise<Diagnostic[]> {
         const document = this.getDocument(textDocument.uri);
+        const key = `getDiagnostics-${path.basename(document.uri)}-${document.version}`;
+        console.time(`getDiagnostics ${key}`);
 
         if (
             (document.getFilePath()?.includes('/node_modules/') ||
@@ -100,7 +103,7 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
             return [];
         }
 
-        return flatten(
+        const result = flatten(
             await this.execute<Diagnostic[]>(
                 'getDiagnostics',
                 [document, cancellationToken],
@@ -108,6 +111,9 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
                 'high'
             )
         );
+
+        console.timeEnd(`getDiagnostics ${key}`);
+        return result;
     }
 
     async doHover(textDocument: TextDocumentIdentifier, position: Position): Promise<Hover | null> {
@@ -129,6 +135,9 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
     ): Promise<CompletionList> {
         const document = this.getDocument(textDocument.uri);
 
+        console.log('Getting completions for', textDocument.uri, 'at', position);
+        const key = `${position.line}:${position.character}+${document.version}`;
+        console.time(`getCompletions ${key}`);
         const completions = await Promise.all(
             this.plugins.map(async (plugin) => {
                 const result = await this.tryExecutePlugin(
@@ -215,6 +224,7 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
 
         const result = CompletionList.create(flattenedCompletions, isIncomplete);
         result.itemDefaults = itemDefaults;
+        console.timeEnd(`getCompletions ${key}`);
 
         return result;
     }
