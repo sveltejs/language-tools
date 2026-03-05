@@ -131,6 +131,7 @@ export class SemanticTokensProviderImpl implements SemanticTokensProvider {
 
         const startOffset = document.offsetAt(startPosition);
         const endOffset = document.offsetAt(endPosition);
+        const originalText = document.getText();
 
         // Ensure components in the template get no semantic highlighting
         if (
@@ -139,9 +140,9 @@ export class SemanticTokensProviderImpl implements SemanticTokensProvider {
                 classificationType === TokenType.parameter ||
                 classificationType === TokenType.variable ||
                 classificationType === TokenType.function) &&
-            snapshot.svelteNodeAt(startOffset)?.type === 'InlineComponent' &&
-            (document.getText().charCodeAt(startOffset - 1) === /* < */ 60 ||
-                document.getText().charCodeAt(startOffset - 1) === /* / */ 47)
+            (originalText.charCodeAt(startOffset - 1) === /* < */ 60 ||
+                originalText.charCodeAt(startOffset - 1) === /* / */ 47) &&
+            snapshot.svelteNodeAt(startOffset)?.type === 'InlineComponent'
         ) {
             return;
         }
