@@ -51,7 +51,6 @@ import {
     OnWatchFileChangesPara,
     Plugin
 } from './interfaces';
-import path from 'path';
 
 enum ExecuteMode {
     None,
@@ -87,8 +86,6 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         cancellationToken?: CancellationToken
     ): Promise<Diagnostic[]> {
         const document = this.getDocument(textDocument.uri);
-        const key = `getDiagnostics-${path.basename(document.uri)}-${document.version}`;
-        console.time(`getDiagnostics ${key}`);
 
         if (this.canSkipDiagnostics(document)) {
             // Don't return diagnostics for files inside node_modules. These are considered read-only (cannot be changed)
@@ -105,7 +102,6 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
             )
         );
 
-        console.timeEnd(`getDiagnostics ${key}`);
         return result;
     }
 
@@ -127,8 +123,6 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         cancellationToken?: CancellationToken
     ): Promise<DocumentDiagnosticReport> {
         const document = this.getDocument(textDocument.uri);
-        const key = `getDiagnosticsForPullMode-${path.basename(document.uri)}-${document.version}`;
-        console.time(key);
         let previousResultIdData: Record<string, string> = {};
         if (previousResultId) {
             try {
@@ -171,16 +165,12 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         const fullResults = results.flatMap(([, res]) => (res.kind === 'full' ? res.items : []));
 
         if (unchanged.length === plugins.length) {
-            console.timeEnd(key);
-            console.log('unchanged');
             return {
                 kind: 'unchanged',
                 resultId: newResultId
             };
         }
         if (unchanged.length === 0) {
-            console.timeEnd(key);
-            console.log('full');
             return {
                 kind: 'full',
                 resultId: newResultId,
@@ -199,8 +189,7 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
                 return result;
             })
         );
-        console.timeEnd(key);
-        console.log('partial');
+
         return {
             kind: 'full',
             resultId: newResultId,
@@ -227,9 +216,6 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
     ): Promise<CompletionList> {
         const document = this.getDocument(textDocument.uri);
 
-        console.log('Getting completions for', textDocument.uri, 'at', position);
-        const key = `${position.line}:${position.character}+${document.version}`;
-        console.time(`getCompletions ${key}`);
         const completions = await Promise.all(
             this.plugins.map(async (plugin) => {
                 const result = await this.tryExecutePlugin(
@@ -316,7 +302,6 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
 
         const result = CompletionList.create(flattenedCompletions, isIncomplete);
         result.itemDefaults = itemDefaults;
-        console.timeEnd(`getCompletions ${key}`);
 
         return result;
     }

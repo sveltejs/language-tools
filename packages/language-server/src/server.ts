@@ -249,7 +249,6 @@ export function startServer(options?: LSOptions) {
                 ): Promise<DocumentDiagnosticReport | null> => {
                     await new Promise((resolve) => setTimeout(resolve, 200));
                     if (token.isCancellationRequested) {
-                        console.log('Diagnostic request cancelled');
                         return null;
                     }
                     const diagnostics = await pluginHost.getDiagnosticsForPullMode(
