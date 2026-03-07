@@ -1,12 +1,5 @@
-import ts from 'typescript';
-import {
-    CancellationToken,
-    Diagnostic,
-    DiagnosticSeverity,
-    FullDocumentDiagnosticReport,
-    Range,
-    UnchangedDocumentDiagnosticReport
-} from 'vscode-languageserver';
+import ts, { flattenDiagnosticMessageText } from 'typescript';
+import { CancellationToken, Diagnostic, DiagnosticSeverity, DocumentDiagnosticReport, Range } from 'vscode-languageserver';
 import {
     Document,
     getNodeIfIsInStartTag,
@@ -77,16 +70,17 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
             return [];
         }
 
-        const isTypescript =
-            tsDoc.scriptKind === ts.ScriptKind.TSX || tsDoc.scriptKind === ts.ScriptKind.TS;
-
         // Document preprocessing failed, show parser error instead
         if (tsDoc.parserError) {
             return [
                 {
                     range: tsDoc.parserError.range,
                     severity: DiagnosticSeverity.Error,
-                    source: isTypescript ? 'ts' : 'js',
+                    source:
+                        tsDoc.scriptKind === ts.ScriptKind.TSX ||
+                        tsDoc.scriptKind === ts.ScriptKind.TS
+                            ? 'ts'
+                            : 'js',
                     message: tsDoc.parserError.message,
                     code: tsDoc.parserError.code
                 }
@@ -108,8 +102,53 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
             diagnostics.push(...checker.call(lang, tsDoc.filePath));
         }
 
+        return mapAndFilterDiagnostics(diagnostics, document, tsDoc, lang);
+    }
+
+    async getDiagnosticsForPullMode(
+        document: Document,
+        previousResultId?: string,
+        cancellationToken?: CancellationToken
+    ): Promise<DocumentDiagnosticReport> {
+        const { tsDoc, lsContainer } = await this.getLSAndTSDoc(document);
+        if (cancellationToken?.isCancellationRequested) {
+            return {
+                kind: 'full',
+                items: []
+            };
+        }
+        const resultId = tsDoc.version.toString() + '-' + lsContainer.getProjectVersion();
+
+        if (previousResultId === resultId) {
+            return {
+                kind: 'unchanged',
+                resultId
+            };
+        }
+
+        const diagnostics = await this.getDiagnostics(document);
+        return {
+            kind: 'full',
+            resultId,
+            items: diagnostics
+        };
+    }
+
+    private async getLSAndTSDoc(document: Document) {
+        return this.lsAndTsDocResolver.getLSAndTSDoc(document);
+    }
+}
+
+export function mapAndFilterDiagnostics(
+    diagnostics: ts.Diagnostic[],
+    document: Document,
+    tsDoc: SvelteDocumentSnapshot,
+    lang?: ts.LanguageService
+): Diagnostic[] {
+    const notGenerated = isNotGenerated(tsDoc.getFullText());
+
+    if (lang) {
         const additionalStoreDiagnostics: ts.Diagnostic[] = [];
-        const notGenerated = isNotGenerated(tsDoc.getFullText());
         for (const diagnostic of diagnostics) {
             if (
                 (diagnostic.code === DiagnosticCode.NO_OVERLOAD_MATCHES_CALL ||
@@ -139,75 +178,48 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
             }
         }
         diagnostics.push(...additionalStoreDiagnostics);
+    }
 
-        diagnostics = diagnostics
-            .filter(notGenerated)
-            .filter(not(isUnusedReactiveStatementLabel))
-            .filter((diagnostics) => !expectedTransitionThirdArgument(diagnostics, tsDoc, lang));
+    diagnostics = diagnostics
+        .filter(notGenerated)
+        .filter(not(isUnusedReactiveStatementLabel))
+        .filter((diagnostic) => !expectedTransitionThirdArgument(diagnostic, tsDoc, lang));
 
+    if (lang) {
         diagnostics = resolveNoopsInReactiveStatements(lang, diagnostics);
-
-        const mapRange = rangeMapper(tsDoc, document, lang);
-        const noFalsePositive = isNoFalsePositive(document, tsDoc);
-        const converted: Diagnostic[] = [];
-
-        for (const tsDiag of diagnostics) {
-            let diagnostic: Diagnostic = {
-                range: convertRange(tsDoc, tsDiag),
-                severity: mapSeverity(tsDiag.category),
-                source: isTypescript ? 'ts' : 'js',
-                message: ts.flattenDiagnosticMessageText(tsDiag.messageText, '\n'),
-                code: tsDiag.code,
-                tags: getDiagnosticTag(tsDiag)
-            };
-            diagnostic = mapRange(diagnostic);
-
-            moveBindingErrorMessage(tsDiag, tsDoc, diagnostic, document);
-
-            if (!hasNoNegativeLines(diagnostic) || !noFalsePositive(diagnostic)) {
-                continue;
-            }
-
-            diagnostic = adjustIfNecessary(diagnostic, tsDoc.isSvelte5Plus);
-            diagnostic = swapDiagRangeStartEndIfNecessary(diagnostic);
-            converted.push(diagnostic);
-        }
-
-        return converted;
     }
 
-    async getDiagnosticsForPullMode(
-        document: Document,
-        previousResultId?: string,
-        cancellationToken?: CancellationToken
-    ): Promise<FullDocumentDiagnosticReport | UnchangedDocumentDiagnosticReport> {
-        const { tsDoc, lsContainer } = await this.getLSAndTSDoc(document);
-        if (cancellationToken?.isCancellationRequested) {
-            return {
-                kind: 'full',
-                items: []
-            };
-        }
-        const resultId = tsDoc.version.toString() + '-' + lsContainer.getProjectVersion();
+    const source =
+        tsDoc.scriptKind === ts.ScriptKind.TSX || tsDoc.scriptKind === ts.ScriptKind.TS
+            ? 'ts'
+            : 'js';
+    const mapRange = rangeMapper(tsDoc, document, lang);
+    const noFalsePositive = isNoFalsePositive(document, tsDoc);
+    const converted: Diagnostic[] = [];
 
-        if (previousResultId === resultId) {
-            return {
-                kind: 'unchanged',
-                resultId
-            };
-        }
-
-        const diagnostics = await this.getDiagnostics(document);
-        return {
-            kind: 'full',
-            resultId,
-            items: diagnostics
+    for (const tsDiag of diagnostics) {
+        let diagnostic: Diagnostic = {
+            range: convertRange(tsDoc, tsDiag),
+            severity: mapSeverity(tsDiag.category),
+            source,
+            message: ts.flattenDiagnosticMessageText(tsDiag.messageText, '\n'),
+            code: tsDiag.code,
+            tags: getDiagnosticTag(tsDiag)
         };
+        diagnostic = mapRange(diagnostic);
+
+        moveBindingErrorMessage(tsDiag, tsDoc, diagnostic, document);
+
+        if (!hasNoNegativeLines(diagnostic) || !noFalsePositive(diagnostic)) {
+            continue;
+        }
+
+        diagnostic = adjustIfNecessary(diagnostic, tsDoc.isSvelte5Plus);
+        diagnostic = swapDiagRangeStartEndIfNecessary(diagnostic);
+        converted.push(diagnostic);
     }
 
-    private async getLSAndTSDoc(document: Document) {
-        return this.lsAndTsDocResolver.getLSAndTSDoc(document);
-    }
+    return converted;
 }
 
 function moveBindingErrorMessage(
@@ -267,17 +279,21 @@ function moveBindingErrorMessage(
 function rangeMapper(
     snapshot: SvelteDocumentSnapshot,
     document: Document,
-    lang: ts.LanguageService
+    lang?: ts.LanguageService
 ): (value: Diagnostic) => Diagnostic {
-    const get$$PropsDefWithCache = memoize(() => get$$PropsDef(lang, snapshot));
+    const get$$PropsDefWithCache = memoize(() =>
+        lang ? get$$PropsDef(lang, snapshot) : undefined
+    );
     const get$$PropsAliasInfoWithCache = memoize(() =>
-        get$$PropsAliasForInfo(get$$PropsDefWithCache, lang, document)
+        lang ? get$$PropsAliasForInfo(get$$PropsDefWithCache, lang, document) : undefined
     );
 
     return (diagnostic) => {
         let range = mapRangeToOriginal(snapshot, diagnostic.range);
 
-        if (range.start.line < 0) {
+        // When lang is unavailable (incremental CLI path), we can't remap negative-line
+        // diagnostics. This only affects deprecated $$Props syntax, so it's acceptable.
+        if (range.start.line < 0 && lang) {
             range =
                 movePropsErrorRangeBackIfNecessary(
                     diagnostic,
@@ -641,7 +657,7 @@ function movePropsErrorRangeBackIfNecessary(
 function expectedTransitionThirdArgument(
     diagnostic: ts.Diagnostic,
     tsDoc: SvelteDocumentSnapshot,
-    lang: ts.LanguageService
+    lang?: ts.LanguageService
 ) {
     if (
         diagnostic.code !== DiagnosticCode.EXPECTED_N_ARGUMENTS ||
@@ -666,6 +682,13 @@ function expectedTransitionThirdArgument(
                   { start: node.getStart(), length: node.getWidth() },
                   ts.isCallExpression
               );
+
+    if (!lang) {
+        // Without a language service we can't resolve the signature to check parameter count.
+        // Fall back to checking the message text for " 3" (i.e. "Expected 3 arguments").
+        // This is only for the __sveltets_2_ensureTransition wrapper and unlikely to false-positive.
+        return flattenDiagnosticMessageText(diagnostic.messageText, '\n').includes(' 3');
+    }
 
     const signature =
         callExpression && lang.getProgram()?.getTypeChecker().getResolvedSignature(callExpression);

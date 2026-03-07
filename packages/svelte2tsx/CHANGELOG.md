@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.7.51
+
+### Patch Changes
+
+-   fix: respect `@ts-ignore` etc comments within tags ([#2950](https://github.com/sveltejs/language-tools/pull/2950))
+
+## 0.7.50
+
+### Patch Changes
+
+-   fix: detect existing JSDoc `@satisfies` to prevent duplicate injection ([#2946](https://github.com/sveltejs/language-tools/pull/2946))
+
+## 0.7.49
+
+### Patch Changes
+
+-   fix: handle relative imports reaching outside working directory when using `--incremental/--tsgo` flags ([#2942](https://github.com/sveltejs/language-tools/pull/2942))
+
+-   fix: support SvelteKit zero types in svelte-check --incremental ([#2939](https://github.com/sveltejs/language-tools/pull/2939))
+
+## 0.7.48
+
+### Patch Changes
+
+-   chore: add option to output pure jsdoc-based JS files ([#2932](https://github.com/sveltejs/language-tools/pull/2932))
+
 ## 0.7.47
 
 ### Patch Changes

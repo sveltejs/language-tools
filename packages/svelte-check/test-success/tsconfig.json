@@ -1,0 +1,14 @@
+{
+    "compilerOptions": {
+        "target": "ESNext",
+        "moduleResolution": "node",
+        "strict": true,
+        "allowJs": true,
+        "checkJs": true,
+        "skipLibCheck": true,
+        "paths": {
+            "$lib/*": ["./src/lib/*"]
+        }
+    },
+    "include": ["./**/*"]
+}

@@ -4,7 +4,8 @@ import {
     extractStyleTag,
     extractScriptTags,
     updateRelativeImport,
-    getWordAt
+    getWordAt,
+    isInsideMoustacheTag
 } from '../../../src/lib/documents/utils';
 import { Position } from 'vscode-languageserver';
 
@@ -440,6 +441,32 @@ describe('document/utils', () => {
 
         it('returns empty string when only whitespace', () => {
             assert.equal(getWordAt('a  a', 2), '');
+        });
+    });
+
+    describe('#isInsideMoustacheTag', () => {
+        it('detects position inside moustache tag', () => {
+            const result = isInsideMoustacheTag(
+                '<div on:click={() => console.log("hello")}></div>',
+                0,
+                20
+            );
+            assert.strictEqual(result, true);
+        });
+
+        it('detects position after template literal', () => {
+            const result = isInsideMoustacheTag('<Foo a={`a}`}></div>', 0, 11);
+            assert.strictEqual(result, true);
+        });
+
+        it('detects position after nested template literals', () => {
+            const result = isInsideMoustacheTag('<Foo a={`${`}`}`}></div>', 0, 15);
+            assert.strictEqual(result, true);
+        });
+
+        it('detects position after nested template literals with interpolation', () => {
+            const result = isInsideMoustacheTag('<Foo a={`${hi(`${a}}`)}`)></div>', 0, 22);
+            assert.strictEqual(result, true);
         });
     });
 });

@@ -1,6 +1,6 @@
 {
     "name": "svelte-language-server",
-    "version": "0.17.25",
+    "version": "0.17.29",
     "description": "A language server for Svelte",
     "main": "dist/src/index.js",
     "typings": "dist/src/index",
@@ -59,7 +59,7 @@
         "globrex": "^0.1.2",
         "lodash": "^4.17.21",
         "prettier": "~3.3.3",
-        "prettier-plugin-svelte": "^3.4.0",
+        "prettier-plugin-svelte": "^3.5.0",
         "svelte": "^4.2.19",
         "svelte2tsx": "workspace:~",
         "typescript": "^5.9.2",

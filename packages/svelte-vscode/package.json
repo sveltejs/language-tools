@@ -428,6 +428,10 @@
                 "configuration": "./language-configuration.json"
             },
             {
+                "id": "svelte-start-tag",
+                "configuration": "./language-configuration-start-tag.json"
+            },
+            {
                 "id": "json",
                 "filenames": [
                     ".prettierrc"
@@ -457,6 +461,8 @@
                     "text.html.basic": "html",
                     "text.html.markdown": "markdown",
                     "text.pug": "jade",
+                    "meta.tag.start.svelte": "svelte-start-tag",
+                    "punctuation.definition.tag.begin.svelte": "svelte",
                     "source.css": "css",
                     "source.css.less": "less",
                     "source.css.scss": "scss",

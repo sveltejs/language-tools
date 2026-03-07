@@ -17,6 +17,10 @@ import {
 } from './nodes/handleImportDeclaration';
 import { InterfacesAndTypes } from './nodes/InterfacesAndTypes';
 import { ModuleAst } from './processModuleScriptTag';
+import {
+    rewriteExternalImportsInNode,
+    RewriteExternalImportsOptions
+} from '../helpers/rewriteExternalImports';
 
 export interface InstanceScriptProcessResult {
     exportedNames: ExportedNames;
@@ -47,7 +51,9 @@ export function processInstanceScriptContent(
     isTSFile: boolean,
     basename: string,
     isSvelte5Plus: boolean,
-    isRunes: boolean
+    isRunes: boolean,
+    emitJsDoc: boolean,
+    rewriteExternalImports?: RewriteExternalImportsOptions
 ): InstanceScriptProcessResult {
     const htmlx = str.original;
     const scriptContent = htmlx.substring(script.content.start, script.content.end);
@@ -65,7 +71,8 @@ export function processInstanceScriptContent(
         basename,
         isTSFile,
         isSvelte5Plus,
-        isRunes
+        isRunes,
+        emitJsDoc
     );
     const generics = new Generics(str, astOffset, script);
     const interfacesAndTypes = new InterfacesAndTypes();
@@ -197,6 +204,16 @@ export function processInstanceScriptContent(
     const walk = (node: ts.Node, parent: ts.Node) => {
         type onLeaveCallback = () => void;
         const onLeaveCallbacks: onLeaveCallback[] = [];
+
+        if (rewriteExternalImports) {
+            rewriteExternalImportsInNode(ts, node, rewriteExternalImports, (specifier, rewrite) => {
+                str.overwrite(
+                    specifier.getStart(tsAst) + astOffset + 1,
+                    specifier.getEnd() + astOffset - 1,
+                    rewrite.rewritten
+                );
+            });
+        }
 
         if (parent === tsAst) {
             exportedNames.hoistableInterfaces.analyzeInstanceScriptNode(node);

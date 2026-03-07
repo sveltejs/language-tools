@@ -11,6 +11,7 @@ import { createModuleAst, ModuleAst, processModuleScriptTag } from './processMod
 import path from 'path';
 import { parse, VERSION } from 'svelte/compiler';
 import { getTopLevelImports } from './utils/tsAst';
+import { RewriteExternalImportsOptions } from '../helpers/rewriteExternalImports';
 
 function processSvelteTemplate(
     str: MagicString,
@@ -22,6 +23,9 @@ function processSvelteTemplate(
         mode?: 'ts' | 'dts';
         typingsNamespace?: string;
         svelte5Plus: boolean;
+        emitJsDoc?: boolean;
+        isTsFile?: boolean;
+        rewriteExternalImports?: RewriteExternalImportsOptions;
     }
 ): TemplateProcessResult {
     const { htmlxAst, tags } = parseHtmlx(str.original, parse, options);
@@ -41,15 +45,35 @@ export function svelte2tsx(
         accessors?: boolean;
         typingsNamespace?: string;
         noSvelteComponentTyped?: boolean;
+        /**
+         * If true, emits JSDoc annotations for types in JS files instead of TypeScript syntax.
+         * This is useful for svelte-check's incremental mode where the output needs to be
+         * valid JS that tsc can process without errors.
+         */
+        emitJsDoc?: boolean;
+        rewriteExternalImports?: {
+            workspacePath: string;
+            generatedPath: string;
+        };
     } = { parse }
 ) {
     options.mode = options.mode || 'ts';
     options.version = options.version || VERSION;
 
     const str = new MagicString(svelte);
+
+    const rewriteExternalImportsOptions: RewriteExternalImportsOptions | undefined =
+        options.rewriteExternalImports && options.filename
+            ? {
+                  sourcePath: options.filename,
+                  generatedPath: options.rewriteExternalImports.generatedPath,
+                  workspacePath: options.rewriteExternalImports.workspacePath
+              }
+            : undefined;
     const basename = path.basename(options.filename || '');
     const svelte5Plus = Number(options.version![0]) > 4;
     const isTsFile = options?.isTsFile;
+    const emitJsDoc = options?.emitJsDoc ?? false;
 
     // process the htmlx as a svelte template
     let {
@@ -68,7 +92,8 @@ export function svelte2tsx(
         isRunes
     } = processSvelteTemplate(str, options.parse || parse, {
         ...options,
-        svelte5Plus
+        svelte5Plus,
+        rewriteExternalImports: rewriteExternalImportsOptions
     });
 
     /* Rearrange the script tags so that module is first, and instance second followed finally by the template
@@ -101,7 +126,15 @@ export function svelte2tsx(
         svelte5Plus
     );
     //move the instance script and process the content
-    let exportedNames = new ExportedNames(str, 0, basename, isTsFile, svelte5Plus, isRunes);
+    let exportedNames = new ExportedNames(
+        str,
+        0,
+        basename,
+        isTsFile,
+        svelte5Plus,
+        isRunes,
+        emitJsDoc
+    );
     let generics = new Generics(str, 0, { attributes: [] } as any);
     let uses$$SlotsInterface = false;
     let hasTopLevelAwait = false;
@@ -120,7 +153,9 @@ export function svelte2tsx(
             isTsFile,
             basename,
             svelte5Plus,
-            isRunes
+            isRunes,
+            emitJsDoc,
+            rewriteExternalImportsOptions
         );
         uses$$props = uses$$props || res.uses$$props;
         uses$$restProps = uses$$restProps || res.uses$$restProps;
@@ -153,7 +188,8 @@ export function svelte2tsx(
         hasTopLevelAwait,
         svelte5Plus,
         isTsFile,
-        mode: options.mode
+        mode: options.mode,
+        emitJsDoc
     });
 
     // we need to process the module script after the instance script has moved otherwise we get warnings about moving edited items
@@ -167,7 +203,8 @@ export function svelte2tsx(
                 svelte5Plus,
                 scriptTag || options.mode === 'ts' ? undefined : (input) => `</>;${input}<>`
             ),
-            moduleAst
+            moduleAst,
+            rewriteExternalImportsOptions
         );
         if (!scriptTag) {
             moduleAst.tsAst.forEachChild((node) =>
@@ -225,7 +262,8 @@ export function svelte2tsx(
         generics,
         isSvelte5: svelte5Plus,
         hasTopLevelAwait,
-        noSvelteComponentTyped: options.noSvelteComponentTyped
+        noSvelteComponentTyped: options.noSvelteComponentTyped,
+        emitJsDoc
     });
 
     if (options.mode === 'dts') {
