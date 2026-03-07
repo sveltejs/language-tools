@@ -11,8 +11,12 @@ import {
     TextDocumentItem
 } from 'vscode-languageserver-types';
 import { DocumentManager, Document } from '../../src/lib/documents';
-import { LSPProviderConfig, PluginHost } from '../../src/plugins';
-import { CompletionTriggerKind, CancellationToken } from 'vscode-languageserver';
+import { DiagnosticsProvider, LSPProviderConfig, PluginHost } from '../../src/plugins';
+import {
+    CompletionTriggerKind,
+    CancellationToken,
+    DocumentDiagnosticReport
+} from 'vscode-languageserver';
 import assert from 'assert';
 
 describe('PluginHost', () => {
@@ -94,6 +98,115 @@ describe('PluginHost', () => {
             },
             undefined
         );
+    });
+
+    describe.only('pull mode diagnostics', () => {
+        it('merge pull diagnostics results', async () => {
+            const { docManager, pluginHost } = setup({
+                getDiagnostics() {
+                    return [];
+                },
+                getDiagnosticsForPullMode() {
+                    return {
+                        kind: 'full',
+                        items: [],
+                        resultId: '1'
+                    };
+                }
+            });
+            const plugin2 = {
+                getDiagnostics() {
+                    return [];
+                },
+                getDiagnosticsForPullMode(): DocumentDiagnosticReport {
+                    return {
+                        kind: 'full',
+                        items: [],
+                        resultId: '2'
+                    };
+                },
+                __name: 'test2'
+            };
+            pluginHost.register(plugin2);
+            docManager.openClientDocument(textDocument);
+            const diagnostics = await pluginHost.getDiagnosticsForPullMode(textDocument, undefined);
+
+            assert.deepStrictEqual(diagnostics, {
+                kind: 'full',
+                items: [],
+                resultId: JSON.stringify({ test: '1', test2: '2' })
+            });
+        });
+
+        it('merge pull diagnostics unchanged results', async () => {
+            const { docManager, pluginHost } = setup({
+                getDiagnostics() {
+                    return [];
+                },
+                getDiagnosticsForPullMode() {
+                    return {
+                        kind: 'unchanged',
+                        resultId: '1'
+                    };
+                }
+            });
+            const plugin2 = {
+                getDiagnostics() {
+                    return [];
+                },
+                getDiagnosticsForPullMode(): DocumentDiagnosticReport {
+                    return {
+                        kind: 'unchanged',
+                        resultId: '2'
+                    };
+                },
+                __name: 'test2'
+            };
+            pluginHost.register(plugin2);
+            docManager.openClientDocument(textDocument);
+            const diagnostics = await pluginHost.getDiagnosticsForPullMode(textDocument, undefined);
+
+            assert.deepStrictEqual(diagnostics, {
+                kind: 'unchanged',
+                resultId: JSON.stringify({ test: '1', test2: '2' })
+            });
+        });
+
+        it('merge pull diagnostics when some results are unchanged', async () => {
+            const { docManager, pluginHost } = setup({
+                getDiagnostics() {
+                    return [];
+                },
+                getDiagnosticsForPullMode() {
+                    return {
+                        kind: 'unchanged',
+                        resultId: '1'
+                    };
+                }
+            });
+            const plugin2 = {
+                getDiagnostics() {
+                    return [];
+                },
+                getDiagnosticsForPullMode(): DocumentDiagnosticReport {
+                    return {
+                        kind: 'full',
+                        items: [],
+                        resultId: '2'
+                    };
+                },
+                __name: 'test2'
+            };
+            pluginHost.register(plugin2);
+            docManager.openClientDocument(textDocument);
+            const diagnostics = await pluginHost.getDiagnosticsForPullMode(textDocument, undefined);
+
+            assert.deepStrictEqual(diagnostics, {
+                kind: 'full',
+                items: [],
+                resultId: JSON.stringify({ test: '1', test2: '2' })
+            });
+        });
     });
 
     describe('getCompletions (incomplete)', () => {

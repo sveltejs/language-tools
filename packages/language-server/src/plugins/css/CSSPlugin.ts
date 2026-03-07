@@ -15,7 +15,9 @@ import {
     CompletionItemKind,
     SelectionRange,
     DocumentHighlight,
-    WorkspaceFolder
+    WorkspaceFolder,
+    FullDocumentDiagnosticReport,
+    UnchangedDocumentDiagnosticReport
 } from 'vscode-languageserver';
 import {
     Document,
@@ -142,6 +144,32 @@ export class CSSPlugin
             .doValidation(cssDocument, cssDocument.stylesheet)
             .map((diagnostic) => ({ ...diagnostic, source: getLanguage(kind) }))
             .map((diagnostic) => mapObjWithRangeToOriginal(cssDocument, diagnostic));
+    }
+
+    getDiagnosticsForPullMode(
+        document: Document,
+        previousResultId: string | undefined
+    ): FullDocumentDiagnosticReport | UnchangedDocumentDiagnosticReport {
+        if (!this.featureEnabled('diagnostics')) {
+            return {
+                kind: 'full',
+                items: []
+            };
+        }
+
+        const resultId = document.version.toString();
+        if (previousResultId === resultId) {
+            return {
+                kind: 'unchanged',
+                resultId
+            };
+        }
+        const diagnostics = this.getDiagnostics(document);
+        return {
+            kind: 'full',
+            items: diagnostics,
+            resultId
+        };
     }
 
     doHover(document: Document, position: Position): Hover | null {

@@ -60,7 +60,6 @@ import {
 } from './plugins/typescript/features/CodeActionsProvider';
 import { createLanguageServices } from './plugins/css/service';
 import { FileSystemProvider } from './lib/FileSystemProvider';
-import { setTimeout } from 'timers/promises';
 
 namespace TagCloseRequest {
     export const type: RequestType<TextDocumentPositionParams, string | null, any> =
@@ -248,14 +247,22 @@ export function startServer(options?: LSOptions) {
                     evt: DocumentDiagnosticParams,
                     token
                 ): Promise<DocumentDiagnosticReport | null> => {
-                    await setTimeout(150);
+                    await new Promise((resolve) => setTimeout(resolve, 200));
                     if (token.isCancellationRequested) {
                         console.log('Diagnostic request cancelled');
                         return null;
                     }
-                    const diagnostics = await pluginHost.getDiagnostics(evt.textDocument, token);
-                    return { items: diagnostics, kind: 'full' };
+                    const diagnostics = await pluginHost.getDiagnosticsForPullMode(
+                        evt.textDocument,
+                        evt.previousResultId,
+                        token
+                    );
+                    return diagnostics;
                 }
+            );
+        } else {
+            connection.onDidSaveTextDocument(
+                diagnosticsManager.scheduleUpdateAll.bind(diagnosticsManager)
             );
         }
 
@@ -593,7 +600,6 @@ export function startServer(options?: LSOptions) {
         refreshCrossFilesSemanticFeatures();
     }
 
-    connection.onDidSaveTextDocument(diagnosticsManager.scheduleUpdateAll.bind(diagnosticsManager));
     connection.onNotification('$/onDidChangeTsOrJsFile', async (e: any) => {
         const path = urlToPath(e.uri);
         if (path) {

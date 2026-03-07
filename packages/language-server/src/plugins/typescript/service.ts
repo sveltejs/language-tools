@@ -61,6 +61,7 @@ export interface LanguageServiceContainer {
     openVirtualDocument(document: Document): void;
     isShimFiles(filePath: string): boolean;
     getProjectConfig(): ts.ParsedCommandLine;
+    getProjectVersion(): string;
     dispose(): void;
 }
 
@@ -405,7 +406,7 @@ async function createLanguageService(
         getParsedCommandLine,
         useCaseSensitiveFileNames: () => tsSystem.useCaseSensitiveFileNames,
         getScriptKind: (fileName: string) => getSnapshot(fileName).scriptKind,
-        getProjectVersion: () => projectVersion.toString(),
+        getProjectVersion,
         getNewLine: () => tsSystem.newLine,
         resolveTypeReferenceDirectiveReferences:
             svelteModuleLoader.resolveTypeReferenceDirectiveReferences,
@@ -460,8 +461,13 @@ async function createLanguageService(
         openVirtualDocument,
         isShimFiles,
         getProjectConfig,
+        getProjectVersion,
         dispose
     };
+
+    function getProjectVersion() {
+        return projectVersion.toString();
+    }
 
     function createSnapshotManager(
         parsedCommandLine: ts.ParsedCommandLine,

@@ -106,12 +106,12 @@ export class PushDiagnosticsManager implements DiagnosticsManager {
 export class PullDiagnosticsManager implements DiagnosticsManager {
     constructor(
         private sendDiagnostics: SendDiagnostics,
-        private sendRefreshDiagnostics: () => void,
+        private sendRefreshDiagnostics: () => void
     ) {}
 
     private refreshTimeout: NodeJS.Timeout | null = null;
 
-    scheduleUpdate(document: Document): void {
+    scheduleUpdate(): void {
         // No-op, diagnostics are pulled by the client.
     }
 
@@ -132,7 +132,7 @@ export class PullDiagnosticsManager implements DiagnosticsManager {
         });
     }
 
-    cancelStarted(uri: string): void {
+    cancelStarted(): void {
         // No-op, diagnostics are pulled by the client.
     }
 }
