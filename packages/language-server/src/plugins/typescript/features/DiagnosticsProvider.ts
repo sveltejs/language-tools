@@ -1,5 +1,11 @@
 import ts, { flattenDiagnosticMessageText } from 'typescript';
-import { CancellationToken, Diagnostic, DiagnosticSeverity, DocumentDiagnosticReport, Range } from 'vscode-languageserver';
+import {
+    CancellationToken,
+    Diagnostic,
+    DiagnosticSeverity,
+    DocumentDiagnosticReport,
+    Range
+} from 'vscode-languageserver';
 import {
     Document,
     getNodeIfIsInStartTag,
