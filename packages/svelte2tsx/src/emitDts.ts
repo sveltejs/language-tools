@@ -11,8 +11,8 @@ export interface EmitDtsConfig {
 
 export async function emitDts(config: EmitDtsConfig) {
     const svelteMap = await createSvelteMap(config);
-    const { options, filenames } = loadTsconfig(config, svelteMap);
-    const host = await createTsCompilerHost(options, svelteMap);
+    const { options, filenames, absDeclarationDir } = loadTsconfig(config, svelteMap);
+    const host = await createTsCompilerHost(options, svelteMap, absDeclarationDir);
     const program = ts.createProgram(filenames, options, host);
     const result = program.emit();
     const likely_failed_files = result.diagnostics.filter((diagnostic) => {
@@ -107,6 +107,10 @@ function loadTsconfig(config: EmitDtsConfig, svelteMap: SvelteMap) {
     // code output of svelte2tsx.
     filenames.push(config.svelteShimsPath);
 
+    const absDeclarationDir = path.isAbsolute(config.declarationDir)
+        ? config.declarationDir
+        : path.resolve(basepath, config.declarationDir);
+
     return {
         options: {
             ...options,
@@ -122,11 +126,12 @@ function loadTsconfig(config: EmitDtsConfig, svelteMap: SvelteMap) {
             declarationDir: config.declarationDir, // Where to put the declarations
             allowNonTsExtensions: true
         },
-        filenames
+        filenames,
+        absDeclarationDir
     };
 }
 
-async function createTsCompilerHost(options: any, svelteMap: SvelteMap) {
+async function createTsCompilerHost(options: any, svelteMap: SvelteMap, absDeclarationDir: string) {
     const host = ts.createCompilerHost(options);
     // TypeScript writes the files relative to the found tsconfig/jsconfig
     // which - at least in the case of the tests - is wrong. Therefore prefix
@@ -179,7 +184,20 @@ async function createTsCompilerHost(options: any, svelteMap: SvelteMap) {
             return ts.sys.readDirectory(path, extensionsWithSvelte, exclude, include, depth);
         },
         writeFile(fileName, data, writeByteOrderMark) {
-            fileName = pathPrefix ? path.join(pathPrefix, fileName) : fileName;
+            fileName =
+                pathPrefix && !path.isAbsolute(fileName)
+                    ? path.join(pathPrefix, fileName)
+                    : fileName;
+
+            // Drop declaration files emitted outside declarationDir.
+            // This happens when TypeScript follows imports to source files outside
+            // rootDir and falls back to emitting declarations next to the source.
+            if (fileName.endsWith('.d.ts') || fileName.endsWith('.d.ts.map')) {
+                if (!path.resolve(fileName).startsWith(absDeclarationDir + path.sep)) {
+                    return;
+                }
+            }
+
             if (fileName.endsWith('d.ts.map')) {
                 data = data.replace(/"sources":\["(.+?)"\]/, (_, sourcePath: string) => {
                     // The inverse of the pathPrefix adjustment
