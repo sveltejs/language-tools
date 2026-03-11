@@ -351,6 +351,14 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
     }
 
     getChangeRange(oldSnapshot: ts.IScriptSnapshot) {
+        if (oldSnapshot instanceof SvelteDocumentSnapshot) {
+            if (
+                oldSnapshot.scriptKind !== this.scriptKind ||
+                !!oldSnapshot.parserError !== !!this.parserError
+            ) {
+                return undefined;
+            }
+        }
         return computeChangeRange(oldSnapshot.getText(0, oldSnapshot.getLength()), this.text);
     }
 
@@ -474,7 +482,6 @@ export class JSOrTSDocumentSnapshot extends IdentityMapper implements DocumentSn
     scriptInfo = null;
     originalText = this.text;
     kitFile = false;
-    private prevChangeRange?: ts.TextChangeRange;
     private lineOffsets?: number[];
     private internalLineOffsets?: number[];
     private addedCode: Array<{
@@ -489,8 +496,6 @@ export class JSOrTSDocumentSnapshot extends IdentityMapper implements DocumentSn
     private clientHooksPath = 'src/hooks.client';
     private universalHooksPath = 'src/hooks';
 
-    private openedByClient = false;
-
     isOpenedInClient(): boolean {
         return this.openedByClient;
     }
@@ -498,7 +503,8 @@ export class JSOrTSDocumentSnapshot extends IdentityMapper implements DocumentSn
     constructor(
         public version: number,
         public readonly filePath: string,
-        private text: string
+        private text: string,
+        private openedByClient = false
     ) {
         super(pathToUrl(filePath));
         this.adjustText();
@@ -517,12 +523,6 @@ export class JSOrTSDocumentSnapshot extends IdentityMapper implements DocumentSn
     }
 
     getChangeRange(oldSnapshot: ts.IScriptSnapshot) {
-        // When this snapshot is mutated in-place via update(), TS may pass the same
-        // object as oldSnapshot (since it cached the reference before mutation).
-        // In that case, use the pre-computed change range from the last update.
-        if (oldSnapshot === this) {
-            return this.prevChangeRange;
-        }
         return computeChangeRange(oldSnapshot.getText(0, oldSnapshot.getLength()), this.text);
     }
 
@@ -574,8 +574,8 @@ export class JSOrTSDocumentSnapshot extends IdentityMapper implements DocumentSn
         return this.originalPositionAt(pos - total);
     }
 
-    update(changes: TextDocumentContentChangeEvent[]): void {
-        const oldText = this.text;
+    update(changes: TextDocumentContentChangeEvent[]): JSOrTSDocumentSnapshot {
+        let updatedOriginalText = this.originalText;
 
         for (const change of changes) {
             let start = 0;
@@ -584,20 +584,19 @@ export class JSOrTSDocumentSnapshot extends IdentityMapper implements DocumentSn
                 start = this.originalOffsetAt(change.range.start);
                 end = this.originalOffsetAt(change.range.end);
             } else {
-                end = this.originalText.length;
+                end = updatedOriginalText.length;
             }
 
-            this.originalText =
-                this.originalText.slice(0, start) + change.text + this.originalText.slice(end);
+            updatedOriginalText =
+                updatedOriginalText.slice(0, start) + change.text + updatedOriginalText.slice(end);
         }
 
-        this.adjustText();
-        this.prevChangeRange = computeChangeRange(oldText, this.text);
-        this.version++;
-        this.lineOffsets = undefined;
-        this.internalLineOffsets = undefined;
-        // only client can have incremental updates
-        this.openedByClient = true;
+        return new JSOrTSDocumentSnapshot(
+            this.version + 1,
+            this.filePath,
+            updatedOriginalText,
+            true // openedByClient
+        );
     }
 
     protected getLineOffsets() {

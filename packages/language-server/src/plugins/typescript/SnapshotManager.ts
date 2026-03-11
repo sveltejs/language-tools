@@ -58,9 +58,9 @@ export class GlobalSnapshotsManager {
             if (!(previousSnapshot instanceof JSOrTSDocumentSnapshot)) {
                 return;
             }
-            previousSnapshot.update(changes);
-            this.emitter.emit('change', fileName, previousSnapshot);
-            return previousSnapshot;
+            const newSnapshot = previousSnapshot.update(changes);
+            this.set(fileName, newSnapshot);
+            return newSnapshot;
         } else {
             const newSnapshot = DocumentSnapshot.fromNonSvelteFilePath(fileName, this.tsSystem);
 
