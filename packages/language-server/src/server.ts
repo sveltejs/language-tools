@@ -97,7 +97,7 @@ export function startServer(options?: LSOptions) {
     }
 
     const docManager = new DocumentManager(
-        (textDocument) => new Document(textDocument.uri, textDocument.text)
+        (textDocument) => new Document(textDocument.uri, textDocument.text, /*loadConfig*/ true)
     );
     const configManager = new LSConfigManager();
     const pluginHost = new PluginHost(docManager);

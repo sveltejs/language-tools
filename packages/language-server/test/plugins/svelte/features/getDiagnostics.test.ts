@@ -46,7 +46,11 @@ describe('SveltePlugin#getDiagnostics', () => {
     function setupFromFile(filename: string) {
         const testDir = path.join(__dirname, '..');
         const filePath = path.join(testDir, 'testfiles', filename);
-        const document = new Document(pathToUrl(filePath), fs.readFileSync(filePath, 'utf-8'));
+        const document = new Document(
+            pathToUrl(filePath),
+            fs.readFileSync(filePath, 'utf-8'),
+            /*loadConfig*/ true
+        );
         const pluginManager = new LSConfigManager();
         const plugin = new SveltePlugin(pluginManager);
         return { plugin, document };

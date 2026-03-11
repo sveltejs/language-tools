@@ -38,10 +38,14 @@ export class Document extends WritableDocument {
 
     constructor(
         public url: string,
-        public content: string
+        public content: string,
+        loadConfig = false
     ) {
         super();
-        this.configPromise = configLoader.awaitConfig(this.getFilePath() || '');
+        this.configPromise = loadConfig
+            ? configLoader.awaitConfig(this.getFilePath() || '')
+            : Promise.resolve(undefined);
+
         this.updateDocInfo();
     }
 
