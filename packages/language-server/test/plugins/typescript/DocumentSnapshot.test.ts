@@ -62,10 +62,7 @@ describe('computeChangeRange', () => {
     });
 
     it('handles multiline text with change on one line', () => {
-        assertValidChangeRange(
-            'line1\nline2\nline3\nline4',
-            'line1\nmodified\nline3\nline4'
-        );
+        assertValidChangeRange('line1\nline2\nline3\nline4', 'line1\nmodified\nline3\nline4');
     });
 
     it('holds reconstruction invariant for diverse edit patterns', () => {
@@ -146,7 +143,11 @@ describe('SvelteDocumentSnapshot.getChangeRange', () => {
         return new SvelteDocumentSnapshot(
             doc,
             options?.parserError
-                ? { message: 'error', range: { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } }, code: -1 }
+                ? {
+                      message: 'error',
+                      range: { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } },
+                      code: -1
+                  }
                 : null,
             options?.scriptKind ?? ts.ScriptKind.TS,
             '4.0.0',
