@@ -229,8 +229,8 @@ importers:
         specifier: ^7.7.2
         version: 7.7.2
       textmate-grammar-test:
-        specifier: ^0.5.1
-        version: 0.5.1
+        specifier: ^0.6.0
+        version: 0.6.0
       tslib:
         specifier: ^2.4.0
         version: 2.5.2
@@ -1918,8 +1918,8 @@ packages:
     resolution: {integrity: sha512-wK0Ri4fOGjv/XPy8SBHZChl8CM7uMc5VML7SqiQ0zG7+J5Vr+RMQDoHa2CNT6KHUnTGIXH34UDMkPzAUyapBZg==}
     engines: {node: '>=8'}
 
-  textmate-grammar-test@0.5.1:
-    resolution: {integrity: sha512-NXzE0AVnApVY1GcFu4ulpcxk3Ew3T4DHdduEB6hurMT2MSPSNA2jtOh5WXSi6LUxgmzTrRgcJtdu0ou8T/6a2A==}
+  textmate-grammar-test@0.6.0:
+    resolution: {integrity: sha512-9j5B3hTEfCYejhqxonIPJaiy+d0HO3OL+AWTDmOufp3unhX0PUNqOIq2O5rvPHuauI6dD4QUwf8fI2V80MD4rA==}
     engines: {node: '>=22'}
     hasBin: true
 
@@ -3723,7 +3723,7 @@ snapshots:
 
   term-size@2.2.1: {}
 
-  textmate-grammar-test@0.5.1:
+  textmate-grammar-test@0.6.0:
     dependencies:
       '@serkonda7/ts-result': 1.0.1
       chalk: 5.6.2
