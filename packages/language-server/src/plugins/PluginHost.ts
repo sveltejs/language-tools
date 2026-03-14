@@ -266,14 +266,13 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
     async getDocumentColors(textDocument: TextDocumentIdentifier): Promise<ColorInformation[]> {
         const document = this.getDocument(textDocument.uri);
 
-        return (
-            await this.execute<ColorInformation[]>(
-                'getDocumentColors',
-                [document],
-                ExecuteMode.Collect,
-                'low'
-            )
-        ).flat();
+        const result = await this.execute<ColorInformation[]>(
+            'getDocumentColors',
+            [document],
+            ExecuteMode.Collect,
+            'low'
+        );
+        return result?.flat() ?? [];
     }
 
     async getColorPresentations(
@@ -697,7 +696,7 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
             ExecuteMode.Collect,
             'smart'
         );
-        return result.filter(Boolean).flat();
+        return result?.filter(Boolean).flat();
     }
 
     async getFoldingRanges(textDocument: TextDocumentIdentifier): Promise<FoldingRange[]> {
