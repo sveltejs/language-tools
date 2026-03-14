@@ -100,7 +100,7 @@ describe('PluginHost', () => {
         );
     });
 
-    describe.only('pull mode diagnostics', () => {
+    describe('pull mode diagnostics', () => {
         it('merge pull diagnostics results', async () => {
             const { docManager, pluginHost } = setup({
                 getDiagnostics() {
