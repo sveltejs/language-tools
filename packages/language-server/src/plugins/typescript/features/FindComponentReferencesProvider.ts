@@ -1,5 +1,5 @@
 import { Location, Position, Range } from 'vscode-languageserver';
-import { flatten, isNotNullOrUndefined, pathToUrl, urlToPath } from '../../../utils';
+import { isNotNullOrUndefined, pathToUrl, urlToPath } from '../../../utils';
 import { FindComponentReferencesProvider } from '../../interfaces';
 import { DocumentSnapshot, SvelteDocumentSnapshot } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
@@ -39,35 +39,37 @@ export class FindComponentReferencesProviderImpl implements FindComponentReferen
         snapshots.set(tsDoc.filePath, tsDoc);
 
         const locations = await Promise.all(
-            flatten(references.map((ref) => ref.references)).map(async (ref) => {
-                if (ref.isDefinition) {
-                    return null;
-                }
+            references
+                .flatMap((ref) => ref.references)
+                .map(async (ref) => {
+                    if (ref.isDefinition) {
+                        return null;
+                    }
 
-                const snapshot = await snapshots.retrieve(ref.fileName);
+                    const snapshot = await snapshots.retrieve(ref.fileName);
 
-                if (isTextSpanInGeneratedCode(snapshot.getFullText(), ref.textSpan)) {
-                    return null;
-                }
+                    if (isTextSpanInGeneratedCode(snapshot.getFullText(), ref.textSpan)) {
+                        return null;
+                    }
 
-                const refLocation = Location.create(
-                    pathToUrl(ref.fileName),
-                    convertToLocationRange(snapshot, ref.textSpan)
-                );
+                    const refLocation = Location.create(
+                        pathToUrl(ref.fileName),
+                        convertToLocationRange(snapshot, ref.textSpan)
+                    );
 
-                //Only report starting tags
-                if (this.isEndTag(refLocation, snapshot)) {
-                    return null;
-                }
+                    //Only report starting tags
+                    if (this.isEndTag(refLocation, snapshot)) {
+                        return null;
+                    }
 
-                // Some references are in generated code but not wrapped with explicit ignore comments.
-                // These show up as zero-length ranges, so filter them out.
-                if (!hasNonZeroRange(refLocation)) {
-                    return null;
-                }
+                    // Some references are in generated code but not wrapped with explicit ignore comments.
+                    // These show up as zero-length ranges, so filter them out.
+                    if (!hasNonZeroRange(refLocation)) {
+                        return null;
+                    }
 
-                return refLocation;
-            })
+                    return refLocation;
+                })
         );
 
         return locations.filter(isNotNullOrUndefined);

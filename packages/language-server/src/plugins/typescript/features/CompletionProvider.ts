@@ -28,7 +28,7 @@ import {
 } from '../../../lib/documents';
 import { AttributeContext, getAttributeContextAtPosition } from '../../../lib/documents/parseHtml';
 import { LSConfigManager } from '../../../ls-config';
-import { flatten, getRegExpMatches, modifyLines, pathToUrl } from '../../../utils';
+import { getRegExpMatches, modifyLines, pathToUrl } from '../../../utils';
 import { AppCompletionItem, AppCompletionList, CompletionsProvider } from '../../interfaces';
 import { ComponentInfoProvider, ComponentPartInfo } from '../ComponentInfoProvider';
 import { SvelteDocumentSnapshot } from '../DocumentSnapshot';
@@ -98,7 +98,6 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
      * For performance reasons, try to reuse the last completion if possible.
      */
     private lastCompletion?: LastCompletion;
-
     private isValidTriggerCharacter(
         character: string | undefined
     ): character is validTriggerCharacter {
@@ -528,7 +527,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
         const rawImports = getRegExpMatches(scriptImportRegex, document.getText()).map((match) =>
             (match[1] ?? match[2]).split(',')
         );
-        const tidiedImports = flatten(rawImports).map((match) => match.trim());
+        const tidiedImports = rawImports.flat().map((match) => match.trim());
         return new Set(tidiedImports);
     }
 
@@ -847,8 +846,9 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
         name: string,
         source?: string
     ): boolean {
+        if (!source) return false;
         const importStatement = new RegExp(`import ${name} from ["'\`][\\s\\S]+\\.svelte["'\`]`);
-        return !!source && !!snapshot.getFullText().match(importStatement);
+        return importStatement.test(snapshot.getFullText());
     }
 
     private fixTextEditRange(
