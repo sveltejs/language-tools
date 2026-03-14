@@ -27,7 +27,7 @@ import {
     isStoreVariableIn$storeDeclaration,
     get$storeOffsetOf$storeDeclaration
 } from './utils';
-import { not, flatten, passMap, swapRangeStartEndIfNecessary, memoize } from '../../../utils';
+import { not, passMap, swapRangeStartEndIfNecessary, memoize } from '../../../utils';
 import { LSConfigManager } from '../../../ls-config';
 import { isAttributeName, isEventHandler } from '../svelte-ast-utils';
 import { internalHelpers } from 'svelte2tsx';
@@ -542,7 +542,7 @@ function resolveNoopsInReactiveStatements(lang: ts.LanguageService, diagnostics:
         );
     };
 
-    const expandedDiagnostics = flatten(passMap(diagnostics, expandRemainingNoopWarnings));
+    const expandedDiagnostics = passMap(diagnostics, expandRemainingNoopWarnings).flat();
     return expandedDiagnostics.length === diagnostics.length
         ? expandedDiagnostics
         : // This can generate duplicate diagnostics

@@ -189,23 +189,20 @@ export function findContainingNode<T extends ts.Node>(
     textSpan: ts.TextSpan,
     predicate: (node: ts.Node) => node is T
 ): T | undefined {
-    const children = node.getChildren();
-    const end = textSpan.start + textSpan.length;
-
-    for (const child of children) {
-        if (!(child.getStart() <= textSpan.start && child.getEnd() >= end)) {
-            continue;
+    // TypeScript will re-parse part of the file in getChildren() to include syntax tokens.
+    // But for the use cases of this function, we only need the actual nodes like Identifier.
+    // the forEachChild name is a bit misleading too because it function more like find than forEach
+    return node.forEachChild((child) => {
+        if (child.getStart() <= textSpan.start && child.getEnd() >= textSpan.start) {
+            if (predicate(child)) {
+                return child;
+            }
+            const foundInChildren = findContainingNode(child, textSpan, predicate);
+            if (foundInChildren) {
+                return foundInChildren;
+            }
         }
-
-        if (predicate(child)) {
-            return child;
-        }
-
-        const foundInChildren = findContainingNode(child, textSpan, predicate);
-        if (foundInChildren) {
-            return foundInChildren;
-        }
-    }
+    });
 }
 
 export function findClosestContainingNode<T extends ts.Node>(
@@ -242,7 +239,7 @@ export function findNodeAtSpan<T extends ts.Node>(
 
     const end = start + length;
 
-    for (const child of node.getChildren()) {
+    return node.forEachChild((child) => {
         const childStart = child.getStart();
         if (end <= childStart) {
             return;
@@ -250,7 +247,7 @@ export function findNodeAtSpan<T extends ts.Node>(
 
         const childEnd = child.getEnd();
         if (start >= childEnd) {
-            continue;
+            return;
         }
 
         if (start === childStart && end === childEnd) {
@@ -266,7 +263,7 @@ export function findNodeAtSpan<T extends ts.Node>(
         if (foundInChildren) {
             return foundInChildren;
         }
-    }
+    });
 }
 
 function isSomeAncestor(node: ts.Node, predicate: NodePredicate) {
@@ -349,9 +346,9 @@ export function gatherDescendants<T extends ts.Node>(
     if (predicate(node)) {
         dest.push(node);
     } else {
-        for (const child of node.getChildren()) {
+        node.forEachChild((child) => {
             gatherDescendants(child, predicate, dest);
-        }
+        });
     }
     return dest;
 }
@@ -416,6 +413,7 @@ export function getQuotePreference(
         : double;
 }
 export function findChildOfKind(node: ts.Node, kind: ts.SyntaxKind): ts.Node | undefined {
+    // this one we do want to use getChildren() because we also want to find syntax tokens,
     for (const child of node.getChildren()) {
         if (child.kind === kind) {
             return child;
