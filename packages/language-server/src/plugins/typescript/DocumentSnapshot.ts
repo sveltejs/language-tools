@@ -248,7 +248,11 @@ function preprocessSvelteFile(document: Document, options: SvelteSnapshotOptions
             namespace: document.config?.compilerOptions?.namespace,
             accessors:
                 document.config?.compilerOptions?.accessors ??
-                document.config?.compilerOptions?.customElement,
+                (typeof document.config?.compilerOptions?.customElement === 'function'
+                    ? document.config.compilerOptions.customElement({
+                          filename: document.getFilePath() ?? ''
+                      })
+                    : document.config?.compilerOptions?.customElement),
             emitJsDoc: options.emitJsDoc,
             rewriteExternalImports: options.rewriteExternalImports
         });
