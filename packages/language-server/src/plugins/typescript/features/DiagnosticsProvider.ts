@@ -1,5 +1,11 @@
 import ts, { flattenDiagnosticMessageText } from 'typescript';
-import { CancellationToken, Diagnostic, DiagnosticSeverity, Range } from 'vscode-languageserver';
+import {
+    CancellationToken,
+    Diagnostic,
+    DiagnosticSeverity,
+    DocumentDiagnosticReport,
+    Range
+} from 'vscode-languageserver';
 import {
     Document,
     getNodeIfIsInStartTag,
@@ -103,6 +109,35 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
         }
 
         return mapAndFilterDiagnostics(diagnostics, document, tsDoc, lang);
+    }
+
+    async getDiagnosticsForPullMode(
+        document: Document,
+        previousResultId?: string,
+        cancellationToken?: CancellationToken
+    ): Promise<DocumentDiagnosticReport> {
+        const { tsDoc, lsContainer } = await this.getLSAndTSDoc(document);
+        if (cancellationToken?.isCancellationRequested) {
+            return {
+                kind: 'full',
+                items: []
+            };
+        }
+        const resultId = tsDoc.version.toString() + '-' + lsContainer.getProjectVersion();
+
+        if (previousResultId === resultId) {
+            return {
+                kind: 'unchanged',
+                resultId
+            };
+        }
+
+        const diagnostics = await this.getDiagnostics(document);
+        return {
+            kind: 'full',
+            resultId,
+            items: diagnostics
+        };
     }
 
     private async getLSAndTSDoc(document: Document) {

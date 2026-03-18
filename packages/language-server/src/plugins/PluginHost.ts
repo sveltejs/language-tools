@@ -35,9 +35,10 @@ import {
     WorkspaceEdit,
     InlayHint,
     WorkspaceSymbol,
-    DocumentSymbol
+    DocumentSymbol,
+    DocumentDiagnosticReport
 } from 'vscode-languageserver';
-import { DocumentManager, getNodeIfIsInHTMLStartTag } from '../lib/documents';
+import { Document, DocumentManager, getNodeIfIsInHTMLStartTag } from '../lib/documents';
 import { Logger } from '../logger';
 import { isNotNullOrUndefined, regexLastIndexOf } from '../utils';
 import {
@@ -85,15 +86,7 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
     ): Promise<Diagnostic[]> {
         const document = this.getDocument(textDocument.uri);
 
-        if (
-            (document.getFilePath()?.includes('/node_modules/') ||
-                document.getFilePath()?.includes('\\node_modules\\')) &&
-            // Sapper convention: Put stuff inside node_modules below src
-            !(
-                document.getFilePath()?.includes('/src/node_modules/') ||
-                document.getFilePath()?.includes('\\src\\node_modules\\')
-            )
-        ) {
+        if (this.canSkipDiagnostics(document)) {
             // Don't return diagnostics for files inside node_modules. These are considered read-only (cannot be changed)
             // and in case of svelte-check they would pollute/skew the output
             return [];
@@ -107,6 +100,98 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
                 'high'
             )
         ).flat();
+    }
+
+    private canSkipDiagnostics(document: Document) {
+        return (
+            (document.getFilePath()?.includes('/node_modules/') ||
+                document.getFilePath()?.includes('\\node_modules\\')) &&
+            // Sapper convention: Put stuff inside node_modules below src
+            !(
+                document.getFilePath()?.includes('/src/node_modules/') ||
+                document.getFilePath()?.includes('\\src\\node_modules\\')
+            )
+        );
+    }
+
+    async getDiagnosticsForPullMode(
+        textDocument: TextDocumentIdentifier,
+        previousResultId: string | undefined,
+        cancellationToken?: CancellationToken
+    ): Promise<DocumentDiagnosticReport> {
+        const document = this.getDocument(textDocument.uri);
+        let previousResultIdData: Record<string, string> = {};
+        if (previousResultId) {
+            try {
+                previousResultIdData = JSON.parse(previousResultId);
+            } catch (error) {}
+        }
+
+        if (this.canSkipDiagnostics(document)) {
+            // Don't return diagnostics for files inside node_modules. These are considered read-only (cannot be changed)
+            return {
+                kind: 'full',
+                items: []
+            };
+        }
+
+        const plugins = this.plugins.filter(
+            (plugin) => typeof plugin.getDiagnosticsForPullMode === 'function'
+        );
+
+        const results = await Promise.all(
+            plugins.map(
+                async (plugin): Promise<[string, DocumentDiagnosticReport]> => [
+                    plugin.__name,
+                    await this.tryExecutePlugin(
+                        plugin,
+                        'getDiagnosticsForPullMode',
+                        [document, previousResultIdData[plugin.__name], cancellationToken],
+                        { kind: 'full', items: [] }
+                    )
+                ]
+            )
+        );
+
+        const newResultId = JSON.stringify(
+            Object.fromEntries(results.map(([name, res]) => [name, res.resultId]))
+        );
+        const unchanged = results
+            .filter(([, res]) => res.kind === 'unchanged')
+            .map(([name]) => name);
+        const fullResults = results.flatMap(([, res]) => (res.kind === 'full' ? res.items : []));
+
+        if (unchanged.length === plugins.length) {
+            return {
+                kind: 'unchanged',
+                resultId: newResultId
+            };
+        }
+        if (unchanged.length === 0) {
+            return {
+                kind: 'full',
+                resultId: newResultId,
+                items: fullResults
+            };
+        }
+        const unchangedPlugins = plugins.filter((plugin) => unchanged.includes(plugin.__name));
+        const unchangedResults = await Promise.all(
+            unchangedPlugins.map(async (plugin) => {
+                const result = await this.tryExecutePlugin(
+                    plugin,
+                    'getDiagnostics',
+                    [document, cancellationToken],
+                    []
+                );
+                return result;
+            })
+        );
+
+        return {
+            kind: 'full',
+            resultId: newResultId,
+            items: fullResults.concat(unchangedResults.flat())
+        };
     }
 
     async doHover(textDocument: TextDocumentIdentifier, position: Position): Promise<Hover | null> {
