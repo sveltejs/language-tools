@@ -17,7 +17,7 @@ import { getPackageInfo } from '../../../../../src/importPackage';
 
 function setup(workspaceDir: string, filePath: string) {
     const docManager = new DocumentManager(
-        (textDocument) => new Document(textDocument.uri, textDocument.text)
+        (textDocument) => new Document(textDocument.uri, textDocument.text, /*loadConfig*/ true)
     );
     const configManager = new LSConfigManager();
     const lsAndTsDocResolver = new LSAndTSDocResolver(

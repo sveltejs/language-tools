@@ -22,7 +22,7 @@ describe('Svelte Plugin', () => {
         prettierConfig?: any,
         { trusted = true, documentUri = 'file:///hello.svelte' } = {}
     ) {
-        const document = new Document(documentUri, content);
+        const document = new Document(documentUri, content, /*loadConfig*/ true);
         const docManager = new DocumentManager(() => document);
         const pluginManager = new LSConfigManager();
         pluginManager.updateIsTrusted(trusted);
