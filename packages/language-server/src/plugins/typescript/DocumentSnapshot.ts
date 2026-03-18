@@ -249,7 +249,8 @@ function preprocessSvelteFile(document: Document, options: SvelteSnapshotOptions
             accessors:
                 document.config?.compilerOptions?.accessors ??
                 (typeof document.config?.compilerOptions?.customElement === 'function'
-                    ? document.config.compilerOptions.customElement({
+                    ? // @ts-ignore with Svelte 4 this is never callable
+                      document.config.compilerOptions.customElement({
                           filename: document.getFilePath() ?? ''
                       })
                     : document.config?.compilerOptions?.customElement),
