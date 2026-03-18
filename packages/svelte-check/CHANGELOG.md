@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.4.5
+
+### Patch Changes
+
+-   fix: use Promise<Response> for async kit handler return types ([#2966](https://github.com/sveltejs/language-tools/pull/2966))
+
 ## 4.4.4
 
 ### Patch Changes
