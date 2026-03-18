@@ -203,12 +203,12 @@ export function handleAttribute(
             if (!needsNumberConversion) {
                 attributeValue.push(quote);
             }
-            if (includesTemplateLiteralQuote && attrVal.data.split('\n').length > 1) {
-                // Multiline attribute value text which can't be wrapped in a template literal
-                // -> ensure it's still a valid transformation by transforming the actual line break
-                str.overwrite(attrVal.start, attrVal.end, attrVal.data.split('\n').join('\\n'), {
-                    contentOnly: true
-                });
+            const escapedValue = tryEscapeAttributeValue(
+                attrVal.data,
+                !includesTemplateLiteralQuote
+            );
+            if (escapedValue !== null) {
+                str.overwrite(attrVal.start, attrVal.end, escapedValue, { contentOnly: true });
             }
             attributeValue.push([attrVal.start, attrVal.end]);
             if (!needsNumberConversion) {
@@ -247,4 +247,15 @@ export function handleAttribute(
 
 function attributeValueIsOfType(value: true | BaseNode[], type: string): value is [BaseNode] {
     return value !== true && value.length == 1 && value[0].type == type;
+}
+
+function tryEscapeAttributeValue(str: string, useTemplateLiteral: boolean): string | null {
+    // Multiline attribute value text which can't be wrapped in a template literal
+    // -> ensure it's still a valid transformation by transforming the actual line break
+    // \ is not a valid escape in HTML, but it could be part of the attribute value and would break the generated code
+    if (!str.includes('\\') && (useTemplateLiteral || !str.includes('\n'))) {
+        return null;
+    }
+
+    return JSON.stringify(str).slice(1, -1);
 }
