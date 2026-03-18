@@ -193,7 +193,10 @@ async function createTsCompilerHost(options: any, svelteMap: SvelteMap, absDecla
             // This happens when TypeScript follows imports to source files outside
             // rootDir and falls back to emitting declarations next to the source.
             if (fileName.endsWith('.d.ts') || fileName.endsWith('.d.ts.map')) {
-                if (!path.resolve(fileName).startsWith(absDeclarationDir + path.sep)) {
+                const resolved = path.resolve(fileName);
+                const normalise = (p: string) =>
+                    ts.sys.useCaseSensitiveFileNames ? p : p.toLowerCase();
+                if (!normalise(resolved).startsWith(normalise(absDeclarationDir + path.sep))) {
                     return;
                 }
             }

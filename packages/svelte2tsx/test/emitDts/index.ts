@@ -41,13 +41,13 @@ async function testEmitDts(sample: string) {
         : {};
     const declarationDir: string = config.declarationDir ?? 'package';
     const preExistingTopDirs = new Set(
-        fs.readdirSync(cwd, { withFileTypes: true })
+        fs
+            .readdirSync(cwd, { withFileTypes: true })
             .filter((e) => e.isDirectory())
             .map((e) => e.name)
     );
 
     try {
-
         const preExistingDts = new Set(findDtsFiles(cwd, declarationDir));
 
         await emitDts({
@@ -76,10 +76,7 @@ async function testEmitDts(sample: string) {
         if (!fs.existsSync(join(cwd, 'expected'))) {
             fs.mkdirSync(join(cwd, 'expected'), { recursive: true });
             for (const file of actual_files) {
-                fs.copyFileSync(
-                    join(cwd, declarationDir, file),
-                    join(cwd, 'expected', file)
-                );
+                fs.copyFileSync(join(cwd, declarationDir, file), join(cwd, 'expected', file));
             }
         } else {
             const expectedFiles = fs.readdirSync(join(cwd, 'expected'));
@@ -120,8 +117,16 @@ async function testEmitDts(sample: string) {
                 rimraf(join(cwd, topLevel));
             } else {
                 // Pre-existing directory — only remove the specific files
-                try { fs.unlinkSync(f); } catch { /* ignore */ }
-                try { fs.unlinkSync(f + '.map'); } catch { /* ignore */ }
+                try {
+                    fs.unlinkSync(f);
+                } catch {
+                    /* ignore */
+                }
+                try {
+                    fs.unlinkSync(f + '.map');
+                } catch {
+                    /* ignore */
+                }
             }
         }
     }
