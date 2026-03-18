@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.17.30
+
+### Patch Changes
+
+-   perf: micro-optimizations in hot paths ([#2960](https://github.com/sveltejs/language-tools/pull/2960))
+
+-   perf: enable incremental TypeScript reparsing via getChangeRange ([#2961](https://github.com/sveltejs/language-tools/pull/2961))
+
+-   perf: various optimization with ast walk ([#2969](https://github.com/sveltejs/language-tools/pull/2969))
+
+-   feat: pull diagnostics support ([#2978](https://github.com/sveltejs/language-tools/pull/2978))
+
+-   fix: prevent error with escape sequence in attribute ([#2968](https://github.com/sveltejs/language-tools/pull/2968))
+
+-   Updated dependencies [[`5b9a4ac`](https://github.com/sveltejs/language-tools/commit/5b9a4ac9f5949f709667d43a16766475bc5a63d8)]:
+    -   svelte2tsx@0.7.53
+
 ## 0.17.29
 
 ### Patch Changes

@@ -1,5 +1,13 @@
 # Changelog
 
+## 4.4.6
+
+### Patch Changes
+
+-   perf: various optimization with ast walk ([#2969](https://github.com/sveltejs/language-tools/pull/2969))
+
+-   fix: prevent error with escape sequence in attribute ([#2968](https://github.com/sveltejs/language-tools/pull/2968))
+
 ## 4.4.5
 
 ### Patch Changes
