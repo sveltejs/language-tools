@@ -25,6 +25,7 @@
         "noUnusedParameters": true,
         "types": ["node"]
     },
+    "include": ["src/*"],
     "paths": {
         "@/*": ["src/*"]
     },
