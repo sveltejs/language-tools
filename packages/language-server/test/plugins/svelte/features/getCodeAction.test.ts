@@ -39,8 +39,7 @@ describe('SveltePlugin#getCodeAction', () => {
         const filePath = path.join(testDir, filename);
         const document = new Document(
             pathToUrl(filePath),
-            filename ? fs.readFileSync(filePath)?.toString() : '',
-            /*loadConfig*/ true
+            filename ? fs.readFileSync(filePath)?.toString() : ''
         );
         const svelteDoc = new SvelteDocument(document);
         const codeAction = await getCodeActions(

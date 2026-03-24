@@ -337,7 +337,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             ? text.slice(0, document.scriptInfo.end) + inserts + text.slice(document.scriptInfo.end)
             : `${document.getText()}<script>${inserts}</script>`;
 
-        const virtualDoc = new Document(virtualUri, newText);
+        const virtualDoc = new Document(virtualUri, newText, /* skipConfigLoading */ true);
         virtualDoc.openedByClient = true;
         // let typescript know about the virtual document
         lsContainer.openVirtualDocument(virtualDoc);

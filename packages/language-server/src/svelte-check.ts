@@ -38,7 +38,7 @@ export function mapSvelteCheckDiagnostics(
     }
 ): Diagnostic[] {
     Logger.setLogErrorsOnly(true);
-    const document = new Document(pathToUrl(sourcePath), sourceText);
+    const document = new Document(pathToUrl(sourcePath), sourceText, /* skipConfigLoading */ true);
     const snapshot = DocumentSnapshot.fromDocument(document, {
         parse: document.compiler?.parse,
         version: document.compiler?.VERSION,
@@ -75,7 +75,7 @@ export interface SvelteCheckOptions {
  */
 export class SvelteCheck {
     private docManager = new DocumentManager(
-        (textDocument) => new Document(textDocument.uri, textDocument.text, /*loadConfig*/ true)
+        (textDocument) => new Document(textDocument.uri, textDocument.text)
     );
     private configManager = new LSConfigManager();
     private pluginHost = new PluginHost(this.docManager);

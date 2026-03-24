@@ -39,12 +39,12 @@ export class Document extends WritableDocument {
     constructor(
         public url: string,
         public content: string,
-        loadConfig = false
+        skipConfigLoading = false
     ) {
         super();
-        this.configPromise = loadConfig
-            ? configLoader.awaitConfig(this.getFilePath() || '')
-            : Promise.resolve(undefined);
+        this.configPromise = skipConfigLoading
+            ? Promise.resolve(undefined)
+            : configLoader.awaitConfig(this.getFilePath() || '');
 
         this.updateDocInfo();
     }
