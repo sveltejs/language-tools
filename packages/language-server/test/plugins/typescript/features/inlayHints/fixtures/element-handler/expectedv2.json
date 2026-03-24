@@ -6,8 +6,8 @@
                 "value": "MouseEvent",
                 "location": {
                     "range": {
-                        "start": { "line": 24289, "character": 10 },
-                        "end": { "line": 24289, "character": 20 }
+                        "start": { "line": 25013, "character": 10 },
+                        "end": { "line": 25013, "character": 20 }
                     },
                     "uri": "<node_modules>/typescript/lib/lib.dom.d.ts"
                 }
@@ -21,8 +21,8 @@
                 "value": "EventTarget",
                 "location": {
                     "range": {
-                        "start": { "line": 14039, "character": 10 },
-                        "end": { "line": 14039, "character": 21 }
+                        "start": { "line": 14373, "character": 10 },
+                        "end": { "line": 14373, "character": 21 }
                     },
                     "uri": "<node_modules>/typescript/lib/lib.dom.d.ts"
                 }
@@ -32,8 +32,8 @@
                 "value": "HTMLButtonElement",
                 "location": {
                     "range": {
-                        "start": { "line": 16561, "character": 10 },
-                        "end": { "line": 16561, "character": 27 }
+                        "start": { "line": 17284, "character": 10 },
+                        "end": { "line": 17284, "character": 27 }
                     },
                     "uri": "<node_modules>/typescript/lib/lib.dom.d.ts"
                 }

@@ -760,7 +760,7 @@
         "js-yaml": "^3.14.0",
         "semver": "^7.7.2",
         "tslib": "^2.4.0",
-        "typescript": "^6.0.0-beta",
+        "typescript": "^6.0.2",
         "vitest": "^3.2.4",
         "textmate-grammar-test": "^0.6.0"
     },

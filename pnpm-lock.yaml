@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       typescript:
-        specifier: ^6.0.0-beta
-        version: 6.0.0-dev.20260212
+        specifier: ^6.0.2
+        version: 6.0.2
     devDependencies:
       '@changesets/cli':
         specifier: ^2.29.7
@@ -26,7 +26,7 @@ importers:
         version: 3.3.3
       ts-node:
         specifier: ^10.0.0
-        version: 10.9.1(@types/node@18.19.46)(typescript@6.0.0-dev.20260212)
+        version: 10.9.1(@types/node@18.19.46)(typescript@6.0.2)
 
   packages/language-server:
     dependencies:
@@ -64,8 +64,8 @@ importers:
         specifier: workspace:~
         version: link:../svelte2tsx
       typescript:
-        specifier: ^6.0.0-beta
-        version: 6.0.0-dev.20260212
+        specifier: ^5.9.2 || ^6.0.2
+        version: 6.0.2
       typescript-auto-import-cache:
         specifier: ^0.3.6
         version: 0.3.6
@@ -117,7 +117,7 @@ importers:
         version: 11.1.2
       ts-node:
         specifier: ^10.0.0
-        version: 10.9.1(@types/node@18.19.46)(typescript@6.0.0-dev.20260212)
+        version: 10.9.1(@types/node@18.19.46)(typescript@6.0.2)
 
   packages/svelte-check:
     dependencies:
@@ -151,7 +151,7 @@ importers:
         version: 5.0.2(rollup@3.7.5)
       '@rollup/plugin-typescript':
         specifier: ^10.0.0
-        version: 10.0.1(rollup@3.7.5)(tslib@2.5.2)(typescript@6.0.0-dev.20260212)
+        version: 10.0.1(rollup@3.7.5)(tslib@2.5.2)(typescript@6.0.2)
       '@types/sade':
         specifier: ^1.7.2
         version: 1.7.4
@@ -177,8 +177,8 @@ importers:
         specifier: workspace:*
         version: link:../svelte2tsx
       typescript:
-        specifier: ^6.0.0-beta
-        version: 6.0.0-dev.20260212
+        specifier: ^6.0.2
+        version: 6.0.2
       vscode-languageserver:
         specifier: 8.0.2
         version: 8.0.2
@@ -235,8 +235,8 @@ importers:
         specifier: ^2.4.0
         version: 2.5.2
       typescript:
-        specifier: ^6.0.0-beta
-        version: 6.0.0-dev.20260212
+        specifier: ^6.0.2
+        version: 6.0.2
       vitest:
         specifier: ^3.2.4
         version: 3.2.4(@types/node@18.19.46)
@@ -267,7 +267,7 @@ importers:
         version: 15.0.2(rollup@3.7.5)
       '@rollup/plugin-typescript':
         specifier: ^10.0.0
-        version: 10.0.1(rollup@3.7.5)(tslib@2.5.2)(typescript@6.0.0-dev.20260212)
+        version: 10.0.1(rollup@3.7.5)(tslib@2.5.2)(typescript@6.0.2)
       '@types/estree':
         specifier: ^0.0.42
         version: 0.0.42
@@ -317,8 +317,8 @@ importers:
         specifier: ^2.4.0
         version: 2.5.2
       typescript:
-        specifier: ^6.0.0-beta
-        version: 6.0.0-dev.20260212
+        specifier: ^6.0.2
+        version: 6.0.2
 
   packages/typescript-plugin:
     dependencies:
@@ -336,8 +336,8 @@ importers:
         specifier: ^4.2.19
         version: 4.2.19
       typescript:
-        specifier: ^6.0.0-beta
-        version: 6.0.0-dev.20260212
+        specifier: ^6.0.2
+        version: 6.0.2
 
 packages:
 
@@ -1979,8 +1979,8 @@ packages:
   typescript-auto-import-cache@0.3.6:
     resolution: {integrity: sha512-RpuHXrknHdVdK7wv/8ug3Fr0WNsNi5l5aB8MYYuXhq2UH5lnEB1htJ1smhtD5VeCsGr2p8mUDtd83LCQDFVgjQ==}
 
-  typescript@6.0.0-dev.20260212:
-    resolution: {integrity: sha512-ZFufHwm0m0fGLkRaMfkQ/qyqk98bLaP7Qib/HYhzM3NVDcZX/DHzW64iYpeiDC4GxQQXT1Fdi4Z8wWgognKkNA==}
+  typescript@6.0.2:
+    resolution: {integrity: sha512-bGdAIrZ0wiGDo5l8c++HWtbaNCWTS4UTv7RaTH/ThVIgjkveJt83m74bBHMJkuCbslY8ixgLBVZJIOiQlQTjfQ==}
     engines: {node: '>=14.17'}
     hasBin: true
 
@@ -2528,11 +2528,11 @@ snapshots:
     optionalDependencies:
       rollup: 3.7.5
 
-  '@rollup/plugin-typescript@10.0.1(rollup@3.7.5)(tslib@2.5.2)(typescript@6.0.0-dev.20260212)':
+  '@rollup/plugin-typescript@10.0.1(rollup@3.7.5)(tslib@2.5.2)(typescript@6.0.2)':
     dependencies:
       '@rollup/pluginutils': 5.0.2(rollup@3.7.5)
       resolve: 1.22.2
-      typescript: 6.0.0-dev.20260212
+      typescript: 6.0.2
     optionalDependencies:
       rollup: 3.7.5
       tslib: 2.5.2
@@ -3758,7 +3758,7 @@ snapshots:
 
   tr46@0.0.3: {}
 
-  ts-node@10.9.1(@types/node@18.19.46)(typescript@6.0.0-dev.20260212):
+  ts-node@10.9.1(@types/node@18.19.46)(typescript@6.0.2):
     dependencies:
       '@cspotcode/source-map-support': 0.8.1
       '@tsconfig/node10': 1.0.9
@@ -3772,7 +3772,7 @@ snapshots:
       create-require: 1.1.1
       diff: 4.0.2
       make-error: 1.3.6
-      typescript: 6.0.0-dev.20260212
+      typescript: 6.0.2
       v8-compile-cache-lib: 3.0.1
       yn: 3.1.1
 
@@ -3784,7 +3784,7 @@ snapshots:
     dependencies:
       semver: 7.5.1
 
-  typescript@6.0.0-dev.20260212: {}
+  typescript@6.0.2: {}
 
   undici-types@5.26.5: {}
 
