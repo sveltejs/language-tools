@@ -26,7 +26,6 @@ import {
 import { LSConfigManager } from '../../../ls-config';
 import {
     createGetCanonicalFileName,
-    flatten,
     getIndent,
     isNotNullOrUndefined,
     isPositionEqual,
@@ -1255,7 +1254,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                     fixAllDescription: FIX_IMPORT_FIX_DESCRIPTION
                 })) ?? [];
 
-        return flatten(completion.entries.filter((c) => c.name === storeIdentifier).map(toFix));
+        return completion.entries.filter((c) => c.name === storeIdentifier).flatMap(toFix);
     }
 
     private getAddLangTSCodeAction(
@@ -1449,43 +1448,41 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         originalRange: Range,
         textRange: { pos: number; end: number }
     ) {
-        return flatten(
-            applicableRefactors.map((applicableRefactor) => {
-                if (applicableRefactor.inlineable === false) {
-                    return [
-                        CodeAction.create(applicableRefactor.description, {
-                            title: applicableRefactor.description,
-                            command: applicableRefactor.name,
-                            arguments: [
-                                document.uri,
-                                <RefactorArgs>{
-                                    type: 'refactor',
-                                    textRange,
-                                    originalRange,
-                                    refactorName: 'Extract Symbol'
-                                }
-                            ]
-                        })
-                    ];
-                }
-
-                return applicableRefactor.actions.map((action) => {
-                    return CodeAction.create(action.description, {
-                        title: action.description,
-                        command: action.name,
+        return applicableRefactors.flatMap((applicableRefactor) => {
+            if (applicableRefactor.inlineable === false) {
+                return [
+                    CodeAction.create(applicableRefactor.description, {
+                        title: applicableRefactor.description,
+                        command: applicableRefactor.name,
                         arguments: [
                             document.uri,
                             <RefactorArgs>{
                                 type: 'refactor',
                                 textRange,
                                 originalRange,
-                                refactorName: applicableRefactor.name
+                                refactorName: 'Extract Symbol'
                             }
                         ]
-                    });
+                    })
+                ];
+            }
+
+            return applicableRefactor.actions.map((action) => {
+                return CodeAction.create(action.description, {
+                    title: action.description,
+                    command: action.name,
+                    arguments: [
+                        document.uri,
+                        <RefactorArgs>{
+                            type: 'refactor',
+                            textRange,
+                            originalRange,
+                            refactorName: applicableRefactor.name
+                        }
+                    ]
                 });
-            })
-        );
+            });
+        });
     }
 
     async executeCommand(

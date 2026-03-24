@@ -12,7 +12,7 @@ The grammar for pug and markdown is written in JSON. You can edit that directly.
 
 ### Snapshot test for the grammar
 
-The snapshot test is run by [vscode-textmate-test](https://github.com/PanAeon/vscode-tmgrammar-test). The `test` command calls a node script to build the argument and execute the `vscode-textmate-test` command. If you updated the svelte grammar file, Be sure to add the test cases to the `test/sample` directory.
+The snapshot test is run by [textmate-grammar-test](https://github.com/serkonda7/textmate-grammar-test). The `test` command calls a node script to build the argument and execute the `textmate-grammar-snap` command. If you updated the svelte grammar file, Be sure to add the test cases to the `test/sample` directory.
 
 Then run the test to check if the update affects existing cases
 
