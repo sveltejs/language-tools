@@ -35,10 +35,9 @@ function promisifySpawn(...arg) {
 async function snapShotTest() {
     const extraArgs = process.argv.slice(2);
     const args = [
-        'vscode-tmgrammar-snap',
+        'textmate-grammar-snap',
         '-s',
         'source.svelte',
-        '-t',
         './test/grammar/samples/**/*.svelte',
         ...allGrammars.reduce(
             (previous, path) => [...previous, '-g', path],

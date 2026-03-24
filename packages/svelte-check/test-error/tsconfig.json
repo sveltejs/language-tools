@@ -7,5 +7,6 @@
         "checkJs": true,
         "skipLibCheck": true
     },
-    "files": ["./Index.svelte"]
+    "files": ["./Index.svelte"], // test that files are correctly transformed
+    "include": ["./src/**/*"]
 }

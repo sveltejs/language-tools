@@ -1,5 +1,41 @@
 # Changelog
 
+## 0.17.29
+
+### Patch Changes
+
+-   fix: pass filename to `warningFilter` ([#2959](https://github.com/sveltejs/language-tools/pull/2959))
+
+## 0.17.28
+
+### Patch Changes
+
+-   feat: support for comments in tags ([#2944](https://github.com/sveltejs/language-tools/pull/2944))
+
+## 0.17.27
+
+### Patch Changes
+
+-   fix: handle relative imports reaching outside working directory when using `--incremental/--tsgo` flags ([#2942](https://github.com/sveltejs/language-tools/pull/2942))
+
+-   fix: extract style/script tag followed by destructuring in the template ([#2921](https://github.com/sveltejs/language-tools/pull/2921))
+
+-   fix: support SvelteKit zero types in svelte-check --incremental ([#2939](https://github.com/sveltejs/language-tools/pull/2939))
+
+-   Updated dependencies [[`6a04679`](https://github.com/sveltejs/language-tools/commit/6a04679e600c7a9ecd0bcdb9476c4edd4bdf6e72), [`b914d01`](https://github.com/sveltejs/language-tools/commit/b914d0104ba5326cc607039313dd8993a6e141fd)]:
+    -   svelte2tsx@0.7.49
+
+## 0.17.26
+
+### Patch Changes
+
+-   feat: add links to diagnostic error codes via codeDescription ([#2936](https://github.com/sveltejs/language-tools/pull/2936))
+
+-   chore: provide utils for svelte-check ([#2932](https://github.com/sveltejs/language-tools/pull/2932))
+
+-   Updated dependencies [[`0b8af82`](https://github.com/sveltejs/language-tools/commit/0b8af829a3ceadd0cd08754a9edcb6cc353cb20f)]:
+    -   svelte2tsx@0.7.48
+
 ## 0.17.25
 
 ### Patch Changes

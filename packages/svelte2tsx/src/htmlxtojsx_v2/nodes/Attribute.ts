@@ -4,6 +4,7 @@ import { rangeWithTrailingPropertyAccess, TransformationArray } from '../utils/n
 import { Attribute, BaseNode } from '../../interfaces';
 import { Element } from './Element';
 import { InlineComponent } from './InlineComponent';
+import { getLeadingCommentTransformation, getTrailingCommentTransformation } from './Comment';
 
 /**
  * List taken from `elements.d.ts` in Svelte core by searching for all attributes of type `number | undefined | null`;
@@ -124,7 +125,8 @@ export function handleAttribute(
 
     // Handle attribute name
 
-    const attributeName: TransformationArray = [];
+    const attributeName: TransformationArray = getLeadingCommentTransformation(attr);
+    const trailingComments = getTrailingCommentTransformation(attr);
 
     if (attributeValueIsOfType(attr.value, 'AttributeShorthand')) {
         // For the attribute shorthand, the name will be the mapped part
@@ -135,7 +137,7 @@ export function handleAttribute(
             start--;
             str.overwrite(start, end, ' ', { contentOnly: true });
         }
-        addAttribute([[start, end]]);
+        addAttribute([[start, end], ...trailingComments]);
         return;
     } else {
         let name =
@@ -160,13 +162,13 @@ export function handleAttribute(
     const attributeValue: TransformationArray = [];
 
     if (attr.value === true) {
-        attributeValue.push(attr.name === 'popover' ? '""' : 'true');
+        attributeValue.push(attr.name === 'popover' ? '""' : 'true', ...trailingComments);
         addAttribute(attributeName, attributeValue);
         return;
     }
     if (attr.value.length == 0) {
         // shouldn't happen
-        addAttribute(attributeName, ['""']);
+        addAttribute(attributeName, ['""', ...trailingComments]);
         return;
     }
     //handle single value
@@ -201,17 +203,18 @@ export function handleAttribute(
             if (!needsNumberConversion) {
                 attributeValue.push(quote);
             }
-            if (includesTemplateLiteralQuote && attrVal.data.split('\n').length > 1) {
-                // Multiline attribute value text which can't be wrapped in a template literal
-                // -> ensure it's still a valid transformation by transforming the actual line break
-                str.overwrite(attrVal.start, attrVal.end, attrVal.data.split('\n').join('\\n'), {
-                    contentOnly: true
-                });
+            const escapedValue = tryEscapeAttributeValue(
+                attrVal.data,
+                !includesTemplateLiteralQuote
+            );
+            if (escapedValue !== null) {
+                str.overwrite(attrVal.start, attrVal.end, escapedValue, { contentOnly: true });
             }
             attributeValue.push([attrVal.start, attrVal.end]);
             if (!needsNumberConversion) {
                 attributeValue.push(quote);
             }
+            attributeValue.push(...trailingComments);
 
             addAttribute(attributeName, attributeValue);
         } else if (attrVal.type == 'MustacheTag') {
@@ -222,7 +225,7 @@ export function handleAttribute(
                 start--;
                 str.overwrite(start, end, ' ', { contentOnly: true });
             }
-            attributeValue.push([start, end]);
+            attributeValue.push([start, end], ...trailingComments);
             addAttribute(attributeName, attributeValue);
         }
         return;
@@ -233,10 +236,26 @@ export function handleAttribute(
             str.appendRight(n.start, '$');
         }
     }
-    attributeValue.push('`', [attr.value[0].start, attr.value[attr.value.length - 1].end], '`');
+    attributeValue.push(
+        '`',
+        [attr.value[0].start, attr.value[attr.value.length - 1].end],
+        '`',
+        ...trailingComments
+    );
     addAttribute(attributeName, attributeValue);
 }
 
 function attributeValueIsOfType(value: true | BaseNode[], type: string): value is [BaseNode] {
     return value !== true && value.length == 1 && value[0].type == type;
+}
+
+function tryEscapeAttributeValue(str: string, useTemplateLiteral: boolean): string | null {
+    // Multiline attribute value text which can't be wrapped in a template literal
+    // -> ensure it's still a valid transformation by transforming the actual line break
+    // \ is not a valid escape in HTML, but it could be part of the attribute value and would break the generated code
+    if (!str.includes('\\') && (useTemplateLiteral || !str.includes('\n'))) {
+        return null;
+    }
+
+    return JSON.stringify(str).slice(1, -1);
 }
