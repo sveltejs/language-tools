@@ -71,7 +71,12 @@ export function createProject(
         return undefined;
     }
 
-    const factory = major === 5 && minor < 3 ? createProject50 : major === 5 && minor < 5 ? createProject53 : createProject55;
+    const factory =
+        major === 5 && minor < 3
+            ? createProject50
+            : major === 5 && minor < 5
+              ? createProject53
+              : createProject55;
     const project = factory(ts, host, createLanguageService, options);
 
     const proxyMethods: (keyof typeof project)[] = [

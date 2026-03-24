@@ -14,8 +14,6 @@
         "skipLibCheck": true,
         "rootDir": ".",
         "forceConsistentCasingInFileNames": true,
-        "types": [
-            "@types/mocha"
-        ]
+        "types": ["@types/mocha"]
     }
 }
