@@ -2,4 +2,4 @@
 'svelte-check': patch
 ---
 
-fix: resolve svelte files under --tsgo + NodeNext
+fix: resolve svelte files with NodeNext in --incremental/tsgo

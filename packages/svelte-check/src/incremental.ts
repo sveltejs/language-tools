@@ -850,7 +850,7 @@ function getOutputPaths(
     const base = relPath.replace(/\.svelte$/, `.svelte.${isTsFile ? 'ts' : 'js'}`);
     const baseOutputPath = path.join(emitDir, base);
     const outPath = path.join(path.dirname(baseOutputPath), `++${path.basename(baseOutputPath)}`);
-    // .svelte.d.ts doesn't work in tsgo + moduleResolution=node16+
+    // .svelte.d.ts doesn't work in moduleResolution=node16+
     const dtsPath = baseOutputPath.replace(/\.svelte\.(ts|js)$/, '.d.svelte.ts');
     return {
         outPath: outPath.replace(/\\/g, '/'),
