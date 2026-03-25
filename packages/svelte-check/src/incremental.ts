@@ -151,7 +151,6 @@ async function loadKitFilesSettings(
  * @param workspacePath - Root directory of the project
  * @param filePathsToIgnore - Glob patterns for files to exclude from processing
  * @param incremental - When true, only reprocesses files that have changed since the last run
- * @param useTsgo - Whether to configure output for tsgo compatibility
  * @returns Paths to cache/emit directories, manifest, processed entries, and list of changed files
  */
 export async function emitSvelteFiles(
@@ -837,7 +836,6 @@ function cliDiagnosticToTsDiagnostic(
  * @param emitDir - Directory where generated files are written
  * @param sourcePath - Path to the source Svelte file
  * @param isTsFile - Whether the Svelte file uses TypeScript (affects extension)
- * @param useTsgo - Whether to configure output for tsgo (affects paths in declaration files)
  * @returns Paths for the generated code file (.ts/.js) and declaration file (.d.ts)
  */
 function getOutputPaths(
