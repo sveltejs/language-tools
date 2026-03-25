@@ -55,7 +55,7 @@ export type ParsedDiagnostic = {
     message: string;
 };
 
-const MANIFEST_VERSION = 2;
+const MANIFEST_VERSION = 3;
 const SVELTE_KIT_DIR = '.svelte-kit';
 const CACHE_DIR_NAME = '.svelte-check';
 const EMIT_SUBDIR = 'svelte';
