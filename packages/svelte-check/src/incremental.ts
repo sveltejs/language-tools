@@ -151,12 +151,14 @@ async function loadKitFilesSettings(
  * @param workspacePath - Root directory of the project
  * @param filePathsToIgnore - Glob patterns for files to exclude from processing
  * @param incremental - When true, only reprocesses files that have changed since the last run
+ * @param useTsgo - Whether to configure output for tsgo compatibility
  * @returns Paths to cache/emit directories, manifest, processed entries, and list of changed files
  */
 export async function emitSvelteFiles(
     workspacePath: string,
     filePathsToIgnore: string[],
-    incremental: boolean
+    incremental: boolean,
+    useTsgo: boolean
 ): Promise<EmitResult> {
     const cacheDir = getCacheDir(workspacePath);
     const emitDir = path.join(cacheDir, EMIT_SUBDIR);
@@ -213,7 +215,13 @@ export async function emitSvelteFiles(
             isTsFile = isTsSvelte(text);
         }
 
-        const { outPath, dtsPath } = getOutputPaths(workspacePath, emitDir, sourcePath, isTsFile);
+        const { outPath, dtsPath } = getOutputPaths(
+            workspacePath,
+            emitDir,
+            sourcePath,
+            isTsFile,
+            useTsgo
+        );
 
         const outPathChanged = !!entry && entry.outPath !== outPath;
         if (outPathChanged) {
@@ -836,19 +844,23 @@ function cliDiagnosticToTsDiagnostic(
  * @param emitDir - Directory where generated files are written
  * @param sourcePath - Path to the source Svelte file
  * @param isTsFile - Whether the Svelte file uses TypeScript (affects extension)
+ * @param useTsgo - Whether to configure output for tsgo (affects paths in declaration files)
  * @returns Paths for the generated code file (.ts/.js) and declaration file (.d.ts)
  */
 function getOutputPaths(
     workspacePath: string,
     emitDir: string,
     sourcePath: string,
-    isTsFile: boolean
+    isTsFile: boolean,
+    useTsgo: boolean
 ): { outPath: string; dtsPath: string } {
     const relPath = path.relative(workspacePath, sourcePath);
     const base = relPath.replace(/\.svelte$/, `.svelte.${isTsFile ? 'ts' : 'js'}`);
     const baseOutputPath = path.join(emitDir, base);
     const outPath = path.join(path.dirname(baseOutputPath), `++${path.basename(baseOutputPath)}`);
-    const dtsPath = baseOutputPath.replace(/\.svelte\.(ts|js)$/, '.svelte.d.ts');
+    // .svelte.d.ts doesn't work in tsgo + moduleResolution=node16+
+    const declarationExtension = useTsgo ? '.d.svelte.ts' : '.svelte.d.ts';
+    const dtsPath = baseOutputPath.replace(/\.svelte\.(ts|js)$/, declarationExtension);
     return {
         outPath: outPath.replace(/\\/g, '/'),
         dtsPath: dtsPath.replace(/\\/g, '/')

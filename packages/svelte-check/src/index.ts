@@ -445,7 +445,8 @@ async function runWithVirtualFiles(
     const emitResult = await emitSvelteFiles(
         opts.workspaceUri.fsPath,
         opts.filePathsToIgnore,
-        opts.incremental
+        opts.incremental,
+        opts.tsgo
     );
     const overlayTsconfig = writeOverlayTsconfig(
         opts.tsconfig,
