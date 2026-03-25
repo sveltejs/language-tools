@@ -157,8 +157,7 @@ async function loadKitFilesSettings(
 export async function emitSvelteFiles(
     workspacePath: string,
     filePathsToIgnore: string[],
-    incremental: boolean,
-    useTsgo: boolean
+    incremental: boolean
 ): Promise<EmitResult> {
     const cacheDir = getCacheDir(workspacePath);
     const emitDir = path.join(cacheDir, EMIT_SUBDIR);
@@ -215,13 +214,7 @@ export async function emitSvelteFiles(
             isTsFile = isTsSvelte(text);
         }
 
-        const { outPath, dtsPath } = getOutputPaths(
-            workspacePath,
-            emitDir,
-            sourcePath,
-            isTsFile,
-            useTsgo
-        );
+        const { outPath, dtsPath } = getOutputPaths(workspacePath, emitDir, sourcePath, isTsFile);
 
         const outPathChanged = !!entry && entry.outPath !== outPath;
         if (outPathChanged) {
@@ -429,7 +422,7 @@ export function writeOverlayTsconfig(
     // virtualize because includes/excludes could only do starting points and module resolution could
     // find other .svelte files which need to be included, too.
     let configFiles = rebaseConfigSpecs(rawFiles, tsconfigDir, overlayDir) ?? [];
-    // Remove .svelte files from the files list to avoid TS6054; replace with .svelte.d.ts.
+    // Remove .svelte files from the files list to avoid TS6054; replace with .d.svelte.ts
     configFiles = configFiles.filter((file) => !file.endsWith('.svelte'));
     configFiles = configFiles.concat(rawFiles.map((file) => toVirtualSvelteDtsSpec(file)));
     const virtualInclude = rawInclude?.map((spec) => toVirtualSvelteDtsSpec(spec));
@@ -851,16 +844,14 @@ function getOutputPaths(
     workspacePath: string,
     emitDir: string,
     sourcePath: string,
-    isTsFile: boolean,
-    useTsgo: boolean
+    isTsFile: boolean
 ): { outPath: string; dtsPath: string } {
     const relPath = path.relative(workspacePath, sourcePath);
     const base = relPath.replace(/\.svelte$/, `.svelte.${isTsFile ? 'ts' : 'js'}`);
     const baseOutputPath = path.join(emitDir, base);
     const outPath = path.join(path.dirname(baseOutputPath), `++${path.basename(baseOutputPath)}`);
     // .svelte.d.ts doesn't work in tsgo + moduleResolution=node16+
-    const declarationExtension = useTsgo ? '.d.svelte.ts' : '.svelte.d.ts';
-    const dtsPath = baseOutputPath.replace(/\.svelte\.(ts|js)$/, declarationExtension);
+    const dtsPath = baseOutputPath.replace(/\.svelte\.(ts|js)$/, '.d.svelte.ts');
     return {
         outPath: outPath.replace(/\\/g, '/'),
         dtsPath: dtsPath.replace(/\\/g, '/')
@@ -972,7 +963,7 @@ function rebasePathsConfig(
 }
 
 function toVirtualSvelteDtsSpec(spec: string): string {
-    const normalized = spec.replace(/^\$\{configDir\}/i, '.').replace(/\.svelte$/, '.svelte.d.ts');
+    const normalized = spec.replace(/^\$\{configDir\}/i, '.').replace(/\.svelte$/, '.d.svelte.ts');
     return `${EMIT_SUBDIR}/${normalized}`;
 }
 
