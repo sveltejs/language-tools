@@ -8,13 +8,13 @@
         }
     }
 
-    function action(node: HTMLElement) {
+    function handleClick(e: Event) {
         aFunction(true); // should error
         const foo = 'bar';
     }
 </script>
 
-<div use:action>
+<div on:click={handleClick}>
     <p>lorem ipsum</p>
     <slot />
 </div>
