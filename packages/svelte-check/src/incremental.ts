@@ -55,7 +55,7 @@ export type ParsedDiagnostic = {
     message: string;
 };
 
-const MANIFEST_VERSION = 2;
+const MANIFEST_VERSION = 3;
 const SVELTE_KIT_DIR = '.svelte-kit';
 const CACHE_DIR_NAME = '.svelte-check';
 const EMIT_SUBDIR = 'svelte';
@@ -421,7 +421,7 @@ export function writeOverlayTsconfig(
     // virtualize because includes/excludes could only do starting points and module resolution could
     // find other .svelte files which need to be included, too.
     let configFiles = rebaseConfigSpecs(rawFiles, tsconfigDir, overlayDir) ?? [];
-    // Remove .svelte files from the files list to avoid TS6054; replace with .svelte.d.ts.
+    // Remove .svelte files from the files list to avoid TS6054; replace with .d.svelte.ts
     configFiles = configFiles.filter((file) => !file.endsWith('.svelte'));
     configFiles = configFiles.concat(rawFiles.map((file) => toVirtualSvelteDtsSpec(file)));
     const virtualInclude = rawInclude?.map((spec) => toVirtualSvelteDtsSpec(spec));
@@ -848,7 +848,8 @@ function getOutputPaths(
     const base = relPath.replace(/\.svelte$/, `.svelte.${isTsFile ? 'ts' : 'js'}`);
     const baseOutputPath = path.join(emitDir, base);
     const outPath = path.join(path.dirname(baseOutputPath), `++${path.basename(baseOutputPath)}`);
-    const dtsPath = baseOutputPath.replace(/\.svelte\.(ts|js)$/, '.svelte.d.ts');
+    // .svelte.d.ts doesn't work in moduleResolution=node16+
+    const dtsPath = baseOutputPath.replace(/\.svelte\.(ts|js)$/, '.d.svelte.ts');
     return {
         outPath: outPath.replace(/\\/g, '/'),
         dtsPath: dtsPath.replace(/\\/g, '/')
@@ -960,7 +961,7 @@ function rebasePathsConfig(
 }
 
 function toVirtualSvelteDtsSpec(spec: string): string {
-    const normalized = spec.replace(/^\$\{configDir\}/i, '.').replace(/\.svelte$/, '.svelte.d.ts');
+    const normalized = spec.replace(/^\$\{configDir\}/i, '.').replace(/\.svelte$/, '.d.svelte.ts');
     return `${EMIT_SUBDIR}/${normalized}`;
 }
 
