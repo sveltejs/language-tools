@@ -63,20 +63,10 @@ export function createProject(
         currentDirectory: string;
     }
 ) {
-    const version = ts.version.split('.');
-    const major = parseInt(version[0]);
-    const minor = parseInt(version[1]);
-
-    if (major < 5) {
+    const factory = getProjectFactory();
+    if (!factory) {
         return undefined;
     }
-
-    const factory =
-        major === 5 && minor < 3
-            ? createProject50
-            : major === 5 && minor < 5
-              ? createProject53
-              : createProject55;
     const project = factory(ts, host, createLanguageService, options);
 
     const proxyMethods: (keyof typeof project)[] = [
@@ -98,4 +88,26 @@ export function createProject(
     }
 
     return project;
+}
+
+function getProjectFactory() {
+    const version = ts.version.split('.');
+    const major = parseInt(version[0]);
+    const minor = parseInt(version[1]);
+
+    if (major < 5) {
+        return undefined;
+    }
+
+    if (major === 5) {
+        if (minor < 3) {
+            return createProject50;
+        }
+
+        if (minor < 5) {
+            return createProject53;
+        }
+    }
+
+    return createProject55;
 }
