@@ -72,12 +72,7 @@ export function importPrettier(fromPath: string): typeof prettier {
 }
 
 export function importSvelte(fromPath: string): typeof svelte {
-    const pkg = Logger.isDebugEnabled()
-        ? getPackageInfo('svelte', fromPath)
-        : {
-              path: dirname(resolvePackageJson('svelte', fromPath)),
-              version: { full: '', major: 0, minor: 0, patch: 0 }
-          };
+    const pkg = getPackageInfo('svelte', fromPath)
     const main = resolve(pkg.path, 'compiler');
     Logger.debug('Using Svelte v' + pkg.version.full, 'from', main);
     if (pkg.version.major === 4) {
