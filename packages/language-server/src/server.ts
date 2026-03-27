@@ -38,7 +38,7 @@ import {
 import { Document, DocumentManager } from './lib/documents';
 import { getSemanticTokenLegends } from './lib/semanticToken/semanticTokenLegend';
 import { Logger } from './logger';
-import { LSConfigManager } from './ls-config';
+import { LSConfigManager, TsUserConfigLangMap } from './ls-config';
 import {
     AppCompletionItem,
     CSSPlugin,
@@ -52,7 +52,7 @@ import {
 import { debounceThrottle, isNotNullOrUndefined, normalizeUri, urlToPath } from './utils';
 import { FallbackWatcher } from './lib/FallbackWatcher';
 import { configLoader } from './lib/documents/configLoader';
-import { importTypeScript, setIsTrusted } from './importPackage';
+import { importTypeScript, setIsTrusted, tryImportTypeScriptForTsdk } from './importPackage';
 import {
     SORT_IMPORT_CODE_ACTION_KIND,
     ADD_MISSING_IMPORTS_CODE_ACTION_KIND,
@@ -109,7 +109,7 @@ export function startServer(options?: LSOptions) {
     );
     const pluginHost = new PluginHost(docManager);
     let sveltePlugin: SveltePlugin = undefined as any;
-    let configManager: LSConfigManager = undefined as any;
+    let configManager: LSConfigManager | undefined;
     let watcher: FallbackWatcher | undefined;
     let pendingWatchPatterns: RelativePattern[] = [];
     let watchDirectory: (patterns: RelativePattern[]) => void = (patterns) => {
@@ -132,7 +132,17 @@ export function startServer(options?: LSOptions) {
             Logger.error('No workspace path set');
         }
 
-        const ts = importTypeScript();
+        const workspaceFolders = evt.workspaceFolders ?? [{ name: '', uri: evt.rootUri ?? '' }];
+        const configurationTsSections: TsUserConfigLangMap | undefined =
+            evt.initializationOptions.configuration;
+        const tsdkPath = configurationTsSections?.['js/ts']?.tsdk?.path;
+        const tsdkPathOld = configurationTsSections?.typescript?.tsdk?.path;
+
+        const ts =
+            tryImportTypeScriptForTsdk(tsdkPath, workspaceFolders) ??
+            tryImportTypeScriptForTsdk(tsdkPathOld, workspaceFolders) ??
+            importTypeScript();
+
         configManager = new LSConfigManager(ts);
         if (!evt.capabilities.workspace?.didChangeWatchedFiles?.dynamicRegistration) {
             const workspacePaths = workspaceUris.map(urlToPath).filter(isNotNullOrUndefined);
@@ -197,7 +207,6 @@ export function startServer(options?: LSOptions) {
         });
 
         const fileSystemProvider = new FileSystemProvider();
-        const workspaceFolders = evt.workspaceFolders ?? [{ name: '', uri: evt.rootUri ?? '' }];
         // Order of plugin registration matters for FirstNonNull, which affects for example hover info
         pluginHost.register((sveltePlugin = new SveltePlugin(configManager)));
         pluginHost.register(
@@ -393,7 +402,7 @@ export function startServer(options?: LSOptions) {
         }
 
         const didChangeWatchedFiles =
-            configManager.getClientCapabilities()?.workspace?.didChangeWatchedFiles;
+            configManager?.getClientCapabilities()?.workspace?.didChangeWatchedFiles;
 
         if (!didChangeWatchedFiles?.dynamicRegistration) {
             return;
@@ -445,6 +454,10 @@ export function startServer(options?: LSOptions) {
     connection.onPrepareRename((req) => pluginHost.prepareRename(req.textDocument, req.position));
 
     connection.onDidChangeConfiguration(({ settings }) => {
+        if (!configManager) {
+            // shouldn't happen, but just in case
+            return;
+        }
         configManager.update(settings.svelte?.plugin);
         configManager.updateTsJsUserPreferences(settings);
         configManager.updateTsJsFormateConfig(settings);
@@ -484,7 +497,7 @@ export function startServer(options?: LSOptions) {
     );
     connection.onDocumentSymbol((evt, cancellationToken) => {
         if (
-            configManager.getClientCapabilities()?.textDocument?.documentSymbol
+            configManager?.getClientCapabilities()?.textDocument?.documentSymbol
                 ?.hierarchicalDocumentSymbolSupport
         ) {
             return pluginHost.getHierarchicalDocumentSymbols(evt.textDocument, cancellationToken);

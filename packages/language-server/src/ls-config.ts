@@ -211,6 +211,7 @@ export interface TSUserConfig {
     referencesCodeLens?: TsReferenceCodeLensConfig;
     implementationsCodeLens?: TsImplementationCodeLensConfig;
     workspaceSymbols?: TsWorkspaceSymbolsConfig;
+    tsdk?: { path: string };
 }
 
 interface TsJsSharedConfig {
