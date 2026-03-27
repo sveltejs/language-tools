@@ -10,7 +10,7 @@
         "test": "cross-env CI=true pnpm test -r",
         "watch": "tsc -b -watch",
         "format": "prettier --write .",
-        "lint": "prettier --check .",
+        "lint": "prettier --check . && node scripts/checkTopLevelTsImport.mjs",
         "changeset:version": "changeset version && git add --all",
         "changeset:publish": "changeset publish"
     },
