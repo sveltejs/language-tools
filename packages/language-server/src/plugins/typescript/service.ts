@@ -111,21 +111,17 @@ enum TsconfigSvelteDiagnostics {
 }
 
 const maxProgramSizeForNonTsFiles = 20 * 1024 * 1024; // 20 MB
+const services = new FileMap<Promise<LanguageServiceContainer>>();
+const serviceSizeMap = new FileMap<number>();
+const configWatchers = new FileMap<ts.FileWatcher>();
+const dependedConfigWatchers = new FileMap<ts.FileWatcher>();
+const configPathToDependedProject = new FileMap<FileSet>();
+const configFileModifiedTime = new FileMap<Date | undefined>();
+const configFileForOpenFiles = new FileMap<string>();
+const pendingReloads = new FileSet();
 const documentRegistries = new Map<string, ts.DocumentRegistry>();
 const pendingForAllServices = new Set<Promise<void>>();
-const serviceStatePerCaseSensitivity = new Map<boolean, ServicesState>();
-
-interface ServicesState {
-    services: FileMap<Promise<LanguageServiceContainer>>;
-    serviceSizeMap: FileMap<number>;
-    configWatchers: FileMap<ts.FileWatcher>;
-    dependedConfigWatchers: FileMap<ts.FileWatcher>;
-    configPathToDependedProject: FileMap<FileSet>;
-    configFileModifiedTime: FileMap<Date | undefined>;
-    configFileForOpenFiles: FileMap<string>;
-    pendingReloads: FileSet;
-    parsedTsConfigInfo: FileMap<TsConfigInfo | null>;
-}
+const parsedTsConfigInfo = new FileMap<TsConfigInfo | null>();
 
 /**
  * For testing only: Reset the cache for services.
@@ -133,7 +129,10 @@ interface ServicesState {
  * a setup function which creates all this nicely instead.
  */
 export function __resetCache() {
-    serviceStatePerCaseSensitivity.clear();
+    services.clear();
+    parsedTsConfigInfo.clear();
+    serviceSizeMap.clear();
+    configFileForOpenFiles.clear();
 }
 
 export interface LanguageServiceDocumentContext {
@@ -154,34 +153,14 @@ export interface LanguageServiceDocumentContext {
     tsModule: typeof ts;
 }
 
-function getServicesState(useCaseSensitiveFileNames: boolean) {
-    let result = serviceStatePerCaseSensitivity.get(useCaseSensitiveFileNames);
-    if (!result) {
-        result = {
-            services: new FileMap(useCaseSensitiveFileNames),
-            serviceSizeMap: new FileMap(useCaseSensitiveFileNames),
-            configWatchers: new FileMap(useCaseSensitiveFileNames),
-            dependedConfigWatchers: new FileMap(useCaseSensitiveFileNames),
-            configPathToDependedProject: new FileMap(useCaseSensitiveFileNames),
-            configFileModifiedTime: new FileMap(useCaseSensitiveFileNames),
-            configFileForOpenFiles: new FileMap(useCaseSensitiveFileNames),
-            pendingReloads: new FileSet(useCaseSensitiveFileNames),
-            parsedTsConfigInfo: new FileMap(useCaseSensitiveFileNames)
-        };
-        serviceStatePerCaseSensitivity.set(useCaseSensitiveFileNames, result);
-    }
-    return result;
-}
-
 export async function getService(
     path: string,
     workspaceUris: string[],
     docContext: LanguageServiceDocumentContext
 ): Promise<LanguageServiceContainer> {
-    const useCaseSensitiveFileNames = docContext.tsSystem.useCaseSensitiveFileNames;
-    const getCanonicalFileName = createGetCanonicalFileName(useCaseSensitiveFileNames);
-    const { configFileForOpenFiles, parsedTsConfigInfo, pendingReloads } =
-        getServicesState(useCaseSensitiveFileNames);
+    const getCanonicalFileName = createGetCanonicalFileName(
+        docContext.tsSystem.useCaseSensitiveFileNames
+    );
 
     const fileExistsWithCache = (fileName: string) => {
         return (
@@ -312,9 +291,6 @@ export async function forAllServices(
 }
 
 async function forAllServicesWorker(cb: (service: LanguageServiceContainer) => any): Promise<void> {
-    const services = Array.from(serviceStatePerCaseSensitivity.values()).flatMap((state) =>
-        Array.from(state.services.values())
-    );
     for (const service of services.values()) {
         cb(await service);
     }
@@ -333,9 +309,6 @@ export async function getServiceForTsconfig(
         tsconfigPath = normalizePath(tsconfigPath);
     }
     const tsconfigPathOrWorkspacePath = tsconfigPath || workspacePath;
-    const { services, parsedTsConfigInfo, pendingReloads } = getServicesState(
-        docContext.tsSystem.useCaseSensitiveFileNames
-    );
     const reloading = pendingReloads.has(tsconfigPath);
 
     let service: LanguageServiceContainer;
@@ -369,22 +342,11 @@ async function createLanguageService(
     docContext: LanguageServiceDocumentContext
 ): Promise<LanguageServiceContainer> {
     const { tsSystem, tsModule: ts } = docContext;
-    const servicesState = getServicesState(tsSystem.useCaseSensitiveFileNames);
-    const {
-        services,
-        configFileForOpenFiles,
-        parsedTsConfigInfo,
-        configFileModifiedTime,
-        configPathToDependedProject,
-        configWatchers,
-        dependedConfigWatchers
-    } = servicesState;
 
     const projectConfig = getParsedConfig();
     const { options: compilerOptions, raw, errors: configErrors } = projectConfig;
     const allowJs = compilerOptions.allowJs ?? !!compilerOptions.checkJs;
     const virtualDocuments = new FileMap<Document>(tsSystem.useCaseSensitiveFileNames);
-
 
     const getCanonicalFileName = createGetCanonicalFileName(tsSystem.useCaseSensitiveFileNames);
     watchWildCardDirectories(projectConfig);
@@ -399,7 +361,7 @@ async function createLanguageService(
         getSnapshot,
         compilerOptions,
         tsSystem,
-        docContext.tsModule,
+        ts,
         () => host?.getCompilerHost?.()
     );
 
@@ -433,14 +395,14 @@ async function createLanguageService(
     let skipSvelteInputCheck = !tsconfigPath;
 
     const host: ts.LanguageServiceHost = {
-        log: (message) => Logger.debug(`[ts] ${message}`),
+        log: Logger.isDebugEnabled() ? (message) => Logger.debug(`[ts] ${message}`) : undefined,
         getCompilationSettings: () => compilerOptions,
         getScriptFileNames,
         getScriptVersion: (fileName: string) =>
             getSnapshotIfExists(fileName)?.version.toString() || '',
         getScriptSnapshot: getSnapshotIfExists,
         getCurrentDirectory: () => workspacePath,
-        getDefaultLibFileName: docContext.tsModule.getDefaultLibFilePath,
+        getDefaultLibFileName: ts.getDefaultLibFilePath,
         fileExists: svelteModuleLoader.fileExists,
         readFile: svelteModuleLoader.readFile,
         resolveModuleNames: svelteModuleLoader.resolveModuleNames,
@@ -479,7 +441,7 @@ async function createLanguageService(
     };
 
     const project = initLsCacheProject();
-    const languageService = docContext.tsModule.createLanguageService(host, documentRegistry);
+    const languageService = ts.createLanguageService(host, documentRegistry);
 
     docContext.globalSnapshotsManager.onChange(scheduleUpdate);
 
@@ -556,7 +518,7 @@ async function createLanguageService(
             patterns.push({
                 baseUri: pathToUrl(dir),
                 pattern:
-                    (flags & docContext.tsModule.WatchDirectoryFlags.Recursive ? `**/` : '') +
+                    (flags & ts.WatchDirectoryFlags.Recursive ? `**/` : '') +
                     docContext.nonRecursiveWatchPattern
             });
         });
@@ -945,7 +907,6 @@ async function createLanguageService(
     function reduceLanguageServiceCapabilityIfFileSizeTooBig() {
         if (
             exceedsTotalSizeLimitForNonTsFiles(
-                servicesState,
                 compilerOptions,
                 tsconfigPath,
                 snapshotManager,
@@ -1034,7 +995,7 @@ async function createLanguageService(
         dispose();
 
         if (kind === ts.FileWatcherEventKind.Changed) {
-            scheduleReload(fileName, servicesState);
+            scheduleReload(fileName);
         } else if (kind === ts.FileWatcherEventKind.Deleted) {
             services.delete(fileName);
             configFileForOpenFiles.clear();
@@ -1326,7 +1287,6 @@ async function createLanguageService(
  * adopted from https://github.com/microsoft/TypeScript/blob/3c8e45b304b8572094c5d7fbb9cd768dbf6417c0/src/server/editorServices.ts#L1955
  */
 function exceedsTotalSizeLimitForNonTsFiles(
-    servicesState: ServicesState,
     compilerOptions: ts.CompilerOptions,
     tsconfigPath: string,
     snapshotManager: SnapshotManager,
@@ -1336,7 +1296,6 @@ function exceedsTotalSizeLimitForNonTsFiles(
         return false;
     }
 
-    const { serviceSizeMap } = servicesState;
     let availableSpace = maxProgramSizeForNonTsFiles;
     serviceSizeMap.set(tsconfigPath, 0);
 
@@ -1402,13 +1361,6 @@ function createWatchDependedConfigCallback(docContext: LanguageServiceDocumentCo
             docContext.tsSystem.useCaseSensitiveFileNames
         );
 
-        const servicesState = serviceStatePerCaseSensitivity.get(
-            docContext.tsSystem.useCaseSensitiveFileNames
-        );
-        if (!servicesState) {
-            return;
-        }
-        const { configPathToDependedProject, services } = servicesState;
         docContext.extendedConfigCache.delete(getCanonicalFileName(fileName));
         // rely on TypeScript internal behavior so delete both just in case
         docContext.extendedConfigCache.delete(fileName);
@@ -1418,7 +1370,7 @@ function createWatchDependedConfigCallback(docContext: LanguageServiceDocumentCo
             async (config) => {
                 reloadingConfigs.push(config);
                 const oldService = services.get(config);
-                scheduleReload(config, servicesState);
+                scheduleReload(config);
                 (await oldService)?.dispose();
             }
         );
@@ -1436,13 +1388,6 @@ function configFileModified(
     modifiedTime: Date | undefined,
     docContext: LanguageServiceDocumentContext
 ) {
-    const servicesState = serviceStatePerCaseSensitivity.get(
-        docContext.tsSystem.useCaseSensitiveFileNames
-    );
-    if (!servicesState) {
-        return true;
-    }
-    const { configFileModifiedTime, parsedTsConfigInfo } = servicesState;
     const previousModifiedTime = configFileModifiedTime.get(fileName);
     if (!modifiedTime || !previousModifiedTime) {
         return true;
@@ -1476,10 +1421,10 @@ function configFileModified(
  * if there's still files opened it should be restarted
  * in the onProjectReloaded hooks
  */
-function scheduleReload(fileName: string, servicesState: ServicesState) {
+function scheduleReload(fileName: string) {
     // don't delete service from map yet as it could result in a race condition
     // where a file update is received before the service is reloaded, swallowing the update
-    servicesState.pendingReloads.add(fileName);
+    pendingReloads.add(fileName);
 }
 
 function getOrCreateDocumentRegistry(

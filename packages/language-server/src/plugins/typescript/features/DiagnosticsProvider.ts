@@ -110,7 +110,7 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
             diagnostics.push(...checker.call(lang, tsDoc.filePath));
         }
 
-        return mapAndFilterDiagnostics(diagnostics, document, tsDoc, lang);
+        return mapAndFilterDiagnostics(ts, diagnostics, document, tsDoc, lang);
     }
 
     async getDiagnosticsForPullMode(
@@ -148,11 +148,11 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
 }
 
 export function mapAndFilterDiagnostics(
+    ts: typeof import('typescript'),
     diagnostics: ts.Diagnostic[],
     document: Document,
     tsDoc: SvelteDocumentSnapshot,
     lang?: ts.LanguageService,
-    ts = importTypeScript()
 ): Diagnostic[] {
     const notGenerated = isNotGenerated(tsDoc.getFullText());
 

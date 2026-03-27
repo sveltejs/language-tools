@@ -45,6 +45,7 @@ interface LSAndTSDocResolverOptions {
     reportConfigError?: (diagnostic: PublishDiagnosticsParams) => void;
     watch?: boolean;
     tsSystem?: ts.System;
+    tsModule?: typeof ts;
     watchDirectory?: (patterns: RelativePattern[]) => void;
     nonRecursiveWatchPattern?: string;
     /**
@@ -56,13 +57,16 @@ interface LSAndTSDocResolverOptions {
 }
 
 export class LSAndTSDocResolver {
+    readonly tsModule: typeof ts;
+
     constructor(
         private readonly docManager: DocumentManager,
         private readonly workspaceUris: string[],
         private readonly configManager: LSConfigManager,
-        private readonly options?: LSAndTSDocResolverOptions,
-        readonly tsModule = importTypeScript()
+        private readonly options?: LSAndTSDocResolverOptions
     ) {
+        const tsModule = options?.tsModule ?? importTypeScript();
+        this.tsModule = tsModule;
         docManager.on(
             'documentChange',
             debounceSameArg(

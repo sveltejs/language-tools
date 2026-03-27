@@ -223,7 +223,8 @@ export function startServer(options?: LSOptions) {
                     watchDirectory: (patterns) => watchDirectory(patterns),
                     reportConfigError(diagnostic) {
                         connection?.sendDiagnostics(diagnostic);
-                    }
+                    },
+                    tsModule: ts
                 }),
                 normalizedWorkspaceUris,
                 docManager

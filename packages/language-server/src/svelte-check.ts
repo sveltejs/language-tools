@@ -47,8 +47,9 @@ export function mapSvelteCheckDiagnostics(
         emitJsDoc: true,
         rewriteExternalImports: options?.rewriteExternalImports
     } satisfies SvelteSnapshotOptions) as SvelteDocumentSnapshot;
+    const ts = importTypeScript();
 
-    return mapAndFilterDiagnostics(tsDiagnostics, document, snapshot);
+    return mapAndFilterDiagnostics(ts, tsDiagnostics, document, snapshot);
 }
 
 export type SvelteCheckDiagnosticSource = 'js' | 'css' | 'svelte';

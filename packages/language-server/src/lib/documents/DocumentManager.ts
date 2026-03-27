@@ -7,7 +7,7 @@ import {
 import { Document } from './Document';
 import { normalizeUri } from '../../utils';
 import { FileMap, FileSet } from './fileCollection';
-import { importTypeScript } from '../../importPackage';
+import { sys } from '../sys';
 
 export type DocumentEvent = 'documentOpen' | 'documentChange' | 'documentClose';
 
@@ -25,7 +25,7 @@ export class DocumentManager {
         options?: { useCaseSensitiveFileNames: boolean }
     ) {
         const useCaseSensitiveFileNames =
-            options?.useCaseSensitiveFileNames ?? importTypeScript().sys.useCaseSensitiveFileNames;
+            options?.useCaseSensitiveFileNames ?? sys.useCaseSensitiveFileNames;
         this.documents = new FileMap(useCaseSensitiveFileNames);
         this.locked = new FileSet(useCaseSensitiveFileNames);
         this.deleteCandidates = new FileSet(useCaseSensitiveFileNames);

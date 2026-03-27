@@ -7,6 +7,7 @@ import { returnObjectIfHasKeys } from './utils';
 import path from 'path';
 import { FileMap } from './lib/documents/fileCollection';
 import { ClientCapabilities } from 'vscode-languageserver-protocol';
+import { TsScriptKind } from './plugins/typescript/types';
 
 /**
  * Default config for the language server.
@@ -214,6 +215,7 @@ export interface TSUserConfig {
 
 interface TsJsSharedConfig {
     hover?: { maximumLength?: number };
+    tsdk?: { path: string };
 }
 
 /**
@@ -295,7 +297,7 @@ export interface TsWorkspaceSymbolsConfig {
 
 export type TsUserConfigLang = 'typescript' | 'javascript';
 
-interface TsUserConfigLangMap {
+export interface TsUserConfigLangMap {
     typescript?: TSUserConfig;
     javascript?: TSUserConfig;
     'js/ts'?: TsJsSharedConfig;
@@ -691,8 +693,8 @@ export class LSConfigManager {
     ): Promise<ts.FormatCodeSettings> {
         const filePath = document.getFilePath();
         const configLang =
-            scriptKind === this.tsModule.ScriptKind.TS ||
-            scriptKind === this.tsModule.ScriptKind.TSX
+            scriptKind === TsScriptKind.TS ||
+            scriptKind === TsScriptKind.TSX
                 ? 'typescript'
                 : 'javascript';
 
