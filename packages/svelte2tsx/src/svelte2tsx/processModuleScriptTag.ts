@@ -19,16 +19,22 @@ export interface ModuleAst {
     astOffset: number;
 }
 
-export function createModuleAst(str: MagicString, script: Node): ModuleAst {
+export function createModuleAst(
+    str: MagicString,
+    script: Node,
+    existingAst?: ts.SourceFile
+): ModuleAst {
     const htmlx = str.original;
     const scriptContent = htmlx.substring(script.content.start, script.content.end);
-    const tsAst = ts.createSourceFile(
-        'component.module.ts.svelte',
-        scriptContent,
-        ts.ScriptTarget.Latest,
-        true,
-        ts.ScriptKind.TS
-    );
+    const tsAst =
+        existingAst ??
+        ts.createSourceFile(
+            'component.module.ts.svelte',
+            scriptContent,
+            ts.ScriptTarget.Latest,
+            true,
+            ts.ScriptKind.TS
+        );
 
     const astOffset = script.content.start;
 
