@@ -126,7 +126,7 @@ export function tryImportTypeScriptForTsdk(
                 return dynamicRequire(fullPath);
             }
         }
-        
+
         const absolutePath = asAbsoluteWorkspacePath(tsdkPath);
         if (absolutePath) {
             const fullPath = tryFullPath(absolutePath);
@@ -167,7 +167,9 @@ export function tryImportTypeScriptForTsdk(
             return;
         }
 
-        const [majorVersion, minorVersion] = pkg.version.split('.').map((part: string) => parseInt(part, 10));
+        const [majorVersion, minorVersion] = pkg.version
+            .split('.')
+            .map((part: string) => parseInt(part, 10));
         if (isNaN(majorVersion) || majorVersion < 5 || (majorVersion === 5 && minorVersion < 5)) {
             Logger.error(
                 `The TypeScript version at ${tsdkPath} is unsupported. Please use at least TypeScript 5.5.`
@@ -187,16 +189,16 @@ export function tryImportTypeScriptForTsdk(
     }
 
     function asAbsoluteWorkspacePath(relativePath: string): string | undefined {
-		for (const root of workspaceFolders) {
-			const rootPrefixes = [`./${root.name}/`, `${root.name}/`, `.\\${root.name}\\`, `${root.name}\\`];
-			for (const rootPrefix of rootPrefixes) {
+        for (const root of workspaceFolders) {
+            const rootPrefixes = [`./${root.name}/`, `${root.name}/`];
+            for (const rootPrefix of rootPrefixes) {
                 const path = urlToPath(root.uri);
-				if (path && relativePath.startsWith(rootPrefix)) {
-					return join(path, relativePath.replace(rootPrefix, ''));
-				}
-			}
-		}
+                if (path && relativePath.startsWith(rootPrefix)) {
+                    return join(path, relativePath.replace(rootPrefix, ''));
+                }
+            }
+        }
 
-		return undefined;
-	}
+        return undefined;
+    }
 }

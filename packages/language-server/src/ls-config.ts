@@ -694,8 +694,7 @@ export class LSConfigManager {
     ): Promise<ts.FormatCodeSettings> {
         const filePath = document.getFilePath();
         const configLang =
-            scriptKind === TsScriptKind.TS ||
-            scriptKind === TsScriptKind.TSX
+            scriptKind === TsScriptKind.TS || scriptKind === TsScriptKind.TSX
                 ? 'typescript'
                 : 'javascript';
 

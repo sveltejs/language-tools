@@ -152,7 +152,7 @@ export function mapAndFilterDiagnostics(
     diagnostics: ts.Diagnostic[],
     document: Document,
     tsDoc: SvelteDocumentSnapshot,
-    lang?: ts.LanguageService,
+    lang?: ts.LanguageService
 ): Diagnostic[] {
     const notGenerated = isNotGenerated(tsDoc.getFullText());
 
