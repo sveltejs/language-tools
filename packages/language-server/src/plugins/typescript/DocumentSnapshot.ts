@@ -30,7 +30,7 @@ import { dirname, resolve } from 'path';
 import { URI } from 'vscode-uri';
 import { surroundWithIgnoreComments } from './features/utils';
 import { configLoader } from '../../lib/documents/configLoader';
-import { TsScriptKind } from './types';
+import { TsExtension, TsScriptKind } from './types';
 
 /**
  * Computes the change range between two snapshots by scanning for the first and last
@@ -199,7 +199,7 @@ export namespace DocumentSnapshot {
             }
         }
 
-        const declarationExtensions = ['.d.cts', '.d.ts', '.d.mts'];
+        const declarationExtensions = [TsExtension.Dts, TsExtension.Dmts, TsExtension.Dcts];
         if (declarationExtensions.some((ext) => filePath.endsWith(ext))) {
             return new DtsDocumentSnapshot(
                 tsModule,

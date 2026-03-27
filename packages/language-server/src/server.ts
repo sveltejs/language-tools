@@ -132,11 +132,19 @@ export function startServer(options?: LSOptions) {
             Logger.error('No workspace path set');
         }
 
+        Logger.setDebug(
+            (evt.initializationOptions?.configuration?.svelte ||
+                evt.initializationOptions?.config)?.['language-server']?.debug
+        );
+
         const workspaceFolders = evt.workspaceFolders ?? [{ name: '', uri: evt.rootUri ?? '' }];
         const configurationTsSections: TsUserConfigLangMap | undefined =
             evt.initializationOptions.configuration;
         const tsdkPath = configurationTsSections?.['js/ts']?.tsdk?.path;
         const tsdkPathOld = configurationTsSections?.typescript?.tsdk?.path;
+
+        const isTrusted: boolean = evt.initializationOptions?.isTrusted ?? true;
+        setIsTrusted(isTrusted);
 
         const ts =
             tryImportTypeScriptForTsdk(tsdkPath, workspaceFolders) ??
@@ -154,19 +162,13 @@ export function startServer(options?: LSOptions) {
             };
         }
 
-        const isTrusted: boolean = evt.initializationOptions?.isTrusted ?? true;
         configLoader.setDisabled(!isTrusted);
         configLoader.setTs(ts);
-        setIsTrusted(isTrusted);
         configManager.updateIsTrusted(isTrusted);
         if (!isTrusted) {
             Logger.log('Workspace is not trusted, running with reduced capabilities.');
         }
 
-        Logger.setDebug(
-            (evt.initializationOptions?.configuration?.svelte ||
-                evt.initializationOptions?.config)?.['language-server']?.debug
-        );
         // Backwards-compatible way of setting initialization options (first `||` is the old style)
         configManager.update(
             evt.initializationOptions?.configuration?.svelte?.plugin ||

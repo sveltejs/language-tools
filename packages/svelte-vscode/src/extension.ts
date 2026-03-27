@@ -218,6 +218,17 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
         context.subscriptions.push(disposable);
     });
 
+    context.subscriptions.push(
+        workspace.onDidChangeConfiguration((evt) => {
+            if (
+                evt.affectsConfiguration('js/ts.tsdk.path') ||
+                evt.affectsConfiguration('typescript.tsdk.path')
+            ) {
+                ls.restart();
+            }
+        })
+    );
+
     workspace.onDidSaveTextDocument(async (doc) => {
         const parts = doc.uri.toString(true).split(/\/|\\/);
         if (

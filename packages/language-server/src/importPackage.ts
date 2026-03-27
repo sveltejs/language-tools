@@ -110,7 +110,7 @@ export function tryImportTypeScriptForTsdk(
     tsdkPath: string | undefined,
     workspaceFolders: WorkspaceFolder[]
 ): typeof ts | undefined {
-    if (!tsdkPath) {
+    if (!tsdkPath || !isTrusted) {
         return undefined;
     }
 
@@ -118,7 +118,7 @@ export function tryImportTypeScriptForTsdk(
         if (isAbsolute(tsdkPath)) {
             const fullPath = tryFullPath(tsdkPath);
             if (fullPath) {
-                return dynamicRequire(fullPath);
+                return load(fullPath);
             }
         }
 
@@ -126,7 +126,7 @@ export function tryImportTypeScriptForTsdk(
         if (absolutePath) {
             const fullPath = tryFullPath(absolutePath);
             if (fullPath) {
-                return dynamicRequire(fullPath);
+                return load(fullPath);
             }
         }
         if (workspaceFolders.length === 1) {
@@ -134,11 +134,12 @@ export function tryImportTypeScriptForTsdk(
             if (workspaceRootPath) {
                 const fullPath = tryFullPath(join(workspaceRootPath, tsdkPath));
                 if (fullPath) {
-                    return dynamicRequire(fullPath);
+                    return load(fullPath);
                 }
             }
         }
     } catch (error) {
+        Logger.error(`Failed to load TypeScript from tsdk path ${tsdkPath}:`, error);
         return undefined;
     }
 
@@ -180,7 +181,7 @@ export function tryImportTypeScriptForTsdk(
             return;
         }
 
-        return fullPath;
+        return { fullPath, version: pkg.version };
     }
 
     function asAbsoluteWorkspacePath(relativePath: string): string | undefined {
@@ -195,5 +196,11 @@ export function tryImportTypeScriptForTsdk(
         }
 
         return undefined;
+    }
+
+    function load(info: { fullPath: string; version: string }) {
+        const result = dynamicRequire(info.fullPath);
+        Logger.debug('Using TypeScript v' + info.version + ' from tsdk configuration');
+        return result;
     }
 }

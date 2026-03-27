@@ -3,6 +3,7 @@ import path from 'path';
 import { pathToFileURL, URL } from 'url';
 import assert from 'assert';
 import { spy } from 'sinon';
+import ts from 'typescript';
 
 describe('ConfigLoader', () => {
     function configFrom(path: string) {
@@ -106,6 +107,7 @@ describe('ConfigLoader', () => {
             path,
             (module: URL) => Promise.resolve({ default: { preprocess: module.toString() } })
         );
+        configLoader.setTs(ts);
         await configLoader.loadConfigs(normalizePath('/some/path'));
 
         assert.deepStrictEqual(
