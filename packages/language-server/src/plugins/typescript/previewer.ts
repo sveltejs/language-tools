@@ -7,7 +7,7 @@
  * adopted from https://github.com/microsoft/vscode/blob/10722887b8629f90cc38ee7d90d54e8246dc895f/extensions/typescript-language-features/src/utils/previewer.ts
  */
 
-import ts from 'typescript';
+import type ts from 'typescript';
 import { isNotNullOrUndefined } from '../../utils';
 
 function replaceLinks(text: string): string {
@@ -33,7 +33,7 @@ function processInlineTags(text: string): string {
     return replaceLinks(text);
 }
 
-function getTagBodyText(tag: ts.JSDocTagInfo): string | undefined {
+function getTagBodyText(tsModule: typeof ts, tag: ts.JSDocTagInfo): string | undefined {
     if (!tag.text) {
         return undefined;
     }
@@ -73,19 +73,19 @@ function getTagBodyText(tag: ts.JSDocTagInfo): string | undefined {
 
     switch (tag.name) {
         case 'example':
-            return makeExampleTag(ts.displayPartsToString(tag.text));
+            return makeExampleTag(tsModule.displayPartsToString(tag.text));
         case 'author':
-            return makeEmailTag(ts.displayPartsToString(tag.text));
+            return makeEmailTag(tsModule.displayPartsToString(tag.text));
         case 'default':
-            return makeCodeblock(ts.displayPartsToString(tag.text));
+            return makeCodeblock(tsModule.displayPartsToString(tag.text));
     }
 
-    return processInlineTags(ts.displayPartsToString(tag.text));
+    return processInlineTags(tsModule.displayPartsToString(tag.text));
 }
 
-export function getTagDocumentation(tag: ts.JSDocTagInfo): string | undefined {
+export function getTagDocumentation(tsModule: typeof ts, tag: ts.JSDocTagInfo): string | undefined {
     function getWithType() {
-        const body = (ts.displayPartsToString(tag.text) || '').split(/^(\S+)\s*-?\s*/);
+        const body = (tsModule.displayPartsToString(tag.text) || '').split(/^(\S+)\s*-?\s*/);
         if (body?.length === 3) {
             const param = body[1];
             const doc = body[2];
@@ -112,28 +112,31 @@ export function getTagDocumentation(tag: ts.JSDocTagInfo): string | undefined {
 
     // Generic tag
     const label = `*@${tag.name}*`;
-    const text = getTagBodyText(tag);
+    const text = getTagBodyText(tsModule, tag);
     if (!text) {
         return label;
     }
     return label + (text.match(/\r\n|\n/g) ? '  \n' + text : ` — ${text}`);
 }
 
-export function plain(parts: ts.SymbolDisplayPart[] | string): string {
-    return processInlineTags(typeof parts === 'string' ? parts : ts.displayPartsToString(parts));
+export function plain(tsModule: typeof ts, parts: ts.SymbolDisplayPart[] | string): string {
+    return processInlineTags(
+        typeof parts === 'string' ? parts : tsModule.displayPartsToString(parts)
+    );
 }
 
 export function getMarkdownDocumentation(
+    tsModule: typeof ts,
     documentation: ts.SymbolDisplayPart[] | undefined,
     tags: ts.JSDocTagInfo[] | undefined
 ) {
     let result: Array<string | undefined> = [];
     if (documentation) {
-        result.push(plain(documentation));
+        result.push(plain(tsModule, documentation));
     }
 
     if (tags) {
-        result = result.concat(tags.map(getTagDocumentation));
+        result = result.concat(tags.map((tag) => getTagDocumentation(tsModule, tag)));
     }
 
     return result.filter(isNotNullOrUndefined).join('\n\n');

@@ -1,4 +1,4 @@
-import ts from 'typescript';
+import type ts from 'typescript';
 import { ensureRealSvelteFilePath, isVirtualSvelteFilePath, toRealSvelteFilePath } from './utils';
 import { FileMap } from '../../lib/documents/fileCollection';
 
@@ -6,7 +6,7 @@ import { FileMap } from '../../lib/documents/fileCollection';
  * This should only be accessed by TS svelte module resolution.
  */
 export function createSvelteSys(tsSystem: ts.System) {
-    const fileExistsCache = new FileMap<boolean>();
+    const fileExistsCache = new FileMap<boolean>(tsSystem.useCaseSensitiveFileNames);
 
     function svelteFileExists(path: string) {
         if (isVirtualSvelteFilePath(path)) {

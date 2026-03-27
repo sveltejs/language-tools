@@ -1,5 +1,5 @@
 import { dirname } from 'path';
-import ts from 'typescript';
+import type ts from 'typescript';
 import {
     CompletionItemKind,
     DiagnosticSeverity,
@@ -12,38 +12,39 @@ import {
 import { Document, isInTag, mapLocationToOriginal, mapRangeToOriginal } from '../../lib/documents';
 import { GetCanonicalFileName, pathToUrl } from '../../utils';
 import { DocumentSnapshot, SvelteDocumentSnapshot } from './DocumentSnapshot';
+import { TsExtension, TsScriptKind } from './types';
 
 export function getScriptKindFromFileName(fileName: string): ts.ScriptKind {
     const ext = fileName.substr(fileName.lastIndexOf('.'));
     switch (ext.toLowerCase()) {
-        case ts.Extension.Js:
-            return ts.ScriptKind.JS;
-        case ts.Extension.Jsx:
-            return ts.ScriptKind.JSX;
-        case ts.Extension.Ts:
-            return ts.ScriptKind.TS;
-        case ts.Extension.Tsx:
-            return ts.ScriptKind.TSX;
-        case ts.Extension.Json:
-            return ts.ScriptKind.JSON;
+        case TsExtension.Js:
+            return TsScriptKind.JS;
+        case TsExtension.Jsx:
+            return TsScriptKind.JSX;
+        case TsExtension.Ts:
+            return TsScriptKind.TS;
+        case TsExtension.Tsx:
+            return TsScriptKind.TSX;
+        case TsExtension.Json:
+            return TsScriptKind.JSON;
         default:
-            return ts.ScriptKind.Unknown;
+            return TsScriptKind.Unknown;
     }
 }
 
-export function getExtensionFromScriptKind(kind: ts.ScriptKind | undefined): ts.Extension {
+export function getExtensionFromScriptKind(kind: ts.ScriptKind | undefined): TsExtension {
     switch (kind) {
-        case ts.ScriptKind.JSX:
-            return ts.Extension.Jsx;
-        case ts.ScriptKind.TS:
-            return ts.Extension.Ts;
-        case ts.ScriptKind.TSX:
-            return ts.Extension.Tsx;
-        case ts.ScriptKind.JSON:
-            return ts.Extension.Json;
-        case ts.ScriptKind.JS:
+        case TsScriptKind.JSX:
+            return TsExtension.Jsx;
+        case TsScriptKind.TS:
+            return TsExtension.Ts;
+        case TsScriptKind.TSX:
+            return TsExtension.Tsx;
+        case TsScriptKind.JSON:
+            return TsExtension.Json;
+        case TsScriptKind.JS:
         default:
-            return ts.Extension.Js;
+            return TsExtension.Js;
     }
 }
 
@@ -57,11 +58,11 @@ export function getScriptKindFromAttributes(
         case 'typescript':
         case 'text/ts':
         case 'text/typescript':
-            return ts.ScriptKind.TSX;
+            return TsScriptKind.TSX;
         case 'javascript':
         case 'text/javascript':
         default:
-            return ts.ScriptKind.JSX;
+            return TsScriptKind.JSX;
     }
 }
 
@@ -144,6 +145,7 @@ export function rangeToTextSpan(
 }
 
 export function findTsConfigPath(
+    ts: typeof import('typescript'),
     fileName: string,
     rootUris: string[],
     fileExists: (path: string) => boolean,
@@ -237,6 +239,7 @@ export function symbolKindFromString(kind: string): SymbolKind {
 }
 
 export function scriptElementKindToCompletionItemKind(
+    ts: typeof import('typescript'),
     kind: ts.ScriptElementKind
 ): CompletionItemKind {
     switch (kind) {
@@ -282,7 +285,10 @@ export function scriptElementKindToCompletionItemKind(
     return CompletionItemKind.Property;
 }
 
-export function mapSeverity(category: ts.DiagnosticCategory): DiagnosticSeverity {
+export function mapSeverity(
+    ts: typeof import('typescript'),
+    category: ts.DiagnosticCategory
+): DiagnosticSeverity {
     switch (category) {
         case ts.DiagnosticCategory.Error:
             return DiagnosticSeverity.Error;
@@ -312,13 +318,13 @@ const tsCheckRegex =
  * Returns `// @ts-check` or `// @ts-nocheck` if content starts with comments and has one of these
  * in its comments.
  */
-export function getTsCheckComment(str = ''): string | undefined {
+export function getTsCheckComment(str = '', newLine = '\n'): string | undefined {
     const comments = str.match(commentsRegex)?.[0];
     if (comments) {
         const tsCheck = comments.match(tsCheckRegex);
         if (tsCheck) {
             // second-last entry is the capturing group with the exact ts-check wording
-            return `// ${tsCheck[tsCheck.length - 3]}${ts.sys.newLine}`;
+            return `// ${tsCheck[tsCheck.length - 3]}${newLine}`;
         }
     }
 }
@@ -368,9 +374,13 @@ export function toGeneratedSvelteComponentName(className: string) {
 
 export function hasTsExtensions(fileName: string) {
     return (
-        fileName.endsWith(ts.Extension.Dts) ||
-        fileName.endsWith(ts.Extension.Tsx) ||
-        fileName.endsWith(ts.Extension.Ts)
+        fileName.endsWith(TsExtension.Dts) ||
+        fileName.endsWith(TsExtension.Dmts) ||
+        fileName.endsWith(TsExtension.Dcts) ||
+        fileName.endsWith(TsExtension.Ts) ||
+        fileName.endsWith(TsExtension.Mts) ||
+        fileName.endsWith(TsExtension.Cts) ||
+        fileName.endsWith(TsExtension.Tsx)
     );
 }
 

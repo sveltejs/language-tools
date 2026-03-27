@@ -1,4 +1,4 @@
-import ts, { NavigationTree } from 'typescript';
+import type ts from 'typescript';
 import {
     CallHierarchyIncomingCall,
     CallHierarchyItem,
@@ -107,6 +107,7 @@ import {
 import { CallHierarchyProviderImpl } from './features/CallHierarchyProvider';
 import { CodeLensProviderImpl } from './features/CodeLensProvider';
 import { WorkspaceSymbolsProviderImpl } from './features/WorkspaceSymbolProvider';
+import { TsExtension } from './types';
 
 export class TypeScriptPlugin
     implements
@@ -167,6 +168,7 @@ export class TypeScriptPlugin
         workspaceUris: string[],
         documentManager: DocumentManager
     ) {
+        const ts = lsAndTsDocResolver.tsModule;
         this.configManager = configManager;
         this.documentManager = documentManager;
         this.lsAndTsDocResolver = lsAndTsDocResolver;
@@ -347,7 +349,7 @@ export class TypeScriptPlugin
         return result;
 
         function collectSymbols(
-            tree: NavigationTree,
+            tree: ts.NavigationTree,
             container: string | undefined,
             cb: (symbol: SymbolInformation) => void
         ) {
@@ -556,7 +558,7 @@ export class TypeScriptPlugin
         for (const { fileName, changeType } of onWatchFileChangesParas) {
             const pathParts = fileName.split(/\/|\\/);
             const dirPathParts = pathParts.slice(0, pathParts.length - 1);
-            const declarationExtensions = [ts.Extension.Dcts, ts.Extension.Dts, ts.Extension.Dmts];
+            const declarationExtensions = [TsExtension.Dcts, TsExtension.Dts, TsExtension.Dmts];
             const canSafelyIgnore =
                 declarationExtensions.every((ext) => !fileName.endsWith(ext)) &&
                 ignoredBuildDirectories.some((dir) => {

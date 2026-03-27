@@ -52,7 +52,7 @@ import {
 import { debounceThrottle, isNotNullOrUndefined, normalizeUri, urlToPath } from './utils';
 import { FallbackWatcher } from './lib/FallbackWatcher';
 import { configLoader } from './lib/documents/configLoader';
-import { setIsTrusted } from './importPackage';
+import { importTypeScript, setIsTrusted } from './importPackage';
 import {
     SORT_IMPORT_CODE_ACTION_KIND,
     ADD_MISSING_IMPORTS_CODE_ACTION_KIND,
@@ -107,9 +107,9 @@ export function startServer(options?: LSOptions) {
     const docManager = new DocumentManager(
         (textDocument) => new Document(textDocument.uri, textDocument.text)
     );
-    const configManager = new LSConfigManager();
     const pluginHost = new PluginHost(docManager);
     let sveltePlugin: SveltePlugin = undefined as any;
+    let configManager: LSConfigManager = undefined as any;
     let watcher: FallbackWatcher | undefined;
     let pendingWatchPatterns: RelativePattern[] = [];
     let watchDirectory: (patterns: RelativePattern[]) => void = (patterns) => {
@@ -132,6 +132,8 @@ export function startServer(options?: LSOptions) {
             Logger.error('No workspace path set');
         }
 
+        const ts = importTypeScript();
+        configManager = new LSConfigManager(ts);
         if (!evt.capabilities.workspace?.didChangeWatchedFiles?.dynamicRegistration) {
             const workspacePaths = workspaceUris.map(urlToPath).filter(isNotNullOrUndefined);
             watcher = new FallbackWatcher(watchExtensions, workspacePaths);
@@ -144,6 +146,7 @@ export function startServer(options?: LSOptions) {
 
         const isTrusted: boolean = evt.initializationOptions?.isTrusted ?? true;
         configLoader.setDisabled(!isTrusted);
+        configLoader.setTs(ts);
         setIsTrusted(isTrusted);
         configManager.updateIsTrusted(isTrusted);
         if (!isTrusted) {

@@ -1,7 +1,7 @@
 import { get, merge } from 'lodash';
-import ts from 'typescript';
+import type ts from 'typescript';
 import { VSCodeEmmetConfig } from '@vscode/emmet-helper';
-import { importPrettier } from './importPackage';
+import { importPrettier, importTypeScript } from './importPackage';
 import { Document } from './lib/documents';
 import { returnObjectIfHasKeys } from './utils';
 import path from 'path';
@@ -337,11 +337,8 @@ export class LSConfigManager {
         javascript: {}
     };
 
-    private resolvedAutoImportExcludeCache = new FileMap<string[]>();
-    private tsFormatCodeOptions: Record<TsUserConfigLang, ts.FormatCodeSettings> = {
-        typescript: this.getDefaultFormatCodeOptions(),
-        javascript: this.getDefaultFormatCodeOptions()
-    };
+    private resolvedAutoImportExcludeCache: FileMap<string[]>;
+    private tsFormatCodeOptions: Record<TsUserConfigLang, ts.FormatCodeSettings>;
     private prettierConfig: any = {};
     private emmetConfig: VSCodeEmmetConfig = {};
     private cssConfig: CssConfig | undefined;
@@ -350,10 +347,17 @@ export class LSConfigManager {
     private htmlConfig: HTMLConfig | undefined;
     private isTrusted = true;
     private clientCapabilities: ClientCapabilities | undefined;
+    private readonly tsModule: typeof ts;
 
-    constructor() {
+    constructor(tsModule: typeof ts = importTypeScript()) {
+        this.tsModule = tsModule;
         this._updateTsUserPreferences('javascript', {});
         this._updateTsUserPreferences('typescript', {});
+        this.resolvedAutoImportExcludeCache = new FileMap(tsModule.sys.useCaseSensitiveFileNames);
+        this.tsFormatCodeOptions = {
+            typescript: this.getDefaultFormatCodeOptions(),
+            javascript: this.getDefaultFormatCodeOptions()
+        };
     }
 
     /**
@@ -560,7 +564,7 @@ export class LSConfigManager {
             this.resolvedAutoImportExcludeCache.get(normalizedWorkspacePath);
 
         if (!autoImportFileExcludePatterns) {
-            const version = ts.version.split('.');
+            const version = this.tsModule.version.split('.');
             const major = parseInt(version[0]);
             const minor = parseInt(version[1]);
 
@@ -651,7 +655,7 @@ export class LSConfigManager {
             indentSize: 4,
             tabSize: 4,
             convertTabsToSpaces: true,
-            indentStyle: ts.IndentStyle.Smart,
+            indentStyle: this.tsModule.IndentStyle.Smart,
             insertSpaceAfterConstructor: false,
             insertSpaceAfterCommaDelimiter: true,
             insertSpaceAfterSemicolonInForStatements: true,
@@ -666,7 +670,7 @@ export class LSConfigManager {
             placeOpenBraceOnNewLineForFunctions: false,
             placeOpenBraceOnNewLineForControlBlocks: false,
             trimTrailingWhitespace: true,
-            semicolons: ts.SemicolonPreference.Ignore,
+            semicolons: this.tsModule.SemicolonPreference.Ignore,
 
             // Override TypeScript's default because VSCode default to true
             // Also this matches the style of prettier
@@ -687,7 +691,8 @@ export class LSConfigManager {
     ): Promise<ts.FormatCodeSettings> {
         const filePath = document.getFilePath();
         const configLang =
-            scriptKind === ts.ScriptKind.TS || scriptKind === ts.ScriptKind.TSX
+            scriptKind === this.tsModule.ScriptKind.TS ||
+            scriptKind === this.tsModule.ScriptKind.TSX
                 ? 'typescript'
                 : 'javascript';
 
@@ -713,13 +718,13 @@ export class LSConfigManager {
         return {
             ...tsFormatCodeOptions,
 
-            newLineCharacter: documentUseLf ? '\n' : ts.sys.newLine,
+            newLineCharacter: documentUseLf ? '\n' : this.tsModule.sys.newLine,
             baseIndentSize: prettierConfig.svelteIndentScriptAndStyle === false ? 0 : indentSize,
             indentSize,
             convertTabsToSpaces: !prettierConfig.useTabs,
             semicolons: useSemicolons
-                ? ts.SemicolonPreference.Insert
-                : ts.SemicolonPreference.Remove,
+                ? this.tsModule.SemicolonPreference.Insert
+                : this.tsModule.SemicolonPreference.Remove,
             tabSize: indentSize
         };
     }

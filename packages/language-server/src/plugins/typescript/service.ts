@@ -1,5 +1,5 @@
 import { dirname, basename } from 'path';
-import ts from 'typescript';
+import type ts from 'typescript';
 import {
     DiagnosticSeverity,
     PublishDiagnosticsParams,
@@ -111,17 +111,21 @@ enum TsconfigSvelteDiagnostics {
 }
 
 const maxProgramSizeForNonTsFiles = 20 * 1024 * 1024; // 20 MB
-const services = new FileMap<Promise<LanguageServiceContainer>>();
-const serviceSizeMap = new FileMap<number>();
-const configWatchers = new FileMap<ts.FileWatcher>();
-const dependedConfigWatchers = new FileMap<ts.FileWatcher>();
-const configPathToDependedProject = new FileMap<FileSet>();
-const configFileModifiedTime = new FileMap<Date | undefined>();
-const configFileForOpenFiles = new FileMap<string>();
-const pendingReloads = new FileSet();
 const documentRegistries = new Map<string, ts.DocumentRegistry>();
 const pendingForAllServices = new Set<Promise<void>>();
-const parsedTsConfigInfo = new FileMap<TsConfigInfo | null>();
+const serviceStatePerCaseSensitivity = new Map<boolean, ServicesState>();
+
+interface ServicesState {
+    services: FileMap<Promise<LanguageServiceContainer>>;
+    serviceSizeMap: FileMap<number>;
+    configWatchers: FileMap<ts.FileWatcher>;
+    dependedConfigWatchers: FileMap<ts.FileWatcher>;
+    configPathToDependedProject: FileMap<FileSet>;
+    configFileModifiedTime: FileMap<Date | undefined>;
+    configFileForOpenFiles: FileMap<string>;
+    pendingReloads: FileSet;
+    parsedTsConfigInfo: FileMap<TsConfigInfo | null>;
+}
 
 /**
  * For testing only: Reset the cache for services.
@@ -129,10 +133,7 @@ const parsedTsConfigInfo = new FileMap<TsConfigInfo | null>();
  * a setup function which creates all this nicely instead.
  */
 export function __resetCache() {
-    services.clear();
-    parsedTsConfigInfo.clear();
-    serviceSizeMap.clear();
-    configFileForOpenFiles.clear();
+    serviceStatePerCaseSensitivity.clear();
 }
 
 export interface LanguageServiceDocumentContext {
@@ -150,6 +151,26 @@ export interface LanguageServiceDocumentContext {
     projectService: ProjectService | undefined;
     watchDirectory: ((patterns: RelativePattern[]) => void) | undefined;
     nonRecursiveWatchPattern: string | undefined;
+    tsModule: typeof ts;
+}
+
+function getServicesState(useCaseSensitiveFileNames: boolean) {
+    let result = serviceStatePerCaseSensitivity.get(useCaseSensitiveFileNames);
+    if (!result) {
+        result = {
+            services: new FileMap(useCaseSensitiveFileNames),
+            serviceSizeMap: new FileMap(useCaseSensitiveFileNames),
+            configWatchers: new FileMap(useCaseSensitiveFileNames),
+            dependedConfigWatchers: new FileMap(useCaseSensitiveFileNames),
+            configPathToDependedProject: new FileMap(useCaseSensitiveFileNames),
+            configFileModifiedTime: new FileMap(useCaseSensitiveFileNames),
+            configFileForOpenFiles: new FileMap(useCaseSensitiveFileNames),
+            pendingReloads: new FileSet(useCaseSensitiveFileNames),
+            parsedTsConfigInfo: new FileMap(useCaseSensitiveFileNames)
+        };
+        serviceStatePerCaseSensitivity.set(useCaseSensitiveFileNames, result);
+    }
+    return result;
 }
 
 export async function getService(
@@ -157,9 +178,10 @@ export async function getService(
     workspaceUris: string[],
     docContext: LanguageServiceDocumentContext
 ): Promise<LanguageServiceContainer> {
-    const getCanonicalFileName = createGetCanonicalFileName(
-        docContext.tsSystem.useCaseSensitiveFileNames
-    );
+    const useCaseSensitiveFileNames = docContext.tsSystem.useCaseSensitiveFileNames;
+    const getCanonicalFileName = createGetCanonicalFileName(useCaseSensitiveFileNames);
+    const { configFileForOpenFiles, parsedTsConfigInfo, pendingReloads } =
+        getServicesState(useCaseSensitiveFileNames);
 
     const fileExistsWithCache = (fileName: string) => {
         return (
@@ -170,7 +192,13 @@ export async function getService(
 
     let tsconfigPath =
         configFileForOpenFiles.get(path) ??
-        findTsConfigPath(path, workspaceUris, fileExistsWithCache, getCanonicalFileName);
+        findTsConfigPath(
+            docContext.tsModule,
+            path,
+            workspaceUris,
+            fileExistsWithCache,
+            getCanonicalFileName
+        );
 
     if (tsconfigPath) {
         /**
@@ -284,6 +312,9 @@ export async function forAllServices(
 }
 
 async function forAllServicesWorker(cb: (service: LanguageServiceContainer) => any): Promise<void> {
+    const services = Array.from(serviceStatePerCaseSensitivity.values()).flatMap((state) =>
+        Array.from(state.services.values())
+    );
     for (const service of services.values()) {
         cb(await service);
     }
@@ -302,6 +333,9 @@ export async function getServiceForTsconfig(
         tsconfigPath = normalizePath(tsconfigPath);
     }
     const tsconfigPathOrWorkspacePath = tsconfigPath || workspacePath;
+    const { services, parsedTsConfigInfo, pendingReloads } = getServicesState(
+        docContext.tsSystem.useCaseSensitiveFileNames
+    );
     const reloading = pendingReloads.has(tsconfigPath);
 
     let service: LanguageServiceContainer;
@@ -334,12 +368,23 @@ async function createLanguageService(
     workspacePath: string,
     docContext: LanguageServiceDocumentContext
 ): Promise<LanguageServiceContainer> {
-    const { tsSystem } = docContext;
+    const { tsSystem, tsModule: ts } = docContext;
+    const servicesState = getServicesState(tsSystem.useCaseSensitiveFileNames);
+    const {
+        services,
+        configFileForOpenFiles,
+        parsedTsConfigInfo,
+        configFileModifiedTime,
+        configPathToDependedProject,
+        configWatchers,
+        dependedConfigWatchers
+    } = servicesState;
 
     const projectConfig = getParsedConfig();
     const { options: compilerOptions, raw, errors: configErrors } = projectConfig;
     const allowJs = compilerOptions.allowJs ?? !!compilerOptions.checkJs;
     const virtualDocuments = new FileMap<Document>(tsSystem.useCaseSensitiveFileNames);
+
 
     const getCanonicalFileName = createGetCanonicalFileName(tsSystem.useCaseSensitiveFileNames);
     watchWildCardDirectories(projectConfig);
@@ -354,7 +399,7 @@ async function createLanguageService(
         getSnapshot,
         compilerOptions,
         tsSystem,
-        ts,
+        docContext.tsModule,
         () => host?.getCompilerHost?.()
     );
 
@@ -395,7 +440,7 @@ async function createLanguageService(
             getSnapshotIfExists(fileName)?.version.toString() || '',
         getScriptSnapshot: getSnapshotIfExists,
         getCurrentDirectory: () => workspacePath,
-        getDefaultLibFileName: ts.getDefaultLibFilePath,
+        getDefaultLibFileName: docContext.tsModule.getDefaultLibFilePath,
         fileExists: svelteModuleLoader.fileExists,
         readFile: svelteModuleLoader.readFile,
         resolveModuleNames: svelteModuleLoader.resolveModuleNames,
@@ -420,6 +465,7 @@ async function createLanguageService(
     };
 
     const documentRegistry = getOrCreateDocumentRegistry(
+        ts,
         // this should mostly be a singleton while host.getCurrentDirectory() might be the directory where the tsconfig is
         tsSystem.getCurrentDirectory(),
         tsSystem.useCaseSensitiveFileNames
@@ -433,7 +479,7 @@ async function createLanguageService(
     };
 
     const project = initLsCacheProject();
-    const languageService = ts.createLanguageService(host, documentRegistry);
+    const languageService = docContext.tsModule.createLanguageService(host, documentRegistry);
 
     docContext.globalSnapshotsManager.onChange(scheduleUpdate);
 
@@ -480,6 +526,7 @@ async function createLanguageService(
         // raw is the tsconfig merged with extending config
         // see: https://github.com/microsoft/TypeScript/blob/08e4f369fbb2a5f0c30dee973618d65e6f7f09f8/src/compiler/commandLineParser.ts#L2537
         return new SnapshotManager(
+            ts,
             docContext.globalSnapshotsManager,
             parsedCommandLine.raw,
             configFileName ? dirname(configFileName) : workspacePath,
@@ -509,7 +556,7 @@ async function createLanguageService(
             patterns.push({
                 baseUri: pathToUrl(dir),
                 pattern:
-                    (flags & ts.WatchDirectoryFlags.Recursive ? `**/` : '') +
+                    (flags & docContext.tsModule.WatchDirectoryFlags.Recursive ? `**/` : '') +
                     docContext.nonRecursiveWatchPattern
             });
         });
@@ -629,6 +676,7 @@ async function createLanguageService(
 
     function createSnapshot(fileName: string) {
         const doc = DocumentSnapshot.fromFilePath(
+            docContext.tsModule,
             fileName,
             docContext.createDocument,
             transformationConfig,
@@ -897,6 +945,7 @@ async function createLanguageService(
     function reduceLanguageServiceCapabilityIfFileSizeTooBig() {
         if (
             exceedsTotalSizeLimitForNonTsFiles(
+                servicesState,
                 compilerOptions,
                 tsconfigPath,
                 snapshotManager,
@@ -985,7 +1034,7 @@ async function createLanguageService(
         dispose();
 
         if (kind === ts.FileWatcherEventKind.Changed) {
-            scheduleReload(fileName);
+            scheduleReload(fileName, servicesState);
         } else if (kind === ts.FileWatcherEventKind.Deleted) {
             services.delete(fileName);
             configFileForOpenFiles.clear();
@@ -1097,7 +1146,7 @@ async function createLanguageService(
         const createLanguageServiceForAutoImportProvider = (host: ts.LanguageServiceHost) =>
             ts.createLanguageService(host, documentRegistry);
 
-        return createProject(host, createLanguageServiceForAutoImportProvider, {
+        return createProject(ts, host, createLanguageServiceForAutoImportProvider, {
             compilerOptions: compilerOptions,
             projectService: projectService,
             currentDirectory: workspacePath
@@ -1277,6 +1326,7 @@ async function createLanguageService(
  * adopted from https://github.com/microsoft/TypeScript/blob/3c8e45b304b8572094c5d7fbb9cd768dbf6417c0/src/server/editorServices.ts#L1955
  */
 function exceedsTotalSizeLimitForNonTsFiles(
+    servicesState: ServicesState,
     compilerOptions: ts.CompilerOptions,
     tsconfigPath: string,
     snapshotManager: SnapshotManager,
@@ -1286,6 +1336,7 @@ function exceedsTotalSizeLimitForNonTsFiles(
         return false;
     }
 
+    const { serviceSizeMap } = servicesState;
     let availableSpace = maxProgramSizeForNonTsFiles;
     serviceSizeMap.set(tsconfigPath, 0);
 
@@ -1337,7 +1388,7 @@ function createWatchDependedConfigCallback(docContext: LanguageServiceDocumentCo
         modifiedTime: Date | undefined
     ) => {
         if (
-            kind === ts.FileWatcherEventKind.Changed &&
+            kind === docContext.tsModule.FileWatcherEventKind.Changed &&
             !configFileModified(
                 fileName,
                 modifiedTime ?? docContext.tsSystem.getModifiedTime?.(fileName),
@@ -1351,6 +1402,13 @@ function createWatchDependedConfigCallback(docContext: LanguageServiceDocumentCo
             docContext.tsSystem.useCaseSensitiveFileNames
         );
 
+        const servicesState = serviceStatePerCaseSensitivity.get(
+            docContext.tsSystem.useCaseSensitiveFileNames
+        );
+        if (!servicesState) {
+            return;
+        }
+        const { configPathToDependedProject, services } = servicesState;
         docContext.extendedConfigCache.delete(getCanonicalFileName(fileName));
         // rely on TypeScript internal behavior so delete both just in case
         docContext.extendedConfigCache.delete(fileName);
@@ -1360,7 +1418,7 @@ function createWatchDependedConfigCallback(docContext: LanguageServiceDocumentCo
             async (config) => {
                 reloadingConfigs.push(config);
                 const oldService = services.get(config);
-                scheduleReload(config);
+                scheduleReload(config, servicesState);
                 (await oldService)?.dispose();
             }
         );
@@ -1378,6 +1436,13 @@ function configFileModified(
     modifiedTime: Date | undefined,
     docContext: LanguageServiceDocumentContext
 ) {
+    const servicesState = serviceStatePerCaseSensitivity.get(
+        docContext.tsSystem.useCaseSensitiveFileNames
+    );
+    if (!servicesState) {
+        return true;
+    }
+    const { configFileModifiedTime, parsedTsConfigInfo } = servicesState;
     const previousModifiedTime = configFileModifiedTime.get(fileName);
     if (!modifiedTime || !previousModifiedTime) {
         return true;
@@ -1411,13 +1476,14 @@ function configFileModified(
  * if there's still files opened it should be restarted
  * in the onProjectReloaded hooks
  */
-function scheduleReload(fileName: string) {
+function scheduleReload(fileName: string, servicesState: ServicesState) {
     // don't delete service from map yet as it could result in a race condition
     // where a file update is received before the service is reloaded, swallowing the update
-    pendingReloads.add(fileName);
+    servicesState.pendingReloads.add(fileName);
 }
 
 function getOrCreateDocumentRegistry(
+    tsModule: typeof ts,
     currentDirectory: string,
     useCaseSensitiveFileNames: boolean
 ): ts.DocumentRegistry {
@@ -1429,7 +1495,7 @@ function getOrCreateDocumentRegistry(
         return registry;
     }
 
-    registry = ts.createDocumentRegistry(useCaseSensitiveFileNames, currentDirectory);
+    registry = tsModule.createDocumentRegistry(useCaseSensitiveFileNames, currentDirectory);
 
     const acquireDocumentWithKey = registry.acquireDocumentWithKey;
     registry.acquireDocumentWithKey = (
@@ -1501,7 +1567,7 @@ function getOrCreateDocumentRegistry(
             typeof sourceFileOptions === 'object' &&
             !sourceFileOptions.impliedNodeFormat
         ) {
-            const format = ts.getImpliedNodeFormatForFile(
+            const format = tsModule.getImpliedNodeFormatForFile(
                 toVirtualSvelteFilePath(fileName),
                 host?.getCompilerHost?.()?.getModuleResolutionCache?.()?.getPackageJsonInfoCache(),
                 host,

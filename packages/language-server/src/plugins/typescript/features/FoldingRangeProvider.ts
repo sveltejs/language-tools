@@ -1,4 +1,4 @@
-import ts from 'typescript';
+import type ts from 'typescript';
 import { FoldingRangeKind, Range } from 'vscode-languageserver';
 import { FoldingRange } from 'vscode-languageserver-types';
 import { Document, isInTag, mapRangeToOriginal, toRange } from '../../../lib/documents';
@@ -254,6 +254,7 @@ export class FoldingRangeProviderImpl implements FoldingRangeProvider {
     }
 
     private getFoldingRangeKind(span: ts.OutliningSpan): FoldingRangeKind | undefined {
+        const ts = this.lsAndTsDocResolver.tsModule;
         switch (span.kind) {
             case ts.OutliningSpanKind.Comment:
                 return FoldingRangeKind.Comment;

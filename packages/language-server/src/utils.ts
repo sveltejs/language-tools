@@ -9,10 +9,6 @@ export function not<T>(predicate: Predicate<T>) {
     return (x: T) => !predicate(x);
 }
 
-export function or<T>(...predicates: Array<Predicate<T>>) {
-    return (x: T) => predicates.some((predicate) => predicate(x));
-}
-
 export function and<T>(...predicates: Array<Predicate<T>>) {
     return (x: T) => predicates.every((predicate) => predicate(x));
 }

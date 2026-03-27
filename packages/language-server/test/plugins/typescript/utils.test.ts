@@ -10,7 +10,7 @@ describe('TypeScriptPlugin utils', () => {
         it('should not return if ts-check is after non-comment-code', () => {
             assert.deepStrictEqual(
                 getTsCheckComment(`qwd
-            // @ts-check`),
+            // @ts-check`, ts.sys.newLine),
                 undefined
             );
         });
@@ -18,7 +18,7 @@ describe('TypeScriptPlugin utils', () => {
         it('should return @ts-check', () => {
             assert.deepStrictEqual(
                 getTsCheckComment(`
-            // @ts-check`),
+            // @ts-check`, ts.sys.newLine),
                 tsCheckComment
             );
         });
@@ -26,7 +26,7 @@ describe('TypeScriptPlugin utils', () => {
         it('should return @ts-nocheck', () => {
             assert.deepStrictEqual(
                 getTsCheckComment(`
-            // @ts-nocheck`),
+            // @ts-nocheck`, ts.sys.newLine),
                 tsNocheckComment
             );
         });
@@ -37,7 +37,7 @@ describe('TypeScriptPlugin utils', () => {
             // hello
             
             ///
-            // @ts-check`),
+            // @ts-check`, ts.sys.newLine),
                 tsCheckComment
             );
         });
@@ -49,7 +49,7 @@ describe('TypeScriptPlugin utils', () => {
             // almost@ts-check
             // @ts-almostcheck
             ///
-            `),
+            `, ts.sys.newLine),
                 undefined
             );
         });

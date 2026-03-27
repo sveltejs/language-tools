@@ -1,5 +1,5 @@
 import path, { basename, dirname } from 'path';
-import ts from 'typescript';
+import type ts from 'typescript';
 import { CancellationToken, Range, SymbolKind, SymbolTag } from 'vscode-languageserver';
 import {
     CallHierarchyIncomingCall,
@@ -32,10 +32,13 @@ import { internalHelpers } from 'svelte2tsx';
 const ENSURE_COMPONENT_HELPER = '__sveltets_2_ensureComponent';
 
 export class CallHierarchyProviderImpl implements CallHierarchyProvider {
+    private readonly tsModule: typeof ts;
     constructor(
         private readonly lsAndTsDocResolver: LSAndTSDocResolver,
         private readonly workspaceUris: string[]
-    ) {}
+    ) {
+        this.tsModule = lsAndTsDocResolver.tsModule;
+    }
 
     async prepareCallHierarchy(
         document: Document,
@@ -66,8 +69,9 @@ export class CallHierarchyProviderImpl implements CallHierarchyProvider {
 
     private isSourceFileItem(item: ts.CallHierarchyItem) {
         return (
-            item.kind === ts.ScriptElementKind.scriptElement ||
-            (item.kind === ts.ScriptElementKind.moduleElement && item.selectionSpan.start === 0)
+            item.kind === this.tsModule.ScriptElementKind.scriptElement ||
+            (item.kind === this.tsModule.ScriptElementKind.moduleElement &&
+                item.selectionSpan.start === 0)
         );
     }
 
@@ -116,7 +120,7 @@ export class CallHierarchyProviderImpl implements CallHierarchyProvider {
         const nearestRootUri = getNearestWorkspaceUri(
             this.workspaceUris,
             item.file,
-            createGetCanonicalFileName(ts.sys.useCaseSensitiveFileNames)
+            createGetCanonicalFileName(this.tsModule.sys.useCaseSensitiveFileNames)
         );
         const nearestRoot = nearestRootUri && (urlToPath(nearestRootUri) ?? undefined);
 
@@ -200,7 +204,7 @@ export class CallHierarchyProviderImpl implements CallHierarchyProvider {
                 ? sourceFile.statements
                       .find(
                           (statement): statement is ts.FunctionDeclaration =>
-                              ts.isFunctionDeclaration(statement) &&
+                              this.tsModule.isFunctionDeclaration(statement) &&
                               statement.name?.getText() === internalHelpers.renderName
                       )
                       ?.name?.getStart()
@@ -373,7 +377,7 @@ export class CallHierarchyProviderImpl implements CallHierarchyProvider {
             groups?.map(([file, group]) => ({
                 from: {
                     file,
-                    kind: ts.ScriptElementKind.scriptElement,
+                    kind: this.tsModule.ScriptElementKind.scriptElement,
                     name: toGeneratedSvelteComponentName(''),
                     // doesn't matter, will be override later
                     selectionSpan: { start: 0, length: 0 },
@@ -394,7 +398,7 @@ export class CallHierarchyProviderImpl implements CallHierarchyProvider {
             return null;
         }
 
-        const node = findNodeAtSpan(sourceFile, ref.textSpan, this.isComponentStartTag);
+        const node = findNodeAtSpan(sourceFile, ref.textSpan, this.isComponentStartTag.bind(this));
 
         if (node) {
             return ref;
@@ -407,10 +411,10 @@ export class CallHierarchyProviderImpl implements CallHierarchyProvider {
         return (
             !!node &&
             node.parent &&
-            ts.isCallExpression(node.parent) &&
-            ts.isIdentifier(node.parent.expression) &&
+            this.tsModule.isCallExpression(node.parent) &&
+            this.tsModule.isIdentifier(node.parent.expression) &&
             node.parent.expression.text === ENSURE_COMPONENT_HELPER &&
-            ts.isIdentifier(node) &&
+            this.tsModule.isIdentifier(node) &&
             node === node.parent.arguments[0]
         );
     }
@@ -426,7 +430,7 @@ export class CallHierarchyProviderImpl implements CallHierarchyProvider {
 
         const groups = new Map<ts.ClassDeclaration, ts.TextSpan[]>();
 
-        const startTags = gatherDescendants(sourceFile, this.isComponentStartTag);
+        const startTags = gatherDescendants(sourceFile, this.isComponentStartTag.bind(this));
         const typeChecker = program.getTypeChecker();
 
         for (const startTag of startTags) {
@@ -434,7 +438,7 @@ export class CallHierarchyProviderImpl implements CallHierarchyProvider {
             const symbol = type.aliasSymbol ?? type.symbol;
             const declaration = symbol?.valueDeclaration ?? symbol?.declarations?.[0];
 
-            if (!declaration || !ts.isClassDeclaration(declaration)) {
+            if (!declaration || !this.tsModule.isClassDeclaration(declaration)) {
                 continue;
             }
 
@@ -460,7 +464,7 @@ export class CallHierarchyProviderImpl implements CallHierarchyProvider {
                 return {
                     to: {
                         file,
-                        kind: ts.ScriptElementKind.classElement,
+                        kind: this.tsModule.ScriptElementKind.classElement,
                         name,
                         selectionSpan,
                         span

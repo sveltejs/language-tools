@@ -1,4 +1,4 @@
-import ts from 'typescript';
+import type ts from 'typescript';
 import { CancellationToken, CodeLens, Range } from 'vscode-languageserver';
 import { Document, mapRangeToOriginal } from '../../../lib/documents';
 import { LSConfigManager, TSUserConfig } from '../../../ls-config';
@@ -9,6 +9,7 @@ import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { convertRange } from '../utils';
 import { isTextSpanInGeneratedCode } from './utils';
 import { internalHelpers } from 'svelte2tsx';
+import { TsScriptKind } from '../types';
 
 type CodeLensType = 'reference' | 'implementation';
 
@@ -22,12 +23,15 @@ interface CodeLensCollector {
 }
 
 export class CodeLensProviderImpl implements CodeLensProvider {
+    private readonly tsModule: typeof ts;
     constructor(
         private readonly lsAndTsDocResolver: LSAndTSDocResolver,
         private readonly referenceProvider: FindReferencesProvider,
         private readonly implementationProvider: ImplementationProvider,
         private readonly configManager: LSConfigManager
-    ) {}
+    ) {
+        this.tsModule = lsAndTsDocResolver.tsModule;
+    }
 
     async getCodeLens(document: Document): Promise<CodeLens[] | null> {
         if (!this.anyCodeLensEnabled('typescript') && !this.anyCodeLensEnabled('javascript')) {
@@ -41,7 +45,7 @@ export class CodeLensProviderImpl implements CodeLensProvider {
         const collectors: CodeLensCollector[] = [];
 
         const clientTsConfig = this.configManager.getClientTsUserConfig(
-            tsDoc.scriptKind === ts.ScriptKind.TS ? 'typescript' : 'javascript'
+            tsDoc.scriptKind === TsScriptKind.TS ? 'typescript' : 'javascript'
         );
 
         if (clientTsConfig.referencesCodeLens?.enabled) {
@@ -65,7 +69,7 @@ export class CodeLensProviderImpl implements CodeLensProvider {
         }
 
         if (
-            tsDoc.scriptKind === ts.ScriptKind.TS &&
+            tsDoc.scriptKind === TsScriptKind.TS &&
             clientTsConfig.implementationsCodeLens?.enabled
         ) {
             collectors.push({
@@ -114,7 +118,8 @@ export class CodeLensProviderImpl implements CodeLensProvider {
         parent: ts.NavigationTree | undefined,
         config: TSUserConfig
     ): Range | undefined {
-        if (parent && parent.kind === ts.ScriptElementKind.enumElement) {
+        const ts = this.tsModule;
+        if (parent && parent.kind === this.tsModule.ScriptElementKind.enumElement) {
             return this.getSymbolRange(tsDoc, item);
         }
 
@@ -187,6 +192,7 @@ export class CodeLensProviderImpl implements CodeLensProvider {
         config: TSUserConfig,
         parent?: ts.NavigationTree
     ): Range | undefined {
+        const ts = this.tsModule;
         if (
             item.kind === ts.ScriptElementKind.memberFunctionElement &&
             parent &&

@@ -7,7 +7,7 @@ import {
 import { createProject as createProject50 } from 'typescript-auto-import-cache/out/5_0/project';
 import { createProject as createProject53 } from 'typescript-auto-import-cache/out/5_3/project';
 import { createProject as createProject55 } from 'typescript-auto-import-cache/out/5_5/project';
-import ts from 'typescript';
+import type ts from 'typescript';
 import { ExportInfoMap } from 'typescript-auto-import-cache/out/5_0/exportInfoMap';
 import { ModuleSpecifierCache } from 'typescript-auto-import-cache/out/5_0/moduleSpecifierCache';
 import { SymlinkCache } from 'typescript-auto-import-cache/out/5_0/symlinkCache';
@@ -31,6 +31,7 @@ declare module 'typescript' {
 }
 
 export function createProjectService(
+    ts: typeof import('typescript'),
     system: ts.System,
     hostConfiguration: {
         preferences: ts.UserPreferences;
@@ -55,6 +56,7 @@ export function createProjectService(
 }
 
 export function createProject(
+    ts: typeof import('typescript'),
     host: ts.LanguageServiceHost,
     createLanguageService: (host: ts.LanguageServiceHost) => ts.LanguageService,
     options: {
@@ -63,7 +65,7 @@ export function createProject(
         currentDirectory: string;
     }
 ) {
-    const factory = getProjectFactory();
+    const factory = getProjectFactory(ts);
     if (!factory) {
         return undefined;
     }
@@ -90,8 +92,8 @@ export function createProject(
     return project;
 }
 
-function getProjectFactory() {
-    const version = ts.version.split('.');
+function getProjectFactory(tsModule: typeof ts) {
+    const version = tsModule.version.split('.');
     const major = parseInt(version[0]);
     const minor = parseInt(version[1]);
 

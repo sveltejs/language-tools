@@ -1,5 +1,5 @@
 import { basename, dirname } from 'path';
-import ts from 'typescript';
+import type ts from 'typescript';
 import {
     CancellationToken,
     CompletionContext,
@@ -85,8 +85,11 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
     constructor(
         private readonly lsAndTsDocResolver: LSAndTSDocResolver,
         private readonly configManager: LSConfigManager
-    ) {}
+    ) {
+        this.tsModule = lsAndTsDocResolver.tsModule;
+    }
 
+    private readonly tsModule: typeof ts;
     /**
      * The language service throws an error if the character is not a valid trigger character.
      * Also, the completions are worse.
@@ -167,9 +170,19 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
 
         const originalOffset = document.offsetAt(position);
         let offset = tsDoc.offsetAt(tsDoc.getGeneratedPosition(position));
+        const formatSettings = await this.configManager.getFormatCodeSettingsForFile(
+            document,
+            tsDoc.scriptKind
+        );
 
         if (isJsDocTriggerCharacter) {
-            return getJsDocTemplateCompletion(tsDoc, langForSyntheticOperations, filePath, offset);
+            return getJsDocTemplateCompletion(
+                formatSettings,
+                tsDoc,
+                langForSyntheticOperations,
+                filePath,
+                offset
+            );
         }
 
         const svelteNode = tsDoc.svelteNodeAt(originalOffset);
@@ -222,7 +235,8 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
             offset++;
         }
 
-        const componentInfo = getComponentAtPosition(lang, document, tsDoc, position);
+        const ts = this.tsModule;
+        const componentInfo = getComponentAtPosition(ts, lang, document, tsDoc, position);
         const attributeContext = componentInfo && getAttributeContextAtPosition(document, position);
         const eventAndSlotLetCompletions = this.getEventAndSlotLetCompletions(
             componentInfo,
@@ -239,10 +253,6 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
                 ? []
                 : this.getCustomElementCompletions(lang, lsContainer, document, tsDoc, position);
 
-        const formatSettings = await this.configManager.getFormatCodeSettingsForFile(
-            document,
-            tsDoc.scriptKind
-        );
         if (cancellationToken?.isCancellationRequested) {
             return null;
         }
@@ -582,7 +592,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
             return;
         }
 
-        let tags = getCustomElementsTags(lang, lsContainer, tsDoc).filter((t) =>
+        let tags = getCustomElementsTags(this.tsModule, lang, lsContainer, tsDoc).filter((t) =>
             t.startsWith(tag.tag!)
         );
 
@@ -697,14 +707,14 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
             comp.labelDetails ??
             (comp.sourceDisplay
                 ? {
-                      description: ts.displayPartsToString(comp.sourceDisplay)
+                      description: this.tsModule.displayPartsToString(comp.sourceDisplay)
                   }
                 : undefined);
 
         return {
             label,
             insertText,
-            kind: scriptElementKindToCompletionItemKind(comp.kind),
+            kind: scriptElementKindToCompletionItemKind(this.tsModule, comp.kind),
             commitCharacters: this.getCommitCharacters(comp, commitCharactersOptions, isSvelteComp),
             // Make sure svelte component and runes take precedence
             sortText:
@@ -730,7 +740,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
         comp: ts.CompletionEntry
     ) {
         let { name, insertText, kindModifiers } = comp;
-        const isScriptElement = comp.kind === ts.ScriptElementKind.scriptElement;
+        const isScriptElement = comp.kind === this.tsModule.ScriptElementKind.scriptElement;
         const hasModifier = Boolean(comp.kindModifiers);
         const isRunesCompletion =
             name === '$props' || name === '$state' || name === '$derived' || name === '$effect';
@@ -812,6 +822,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
         options: CommitCharactersOptions,
         isSvelteComp: boolean
     ) {
+        const ts = this.tsModule;
         // Because Svelte components take precedence, we leave out commit characters to not auto complete
         // in weird places (e.g. when you have foo.filter(a => a)) and get autocomplete for component A,
         // then a commit character of `.` would auto import the component which is not what we want
@@ -945,7 +956,13 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
         }
 
         if (comp.__is_custom_element) {
-            const doc = getCustomElementsDocument(lang, lsContainer, tsDoc, comp.name);
+            const doc = getCustomElementsDocument(
+                this.tsModule,
+                lang,
+                lsContainer,
+                tsDoc,
+                comp.name
+            );
             if (doc) {
                 completionItem.documentation = { value: doc, kind: MarkupKind.Markdown };
             }
@@ -968,6 +985,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
             comp.data
         );
 
+        const ts = this.tsModule;
         if (detail) {
             const { detail: itemDetail, documentation: itemDocumentation } =
                 this.getCompletionDocument(tsDoc, detail, is$typeImport);
@@ -977,7 +995,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
             // TODO: consider if we should adopt the internal APIs
             if (detail.sourceDisplay && !completionItem.labelDetails) {
                 completionItem.labelDetails = {
-                    description: ts.displayPartsToString(detail.sourceDisplay)
+                    description: this.tsModule.displayPartsToString(detail.sourceDisplay)
                 };
             }
 
@@ -991,7 +1009,10 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
         if (actions) {
             const edit: TextEdit[] = [];
 
-            const formatCodeBasis = getFormatCodeBasis(formatCodeOptions);
+            const formatCodeBasis = getFormatCodeBasis(
+                formatCodeOptions,
+                this.tsModule.sys.newLine
+            );
             for (const action of actions) {
                 for (const change of action.changes) {
                     edit.push(
@@ -1021,6 +1042,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
         compDetail: ts.CompletionEntryDetails,
         is$typeImport: boolean
     ) {
+        const ts = this.tsModule;
         const { sourceDisplay, documentation: tsDocumentation, displayParts, tags } = compDetail;
         let parts = compDetail.codeActions?.map((codeAction) => codeAction.description) ?? [];
 
@@ -1046,7 +1068,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
         }
         parts.push(text);
 
-        const markdownDoc = getMarkdownDocumentation(tsDocumentation, tags);
+        const markdownDoc = getMarkdownDocumentation(ts, tsDocumentation, tags);
         const documentation: MarkupContent | undefined = markdownDoc
             ? { value: markdownDoc, kind: MarkupKind.Markdown }
             : undefined;

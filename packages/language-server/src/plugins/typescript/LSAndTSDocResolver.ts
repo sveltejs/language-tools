@@ -1,5 +1,5 @@
 import { dirname, join } from 'path';
-import ts from 'typescript';
+import type ts from 'typescript';
 import {
     PublishDiagnosticsParams,
     RelativePattern,
@@ -27,6 +27,7 @@ import { createProjectService } from './serviceCache';
 import { GlobalSnapshotsManager, SnapshotManager } from './SnapshotManager';
 import { isSubPath } from './utils';
 import { FileMap, FileSet } from '../../lib/documents/fileCollection';
+import { importTypeScript } from '../../importPackage';
 
 interface LSAndTSDocResolverOptions {
     notifyExceedSizeLimit?: () => void;
@@ -59,7 +60,8 @@ export class LSAndTSDocResolver {
         private readonly docManager: DocumentManager,
         private readonly workspaceUris: string[],
         private readonly configManager: LSConfigManager,
-        private readonly options?: LSAndTSDocResolverOptions
+        private readonly options?: LSAndTSDocResolverOptions,
+        readonly tsModule = importTypeScript()
     ) {
         docManager.on(
             'documentChange',
@@ -84,11 +86,13 @@ export class LSAndTSDocResolver {
         });
 
         this.getCanonicalFileName = createGetCanonicalFileName(
-            (options?.tsSystem ?? ts.sys).useCaseSensitiveFileNames
+            (options?.tsSystem ?? this.tsModule.sys).useCaseSensitiveFileNames
         );
 
-        this.tsSystem = this.wrapWithPackageJsonMonitoring(this.options?.tsSystem ?? ts.sys);
-        this.globalSnapshotsManager = new GlobalSnapshotsManager(this.tsSystem);
+        this.tsSystem = this.wrapWithPackageJsonMonitoring(
+            this.options?.tsSystem ?? this.tsModule.sys
+        );
+        this.globalSnapshotsManager = new GlobalSnapshotsManager(this.tsModule, this.tsSystem);
         // Notify when new snapshots are created so external watchers (svelte-check)
         // can react dynamically (for example: add parent directories to file watchers).
         if (this.options?.onFileSnapshotCreated) {
@@ -103,7 +107,11 @@ export class LSAndTSDocResolver {
             });
         }
         this.userPreferencesAccessor = { preferences: this.getTsUserPreferences() };
-        const projectService = createProjectService(this.tsSystem, this.userPreferencesAccessor);
+        const projectService = createProjectService(
+            tsModule,
+            this.tsSystem,
+            this.userPreferencesAccessor
+        );
 
         configManager.onChange(() => {
             const newPreferences = this.getTsUserPreferences();
@@ -147,7 +155,8 @@ export class LSAndTSDocResolver {
                 ? this.watchDirectory.bind(this)
                 : undefined,
             nonRecursiveWatchPattern: this.options?.nonRecursiveWatchPattern,
-            reportConfigError: this.options?.reportConfigError
+            reportConfigError: this.options?.reportConfigError,
+            tsModule: this.tsModule
         };
     }
 
@@ -338,7 +347,8 @@ export class LSAndTSDocResolver {
 
     private getUserPreferences(tsDoc: DocumentSnapshot): ts.UserPreferences {
         const configLang =
-            tsDoc.scriptKind === ts.ScriptKind.TS || tsDoc.scriptKind === ts.ScriptKind.TSX
+            tsDoc.scriptKind === this.tsModule.ScriptKind.TS ||
+            tsDoc.scriptKind === this.tsModule.ScriptKind.TSX
                 ? 'typescript'
                 : 'javascript';
 
@@ -383,7 +393,7 @@ export class LSAndTSDocResolver {
         const packageJsonCache = projectService?.packageJsonCache;
         const normalizedPath = projectService?.toPath(path);
 
-        if (onWatchChange === ts.FileWatcherEventKind.Deleted) {
+        if (onWatchChange === this.tsModule.FileWatcherEventKind.Deleted) {
             this.packageJsonWatchers.get(path)?.close();
             this.packageJsonWatchers.delete(path);
             packageJsonCache?.delete(normalizedPath);

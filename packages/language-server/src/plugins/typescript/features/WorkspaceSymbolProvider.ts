@@ -1,5 +1,5 @@
 import { internalHelpers } from 'svelte2tsx';
-import ts from 'typescript';
+import type ts from 'typescript';
 import { CancellationToken } from 'vscode-languageserver-protocol';
 import { SymbolKind, SymbolTag, WorkspaceSymbol } from 'vscode-languageserver-types';
 import { mapLocationToOriginal } from '../../../lib/documents';
@@ -39,6 +39,8 @@ export class WorkspaceSymbolsProviderImpl implements WorkspaceSymbolsProvider {
 
         // The config only exists for typescript. No javascript counterpart.
         const preference = this.configManager.getTsUserPreferences('typescript', null);
+
+        const ts = this.lsAndTsDocResolver.tsModule;
 
         for (const ls of allServices) {
             if (cancellationToken?.isCancellationRequested) {
@@ -179,6 +181,7 @@ export class WorkspaceSymbolsProviderImpl implements WorkspaceSymbolsProvider {
      * https://github.com/microsoft/vscode/blob/18ed64835ec8f8227dbd8562d2d9fd9fa339abbb/extensions/typescript-language-features/src/languageFeatures/workspaceSymbols.ts#L17
      */
     private convertSymbolKindForWorkspaceSymbol(kind: string) {
+        const ts = this.lsAndTsDocResolver.tsModule;
         switch (kind) {
             case ts.ScriptElementKind.memberFunctionElement:
                 return SymbolKind.Method;

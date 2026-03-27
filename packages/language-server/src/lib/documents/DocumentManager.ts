@@ -6,8 +6,8 @@ import {
 } from 'vscode-languageserver';
 import { Document } from './Document';
 import { normalizeUri } from '../../utils';
-import ts from 'typescript';
 import { FileMap, FileSet } from './fileCollection';
+import { importTypeScript } from '../../importPackage';
 
 export type DocumentEvent = 'documentOpen' | 'documentChange' | 'documentClose';
 
@@ -22,13 +22,13 @@ export class DocumentManager {
 
     constructor(
         private createDocument: (textDocument: Pick<TextDocumentItem, 'text' | 'uri'>) => Document,
-        options: { useCaseSensitiveFileNames: boolean } = {
-            useCaseSensitiveFileNames: ts.sys.useCaseSensitiveFileNames
-        }
+        options?: { useCaseSensitiveFileNames: boolean }
     ) {
-        this.documents = new FileMap(options.useCaseSensitiveFileNames);
-        this.locked = new FileSet(options.useCaseSensitiveFileNames);
-        this.deleteCandidates = new FileSet(options.useCaseSensitiveFileNames);
+        const useCaseSensitiveFileNames =
+            options?.useCaseSensitiveFileNames ?? importTypeScript().sys.useCaseSensitiveFileNames;
+        this.documents = new FileMap(useCaseSensitiveFileNames);
+        this.locked = new FileSet(useCaseSensitiveFileNames);
+        this.deleteCandidates = new FileSet(useCaseSensitiveFileNames);
     }
 
     openClientDocument(textDocument: Pick<TextDocumentItem, 'text' | 'uri'>): Document {

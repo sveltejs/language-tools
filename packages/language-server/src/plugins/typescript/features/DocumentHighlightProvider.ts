@@ -1,4 +1,4 @@
-import ts from 'typescript';
+import type ts from 'typescript';
 import { Position, DocumentHighlight } from 'vscode-languageserver-protocol';
 import { DocumentHighlightKind, Range } from 'vscode-languageserver-types';
 import { Document, inStyleOrScript } from '../../../lib/documents';
@@ -58,6 +58,7 @@ export class DocumentHighlightProviderImpl implements DocumentHighlightProvider 
     }
 
     private convertHighlightKind(highlight: ts.HighlightSpan): DocumentHighlightKind | undefined {
+        const ts = this.lsAndTsDocResolver.tsModule;
         return highlight.kind === ts.HighlightSpanKind.writtenReference
             ? DocumentHighlightKind.Write
             : DocumentHighlightKind.Read;

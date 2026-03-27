@@ -1,5 +1,5 @@
 import { isAbsolute } from 'path';
-import ts from 'typescript';
+import type ts from 'typescript';
 import { Diagnostic, Position, Range } from 'vscode-languageserver';
 import { WorkspaceFolder } from 'vscode-languageserver-protocol';
 import { Document, DocumentManager } from './lib/documents';
@@ -25,6 +25,7 @@ import { mapAndFilterDiagnostics } from './plugins/typescript/features/Diagnosti
 import { convertRange, getDiagnosticTag, mapSeverity } from './plugins/typescript/utils';
 import { pathToUrl, urlToPath } from './utils';
 import { groupBy } from 'lodash';
+import { importTypeScript } from './importPackage';
 
 export function mapSvelteCheckDiagnostics(
     sourcePath: string,
@@ -79,6 +80,7 @@ export class SvelteCheck {
     private configManager = new LSConfigManager();
     private pluginHost = new PluginHost(this.docManager);
     private lsAndTSDocResolver?: LSAndTSDocResolver;
+    private tsModule: typeof ts;
 
     constructor(
         workspacePath: string,
@@ -86,6 +88,7 @@ export class SvelteCheck {
     ) {
         Logger.setLogErrorsOnly(true);
         this.initialize(workspacePath, options);
+        this.tsModule = importTypeScript();
     }
 
     private async initialize(workspacePath: string, options: SvelteCheckOptions) {
@@ -225,6 +228,7 @@ export class SvelteCheck {
 
     private async getDiagnosticsForTsconfig(tsconfigPath: string) {
         const lsContainer = await this.getLSContainer(tsconfigPath);
+        const ts = this.tsModule;
         const map = (diagnostic: ts.Diagnostic, range?: Range): Diagnostic => {
             const file = diagnostic.file;
             range ??= file
@@ -236,7 +240,7 @@ export class SvelteCheck {
 
             return {
                 range: range,
-                severity: mapSeverity(diagnostic.category),
+                severity: mapSeverity(ts, diagnostic.category),
                 source: diagnostic.source,
                 message: ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n'),
                 code: diagnostic.code,
@@ -408,7 +412,7 @@ export class SvelteCheck {
 
         return Object.entries(projectConfig.wildcardDirectories).map(([dir, flags]) => ({
             path: dir,
-            recursive: !!(flags & ts.WatchDirectoryFlags.Recursive)
+            recursive: !!(flags & this.tsModule.WatchDirectoryFlags.Recursive)
         }));
     }
 }

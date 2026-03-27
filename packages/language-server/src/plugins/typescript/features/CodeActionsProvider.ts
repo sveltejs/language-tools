@@ -1,5 +1,5 @@
 import { internalHelpers } from 'svelte2tsx';
-import ts, { OrganizeImportsMode } from 'typescript';
+import type ts from 'typescript';
 import {
     CancellationToken,
     CodeAction,
@@ -54,11 +54,11 @@ import {
     FormatCodeBasis,
     getFormatCodeBasis,
     getNewScriptStartTag,
-    getQuotePreference,
     isTextSpanInGeneratedCode,
     SnapshotMap
 } from './utils';
 import { Node } from 'vscode-html-languageservice';
+import { TsScriptKind } from '../types';
 
 /**
  * TODO change this to protocol constant if it's part of the protocol
@@ -113,23 +113,28 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         context: CodeActionContext,
         cancellationToken?: CancellationToken
     ): Promise<CodeAction[]> {
+        const ts = this.lsAndTsDocResolver.tsModule;
         if (context.only?.[0] === CodeActionKind.SourceOrganizeImports) {
-            return await this.organizeImports(document, cancellationToken);
+            return await this.organizeImports(
+                document,
+                ts.OrganizeImportsMode.All,
+                cancellationToken
+            );
         }
 
         if (context.only?.[0] === SORT_IMPORT_CODE_ACTION_KIND) {
             return await this.organizeImports(
                 document,
-                cancellationToken,
-                OrganizeImportsMode.SortAndCombine
+                ts.OrganizeImportsMode.SortAndCombine,
+                cancellationToken
             );
         }
 
         if (context.only?.[0] === REMOVE_UNUSED_IMPORTS_CODE_ACTION_KIND) {
             return await this.organizeImports(
                 document,
-                cancellationToken,
-                OrganizeImportsMode.RemoveUnused
+                ts.OrganizeImportsMode.RemoveUnused,
+                cancellationToken
             );
         }
 
@@ -141,16 +146,20 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         // vscode would show different source code action kinds to choose from
         if (context.only?.[0] === CodeActionKind.Source) {
             return [
-                ...(await this.organizeImports(document, cancellationToken)),
                 ...(await this.organizeImports(
                     document,
-                    cancellationToken,
-                    OrganizeImportsMode.SortAndCombine
+                    ts.OrganizeImportsMode.All,
+                    cancellationToken
                 )),
                 ...(await this.organizeImports(
                     document,
-                    cancellationToken,
-                    OrganizeImportsMode.RemoveUnused
+                    ts.OrganizeImportsMode.SortAndCombine,
+                    cancellationToken
+                )),
+                ...(await this.organizeImports(
+                    document,
+                    ts.OrganizeImportsMode.RemoveUnused,
+                    cancellationToken
                 )),
                 ...(await this.addMissingImports(document, cancellationToken))
             ];
@@ -185,11 +194,12 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             return codeAction;
         }
 
+        const ts = this.lsAndTsDocResolver.tsModule;
         const formatCodeSettings = await this.configManager.getFormatCodeSettingsForFile(
             document,
             tsDoc.scriptKind
         );
-        const formatCodeBasis = getFormatCodeBasis(formatCodeSettings);
+        const formatCodeBasis = getFormatCodeBasis(formatCodeSettings, ts.sys.newLine);
 
         const getDiagnostics = memoize(() =>
             lang.getSemanticDiagnostics(tsDoc.filePath).map(
@@ -419,14 +429,15 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
 
     private async organizeImports(
         document: Document,
-        cancellationToken: CancellationToken | undefined,
-        mode: OrganizeImportsMode = OrganizeImportsMode.All
+        mode: ts.OrganizeImportsMode,
+        cancellationToken: CancellationToken | undefined
     ): Promise<CodeAction[]> {
         if (!document.scriptInfo && !document.moduleScriptInfo) {
             return [];
         }
 
         const { lang, tsDoc, userPreferences } = await this.getLSAndTSDoc(document);
+        const ts = this.lsAndTsDocResolver.tsModule;
 
         if (cancellationToken?.isCancellationRequested || tsDoc.parserError) {
             // If there's a parser error, we fall back to only the script contents,
@@ -493,12 +504,12 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         let title: string;
 
         switch (mode) {
-            case OrganizeImportsMode.SortAndCombine:
+            case ts.OrganizeImportsMode.SortAndCombine:
                 kind = SORT_IMPORT_CODE_ACTION_KIND;
                 title = 'Sort Imports';
                 break;
 
-            case OrganizeImportsMode.RemoveUnused:
+            case ts.OrganizeImportsMode.RemoveUnused:
                 kind = REMOVE_UNUSED_IMPORTS_CODE_ACTION_KIND;
                 title = 'Remove Unused Imports';
                 break;
@@ -670,7 +681,8 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             document,
             tsDoc.scriptKind
         );
-        const formatCodeBasis = getFormatCodeBasis(formatCodeSettings);
+        const ts = this.lsAndTsDocResolver.tsModule;
+        const formatCodeBasis = getFormatCodeBasis(formatCodeSettings, ts.sys.newLine);
 
         let codeFixes: Array<CustomFixCannotFindNameInfo | ts.CodeFixAction> | undefined =
             cannotFindNameDiagnostic.length
@@ -1022,6 +1034,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         formatCodeSetting: ts.FormatCodeSettings
     ): CustomFixCannotFindNameInfo[] | undefined {
         const sourceFile = lang.getProgram()?.getSourceFile(tsDoc.filePath);
+        const ts = this.lsAndTsDocResolver.tsModule;
 
         if (!sourceFile) {
             return;
@@ -1122,6 +1135,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
     }
 
     private isComponentStartTag(node: ts.Identifier) {
+        const ts = this.lsAndTsDocResolver.tsModule;
         return (
             ts.isCallExpression(node.parent) &&
             ts.isIdentifier(node.parent.expression) &&
@@ -1199,6 +1213,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
     ) {
         const start = tsDoc.offsetAt(tsDoc.getGeneratedPosition(diagnostic.range.start));
         const end = tsDoc.offsetAt(tsDoc.getGeneratedPosition(diagnostic.range.end));
+        const ts = this.lsAndTsDocResolver.tsModule;
 
         const identifier = findClosestContainingNode(
             sourceFile,
@@ -1263,7 +1278,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         tsDoc: DocumentSnapshot,
         formatCodeBasis: FormatCodeBasis
     ) {
-        if (tsDoc.scriptKind !== ts.ScriptKind.JS) {
+        if (tsDoc.scriptKind !== TsScriptKind.JS) {
             return;
         }
 
@@ -1567,6 +1582,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             return undefined;
         }
 
+        const ts = this.lsAndTsDocResolver.tsModule;
         const newText = ts.sys.newLine + edit.newText;
 
         return TextEdit.insert(scriptInfo.startPos, newText);
@@ -1628,8 +1644,8 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         document: Document
     ): Range {
         if (
-            snapshot.scriptKind !== ts.ScriptKind.JS &&
-            snapshot.scriptKind !== ts.ScriptKind.JSX &&
+            snapshot.scriptKind !== TsScriptKind.JS &&
+            snapshot.scriptKind !== TsScriptKind.JSX &&
             !isInTag(originalRange.start, document.scriptInfo)
         ) {
             return originalRange;

@@ -2,7 +2,7 @@ import { EncodedSourceMap, TraceMap, originalPositionFor } from '@jridgewell/tra
 // @ts-ignore
 import { TemplateNode } from 'svelte/types/compiler/interfaces';
 import { svelte2tsx, IExportedNames, internalHelpers } from 'svelte2tsx';
-import ts from 'typescript';
+import type ts from 'typescript';
 import { Position, Range, TextDocumentContentChangeEvent } from 'vscode-languageserver';
 import {
     Document,
@@ -30,6 +30,7 @@ import { dirname, resolve } from 'path';
 import { URI } from 'vscode-uri';
 import { surroundWithIgnoreComments } from './features/utils';
 import { configLoader } from '../../lib/documents/configLoader';
+import { TsScriptKind } from './types';
 
 /**
  * Computes the change range between two snapshots by scanning for the first and last
@@ -145,6 +146,7 @@ export namespace DocumentSnapshot {
      * @param options options that apply in case it's a svelte file
      */
     export function fromFilePath(
+        tsModule: typeof ts,
         filePath: string,
         createDocument: (filePath: string, text: string) => Document,
         options: SvelteSnapshotOptions,
@@ -153,7 +155,7 @@ export namespace DocumentSnapshot {
         if (isSvelteFilePath(filePath)) {
             return DocumentSnapshot.fromSvelteFilePath(filePath, createDocument, options, tsSystem);
         } else {
-            return DocumentSnapshot.fromNonSvelteFilePath(filePath, tsSystem);
+            return DocumentSnapshot.fromNonSvelteFilePath(tsModule, filePath, tsSystem);
         }
     }
 
@@ -162,7 +164,11 @@ export namespace DocumentSnapshot {
      * @param filePath path to the js/ts file
      * @param options options that apply in case it's a svelte file
      */
-    export function fromNonSvelteFilePath(filePath: string, tsSystem: ts.System) {
+    export function fromNonSvelteFilePath(
+        tsModule: typeof ts,
+        filePath: string,
+        tsSystem: ts.System
+    ) {
         // The following (very hacky) code makes sure that the ambient module definitions
         // that tell TS "every import ending with .svelte is a valid module" are removed.
         // They exist in svelte2tsx and svelte to make sure that people don't
@@ -193,12 +199,18 @@ export namespace DocumentSnapshot {
             }
         }
 
-        const declarationExtensions = [ts.Extension.Dcts, ts.Extension.Dts, ts.Extension.Dmts];
+        const declarationExtensions = ['.d.cts', '.d.ts', '.d.mts'];
         if (declarationExtensions.some((ext) => filePath.endsWith(ext))) {
-            return new DtsDocumentSnapshot(INITIAL_VERSION, filePath, originalText, tsSystem);
+            return new DtsDocumentSnapshot(
+                tsModule,
+                INITIAL_VERSION,
+                filePath,
+                originalText,
+                tsSystem
+            );
         }
 
-        return new JSOrTSDocumentSnapshot(INITIAL_VERSION, filePath, originalText);
+        return new JSOrTSDocumentSnapshot(tsModule, INITIAL_VERSION, filePath, originalText);
     }
 
     /**
@@ -232,16 +244,16 @@ function preprocessSvelteFile(document: Document, options: SvelteSnapshotOptions
     const scriptKind = [
         getScriptKindFromAttributes(document.scriptInfo?.attributes ?? {}),
         getScriptKindFromAttributes(document.moduleScriptInfo?.attributes ?? {})
-    ].includes(ts.ScriptKind.TSX)
-        ? ts.ScriptKind.TS
-        : ts.ScriptKind.JS;
+    ].includes(TsScriptKind.TSX)
+        ? TsScriptKind.TS
+        : TsScriptKind.JS;
 
     try {
         const tsx = svelte2tsx(text, {
             parse: options.parse,
             version: options.version,
             filename: document.getFilePath() ?? undefined,
-            isTsFile: scriptKind === ts.ScriptKind.TS,
+            isTsFile: scriptKind === TsScriptKind.TS,
             mode: 'ts',
             typingsNamespace: options.typingsNamespace,
             emitOnTemplateError: options.transformOnTemplateError,
@@ -266,8 +278,11 @@ function preprocessSvelteFile(document: Document, options: SvelteSnapshotOptions
         if (tsxMap) {
             tsxMap.sources = [document.uri];
 
+            const documentUseCrLf =
+                document.getText().includes('\r\n') && !document.getText().includes('\n');
+
             const scriptInfo = document.scriptInfo || document.moduleScriptInfo;
-            const tsCheck = getTsCheckComment(scriptInfo?.content);
+            const tsCheck = getTsCheckComment(scriptInfo?.content, documentUseCrLf ? '\r\n' : '\n');
             if (tsCheck) {
                 text = tsCheck + text;
                 nrPrependedLines = 1;
@@ -506,6 +521,7 @@ export class JSOrTSDocumentSnapshot extends IdentityMapper implements DocumentSn
     }
 
     constructor(
+        private tsModule: typeof import('typescript'),
         public version: number,
         public readonly filePath: string,
         private text: string,
@@ -597,6 +613,7 @@ export class JSOrTSDocumentSnapshot extends IdentityMapper implements DocumentSn
         }
 
         return new JSOrTSDocumentSnapshot(
+            this.tsModule,
             this.version + 1,
             this.filePath,
             updatedOriginalText,
@@ -631,7 +648,7 @@ export class JSOrTSDocumentSnapshot extends IdentityMapper implements DocumentSn
 
     private adjustText() {
         const result = internalHelpers.upsertKitFile(
-            ts,
+            this.tsModule,
             this.filePath,
             {
                 clientHooksPath: this.clientHooksPath,
@@ -667,10 +684,10 @@ export class JSOrTSDocumentSnapshot extends IdentityMapper implements DocumentSn
     }
 
     private createSource() {
-        return ts.createSourceFile(
+        return this.tsModule.createSourceFile(
             this.filePath,
             this.originalText,
-            ts.ScriptTarget.Latest,
+            this.tsModule.ScriptTarget.Latest,
             true,
             this.scriptKind
         );
@@ -687,12 +704,13 @@ export class DtsDocumentSnapshot extends JSOrTSDocumentSnapshot implements Docum
     private mapperInitialized = false;
 
     constructor(
+        tsModule: typeof ts,
         version: number,
         filePath: string,
         text: string,
         private tsSys: ts.System
     ) {
-        super(version, filePath, text);
+        super(tsModule, version, filePath, text);
     }
 
     getOriginalFilePosition(generatedPosition: Position): FilePosition {

@@ -14,16 +14,20 @@ import {
 } from '../../../src/utils';
 import { VERSION } from 'svelte/compiler';
 import { findTsConfigPath } from '../../../src/plugins/typescript/utils';
+import { importTypeScript } from '../../../src/importPackage';
 
 const isSvelte5Plus = Number(VERSION.split('.')[0]) >= 5;
 
 export function createVirtualTsSystem(currentDirectory: string): ts.System {
-    const virtualFs = new FileMap<string>();
+    const useCaseSensitiveFileNames = ts.sys.useCaseSensitiveFileNames;
+    const virtualFs = new FileMap<string>(useCaseSensitiveFileNames);
     // array behave more similar to the actual fs event than Set
-    const watchers = new FileMap<ts.FileWatcherCallback[]>();
-    const watchTimeout = new FileMap<Array<ReturnType<typeof setTimeout>>>();
-    const getCanonicalFileName = createGetCanonicalFileName(ts.sys.useCaseSensitiveFileNames);
-    const modifiedTime = new FileMap<Date>();
+    const watchers = new FileMap<ts.FileWatcherCallback[]>(useCaseSensitiveFileNames);
+    const watchTimeout = new FileMap<Array<ReturnType<typeof setTimeout>>>(
+        useCaseSensitiveFileNames
+    );
+    const getCanonicalFileName = createGetCanonicalFileName(useCaseSensitiveFileNames);
+    const modifiedTime = new FileMap<Date>(useCaseSensitiveFileNames);
 
     function toAbsolute(path: string) {
         return isAbsolute(path) ? path : join(currentDirectory, path);
@@ -310,6 +314,7 @@ export function serviceWarmup(
         );
 
         configFilePath ??= findTsConfigPath(
+            importTypeScript(),
             join(testDir, 'DoesNotMater.svelte'),
             [rootUri],
             ts.sys.fileExists,

@@ -1,4 +1,4 @@
-import ts from 'typescript';
+import type ts from 'typescript';
 import { CancellationToken, Location, Position, ReferenceContext } from 'vscode-languageserver';
 import { Document } from '../../../lib/documents';
 import { isNotNullOrUndefined, normalizePath, pathToUrl } from '../../../utils';
@@ -54,6 +54,8 @@ export class FindReferencesProviderImpl implements FindReferencesProvider {
 
         const snapshots = new SnapshotMap(this.lsAndTsDocResolver, lsContainer);
         snapshots.set(tsDoc.filePath, tsDoc);
+
+        const ts = this.lsAndTsDocResolver.tsModule;
 
         if (rawReferences.some((ref) => ref.definition.kind === ts.ScriptElementKind.alias)) {
             const componentReferences = await this.checkIfHasAliasedComponentReference(

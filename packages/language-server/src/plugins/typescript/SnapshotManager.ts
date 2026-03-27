@@ -1,10 +1,11 @@
-import ts from 'typescript';
+import type ts from 'typescript';
 import { DocumentSnapshot, JSOrTSDocumentSnapshot } from './DocumentSnapshot';
 import { Logger } from '../../logger';
 import { TextDocumentContentChangeEvent } from 'vscode-languageserver';
 import { createGetCanonicalFileName, GetCanonicalFileName, normalizePath } from '../../utils';
 import { EventEmitter } from 'events';
 import { FileMap } from '../../lib/documents/fileCollection';
+import { TsExtension } from './types';
 
 type SnapshotChangeHandler = (fileName: string, newDocument: DocumentSnapshot | undefined) => void;
 
@@ -18,7 +19,10 @@ export class GlobalSnapshotsManager {
     private documents: FileMap<DocumentSnapshot>;
     private getCanonicalFileName: GetCanonicalFileName;
 
-    constructor(private readonly tsSystem: ts.System) {
+    constructor(
+        private readonly tsModule: typeof ts,
+        private readonly tsSystem: ts.System
+    ) {
         this.documents = new FileMap(tsSystem.useCaseSensitiveFileNames);
         this.getCanonicalFileName = createGetCanonicalFileName(tsSystem.useCaseSensitiveFileNames);
     }
@@ -66,7 +70,11 @@ export class GlobalSnapshotsManager {
             this.set(fileName, newSnapshot);
             return newSnapshot;
         } else {
-            const newSnapshot = DocumentSnapshot.fromNonSvelteFilePath(fileName, this.tsSystem);
+            const newSnapshot = DocumentSnapshot.fromNonSvelteFilePath(
+                this.tsModule,
+                fileName,
+                this.tsSystem
+            );
 
             if (previousSnapshot) {
                 newSnapshot.version = previousSnapshot.version + 1;
@@ -106,22 +114,23 @@ export class SnapshotManager {
     private watchingCanonicalDirectories: Map<string, ts.WatchDirectoryFlags> | undefined;
 
     private readonly watchExtensions = [
-        ts.Extension.Dts,
-        ts.Extension.Dcts,
-        ts.Extension.Dmts,
-        ts.Extension.Js,
-        ts.Extension.Cjs,
-        ts.Extension.Mjs,
-        ts.Extension.Jsx,
-        ts.Extension.Ts,
-        ts.Extension.Mts,
-        ts.Extension.Cts,
-        ts.Extension.Tsx,
-        ts.Extension.Json,
+        TsExtension.Dts,
+        TsExtension.Dcts,
+        TsExtension.Dmts,
+        TsExtension.Js,
+        TsExtension.Cjs,
+        TsExtension.Mjs,
+        TsExtension.Jsx,
+        TsExtension.Ts,
+        TsExtension.Mts,
+        TsExtension.Cts,
+        TsExtension.Tsx,
+        TsExtension.Json,
         '.svelte'
     ];
 
     constructor(
+        private readonly tsModule: typeof ts,
         private globalSnapshotsManager: GlobalSnapshotsManager,
         private fileSpec: TsFilesSpec,
         private workspaceRoot: string,
@@ -181,7 +190,7 @@ export class SnapshotManager {
 
             for (const [dir, flags] of this.watchingCanonicalDirectories) {
                 if (path.startsWith(dir)) {
-                    if (!(flags & ts.WatchDirectoryFlags.Recursive)) {
+                    if (!(flags & this.tsModule.WatchDirectoryFlags.Recursive)) {
                         const relative = path.slice(dir.length);
                         if (relative.includes('/')) {
                             continue;
@@ -308,7 +317,10 @@ export class SnapshotManager {
 
     allFilesAreJsOrDts() {
         for (const doc of this.documents.values()) {
-            if (doc.scriptKind === ts.ScriptKind.TS || doc.scriptKind === ts.ScriptKind.TSX) {
+            if (
+                doc.scriptKind === this.tsModule.ScriptKind.TS ||
+                doc.scriptKind === this.tsModule.ScriptKind.TSX
+            ) {
                 return false;
             }
         }

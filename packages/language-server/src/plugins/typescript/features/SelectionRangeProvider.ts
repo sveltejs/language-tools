@@ -1,4 +1,4 @@
-import ts from 'typescript';
+import type ts from 'typescript';
 import { Position, Range, SelectionRange } from 'vscode-languageserver';
 import { Document, mapRangeToOriginal } from '../../../lib/documents';
 import { SelectionRangeProvider } from '../../interfaces';

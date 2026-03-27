@@ -1,4 +1,4 @@
-import ts from 'typescript';
+import type ts from 'typescript';
 import {
     Position,
     SignatureHelpContext,
@@ -46,7 +46,7 @@ export class SignatureHelpProviderImpl implements SignatureHelpProvider {
             return null;
         }
 
-        const signatures = info.items.map(this.toSignatureHelpInformation);
+        const signatures = info.items.map(this.toSignatureHelpInformation.bind(this));
 
         return {
             signatures,
@@ -105,6 +105,7 @@ export class SignatureHelpProviderImpl implements SignatureHelpProvider {
      * adopted from https://github.com/microsoft/vscode/blob/265a2f6424dfbd3a9788652c7d376a7991d049a3/extensions/typescript-language-features/src/languageFeatures/signatureHelp.ts#L73
      */
     private toSignatureHelpInformation(item: ts.SignatureHelpItem): SignatureInformation {
+        const ts = this.lsAndTsDocResolver.tsModule;
         const [prefixLabel, separatorLabel, suffixLabel] = [
             item.prefixDisplayParts,
             item.separatorDisplayParts,
@@ -132,6 +133,7 @@ export class SignatureHelpProviderImpl implements SignatureHelpProvider {
             }
         });
         const signatureDocumentation = getMarkdownDocumentation(
+            ts,
             item.documentation,
             item.tags.filter((tag) => tag.name !== 'param')
         );

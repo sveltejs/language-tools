@@ -20,7 +20,7 @@ import {
 } from '../../../../lib/documents';
 import { getIndent, pathToUrl } from '../../../../utils';
 import { ITranspiledSvelteDocument, SvelteDocument } from '../../SvelteDocument';
-import ts from 'typescript';
+import type ts from 'typescript';
 // estree does not have start/end in their public Node interface,
 // but the AST returned by svelte/compiler does. Type as any as a workaround.
 type Node = any;

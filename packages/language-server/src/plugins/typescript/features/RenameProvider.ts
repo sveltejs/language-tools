@@ -18,7 +18,7 @@ import { RenameProvider } from '../../interfaces';
 import { DocumentSnapshot, SvelteDocumentSnapshot } from '../DocumentSnapshot';
 import { convertRange } from '../utils';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
-import ts from 'typescript';
+import type ts from 'typescript';
 import {
     isComponentAtPosition,
     isAfterSvelte2TsxPropsReturn,
@@ -174,6 +174,7 @@ export class RenameProviderImpl implements RenameProvider {
             allowRenameOfImportPath: false
         });
 
+        const ts = this.lsAndTsDocResolver.tsModule;
         if (
             !renameInfo.canRename ||
             renameInfo.fullDisplayName?.includes('JSX.IntrinsicElements') ||
@@ -380,6 +381,8 @@ export class RenameProviderImpl implements RenameProvider {
         if (!updatePropLocation) {
             return [];
         }
+
+        const ts = this.lsAndTsDocResolver.tsModule;
         const getCanonicalFileName = createGetCanonicalFileName(ts.sys.useCaseSensitiveFileNames);
         if (
             getCanonicalFileName(updatePropLocation.fileName) ===

@@ -1,4 +1,4 @@
-import ts from 'typescript';
+import type ts from 'typescript';
 import { isNotNullOrUndefined } from '../../utils';
 import { findContainingNode } from './features/utils';
 
@@ -12,6 +12,7 @@ export interface ComponentInfoProvider {
 
 export class JsOrTsComponentInfoProvider implements ComponentInfoProvider {
     private constructor(
+        private readonly ts: typeof import('typescript'),
         private readonly typeChecker: ts.TypeChecker,
         private readonly classType: ts.Type,
         private readonly useSvelte5PlusPropsParameter: boolean = false
@@ -90,7 +91,9 @@ export class JsOrTsComponentInfoProvider implements ComponentInfoProvider {
                     type: this.typeChecker.typeToString(
                         this.typeChecker.getTypeOfSymbolAtLocation(prop, declaration)
                     ),
-                    doc: ts.displayPartsToString(prop.getDocumentationComment(this.typeChecker))
+                    doc: this.ts.displayPartsToString(
+                        prop.getDocumentationComment(this.typeChecker)
+                    )
                 };
             })
             .filter(isNotNullOrUndefined);
@@ -101,6 +104,7 @@ export class JsOrTsComponentInfoProvider implements ComponentInfoProvider {
      * could become old and then multiple versions of it could exist.
      */
     static create(
+        ts: typeof import('typescript'),
         lang: ts.LanguageService,
         def: ts.DefinitionInfo,
         isSvelte5Plus: boolean
@@ -129,12 +133,13 @@ export class JsOrTsComponentInfoProvider implements ComponentInfoProvider {
         const type = typeChecker.getTypeOfSymbolAtLocation(componentSymbol, defIdentifier);
 
         if (type.isClass()) {
-            return new JsOrTsComponentInfoProvider(typeChecker, type);
+            return new JsOrTsComponentInfoProvider(ts, typeChecker, type);
         }
 
         const constructorSignatures = type.getConstructSignatures();
         if (constructorSignatures.length === 1) {
             return new JsOrTsComponentInfoProvider(
+                ts,
                 typeChecker,
                 constructorSignatures[0].getReturnType()
             );
@@ -156,6 +161,7 @@ export class JsOrTsComponentInfoProvider implements ComponentInfoProvider {
         const propsParameterType = typeChecker.getTypeOfSymbol(propsParameter);
 
         return new JsOrTsComponentInfoProvider(
+            ts,
             typeChecker,
             propsParameterType,
             /** useSvelte5PlusPropsParameter */ true

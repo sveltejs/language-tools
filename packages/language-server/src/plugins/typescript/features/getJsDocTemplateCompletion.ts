@@ -1,4 +1,4 @@
-import ts from 'typescript';
+import type ts from 'typescript';
 import {
     CompletionItem,
     CompletionItemKind,
@@ -10,9 +10,8 @@ import {
 import { mapRangeToOriginal } from '../../../lib/documents';
 import { SvelteDocumentSnapshot } from '../DocumentSnapshot';
 
-const DEFAULT_SNIPPET = `/**${ts.sys.newLine} * $0${ts.sys.newLine} */`;
-
 export function getJsDocTemplateCompletion(
+    format: ts.FormatCodeSettings,
     snapshot: SvelteDocumentSnapshot,
     lang: ts.LanguageService,
     filePath: string,
@@ -45,7 +44,7 @@ export function getJsDocTemplateCompletion(
         // When typescript returns an empty single line template
         // return the default multi-lines snippet,
         // making it consistent with VSCode typescript
-        newText === '/** */' ? DEFAULT_SNIPPET : templateToSnippet(newText);
+        newText === '/** */' ? getDefaultJsDocTemplate(format) : templateToSnippet(newText);
 
     const item: CompletionItem = {
         label: '/** */',
@@ -57,6 +56,11 @@ export function getJsDocTemplateCompletion(
     };
 
     return CompletionList.create([item]);
+}
+
+function getDefaultJsDocTemplate(format: ts.FormatCodeSettings) {
+    const newLine = format.newLineCharacter || '\n';
+    return `/**${newLine} * $0${newLine} */`;
 }
 
 /**

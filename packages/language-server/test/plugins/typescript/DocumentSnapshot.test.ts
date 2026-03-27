@@ -83,7 +83,7 @@ describe('computeChangeRange', () => {
 
 describe('JSOrTSDocumentSnapshot.getChangeRange', () => {
     function createSnapshot(text: string, version = 0, filePath = '/test/file.ts') {
-        return new JSOrTSDocumentSnapshot(version, filePath, text);
+        return new JSOrTSDocumentSnapshot(ts, version, filePath, text);
     }
 
     it('computes change range between two different snapshots', () => {

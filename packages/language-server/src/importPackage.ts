@@ -79,3 +79,10 @@ export function importSveltePreprocess(fromPath: string): any {
     Logger.debug('Using svelte-preprocess v' + pkg.version.full, 'from', main);
     return dynamicRequire(main);
 }
+
+export function importTypeScript(fromPath?: string): typeof import('typescript') {
+    const pkg = getPackageInfo('typescript', fromPath ?? __dirname);
+    const main = resolve(pkg.path);
+    Logger.debug('Using TypeScript v' + pkg.version.full, 'from', main);
+    return dynamicRequire(main);
+}

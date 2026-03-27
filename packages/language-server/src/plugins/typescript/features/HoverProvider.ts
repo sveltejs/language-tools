@@ -1,4 +1,4 @@
-import ts from 'typescript';
+import type ts from 'typescript';
 import { Hover, Position } from 'vscode-languageserver';
 import {
     Document,
@@ -52,6 +52,7 @@ export class HoverProviderImpl implements HoverProvider {
             return null;
         }
 
+        const ts = this.lsAndTsDocResolver.tsModule;
         let declaration = ts.displayPartsToString(info.displayParts);
         if (
             tsDoc.isSvelte5Plus &&
@@ -62,7 +63,7 @@ export class HoverProviderImpl implements HoverProvider {
             declaration = declaration.substring(declaration.lastIndexOf('import'));
         }
 
-        const documentation = getMarkdownDocumentation(info.documentation, info.tags);
+        const documentation = getMarkdownDocumentation(ts, info.documentation, info.tags);
 
         // https://microsoft.github.io/language-server-protocol/specification#textDocument_hover
         const contents = ['```typescript', declaration, '```']
@@ -88,7 +89,8 @@ export class HoverProviderImpl implements HoverProvider {
             return;
         }
 
-        return getCustomElementsDocument(lang, lsContainer, tsDoc, tag.tag) ?? undefined;
+        const ts = this.lsAndTsDocResolver.tsModule;
+        return getCustomElementsDocument(ts, lang, lsContainer, tsDoc, tag.tag) ?? undefined;
     }
 
     private getEventHoverInfo(
@@ -105,7 +107,8 @@ export class HoverProviderImpl implements HoverProvider {
             return null;
         }
 
-        const component = getComponentAtPosition(lang, doc, tsDoc, originalPosition);
+        const ts = this.lsAndTsDocResolver.tsModule;
+        const component = getComponentAtPosition(ts, lang, doc, tsDoc, originalPosition);
         if (!component) {
             return null;
         }

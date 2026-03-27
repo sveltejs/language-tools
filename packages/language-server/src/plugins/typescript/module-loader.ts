@@ -1,4 +1,4 @@
-import ts from 'typescript';
+import type ts from 'typescript';
 import { FileMap, FileSet } from '../../lib/documents/fileCollection';
 import { createGetCanonicalFileName, getLastPartOfPath, toFileNameLowerCase } from '../../utils';
 import { DocumentSnapshot } from './DocumentSnapshot';
@@ -16,9 +16,17 @@ const CACHE_KEY_SEPARATOR = ':::';
  * Caches resolved modules.
  */
 class ModuleResolutionCache {
-    private cache = new FileMap<ts.ResolvedModuleWithFailedLookupLocations>();
-    private pendingInvalidations = new FileSet();
-    private getCanonicalFileName = createGetCanonicalFileName(ts.sys.useCaseSensitiveFileNames);
+    constructor(tsModule: typeof ts) {
+        this.getCanonicalFileName = createGetCanonicalFileName(
+            tsModule.sys.useCaseSensitiveFileNames
+        );
+        this.cache = new FileMap(tsModule.sys.useCaseSensitiveFileNames);
+        this.pendingInvalidations = new FileSet(tsModule.sys.useCaseSensitiveFileNames);
+    }
+
+    private cache: FileMap<ts.ResolvedModuleWithFailedLookupLocations>;
+    private pendingInvalidations: FileSet;
+    private getCanonicalFileName;
 
     /**
      * Tries to get a cached module.
@@ -93,7 +101,7 @@ class ModuleResolutionCache {
 }
 
 class ImpliedNodeFormatResolver {
-    constructor(private readonly tsSystem: ts.System) {}
+    constructor(private readonly tsModule: typeof ts) {}
 
     resolve(
         importPath: string,
@@ -108,7 +116,11 @@ class ImpliedNodeFormatResolver {
 
         let mode: ReturnType<typeof ts.getModeForResolutionAtIndex> = undefined;
         if (sourceFile) {
-            mode = ts.getModeForResolutionAtIndex(sourceFile, importIdxInFile, compilerOptions);
+            mode = this.tsModule.getModeForResolutionAtIndex(
+                sourceFile,
+                importIdxInFile,
+                compilerOptions
+            );
         }
         return mode;
     }
@@ -119,7 +131,7 @@ class ImpliedNodeFormatResolver {
     ) {
         let mode = undefined;
         if (sourceFile) {
-            mode = ts.getModeForFileReference(entry, sourceFile?.impliedNodeFormat);
+            mode = this.tsModule.getModeForFileReference(entry, sourceFile?.impliedNodeFormat);
         }
         return mode;
     }
@@ -162,13 +174,13 @@ export function createSvelteModuleLoader(
         undefined,
         tsModuleCache.getPackageJsonInfoCache()
     );
-    const moduleCache = new ModuleResolutionCache();
+    const moduleCache = new ModuleResolutionCache(tsModule);
     const typeReferenceCache = new Map<
         string,
         ts.ResolvedTypeReferenceDirectiveWithFailedLookupLocations
     >();
 
-    const impliedNodeFormatResolver = new ImpliedNodeFormatResolver(tsSystem);
+    const impliedNodeFormatResolver = new ImpliedNodeFormatResolver(tsModule);
     const resolutionWithFailedLookup = new Set<
         ts.ResolvedModuleWithFailedLookupLocations & {
             files?: Set<string>;
@@ -302,7 +314,7 @@ export function createSvelteModuleLoader(
             const key = `${entry}|${mode}`;
             let result = typeReferenceCache.get(key);
             if (!result) {
-                result = ts.resolveTypeReferenceDirective(
+                result = tsModule.resolveTypeReferenceDirective(
                     entry,
                     containingFile,
                     options,

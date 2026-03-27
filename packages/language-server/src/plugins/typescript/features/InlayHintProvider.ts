@@ -1,4 +1,4 @@
-import ts, { ArrowFunction } from 'typescript';
+import type ts from 'typescript';
 import { CancellationToken } from 'vscode-languageserver';
 import {
     Position,
@@ -23,8 +23,11 @@ import {
 import { convertRange, isSvelte2tsxShimFile } from '../utils';
 
 export class InlayHintProviderImpl implements InlayHintProvider {
-    constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
+    constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {
+        this.tsModule = lsAndTsDocResolver.tsModule;
+    }
 
+    private readonly tsModule: typeof ts;
     async getInlayHints(
         document: Document,
         range: Range,
@@ -55,7 +58,7 @@ export class InlayHintProviderImpl implements InlayHintProvider {
             return [];
         }
 
-        const renderFunction = findRenderFunction(sourceFile);
+        const renderFunction = findRenderFunction(this.tsModule, sourceFile);
         const renderFunctionReturnTypeLocation =
             renderFunction && this.getTypeAnnotationPosition(renderFunction);
 
@@ -159,7 +162,7 @@ export class InlayHintProviderImpl implements InlayHintProvider {
         inlayHint: ts.InlayHint
     ): Position {
         let originalPosition = tsDoc.getOriginalPosition(tsDoc.positionAt(inlayHint.position));
-        if (inlayHint.kind === ts.InlayHintKind.Type) {
+        if (inlayHint.kind === this.tsModule.InlayHintKind.Type) {
             const originalOffset = document.offsetAt(originalPosition);
             const source = document.getText();
             // detect if inlay hint position is off by one
@@ -192,6 +195,7 @@ export class InlayHintProviderImpl implements InlayHintProvider {
     }
 
     private isSvelte2tsxFunctionHints(sourceFile: ts.SourceFile, inlayHint: ts.InlayHint): boolean {
+        const ts = this.tsModule;
         if (inlayHint.kind !== ts.InlayHintKind.Parameter) {
             return false;
         }
@@ -230,6 +234,7 @@ export class InlayHintProviderImpl implements InlayHintProvider {
         sourceFile: ts.SourceFile,
         inlayHint: ts.InlayHint
     ): boolean {
+        const ts = this.tsModule;
         if (inlayHint.kind !== ts.InlayHintKind.Type) {
             return false;
         }
@@ -257,6 +262,7 @@ export class InlayHintProviderImpl implements InlayHintProvider {
 
     /** `true` if is one of the `async () => {...}` functions svelte2tsx generates */
     private isGeneratedAsyncFunctionReturnType(sourceFile: ts.SourceFile, inlayHint: ts.InlayHint) {
+        const ts = this.tsModule;
         if (inlayHint.kind !== ts.InlayHintKind.Type) {
             return false;
         }
@@ -264,7 +270,7 @@ export class InlayHintProviderImpl implements InlayHintProvider {
         const expression = findContainingNode(
             sourceFile,
             { start: inlayHint.position, length: 0 },
-            (node): node is ArrowFunction => ts.isArrowFunction(node)
+            ts.isArrowFunction
         );
 
         if (
@@ -279,6 +285,7 @@ export class InlayHintProviderImpl implements InlayHintProvider {
     }
 
     private isGeneratedFunctionReturnType(sourceFile: ts.SourceFile, inlayHint: ts.InlayHint) {
+        const ts = this.tsModule;
         if (inlayHint.kind !== ts.InlayHintKind.Type) {
             return false;
         }
@@ -312,7 +319,7 @@ export class InlayHintProviderImpl implements InlayHintProvider {
             | ts.MethodDeclaration
             | ts.GetAccessorDeclaration
     ) {
-        const closeParenToken = findChildOfKind(decl, ts.SyntaxKind.CloseParenToken);
+        const closeParenToken = findChildOfKind(decl, this.tsModule.SyntaxKind.CloseParenToken);
         if (closeParenToken) {
             return closeParenToken.end;
         }

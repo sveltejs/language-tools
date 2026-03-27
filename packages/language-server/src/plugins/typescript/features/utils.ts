@@ -1,4 +1,4 @@
-import ts from 'typescript';
+import type ts from 'typescript';
 import { Position, Range } from 'vscode-languageserver';
 import {
     Document,
@@ -9,21 +9,25 @@ import {
 import { ComponentInfoProvider, JsOrTsComponentInfoProvider } from '../ComponentInfoProvider';
 import { DocumentSnapshot, SvelteDocumentSnapshot } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
-import { or } from '../../../utils';
 import { FileMap } from '../../../lib/documents/fileCollection';
 import { LSConfig } from '../../../ls-config';
 import { LanguageServiceContainer } from '../service';
 import { internalHelpers } from 'svelte2tsx';
 
-type NodePredicate = (node: ts.Node) => boolean;
+type NodePredicate = (tsModule: typeof ts, node: ts.Node) => boolean;
 
 type NodeTypePredicate<T extends ts.Node> = (node: ts.Node) => node is T;
+type NodeTypePredicateWithModule<T extends ts.Node> = (
+    tsModule: typeof ts,
+    node: ts.Node
+) => node is T;
 
 /**
  * If the given original position is within a Svelte starting tag,
  * return the snapshot of that component.
  */
 export function getComponentAtPosition(
+    tsModule: typeof ts,
     lang: ts.LanguageService,
     doc: Document,
     tsDoc: SvelteDocumentSnapshot,
@@ -60,7 +64,7 @@ export function getComponentAtPosition(
         return null;
     }
 
-    return JsOrTsComponentInfoProvider.create(lang, def, tsDoc.isSvelte5Plus);
+    return JsOrTsComponentInfoProvider.create(tsModule, lang, def, tsDoc.isSvelte5Plus);
 }
 
 export function isComponentAtPosition(
@@ -145,11 +149,13 @@ export function getStoreOffsetOf$storeDeclaration(text: string, $storeVarStart: 
 }
 
 export class SnapshotMap {
-    private map = new FileMap<DocumentSnapshot>();
+    private map: FileMap<DocumentSnapshot>;
     constructor(
         private resolver: LSAndTSDocResolver,
         private sourceLs: LanguageServiceContainer
-    ) {}
+    ) {
+        this.map = new FileMap<DocumentSnapshot>(resolver.tsModule.sys.useCaseSensitiveFileNames);
+    }
 
     set(fileName: string, snapshot: DocumentSnapshot) {
         this.map.set(fileName, snapshot);
@@ -266,9 +272,9 @@ export function findNodeAtSpan<T extends ts.Node>(
     });
 }
 
-function isSomeAncestor(node: ts.Node, predicate: NodePredicate) {
+function isSomeAncestor(tsModule: typeof ts, node: ts.Node, predicate: NodePredicate) {
     for (let parent = node.parent; parent; parent = parent.parent) {
-        if (predicate(parent)) {
+        if (predicate(tsModule, parent)) {
             return true;
         }
     }
@@ -279,10 +285,10 @@ function isSomeAncestor(node: ts.Node, predicate: NodePredicate) {
  * Tests a node then its parent and successive ancestors for some respective predicates.
  */
 function nodeAndParentsSatisfyRespectivePredicates<T extends ts.Node>(
-    selfPredicate: NodePredicate | NodeTypePredicate<T>,
+    selfPredicate: NodePredicate | NodeTypePredicateWithModule<T>,
     ...predicates: NodePredicate[]
 ) {
-    return (node: ts.Node | undefined | void | null): node is T => {
+    return (tsModule: typeof ts, node: ts.Node | undefined | void | null): node is T => {
         let next = node;
         return [selfPredicate, ...predicates].every((predicate) => {
             if (!next) {
@@ -290,7 +296,7 @@ function nodeAndParentsSatisfyRespectivePredicates<T extends ts.Node>(
             }
             const current = next;
             next = next.parent;
-            return predicate(current);
+            return predicate(tsModule, current);
         });
     };
 }
@@ -298,18 +304,22 @@ function nodeAndParentsSatisfyRespectivePredicates<T extends ts.Node>(
 const isRenderFunction = nodeAndParentsSatisfyRespectivePredicates<
     ts.FunctionDeclaration & { name: ts.Identifier }
 >(
-    (node) =>
+    (ts, node) =>
         ts.isFunctionDeclaration(node) && node?.name?.getText() === internalHelpers.renderName,
-    ts.isSourceFile
+    (ts, node) => ts.isSourceFile(node)
 );
 
 const isRenderFunctionBody = nodeAndParentsSatisfyRespectivePredicates(
-    ts.isBlock,
+    (ts, node) => ts.isBlock(node),
     isRenderFunction
 );
 
+function or<T extends ts.Node>(...predicates: Array<NodePredicate>) {
+    return (tsModule: typeof ts, x: T) => predicates.some((predicate) => predicate(tsModule, x));
+}
+
 export const isReactiveStatement = nodeAndParentsSatisfyRespectivePredicates<ts.LabeledStatement>(
-    (node) => ts.isLabeledStatement(node) && node.label.getText() === '$',
+    (ts, node) => ts.isLabeledStatement(node) && node.label.getText() === '$',
     or(
         // function $$render() {
         //     $: x2 = __sveltets_2_invalidate(() => x * x)
@@ -319,24 +329,25 @@ export const isReactiveStatement = nodeAndParentsSatisfyRespectivePredicates<ts.
         //     ;() => {$: x, update();
         // }
         nodeAndParentsSatisfyRespectivePredicates(
-            ts.isBlock,
-            ts.isArrowFunction,
-            ts.isExpressionStatement,
-            isRenderFunctionBody
+            (ts, node) => ts.isBlock(node),
+            (ts, node) => ts.isArrowFunction(node),
+            (ts, node) => ts.isExpressionStatement(node),
+            (ts, node) => isRenderFunctionBody(ts, node)
         )
     )
 );
 
-export function findRenderFunction(sourceFile: ts.SourceFile) {
+export function findRenderFunction(tsModule: typeof ts, sourceFile: ts.SourceFile) {
     // only search top level
     for (const child of sourceFile.statements) {
-        if (isRenderFunction(child)) {
+        if (isRenderFunction(tsModule, child)) {
             return child;
         }
     }
 }
 
-export const isInReactiveStatement = (node: ts.Node) => isSomeAncestor(node, isReactiveStatement);
+export const isInReactiveStatement = (tsModule: typeof ts, node: ts.Node) =>
+    isSomeAncestor(tsModule, node, isReactiveStatement);
 
 export function gatherDescendants<T extends ts.Node>(
     node: ts.Node,
@@ -353,13 +364,17 @@ export function gatherDescendants<T extends ts.Node>(
     return dest;
 }
 
-export const gatherIdentifiers = (node: ts.Node) => gatherDescendants(node, ts.isIdentifier);
+export const gatherIdentifiers = (tsModule: typeof ts, node: ts.Node) =>
+    gatherDescendants(node, tsModule.isIdentifier);
 
 export function isKitTypePath(path?: string): boolean {
     return !!path?.includes('.svelte-kit/types');
 }
 
-export function getFormatCodeBasis(formatCodeSetting: ts.FormatCodeSettings): FormatCodeBasis {
+export function getFormatCodeBasis(
+    formatCodeSetting: ts.FormatCodeSettings,
+    defaultNewLine: string
+): FormatCodeBasis {
     const { baseIndentSize, indentSize, convertTabsToSpaces } = formatCodeSetting;
     const baseIndent = convertTabsToSpaces
         ? ' '.repeat(baseIndentSize ?? 4)
@@ -368,7 +383,7 @@ export function getFormatCodeBasis(formatCodeSetting: ts.FormatCodeSettings): Fo
           : '';
     const indent = convertTabsToSpaces ? ' '.repeat(indentSize ?? 4) : baseIndentSize ? '\t' : '';
     const semi = formatCodeSetting.semicolons === 'remove' ? '' : ';';
-    const newLine = formatCodeSetting.newLineCharacter ?? ts.sys.newLine;
+    const newLine = formatCodeSetting.newLineCharacter ?? defaultNewLine;
 
     return {
         baseIndent,
@@ -385,33 +400,6 @@ export interface FormatCodeBasis {
     newLine: string;
 }
 
-/**
- * https://github.com/microsoft/TypeScript/blob/00dc0b6674eef3fbb3abb86f9d71705b11134446/src/services/utilities.ts#L2452
- */
-export function getQuotePreference(
-    sourceFile: ts.SourceFile,
-    preferences: ts.UserPreferences
-): '"' | "'" {
-    const single = "'";
-    const double = '"';
-    if (preferences.quotePreference && preferences.quotePreference !== 'auto') {
-        return preferences.quotePreference === 'single' ? single : double;
-    }
-
-    const firstModuleSpecifier = Array.from(sourceFile.statements).find(
-        (
-            statement
-        ): statement is Omit<ts.ImportDeclaration, 'moduleSpecifier'> & {
-            moduleSpecifier: ts.StringLiteral;
-        } => ts.isImportDeclaration(statement) && ts.isStringLiteral(statement.moduleSpecifier)
-    )?.moduleSpecifier;
-
-    return firstModuleSpecifier
-        ? sourceFile.getText()[firstModuleSpecifier.pos] === '"'
-            ? double
-            : single
-        : double;
-}
 export function findChildOfKind(node: ts.Node, kind: ts.SyntaxKind): ts.Node | undefined {
     // this one we do want to use getChildren() because we also want to find syntax tokens,
     for (const child of node.getChildren()) {
@@ -452,37 +440,40 @@ export function checkRangeMappingWithGeneratedSemi(
 
 /** Returns the list of registered custom elements and their description (from JSDoc) */
 export function getCustomElementsTags(
+    tsModule: typeof ts,
     lang: ts.LanguageService,
     lsContainer: LanguageServiceContainer,
     tsDoc: SvelteDocumentSnapshot
 ): string[] {
-    const info = getCustomElementDocumentationSymbols(lang, lsContainer, tsDoc);
+    const info = getCustomElementDocumentationSymbols(tsModule, lang, lsContainer, tsDoc);
     if (!info) {
         return [];
     }
 
-    const symbols = info.type.getProperties().filter((s) => ts.symbolName(s).includes('-'));
+    const symbols = info.type.getProperties().filter((s) => tsModule.symbolName(s).includes('-'));
     return symbols.map((s) => s.name);
 }
 
 export function getCustomElementsDocument(
+    tsModule: typeof ts,
     lang: ts.LanguageService,
     lsContainer: LanguageServiceContainer,
     tsDoc: SvelteDocumentSnapshot,
     tagName: string
 ): string | null {
-    const info = getCustomElementDocumentationSymbols(lang, lsContainer, tsDoc);
+    const info = getCustomElementDocumentationSymbols(tsModule, lang, lsContainer, tsDoc);
     if (!info) {
         return null;
     }
 
     const tag = info.type.getProperty(tagName);
     return tag && tag.name.includes('-')
-        ? ts.displayPartsToString(tag.getDocumentationComment(info.typeChecker))
+        ? tsModule.displayPartsToString(tag.getDocumentationComment(info.typeChecker))
         : null;
 }
 
 function getCustomElementDocumentationSymbols(
+    tsModule: typeof ts,
     lang: ts.LanguageService,
     lsContainer: LanguageServiceContainer,
     tsDoc: SvelteDocumentSnapshot
@@ -497,6 +488,7 @@ function getCustomElementDocumentationSymbols(
     const typingsNamespace = lsContainer.getTsConfigSvelteOptions().namespace;
 
     const typingsNamespaceSymbol = findTypingsNamespaceSymbol(
+        tsModule,
         typingsNamespace,
         typeChecker,
         sourceFile
@@ -510,7 +502,7 @@ function getCustomElementDocumentationSymbols(
         .getExportsOfModule(typingsNamespaceSymbol)
         .find((symbol) => symbol.name === 'IntrinsicElements');
 
-    if (!elements || !(elements.flags & ts.SymbolFlags.Interface)) {
+    if (!elements || !(elements.flags & tsModule.SymbolFlags.Interface)) {
         return null;
     }
 
@@ -520,6 +512,7 @@ function getCustomElementDocumentationSymbols(
 }
 
 function findTypingsNamespaceSymbol(
+    tsModule: typeof ts,
     namespaceExpression: string,
     typeChecker: ts.TypeChecker,
     sourceFile: ts.SourceFile
@@ -531,7 +524,7 @@ function findTypingsNamespaceSymbol(
     const [first, ...rest] = namespaceExpression.split('.');
 
     let symbol: ts.Symbol | undefined = typeChecker
-        .getSymbolsInScope(sourceFile, ts.SymbolFlags.Namespace)
+        .getSymbolsInScope(sourceFile, tsModule.SymbolFlags.Namespace)
         .find((symbol) => symbol.name === first);
 
     for (const part of rest) {

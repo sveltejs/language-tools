@@ -1,4 +1,4 @@
-import ts, { flattenDiagnosticMessageText } from 'typescript';
+import type ts from 'typescript';
 import {
     CancellationToken,
     Diagnostic,
@@ -31,6 +31,7 @@ import { not, passMap, swapRangeStartEndIfNecessary, memoize } from '../../../ut
 import { LSConfigManager } from '../../../ls-config';
 import { isAttributeName, isEventHandler } from '../svelte-ast-utils';
 import { internalHelpers } from 'svelte2tsx';
+import { importTypeScript } from '../../../importPackage';
 
 export enum DiagnosticCode {
     MODIFIERS_CANNOT_APPEAR_HERE = 1184, // "Modifiers cannot appear here."
@@ -68,6 +69,7 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
         cancellationToken?: CancellationToken
     ): Promise<Diagnostic[]> {
         const { lang, tsDoc } = await this.getLSAndTSDoc(document);
+        const ts = this.lsAndTsDocResolver.tsModule;
 
         if (
             ['coffee', 'coffeescript'].includes(document.getLanguageAttribute('script')) ||
@@ -149,7 +151,8 @@ export function mapAndFilterDiagnostics(
     diagnostics: ts.Diagnostic[],
     document: Document,
     tsDoc: SvelteDocumentSnapshot,
-    lang?: ts.LanguageService
+    lang?: ts.LanguageService,
+    ts = importTypeScript()
 ): Diagnostic[] {
     const notGenerated = isNotGenerated(tsDoc.getFullText());
 
@@ -186,27 +189,28 @@ export function mapAndFilterDiagnostics(
         diagnostics.push(...additionalStoreDiagnostics);
     }
 
+    const isUnusedReactiveStatementLabelWorker = isUnusedReactiveStatementLabel.bind(null, ts);
     diagnostics = diagnostics
         .filter(notGenerated)
-        .filter(not(isUnusedReactiveStatementLabel))
-        .filter((diagnostic) => !expectedTransitionThirdArgument(diagnostic, tsDoc, lang));
+        .filter(not(isUnusedReactiveStatementLabelWorker))
+        .filter((diagnostic) => !expectedTransitionThirdArgument(ts, diagnostic, tsDoc, lang));
 
     if (lang) {
-        diagnostics = resolveNoopsInReactiveStatements(lang, diagnostics);
+        diagnostics = resolveNoopsInReactiveStatements(ts, lang, diagnostics);
     }
 
     const source =
         tsDoc.scriptKind === ts.ScriptKind.TSX || tsDoc.scriptKind === ts.ScriptKind.TS
             ? 'ts'
             : 'js';
-    const mapRange = rangeMapper(tsDoc, document, lang);
+    const mapRange = rangeMapper(ts, tsDoc, document, lang);
     const noFalsePositive = isNoFalsePositive(document, tsDoc);
     const converted: Diagnostic[] = [];
 
     for (const tsDiag of diagnostics) {
         let diagnostic: Diagnostic = {
             range: convertRange(tsDoc, tsDiag),
-            severity: mapSeverity(tsDiag.category),
+            severity: mapSeverity(ts, tsDiag.category),
             source,
             message: ts.flattenDiagnosticMessageText(tsDiag.messageText, '\n'),
             code: tsDiag.code,
@@ -283,15 +287,16 @@ function moveBindingErrorMessage(
 }
 
 function rangeMapper(
+    tsModule: typeof ts,
     snapshot: SvelteDocumentSnapshot,
     document: Document,
     lang?: ts.LanguageService
 ): (value: Diagnostic) => Diagnostic {
     const get$$PropsDefWithCache = memoize(() =>
-        lang ? get$$PropsDef(lang, snapshot) : undefined
+        lang ? get$$PropsDef(tsModule, lang, snapshot) : undefined
     );
     const get$$PropsAliasInfoWithCache = memoize(() =>
-        lang ? get$$PropsAliasForInfo(get$$PropsDefWithCache, lang, document) : undefined
+        lang ? get$$PropsAliasForInfo(tsModule, get$$PropsDefWithCache, lang, document) : undefined
     );
 
     return (diagnostic) => {
@@ -473,7 +478,7 @@ function isNotGenerated(text: string) {
     };
 }
 
-function isUnusedReactiveStatementLabel(diagnostic: ts.Diagnostic) {
+function isUnusedReactiveStatementLabel(tsModule: typeof ts, diagnostic: ts.Diagnostic) {
     if (diagnostic.code !== DiagnosticCode.UNUSED_LABEL) {
         return false;
     }
@@ -484,14 +489,14 @@ function isUnusedReactiveStatementLabel(diagnostic: ts.Diagnostic) {
     }
 
     // TS warning targets the identifier
-    if (!ts.isIdentifier(diagNode)) {
+    if (!tsModule.isIdentifier(diagNode)) {
         return false;
     }
 
     if (!diagNode.parent) {
         return false;
     }
-    return isReactiveStatement(diagNode.parent);
+    return isReactiveStatement(tsModule, diagNode.parent);
 }
 
 /**
@@ -503,7 +508,11 @@ function isUnusedReactiveStatementLabel(diagnostic: ts.Diagnostic) {
  * Only `let` (i.e. reactive) variables are ignored. For the others, new diagnostics are
  * emitted, centered on the (non reactive) identifiers in the initial warning.
  */
-function resolveNoopsInReactiveStatements(lang: ts.LanguageService, diagnostics: ts.Diagnostic[]) {
+function resolveNoopsInReactiveStatements(
+    tsModule: typeof ts,
+    lang: ts.LanguageService,
+    diagnostics: ts.Diagnostic[]
+) {
     const isLet = (file: ts.SourceFile) => (node: ts.Node) => {
         const defs = lang.getDefinitionAtPosition(file.fileName, node.getStart());
         return !!defs && defs.some((def) => def.fileName === file.fileName && def.kind === 'let');
@@ -528,13 +537,13 @@ function resolveNoopsInReactiveStatements(lang: ts.LanguageService, diagnostics:
             return;
         }
 
-        if (!isInReactiveStatement(diagNode)) {
+        if (!isInReactiveStatement(tsModule, diagNode)) {
             return;
         }
 
         return (
             // for all identifiers in diagnostic node
-            gatherIdentifiers(diagNode)
+            gatherIdentifiers(tsModule, diagNode)
                 // ignore `let` (i.e. reactive) variables
                 .filter(not(isLet(file)))
                 // and create targeted diagnostics just for the remaining ids
@@ -569,6 +578,7 @@ function dedupDiagnostics() {
 }
 
 function get$$PropsAliasForInfo(
+    tsModule: typeof ts,
     get$$PropsDefWithCache: () => ReturnType<typeof get$$PropsDef>,
     lang: ts.LanguageService,
     document: Document
@@ -578,7 +588,7 @@ function get$$PropsAliasForInfo(
     }
 
     const propsDef = get$$PropsDefWithCache();
-    if (!propsDef || !ts.isTypeAliasDeclaration(propsDef)) {
+    if (!propsDef || !tsModule.isTypeAliasDeclaration(propsDef)) {
         return;
     }
 
@@ -596,7 +606,11 @@ function get$$PropsAliasForInfo(
     return [rootSymbolName, propsDef] as const;
 }
 
-function get$$PropsDef(lang: ts.LanguageService, snapshot: SvelteDocumentSnapshot) {
+function get$$PropsDef(
+    tsModule: typeof ts,
+    lang: ts.LanguageService,
+    snapshot: SvelteDocumentSnapshot
+) {
     const program = lang.getProgram();
     const sourceFile = program?.getSourceFile(snapshot.filePath);
     if (!program || !sourceFile) {
@@ -605,12 +619,12 @@ function get$$PropsDef(lang: ts.LanguageService, snapshot: SvelteDocumentSnapsho
 
     const renderFunction = sourceFile.statements.find(
         (statement): statement is ts.FunctionDeclaration =>
-            ts.isFunctionDeclaration(statement) &&
+            tsModule.isFunctionDeclaration(statement) &&
             statement.name?.getText() === internalHelpers.renderName
     );
     return renderFunction?.body?.statements.find(
         (node): node is ts.TypeAliasDeclaration | ts.InterfaceDeclaration =>
-            (ts.isTypeAliasDeclaration(node) || ts.isInterfaceDeclaration(node)) &&
+            (tsModule.isTypeAliasDeclaration(node) || tsModule.isInterfaceDeclaration(node)) &&
             node.name.getText() === '$$Props'
     );
 }
@@ -661,6 +675,7 @@ function movePropsErrorRangeBackIfNecessary(
 }
 
 function expectedTransitionThirdArgument(
+    tsModule: typeof ts,
     diagnostic: ts.Diagnostic,
     tsDoc: SvelteDocumentSnapshot,
     lang?: ts.LanguageService
@@ -681,26 +696,27 @@ function expectedTransitionThirdArgument(
     // in TypeScript 5.4 the error is on the function name
     // in earlier versions it's on the whole call expression
     const callExpression =
-        ts.isIdentifier(node) && ts.isCallExpression(node.parent)
+        tsModule.isIdentifier(node) && tsModule.isCallExpression(node.parent)
             ? node.parent
             : findNodeAtSpan(
                   node,
                   { start: node.getStart(), length: node.getWidth() },
-                  ts.isCallExpression
+                  tsModule.isCallExpression
               );
 
     if (!lang) {
         // Without a language service we can't resolve the signature to check parameter count.
         // Fall back to checking the message text for " 3" (i.e. "Expected 3 arguments").
         // This is only for the __sveltets_2_ensureTransition wrapper and unlikely to false-positive.
-        return flattenDiagnosticMessageText(diagnostic.messageText, '\n').includes(' 3');
+        return tsModule.flattenDiagnosticMessageText(diagnostic.messageText, '\n').includes(' 3');
     }
 
     const signature =
         callExpression && lang.getProgram()?.getTypeChecker().getResolvedSignature(callExpression);
 
     return (
-        signature?.parameters.filter((parameter) => !(parameter.flags & ts.SymbolFlags.Optional))
-            .length === 3
+        signature?.parameters.filter(
+            (parameter) => !(parameter.flags & tsModule.SymbolFlags.Optional)
+        ).length === 3
     );
 }

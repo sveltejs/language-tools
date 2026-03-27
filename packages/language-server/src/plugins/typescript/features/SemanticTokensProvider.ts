@@ -1,4 +1,4 @@
-import ts from 'typescript';
+import type ts from 'typescript';
 import {
     CancellationToken,
     Range,
@@ -49,6 +49,7 @@ export class SemanticTokensProviderImpl implements SemanticTokensProvider {
                         tsDoc.getFullText().lastIndexOf('return { props:') || tsDoc.getLength()
               };
 
+        const ts = this.lsAndTsDocResolver.tsModule;
         const { spans } = lang.getEncodedSemanticClassifications(
             tsDoc.filePath,
             textSpan,

@@ -3,13 +3,13 @@ import { Logger } from '../../logger';
 import { CompileOptions } from 'svelte/types/compiler/interfaces';
 // @ts-ignore
 import { PreprocessorGroup } from 'svelte/types/compiler/preprocess';
-import { importSveltePreprocess } from '../../importPackage';
+import { importSveltePreprocess, importTypeScript } from '../../importPackage';
 import { fdir } from 'fdir';
 import _path from 'path';
 import _fs from 'fs';
 import { pathToFileURL, URL } from 'url';
 import { FileMap } from './fileCollection';
-import ts from 'typescript';
+import type ts from 'typescript';
 
 export type InternalPreprocessorGroup = PreprocessorGroup & {
     /**
@@ -57,17 +57,34 @@ const configRegex = /\/svelte\.config\.(js|cjs|mjs)$/;
  * Asynchronousity is needed because we use the dynamic `import()` statement.
  */
 export class ConfigLoader {
-    private configFiles = new FileMap<SvelteConfig>();
-    private configFilesAsync = new FileMap<Promise<SvelteConfig>>();
-    private filePathToConfigPath = new FileMap<string>();
+    private configFiles: FileMap<SvelteConfig>;
+    private configFilesAsync: FileMap<Promise<SvelteConfig>>;
+    private filePathToConfigPath: FileMap<string>;
     private disabled = false;
+
+    private tsModule: typeof ts | undefined = undefined;
+    private useCaseSensitiveFileNames = false;
 
     constructor(
         private globSync: typeof fdir,
         private fs: Pick<typeof _fs, 'existsSync'>,
         private path: Pick<typeof _path, 'dirname' | 'relative' | 'join'>,
         private dynamicImport: typeof _dynamicImport
-    ) {}
+    ) {
+        this.configFiles = new FileMap(this.useCaseSensitiveFileNames);
+        this.configFilesAsync = new FileMap(this.useCaseSensitiveFileNames);
+        this.filePathToConfigPath = new FileMap(this.useCaseSensitiveFileNames);
+    }
+
+    setTs(tsModule: typeof ts) {
+        this.tsModule = tsModule;
+        if (tsModule.sys.useCaseSensitiveFileNames !== this.useCaseSensitiveFileNames) {
+            this.useCaseSensitiveFileNames = tsModule.sys.useCaseSensitiveFileNames;
+            this.configFiles = new FileMap(this.useCaseSensitiveFileNames);
+            this.configFilesAsync = new FileMap(this.useCaseSensitiveFileNames);
+            this.filePathToConfigPath = new FileMap(this.useCaseSensitiveFileNames);
+        }
+    }
 
     /**
      * Enable/disable loading of configs (for security reasons for example)
@@ -259,6 +276,7 @@ export class ConfigLoader {
     }
 
     private useFallbackPreprocessor(path: string, foundConfig: boolean): SvelteConfig {
+        const ts = this.tsModule || importTypeScript();
         try {
             const sveltePreprocess = importSveltePreprocess(path);
             Logger.log(
