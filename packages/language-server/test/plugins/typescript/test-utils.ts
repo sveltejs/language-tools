@@ -14,7 +14,6 @@ import {
 } from '../../../src/utils';
 import { VERSION } from 'svelte/compiler';
 import { findTsConfigPath } from '../../../src/plugins/typescript/utils';
-import { importTypeScript } from '../../../src/importPackage';
 
 const isSvelte5Plus = Number(VERSION.split('.')[0]) >= 5;
 
@@ -163,10 +162,11 @@ export function setupVirtualEnvironment({
         (textDocument) => new Document(textDocument.uri, textDocument.text)
     );
 
-    const lsConfigManager = new LSConfigManager();
+    const lsConfigManager = new LSConfigManager(ts);
 
     const virtualSystem = createVirtualTsSystem(testDir);
     const lsAndTsDocResolver = new LSAndTSDocResolver(
+        ts,
         docManager,
         [pathToUrl(testDir)],
         lsConfigManager,
@@ -308,13 +308,14 @@ export function serviceWarmup(
         );
 
         const lsAndTsDocResolver = new LSAndTSDocResolver(
+            ts,
             docManager,
             [rootUri],
-            new LSConfigManager()
+            new LSConfigManager(ts)
         );
 
         configFilePath ??= findTsConfigPath(
-            importTypeScript(),
+            ts,
             join(testDir, 'DoesNotMater.svelte'),
             [rootUri],
             ts.sys.fileExists,

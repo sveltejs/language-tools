@@ -28,9 +28,10 @@ describe('UpdateImportsProviderImpl', function () {
             { useCaseSensitiveFileNames }
         );
         const lsAndTsDocResolver = new LSAndTSDocResolver(
+            ts,
             docManager,
             [pathToUrl(testDir)],
-            new LSConfigManager(),
+            new LSConfigManager(ts),
             { tsSystem: { ...ts.sys, useCaseSensitiveFileNames } }
         );
         const updateImportsProvider = new UpdateImportsProviderImpl(

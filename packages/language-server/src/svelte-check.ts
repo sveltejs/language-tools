@@ -78,7 +78,7 @@ export class SvelteCheck {
     private docManager = new DocumentManager(
         (textDocument) => new Document(textDocument.uri, textDocument.text)
     );
-    private configManager = new LSConfigManager();
+    private configManager: LSConfigManager;
     private pluginHost = new PluginHost(this.docManager);
     private lsAndTSDocResolver?: LSAndTSDocResolver;
     private tsModule: typeof ts;
@@ -88,8 +88,9 @@ export class SvelteCheck {
         private options: SvelteCheckOptions = {}
     ) {
         Logger.setLogErrorsOnly(true);
-        this.initialize(workspacePath, options);
         this.tsModule = importTypeScript();
+        this.configManager = new LSConfigManager(this.tsModule);
+        this.initialize(workspacePath, options);
     }
 
     private async initialize(workspacePath: string, options: SvelteCheckOptions) {
@@ -123,6 +124,7 @@ export class SvelteCheck {
         if (shouldRegister('js') || options.tsconfig) {
             const workspaceUris = [pathToUrl(workspacePath)];
             this.lsAndTSDocResolver = new LSAndTSDocResolver(
+                this.tsModule,
                 this.docManager,
                 workspaceUris,
                 this.configManager,

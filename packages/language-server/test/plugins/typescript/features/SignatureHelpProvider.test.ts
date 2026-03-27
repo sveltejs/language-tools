@@ -26,9 +26,10 @@ describe('SignatureHelpProvider', function () {
         );
         const filePath = path.join(signatureHelpTestDir, 'signature-help.svelte');
         const lsAndTsDocResolver = new LSAndTSDocResolver(
+            ts,
             docManager,
             [pathToUrl(testDir)],
-            new LSConfigManager()
+            new LSConfigManager(ts)
         );
         const provider = new SignatureHelpProviderImpl(lsAndTsDocResolver);
         const document = docManager.openClientDocument(<any>{

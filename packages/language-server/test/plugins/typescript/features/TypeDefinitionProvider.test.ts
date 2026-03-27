@@ -28,9 +28,10 @@ describe('TypeDefinitionProvider', function () {
             (textDocument) => new Document(textDocument.uri, textDocument.text)
         );
         const lsAndTsDocResolver = new LSAndTSDocResolver(
+            ts,
             docManager,
             [pathToUrl(testDir)],
-            new LSConfigManager()
+            new LSConfigManager(ts)
         );
         const provider = new TypeDefinitionProviderImpl(lsAndTsDocResolver);
         const filePath = getFullPath(filename);

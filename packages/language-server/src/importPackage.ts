@@ -72,7 +72,7 @@ export function importPrettier(fromPath: string): typeof prettier {
 }
 
 export function importSvelte(fromPath: string): typeof svelte {
-    const pkg = getPackageInfo('svelte', fromPath)
+    const pkg = getPackageInfo('svelte', fromPath);
     const main = resolve(pkg.path, 'compiler');
     Logger.debug('Using Svelte v' + pkg.version.full, 'from', main);
     if (pkg.version.major === 4) {
@@ -98,7 +98,7 @@ export function importSveltePreprocess(fromPath: string): any {
 
 export function importTypeScript(): typeof ts {
     if (!Logger.isDebugEnabled()) {
-        return dynamicRequire(require.resolve('typescript'));
+        return dynamicRequire('typescript');
     }
     const pkg = getPackageInfo('typescript', __dirname);
     const main = resolve(pkg.path);

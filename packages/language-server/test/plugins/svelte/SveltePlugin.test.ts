@@ -13,6 +13,7 @@ import sinon from 'sinon';
 import { join } from 'path';
 import { pathToUrl, urlToPath } from '../../../src/utils';
 import { VERSION } from 'svelte/compiler';
+import ts from 'typescript';
 
 const isSvelte5Plus = Number(VERSION.split('.')[0]) >= 5;
 
@@ -24,7 +25,7 @@ describe('Svelte Plugin', () => {
     ) {
         const document = new Document(documentUri, content);
         const docManager = new DocumentManager(() => document);
-        const pluginManager = new LSConfigManager();
+        const pluginManager = new LSConfigManager(ts);
         pluginManager.updateIsTrusted(trusted);
         pluginManager.updatePrettierConfig(prettierConfig);
         const plugin = new SveltePlugin(pluginManager);

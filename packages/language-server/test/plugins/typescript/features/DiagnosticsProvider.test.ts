@@ -20,11 +20,12 @@ describe('DiagnosticsProvider', function () {
             (textDocument) => new Document(textDocument.uri, textDocument.text)
         );
         const lsAndTsDocResolver = new LSAndTSDocResolver(
+            ts,
             docManager,
             [pathToUrl(testDir)],
-            new LSConfigManager()
+            new LSConfigManager(ts)
         );
-        const plugin = new DiagnosticsProviderImpl(lsAndTsDocResolver, new LSConfigManager());
+        const plugin = new DiagnosticsProviderImpl(lsAndTsDocResolver, new LSConfigManager(ts));
         const filePath = path.join(testDir, filename);
         const document = docManager.openClientDocument(<any>{
             uri: pathToUrl(filePath),

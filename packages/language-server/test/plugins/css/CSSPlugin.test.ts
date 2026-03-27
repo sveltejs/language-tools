@@ -19,12 +19,13 @@ import { LSConfigManager } from '../../../src/ls-config';
 import { createLanguageServices } from '../../../src/plugins/css/service';
 import { pathToUrl } from '../../../src/utils';
 import { FileType, LanguageServiceOptions } from 'vscode-css-languageservice';
+import ts from 'typescript';
 
 describe('CSS Plugin', () => {
     function setup(content: string, lsOptions?: LanguageServiceOptions) {
         const document = new Document('file:///hello.svelte', content);
         const docManager = new DocumentManager(() => document);
-        const pluginManager = new LSConfigManager();
+        const pluginManager = new LSConfigManager(ts);
         const plugin = new CSSPlugin(
             docManager,
             pluginManager,

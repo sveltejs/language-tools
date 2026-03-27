@@ -224,7 +224,7 @@ export function startServer(options?: LSOptions) {
         pluginHost.register(
             new TypeScriptPlugin(
                 configManager,
-                new LSAndTSDocResolver(docManager, normalizedWorkspaceUris, configManager, {
+                new LSAndTSDocResolver(ts, docManager, normalizedWorkspaceUris, configManager, {
                     notifyExceedSizeLimit: notifyTsServiceExceedSizeLimit,
                     onProjectReloaded: refreshCrossFilesSemanticFeatures,
                     watch: true,
@@ -232,8 +232,7 @@ export function startServer(options?: LSOptions) {
                     watchDirectory: (patterns) => watchDirectory(patterns),
                     reportConfigError(diagnostic) {
                         connection?.sendDiagnostics(diagnostic);
-                    },
-                    tsModule: ts
+                    }
                 }),
                 normalizedWorkspaceUris,
                 docManager

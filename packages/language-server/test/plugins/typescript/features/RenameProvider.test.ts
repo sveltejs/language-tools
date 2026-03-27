@@ -27,11 +27,12 @@ describe('RenameProvider', function () {
     }
 
     async function setup() {
-        const configManager = new LSConfigManager();
+        const configManager = new LSConfigManager(ts);
         const docManager = new DocumentManager(
             (textDocument) => new Document(textDocument.uri, textDocument.text)
         );
         const lsAndTsDocResolver = new LSAndTSDocResolver(
+            ts,
             docManager,
             [pathToUrl(testDir)],
             configManager

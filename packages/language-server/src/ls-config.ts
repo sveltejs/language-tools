@@ -1,7 +1,7 @@
 import { get, merge } from 'lodash';
 import type ts from 'typescript';
 import { VSCodeEmmetConfig } from '@vscode/emmet-helper';
-import { importPrettier, importTypeScript } from './importPackage';
+import { importPrettier } from './importPackage';
 import { Document } from './lib/documents';
 import { returnObjectIfHasKeys } from './utils';
 import path from 'path';
@@ -352,7 +352,7 @@ export class LSConfigManager {
     private clientCapabilities: ClientCapabilities | undefined;
     private readonly tsModule: typeof ts;
 
-    constructor(tsModule: typeof ts = importTypeScript()) {
+    constructor(tsModule: typeof ts) {
         this.tsModule = tsModule;
         this._updateTsUserPreferences('javascript', {});
         this._updateTsUserPreferences('typescript', {});

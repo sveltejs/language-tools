@@ -24,10 +24,9 @@ import {
     LanguageServiceDocumentContext
 } from './service';
 import { createProjectService } from './serviceCache';
-import { GlobalSnapshotsManager, SnapshotManager } from './SnapshotManager';
+import { GlobalSnapshotsManager } from './SnapshotManager';
 import { isSubPath } from './utils';
 import { FileMap, FileSet } from '../../lib/documents/fileCollection';
-import { importTypeScript } from '../../importPackage';
 
 interface LSAndTSDocResolverOptions {
     notifyExceedSizeLimit?: () => void;
@@ -45,7 +44,6 @@ interface LSAndTSDocResolverOptions {
     reportConfigError?: (diagnostic: PublishDiagnosticsParams) => void;
     watch?: boolean;
     tsSystem?: ts.System;
-    tsModule?: typeof ts;
     watchDirectory?: (patterns: RelativePattern[]) => void;
     nonRecursiveWatchPattern?: string;
     /**
@@ -57,15 +55,13 @@ interface LSAndTSDocResolverOptions {
 }
 
 export class LSAndTSDocResolver {
-    readonly tsModule: typeof ts;
-
     constructor(
+        readonly tsModule: typeof ts,
         private readonly docManager: DocumentManager,
         private readonly workspaceUris: string[],
         private readonly configManager: LSConfigManager,
         private readonly options?: LSAndTSDocResolverOptions
     ) {
-        const tsModule = options?.tsModule ?? importTypeScript();
         this.tsModule = tsModule;
         docManager.on(
             'documentChange',

@@ -28,9 +28,10 @@ describe('FindComponentReferencesProvider', function () {
         const docManager = new DocumentManager(
             (textDocument) => new Document(textDocument.uri, textDocument.text)
         );
-        const lsConfigManager = new LSConfigManager();
+        const lsConfigManager = new LSConfigManager(ts);
 
         const lsAndTsDocResolver = new LSAndTSDocResolver(
+            ts,
             docManager,
             [pathToUrl(testDir)],
             lsConfigManager

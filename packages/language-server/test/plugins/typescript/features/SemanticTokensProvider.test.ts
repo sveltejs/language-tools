@@ -30,9 +30,10 @@ describe('SemanticTokensProvider', function () {
         );
         const filePath = path.join(semanticTokenTestDir, filename);
         const lsAndTsDocResolver = new LSAndTSDocResolver(
+            ts,
             docManager,
             [pathToUrl(testDir)],
-            new LSConfigManager()
+            new LSConfigManager(ts)
         );
         const provider = new SemanticTokensProviderImpl(lsAndTsDocResolver);
         const document = docManager.openClientDocument(<any>{

@@ -13,6 +13,7 @@ import { CompilerWarningsSettings, LSConfigManager } from '../../../../src/ls-co
 import { pathToUrl } from '../../../../src/utils';
 import { SveltePlugin } from '../../../../src/plugins';
 import { VERSION } from 'svelte/compiler';
+import ts from 'typescript';
 
 const isSvelte5Plus = Number(VERSION.split('.')[0]) >= 5;
 
@@ -47,7 +48,7 @@ describe('SveltePlugin#getDiagnostics', () => {
         const testDir = path.join(__dirname, '..');
         const filePath = path.join(testDir, 'testfiles', filename);
         const document = new Document(pathToUrl(filePath), fs.readFileSync(filePath, 'utf-8'));
-        const pluginManager = new LSConfigManager();
+        const pluginManager = new LSConfigManager(ts);
         const plugin = new SveltePlugin(pluginManager);
         return { plugin, document };
     }

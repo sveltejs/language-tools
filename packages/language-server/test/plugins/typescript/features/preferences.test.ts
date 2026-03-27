@@ -59,13 +59,14 @@ describe('ts user preferences', function () {
         docManager: DocumentManager,
         preferences?: Partial<TSUserConfig>
     ) {
-        const configManager = new LSConfigManager();
+        const configManager = new LSConfigManager(ts);
         configManager.updateTsJsUserPreferences({
             typescript: { ...getPreferences(), ...preferences },
             javascript: { ...getPreferences(), ...preferences }
         });
         return {
             lsAndTsDocResolver: new LSAndTSDocResolver(
+                ts,
                 docManager,
                 [pathToUrl(testFilesDir)],
                 configManager
@@ -180,7 +181,7 @@ describe('ts user preferences', function () {
 
         const completionProvider = new CompletionsProviderImpl(
             lsAndTsDocResolver,
-            new LSConfigManager()
+            new LSConfigManager(ts)
         );
 
         const completions = await completionProvider.getCompletions(
@@ -198,7 +199,7 @@ describe('ts user preferences', function () {
 
         const completionProvider = new CompletionsProviderImpl(
             lsAndTsDocResolver,
-            new LSConfigManager()
+            new LSConfigManager(ts)
         );
 
         const completions = await completionProvider.getCompletions(
@@ -220,12 +221,12 @@ describe('ts user preferences', function () {
 
         const completionProvider = new CompletionsProviderImpl(
             lsAndTsDocResolver,
-            new LSConfigManager()
+            new LSConfigManager(ts)
         );
         const codeActionProvider = new CodeActionsProviderImpl(
             lsAndTsDocResolver,
             completionProvider,
-            new LSConfigManager()
+            new LSConfigManager(ts)
         );
 
         const codeAction = await codeActionProvider.getCodeActions(document, range, {

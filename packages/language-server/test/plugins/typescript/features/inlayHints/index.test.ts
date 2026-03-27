@@ -18,7 +18,7 @@ function setup(workspaceDir: string, filePath: string) {
     const docManager = new DocumentManager(
         (textDocument) => new Document(textDocument.uri, textDocument.text)
     );
-    const configManager = new LSConfigManager();
+    const configManager = new LSConfigManager(ts);
     const allEnable: TsInlayHintsConfig = {
         enumMemberValues: { enabled: true },
         functionLikeReturnTypes: { enabled: true },
@@ -36,6 +36,7 @@ function setup(workspaceDir: string, filePath: string) {
         }
     });
     const lsAndTsDocResolver = new LSAndTSDocResolver(
+        ts,
         docManager,
         [pathToUrl(workspaceDir)],
         configManager

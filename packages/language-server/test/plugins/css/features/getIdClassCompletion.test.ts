@@ -11,6 +11,7 @@ import {
 } from '../../../../src/plugins/css/features/getIdClassCompletion';
 import { createLanguageServices } from '../../../../src/plugins/css/service';
 import { pathToUrl } from '../../../../src/utils';
+import ts from 'typescript';
 
 describe('getIdClassCompletion', () => {
     function createDocument(content: string) {
@@ -48,7 +49,7 @@ describe('getIdClassCompletion', () => {
     function setup(content: string) {
         const document = createDocument(content);
         const docManager = new DocumentManager(() => document);
-        const pluginManager = new LSConfigManager();
+        const pluginManager = new LSConfigManager(ts);
         const plugin = new CSSPlugin(
             docManager,
             pluginManager,

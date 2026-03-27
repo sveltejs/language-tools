@@ -17,6 +17,7 @@ import { LSConfigManager } from '../../../src/ls-config';
 import { DocumentHighlight } from 'vscode-languageserver-types';
 import { VERSION } from 'svelte/compiler';
 import { FileSystemProvider } from '../../../src/lib/FileSystemProvider';
+import ts from 'typescript';
 
 const isSvelte5Plus = Number(VERSION.split('.')[0]) >= 5;
 
@@ -24,7 +25,7 @@ describe('HTML Plugin', () => {
     function setup(content: string) {
         const document = new Document('file:///hello.svelte', content);
         const docManager = new DocumentManager(() => document);
-        const configManager = new LSConfigManager();
+        const configManager = new LSConfigManager(ts);
         const plugin = new HTMLPlugin(docManager, configManager, new FileSystemProvider(), []);
         docManager.openClientDocument(<any>'some doc');
         return { plugin, document, configManager };

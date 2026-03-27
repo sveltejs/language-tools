@@ -21,9 +21,10 @@ describe('SelectionRangeProvider', function () {
         );
         const filePath = path.join(testDir, 'testfiles', 'selection-range', fileName);
         const lsAndTsDocResolver = new LSAndTSDocResolver(
+            ts,
             docManager,
             [pathToUrl(testDir)],
-            new LSConfigManager()
+            new LSConfigManager(ts)
         );
         const provider = new SelectionRangeProviderImpl(lsAndTsDocResolver);
         const document = docManager.openClientDocument(<any>{

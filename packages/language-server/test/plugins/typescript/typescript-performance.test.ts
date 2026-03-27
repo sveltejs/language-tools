@@ -14,11 +14,11 @@ describe('TypeScript Plugin Performance Tests', () => {
         const filePath = path.join(testDir, filename);
         const uri = pathToUrl(filePath);
         const document = new Document(uri, ts.sys.readFile(filePath) || '');
-        const pluginManager = new LSConfigManager();
+        const pluginManager = new LSConfigManager(ts);
         const workspaceUris = [pathToUrl(testDir)];
         const plugin = new TypeScriptPlugin(
             pluginManager,
-            new LSAndTSDocResolver(docManager, workspaceUris, pluginManager),
+            new LSAndTSDocResolver(ts, docManager, workspaceUris, pluginManager),
             workspaceUris,
             docManager
         );

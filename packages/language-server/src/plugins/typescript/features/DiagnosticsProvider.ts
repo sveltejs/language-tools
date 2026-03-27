@@ -31,7 +31,6 @@ import { not, passMap, swapRangeStartEndIfNecessary, memoize } from '../../../ut
 import { LSConfigManager } from '../../../ls-config';
 import { isAttributeName, isEventHandler } from '../svelte-ast-utils';
 import { internalHelpers } from 'svelte2tsx';
-import { importTypeScript } from '../../../importPackage';
 
 export enum DiagnosticCode {
     MODIFIERS_CANNOT_APPEAR_HERE = 1184, // "Modifiers cannot appear here."

@@ -12,14 +12,12 @@ import {
 } from '../../../src/plugins/typescript/service';
 import { normalizePath, pathToUrl } from '../../../src/utils';
 import { createVirtualTsSystem, getRandomVirtualDirPath } from './test-utils';
-import { importTypeScript } from '../../../src/importPackage';
 
 describe('service', () => {
     const testDir = path.join(__dirname, 'testfiles');
 
     function setup() {
         const virtualSystem = createVirtualTsSystem(testDir);
-        const ts = importTypeScript();
 
         const rootUris = [pathToUrl(testDir)];
         const lsDocumentContext: LanguageServiceDocumentContext = {

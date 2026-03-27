@@ -42,9 +42,10 @@ describe('TypescriptPlugin', function () {
         );
         const filePath = path.join(testDir, filename);
         const document = new Document(pathToUrl(filePath), ts.sys.readFile(filePath) || '');
-        const lsConfigManager = new LSConfigManager();
+        const lsConfigManager = new LSConfigManager(ts);
         const workspaceUris = [pathToUrl(testDir)];
         const lsAndTsDocResolver = new LSAndTSDocResolver(
+            ts,
             docManager,
             workspaceUris,
             lsConfigManager,

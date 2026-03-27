@@ -24,9 +24,10 @@ describe('DocumentHighlightProvider', function () {
             (textDocument) => new Document(textDocument.uri, textDocument.text)
         );
         const lsAndTsDocResolver = new LSAndTSDocResolver(
+            ts,
             docManager,
             [testDir],
-            new LSConfigManager()
+            new LSConfigManager(ts)
         );
         const provider = new DocumentHighlightProviderImpl(lsAndTsDocResolver);
         const filePath = getFullPath(filename);
@@ -106,9 +107,10 @@ describe('DocumentHighlightProvider', function () {
                 (textDocument) => new Document(textDocument.uri, textDocument.text)
             );
             const lsAndTsDocResolver = new LSAndTSDocResolver(
+                ts,
                 docManager,
                 [testDir],
-                new LSConfigManager()
+                new LSConfigManager(ts)
             );
             const provider = new DocumentHighlightProviderImpl(lsAndTsDocResolver);
             const filePath = getFullPath(`svelte.virtual${Math.random().toFixed(16)}.svelte`);
