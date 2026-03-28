@@ -569,6 +569,14 @@
                 }
             },
             {
+                "command": "svelte.showCompiledCSSToSide",
+                "title": "Svelte: Show Compiled CSS",
+                "icon": {
+                    "light": "icons/preview-right-light.svg",
+                    "dark": "icons/preview-right-dark.svg"
+                }
+            },
+            {
                 "command": "svelte.extractComponent",
                 "title": "Svelte: Extract Component"
             },
@@ -628,6 +636,10 @@
                     "when": "editorLangId == svelte"
                 },
                 {
+                    "command": "svelte.showCompiledCSSToSide",
+                    "when": "editorLangId == svelte"
+                },
+                {
                     "command": "svelte.typescript.findAllFileReferences",
                     "when": "editorLangId == svelte && resourceScheme == file"
                 },
@@ -639,6 +651,11 @@
             "editor/title": [
                 {
                     "command": "svelte.showCompiledCodeToSide",
+                    "when": "editorLangId == svelte",
+                    "group": "navigation"
+                },
+                {
+                    "command": "svelte.showCompiledCSSToSide",
                     "when": "editorLangId == svelte",
                     "group": "navigation"
                 }

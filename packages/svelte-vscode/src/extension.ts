@@ -262,7 +262,7 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
 
     addRenameFileListener(getLS);
 
-    addCompilePreviewCommand(getLS, context);
+    addCompilePreviewCommands(getLS, context);
 
     addExtracComponentCommand(getLS, context);
 
@@ -443,7 +443,7 @@ function addRenameFileListener(getLS: () => LanguageClient) {
     });
 }
 
-function addCompilePreviewCommand(getLS: () => LanguageClient, context: ExtensionContext) {
+function addCompilePreviewCommands(getLS: () => LanguageClient, context: ExtensionContext) {
     const compiledCodeContentProvider = new CompiledCodeContentProvider(getLS);
 
     context.subscriptions.push(
@@ -466,7 +466,26 @@ function addCompilePreviewCommand(getLS: () => LanguageClient, context: Extensio
                 async () => {
                     // Open a new preview window for the compiled code
                     return await window.showTextDocument(
-                        CompiledCodeContentProvider.previewWindowUri,
+                        CompiledCodeContentProvider.jsPreviewWindowUri,
+                        {
+                            preview: true,
+                            viewColumn: ViewColumn.Beside
+                        }
+                    );
+                }
+            );
+        }),
+        commands.registerTextEditorCommand('svelte.showCompiledCSSToSide', async (editor) => {
+            if (editor?.document?.languageId !== 'svelte') {
+                return;
+            }
+
+            window.withProgress(
+                { location: ProgressLocation.Window, title: 'Compiling...' },
+                async () => {
+                    // Open a new preview window for the compiled code
+                    return await window.showTextDocument(
+                        CompiledCodeContentProvider.cssPreviewWindowUri,
                         {
                             preview: true,
                             viewColumn: ViewColumn.Beside
