@@ -572,8 +572,8 @@
                 "command": "svelte.showCompiledCSSToSide",
                 "title": "Svelte: Show Compiled CSS",
                 "icon": {
-                    "light": "icons/preview-right-light.svg",
-                    "dark": "icons/preview-right-dark.svg"
+                    "light": "icons/preview-css-right-light.svg",
+                    "dark": "icons/preview-css-right-dark.svg"
                 }
             },
             {
