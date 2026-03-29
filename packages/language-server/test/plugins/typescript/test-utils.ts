@@ -155,8 +155,8 @@ export function setupVirtualEnvironment({
     fileContent,
     filename
 }: VirtualEnvironmentOptions) {
-    const docManager = new DocumentManager(
-        (textDocument) => new Document(textDocument.uri, textDocument.text)
+    const docManager = new DocumentManager((textDocument) =>
+        Document.createForTest(textDocument.uri, textDocument.text)
     );
 
     const lsConfigManager = new LSConfigManager();
@@ -299,8 +299,8 @@ export function serviceWarmup(
         const start = Date.now();
         console.log('Warming up language service...');
 
-        const docManager = new DocumentManager(
-            (textDocument) => new Document(textDocument.uri, textDocument.text)
+        const docManager = new DocumentManager((textDocument) =>
+            Document.createForTest(textDocument.uri, textDocument.text)
         );
 
         const lsAndTsDocResolver = new LSAndTSDocResolver(

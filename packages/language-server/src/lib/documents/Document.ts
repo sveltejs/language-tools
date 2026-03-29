@@ -49,6 +49,10 @@ export class Document extends WritableDocument {
         this.updateDocInfo();
     }
 
+    static createForTest(url: string, content: string) {
+        return new Document(url, content, /*skipConfigLoading*/ true);
+    }
+
     private getCompiler() {
         if (!this._compiler) {
             this._compiler = importSvelte(this.getFilePath() || '');

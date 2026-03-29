@@ -22,7 +22,7 @@ import { FileType, LanguageServiceOptions } from 'vscode-css-languageservice';
 
 describe('CSS Plugin', () => {
     function setup(content: string, lsOptions?: LanguageServiceOptions) {
-        const document = new Document('file:///hello.svelte', content);
+        const document = Document.createForTest('file:///hello.svelte', content);
         const docManager = new DocumentManager(() => document);
         const pluginManager = new LSConfigManager();
         const plugin = new CSSPlugin(
