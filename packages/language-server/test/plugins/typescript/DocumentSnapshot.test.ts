@@ -139,7 +139,7 @@ describe('SvelteDocumentSnapshot.getChangeRange', () => {
         options?: { scriptKind?: ts.ScriptKind; parserError?: boolean }
     ) {
         const uri = pathToUrl('/test/Component.svelte');
-        const doc = new Document(uri, generatedText);
+        const doc = Document.createForTest(uri, generatedText);
         return new SvelteDocumentSnapshot(
             doc,
             options?.parserError

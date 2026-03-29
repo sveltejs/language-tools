@@ -21,8 +21,8 @@ describe('SignatureHelpProvider', function () {
     serviceWarmup(this, signatureHelpTestDir, pathToUrl(testDir));
 
     function setup() {
-        const docManager = new DocumentManager(
-            (textDocument) => new Document(textDocument.uri, textDocument.text)
+        const docManager = new DocumentManager((textDocument) =>
+            Document.createForTest(textDocument.uri, textDocument.text)
         );
         const filePath = path.join(signatureHelpTestDir, 'signature-help.svelte');
         const lsAndTsDocResolver = new LSAndTSDocResolver(

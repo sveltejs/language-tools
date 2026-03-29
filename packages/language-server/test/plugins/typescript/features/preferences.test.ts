@@ -23,8 +23,8 @@ describe('ts user preferences', function () {
     serviceWarmup(this, testFilesDir);
 
     function setup(filename: string) {
-        const docManager = new DocumentManager(
-            (textDocument) => new Document(textDocument.uri, textDocument.text)
+        const docManager = new DocumentManager((textDocument) =>
+            Document.createForTest(textDocument.uri, textDocument.text)
         );
 
         const filePath = join(testFilesDir, filename);

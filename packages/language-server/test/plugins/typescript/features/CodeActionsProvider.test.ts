@@ -50,8 +50,8 @@ describe('CodeActionsProvider', function () {
     }
 
     function setup(filename: string) {
-        const docManager = new DocumentManager(
-            (textDocument) => new Document(textDocument.uri, textDocument.text)
+        const docManager = new DocumentManager((textDocument) =>
+            Document.createForTest(textDocument.uri, textDocument.text)
         );
         const lsConfigManager = new LSConfigManager();
         const lsAndTsDocResolver = new LSAndTSDocResolver(

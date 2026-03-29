@@ -16,8 +16,8 @@ describe('DiagnosticsProvider', function () {
     serviceWarmup(this, testDir);
 
     function setup(filename: string) {
-        const docManager = new DocumentManager(
-            (textDocument) => new Document(textDocument.uri, textDocument.text)
+        const docManager = new DocumentManager((textDocument) =>
+            Document.createForTest(textDocument.uri, textDocument.text)
         );
         const lsAndTsDocResolver = new LSAndTSDocResolver(
             docManager,
