@@ -15,8 +15,8 @@ import {
 import { InlayHint } from 'vscode-languageserver-types';
 
 function setup(workspaceDir: string, filePath: string) {
-    const docManager = new DocumentManager(
-        (textDocument) => new Document(textDocument.uri, textDocument.text)
+    const docManager = new DocumentManager((textDocument) =>
+        Document.createForTest(textDocument.uri, textDocument.text)
     );
     const configManager = new LSConfigManager();
     const allEnable: TsInlayHintsConfig = {

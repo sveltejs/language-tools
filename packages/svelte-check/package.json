@@ -1,7 +1,7 @@
 {
     "name": "svelte-check",
     "description": "Svelte Code Checker Terminal Interface",
-    "version": "4.4.5",
+    "version": "4.4.6",
     "main": "./dist/src/index.js",
     "bin": "./bin/svelte-check",
     "author": "The Svelte Community",
@@ -49,7 +49,6 @@
         "@rollup/plugin-replace": "5.0.2",
         "@rollup/plugin-typescript": "^10.0.0",
         "@types/sade": "^1.7.2",
-        "builtin-modules": "^3.3.0",
         "rollup": "3.7.5",
         "rollup-plugin-cleanup": "^3.2.0",
         "rollup-plugin-copy": "^3.4.0",

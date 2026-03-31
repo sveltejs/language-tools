@@ -149,9 +149,6 @@ importers:
       '@types/sade':
         specifier: ^1.7.2
         version: 1.7.4
-      builtin-modules:
-        specifier: ^3.3.0
-        version: 3.3.0
       rollup:
         specifier: 3.7.5
         version: 3.7.5
@@ -277,9 +274,6 @@ importers:
       '@types/vfile':
         specifier: ^3.0.2
         version: 3.0.2
-      builtin-modules:
-        specifier: ^3.3.0
-        version: 3.3.0
       estree-walker:
         specifier: ^2.0.1
         version: 2.0.2

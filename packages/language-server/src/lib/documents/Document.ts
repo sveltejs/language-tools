@@ -38,11 +38,19 @@ export class Document extends WritableDocument {
 
     constructor(
         public url: string,
-        public content: string
+        public content: string,
+        skipConfigLoading = false
     ) {
         super();
-        this.configPromise = configLoader.awaitConfig(this.getFilePath() || '');
+        this.configPromise = skipConfigLoading
+            ? Promise.resolve(undefined)
+            : configLoader.awaitConfig(this.getFilePath() || '');
+
         this.updateDocInfo();
+    }
+
+    static createForTest(url: string, content: string) {
+        return new Document(url, content, /*skipConfigLoading*/ true);
     }
 
     private getCompiler() {

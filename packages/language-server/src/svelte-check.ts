@@ -37,7 +37,8 @@ export function mapSvelteCheckDiagnostics(
         };
     }
 ): Diagnostic[] {
-    const document = new Document(pathToUrl(sourcePath), sourceText);
+    Logger.setLogErrorsOnly(true);
+    const document = new Document(pathToUrl(sourcePath), sourceText, /* skipConfigLoading */ true);
     const snapshot = DocumentSnapshot.fromDocument(document, {
         parse: document.compiler?.parse,
         version: document.compiler?.VERSION,
