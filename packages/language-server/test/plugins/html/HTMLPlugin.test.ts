@@ -22,7 +22,7 @@ const isSvelte5Plus = Number(VERSION.split('.')[0]) >= 5;
 
 describe('HTML Plugin', () => {
     function setup(content: string) {
-        const document = new Document('file:///hello.svelte', content);
+        const document = new Document('file:///hello.svelte', content, /*skipConfigLoading*/ true);
         const docManager = new DocumentManager(() => document);
         const configManager = new LSConfigManager();
         const plugin = new HTMLPlugin(docManager, configManager, new FileSystemProvider(), []);

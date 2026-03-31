@@ -32,7 +32,11 @@ import { TsPlugin } from './tsplugin';
 import { addFindComponentReferencesListener } from './typescript/findComponentReferences';
 import { addFindFileReferencesListener } from './typescript/findFileReferences';
 import { setupSvelteKit } from './sveltekit';
-import { resolveCodeLensMiddleware } from './middlewares';
+import { resolveCodeLensMiddleware } from './typescript/codeLensMiddleware';
+import {
+    getMergedConfiguration as getMergedTsConfigurations,
+    sendNotificationMiddleware
+} from './typescript/configurationMiddleware';
 
 namespace TagCloseRequest {
     export const type: RequestType<TextDocumentPositionParams, string, any> = new RequestType(
@@ -185,9 +189,7 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
                 svelte: workspace.getConfiguration('svelte'),
                 prettier: workspace.getConfiguration('prettier'),
                 emmet: workspace.getConfiguration('emmet'),
-                typescript: workspace.getConfiguration('typescript'),
-                javascript: workspace.getConfiguration('javascript'),
-                'js/ts': workspace.getConfiguration('js/ts'),
+                ...getMergedTsConfigurations(),
                 css: workspace.getConfiguration('css'),
                 less: workspace.getConfiguration('less'),
                 scss: workspace.getConfiguration('scss'),
@@ -197,7 +199,8 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
             isTrusted: workspace.isTrusted
         },
         middleware: {
-            resolveCodeLens: resolveCodeLensMiddleware
+            resolveCodeLens: resolveCodeLensMiddleware,
+            sendNotification: sendNotificationMiddleware
         }
     };
 
@@ -262,7 +265,7 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
 
     addRenameFileListener(getLS);
 
-    addCompilePreviewCommand(getLS, context);
+    addCompilePreviewCommands(getLS, context);
 
     addExtracComponentCommand(getLS, context);
 
@@ -443,7 +446,7 @@ function addRenameFileListener(getLS: () => LanguageClient) {
     });
 }
 
-function addCompilePreviewCommand(getLS: () => LanguageClient, context: ExtensionContext) {
+function addCompilePreviewCommands(getLS: () => LanguageClient, context: ExtensionContext) {
     const compiledCodeContentProvider = new CompiledCodeContentProvider(getLS);
 
     context.subscriptions.push(
@@ -466,7 +469,26 @@ function addCompilePreviewCommand(getLS: () => LanguageClient, context: Extensio
                 async () => {
                     // Open a new preview window for the compiled code
                     return await window.showTextDocument(
-                        CompiledCodeContentProvider.previewWindowUri,
+                        CompiledCodeContentProvider.jsPreviewWindowUri,
+                        {
+                            preview: true,
+                            viewColumn: ViewColumn.Beside
+                        }
+                    );
+                }
+            );
+        }),
+        commands.registerTextEditorCommand('svelte.showCompiledCSSToSide', async (editor) => {
+            if (editor?.document?.languageId !== 'svelte') {
+                return;
+            }
+
+            window.withProgress(
+                { location: ProgressLocation.Window, title: 'Compiling...' },
+                async () => {
+                    // Open a new preview window for the compiled code
+                    return await window.showTextDocument(
+                        CompiledCodeContentProvider.cssPreviewWindowUri,
                         {
                             preview: true,
                             viewColumn: ViewColumn.Beside
