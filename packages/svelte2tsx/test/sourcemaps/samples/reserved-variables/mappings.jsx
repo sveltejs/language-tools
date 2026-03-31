@@ -3,10 +3,12 @@
 ;function $$render() { let $$props = __sveltets_2_allPropsType(); let $$restProps = __sveltets_2_restPropsType(); let $$slots = __sveltets_2_slotsType({});{/**
 ;function•$$render()•{•let•$$props•=•__sveltets_2_allPropsType();•let•$$restProps•=•__sveltets_2_restPropsType();•let•$$slots•=•__sveltets_2_slotsType({});↲    [generated] line 2
 <s                                                                                                                                                              
-<script>↲                                                                                                                                                       [original] line 1 
+<script>↲                                                                                                                                                       [original] line 1 (rest generated at line 3)
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                                                                                                                                                       {/**
-
+↲            [generated] line 3                                                                                                                       
+        ↲                                                                                                                                             
+<script>↲    [original] line 1 (rest generated at line 2)                                                                                             
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
     $$slots;
     $$restProps;
@@ -14,8 +16,8 @@
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
     let  foo = __sveltets_2_invalidate(() => ({...$$slots, ...$$restProps, ...$$props}));                                                             {/**
    ╚let••foo•=•__sveltets_2_invalidate(()•=>•({...$$slots,•...$$restProps,•...$$props}));↲    [generated] line 7                                      
-   ╚    •foo•=•                               {...$$slots,•...$$restProps,•...$$props} ;                                                              
-   ╚  •foo•=•{...$$slots,•...$$restProps,•...$$props};                                                                                                
+   ╚    •foo•=•                               {...$$slots,•...$$restProps,•...$$props} ; ↲                                                            
+   ╚  •foo•=•{...$$slots,•...$$restProps,•...$$props};↲                                                                                               
    ╚$:•foo•=•{...$$slots,•...$$restProps,•...$$props};↲                                       [original] line 5                                       
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
 ;                                                                                                                                                     {/**
@@ -36,8 +38,8 @@ async•()•=>•{↲    [generated] line 9
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
 if($$slots.foo){                                                                                                                                      {/**
 if($$slots.foo){↲     [generated] line 11                                                                                                             
-{  $$slots.foo}                                                                                                                                       
-{    $$slots.foo}                                                                                                                                     
+{  $$slots.foo} ↲                                                                                                                                     
+{    $$slots.foo}↲                                                                                                                                    
 {#if•$$slots.foo}↲    [original] line 8                                                                                                               
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
     $$restProps.bar;                                                                                                                                  {/**
@@ -48,15 +50,15 @@ if($$slots.foo){↲     [generated] line 11
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
      { const $$_tnenopmoC0C = __sveltets_2_ensureComponent(Component); new $$_tnenopmoC0C({ target: __sveltets_2_any(), props: {  ...$$props,}});}    {/**
    ╚•{•const•$$_tnenopmoC0C•=•__sveltets_2_ensureComponent(Component);•new•$$_tnenopmoC0C({•target:•__sveltets_2_any(),•props:•{••...$$props,}});}↲    [generated] line 13
-                                                                                                                                • ...$$props,}});}↲    [generated] subset
+                                                                                                                                • ...$$props,}});}     [generated] subset
                                                                                                                                 ╚ ...$$props}          
    ╚  ...$$props}                                                                                                                                      
    ╚╚{...$$props}↲                                                                                                                                     [original] line 11 
                                                                                                                                                        
    ╚•{•const•$$_tnenopmoC0C•=•__sveltets_2_ensureComponent(Component);•new•$$_tnenopmoC0C({•target:•__sveltets_2_any(),•props:•{••...$$props,}});}↲    [generated] line 13
-                                                                                                                                 •                     [generated] subset
-                                                                                                                                 ╚                     
-   ╚                                                                                                                                                   
+                                                                                                                                 •                ↲    [generated] subset
+                                                                                                                                 ╚                ↲    
+   ╚  ↲                                                                                                                                                
    ╚/>↲                                                                                                                                                [original] line 12 
                                                                                                                                                        
    ╚•{•const•$$_tnenopmoC0C•=•__sveltets_2_ensureComponent(Component);•new•$$_tnenopmoC0C({•target:•__sveltets_2_any(),•props:•{••...$$props,}});}↲    [generated] line 13

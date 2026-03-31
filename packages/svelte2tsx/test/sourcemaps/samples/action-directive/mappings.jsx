@@ -109,8 +109,8 @@ async•()•=>•{•{const•$$action_0•=•__sveltets_2_ensureAction(action
                                                                                                                                                       
 •{const•$$action_0•=•__sveltets_2_ensureAction(action(svelteHTML.mapElementTag('element'),({•↲    [generated] line 13                                 
                                                action(svelteHTML.mapElementTag('element'),({•↲    [generated] subset                                  
-                                               action=                                     {•                                                         
-     action= {•                                                                                                                                       
+                                               action=                                     {•↲                                                        
+     action= {•↲                                                                                                                                      
 ╚use:action={{•↲                                                                                  [original] line 18 (rest generated at line 16)      
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
         ...leet,
