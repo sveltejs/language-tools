@@ -3,12 +3,10 @@
 ;function $$render() {                                                                                                                                {/**
 ;function•$$render()•{↲    [generated] line 2                                                                                                         
 <s                                                                                                                                                    
-<script>↲                  [original] line 1 (rest generated at line 3)                                                                               
+<script>↲                  [original] line 1                                                                                                          
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                                                                                                                                                       {/**
-↲            [generated] line 3                                                                                                                       
-        ↲                                                                                                                                             
-<script>↲    [original] line 1 (rest generated at line 2)                                                                                             
+
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
      let prop/*Ωignore_startΩ*/;prop = __sveltets_2_any(prop);/*Ωignore_endΩ*//*Ωignore_startΩ*/;let $prop = __sveltets_2_store_get(prop);/*Ωignore_endΩ*/
    ╚•let•prop/*Ωignore_startΩ*/;prop•=•__sveltets_2_any(prop);/*Ωignore_endΩ*//*Ωignore_startΩ*/;let•$prop•=•__sveltets_2_store_get(prop);/*Ωignore_endΩ*/↲    [generated] line 4
@@ -18,14 +16,14 @@
 //----------------------------------------------------------------------------------------------------------------------------------------------------
     let  foo = __sveltets_2_invalidate(() => prop);                                                                                                   {/**
    ╚let••foo•=•__sveltets_2_invalidate(()•=>•prop);↲    [generated] line 5                                                                            
-   ╚    •foo•=•                              prop; ↲                                                                                                  
-   ╚  •foo•=•prop;↲                                                                                                                                   
+   ╚    •foo•=•                              prop;                                                                                                    
+   ╚  •foo•=•prop;                                                                                                                                    
    ╚$:•foo•=•prop;↲                                     [original] line 3                                                                             
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
     let  bar = __sveltets_2_invalidate(() => $prop);                                                                                                  {/**
    ╚let••bar•=•__sveltets_2_invalidate(()•=>•$prop);↲    [generated] line 6                                                                           
-   ╚    •bar•=•                              $prop; ↲                                                                                                 
-   ╚  •bar•=•$prop;↲                                                                                                                                  
+   ╚    •bar•=•                              $prop;                                                                                                   
+   ╚  •bar•=•$prop;                                                                                                                                   
    ╚$:•bar•=•$prop;↲                                     [original] line 4                                                                            
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
     ;() => {$: if (bar) ++foo}                                                                                                                        {/**

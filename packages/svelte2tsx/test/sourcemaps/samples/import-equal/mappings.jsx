@@ -3,12 +3,10 @@
 ;function $$render() {                                                                                                                                {/**
 ;function•$$render()•{↲    [generated] line 2                                                                                                         
 <s                                                                                                                                                    
-<script>↲                  [original] line 1 (rest generated at line 3)                                                                               
+<script>↲                  [original] line 1                                                                                                          
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                                                                                                                                                       {/**
-↲            [generated] line 3                                                                                                                       
-        ↲                                                                                                                                             
-<script>↲    [original] line 1 (rest generated at line 2)                                                                                             
+
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
     import A;                                                                                                                                         {/**
 ••••import•A;↲    [generated] line 4                                                                                                                  

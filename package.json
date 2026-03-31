@@ -7,7 +7,7 @@
     "scripts": {
         "bootstrap": "cd ./packages/svelte2tsx && pnpm build && cd ../svelte-vscode && pnpm build:grammar",
         "build": "tsc -b",
-        "test": "CI=true pnpm test -r",
+        "test": "CI=true pnpm run -r test",
         "watch": "tsc -b -watch",
         "format": "prettier --write .",
         "lint": "prettier --check .",
