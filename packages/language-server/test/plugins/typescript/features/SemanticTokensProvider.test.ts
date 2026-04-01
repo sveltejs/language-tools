@@ -25,8 +25,8 @@ describe('SemanticTokensProvider', function () {
     serviceWarmup(this, semanticTokenTestDir, pathToUrl(testDir));
 
     function setup(filename: string) {
-        const docManager = new DocumentManager(
-            (textDocument) => new Document(textDocument.uri, textDocument.text)
+        const docManager = new DocumentManager((textDocument) =>
+            Document.createForTest(textDocument.uri, textDocument.text)
         );
         const filePath = path.join(semanticTokenTestDir, filename);
         const lsAndTsDocResolver = new LSAndTSDocResolver(

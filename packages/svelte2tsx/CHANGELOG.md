@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.53
+
+### Patch Changes
+
+-   fix: prevent error with escape sequence in attribute ([#2968](https://github.com/sveltejs/language-tools/pull/2968))
+
 ## 0.7.52
 
 ### Patch Changes

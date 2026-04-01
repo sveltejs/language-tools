@@ -24,7 +24,7 @@ describe('UpdateImportsProviderImpl', function () {
 
     async function setup(filename: string, useCaseSensitiveFileNames: boolean) {
         const docManager = new DocumentManager(
-            (textDocument) => new Document(textDocument.uri, textDocument.text),
+            (textDocument) => Document.createForTest(textDocument.uri, textDocument.text),
             { useCaseSensitiveFileNames }
         );
         const lsAndTsDocResolver = new LSAndTSDocResolver(

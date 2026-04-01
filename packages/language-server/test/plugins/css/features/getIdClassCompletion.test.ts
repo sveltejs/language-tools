@@ -15,7 +15,7 @@ import ts from 'typescript';
 
 describe('getIdClassCompletion', () => {
     function createDocument(content: string) {
-        return new Document('file:///hello.svelte', content);
+        return new Document('file:///hello.svelte', content, /*skipConfigLoading*/ true);
     }
 
     function createCSSDocument(content: string) {

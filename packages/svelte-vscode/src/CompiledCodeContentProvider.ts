@@ -16,8 +16,13 @@ type CompiledCodeResponse = {
 
 // ContentProvider for "svelte-compiled://" files
 export default class CompiledCodeContentProvider implements TextDocumentContentProvider {
-    static previewWindowUri = Uri.parse('svelte-compiled:///preview.js');
+    static jsPreviewWindowUri = Uri.parse('svelte-compiled:///preview.js');
+    static cssPreviewWindowUri = Uri.parse('svelte-compiled:///preview.css');
     static scheme = 'svelte-compiled';
+
+    // Cache the last compiled code response to avoid unnecessary
+    // recompilations when switching between the JS and CSS preview windows
+    private cachedResponse: CompiledCodeResponse | null = null;
 
     private didChangeEmitter = new EventEmitter<Uri>();
     private selectedSvelteFile: string | undefined;
@@ -32,7 +37,9 @@ export default class CompiledCodeContentProvider implements TextDocumentContentP
     // by emitting an event to the didChangeEmitter. VSCode listens to
     // this.onDidChange and will call provideTextDocumentContent
     private refresh() {
-        this.didChangeEmitter.fire(CompiledCodeContentProvider.previewWindowUri);
+        this.cachedResponse = null;
+        this.didChangeEmitter.fire(CompiledCodeContentProvider.jsPreviewWindowUri);
+        this.didChangeEmitter.fire(CompiledCodeContentProvider.cssPreviewWindowUri);
     }
 
     constructor(private getLanguageClient: () => LanguageClient) {
@@ -69,7 +76,7 @@ export default class CompiledCodeContentProvider implements TextDocumentContentP
 
     // This is called when VSCode needs to get the content of the preview window
     // we can trigger this using the didChangeEmitter
-    async provideTextDocumentContent(): Promise<string | undefined> {
+    async provideTextDocumentContent(uri: Uri): Promise<string | undefined> {
         // If there is no selected svelte file, try to get it from the activeTextEditor
         // This should only happen when the svelte.showCompiledCodeToSide command is called the first time
         if (!this.selectedSvelteFile && window.activeTextEditor) {
@@ -82,17 +89,27 @@ export default class CompiledCodeContentProvider implements TextDocumentContentP
             return;
         }
 
-        const response = await this.getLanguageClient().sendRequest<CompiledCodeResponse>(
-            '$/getCompiledCode',
-            this.selectedSvelteFile
-        );
+        let response = this.cachedResponse;
+
+        if (!response) {
+            response = await this.getLanguageClient().sendRequest<CompiledCodeResponse>(
+                '$/getCompiledCode',
+                this.selectedSvelteFile
+            );
+            this.cachedResponse = response;
+        }
 
         const path = this.selectedSvelteFile.replace('file://', '');
 
-        if (response?.js?.code) {
-            return `/* Compiled: ${path} */\n${response.js.code}`;
-        } else {
+        if (response === null) {
             window.setStatusBarMessage(`Svelte: fail to compile ${path}`, 3000);
+        } else if (uri.path === '/preview.js') {
+            return `/* Compiled: ${path} */\n${response.js?.code}`;
+        } else if (uri.path === '/preview.css') {
+            if (!response.css) {
+                return `/* Compiled: ${path} */\n/* No CSS output — this component does not contain a <style> block */`;
+            }
+            return `/* Compiled: ${path} */\n${response.css?.code}`;
         }
     }
 
