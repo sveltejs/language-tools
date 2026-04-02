@@ -205,7 +205,7 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
                 return null;
             },
             sendNotification: sendNotificationMiddleware
-        },
+        }
     };
 
     const ls = createLanguageServer(serverOptions, clientOptions);

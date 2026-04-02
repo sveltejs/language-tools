@@ -154,15 +154,21 @@ export class JsOrTsComponentInfoProvider implements ComponentInfoProvider {
         }
 
         const signatures = type.getCallSignatures();
-        if (signatures.length !== 1) {
+        // In can be 2 signatures in mono-repos with version mismatches and the target component is from another package.
+        // In that case, return if the resolved props is the same in both signatures.
+        if (signatures.length > 2) {
             return null;
         }
 
-        const propsParameter = signatures[0].parameters[1];
-        if (!propsParameter) {
+        const propsParameterType = getPropsParameterType(typeChecker, signatures[0]);
+        if (!propsParameterType) {
             return null;
         }
-        const propsParameterType = typeChecker.getTypeOfSymbol(propsParameter);
+        const propsParameterType2 =
+            signatures.length === 2 ? getPropsParameterType(typeChecker, signatures[1]) : null;
+        if (propsParameterType2 && propsParameterType2 !== propsParameterType) {
+            return null;
+        }
 
         return new JsOrTsComponentInfoProvider(
             typeChecker,
@@ -170,4 +176,15 @@ export class JsOrTsComponentInfoProvider implements ComponentInfoProvider {
             /** useSvelte5PlusPropsParameter */ true
         );
     }
+}
+
+function getPropsParameterType(
+    typeChecker: ts.TypeChecker,
+    signature: ts.Signature
+): ts.Type | null {
+    const propsParameter = signature.parameters[1];
+    if (!propsParameter) {
+        return null;
+    }
+    return typeChecker.getTypeOfSymbol(propsParameter);
 }

@@ -31,7 +31,6 @@ export class HoverVerbosityProvider implements vscode.HoverProvider {
 
         const hover = client.protocol2CodeConverter.asHover(response);
 
-
         const verboseHover = new vscode.VerboseHover(
             hover.contents,
             hover.range,
@@ -40,7 +39,7 @@ export class HoverVerbosityProvider implements vscode.HoverProvider {
         );
         this.lastHoverAndLevel = [verboseHover, verbosityLevel];
 
-        return verboseHover
+        return verboseHover;
     }
 
     private toProtocolPosition(position: vscode.Position) {
