@@ -146,7 +146,11 @@ export class Element {
         this.slotLetsTransformation[1].push(...transformation, ',');
     }
 
-    addAction(attr: BaseDirective) {
+    addAction(
+        attr: BaseDirective,
+        leadingComments: TransformationArray = [],
+        trailingComments: TransformationArray = []
+    ) {
         const id = `$$action_${this.actionIdentifiers.length}`;
         this.actionIdentifiers.push(id);
         if (!this.actionsTransformation.length) {
@@ -154,6 +158,7 @@ export class Element {
         }
 
         this.actionsTransformation.push(
+            ...leadingComments,
             `const ${id} = __sveltets_2_ensureAction(`,
             getDirectiveNameStartEndIdx(this.str, attr),
             `(${this.typingsNamespace}.mapElementTag('${this.tagName}')`
@@ -165,7 +170,7 @@ export class Element {
                 ')'
             );
         }
-        this.actionsTransformation.push('));');
+        this.actionsTransformation.push('));', ...trailingComments);
     }
 
     /**

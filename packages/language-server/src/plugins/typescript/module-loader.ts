@@ -88,7 +88,7 @@ class ModuleResolutionCache {
     }
 
     oneOfResolvedModuleChanged(path: string) {
-        return this.pendingInvalidations.has(path);
+        return this.pendingInvalidations.size > 0 && this.pendingInvalidations.has(path);
     }
 }
 
@@ -325,7 +325,7 @@ export function createSvelteModuleLoader(
         return (
             moduleCache.oneOfResolvedModuleChanged(path) ||
             // tried but failed file might now exist
-            failedLocationInvalidated.has(path)
+            (failedLocationInvalidated.size > 0 && failedLocationInvalidated.has(path))
         );
     }
 

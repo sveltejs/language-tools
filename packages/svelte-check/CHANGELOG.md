@@ -1,5 +1,81 @@
 # Changelog
 
+## 4.4.6
+
+### Patch Changes
+
+-   fix: prevent config loading message in svelte-check --incremental ([#2974](https://github.com/sveltejs/language-tools/pull/2974))
+
+-   fix: resolve svelte files with NodeNext in --incremental/tsgo ([#2990](https://github.com/sveltejs/language-tools/pull/2990))
+
+-   perf: various optimization with ast walk ([#2969](https://github.com/sveltejs/language-tools/pull/2969))
+
+-   fix: prevent error with escape sequence in attribute ([#2968](https://github.com/sveltejs/language-tools/pull/2968))
+
+-   fix: typescript 6.0 compatibility ([#2988](https://github.com/sveltejs/language-tools/pull/2988))
+
+## 4.4.5
+
+### Patch Changes
+
+-   fix: use Promise<Response> for async kit handler return types ([#2966](https://github.com/sveltejs/language-tools/pull/2966))
+
+## 4.4.4
+
+### Patch Changes
+
+-   fix: more robust detection of `lang="ts"` attribute ([#2957](https://github.com/sveltejs/language-tools/pull/2957))
+
+-   fix: pass filename to `warningFilter` ([#2959](https://github.com/sveltejs/language-tools/pull/2959))
+
+-   fix: resolve svelte files under path alias in `--incremental/tsgo` mode ([#2955](https://github.com/sveltejs/language-tools/pull/2955))
+
+## 4.4.3
+
+### Patch Changes
+
+-   fix: respect `@ts-ignore` etc comments within tags ([#2950](https://github.com/sveltejs/language-tools/pull/2950))
+
+## 4.4.2
+
+### Patch Changes
+
+-   fix: resolve shims correctly in `--incremental/tsgo` mode ([`cd1ff2f`](https://github.com/sveltejs/language-tools/commit/cd1ff2f269f3401ad8a5924e208558de868a4f3c))
+
+-   fix: include `references` in generated `tsconfig.json` in `--incremental/tsgo` mode ([`1990f74`](https://github.com/sveltejs/language-tools/commit/1990f7477de44740109e75a7755a92385c195374))
+
+## 4.4.1
+
+### Patch Changes
+
+-   fix: handle relative imports reaching outside working directory when using `--incremental/--tsgo` flags ([#2942](https://github.com/sveltejs/language-tools/pull/2942))
+
+-   fix: support SvelteKit zero types in svelte-check --incremental ([#2939](https://github.com/sveltejs/language-tools/pull/2939))
+
+## 4.4.0
+
+### Minor Changes
+
+-   feat: provide `--incremental` and `--tsgo` flags ([#2932](https://github.com/sveltejs/language-tools/pull/2932))
+
+### Patch Changes
+
+-   fix: ignore Unix domain sockets in file watcher to prevent crashes ([#2931](https://github.com/sveltejs/language-tools/pull/2931))
+
+-   fix: properly use machine output by default for Claude Code ([`e9f58d2`](https://github.com/sveltejs/language-tools/commit/e9f58d2379adf8dc4ea47b2fb3fad2797dd66f04))
+
+## 4.3.6
+
+### Patch Changes
+
+-   fix: don't hoist type/snippet referencing $store ([#2926](https://github.com/sveltejs/language-tools/pull/2926))
+
+## 4.3.5
+
+### Patch Changes
+
+-   fix: ensure await-block type is preserved in the latest Svelte version ([#2895](https://github.com/sveltejs/language-tools/pull/2895))
+
 ## 4.3.4
 
 ### Patch Changes

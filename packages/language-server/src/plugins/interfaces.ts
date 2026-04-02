@@ -1,6 +1,7 @@
 import {
     CancellationToken,
     CompletionContext,
+    DocumentDiagnosticReport,
     FileChangeType,
     HoverParams,
     LinkedEditingRanges,
@@ -53,6 +54,11 @@ export interface AppCompletionList<T extends TextDocumentIdentifier = any> exten
 
 export interface DiagnosticsProvider {
     getDiagnostics(document: Document): Resolvable<Diagnostic[]>;
+    getDiagnosticsForPullMode(
+        document: Document,
+        previousResultId?: string,
+        cancellationToken?: CancellationToken
+    ): Resolvable<DocumentDiagnosticReport>;
 }
 
 export interface HoverProvider {

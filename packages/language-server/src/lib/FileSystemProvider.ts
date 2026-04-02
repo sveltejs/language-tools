@@ -1,11 +1,13 @@
-import { stat, readdir, Stats } from 'fs';
-import { promisify } from 'util';
+import { Stats } from 'fs';
+import fs from 'fs/promises';
 import {
     FileStat,
     FileSystemProvider as CSSFileSystemProvider,
     FileType
 } from 'vscode-css-languageservice';
-import { urlToPath } from '../../utils';
+import { FileService } from '@vscode/emmet-helper';
+import { urlToPath } from '../utils';
+import { URI } from 'vscode-uri';
 
 interface StatLike {
     isDirectory(): boolean;
@@ -13,18 +15,15 @@ interface StatLike {
     isSymbolicLink(): boolean;
 }
 
-export class FileSystemProvider implements CSSFileSystemProvider {
-    // TODO use fs/promises after we bumps the target nodejs versions
-    private promisifyStat = promisify(stat);
-    private promisifyReaddir = promisify(readdir);
-
+export class FileSystemProvider implements CSSFileSystemProvider, FileService {
     constructor() {
         this.readDirectory = this.readDirectory.bind(this);
         this.stat = this.stat.bind(this);
     }
-
-    async stat(uri: string): Promise<FileStat> {
-        const path = urlToPath(uri);
+    async stat(uri: URI): Promise<FileStat>;
+    async stat(uri: string): Promise<FileStat>;
+    async stat(uri: string | URI): Promise<FileStat> {
+        const path = typeof uri === 'string' ? urlToPath(uri) : uri.fsPath;
 
         if (!path) {
             return this.unknownStat();
@@ -32,7 +31,7 @@ export class FileSystemProvider implements CSSFileSystemProvider {
 
         let stat: Stats;
         try {
-            stat = await this.promisifyStat(path);
+            stat = await fs.stat(path);
         } catch (error) {
             if (
                 error != null &&
@@ -85,10 +84,16 @@ export class FileSystemProvider implements CSSFileSystemProvider {
             return [];
         }
 
-        const files = await this.promisifyReaddir(path, {
+        const files = await fs.readdir(path, {
             withFileTypes: true
         });
 
         return files.map((file) => [file.name, this.getFileType(file)]);
+    }
+
+    async readFile(uri: URI): Promise<Uint8Array> {
+        const path = uri.fsPath;
+        const data = await fs.readFile(path);
+        return new Uint8Array(data);
     }
 }

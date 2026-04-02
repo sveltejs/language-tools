@@ -189,23 +189,20 @@ export function findContainingNode<T extends ts.Node>(
     textSpan: ts.TextSpan,
     predicate: (node: ts.Node) => node is T
 ): T | undefined {
-    const children = node.getChildren();
-    const end = textSpan.start + textSpan.length;
-
-    for (const child of children) {
-        if (!(child.getStart() <= textSpan.start && child.getEnd() >= end)) {
-            continue;
+    // TypeScript will re-parse part of the file in getChildren() to include syntax tokens.
+    // But for the use cases of this function, we only need the actual nodes like Identifier.
+    // the forEachChild name is a bit misleading too because it function more like find than forEach
+    return node.forEachChild((child) => {
+        if (child.getStart() <= textSpan.start && child.getEnd() >= textSpan.start) {
+            if (predicate(child)) {
+                return child;
+            }
+            const foundInChildren = findContainingNode(child, textSpan, predicate);
+            if (foundInChildren) {
+                return foundInChildren;
+            }
         }
-
-        if (predicate(child)) {
-            return child;
-        }
-
-        const foundInChildren = findContainingNode(child, textSpan, predicate);
-        if (foundInChildren) {
-            return foundInChildren;
-        }
-    }
+    });
 }
 
 export function findClosestContainingNode<T extends ts.Node>(
@@ -242,7 +239,7 @@ export function findNodeAtSpan<T extends ts.Node>(
 
     const end = start + length;
 
-    for (const child of node.getChildren()) {
+    return node.forEachChild((child) => {
         const childStart = child.getStart();
         if (end <= childStart) {
             return;
@@ -250,7 +247,7 @@ export function findNodeAtSpan<T extends ts.Node>(
 
         const childEnd = child.getEnd();
         if (start >= childEnd) {
-            continue;
+            return;
         }
 
         if (start === childStart && end === childEnd) {
@@ -266,7 +263,7 @@ export function findNodeAtSpan<T extends ts.Node>(
         if (foundInChildren) {
             return foundInChildren;
         }
-    }
+    });
 }
 
 function isSomeAncestor(node: ts.Node, predicate: NodePredicate) {
@@ -349,9 +346,9 @@ export function gatherDescendants<T extends ts.Node>(
     if (predicate(node)) {
         dest.push(node);
     } else {
-        for (const child of node.getChildren()) {
+        node.forEachChild((child) => {
             gatherDescendants(child, predicate, dest);
-        }
+        });
     }
     return dest;
 }
@@ -416,6 +413,7 @@ export function getQuotePreference(
         : double;
 }
 export function findChildOfKind(node: ts.Node, kind: ts.SyntaxKind): ts.Node | undefined {
+    // this one we do want to use getChildren() because we also want to find syntax tokens,
     for (const child of node.getChildren()) {
         if (child.kind === kind) {
             return child;
@@ -450,4 +448,99 @@ export function checkRangeMappingWithGeneratedSemi(
     ) {
         originalRange.end.character += 1;
     }
+}
+
+/** Returns the list of registered custom elements and their description (from JSDoc) */
+export function getCustomElementsTags(
+    lang: ts.LanguageService,
+    lsContainer: LanguageServiceContainer,
+    tsDoc: SvelteDocumentSnapshot
+): string[] {
+    const info = getCustomElementDocumentationSymbols(lang, lsContainer, tsDoc);
+    if (!info) {
+        return [];
+    }
+
+    const symbols = info.type.getProperties().filter((s) => ts.symbolName(s).includes('-'));
+    return symbols.map((s) => s.name);
+}
+
+export function getCustomElementsDocument(
+    lang: ts.LanguageService,
+    lsContainer: LanguageServiceContainer,
+    tsDoc: SvelteDocumentSnapshot,
+    tagName: string
+): string | null {
+    const info = getCustomElementDocumentationSymbols(lang, lsContainer, tsDoc);
+    if (!info) {
+        return null;
+    }
+
+    const tag = info.type.getProperty(tagName);
+    return tag && tag.name.includes('-')
+        ? ts.displayPartsToString(tag.getDocumentationComment(info.typeChecker))
+        : null;
+}
+
+function getCustomElementDocumentationSymbols(
+    lang: ts.LanguageService,
+    lsContainer: LanguageServiceContainer,
+    tsDoc: SvelteDocumentSnapshot
+): { type: ts.Type; typeChecker: ts.TypeChecker } | null {
+    const program = lang.getProgram();
+    const sourceFile = program?.getSourceFile(tsDoc.filePath);
+    const typeChecker = program?.getTypeChecker();
+    if (!typeChecker || !sourceFile) {
+        return null;
+    }
+
+    const typingsNamespace = lsContainer.getTsConfigSvelteOptions().namespace;
+
+    const typingsNamespaceSymbol = findTypingsNamespaceSymbol(
+        typingsNamespace,
+        typeChecker,
+        sourceFile
+    );
+
+    if (!typingsNamespaceSymbol) {
+        return null;
+    }
+
+    const elements = typeChecker
+        .getExportsOfModule(typingsNamespaceSymbol)
+        .find((symbol) => symbol.name === 'IntrinsicElements');
+
+    if (!elements || !(elements.flags & ts.SymbolFlags.Interface)) {
+        return null;
+    }
+
+    const type = typeChecker.getDeclaredTypeOfSymbol(elements);
+
+    return { type, typeChecker };
+}
+
+function findTypingsNamespaceSymbol(
+    namespaceExpression: string,
+    typeChecker: ts.TypeChecker,
+    sourceFile: ts.SourceFile
+) {
+    if (!namespaceExpression || typeof namespaceExpression !== 'string') {
+        return;
+    }
+
+    const [first, ...rest] = namespaceExpression.split('.');
+
+    let symbol: ts.Symbol | undefined = typeChecker
+        .getSymbolsInScope(sourceFile, ts.SymbolFlags.Namespace)
+        .find((symbol) => symbol.name === first);
+
+    for (const part of rest) {
+        if (!symbol) {
+            return;
+        }
+
+        symbol = typeChecker.getExportsOfModule(symbol).find((symbol) => symbol.name === part);
+    }
+
+    return symbol;
 }

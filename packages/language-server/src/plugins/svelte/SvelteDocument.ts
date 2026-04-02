@@ -94,7 +94,10 @@ export class SvelteDocument {
     }
 
     async getCompiledWith(options: CompileOptions = {}): Promise<SvelteCompileResult> {
-        return this.parent.compiler.compile((await this.getTranspiled()).getText(), options);
+        return this.parent.compiler.compile((await this.getTranspiled()).getText(), {
+            ...options,
+            filename: this.getFilePath()
+        });
     }
 }
 

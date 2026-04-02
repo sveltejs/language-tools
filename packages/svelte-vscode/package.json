@@ -431,6 +431,10 @@
                 "configuration": "./language-configuration.json"
             },
             {
+                "id": "svelte-start-tag",
+                "configuration": "./language-configuration-start-tag.json"
+            },
+            {
                 "id": "json",
                 "filenames": [
                     ".prettierrc"
@@ -460,6 +464,8 @@
                     "text.html.basic": "html",
                     "text.html.markdown": "markdown",
                     "text.pug": "jade",
+                    "meta.tag.start.svelte": "svelte-start-tag",
+                    "punctuation.definition.tag.begin.svelte": "svelte",
                     "source.css": "css",
                     "source.css.less": "less",
                     "source.css.scss": "scss",
@@ -476,7 +482,14 @@
                     "keyword.operator.bitwise.shift",
                     "meta.brace.angle",
                     "punctuation.definition.tag"
-                ]
+                ],
+                "tokenTypes": {
+                    "punctuation.definition.template-expression": "other",
+                    "entity.name.type.instance.jsdoc": "other",
+                    "entity.name.function.tagged-template": "other",
+                    "meta.import string.quoted": "other",
+                    "variable.other.jsdoc": "other"
+                }
             },
             {
                 "scopeName": "svelte.pug",
@@ -559,6 +572,14 @@
                 }
             },
             {
+                "command": "svelte.showCompiledCSSToSide",
+                "title": "Svelte: Show Compiled CSS",
+                "icon": {
+                    "light": "icons/preview-css-right-light.svg",
+                    "dark": "icons/preview-css-right-dark.svg"
+                }
+            },
+            {
                 "command": "svelte.extractComponent",
                 "title": "Svelte: Extract Component"
             },
@@ -618,6 +639,10 @@
                     "when": "editorLangId == svelte"
                 },
                 {
+                    "command": "svelte.showCompiledCSSToSide",
+                    "when": "editorLangId == svelte"
+                },
+                {
                     "command": "svelte.typescript.findAllFileReferences",
                     "when": "editorLangId == svelte && resourceScheme == file"
                 },
@@ -629,6 +654,11 @@
             "editor/title": [
                 {
                     "command": "svelte.showCompiledCodeToSide",
+                    "when": "editorLangId == svelte",
+                    "group": "navigation"
+                },
+                {
+                    "command": "svelte.showCompiledCSSToSide",
                     "when": "editorLangId == svelte",
                     "group": "navigation"
                 }
@@ -752,7 +782,7 @@
         "tslib": "^2.4.0",
         "typescript": "^5.9.2",
         "vitest": "^3.2.4",
-        "vscode-tmgrammar-test": "^0.0.11"
+        "textmate-grammar-test": "^0.6.0"
     },
     "dependencies": {
         "lodash": "^4.17.21",

@@ -28,8 +28,8 @@ describe('RenameProvider', function () {
 
     async function setup() {
         const configManager = new LSConfigManager();
-        const docManager = new DocumentManager(
-            (textDocument) => new Document(textDocument.uri, textDocument.text)
+        const docManager = new DocumentManager((textDocument) =>
+            Document.createForTest(textDocument.uri, textDocument.text)
         );
         const lsAndTsDocResolver = new LSAndTSDocResolver(
             docManager,

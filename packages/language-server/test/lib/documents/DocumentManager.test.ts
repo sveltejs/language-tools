@@ -26,20 +26,17 @@ describe('Document Manager', () => {
 
     it('updates the whole document', () => {
         const document = createTextDocument(textDocument);
-        const update = sinon.spy(document, 'update');
         const createDocument = sinon.stub().returns(document);
         const manager = new DocumentManager(createDocument);
 
         manager.openClientDocument(textDocument);
         manager.updateDocument(textDocument, [{ text: 'New content' }]);
 
-        sinon.assert.calledOnce(update);
-        sinon.assert.calledWith(update.firstCall, 'New content', 0, textDocument.text.length);
+        assert.strictEqual(document.getText(), 'New content');
     });
 
     it('updates the parts of the document', () => {
         const document = createTextDocument(textDocument);
-        const update = sinon.spy(document, 'update');
         const createDocument = sinon.stub().returns(document);
         const manager = new DocumentManager(createDocument);
 
@@ -57,9 +54,7 @@ describe('Document Manager', () => {
             }
         ]);
 
-        sinon.assert.calledTwice(update);
-        sinon.assert.calledWith(update.firstCall, 'svelte', 7, 12);
-        sinon.assert.calledWith(update.secondCall, 'Greetings', 0, 5);
+        assert.strictEqual(document.getText(), 'Greetings, svelte!');
     });
 
     it("fails to update if document isn't open", () => {

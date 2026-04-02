@@ -133,13 +133,20 @@ export class InlineComponent {
      * @param name Event name
      * @param expression Event handler, if present
      */
-    addEvent([nameStart, nameEnd]: [number, number], expression?: [number, number]): void {
+    addEvent(
+        [nameStart, nameEnd]: [number, number],
+        expression?: [number, number],
+        leadingComments: TransformationArray = [],
+        trailingComments: TransformationArray = []
+    ): void {
         this.eventsTransformation.push(
+            ...leadingComments,
             `${this.name}.$on(`,
             surroundWith(this.str, [nameStart, nameEnd], '"', '"'),
             ', ',
             expression ? expression : '() => {}',
-            ');'
+            ');',
+            ...trailingComments
         );
     }
 

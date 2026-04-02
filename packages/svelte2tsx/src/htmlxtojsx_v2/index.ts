@@ -10,7 +10,11 @@ import { handleAttribute } from './nodes/Attribute';
 import { handleAwait } from './nodes/AwaitPendingCatchBlock';
 import { handleBinding } from './nodes/Binding';
 import { handleClassDirective } from './nodes/Class';
-import { handleComment } from './nodes/Comment';
+import {
+    handleComment,
+    handleLeadingStartComment,
+    handleTrailingEndComment
+} from './nodes/Comment';
 import { handleConstTag } from './nodes/ConstTag';
 import { handleDebug } from './nodes/DebugTag';
 import { handleEach } from './nodes/EachBlock';
@@ -42,6 +46,10 @@ import { EventHandler } from '../svelte2tsx/nodes/event-handler';
 import { ComponentEvents } from '../svelte2tsx/nodes/ComponentEvents';
 import { analyze } from 'periscopic';
 import { handleAttachTag } from './nodes/AttachTag';
+import {
+    getExternalImportRewrite,
+    RewriteExternalImportsOptions
+} from '../helpers/rewriteExternalImports';
 
 export interface TemplateProcessResult {
     /**
@@ -79,10 +87,15 @@ export function convertHtmlxToJsx(
         mode?: 'ts' | 'dts';
         typingsNamespace?: string;
         svelte5Plus: boolean;
+        emitJsDoc?: boolean;
+        isTsFile?: boolean;
+        rewriteExternalImports?: RewriteExternalImportsOptions;
     } = { svelte5Plus: false }
 ): TemplateProcessResult {
     options.typingsNamespace = options.typingsNamespace || 'svelteHTML';
     const preserveAttributeCase = options.namespace === 'foreign';
+    const emitJsDoc = options.emitJsDoc ?? false;
+    const isTsFile = options.isTsFile ?? false;
 
     const rootSnippets: Array<[number, number, Map<string, any>, string]> = [];
     let element: Element | InlineComponent | undefined;
@@ -155,6 +168,56 @@ export function convertHtmlxToJsx(
         str.remove(node.start, node.end);
     };
 
+    const rewriteImportSpecifier = (importSpecifier: string) => {
+        if (!options.rewriteExternalImports) {
+            return importSpecifier;
+        }
+        const rewrite = getExternalImportRewrite(importSpecifier, options.rewriteExternalImports);
+        return rewrite?.rewritten ?? importSpecifier;
+    };
+
+    const rewriteImportsInComment = (comment: BaseNode) => {
+        if (!options.rewriteExternalImports) {
+            return;
+        }
+        const original = str.original.slice(comment.start, comment.end);
+        const rewritten = original.replace(
+            /import\(\s*(['"])([^'"]+)\1\s*\)/g,
+            (fullMatch, quote, importSpecifier) => {
+                const specifier = rewriteImportSpecifier(importSpecifier);
+                return specifier === importSpecifier
+                    ? fullMatch
+                    : `import(${quote}${specifier}${quote})`;
+            }
+        );
+
+        if (rewritten !== original) {
+            str.overwrite(comment.start, comment.end, rewritten);
+        }
+    };
+
+    const rewriteNodeCommentImports = (node: BaseNode) => {
+        if (!options.rewriteExternalImports) {
+            return;
+        }
+
+        const nodeWithcomments = node as BaseNode & {
+            leadingComments?: BaseNode[];
+            trailingComments?: BaseNode[];
+            innerComments?: BaseNode[];
+        };
+
+        for (const comment of nodeWithcomments.leadingComments ?? []) {
+            rewriteImportsInComment(comment);
+        }
+        for (const comment of nodeWithcomments.trailingComments ?? []) {
+            rewriteImportsInComment(comment);
+        }
+        for (const comment of nodeWithcomments.innerComments ?? []) {
+            rewriteImportsInComment(comment);
+        }
+    };
+
     const slotHandler = new SlotHandler(str.original);
     let templateScope = new TemplateScope();
 
@@ -208,12 +271,31 @@ export function convertHtmlxToJsx(
             }
 
             try {
+                rewriteNodeCommentImports(node as BaseNode);
+
                 switch (node.type) {
                     case 'Identifier':
                         handleIdentifier(node);
                         stores.handleIdentifier(node, parent, prop);
                         eventHandler.handleIdentifier(node, parent, prop);
                         break;
+                    case 'ImportExpression': {
+                        const source = (node as any).source;
+                        if (
+                            options.rewriteExternalImports &&
+                            source?.type === 'Literal' &&
+                            typeof source.value === 'string'
+                        ) {
+                            const rewrite = getExternalImportRewrite(
+                                source.value,
+                                options.rewriteExternalImports
+                            );
+                            if (rewrite) {
+                                str.overwrite(source.start + 1, source.end - 1, rewrite.rewritten);
+                            }
+                        }
+                        break;
+                    }
                     case 'IfBlock':
                         handleIf(str, node);
                         break;
@@ -246,7 +328,9 @@ export function convertHtmlxToJsx(
                                 (element instanceof Element &&
                                     element.tagName === 'svelte:boundary')
                                 ? element
-                                : undefined
+                                : undefined,
+                            emitJsDoc,
+                            isTsFile
                         );
                         if (parent === ast) {
                             // root snippet -> move to instance script or possibly even module script
@@ -291,6 +375,8 @@ export function convertHtmlxToJsx(
                         handleRenderTag(str, node);
                         break;
                     case 'AttachTag':
+                        handleLeadingStartComment(str, node as BaseNode, ast);
+                        handleTrailingEndComment(str, node as BaseNode, parent, ast);
                         handleAttachTag(node, element);
                         break;
                     case 'InlineComponent':
@@ -344,13 +430,17 @@ export function convertHtmlxToJsx(
                         handleComment(str, node);
                         break;
                     case 'Binding':
+                        handleLeadingStartComment(str, node as BaseNode, ast);
+                        handleTrailingEndComment(str, node as BaseNode, parent, ast);
                         handleBinding(
                             str,
                             node as BaseDirective,
                             parent,
                             element,
                             options.typingsNamespace === 'svelteHTML',
-                            options.svelte5Plus
+                            options.svelte5Plus,
+                            emitJsDoc,
+                            isTsFile
                         );
                         break;
                     case 'Class':
@@ -360,18 +450,26 @@ export function convertHtmlxToJsx(
                         handleStyleDirective(str, node as StyleDirective, element as Element);
                         break;
                     case 'Action':
+                        handleLeadingStartComment(str, node as BaseNode, ast);
+                        handleTrailingEndComment(str, node as BaseNode, parent, ast);
                         stores.handleDirective(node, str);
                         handleActionDirective(node as BaseDirective, element as Element);
                         break;
                     case 'Transition':
+                        handleLeadingStartComment(str, node as BaseNode, ast);
+                        handleTrailingEndComment(str, node as BaseNode, parent, ast);
                         stores.handleDirective(node, str);
                         handleTransitionDirective(str, node as BaseDirective, element as Element);
                         break;
                     case 'Animation':
+                        handleLeadingStartComment(str, node as BaseNode, ast);
+                        handleTrailingEndComment(str, node as BaseNode, parent, ast);
                         stores.handleDirective(node, str);
                         handleAnimateDirective(str, node as BaseDirective, element as Element);
                         break;
                     case 'Attribute':
+                        handleLeadingStartComment(str, node, ast);
+                        handleTrailingEndComment(str, node as BaseNode, parent, ast);
                         handleAttribute(
                             str,
                             node as Attribute,
@@ -382,13 +480,19 @@ export function convertHtmlxToJsx(
                         );
                         break;
                     case 'Spread':
+                        handleLeadingStartComment(str, node as BaseNode, ast);
+                        handleTrailingEndComment(str, node as BaseNode, parent, ast);
                         handleSpread(node, element);
                         break;
                     case 'EventHandler':
+                        handleLeadingStartComment(str, node as BaseNode, ast);
+                        handleTrailingEndComment(str, node as BaseNode, parent, ast);
                         eventHandler.handleEventHandler(node, parent);
                         handleEventHandler(str, node as BaseDirective, element);
                         break;
                     case 'Let':
+                        handleLeadingStartComment(str, node as BaseNode, ast);
+                        handleTrailingEndComment(str, node as BaseNode, parent, ast);
                         handleLet(
                             str,
                             node,

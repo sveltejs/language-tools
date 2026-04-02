@@ -24,7 +24,7 @@ describe('service', () => {
             isSvelteCheck: false,
             ambientTypesSource: 'svelte2tsx',
             createDocument(fileName, content) {
-                return new Document(pathToUrl(fileName), content);
+                return Document.createForTest(pathToUrl(fileName), content);
             },
             extendedConfigCache: new Map(),
             globalSnapshotsManager: new GlobalSnapshotsManager(virtualSystem),
@@ -257,11 +257,11 @@ describe('service', () => {
             lsDocumentContext
         );
 
-        const document = new Document(pathToUrl(path.join(dirPath, 'random.svelte')), '');
+        const document = Document.createForTest(pathToUrl(path.join(dirPath, 'random.svelte')), '');
         document.openedByClient = true;
         ls.updateSnapshot(document);
 
-        const document2 = new Document(
+        const document2 = Document.createForTest(
             pathToUrl(path.join(dirPath, 'random2.svelte')),
             '<script>import Random from "./random.svelte";</script>'
         );
@@ -273,7 +273,12 @@ describe('service', () => {
         lang.getProgram();
 
         // ensure updated document also works
-        document2.update(' ', 0, 0);
+        document2.update([
+            {
+                text: ' ',
+                range: { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } }
+            }
+        ]);
         lang.getProgram();
 
         assert.doesNotThrow(() => {
@@ -313,11 +318,11 @@ describe('service', () => {
             lsDocumentContext
         );
 
-        const document = new Document(pathToUrl(path.join(dirPath, 'random.svelte')), '');
+        const document = Document.createForTest(pathToUrl(path.join(dirPath, 'random.svelte')), '');
         document.openedByClient = true;
         ls.updateSnapshot(document);
 
-        const document2 = new Document(
+        const document2 = Document.createForTest(
             pathToUrl(path.join(dirPath, 'random2.svelte')),
             virtualSystem.readFile(path.join(dirPath, 'random2.svelte'))!
         );
@@ -327,7 +332,7 @@ describe('service', () => {
         const lang = ls.getService();
         lang.getProgram();
 
-        document2.update('<script', 0, document2.getTextLength());
+        document2.update([{ text: '<script' }]);
         ls.updateSnapshot(document2);
         ls.getService();
     });
@@ -729,7 +734,7 @@ describe('service', () => {
         );
         virtualSystem.writeFile(tsFilePath, 'import "../anotherPackage/index.svelte";');
 
-        const document = new Document(
+        const document = Document.createForTest(
             pathToUrl(referencedFile),
             virtualSystem.readFile(referencedFile)!
         );

@@ -1,4 +1,3 @@
-import { flatten } from 'lodash';
 import { performance } from 'perf_hooks';
 import {
     CallHierarchyIncomingCall,
@@ -36,9 +35,10 @@ import {
     WorkspaceEdit,
     InlayHint,
     WorkspaceSymbol,
-    DocumentSymbol
+    DocumentSymbol,
+    DocumentDiagnosticReport
 } from 'vscode-languageserver';
-import { DocumentManager, getNodeIfIsInHTMLStartTag } from '../lib/documents';
+import { Document, DocumentManager, getNodeIfIsInHTMLStartTag } from '../lib/documents';
 import { Logger } from '../logger';
 import { isNotNullOrUndefined, regexLastIndexOf } from '../utils';
 import {
@@ -87,7 +87,24 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
     ): Promise<Diagnostic[]> {
         const document = this.getDocument(textDocument.uri);
 
-        if (
+        if (this.canSkipDiagnostics(document)) {
+            // Don't return diagnostics for files inside node_modules. These are considered read-only (cannot be changed)
+            // and in case of svelte-check they would pollute/skew the output
+            return [];
+        }
+
+        return (
+            await this.execute<Diagnostic[]>(
+                'getDiagnostics',
+                [document, cancellationToken],
+                ExecuteMode.Collect,
+                'high'
+            )
+        ).flat();
+    }
+
+    private canSkipDiagnostics(document: Document) {
+        return (
             (document.getFilePath()?.includes('/node_modules/') ||
                 document.getFilePath()?.includes('\\node_modules\\')) &&
             // Sapper convention: Put stuff inside node_modules below src
@@ -95,20 +112,87 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
                 document.getFilePath()?.includes('/src/node_modules/') ||
                 document.getFilePath()?.includes('\\src\\node_modules\\')
             )
-        ) {
-            // Don't return diagnostics for files inside node_modules. These are considered read-only (cannot be changed)
-            // and in case of svelte-check they would pollute/skew the output
-            return [];
+        );
+    }
+
+    async getDiagnosticsForPullMode(
+        textDocument: TextDocumentIdentifier,
+        previousResultId: string | undefined,
+        cancellationToken?: CancellationToken
+    ): Promise<DocumentDiagnosticReport> {
+        const document = this.getDocument(textDocument.uri);
+        let previousResultIdData: Record<string, string> = {};
+        if (previousResultId) {
+            try {
+                previousResultIdData = JSON.parse(previousResultId);
+            } catch (error) {}
         }
 
-        return flatten(
-            await this.execute<Diagnostic[]>(
-                'getDiagnostics',
-                [document, cancellationToken],
-                ExecuteMode.Collect,
-                'high'
+        if (this.canSkipDiagnostics(document)) {
+            // Don't return diagnostics for files inside node_modules. These are considered read-only (cannot be changed)
+            return {
+                kind: 'full',
+                items: []
+            };
+        }
+
+        const plugins = this.plugins.filter(
+            (plugin) => typeof plugin.getDiagnosticsForPullMode === 'function'
+        );
+
+        const results = await Promise.all(
+            plugins.map(
+                async (plugin): Promise<[string, DocumentDiagnosticReport]> => [
+                    plugin.__name,
+                    await this.tryExecutePlugin(
+                        plugin,
+                        'getDiagnosticsForPullMode',
+                        [document, previousResultIdData[plugin.__name], cancellationToken],
+                        { kind: 'full', items: [] }
+                    )
+                ]
             )
         );
+
+        const newResultId = JSON.stringify(
+            Object.fromEntries(results.map(([name, res]) => [name, res.resultId]))
+        );
+        const unchanged = results
+            .filter(([, res]) => res.kind === 'unchanged')
+            .map(([name]) => name);
+        const fullResults = results.flatMap(([, res]) => (res.kind === 'full' ? res.items : []));
+
+        if (unchanged.length === plugins.length) {
+            return {
+                kind: 'unchanged',
+                resultId: newResultId
+            };
+        }
+        if (unchanged.length === 0) {
+            return {
+                kind: 'full',
+                resultId: newResultId,
+                items: fullResults
+            };
+        }
+        const unchangedPlugins = plugins.filter((plugin) => unchanged.includes(plugin.__name));
+        const unchangedResults = await Promise.all(
+            unchangedPlugins.map(async (plugin) => {
+                const result = await this.tryExecutePlugin(
+                    plugin,
+                    'getDiagnostics',
+                    [document, cancellationToken],
+                    []
+                );
+                return result;
+            })
+        );
+
+        return {
+            kind: 'full',
+            resultId: newResultId,
+            items: fullResults.concat(unchangedResults.flat())
+        };
     }
 
     async doHover(
@@ -195,9 +279,7 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
             }
         }
 
-        let flattenedCompletions = flatten(
-            completions.map((completion) => completion.result.items)
-        );
+        let flattenedCompletions = completions.map((completion) => completion.result.items).flat();
         const isIncomplete = completions.reduce(
             (incomplete, completion) => incomplete || completion.result.isIncomplete,
             false as boolean
@@ -247,14 +329,14 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
     ): Promise<TextEdit[]> {
         const document = this.getDocument(textDocument.uri);
 
-        return flatten(
+        return (
             await this.execute<TextEdit[]>(
                 'formatDocument',
                 [document, options],
                 ExecuteMode.Collect,
                 'high'
             )
-        );
+        ).flat();
     }
 
     async doTagComplete(
@@ -274,14 +356,13 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
     async getDocumentColors(textDocument: TextDocumentIdentifier): Promise<ColorInformation[]> {
         const document = this.getDocument(textDocument.uri);
 
-        return flatten(
-            await this.execute<ColorInformation[]>(
-                'getDocumentColors',
-                [document],
-                ExecuteMode.Collect,
-                'low'
-            )
+        const result = await this.execute<ColorInformation[]>(
+            'getDocumentColors',
+            [document],
+            ExecuteMode.Collect,
+            'low'
         );
+        return result?.flat() ?? [];
     }
 
     async getColorPresentations(
@@ -291,14 +372,14 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
     ): Promise<ColorPresentation[]> {
         const document = this.getDocument(textDocument.uri);
 
-        return flatten(
+        return (
             await this.execute<ColorPresentation[]>(
                 'getColorPresentations',
                 [document, range, color],
                 ExecuteMode.Collect,
                 'high'
             )
-        );
+        ).flat();
     }
 
     async getDocumentSymbols(
@@ -314,14 +395,14 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
             return [];
         }
 
-        return flatten(
+        return (
             await this.execute<SymbolInformation[]>(
                 'getDocumentSymbols',
                 [document, cancellationToken],
                 ExecuteMode.Collect,
                 'high'
             )
-        );
+        ).flat();
     }
 
     private comparePosition(pos1: Position, pos2: Position) {
@@ -387,14 +468,14 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
     ): Promise<DefinitionLink[] | Location[]> {
         const document = this.getDocument(textDocument.uri);
 
-        const definitions = flatten(
+        const definitions = (
             await this.execute<DefinitionLink[]>(
                 'getDefinitions',
                 [document, position],
                 ExecuteMode.Collect,
                 'high'
             )
-        );
+        ).flat();
 
         if (this.pluginHostConfig.definitionLinkSupport) {
             return definitions;
@@ -413,14 +494,14 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
     ): Promise<CodeAction[]> {
         const document = this.getDocument(textDocument.uri);
 
-        const actions = flatten(
+        const actions = (
             await this.execute<CodeAction[]>(
                 'getCodeActions',
                 [document, range, context, cancellationToken],
                 ExecuteMode.Collect,
                 'high'
             )
-        );
+        ).flat();
         // Sort Svelte actions below other actions as they are often less relevant
         actions.sort((a, b) => {
             const aPrio = a.title.startsWith('(svelte)') ? 1 : 0;
@@ -705,20 +786,20 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
             ExecuteMode.Collect,
             'smart'
         );
-        return flatten(result.filter(Boolean));
+        return result?.filter(Boolean).flat();
     }
 
     async getFoldingRanges(textDocument: TextDocumentIdentifier): Promise<FoldingRange[]> {
         const document = this.getDocument(textDocument.uri);
 
-        const result = flatten(
+        const result = (
             await this.execute<FoldingRange[]>(
                 'getFoldingRanges',
                 [document],
                 ExecuteMode.Collect,
                 'high'
             )
-        );
+        ).flat();
 
         return result;
     }

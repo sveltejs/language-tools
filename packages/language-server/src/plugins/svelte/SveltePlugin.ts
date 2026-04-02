@@ -7,6 +7,7 @@ import {
     CompletionContext,
     CompletionList,
     Diagnostic,
+    DocumentDiagnosticReport,
     FormattingOptions,
     Hover,
     Position,
@@ -105,6 +106,33 @@ export class SveltePlugin
             this.configManager.getConfig().svelte.compilerWarnings,
             cancellationToken
         );
+    }
+
+    async getDiagnosticsForPullMode(
+        document: Document,
+        previousResultId: string | undefined,
+        cancellationToken?: CancellationToken
+    ): Promise<DocumentDiagnosticReport> {
+        if (!this.featureEnabled('diagnostics')) {
+            return {
+                kind: 'full',
+                items: []
+            };
+        }
+
+        const resultId = document.version.toString();
+        if (previousResultId === resultId) {
+            return {
+                kind: 'unchanged',
+                resultId
+            };
+        }
+        const diagnostics = await this.getDiagnostics(document, cancellationToken);
+        return {
+            kind: 'full',
+            items: diagnostics,
+            resultId
+        };
     }
 
     async getCompiledResult(document: Document): Promise<SvelteCompileResult | null> {
@@ -221,6 +249,7 @@ export class SveltePlugin
         // Prettier v3 format is async, v2 is not
         const formattedCode = await prettier.format(document.getText(), {
             ...config,
+            filepath: filePath,
             plugins: Array.from(
                 new Set([...resolvedPlugins, ...(await getSveltePlugin(resolvedPlugins))])
             ),

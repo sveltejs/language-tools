@@ -12,13 +12,44 @@ import {
     SveltePlugin,
     TypeScriptPlugin
 } from './plugins';
-import { FileSystemProvider } from './plugins/css/FileSystemProvider';
+import { FileSystemProvider } from './lib/FileSystemProvider';
 import { createLanguageServices } from './plugins/css/service';
-import { JSOrTSDocumentSnapshot } from './plugins/typescript/DocumentSnapshot';
+import {
+    DocumentSnapshot,
+    JSOrTSDocumentSnapshot,
+    SvelteDocumentSnapshot,
+    SvelteSnapshotOptions
+} from './plugins/typescript/DocumentSnapshot';
 import { isInGeneratedCode } from './plugins/typescript/features/utils';
+import { mapAndFilterDiagnostics } from './plugins/typescript/features/DiagnosticsProvider';
 import { convertRange, getDiagnosticTag, mapSeverity } from './plugins/typescript/utils';
 import { pathToUrl, urlToPath } from './utils';
 import { groupBy } from 'lodash';
+
+export function mapSvelteCheckDiagnostics(
+    sourcePath: string,
+    sourceText: string,
+    tsDiagnostics: ts.Diagnostic[],
+    options?: {
+        rewriteExternalImports?: {
+            workspacePath: string;
+            generatedPath: string;
+        };
+    }
+): Diagnostic[] {
+    Logger.setLogErrorsOnly(true);
+    const document = new Document(pathToUrl(sourcePath), sourceText, /* skipConfigLoading */ true);
+    const snapshot = DocumentSnapshot.fromDocument(document, {
+        parse: document.compiler?.parse,
+        version: document.compiler?.VERSION,
+        transformOnTemplateError: false,
+        typingsNamespace: 'svelteHTML',
+        emitJsDoc: true,
+        rewriteExternalImports: options?.rewriteExternalImports
+    } satisfies SvelteSnapshotOptions) as SvelteDocumentSnapshot;
+
+    return mapAndFilterDiagnostics(tsDiagnostics, document, snapshot);
+}
 
 export type SvelteCheckDiagnosticSource = 'js' | 'css' | 'svelte';
 

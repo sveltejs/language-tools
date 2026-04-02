@@ -1,8 +1,7 @@
-import { isEqual, sum, uniqWith } from 'lodash';
-import { FoldingRange, Node } from 'vscode-html-languageservice';
+import { isEqual, uniqWith } from 'lodash';
+import { Node } from 'vscode-html-languageservice';
 import { Position, Range } from 'vscode-languageserver';
 import { URI } from 'vscode-uri';
-import { Document, TagInformation } from './lib/documents';
 
 type Predicate<T> = (x: T) => boolean;
 
@@ -38,12 +37,27 @@ export function pathToUrl(path: string) {
     return URI.file(path).toString();
 }
 
+const backslashRegEx = /\\/g;
+
 /**
  * Some paths (on windows) start with a upper case driver letter, some don't.
  * This is normalized here.
  */
 export function normalizePath(path: string): string {
-    return URI.file(path).fsPath.replace(/\\/g, '/');
+    return normalizeDriveLetter(path.replace(backslashRegEx, '/'));
+}
+
+function normalizeDriveLetter(path: string): string {
+    if (path.charCodeAt(1) !== /*:*/ 58) {
+        return path;
+    }
+
+    const driveLetter = path.charCodeAt(0);
+    if (driveLetter >= /*A*/ 65 && driveLetter <= /*Z*/ 90) {
+        return String.fromCharCode(driveLetter + 32) + path.slice(1);
+    }
+
+    return path;
 }
 
 /**
@@ -64,13 +78,6 @@ export function getLastPartOfPath(path: string): string {
     const lastBackslash = path.lastIndexOf('\\');
     const lastSeparator = Math.max(lastSlash, lastBackslash);
     return lastSeparator === -1 ? path : path.slice(lastSeparator + 1);
-}
-
-export function flatten<T>(arr: Array<T | T[]>): T[] {
-    return arr.reduce(
-        (all: T[], item) => (Array.isArray(item) ? [...all, ...item] : [...all, item]),
-        []
-    );
 }
 
 /**
@@ -287,9 +294,10 @@ export function getIndent(text: string) {
 export function possiblyComponent(node: Node): boolean;
 export function possiblyComponent(tagName: string): boolean;
 export function possiblyComponent(nodeOrTagName: Node | string): boolean {
-    return !!(typeof nodeOrTagName === 'object' ? nodeOrTagName.tag : nodeOrTagName)?.[0].match(
-        /[A-Z]/
-    );
+    const charCode = (
+        typeof nodeOrTagName === 'object' ? nodeOrTagName.tag : nodeOrTagName
+    )?.charCodeAt(0);
+    return charCode !== undefined && charCode >= /* A */ 65 && charCode <= /* Z */ 90;
 }
 
 /**
