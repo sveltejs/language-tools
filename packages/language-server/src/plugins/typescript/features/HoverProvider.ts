@@ -13,6 +13,7 @@ import { getMarkdownDocumentation } from '../previewer';
 import { convertRange } from '../utils';
 import { getComponentAtPosition, getCustomElementsDocument } from './utils';
 import { LanguageServiceContainer } from '../service';
+import { ComponentInfoProvider } from '../ComponentInfoProvider';
 
 export class HoverProviderImpl implements HoverProvider {
     constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
@@ -31,8 +32,6 @@ export class HoverProviderImpl implements HoverProvider {
 
         const offset = tsDoc.offsetAt(tsDoc.getGeneratedPosition(position));
         console.log('Hover requested at offset', offset, 'with context', context);
-        const options = [userPreferences.maximumHoverLength, context?.verbosityLevel];
-        const info = lang.getQuickInfoAtPosition(tsDoc.filePath, offset, ...options);
 
         const customElementDescription = this.getCustomElementDescription(
             lang,
@@ -50,6 +49,32 @@ export class HoverProviderImpl implements HoverProvider {
             };
         }
 
+        let verbosityLevel = context?.verbosityLevel;
+        let componentPropInfo: ts.QuickInfo | undefined;
+
+        if (verbosityLevel) {
+            const componentInfo = getComponentAtPosition(
+                lang,
+                document,
+                tsDoc,
+                position,
+                /*includeEndTag*/ true
+            );
+            if (componentInfo) {
+                // verbose component hover is not really useful. Formatting it ourselves.
+                componentPropInfo = this.getComponentVerboseHoverInfo(
+                    componentInfo,
+                    lang,
+                    userPreferences,
+                    verbosityLevel
+                );
+                verbosityLevel = undefined;
+            }
+        }
+
+        const options = [userPreferences.maximumHoverLength, verbosityLevel];
+        const info = lang.getQuickInfoAtPosition(tsDoc.filePath, offset, ...options);
+
         if (!info) {
             return null;
         }
@@ -65,17 +90,27 @@ export class HoverProviderImpl implements HoverProvider {
         }
 
         const documentation = getMarkdownDocumentation(info.documentation, info.tags);
+        const declarationMarkdown = this.tsCodeFence(declaration);
+        const propsMarkdown = componentPropInfo
+            ? this.tsCodeFence(ts.displayPartsToString(componentPropInfo.displayParts))
+            : [];
 
         // https://microsoft.github.io/language-server-protocol/specification#textDocument_hover
-        const contents = ['```typescript', declaration, '```']
+        const contents = declarationMarkdown
+            .concat(propsMarkdown)
             .concat(documentation ? ['---', documentation] : [])
             .join('\n');
 
         return mapObjWithRangeToOriginal(tsDoc, {
             range: convertRange(tsDoc, info.textSpan),
             contents,
-            canIncreaseVerbosityLevel: info.canIncreaseVerbosityLevel
+            canIncreaseVerbosityLevel:
+                info.canIncreaseVerbosityLevel || componentPropInfo?.canIncreaseVerbosityLevel
         });
+    }
+
+    private tsCodeFence(declaration: string): string[] {
+        return ['```typescript', declaration, '```'];
     }
 
     private getCustomElementDescription(
@@ -127,6 +162,47 @@ export class HoverProviderImpl implements HoverProvider {
                 event.doc || ''
             ].join('\n')
         };
+    }
+
+    private getComponentVerboseHoverInfo(
+        componentInfo: ComponentInfoProvider,
+        lang: ts.LanguageService,
+        preferences: ts.UserPreferences,
+        verbosityLevel: number
+    ): ts.QuickInfo | undefined {
+        const declaration = componentInfo.getPropsDefinition();
+        if (!declaration) {
+            return undefined;
+        }
+
+        let hoverNode: ts.Node | undefined;
+        if (ts.isInterfaceDeclaration(declaration) || ts.isClassDeclaration(declaration)) {
+            hoverNode = declaration.name;
+        } else if (ts.isTypeLiteralNode(declaration) && declaration.parent) {
+            // type literal hover is already expanded at level 0
+            verbosityLevel = verbosityLevel - 1;
+            if (ts.isTypeAliasDeclaration(declaration.parent)) {
+                hoverNode = declaration.parent.name;
+            } else if (
+                declaration.parent.parent &&
+                ts.isJSDocTypedefTag(declaration.parent.parent)
+            ) {
+                hoverNode = declaration.parent.parent.name;
+            }
+        }
+
+        if (!hoverNode) {
+            return undefined;
+        }
+
+        const options = [preferences.maximumHoverLength, verbosityLevel];
+        const info = lang.getQuickInfoAtPosition(
+            declaration.getSourceFile().fileName,
+            hoverNode.getStart(),
+            ...options
+        );
+
+        return info;
     }
 
     private async getLSAndTSDoc(document: Document) {

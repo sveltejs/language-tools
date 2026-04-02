@@ -3,6 +3,7 @@ import { Position, Range } from 'vscode-languageserver';
 import {
     Document,
     getLineAtPosition,
+    getNodeIfIsInComponentStartOrEndTag,
     getNodeIfIsInComponentStartTag,
     isInTag
 } from '../../../lib/documents';
@@ -27,7 +28,8 @@ export function getComponentAtPosition(
     lang: ts.LanguageService,
     doc: Document,
     tsDoc: SvelteDocumentSnapshot,
-    originalPosition: Position
+    originalPosition: Position,
+    includeEndTag = false
 ): ComponentInfoProvider | null {
     if (tsDoc.parserError) {
         return null;
@@ -41,7 +43,10 @@ export function getComponentAtPosition(
         return null;
     }
 
-    const node = getNodeIfIsInComponentStartTag(doc.html, doc, doc.offsetAt(originalPosition));
+    const offset = doc.offsetAt(originalPosition);
+    const node = includeEndTag
+        ? getNodeIfIsInComponentStartOrEndTag(doc.html, doc, offset)
+        : getNodeIfIsInComponentStartTag(doc.html, doc, doc.offsetAt(originalPosition));
     if (!node) {
         return null;
     }

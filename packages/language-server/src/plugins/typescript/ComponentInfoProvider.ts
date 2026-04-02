@@ -8,6 +8,7 @@ export interface ComponentInfoProvider {
     getEvents(): ComponentPartInfo;
     getSlotLets(slot?: string): ComponentPartInfo;
     getProps(): ComponentPartInfo;
+    getPropsDefinition(): ts.Node | null;
 }
 
 export class JsOrTsComponentInfoProvider implements ComponentInfoProvider {
@@ -60,6 +61,14 @@ export class JsOrTsComponentInfoProvider implements ComponentInfoProvider {
         return this.mapPropertiesOfType(this.classType).filter(
             (prop) => !prop.name.startsWith('$$')
         );
+    }
+
+    getPropsDefinition() {
+        const type = this.useSvelte5PlusPropsParameter
+            ? this.classType
+            : this.getType('$$prop_def');
+
+        return type?.symbol?.valueDeclaration ?? type?.symbol?.declarations?.[0] ?? null;
     }
 
     private getType(classProperty: string) {

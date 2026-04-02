@@ -327,12 +327,36 @@ export function getNodeIfIsInComponentStartTag(
     const node = html.findNodeAt(offset);
     if (
         !!node.tag &&
-        (node.tag[0] === node.tag[0].toUpperCase() ||
-            (document.isSvelte5 && node.tag.includes('.'))) &&
+        tagNameMightBeComponent(node.tag, document) &&
         (!node.startTagEnd || offset < node.startTagEnd)
     ) {
         return node;
     }
+}
+
+export function getNodeIfIsInComponentStartOrEndTag(
+    html: HTMLDocument,
+    document: Document,
+    offset: number
+): Node | undefined {
+    const node = html.findNodeAt(offset);
+    if (!node.tag || !tagNameMightBeComponent(node.tag, document)) {
+        return;
+    }
+
+    if (!node.startTagEnd || offset < node.startTagEnd) {
+        // Start tag name
+        return node;
+    }
+
+    if (node.endTagStart && offset >= node.endTagStart && offset <= node.end) {
+        // End tag name
+        return node;
+    }
+}
+
+function tagNameMightBeComponent(tagName: string, document: Document) {
+    return tagName[0] === tagName[0].toUpperCase() || (document.isSvelte5 && tagName.includes('.'));
 }
 
 /**
