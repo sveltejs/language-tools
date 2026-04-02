@@ -146,21 +146,24 @@ export class HoistableInterfaces {
                         member.type,
                         type_dependencies,
                         value_dependencies,
-                        generics
+                        generics,
+                        interface_name
                     );
                 } else if (ts.isIndexSignatureDeclaration(member)) {
                     this.collectTypeDependencies(
                         member.type,
                         type_dependencies,
                         value_dependencies,
-                        generics
+                        generics,
+                        interface_name
                     );
                     member.parameters.forEach((param) => {
                         this.collectTypeDependencies(
                             param.type,
                             type_dependencies,
                             value_dependencies,
-                            generics
+                            generics,
+                            interface_name
                         );
                     });
                 }
@@ -179,7 +182,8 @@ export class HoistableInterfaces {
                         type,
                         type_dependencies,
                         value_dependencies,
-                        generics
+                        generics,
+                        interface_name
                     );
                 });
             });
@@ -207,7 +211,8 @@ export class HoistableInterfaces {
                 node.type,
                 type_dependencies,
                 value_dependencies,
-                generics
+                generics,
+                alias_name
             );
 
             if (this.module_types.has(alias_name)) {
@@ -287,7 +292,8 @@ export class HoistableInterfaces {
                     generic_arg,
                     this.props_interface.type_deps,
                     this.props_interface.value_deps,
-                    []
+                    [],
+                    undefined
                 );
             }
         }
@@ -430,12 +436,14 @@ export class HoistableInterfaces {
         type_node: ts.TypeNode,
         type_dependencies: Set<string>,
         value_dependencies: Set<string>,
-        generics: string[]
+        generics: string[],
+        root_type_name: string | undefined
     ) {
         const walk = (node: ts.Node) => {
             if (ts.isTypeReferenceNode(node)) {
                 const type_name = this.getEntityNameRoot(node.typeName);
-                if (!generics.includes(type_name)) {
+                const self_reference = type_name === root_type_name;
+                if (!self_reference && !generics.includes(type_name)) {
                     type_dependencies.add(type_name);
                 }
             } else if (ts.isTypeQueryNode(node)) {
