@@ -48,7 +48,8 @@
         "cross-env": "^7.0.2",
         "mocha": "^9.2.0",
         "sinon": "^11.0.0",
-        "ts-node": "^10.0.0"
+        "ts-node": "^10.0.0",
+        "typescript": "^6.0.2"
     },
     "dependencies": {
         "@jridgewell/trace-mapping": "^0.3.25",
@@ -62,7 +63,6 @@
         "prettier-plugin-svelte": "^3.5.0",
         "svelte": "^4.2.19",
         "svelte2tsx": "workspace:~",
-        "typescript": "^5.9.2 || ^6.0.2",
         "typescript-auto-import-cache": "^0.3.6",
         "vscode-css-languageservice": "~6.3.5",
         "vscode-html-languageservice": "~5.4.0",
@@ -70,5 +70,8 @@
         "vscode-languageserver-protocol": "3.17.5",
         "vscode-languageserver-types": "3.17.5",
         "vscode-uri": "~3.1.0"
+    },
+    "peerDependencies": {
+        "typescript": "^5.9.2 || ^6.0.2"
     }
 }

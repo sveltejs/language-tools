@@ -1,5 +1,5 @@
 ---
-'svelte-language-server': patch
+'svelte-language-server': minor
 'svelte-check': patch
 'svelte2tsx': patch
 ---

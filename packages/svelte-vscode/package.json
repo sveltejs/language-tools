@@ -786,6 +786,7 @@
         "svelte-language-server": "workspace:*",
         "typescript-svelte-plugin": "workspace:*",
         "vscode-languageclient": "^9.0.1",
-        "vscode-languageserver-protocol": "3.17.5"
+        "vscode-languageserver-protocol": "3.17.5",
+        "typescript": "^6.0.2"
     }
 }

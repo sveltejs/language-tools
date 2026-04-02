@@ -63,9 +63,6 @@ importers:
       svelte2tsx:
         specifier: workspace:~
         version: link:../svelte2tsx
-      typescript:
-        specifier: ^5.9.2 || ^6.0.2
-        version: 6.0.2
       typescript-auto-import-cache:
         specifier: ^0.3.6
         version: 0.3.6
@@ -118,6 +115,9 @@ importers:
       ts-node:
         specifier: ^10.0.0
         version: 10.9.1(@types/node@18.19.46)(typescript@6.0.2)
+      typescript:
+        specifier: ^6.0.2
+        version: 6.0.2
 
   packages/svelte-check:
     dependencies:
@@ -197,6 +197,9 @@ importers:
       svelte-language-server:
         specifier: workspace:*
         version: link:../language-server
+      typescript:
+        specifier: ^6.0.2
+        version: 6.0.2
       typescript-svelte-plugin:
         specifier: workspace:*
         version: link:../typescript-plugin
@@ -231,9 +234,6 @@ importers:
       tslib:
         specifier: ^2.4.0
         version: 2.5.2
-      typescript:
-        specifier: ^6.0.2
-        version: 6.0.2
       vitest:
         specifier: ^3.2.4
         version: 3.2.4(@types/node@18.19.46)
