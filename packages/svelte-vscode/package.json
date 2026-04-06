@@ -562,15 +562,15 @@
             },
             {
                 "command": "svelte.showCompiledCodeToSide",
-                "title": "Svelte: Show Compiled Code",
+                "title": "Svelte: Show Compiled JS Code",
                 "icon": {
-                    "light": "icons/preview-right-light.svg",
-                    "dark": "icons/preview-right-dark.svg"
+                    "light": "icons/preview-js-right-light.svg",
+                    "dark": "icons/preview-js-right-dark.svg"
                 }
             },
             {
                 "command": "svelte.showCompiledCSSToSide",
-                "title": "Svelte: Show Compiled CSS",
+                "title": "Svelte: Show Compiled CSS Code",
                 "icon": {
                     "light": "icons/preview-css-right-light.svg",
                     "dark": "icons/preview-css-right-dark.svg"
