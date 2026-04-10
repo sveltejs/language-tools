@@ -189,11 +189,12 @@ export function findContainingNode<T extends ts.Node>(
     textSpan: ts.TextSpan,
     predicate: (node: ts.Node) => node is T
 ): T | undefined {
+    const end = textSpan.start + textSpan.length;
     // TypeScript will re-parse part of the file in getChildren() to include syntax tokens.
     // But for the use cases of this function, we only need the actual nodes like Identifier.
     // the forEachChild name is a bit misleading too because it function more like find than forEach
     return node.forEachChild((child) => {
-        if (child.getStart() <= textSpan.start && child.getEnd() >= textSpan.start) {
+        if (child.getStart() <= textSpan.start && child.getEnd() >= end) {
             if (predicate(child)) {
                 return child;
             }
