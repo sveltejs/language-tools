@@ -460,7 +460,8 @@ async function runWithVirtualFiles(
             opts.incremental,
             opts.workspaceUri.fsPath
         ),
-        emitResult
+        emitResult,
+        opts.tsconfig
     );
 
     const {

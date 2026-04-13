@@ -241,21 +241,31 @@ export class SvelteCheck {
                 source: diagnostic.source,
                 message: ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n'),
                 code: diagnostic.code,
-                tags: getDiagnosticTag(diagnostic)
+                tags: getDiagnosticTag(diagnostic),
+                data: {
+                    positionUnknown: !diagnostic.start || !diagnostic.length
+                }
             };
         };
 
-        if (
-            lsContainer.configErrors.some((error) => error.category === ts.DiagnosticCategory.Error)
-        ) {
-            return reportConfigError();
+        const isErrorCategory = (diagnostic: ts.Diagnostic) =>
+            diagnostic.category === ts.DiagnosticCategory.Error;
+
+        if (lsContainer.configErrors.some(isErrorCategory)) {
+            return reportConfigError(lsContainer.configErrors);
         }
 
         const lang = lsContainer.getService();
-        if (
-            lsContainer.configErrors.some((error) => error.category === ts.DiagnosticCategory.Error)
-        ) {
-            return reportConfigError();
+        if (lsContainer.configErrors.some(isErrorCategory)) {
+            return reportConfigError(lsContainer.configErrors);
+        }
+
+        const program = lang.getProgram();
+        const globalOrConfigFileDiagnostics = program
+            ? [...program.getGlobalDiagnostics(), ...program.getOptionsDiagnostics()]
+            : [];
+        if (globalOrConfigFileDiagnostics.some(isErrorCategory)) {
+            return reportConfigError(globalOrConfigFileDiagnostics);
         }
 
         const files = lang.getProgram()?.getSourceFiles() || [];
@@ -357,21 +367,21 @@ export class SvelteCheck {
         );
 
         if (lsContainer.configErrors.length) {
-            diagnostics.push(...reportConfigError());
+            diagnostics.push(...reportConfigError(lsContainer.configErrors));
         }
 
         return diagnostics;
 
-        function reportConfigError() {
-            const grouped = groupBy(
-                lsContainer.configErrors,
-                (error) => error.file?.fileName ?? tsconfigPath
-            );
+        function reportConfigError(errors: readonly ts.Diagnostic[]) {
+            const grouped = groupBy(errors, (error) => error.file?.fileName ?? tsconfigPath);
+            const lspDiagnostics = errors.map((diagnostic) => map(diagnostic));
 
             return Object.entries(grouped).map(([filePath, errors]) => ({
                 filePath,
-                text: '',
-                diagnostics: errors.map((diagnostic) => map(diagnostic))
+                text: lspDiagnostics.some((diagnostic) => diagnostic.data?.positionUnknown)
+                    ? (ts.sys?.readFile(filePath) ?? '')
+                    : '',
+                diagnostics: lspDiagnostics
             }));
         }
     }
