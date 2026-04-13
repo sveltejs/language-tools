@@ -1,5 +1,4 @@
 ---
-'svelte-language-server': patch
 'svelte-check': patch
 ---
 
