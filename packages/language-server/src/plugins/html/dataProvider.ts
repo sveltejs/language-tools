@@ -374,7 +374,7 @@ const svelteTags: ITagData[] = [
         attributes: [
             {
                 name: 'onerror',
-                description: 'Called when an error occured within the boundary'
+                description: 'Called when an error occurred within the boundary'
             }
         ]
     }
