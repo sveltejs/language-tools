@@ -37,6 +37,13 @@ import {
     getMergedConfiguration as getMergedTsConfigurations,
     sendNotificationMiddleware
 } from './typescript/configurationMiddleware';
+import { versions } from 'node:process';
+
+const [node_major, node_minor] = (versions?.node ?? '0.0.0-unknown').split('.', 3).map(Number);
+
+const add_experimental_strip_types_flag =
+    (node_major === 22 && node_minor > 5 && node_minor < 18) || // flag added in 22.6.0, removed in 22.18.0
+    (node_major === 23 && node_minor < 6); // flag removed in 23.6.0
 
 namespace TagCloseRequest {
     export const type: RequestType<TextDocumentPositionParams, string, any> = new RequestType(
@@ -125,6 +132,9 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
     console.log('Loading server from ', serverModule);
 
     const runExecArgv: string[] = [];
+    if (add_experimental_strip_types_flag) {
+        runExecArgv.push('--experimental-strip-types');
+    }
 
     const runtimeArgs = runtimeConfig.get<string[]>('runtime-args');
     if (runtimeArgs !== undefined) {
