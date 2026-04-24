@@ -77,6 +77,7 @@ export class UpdateImportsProviderImpl implements UpdateImportsProvider {
             return;
         }
 
+        console.log(ls.getProgram()?.getSourceFile(oldPath)?.getText());
         const oldPathTsProgramCasing = ls.getProgram()?.getSourceFile(oldPath)?.fileName ?? oldPath;
         // `getEditsForFileRename` might take a while
         const fileChanges = ls
@@ -119,11 +120,11 @@ export class UpdateImportsProviderImpl implements UpdateImportsProvider {
                     change.fileName = change.fileName.replace(oldPathTsProgramCasing, newPath);
                 }
                 if (path.basename(change.fileName).startsWith('+')) {
-                    change.textChanges = change.textChanges.filter((textChange) => {
-                        // Filter out changes to './$type' imports for Kit route files,
-                        // you'll likely want these to stay as-is
-                        return !isKitTypePath(textChange.newText);
-                    });
+                    // Filter out changes to './$type' imports for Kit route files,
+                    // you'll likely want these to stay as-is
+                    change.textChanges = change.textChanges.filter(
+                        (textChange) => !isKitTypePath(textChange.newText)
+                    );
                 }
                 return change;
             });
