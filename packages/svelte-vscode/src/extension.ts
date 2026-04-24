@@ -131,8 +131,10 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
     const serverModule = require.resolve(lsPath || 'svelte-language-server/bin/server.js');
     console.log('Loading server from ', serverModule);
 
+    const serverRuntime = runtimeConfig.get<string>('runtime');
+
     const runExecArgv: string[] = [];
-    if (add_experimental_strip_types_flag) {
+    if (!serverRuntime && add_experimental_strip_types_flag) {
         runExecArgv.push('--experimental-strip-types');
     }
 
@@ -166,7 +168,6 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
         }
     };
 
-    const serverRuntime = runtimeConfig.get<string>('runtime');
     if (serverRuntime) {
         serverOptions.run.runtime = serverRuntime;
         serverOptions.debug.runtime = serverRuntime;
