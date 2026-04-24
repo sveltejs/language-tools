@@ -82,7 +82,7 @@ async function createQuickfixActions(
         end: diagnosticEndOffset
     };
     const { html, instance, module } = ast;
-    const tree = [instance, module, html].find((part, i) => {
+    const tree = [instance, module, html].find((part) => {
         return (
             part &&
             part.start !== null &&
