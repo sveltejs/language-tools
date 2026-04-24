@@ -82,15 +82,14 @@ async function createQuickfixActions(
         end: diagnosticEndOffset
     };
     const { html, instance, module } = ast;
-    const tree = [html, instance, module].find((part) => {
+    const tree = [instance, module, html].find((part, i) => {
         return (
-            part?.start != null &&
+            part &&
+            part.start !== null &&
+            part.end !== null &&
             offsetRange.pos >= part.start &&
-            part?.end != null &&
             offsetRange.pos <= part.end &&
-            part?.end != null &&
             offsetRange.end <= part.end &&
-            part?.start != null &&
             offsetRange.end >= part.start
         );
     });
@@ -225,7 +224,7 @@ function getSvelteIgnoreEdit(
     const indent = getIndent(afterStartLineStart);
 
     // TODO: Make all code action's new line consistent
-    let ignore = `${indent}// svelte-ignore ${code}${EOL}${indent}`;
+    let ignore = `${indent}// svelte-ignore ${code}${EOL}`;
     if (isHtml) {
         ignore = `${indent}<!-- svelte-ignore ${code} -->${EOL}`;
     }
