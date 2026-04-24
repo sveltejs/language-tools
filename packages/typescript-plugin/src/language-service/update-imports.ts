@@ -34,9 +34,9 @@ export function decorateUpdateImports(
                 if (path.basename(renameLocation.fileName).startsWith('+')) {
                     // Filter out changes to './$type' imports for Kit route files,
                     // you'll likely want these to stay as-is
-                    renameLocation.textChanges = renameLocation.textChanges.filter((change) => {
-                        return !change.newText.includes('.svelte-kit/types/');
-                    });
+                    renameLocation.textChanges = renameLocation.textChanges.filter((change) =>
+                        /\$types(?:\.[cm]?[jt]s)?$/.test(change.newText)
+                    );
                 }
                 return renameLocation;
             });

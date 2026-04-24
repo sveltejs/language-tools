@@ -118,13 +118,13 @@ export class UpdateImportsProviderImpl implements UpdateImportsProvider {
                     // If there is a better solution for this, please file a PR :)
                     change.fileName = change.fileName.replace(oldPathTsProgramCasing, newPath);
                 }
-                change.textChanges = change.textChanges.filter(
-                    (textChange) =>
+                if (path.basename(change.fileName).startsWith('+')) {
+                    change.textChanges = change.textChanges.filter((textChange) => {
                         // Filter out changes to './$type' imports for Kit route files,
                         // you'll likely want these to stay as-is
-                        !isKitTypePath(textChange.newText) ||
-                        !path.basename(change.fileName).startsWith('+')
-                );
+                        return !isKitTypePath(textChange.newText);
+                    });
+                }
                 return change;
             });
 

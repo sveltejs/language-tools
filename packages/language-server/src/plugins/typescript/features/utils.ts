@@ -356,7 +356,8 @@ export function gatherDescendants<T extends ts.Node>(
 export const gatherIdentifiers = (node: ts.Node) => gatherDescendants(node, ts.isIdentifier);
 
 export function isKitTypePath(path?: string): boolean {
-    return !!path?.includes('.svelte-kit/types');
+    if (!path) return false;
+    return /\$types(?:\.[cm]?[jt]s)?$/.test(path);
 }
 
 export function getFormatCodeBasis(formatCodeSetting: ts.FormatCodeSettings): FormatCodeBasis {
