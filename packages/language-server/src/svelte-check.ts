@@ -23,7 +23,7 @@ import {
 import { isInGeneratedCode } from './plugins/typescript/features/utils';
 import { mapAndFilterDiagnostics } from './plugins/typescript/features/DiagnosticsProvider';
 import { convertRange, getDiagnosticTag, mapSeverity } from './plugins/typescript/utils';
-import { pathToUrl, urlToPath } from './utils';
+import { normalizePath, pathToUrl, urlToPath } from './utils';
 import { groupBy } from 'lodash';
 
 export function mapSvelteCheckDiagnostics(
@@ -226,6 +226,7 @@ export class SvelteCheck {
 
     private async getDiagnosticsForTsconfig(tsconfigPath: string) {
         const lsContainer = await this.getLSContainer(tsconfigPath);
+        const normalizedTsconfigPath = normalizePath(tsconfigPath);
         const map = (diagnostic: ts.Diagnostic, range?: Range): Diagnostic => {
             const file = diagnostic.file;
             range ??= file
@@ -373,7 +374,10 @@ export class SvelteCheck {
         return diagnostics;
 
         function reportConfigError(errors: readonly ts.Diagnostic[]) {
-            const grouped = groupBy(errors, (error) => error.file?.fileName ?? tsconfigPath);
+            const grouped = groupBy(
+                errors,
+                (error) => error.file?.fileName ?? normalizedTsconfigPath
+            );
             const lspDiagnostics = errors.map((diagnostic) => map(diagnostic));
 
             return Object.entries(grouped).map(([filePath, errors]) => ({
