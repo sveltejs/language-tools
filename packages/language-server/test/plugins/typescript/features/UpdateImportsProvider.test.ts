@@ -51,7 +51,7 @@ describe('UpdateImportsProviderImpl', function () {
 
     it('updates imports', async () => {
         const { updateImportsProvider, fileUri } = await setup(
-            'updateimports.svelte',
+            '+page.svelte',
             ts.sys.useCaseSensitiveFileNames
         );
 
@@ -70,9 +70,29 @@ describe('UpdateImportsProviderImpl', function () {
         ]);
     });
 
+    it("doesn't update imports for ./$types", async () => {
+        const { updateImportsProvider, fileUri } = await setup(
+            '+page.svelte',
+            ts.sys.useCaseSensitiveFileNames
+        );
+        const newUri = pathToUrl(join(updateImportTestDir, 'subdirectory/+page.svelte'));
+        const workspaceEdit = await updateImportsProvider.updateImports({
+            oldUri: fileUri,
+            newUri
+        });
+        assert.deepStrictEqual(workspaceEdit?.documentChanges, [
+            TextDocumentEdit.create(OptionalVersionedTextDocumentIdentifier.create(newUri, null), [
+                TextEdit.replace(
+                    Range.create(Position.create(1, 17), Position.create(1, 34)),
+                    '../imported.svelte'
+                )
+            ])
+        ]);
+    });
+
     async function testUpdateForFileCasingChanges(useCaseSensitiveFileNames: boolean) {
         const { updateImportsProvider, fileUri } = await setup(
-            'updateimports.svelte',
+            '+page.svelte',
             useCaseSensitiveFileNames
         );
 

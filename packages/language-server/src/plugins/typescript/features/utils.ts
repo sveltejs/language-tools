@@ -357,7 +357,7 @@ export const gatherIdentifiers = (node: ts.Node) => gatherDescendants(node, ts.i
 
 export function isKitTypePath(path?: string): boolean {
     if (!path) return false;
-    return /\$types(?:\.[cm]?[jt]s)?$/.test(path);
+    return path.endsWith('/$types.js') || path.endsWith('/$types') || path.endsWith('/$types.d.ts');
 }
 
 export function getFormatCodeBasis(formatCodeSetting: ts.FormatCodeSettings): FormatCodeBasis {
