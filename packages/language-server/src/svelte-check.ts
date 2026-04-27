@@ -265,9 +265,10 @@ export class SvelteCheck {
         const globalOrConfigFileDiagnostics = program
             ? [...program.getGlobalDiagnostics(), ...program.getOptionsDiagnostics()]
             : [];
-        if (globalOrConfigFileDiagnostics.some(isErrorCategory)) {
-            return reportConfigError(globalOrConfigFileDiagnostics);
-        }
+        // TODO: enable this in svelte-check v5. For now, we report these as warnings along with other diagnostics.
+        // if (globalOrConfigFileDiagnostics.some(isErrorCategory)) {
+        //     return reportConfigError(globalOrConfigFileDiagnostics);
+        // }
 
         const files = lang.getProgram()?.getSourceFiles() || [];
         const options = lang.getProgram()?.getCompilerOptions() || {};
@@ -367,8 +368,19 @@ export class SvelteCheck {
             })
         );
 
-        if (lsContainer.configErrors.length) {
-            diagnostics.push(...reportConfigError(lsContainer.configErrors));
+        const configErrors = lsContainer.configErrors
+            // TODO: remove this in svelte-check v5.
+            .concat(
+                globalOrConfigFileDiagnostics.map((diagnostic) => ({
+                    ...diagnostic,
+                    category:
+                        diagnostic.category === ts.DiagnosticCategory.Error
+                            ? ts.DiagnosticCategory.Warning
+                            : diagnostic.category
+                }))
+            );
+        if (configErrors.length) {
+            diagnostics.push(...reportConfigError(configErrors));
         }
 
         return diagnostics;
