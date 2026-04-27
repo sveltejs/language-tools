@@ -77,7 +77,6 @@ export class UpdateImportsProviderImpl implements UpdateImportsProvider {
             return;
         }
 
-        console.log(ls.getProgram()?.getSourceFile(oldPath)?.getText());
         const oldPathTsProgramCasing = ls.getProgram()?.getSourceFile(oldPath)?.fileName ?? oldPath;
         // `getEditsForFileRename` might take a while
         const fileChanges = ls
