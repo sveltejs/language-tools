@@ -2,4 +2,4 @@
 'svelte-language-server': patch
 ---
 
-fix: svelte-ignore quickfix action could be improperly placed if a component contained a `<script module>` block
+fix: properly place svelte-ignore comment in quickfix when `<script module>` presents
