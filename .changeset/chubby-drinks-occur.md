@@ -2,4 +2,4 @@
 'svelte-check': patch
 ---
 
-flush stdout/stderr before exit
+fix: flush stdout/stderr before exit
