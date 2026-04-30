@@ -37,10 +37,11 @@
         "typescript": ">=5.0.0"
     },
     "scripts": {
-        "build": "cd ../svelte2tsx && pnpm build && cd ../language-server && pnpm build && cd ../svelte-check && rollup -c && pnpm test:sanity",
+        "build": "cd ../svelte2tsx && pnpm build && cd ../language-server && pnpm build && cd ../svelte-check && rollup -c && pnpm test:sanity && pnpm test:flush",
         "prepublishOnly": "pnpm build",
         "test": "pnpm build",
-        "test:sanity": "node test-sanity.js"
+        "test:sanity": "node test-sanity.js",
+        "test:flush": "node test-flush.js"
     },
     "devDependencies": {
         "@rollup/plugin-commonjs": "^24.0.0",
