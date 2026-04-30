@@ -45,7 +45,7 @@ export type EmitResult = {
 };
 
 export type ParsedDiagnostic = {
-    filePath: string;
+    filePath: string | null;
     line: number;
     character: number;
     /** Span length in characters, parsed from tsc pretty-output ~~ underlines */
@@ -548,7 +548,8 @@ export function runTypeScriptDiagnostics(
  */
 export function mapCliDiagnosticsToLsp(
     diagnostics: ParsedDiagnostic[],
-    emitResult: EmitResult
+    emitResult: EmitResult,
+    tsconfigPath: string
 ): Array<{ filePath: string; text: string; diagnostics: Diagnostic[] }> {
     const entryByOutPath = new Map(
         emitResult.entries.map((entry) => [path.normalize(entry.outPath), entry])
@@ -561,7 +562,8 @@ export function mapCliDiagnosticsToLsp(
 
     const diagnosticsByFile = new Map<string, ParsedDiagnostic[]>();
     for (const diagnostic of diagnostics) {
-        const key = path.normalize(diagnostic.filePath);
+        const filePath = diagnostic.filePath ?? tsconfigPath;
+        const key = filePath ? path.normalize(filePath) : '';
         // Even though we try to exclude +page.js etc files that had code inserted (due to SvelteKit's zero types feature)
         // we might still have them included through code in .svelte-kit/types importing them. So we exclude the diagnostics for these.
         if (excludedSourcePaths.has(key)) {
@@ -662,7 +664,10 @@ export function mapCliDiagnosticsToLsp(
                 severity: diag.severity,
                 code: diag.code,
                 message: diag.message,
-                source
+                source,
+                data: {
+                    positionUnknown: diag.filePath === null
+                }
             }));
 
             results.set(filePath, {
@@ -704,7 +709,7 @@ function parseDiagnostics(output: string, baseDir: string): ParsedDiagnostic[] {
     const diagnostics: ParsedDiagnostic[] = [];
     const lines = clean.split(/\r?\n/);
     // Pretty format: file.ts:5:10 - error TS2322: message
-    const headerRegex = /^(.+):(\d+):(\d+) - (error|warning) TS(\d+): (.*)$/;
+    const headerRegex = /^((.+):(\d+):(\d+) - )?(error|warning) TS(\d+): (.*)$/;
     // Tilde underline: optional leading whitespace followed by one or more tildes
     const tildeRegex = /^(\s*)(~+)\s*$/;
 
@@ -713,23 +718,31 @@ function parseDiagnostics(output: string, baseDir: string): ParsedDiagnostic[] {
         if (!match) {
             continue;
         }
-        const [, filePath, lineStr, colStr, severity, codeStr, message] = match;
-        const resolvedPath = path.isAbsolute(filePath) ? filePath : path.resolve(baseDir, filePath);
+        const [, , filePath, lineStr = '0', colStr = '0', severity, codeStr, message] = match;
+        const resolvedPath = filePath
+            ? path.isAbsolute(filePath)
+                ? filePath
+                : path.resolve(baseDir, filePath)
+            : null;
         const lineNum = Math.max(0, Number(lineStr) - 1);
         const colNum = Math.max(0, Number(colStr) - 1);
 
         // Look ahead (up to 4 lines) for a ~~ underline to determine span length.
         // The underline appears after the source context line in pretty output.
         let length = 1;
-        for (let j = i + 1; j < Math.min(i + 5, lines.length); j++) {
-            const tildeMatch = tildeRegex.exec(lines[j]);
-            if (tildeMatch) {
-                length = tildeMatch[2].length;
-                break;
-            }
-            // Stop looking if we hit another diagnostic header
-            if (headerRegex.test(lines[j].trim())) {
-                break;
+        // No file path, so no source context line.
+        if (filePath) {
+            for (let j = i + 1; j < Math.min(i + 5, lines.length); j++) {
+                const tildeMatch = tildeRegex.exec(lines[j]);
+                if (tildeMatch) {
+                    length = tildeMatch[2].length;
+                    break;
+                }
+
+                // Stop looking if we hit another diagnostic header
+                if (headerRegex.test(lines[j].trim())) {
+                    break;
+                }
             }
         }
 
