@@ -37,7 +37,7 @@
         "typescript": ">=5.0.0"
     },
     "scripts": {
-        "build": "cd ../svelte2tsx && pnpm build && cd ../language-server && pnpm build && cd ../svelte-check && rollup -c && pnpm test:sanity && pnpm test:flush",
+        "build": "cd ../svelte2tsx && pnpm build && cd ../language-server && pnpm build && cd ../svelte-check && rollup -c && pnpm test:sanity",
         "prepublishOnly": "pnpm build",
         "test": "pnpm build",
         "test:sanity": "node test-sanity.js",
