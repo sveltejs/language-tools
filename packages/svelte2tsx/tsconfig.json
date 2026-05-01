@@ -1,5 +1,6 @@
 {
     "compilerOptions": {
+        "strict": false,
         "target": "es2018",
         "lib": ["ES2018"],
         "rootDir": "src",
@@ -12,14 +13,19 @@
         //let rollup handle these
         "module": "esnext",
         "moduleResolution": "node",
+
+        // rollup typescript plugin currently override moduleResolution to node
+        "ignoreDeprecations": "6.0",
         "resolveJsonModule": true,
         "allowSyntheticDefaultImports": true,
         "forceConsistentCasingInFileNames": true,
 
         "noImplicitThis": true,
         "noUnusedLocals": true,
-        "noUnusedParameters": true
+        "noUnusedParameters": true,
+        "types": ["node"]
     },
+    "include": ["src/*"],
     "paths": {
         "@/*": ["src/*"]
     },
