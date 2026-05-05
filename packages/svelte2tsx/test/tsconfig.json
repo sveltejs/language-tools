@@ -2,9 +2,10 @@
     "compilerOptions": {
         "types": ["@types/node", "@types/mocha"],
         "target": "es6",
-        "module": "commonjs",
-        "moduleResolution": "node",
-        "esModuleInterop": true
+        "module": "nodenext",
+        "moduleResolution": "nodenext",
+        "esModuleInterop": true,
+        "rootDir": "."
     },
     "exclude": ["samples/**"],
     "include": ["*.ts"]

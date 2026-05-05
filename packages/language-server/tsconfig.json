@@ -2,8 +2,8 @@
     "compilerOptions": {
         "lib": ["es2021"],
         "target": "es2021",
-        "moduleResolution": "node",
-        "module": "CommonJS",
+        "moduleResolution": "node16",
+        "module": "node16",
 
         "outDir": "dist",
         "strict": true,
@@ -12,6 +12,8 @@
         "sourceMap": true,
         "composite": true,
         "skipLibCheck": true,
-        "forceConsistentCasingInFileNames": true
+        "rootDir": ".",
+        "forceConsistentCasingInFileNames": true,
+        "types": ["mocha", "node"]
     }
 }
