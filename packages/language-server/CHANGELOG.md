@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.17.31
+
+### Patch Changes
+
+-   fix: prevent duplicate diagnostics ([#3000](https://github.com/sveltejs/language-tools/pull/3000))
+
+-   fix: properly place svelte-ignore comment in quickfix when `<script module>` presents ([#3011](https://github.com/sveltejs/language-tools/pull/3011))
+
+-   fix: prevent incorrect $types imports being injected when moving +page.svelte files ([#3010](https://github.com/sveltejs/language-tools/pull/3010))
+
+-   fix: prevent extra script indentation when inserting svelte-ignore comments ([#3011](https://github.com/sveltejs/language-tools/pull/3011))
+
+-   fix: provide tsconfig.json diagnostics for svelte-check ([#3005](https://github.com/sveltejs/language-tools/pull/3005))
+
+-   Updated dependencies [[`8b103ba`](https://github.com/sveltejs/language-tools/commit/8b103bab7a8234397a8d4b88f75c88514354b5c5)]:
+    -   svelte2tsx@0.7.54
+
 ## 0.17.30
 
 ### Patch Changes

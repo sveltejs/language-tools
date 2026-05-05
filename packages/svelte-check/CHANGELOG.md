@@ -1,5 +1,13 @@
 # Changelog
 
+## 4.4.7
+
+### Patch Changes
+
+-   fix: flush stdout/stderr before exit ([#3014](https://github.com/sveltejs/language-tools/pull/3014))
+
+-   fix: report diagnostics in tsconfig.json ([#3005](https://github.com/sveltejs/language-tools/pull/3005))
+
 ## 4.4.6
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.54
+
+### Patch Changes
+
+-   fix: hoist self-referenced props interface ([#2998](https://github.com/sveltejs/language-tools/pull/2998))
+
 ## 0.7.53
 
 ### Patch Changes
