@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.4.8
+
+### Patch Changes
+
+-   feat: typescript 6.0 support ([#2985](https://github.com/sveltejs/language-tools/pull/2985))
+
 ## 4.4.7
 
 ### Patch Changes
