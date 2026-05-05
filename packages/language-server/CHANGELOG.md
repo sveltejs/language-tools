@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.18.0
+
+### Minor Changes
+
+-   feat: typescript 6.0 support ([#2985](https://github.com/sveltejs/language-tools/pull/2985))
+
+### Patch Changes
+
+-   Updated dependencies [[`29e2894`](https://github.com/sveltejs/language-tools/commit/29e2894c795f5b1fcfc091ba03d541148a18e4a2)]:
+    -   svelte2tsx@0.7.55
+
 ## 0.17.31
 
 ### Patch Changes
