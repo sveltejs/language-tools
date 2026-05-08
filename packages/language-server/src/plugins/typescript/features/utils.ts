@@ -189,11 +189,12 @@ export function findContainingNode<T extends ts.Node>(
     textSpan: ts.TextSpan,
     predicate: (node: ts.Node) => node is T
 ): T | undefined {
+    const end = textSpan.start + textSpan.length;
     // TypeScript will re-parse part of the file in getChildren() to include syntax tokens.
     // But for the use cases of this function, we only need the actual nodes like Identifier.
     // the forEachChild name is a bit misleading too because it function more like find than forEach
     return node.forEachChild((child) => {
-        if (child.getStart() <= textSpan.start && child.getEnd() >= textSpan.start) {
+        if (child.getStart() <= textSpan.start && child.getEnd() >= end) {
             if (predicate(child)) {
                 return child;
             }
@@ -356,7 +357,8 @@ export function gatherDescendants<T extends ts.Node>(
 export const gatherIdentifiers = (node: ts.Node) => gatherDescendants(node, ts.isIdentifier);
 
 export function isKitTypePath(path?: string): boolean {
-    return !!path?.includes('.svelte-kit/types');
+    if (!path) return false;
+    return path.endsWith('/$types.js') || path.endsWith('/$types') || path.endsWith('/$types.d.ts');
 }
 
 export function getFormatCodeBasis(formatCodeSetting: ts.FormatCodeSettings): FormatCodeBasis {

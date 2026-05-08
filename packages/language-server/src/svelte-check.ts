@@ -23,7 +23,7 @@ import {
 import { isInGeneratedCode } from './plugins/typescript/features/utils';
 import { mapAndFilterDiagnostics } from './plugins/typescript/features/DiagnosticsProvider';
 import { convertRange, getDiagnosticTag, mapSeverity } from './plugins/typescript/utils';
-import { pathToUrl, urlToPath } from './utils';
+import { normalizePath, pathToUrl, urlToPath } from './utils';
 import { groupBy } from 'lodash';
 
 export function mapSvelteCheckDiagnostics(
@@ -226,6 +226,7 @@ export class SvelteCheck {
 
     private async getDiagnosticsForTsconfig(tsconfigPath: string) {
         const lsContainer = await this.getLSContainer(tsconfigPath);
+        const normalizedTsconfigPath = normalizePath(tsconfigPath);
         const map = (diagnostic: ts.Diagnostic, range?: Range): Diagnostic => {
             const file = diagnostic.file;
             range ??= file
@@ -241,22 +242,33 @@ export class SvelteCheck {
                 source: diagnostic.source,
                 message: ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n'),
                 code: diagnostic.code,
-                tags: getDiagnosticTag(diagnostic)
+                tags: getDiagnosticTag(diagnostic),
+                data: {
+                    positionUnknown: !diagnostic.start || !diagnostic.length
+                }
             };
         };
 
-        if (
-            lsContainer.configErrors.some((error) => error.category === ts.DiagnosticCategory.Error)
-        ) {
-            return reportConfigError();
+        const isErrorCategory = (diagnostic: ts.Diagnostic) =>
+            diagnostic.category === ts.DiagnosticCategory.Error;
+
+        if (lsContainer.configErrors.some(isErrorCategory)) {
+            return reportConfigError(lsContainer.configErrors);
         }
 
         const lang = lsContainer.getService();
-        if (
-            lsContainer.configErrors.some((error) => error.category === ts.DiagnosticCategory.Error)
-        ) {
-            return reportConfigError();
+        if (lsContainer.configErrors.some(isErrorCategory)) {
+            return reportConfigError(lsContainer.configErrors);
         }
+
+        const program = lang.getProgram();
+        const globalOrConfigFileDiagnostics = program
+            ? [...program.getGlobalDiagnostics(), ...program.getOptionsDiagnostics()]
+            : [];
+        // TODO: enable this in svelte-check v5. For now, we report these as warnings along with other diagnostics.
+        // if (globalOrConfigFileDiagnostics.some(isErrorCategory)) {
+        //     return reportConfigError(globalOrConfigFileDiagnostics);
+        // }
 
         const files = lang.getProgram()?.getSourceFiles() || [];
         const options = lang.getProgram()?.getCompilerOptions() || {};
@@ -356,22 +368,36 @@ export class SvelteCheck {
             })
         );
 
-        if (lsContainer.configErrors.length) {
-            diagnostics.push(...reportConfigError());
+        const configErrors = lsContainer.configErrors
+            // TODO: remove this in svelte-check v5.
+            .concat(
+                globalOrConfigFileDiagnostics.map((diagnostic) => ({
+                    ...diagnostic,
+                    category:
+                        diagnostic.category === ts.DiagnosticCategory.Error
+                            ? ts.DiagnosticCategory.Warning
+                            : diagnostic.category
+                }))
+            );
+        if (configErrors.length) {
+            diagnostics.push(...reportConfigError(configErrors));
         }
 
         return diagnostics;
 
-        function reportConfigError() {
+        function reportConfigError(errors: readonly ts.Diagnostic[]) {
             const grouped = groupBy(
-                lsContainer.configErrors,
-                (error) => error.file?.fileName ?? tsconfigPath
+                errors,
+                (error) => error.file?.fileName ?? normalizedTsconfigPath
             );
+            const lspDiagnostics = errors.map((diagnostic) => map(diagnostic));
 
             return Object.entries(grouped).map(([filePath, errors]) => ({
                 filePath,
-                text: '',
-                diagnostics: errors.map((diagnostic) => map(diagnostic))
+                text: lspDiagnostics.some((diagnostic) => diagnostic.data?.positionUnknown)
+                    ? (ts.sys?.readFile(filePath) ?? '')
+                    : '',
+                diagnostics: lspDiagnostics
             }));
         }
     }
