@@ -1,6 +1,6 @@
 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
 <path fill-rule="evenodd" clip-rule="evenodd" transform="translate(-2 0)"
-    d="M 3.0002 1 H 14.0002 L 15.0002 2 V 7.3 L 14 7.3 V 2 H 9.0002 V 7.8 L 8 8 V 2 H 3 V 13 L 7 13 L 6 14 H 3.0002 L 2.0002 13 V 2 Z"
+    d="M 3.0002 1 H 14.0002 L 15.0002 2 V 7 L 14 7 V 2 H 9.0002 V 7.8 L 8 8 V 2 H 3 V 13 L 6.5 13 L 5.8 14 H 3.0002 L 2.0002 13 V 2 Z"
     fill="#c5c5c5" />
 
 <g xmlns="http://www.w3.org/2000/svg" id="logo" transform="scale(0.0253) translate(22 17)" fill="#c5c5c5">
