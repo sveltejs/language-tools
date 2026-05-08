@@ -238,7 +238,7 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
             [
                 // /^tsconfig\.json$/,
                 // /^jsconfig\.json$/,
-                /^svelte\.config\.(js|cjs|mjs)$/,
+                /^svelte\.config\.(js|ts|cjs|mjs|mts)$/,
                 // https://prettier.io/docs/en/configuration.html
                 /^\.prettierrc$/,
                 /^\.prettierrc\.(json|yml|yaml|json5|toml)$/,

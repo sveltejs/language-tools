@@ -143,7 +143,12 @@ export class ConfigLoader {
                 return this.fs.existsSync(path) ? path : undefined;
             };
             const configPath =
-                tryFindConfigPath('js') || tryFindConfigPath('cjs') || tryFindConfigPath('mjs');
+                tryFindConfigPath('js') ||
+                tryFindConfigPath('ts') ||
+                tryFindConfigPath('cjs') ||
+                tryFindConfigPath('mjs') ||
+                tryFindConfigPath('mts');
+
             if (configPath) {
                 return configPath;
             }
