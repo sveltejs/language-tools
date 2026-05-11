@@ -171,20 +171,24 @@ export function extractStyleTag(source: string, html?: HTMLDocument): TagInforma
     return styles[0];
 }
 
-export function extractStyleTags(source: string, html?: HTMLDocument): TagInformation[] {
-    const rootNodes = html?.roots || parseHtml(source).roots;
-    const styles: TagInformation[] = [];
+export function extractStyleTagAtOffset(
+    source: string,
+    offset: number,
+    html?: HTMLDocument
+): TagInformation | null {
+    const node = (html ?? parseHtml(source)).findNodeAt(offset);
 
-    rootNodes.forEach(collectStyleTags);
-    return styles;
-
-    function collectStyleTags(node: Node) {
-        if (node.tag === 'style') {
-            styles.push(transformToTagInfo(node, source));
-        }
-
-        node.children?.forEach(collectStyleTags);
+    if (node.tag !== 'style') {
+        return null;
     }
+
+    const styleInfo = transformToTagInfo(node, source);
+
+    if (offset < styleInfo.start || offset > styleInfo.end) {
+        return null;
+    }
+
+    return styleInfo;
 }
 
 export function extractTemplateTag(source: string, html?: HTMLDocument): TagInformation | null {

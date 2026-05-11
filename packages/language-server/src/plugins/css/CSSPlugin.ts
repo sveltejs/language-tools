@@ -32,7 +32,7 @@ import {
     isInTag,
     mapRangeToOriginal,
     TagInformation,
-    extractStyleTags
+    extractStyleTagAtOffset
 } from '../../lib/documents';
 import { LSConfigManager, LSCSSConfig } from '../../ls-config';
 import {
@@ -179,10 +179,11 @@ export class CSSPlugin
         }
 
         const cssDocument = this.getCSSDocAtPosition(document, position);
-        if (shouldExcludeHover(cssDocument)) {
-            return null;
-        }
-        if (cssDocument.isInGenerated(position)) {
+        if (cssDocument) {
+            if (shouldExcludeHover(cssDocument)) {
+                return null;
+            }
+
             return this.doHoverInternal(cssDocument, position);
         }
         const attributeContext = getAttributeContextAtPosition(document, position);
@@ -231,7 +232,7 @@ export class CSSPlugin
 
         const cssDocument = this.getCSSDocAtPosition(document, position);
 
-        if (cssDocument.isInGenerated(position)) {
+        if (cssDocument) {
             return this.getCompletionsInternal(document, position, cssDocument);
         }
 
@@ -248,7 +249,7 @@ export class CSSPlugin
                 new StyleAttributeDocument(document, start, end, this.cssLanguageServices)
             );
         } else {
-            return getIdClassCompletion(cssDocument, attributeContext);
+            return getIdClassCompletion(this.getCSSDoc(document), attributeContext);
         }
     }
 
@@ -529,19 +530,25 @@ export class CSSPlugin
         return cssDoc;
     }
 
-    private getCSSDocAtPosition(document: Document, position: Position) {
-        const cssDoc = this.getCSSDoc(document);
-
-        if (cssDoc.isInGenerated(position)) {
-            return cssDoc;
+    private getCSSDocAtPosition(document: Document, position: Position): CSSDocument | null {
+        if (isInTag(position, document.styleInfo)) {
+            return this.getCSSDoc(document);
         }
 
-        const offset = document.offsetAt(position);
-        const styleInfo = extractStyleTags(document.getText(), document.html).find(
-            (style) => offset >= style.start && offset <= style.end
+        if (
+            isInTag(position, document.scriptInfo) ||
+            isInTag(position, document.moduleScriptInfo)
+        ) {
+            return null;
+        }
+
+        const styleInfo = extractStyleTagAtOffset(
+            document.getText(),
+            document.offsetAt(position),
+            document.html
         );
 
-        return styleInfo ? new CSSDocument(document, this.cssLanguageServices, styleInfo) : cssDoc;
+        return styleInfo ? new CSSDocument(document, this.cssLanguageServices, styleInfo) : null;
     }
 
     private updateConfigs() {
