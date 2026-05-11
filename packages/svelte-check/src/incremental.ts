@@ -29,9 +29,16 @@ type ManifestEntry = {
     addedCode?: InternalHelpers.AddedCode[];
 };
 
+type KitFilesSettingsCache = {
+    mtimeMs: number;
+    size: number;
+    settings: InternalHelpers.KitFilesSettings;
+};
+
 type Manifest = {
     version: number;
     entries: Record<string, ManifestEntry>;
+    kitFilesSettings?: KitFilesSettingsCache;
 };
 
 export type EmitResult = {
@@ -55,7 +62,7 @@ export type ParsedDiagnostic = {
     message: string;
 };
 
-const MANIFEST_VERSION = 3;
+const MANIFEST_VERSION = 4;
 const SVELTE_KIT_DIR = '.svelte-kit';
 const CACHE_DIR_NAME = '.svelte-check';
 const EMIT_SUBDIR = 'svelte';
@@ -104,12 +111,16 @@ const dynamicImport = new Function('modulePath', 'return import(modulePath)') as
 /**
  * Loads the svelte.config.js file and extracts SvelteKit file path settings.
  * Falls back to default paths if config doesn't exist or doesn't specify custom paths.
+ * The resolved settings are cached on the manifest, keyed by the config file's mtime+size,
+ * so warm runs avoid re-importing the config (and its adapter dep graph).
  *
  * @param workspacePath - Root directory of the project
+ * @param manifest - Incremental build manifest used to cache the resolved settings
  * @returns KitFilesSettings with paths for params, hooks files
  */
 async function loadKitFilesSettings(
-    workspacePath: string
+    workspacePath: string,
+    manifest: Manifest
 ): Promise<InternalHelpers.KitFilesSettings> {
     const configExtensions = ['js', 'cjs', 'mjs'];
     let configPath: string | undefined;
@@ -126,19 +137,31 @@ async function loadKitFilesSettings(
         return defaultKitFilesSettings;
     }
 
+    const stat = fs.statSync(configPath);
+    const cached = manifest.kitFilesSettings;
+    if (cached && cached.mtimeMs === stat.mtimeMs && cached.size === stat.size) {
+        return cached.settings;
+    }
+
     try {
         const config = (await dynamicImport(pathToFileURL(configPath)))?.default;
-        if (!config?.kit?.files) {
-            return defaultKitFilesSettings;
-        }
+        const files = config?.kit?.files;
+        const settings: InternalHelpers.KitFilesSettings = files
+            ? {
+                  paramsPath: files.params ?? defaultKitFilesSettings.paramsPath,
+                  serverHooksPath: files.hooks?.server ?? defaultKitFilesSettings.serverHooksPath,
+                  clientHooksPath: files.hooks?.client ?? defaultKitFilesSettings.clientHooksPath,
+                  universalHooksPath:
+                      files.hooks?.universal ?? defaultKitFilesSettings.universalHooksPath
+              }
+            : defaultKitFilesSettings;
 
-        const files = config.kit.files;
-        return {
-            paramsPath: files.params ?? defaultKitFilesSettings.paramsPath,
-            serverHooksPath: files.hooks?.server ?? defaultKitFilesSettings.serverHooksPath,
-            clientHooksPath: files.hooks?.client ?? defaultKitFilesSettings.clientHooksPath,
-            universalHooksPath: files.hooks?.universal ?? defaultKitFilesSettings.universalHooksPath
+        manifest.kitFilesSettings = {
+            mtimeMs: stat.mtimeMs,
+            size: stat.size,
+            settings
         };
+        return settings;
     } catch {
         return defaultKitFilesSettings;
     }
@@ -166,7 +189,7 @@ export async function emitSvelteFiles(
     const manifest = incremental
         ? loadManifest(manifestPath, workspacePath)
         : { version: MANIFEST_VERSION, entries: {} as Record<string, ManifestEntry> };
-    const kitFilesSettings = await loadKitFilesSettings(workspacePath);
+    const kitFilesSettings = await loadKitFilesSettings(workspacePath, manifest);
     const isJsOrTsFile = (filePath: string) => filePath.endsWith('.ts') || filePath.endsWith('.js');
     const allRelevantFiles = await findFiles(
         workspacePath,
@@ -1037,7 +1060,11 @@ function loadManifest(manifestPath: string, workspacePath: string): Manifest {
                     : undefined
             };
         }
-        return { version: data.version, entries: resolvedEntries };
+        return {
+            version: data.version,
+            entries: resolvedEntries,
+            kitFilesSettings: data.kitFilesSettings
+        };
     } catch {
         return { version: MANIFEST_VERSION, entries: {} };
     }
@@ -1066,7 +1093,8 @@ function writeManifest(manifestPath: string, manifest: Manifest, workspacePath: 
     }
     const data: Manifest = {
         version: MANIFEST_VERSION,
-        entries: relativeEntries
+        entries: relativeEntries,
+        kitFilesSettings: manifest.kitFilesSettings
     };
     fs.writeFileSync(manifestPath, JSON.stringify(data, null, 2), 'utf-8');
 }
