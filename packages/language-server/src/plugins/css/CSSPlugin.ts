@@ -31,7 +31,8 @@ import {
     mapSelectionRangeToParent,
     isInTag,
     mapRangeToOriginal,
-    TagInformation
+    TagInformation,
+    extractStyleTags
 } from '../../lib/documents';
 import { LSConfigManager, LSCSSConfig } from '../../ls-config';
 import {
@@ -177,7 +178,7 @@ export class CSSPlugin
             return null;
         }
 
-        const cssDocument = this.getCSSDoc(document);
+        const cssDocument = this.getCSSDocAtPosition(document, position);
         if (shouldExcludeHover(cssDocument)) {
             return null;
         }
@@ -228,7 +229,7 @@ export class CSSPlugin
             return null;
         }
 
-        const cssDocument = this.getCSSDoc(document);
+        const cssDocument = this.getCSSDocAtPosition(document, position);
 
         if (cssDocument.isInGenerated(position)) {
             return this.getCompletionsInternal(document, position, cssDocument);
@@ -526,6 +527,21 @@ export class CSSPlugin
             this.cssDocuments.set(document, cssDoc);
         }
         return cssDoc;
+    }
+
+    private getCSSDocAtPosition(document: Document, position: Position) {
+        const cssDoc = this.getCSSDoc(document);
+
+        if (cssDoc.isInGenerated(position)) {
+            return cssDoc;
+        }
+
+        const offset = document.offsetAt(position);
+        const styleInfo = extractStyleTags(document.getText(), document.html).find(
+            (style) => offset >= style.start && offset <= style.end
+        );
+
+        return styleInfo ? new CSSDocument(document, this.cssLanguageServices, styleInfo) : cssDoc;
     }
 
     private updateConfigs() {

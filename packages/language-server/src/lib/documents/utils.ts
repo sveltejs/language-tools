@@ -65,7 +65,7 @@ function extractTags(
         .filter((tag) => {
             return isNotInsideControlFlowTag(tag) && isNotInsideHtmlTag(tag);
         });
-    return matchedNodes.map(transformToTagInfo);
+    return matchedNodes.map((node) => transformToTagInfo(node, text));
 
     /**
      * For every match AFTER the tag do a search for `{/X`.
@@ -119,28 +119,28 @@ function extractTags(
             rootContentBeforeTag.lastIndexOf('}')
         );
     }
+}
 
-    function transformToTagInfo(matchedNode: Node) {
-        const start = matchedNode.startTagEnd ?? matchedNode.start;
-        const end = matchedNode.endTagStart ?? matchedNode.end;
-        const startPos = positionAt(start, text);
-        const endPos = positionAt(end, text);
-        const container = {
-            start: matchedNode.start,
-            end: matchedNode.end
-        };
-        const content = text.substring(start, end);
+function transformToTagInfo(matchedNode: Node, text: string): TagInformation {
+    const start = matchedNode.startTagEnd ?? matchedNode.start;
+    const end = matchedNode.endTagStart ?? matchedNode.end;
+    const startPos = positionAt(start, text);
+    const endPos = positionAt(end, text);
+    const container = {
+        start: matchedNode.start,
+        end: matchedNode.end
+    };
+    const content = text.substring(start, end);
 
-        return {
-            content,
-            attributes: parseAttributes(matchedNode.attributes),
-            start,
-            end,
-            startPos,
-            endPos,
-            container
-        };
-    }
+    return {
+        content,
+        attributes: parseAttributes(matchedNode.attributes),
+        start,
+        end,
+        startPos,
+        endPos,
+        container
+    };
 }
 
 export function extractScriptTags(
@@ -169,6 +169,22 @@ export function extractStyleTag(source: string, html?: HTMLDocument): TagInforma
 
     // There can only be one style tag
     return styles[0];
+}
+
+export function extractStyleTags(source: string, html?: HTMLDocument): TagInformation[] {
+    const rootNodes = html?.roots || parseHtml(source).roots;
+    const styles: TagInformation[] = [];
+
+    rootNodes.forEach(collectStyleTags);
+    return styles;
+
+    function collectStyleTags(node: Node) {
+        if (node.tag === 'style') {
+            styles.push(transformToTagInfo(node, source));
+        }
+
+        node.children?.forEach(collectStyleTags);
+    }
 }
 
 export function extractTemplateTag(source: string, html?: HTMLDocument): TagInformation | null {
