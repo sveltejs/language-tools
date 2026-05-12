@@ -168,7 +168,9 @@ export class SveltePlugin
             const getConfig = async (p: any) => {
                 // Try resolving the config through prettier and fall back to possible editor config
                 return this.configManager.getMergedPrettierConfig(
-                    await p.resolveConfig(filePath, { editorconfig: true }),
+                    await p.resolveConfig(filePath, {
+                        editorconfig: this.configManager.getPrettierConfigLoadingOptions()
+                    }),
                     // Be defensive here because IDEs other than VSCode might not have these settings
                     options && {
                         tabWidth: options.tabSize,
