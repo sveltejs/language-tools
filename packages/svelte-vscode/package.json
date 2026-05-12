@@ -415,6 +415,14 @@
                 }
             }
         },
+        "configurationDefaults": {
+            "workbench.editor.customLabels.patterns": {
+                "**/src/routes/+[layout|page|server|error]*": "/${filename}.${extname}",
+                "**/src/routes/*/+[layout|page|server|error]*": "/${dirname}/${filename}.${extname}",
+                "**/src/routes/*/*/**/+[layout|page|server|error]*": ".../${dirname}/${filename}.${extname}",
+                "**/+[layout|page|server|error]*": "${dirname}/${filename}.${extname}"
+            }
+        },
         "languages": [
             {
                 "id": "svelte",
