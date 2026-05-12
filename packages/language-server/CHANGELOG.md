@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.18.1
+
+### Patch Changes
+
+-   feat: support CSS completions in nested style tags ([#3022](https://github.com/sveltejs/language-tools/pull/3022))
+
+-   fix: support prettier.useEditorConfig setting ([#3026](https://github.com/sveltejs/language-tools/pull/3026))
+
+-   Updated dependencies [[`4a064e5`](https://github.com/sveltejs/language-tools/commit/4a064e5ef6d1c0148b2f833fadafea1b134e9d5c)]:
+    -   svelte2tsx@0.7.56
+
 ## 0.18.0
 
 ### Minor Changes
