@@ -174,9 +174,9 @@ export function extractStyleTag(source: string, html?: HTMLDocument): TagInforma
 export function extractStyleTagAtOffset(
     source: string,
     offset: number,
-    html?: HTMLDocument
+    html: HTMLDocument
 ): TagInformation | null {
-    const node = (html ?? parseHtml(source)).findNodeAt(offset);
+    const node = html.findNodeAt(offset);
 
     if (node.tag !== 'style') {
         return null;

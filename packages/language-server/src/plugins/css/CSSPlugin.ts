@@ -480,8 +480,8 @@ export class CSSPlugin
     }
 
     findDocumentHighlight(document: Document, position: Position): DocumentHighlight[] | null {
-        const cssDocument = this.getCSSDoc(document);
-        if (cssDocument.isInGenerated(position)) {
+        const cssDocument = this.getCSSDocAtPosition(document, position);
+        if (cssDocument) {
             if (shouldExcludeDocumentHighlights(cssDocument)) {
                 return wordHighlightForTag(document, position, document.styleInfo, wordPattern);
             }
@@ -537,7 +537,8 @@ export class CSSPlugin
 
         if (
             isInTag(position, document.scriptInfo) ||
-            isInTag(position, document.moduleScriptInfo)
+            isInTag(position, document.moduleScriptInfo) ||
+            isInTag(position, document.templateInfo)
         ) {
             return null;
         }
