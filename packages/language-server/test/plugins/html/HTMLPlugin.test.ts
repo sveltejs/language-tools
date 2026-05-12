@@ -201,6 +201,32 @@ describe('HTML Plugin', () => {
         assert.strictEqual(completions, null);
     });
 
+    it('provides pug emmet completions inside template lang="pug"', async () => {
+        const { plugin, document } = setup('<template lang="pug">\ndiv>\n</template>');
+
+        const completions = await plugin.getCompletions(document, Position.create(1, 4), {
+            triggerCharacter: '>',
+            triggerKind: CompletionTriggerKind.TriggerCharacter
+        });
+
+        assert.strictEqual(completions?.items[0]?.label, 'div>');
+        assert.strictEqual(completions?.items[0]?.textEdit?.newText, 'div ${0}');
+        assert.strictEqual(completions?.items[0]?.documentation, 'div |');
+    });
+
+    it('provides html emmet completions outside template lang="pug"', async () => {
+        const { plugin, document } = setup('<template lang="pug">\np\n</template>\ndiv>');
+
+        const completions = await plugin.getCompletions(document, Position.create(3, 4), {
+            triggerCharacter: '>',
+            triggerKind: CompletionTriggerKind.TriggerCharacter
+        });
+
+        assert.strictEqual(completions?.items[0]?.label, 'div>');
+        assert.strictEqual(completions?.items[0]?.textEdit?.newText, '<div>${0}</div>');
+        assert.strictEqual(completions?.items[0]?.documentation, '<div>|</div>');
+    });
+
     it('does not provide rename for element being uppercase', async () => {
         const { plugin, document } = setup('<Div></Div>');
 
