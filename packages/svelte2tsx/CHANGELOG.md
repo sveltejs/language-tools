@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.56
+
+### Patch Changes
+
+-   fix: use local name for marking bindable props used ([#3017](https://github.com/sveltejs/language-tools/pull/3017))
+
 ## 0.7.55
 
 ### Patch Changes
