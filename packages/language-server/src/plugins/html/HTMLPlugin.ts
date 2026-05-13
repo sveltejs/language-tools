@@ -196,9 +196,10 @@ export class HTMLPlugin
             filePath &&
             items.some((item) => item.label.startsWith('on:') || item.label.startsWith('bind:'))
                 ? this.configManager.getMergedPrettierConfig(
-                      await importPrettier(filePath).resolveConfig(filePath, {
-                          editorconfig: true
-                      })
+                      await importPrettier(filePath).resolveConfig(
+                          filePath,
+                          this.configManager.getPrettierConfigLoadingOptions()
+                      )
                   )
                 : null;
 

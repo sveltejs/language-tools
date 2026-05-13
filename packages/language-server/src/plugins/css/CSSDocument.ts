@@ -17,12 +17,13 @@ export class CSSDocument extends ReadableDocument implements DocumentMapper {
 
     constructor(
         private parent: Document,
-        languageServices: CSSLanguageServices
+        languageServices: CSSLanguageServices,
+        styleInfo = parent.styleInfo
     ) {
         super();
 
-        if (this.parent.styleInfo) {
-            this.styleInfo = this.parent.styleInfo;
+        if (styleInfo) {
+            this.styleInfo = styleInfo;
         } else {
             this.styleInfo = {
                 attributes: {},
