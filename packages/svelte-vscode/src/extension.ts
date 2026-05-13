@@ -37,6 +37,13 @@ import {
     getMergedConfiguration as getMergedTsConfigurations,
     sendNotificationMiddleware
 } from './typescript/configurationMiddleware';
+import { versions } from 'node:process';
+
+const [node_major, node_minor] = (versions?.node ?? '0.0.0-unknown').split('.', 3).map(Number);
+
+const add_experimental_strip_types_flag =
+    (node_major === 22 && node_minor > 5 && node_minor < 18) || // flag added in 22.6.0, removed in 22.18.0
+    (node_major === 23 && node_minor < 6); // flag removed in 23.6.0
 
 namespace TagCloseRequest {
     export const type: RequestType<TextDocumentPositionParams, string, any> = new RequestType(
@@ -124,7 +131,12 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
     const serverModule = require.resolve(lsPath || 'svelte-language-server/bin/server.js');
     console.log('Loading server from ', serverModule);
 
+    const serverRuntime = runtimeConfig.get<string>('runtime');
+
     const runExecArgv: string[] = [];
+    if (!serverRuntime && add_experimental_strip_types_flag) {
+        runExecArgv.push('--experimental-strip-types');
+    }
 
     const runtimeArgs = runtimeConfig.get<string[]>('runtime-args');
     if (runtimeArgs !== undefined) {
@@ -156,7 +168,6 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
         }
     };
 
-    const serverRuntime = runtimeConfig.get<string>('runtime');
     if (serverRuntime) {
         serverOptions.run.runtime = serverRuntime;
         serverOptions.debug.runtime = serverRuntime;
@@ -227,7 +238,7 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
             [
                 // /^tsconfig\.json$/,
                 // /^jsconfig\.json$/,
-                /^svelte\.config\.(js|cjs|mjs)$/,
+                /^svelte\.config\.(js|ts|cjs|mjs|mts)$/,
                 // https://prettier.io/docs/en/configuration.html
                 /^\.prettierrc$/,
                 /^\.prettierrc\.(json|yml|yaml|json5|toml)$/,

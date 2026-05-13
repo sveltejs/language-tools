@@ -47,10 +47,11 @@ const _dynamicImport = new Function('modulePath', 'return import(modulePath)') a
     modulePath: URL
 ) => Promise<any>;
 
-const configRegex = /\/svelte\.config\.(js|cjs|mjs)$/;
+const configRegex = /\/svelte\.config\.(js|ts|cjs|mjs|mts)$/;
+const configRegexWithoutTs = /\/svelte\.config\.(js|cjs|mjs)$/;
 
 /**
- * Loads svelte.config.{js,cjs,mjs} files. Provides both a synchronous and asynchronous
+ * Loads svelte.config.{js,ts,cjs,mjs,mts} files. Provides both a synchronous and asynchronous
  * interface to get a config file because snapshots need access to it synchronously.
  * This means that another instance (the ts service host on startup) should make
  * sure that all config files are loaded before snapshots are retrieved.
@@ -61,13 +62,20 @@ export class ConfigLoader {
     private configFilesAsync = new FileMap<Promise<SvelteConfig>>();
     private filePathToConfigPath = new FileMap<string>();
     private disabled = false;
+    private loadSvelteConfigTs: boolean;
 
     constructor(
         private globSync: typeof fdir,
         private fs: Pick<typeof _fs, 'existsSync'>,
         private path: Pick<typeof _path, 'dirname' | 'relative' | 'join'>,
-        private dynamicImport: typeof _dynamicImport
-    ) {}
+        private dynamicImport: typeof _dynamicImport,
+        processFeatures: (typeof process)['features'] & {
+            typescript?: false | 'transform';
+        }
+    ) {
+        this.loadSvelteConfigTs =
+            processFeatures && 'typescript' in processFeatures && !!processFeatures.typescript;
+    }
 
     /**
      * Enable/disable loading of configs (for security reasons for example)
@@ -83,6 +91,7 @@ export class ConfigLoader {
      * @param directory Directory where to load the configs from
      */
     async loadConfigs(directory: string): Promise<void> {
+        const targetRegex = this.loadSvelteConfigTs ? configRegex : configRegexWithoutTs;
         Logger.log('Trying to load configs for', directory);
 
         try {
@@ -93,7 +102,7 @@ export class ConfigLoader {
                     return path.includes('node_modules/') || path.includes('/.') || path[0] === '.';
                 })
                 .filter((path, isDir) => {
-                    return !isDir && configRegex.test(path);
+                    return !isDir && targetRegex.test(path);
                 })
                 .withRelativePaths()
                 .crawl(directory)
@@ -143,7 +152,12 @@ export class ConfigLoader {
                 return this.fs.existsSync(path) ? path : undefined;
             };
             const configPath =
-                tryFindConfigPath('js') || tryFindConfigPath('cjs') || tryFindConfigPath('mjs');
+                tryFindConfigPath('js') ||
+                (this.loadSvelteConfigTs ? tryFindConfigPath('ts') : undefined) ||
+                tryFindConfigPath('cjs') ||
+                tryFindConfigPath('mjs') ||
+                (this.loadSvelteConfigTs ? tryFindConfigPath('mts') : undefined);
+
             if (configPath) {
                 return configPath;
             }
@@ -221,8 +235,10 @@ export class ConfigLoader {
             currentDir = nextDir;
             const config =
                 this.tryGetConfig(file, currentDir, 'js') ||
+                (this.loadSvelteConfigTs ? this.tryGetConfig(file, currentDir, 'ts') : undefined) ||
                 this.tryGetConfig(file, currentDir, 'cjs') ||
-                this.tryGetConfig(file, currentDir, 'mjs');
+                this.tryGetConfig(file, currentDir, 'mjs') ||
+                (this.loadSvelteConfigTs ? this.tryGetConfig(file, currentDir, 'mts') : undefined);
             if (config) {
                 return config;
             }
@@ -305,4 +321,4 @@ export class ConfigLoader {
     }
 }
 
-export const configLoader = new ConfigLoader(fdir, _fs, _path, _dynamicImport);
+export const configLoader = new ConfigLoader(fdir, _fs, _path, _dynamicImport, process.features);
