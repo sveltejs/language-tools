@@ -25,6 +25,7 @@ import {
     writeOverlayTsconfig
 } from './incremental';
 import { createIgnored, findFiles } from './utils';
+import { tryLoadApi as tryLoadTsApi, getDiagnostics as getTsGoDiagnosticsFromApi } from './tsgo';
 
 type Result = {
     fileCount: number;
@@ -576,6 +577,61 @@ function exitAfterFlush(code: number): void {
     process.stderr.write('', done);
 }
 
+async function runWithTsGoApi(
+    api: typeof import('@typescript/native-preview/sync'),
+    opts: SvelteCheckCliOptions
+): Promise<number> {
+    if (!opts.tsconfig) {
+        throw new Error('`--tsgo` requires a tsconfig/jsconfig file');
+    }
+    const tsDiagnostics = await getTsGoDiagnosticsFromApi(api, opts.tsconfig);
+
+    const svelteCheck = new SvelteCheck(opts.workspaceUri.fsPath, {
+        compilerWarnings: opts.compilerWarnings,
+        diagnosticSources: opts.diagnosticSources.filter((s) => s !== 'js'),
+        watch: false
+    });
+    const writer = instantiateWriter(opts);
+
+    const diagnosticsByFile = new Map<
+        string,
+        { filePath: string; text: string; diagnostics: Diagnostic[] }
+    >();
+
+    for (const entry of tsDiagnostics.diagnosticsByFile) {
+        diagnosticsByFile.set(entry.filePath, {
+            filePath: entry.filePath,
+            text: entry.text,
+            diagnostics: entry.diagnostics
+        });
+    }
+
+    if (tsDiagnostics.type === 'semantic/suggestion') {
+        await openDocuments(tsDiagnostics.rootFiles, svelteCheck);
+        const svelteDiagnostics = await svelteCheck.getDiagnostics();
+
+        for (const entry of svelteDiagnostics) {
+            let existing = diagnosticsByFile.get(entry.filePath);
+            if (!existing) {
+                existing = {
+                    filePath: entry.filePath,
+                    text: entry.text,
+                    diagnostics: []
+                };
+                diagnosticsByFile.set(entry.filePath, existing);
+            }
+            existing.diagnostics.push(...entry.diagnostics);
+        }
+    }
+
+    const result = writeDiagnostics(
+        opts.workspaceUri,
+        writer,
+        Array.from(diagnosticsByFile.values())
+    );
+    return result.errorCount === 0 && (!opts.failOnWarnings || result.warningCount === 0) ? 0 : 1;
+}
+
 parseOptions(async (opts) => {
     try {
         const writer = instantiateWriter(opts);
@@ -586,6 +642,21 @@ parseOptions(async (opts) => {
             tsconfig: opts.tsconfig,
             watch: opts.watch
         };
+
+        if (opts.tsgoExperimental) {
+            const api = tryLoadTsApi(opts.workspaceUri.fsPath);
+            if (!api) {
+                throw new Error(
+                    'Failed to load tsgo API. Make sure @typescript/native-preview is installed and up to date.'
+                );
+            }
+            if (opts.watch) {
+            } else {
+                const exitCode = await runWithTsGoApi(api, opts);
+                exitAfterFlush(exitCode);
+                return;
+            }
+        }
 
         const useVirtualFiles = opts.incremental || opts.tsgo;
         if (useVirtualFiles && opts.watch) {

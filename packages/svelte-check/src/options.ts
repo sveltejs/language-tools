@@ -10,6 +10,7 @@ export interface SvelteCheckCliOptions {
     preserveWatchOutput: boolean;
     incremental: boolean;
     tsgo: boolean;
+    tsgoExperimental: boolean;
     tsconfig?: string;
     filePathsToIgnore: string[];
     failOnWarnings: boolean;
@@ -43,6 +44,11 @@ export function parseOptions(cb: (opts: SvelteCheckCliOptions) => any) {
         .option(
             '--tsgo',
             'Use tsgo for TypeScript diagnostics. Requires writing transpiled Svelte files to disk (.svelte-kit if available, else .svelte-check)',
+            false
+        )
+        .option(
+            '--tsgo-experimental',
+            'Use tsgo with experimental API, experimental feature may break without warning',
             false
         )
         .option(
@@ -99,7 +105,8 @@ export function parseOptions(cb: (opts: SvelteCheckCliOptions) => any) {
                 failOnWarnings: !!opts['fail-on-warnings'],
                 compilerWarnings: getCompilerWarnings(opts),
                 diagnosticSources: getDiagnosticSources(opts),
-                threshold: getThreshold(opts)
+                threshold: getThreshold(opts),
+                tsgoExperimental: !!opts['tsgo-experimental']
             });
         });
 

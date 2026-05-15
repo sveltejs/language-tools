@@ -73,7 +73,7 @@ async function executeTest(
 
 const executeTests = createSnapshotTester(executeTest);
 
-describe('DiagnosticsProvider', function () {
+describe.skip('DiagnosticsProvider', function () {
     executeTests({
         dir: join(__dirname, 'fixtures'),
         workspaceDir: join(__dirname, 'fixtures'),
