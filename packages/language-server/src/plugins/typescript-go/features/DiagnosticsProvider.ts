@@ -6,13 +6,20 @@ import ts from 'typescript';
 import { Diagnostic, DiagnosticTag, DocumentDiagnosticReport, Range } from 'vscode-languageserver';
 import {
     Document,
+    getLineOffsets,
     getNodeIfIsInStartTag,
     getTextInRange,
     isRangeInTag,
     mapRangeToOriginal
 } from '../../../lib/documents';
 import { FileMap } from '../../../lib/documents/fileCollection';
-import { memoize, normalizePath, pathToUrl, swapRangeStartEndIfNecessary } from '../../../utils';
+import {
+    clamp,
+    memoize,
+    normalizePath,
+    pathToUrl,
+    swapRangeStartEndIfNecessary
+} from '../../../utils';
 import { DiagnosticsProvider } from '../../interfaces';
 import {
     DocumentSnapshot,
@@ -31,6 +38,10 @@ import { Logger } from '../../../logger';
 
 const VIRTUAL_SUFFIX = '_virtual__';
 const svelteExtLength = '.svelte'.length;
+
+const UTF8_RUNE_SELF = 0x80;
+const textDecoder = new TextDecoder();
+const textEncoder = new TextEncoder();
 
 export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
     private readonly api: tsApiSync.API;
@@ -84,10 +95,22 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
         }
 
         const virtualPath = this.toVirtualPath(tsDoc);
+        const diagnosticsWithUtf8Pos: tsApiSync.Diagnostic[] = [];
+        const program = project.program;
+        diagnosticsWithUtf8Pos.push(...(program.getSyntacticDiagnostics(virtualPath) || []));
+        diagnosticsWithUtf8Pos.push(...(program.getSuggestionDiagnostics(virtualPath) || []));
+        diagnosticsWithUtf8Pos.push(...(program.getSemanticDiagnostics(virtualPath) || []));
+
+        // TODO: The sourceFile positions are already in UTF-16,
+        // So it probably is a bug that typescript api returns diagnostics with UTF-8 positions
+        const utf8Info = getUtf8LineOffsets(tsDoc.getFullText());
         const diagnostics: tsApiSync.Diagnostic[] = [];
-        diagnostics.push(...(project.program.getSyntacticDiagnostics(virtualPath) || []));
-        diagnostics.push(...(project.program.getSuggestionDiagnostics(virtualPath) || []));
-        diagnostics.push(...(project.program.getSemanticDiagnostics(virtualPath) || []));
+        const lineOffsets = getLineOffsets(tsDoc.getFullText());
+        for (const diag of diagnosticsWithUtf8Pos) {
+            const startOffset = toUtf16Pos(utf8Info, diag.pos, lineOffsets);
+            const endOffset = toUtf16Pos(utf8Info, diag.end, lineOffsets);
+            diagnostics.push({ ...diag, pos: startOffset, end: endOffset });
+        }
 
         return mapAndFilterDiagnostics(diagnostics, document, tsDoc, this.tsAstModule, project);
     }
@@ -275,7 +298,7 @@ export function mapAndFilterDiagnostics(
             range: { start: tsDoc.positionAt(tsDiag.pos), end: tsDoc.positionAt(tsDiag.end) },
             severity: mapSeverity(tsDiag.category),
             source,
-            message: tsDiag.text,
+            message: flattenDiagnosticMessage(tsDiag),
             code: tsDiag.code,
             tags: getDiagnosticTag(tsDiag)
         };
@@ -293,6 +316,20 @@ export function mapAndFilterDiagnostics(
     }
 
     return converted;
+}
+
+function flattenDiagnosticMessage(diag: tsApiSync.Diagnostic): string {
+    if (!diag.messageChain) {
+        return diag.text;
+    }
+
+    let messages = [diag.text];
+    const indent = '  ';
+    for (let i = 0; i < diag.messageChain.length; i++) {
+        const chainedDiag = diag.messageChain[i];
+        messages.push(`${indent.repeat(i + 1)}${chainedDiag.text}`);
+    }
+    return messages.join('\n');
 }
 
 function moveBindingErrorMessage(
@@ -750,4 +787,85 @@ function getDiagnosticTag(tsDiag: tsApiSync.Diagnostic): DiagnosticTag[] | undef
         tags.push(DiagnosticTag.Deprecated);
     }
     return tags;
+}
+
+type Utf8LineOffsetInfo =
+    | { isAsciiOnly: true }
+    | {
+          isAsciiOnly: false;
+          lineOffsets: number[];
+          bytes: Uint8Array;
+      };
+
+function getUtf8LineOffsets(text: string): Utf8LineOffsetInfo {
+    let asciiOnly = true;
+    for (let i = 0; i < text.length; i++) {
+        const charCode = text.charCodeAt(i);
+        if (charCode >= UTF8_RUNE_SELF) {
+            asciiOnly = false;
+            break;
+        }
+    }
+
+    if (asciiOnly) {
+        return {
+            isAsciiOnly: true
+        };
+    }
+
+    const lineOffsets: number[] = [0];
+    const utf8Bytes = textEncoder.encode(text);
+    for (let i = 0; i < utf8Bytes.length; i++) {
+        if (utf8Bytes[i] === 13 /* \r */) {
+            i++;
+            if (utf8Bytes[i] === 10 /* \n */) {
+                lineOffsets.push(i + 1);
+            } else {
+                lineOffsets.push(i);
+            }
+        }
+        if (utf8Bytes[i] === 10 /* \n */) {
+            lineOffsets.push(i + 1);
+        }
+    }
+
+    return {
+        isAsciiOnly: false,
+        lineOffsets,
+        bytes: utf8Bytes
+    };
+}
+
+function toUtf16Pos(info: Utf8LineOffsetInfo, offset: number, utf16LineOffsets: number[]): number {
+    if (info.isAsciiOnly) {
+        return offset;
+    }
+
+    offset = clamp(offset, 0, info.bytes.length);
+    const lineOffsets = info.lineOffsets;
+
+    let low = 0;
+    let high = lineOffsets.length;
+    if (high === 0) {
+        return offset;
+    }
+
+    while (low <= high) {
+        const mid = Math.floor((low + high) / 2);
+        const lineOffset = lineOffsets[mid];
+
+        if (lineOffset === offset) {
+            return utf16LineOffsets[mid];
+        } else if (offset > lineOffset) {
+            low = mid + 1;
+        } else {
+            high = mid - 1;
+        }
+    }
+
+    // low is the least x for which the line offset is larger than the current offset
+    // or array.length if no line offset is larger than the current offset
+    const line = low - 1;
+    const lineText = textDecoder.decode(info.bytes.subarray(lineOffsets[line], offset));
+    return utf16LineOffsets[line] + lineText.length;
 }
