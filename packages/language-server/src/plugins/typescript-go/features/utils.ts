@@ -120,3 +120,34 @@ function or(...predicates: Array<NodePredicate>) {
     return (tsAstModule: typeof tsAst, node: tsAst.Node) =>
         predicates.some((predicate) => predicate(tsAstModule, node));
 }
+
+function isSomeAncestor(tsAstModule: typeof tsAst, node: tsAst.Node, predicate: NodePredicate) {
+    for (let parent = node.parent; parent; parent = parent.parent) {
+        if (predicate(tsAstModule, parent)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+export const isInReactiveStatement = (tsAstModule: typeof tsAst, node: tsAst.Node) =>
+    isSomeAncestor(tsAstModule, node, isReactiveStatement);
+
+export function gatherDescendants<T extends tsAst.Node>(
+    tsAstModule: typeof tsAst,
+    node: tsAst.Node,
+    predicate: NodeTypePredicate<T>,
+    dest: T[] = []
+) {
+    if (predicate(tsAstModule, node)) {
+        dest.push(node);
+    } else {
+        node.forEachChild((child) => {
+            gatherDescendants(tsAstModule, child, predicate, dest);
+        });
+    }
+    return dest;
+}
+
+export const gatherIdentifiers = (tsAstModule: typeof tsAst, node: tsAst.Node) =>
+    gatherDescendants(tsAstModule, node, (tsAstModule, node) => tsAstModule.isIdentifier(node));

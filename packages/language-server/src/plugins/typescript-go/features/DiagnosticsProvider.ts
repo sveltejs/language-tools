@@ -24,6 +24,7 @@ import {
     clamp,
     memoize,
     normalizePath,
+    passMap,
     pathToUrl,
     swapRangeStartEndIfNecessary
 } from '../../../utils';
@@ -38,7 +39,12 @@ import { isAfterSvelte2TsxPropsReturn, isInGeneratedCode } from '../../typescrip
 import { isAttributeName, isEventHandler } from '../../typescript/svelte-ast-utils';
 import { hasNonZeroRange, mapSeverity } from '../../typescript/utils';
 import { tsApiSync, tsAst } from '../types';
-import { getStartOfNode, isReactiveStatement } from './utils';
+import {
+    gatherIdentifiers,
+    getStartOfNode,
+    isInReactiveStatement,
+    isReactiveStatement
+} from './utils';
 import { getPackageInfo, importSvelte } from '../../../importPackage';
 import { dirname } from 'node:path';
 import { Logger } from '../../../logger';
@@ -117,7 +123,7 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
             return [parserErrorDiag];
         }
 
-        const virtualPath = this.toVirtualPath(tsDoc);
+        const virtualPath = toVirtualPath(tsDoc);
         const diagnosticsWithUtf8Pos: tsApiSync.Diagnostic[] = [];
         const program = project.program;
         diagnosticsWithUtf8Pos.push(...(program.getSyntacticDiagnostics(virtualPath) || []));
@@ -135,7 +141,7 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
             diagnostics.push({ ...diag, pos: startOffset, end: endOffset });
         }
 
-        return mapAndFilterDiagnostics(diagnostics, document, tsDoc, this.tsAstModule, project);
+        return mapAndFilterDiagnostics(this.tsAstModule, project, diagnostics, document, tsDoc);
     }
 
     getProject() {
@@ -151,11 +157,6 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
             items: await this.getDiagnostics(document),
             kind: 'full'
         };
-    }
-
-    private toVirtualPath(snapshot: DocumentSnapshot) {
-        const ext = snapshot.scriptKind === ts.ScriptKind.TS ? '.ts' : '.js';
-        return normalizePath(snapshot.filePath.slice(0, -svelteExtLength) + VIRTUAL_SUFFIX + ext);
     }
 
     private createFsProxy(): Required<
@@ -265,7 +266,7 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
         this.files.set(normalizedPath, svelteFile);
 
         const dtsPath = normalizedPath.slice(0, -svelteExtLength) + '.d.svelte.ts';
-        const virtualPath = this.toVirtualPath(svelteFile);
+        const virtualPath = toVirtualPath(svelteFile);
         this.virtualFiles.set(virtualPath, svelteFile.getFullText());
         const dtsBasename = path.basename(dtsPath);
         const virtualBasename = path.basename(virtualPath);
@@ -304,12 +305,17 @@ function getParserErrorDiagnostic(tsDoc: SvelteDocumentSnapshot): Diagnostic | u
     };
 }
 
+function toVirtualPath(snapshot: DocumentSnapshot) {
+    const ext = snapshot.scriptKind === ts.ScriptKind.TS ? '.ts' : '.js';
+    return normalizePath(snapshot.filePath.slice(0, -svelteExtLength) + VIRTUAL_SUFFIX + ext);
+}
+
 export function mapAndFilterDiagnostics(
+    tsAstModule: typeof tsAst,
+    tsApiProject: tsApiSync.Project,
     diagnostics: tsApiSync.Diagnostic[],
     document: Document,
-    tsDoc: SvelteDocumentSnapshot,
-    tsAstModule: typeof tsAst,
-    tsApiProject: tsApiSync.Project
+    tsDoc: SvelteDocumentSnapshot
 ): Diagnostic[] {
     // For svelte-check tsgo, we called api to get all diagnostics instead of calling getDiagnostics for each file separately. So we also need to check parser error or coffeescript files here.
     if (['coffee', 'coffeescript'].includes(document.getLanguageAttribute('script'))) {
@@ -323,7 +329,7 @@ export function mapAndFilterDiagnostics(
     }
 
     const notGenerated = isNotGenerated(tsDoc.getFullText());
-
+    const virtualPath = toVirtualPath(tsDoc);
     diagnostics = diagnostics
         .filter(notGenerated)
         .filter(
@@ -334,7 +340,7 @@ export function mapAndFilterDiagnostics(
                 !expectedTransitionThirdArgument(tsAstModule, diagnostic, tsDoc, tsApiProject)
         );
 
-    // diagnostics = resolveNoopsInReactiveStatements(lang, diagnostics);
+    diagnostics = resolveNoopsInReactiveStatements(tsAstModule, tsApiProject, diagnostics);
 
     const source =
         tsDoc.scriptKind === ts.ScriptKind.TSX || tsDoc.scriptKind === ts.ScriptKind.TS
@@ -369,16 +375,16 @@ export function mapAndFilterDiagnostics(
     return converted;
 }
 
-function flattenDiagnosticMessage(diag: tsApiSync.Diagnostic): string {
+function flattenDiagnosticMessage(diag: tsApiSync.Diagnostic, level = 0): string {
     if (!diag.messageChain) {
         return diag.text;
     }
 
     let messages = [diag.text];
-    const indent = '  ';
     for (let i = 0; i < diag.messageChain.length; i++) {
         const chainedDiag = diag.messageChain[i];
-        messages.push(`${indent.repeat(i + 1)}${chainedDiag.text}`);
+        const indent = '  '.repeat(level + 1);
+        messages.push(indent + flattenDiagnosticMessage(chainedDiag, level + 1));
     }
     return messages.join('\n');
 }
@@ -476,6 +482,39 @@ function rangeMapper(
         }
 
         return { ...diagnostic, range };
+    };
+}
+
+function findDiagnosticNode(
+    tsAstModule: typeof tsAst,
+    diagnostic: tsApiSync.Diagnostic,
+    sourceFile: tsAst.SourceFile
+) {
+    const touchingNode = tsAstModule.getTouchingToken(sourceFile, diagnostic.pos);
+    if (touchingNode.end === diagnostic.end) {
+        return touchingNode;
+    }
+    let current: tsAst.Node | undefined = touchingNode.parent;
+    while (current.pos === touchingNode.pos) {
+        if (current.end === diagnostic.end) {
+            return current;
+        }
+        current = current.parent;
+    }
+}
+
+function copyDiagnosticAndChangeNode(
+    tsAstModule: typeof tsAst,
+    diagnostic: tsApiSync.Diagnostic,
+    sourceFile: tsAst.SourceFile
+) {
+    return (node: tsAst.Node): tsApiSync.Diagnostic => {
+        const start = getStartOfNode(tsAstModule, node, sourceFile);
+        return {
+            ...diagnostic,
+            pos: start,
+            end: node.end
+        };
     };
 }
 
@@ -616,7 +655,7 @@ function isUnusedReactiveStatementLabel(
     if (!sourceFile) {
         return false;
     }
-    const diagNode = tsApiModule.getTouchingToken(sourceFile, diagnostic.pos);
+    const diagNode = findDiagnosticNode(tsApiModule, diagnostic, sourceFile);
     if (!diagNode) {
         return false;
     }
@@ -641,53 +680,84 @@ function isUnusedReactiveStatementLabel(
  * Only `let` (i.e. reactive) variables are ignored. For the others, new diagnostics are
  * emitted, centered on the (non reactive) identifiers in the initial warning.
  */
-// function resolveNoopsInReactiveStatements(
-//     project: tsApiSync.Project,
-//     diagnostics: tsApiSync.Diagnostic[]
-// ) {
-//     const isLet = (file: tsAst.SourceFile) => (node: tsAst.Node) => {
-//         project.checker.getSymbolAtLocation(node)?.valueDeclaration?.kind;
+function resolveNoopsInReactiveStatements(
+    tsAstModule: typeof tsAst,
+    project: tsApiSync.Project,
+    diagnostics: tsApiSync.Diagnostic[]
+) {
+    const notLet = (node: tsAst.Node) => {
+        const declaration = project.checker.getSymbolAtLocation(node)?.valueDeclaration;
+        if (!declaration || declaration.kind !== tsAstModule.SyntaxKind.VariableDeclaration) {
+            return true;
+        }
 
-//         const defs = lang.getDefinitionAtPosition(file.fileName, node.getStart());
-//         return !!defs && defs.some((def) => def.fileName === file.fileName && def.kind === 'let');
-//     };
+        const declarationNode = declaration.resolve(project);
+        if (!declarationNode || !tsAstModule.isVariableDeclarationList(declarationNode.parent)) {
+            return true;
+        }
+        return (declarationNode.parent.flags & tsAstModule.NodeFlags.Let) === 0;
+    };
 
-//     const expandRemainingNoopWarnings = (
-//         diagnostic: tsApiSync.Diagnostic
-//     ): void | tsApiSync.Diagnostic[] => {
-//         const { code, file } = diagnostic;
+    const expandRemainingNoopWarnings = (
+        diagnostic: tsApiSync.Diagnostic
+    ): void | tsApiSync.Diagnostic[] => {
+        const { code, fileName } = diagnostic;
 
-//         // guard: not target error
-//         const isNoopDiag = code === DiagnosticCode.NOOP_IN_COMMAS;
-//         if (!isNoopDiag) {
-//             return;
-//         }
+        // guard: not target error
+        const isNoopDiag = code === DiagnosticCode.NOOP_IN_COMMAS;
+        if (!isNoopDiag) {
+            return;
+        }
 
-//         const diagNode = findDiagnosticNode(diagnostic);
-//         if (!diagNode) {
-//             return;
-//         }
+        const sourceFile = fileName && project.program.getSourceFile(fileName);
+        if (!sourceFile) {
+            return;
+        }
+        const diagNode = findDiagnosticNode(tsAstModule, diagnostic, sourceFile);
+        if (!diagNode) {
+            return;
+        }
 
-//         if (!isInReactiveStatement(diagNode)) {
-//             return;
-//         }
+        if (!isInReactiveStatement(tsAstModule, diagNode)) {
+            return;
+        }
 
-//         return (
-//             // for all identifiers in diagnostic node
-//             gatherIdentifiers(diagNode)
-//                 // ignore `let` (i.e. reactive) variables
-//                 .filter(not(isLet(file)))
-//                 // and create targeted diagnostics just for the remaining ids
-//                 .map(copyDiagnosticAndChangeNode(diagnostic))
-//         );
-//     };
+        const copyWorker = copyDiagnosticAndChangeNode(tsAstModule, diagnostic, sourceFile);
+        return (
+            // for all identifiers in diagnostic node
+            gatherIdentifiers(tsAstModule, diagNode)
+                // ignore `let` (i.e. reactive) variables
+                .filter(notLet)
+                // and create targeted diagnostics just for the remaining ids
+                .map(copyWorker)
+        );
+    };
 
-//     const expandedDiagnostics = passMap(diagnostics, expandRemainingNoopWarnings).flat();
-//     return expandedDiagnostics.length === diagnostics.length
-//         ? expandedDiagnostics
-//         : // This can generate duplicate diagnostics
-//           expandedDiagnostics.filter(dedupDiagnostics());
-// }
+    const expandedDiagnostics = passMap(diagnostics, expandRemainingNoopWarnings).flat();
+    return expandedDiagnostics.length === diagnostics.length
+        ? expandedDiagnostics
+        : // This can generate duplicate diagnostics
+          expandedDiagnostics.filter(dedupDiagnostics());
+}
+
+function dedupDiagnostics() {
+    const hashDiagnostic = (diag: tsApiSync.Diagnostic) =>
+        [diag.pos, diag.end, diag.category, diag.fileName, diag.code]
+            .map((x) => JSON.stringify(x))
+            .join(':');
+
+    const known = new Set();
+
+    return (diag: tsApiSync.Diagnostic) => {
+        const key = hashDiagnostic(diag);
+        if (known.has(key)) {
+            return false;
+        } else {
+            known.add(key);
+            return true;
+        }
+    };
+}
 
 function get$$PropsAliasForInfo(
     tsAstModule: typeof tsAst,
@@ -726,7 +796,7 @@ function get$$PropsDef(
     snapshot: SvelteDocumentSnapshot
 ) {
     const program = project.program;
-    const sourceFile = program.getSourceFile(snapshot.filePath);
+    const sourceFile = program.getSourceFile(toVirtualPath(snapshot));
     if (!program || !sourceFile) {
         return undefined;
     }
@@ -811,17 +881,14 @@ function expectedTransitionThirdArgument(
     if (!sourceFile) {
         return false;
     }
-    const node = tsAstModule.getTouchingToken(sourceFile, diagnostic.pos);
-    if (!node) {
+    const node = findDiagnosticNode(tsAstModule, diagnostic, sourceFile);
+    if (!node || !tsAstModule.isIdentifier(node)) {
         return false;
     }
-
-    // in TypeScript 5.4 the error is on the function name
-    // in earlier versions it's on the whole call expression
-    const callExpression =
-        tsAstModule.isIdentifier(node) && tsAstModule.isCallExpression(node.parent)
-            ? node.parent
-            : tsAstModule.getTouchingToken(sourceFile, diagnostic.pos);
+    if (!node.parent || !tsAstModule.isCallExpression(node.parent)) {
+        return false;
+    }
+    const callExpression = node.parent;
     const signature = callExpression && project.checker.getResolvedSignature(callExpression);
 
     return (
