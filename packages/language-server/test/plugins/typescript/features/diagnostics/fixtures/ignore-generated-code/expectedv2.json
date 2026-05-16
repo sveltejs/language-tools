@@ -38,7 +38,7 @@
         "range": { "start": { "line": 15, "character": 2 }, "end": { "line": 15, "character": 9 } },
         "severity": 1,
         "source": "ts",
-        "message": "Type '\"food\"' is not assignable to type '\"foo\" | \"bar\"'. Did you mean '\"foo\"'?",
+        "message": "Type '\"food\"' is not assignable to type '\"bar\" | \"foo\"'. Did you mean '\"foo\"'?",
         "code": 2820,
         "tags": []
     }
