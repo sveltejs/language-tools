@@ -3,7 +3,14 @@ import fs from 'node:fs';
 import path from 'path';
 import { internalHelpers } from 'svelte2tsx';
 import ts from 'typescript';
-import { Diagnostic, DiagnosticTag, DocumentDiagnosticReport, Range } from 'vscode-languageserver';
+import {
+    CancellationToken,
+    Diagnostic,
+    DiagnosticSeverity,
+    DiagnosticTag,
+    DocumentDiagnosticReport,
+    Range
+} from 'vscode-languageserver';
 import {
     Document,
     getLineOffsets,
@@ -78,7 +85,10 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
         });
     }
 
-    async getDiagnostics(document: Document): Promise<Diagnostic[]> {
+    async getDiagnostics(
+        document: Document,
+        cancellationToken?: CancellationToken
+    ): Promise<Diagnostic[]> {
         const filePath = document.getFilePath();
         if (!filePath) {
             return [];
@@ -92,6 +102,19 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
 
         if (!tsDoc || !(tsDoc instanceof SvelteDocumentSnapshot)) {
             return [];
+        }
+
+        if (
+            ['coffee', 'coffeescript'].includes(document.getLanguageAttribute('script')) ||
+            cancellationToken?.isCancellationRequested
+        ) {
+            return [];
+        }
+
+        // Document preprocessing failed, show parser error instead
+        const parserErrorDiag = getParserErrorDiagnostic(tsDoc);
+        if (parserErrorDiag) {
+            return [parserErrorDiag];
         }
 
         const virtualPath = this.toVirtualPath(tsDoc);
@@ -264,6 +287,23 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
     }
 }
 
+function getParserErrorDiagnostic(tsDoc: SvelteDocumentSnapshot): Diagnostic | undefined {
+    if (!tsDoc.parserError) {
+        return;
+    }
+
+    return {
+        range: tsDoc.parserError.range,
+        severity: DiagnosticSeverity.Error,
+        source:
+            tsDoc.scriptKind === ts.ScriptKind.TSX || tsDoc.scriptKind === ts.ScriptKind.TS
+                ? 'ts'
+                : 'js',
+        message: tsDoc.parserError.message,
+        code: tsDoc.parserError.code
+    };
+}
+
 export function mapAndFilterDiagnostics(
     diagnostics: tsApiSync.Diagnostic[],
     document: Document,
@@ -271,6 +311,17 @@ export function mapAndFilterDiagnostics(
     tsAstModule: typeof tsAst,
     tsApiProject: tsApiSync.Project
 ): Diagnostic[] {
+    // For svelte-check tsgo, we called api to get all diagnostics instead of calling getDiagnostics for each file separately. So we also need to check parser error or coffeescript files here.
+    if (['coffee', 'coffeescript'].includes(document.getLanguageAttribute('script'))) {
+        return [];
+    }
+
+    // Document preprocessing failed, show parser error instead
+    const parserErrorDiag = getParserErrorDiagnostic(tsDoc);
+    if (parserErrorDiag) {
+        return [parserErrorDiag];
+    }
+
     const notGenerated = isNotGenerated(tsDoc.getFullText());
 
     diagnostics = diagnostics

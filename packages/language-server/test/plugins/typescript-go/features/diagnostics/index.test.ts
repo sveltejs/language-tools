@@ -20,6 +20,8 @@ const {
 const expected = 'expectedv2.json';
 const newSvelteMajorExpected = `expected_svelte_${major}.json`;
 
+const providerPool = new Map<string, SvelteCheckTSGoDiagnosticsProvider>();
+
 describe.only('SvelteCheckTSGoDiagnosticsProvider', function () {
     const fixturesDir = path.join(root, 'fixtures');
     executeTests({
@@ -32,14 +34,14 @@ function executeTests(testOptions: { dir: string; workspaceDir: string }) {
     const { dir } = testOptions;
 
     const inputFile = path.join(dir, 'input.svelte');
-    const getServices = setupSharedService(testOptions.workspaceDir);
+    const getService = setupService(testOptions.dir);
 
     if (existsSync(inputFile)) {
         const _it =
             dir.endsWith('.v5') && !isSvelte5Plus ? it.skip : dir.endsWith('.only') ? it.only : it;
         _it(dir.substring(root.length), async () => {
-            const services = getServices();
-            await executeTest(inputFile, testOptions, services);
+            const service = getService(testOptions.dir);
+            await executeTest(inputFile, testOptions, service);
         });
     } else {
         const _describe = dir.endsWith('.only') ? describe.only : describe;
@@ -87,26 +89,31 @@ async function executeTest(
     });
 }
 
-function setupSharedService(workspaceDir: string) {
-    let service: SvelteCheckTSGoDiagnosticsProvider;
+function setupService(dir: string) {
     before(async () => {
+        const tsconfig = ts.findConfigFile(dir, ts.sys.fileExists, 'tsconfig.json')!;
+        if (providerPool.has(tsconfig)) {
+            return;
+        }
         const syncApi = await import('@typescript/native-preview/sync');
         const tsAst = await import('@typescript/native-preview/ast');
-        console.log('Initializing SvelteCheckTSGoDiagnosticsProvider...');
-        service = new SvelteCheckTSGoDiagnosticsProvider(
+        const service = new SvelteCheckTSGoDiagnosticsProvider(
             syncApi,
             tsAst,
-            path.join(workspaceDir, 'tsconfig.json'),
+            tsconfig,
             'svelte2tsx'
         );
-    });
-    after(async () => {
-        // service?.dispose();
+        providerPool.set(tsconfig, service);
     });
 
-    return getServices;
+    return getService;
 
-    function getServices() {
+    function getService(dir: string) {
+        const tsconfig = ts.findConfigFile(dir, ts.sys.fileExists, 'tsconfig.json')!;
+        const service = providerPool.get(tsconfig);
+        if (!service) {
+            throw new Error(`Service for ${tsconfig} not found`);
+        }
         return service;
     }
 }
