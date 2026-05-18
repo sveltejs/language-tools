@@ -1,5 +1,6 @@
 import type { FileSystem } from '@typescript/native-preview/fs' with { 'resolution-mode': 'import' };
 import fs from 'node:fs';
+import { dirname } from 'node:path';
 import path from 'path';
 import { internalHelpers } from 'svelte2tsx';
 import ts from 'typescript';
@@ -11,21 +12,23 @@ import {
     DocumentDiagnosticReport,
     Range
 } from 'vscode-languageserver';
+import { getPackageInfo, importSvelte } from '../../../importPackage';
 import {
     Document,
     getLineOffsets,
     getNodeIfIsInStartTag,
     getTextInRange,
     isRangeInTag,
-    mapRangeToOriginal
+    mapRangeToOriginal,
+    positionAt
 } from '../../../lib/documents';
 import { FileMap } from '../../../lib/documents/fileCollection';
+import { Logger } from '../../../logger';
 import {
     clamp,
     memoize,
     normalizePath,
     passMap,
-    pathToUrl,
     swapRangeStartEndIfNecessary
 } from '../../../utils';
 import { DiagnosticsProvider } from '../../interfaces';
@@ -45,9 +48,6 @@ import {
     isInReactiveStatement,
     isReactiveStatement
 } from './utils';
-import { getPackageInfo, importSvelte } from '../../../importPackage';
-import { dirname } from 'node:path';
-import { Logger } from '../../../logger';
 
 const VIRTUAL_SUFFIX = '_virtual__';
 const svelteExtLength = '.svelte'.length;
@@ -64,18 +64,24 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
     private readonly virtualTsconfigPath: string;
     private readonly ambientTypesSource: string;
     private readonly snapshotOptions: SvelteSnapshotOptions;
+    private readonly tsconfigPath: string;    
+
+    private createDocument: (filePath: string, content: string) => Document;
 
     constructor(
         apiModule: typeof tsApiSync,
         tsAstModule: typeof tsAst,
         tsconfigPath: string,
-        ambientTypesSource: string
+        ambientTypesSource: string,
+        createDocument: (filePath: string, content: string) => Document
     ) {
         this.tsAstModule = tsAstModule;
+        this.tsconfigPath = tsconfigPath;
         this.virtualTsconfigPath = path.join(
             path.dirname(tsconfigPath),
             `tsconfig${VIRTUAL_SUFFIX}.json`
         );
+        this.createDocument = createDocument;
         this.ambientTypesSource = ambientTypesSource;
         const sveltePackage = importSvelte(tsconfigPath);
         this.snapshotOptions = {
@@ -150,6 +156,48 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
         });
         const project = snapshot.getProject(this.virtualTsconfigPath);
         return project;
+    }
+
+    mapAndFilterDiagnostics(
+        project: tsApiSync.Project,
+        diagnostics: tsApiSync.Diagnostic[]
+    ): { filePath: string; text: string; diagnostics: Diagnostic[] }[] {
+        const byFile = new Map<string, tsApiSync.Diagnostic[]>();
+        for (const diag of diagnostics) {
+            let bucket = byFile.get(diag.fileName ?? this.tsconfigPath);
+            if (!bucket) {
+                bucket = [];
+            }
+            bucket.push(diag);
+        }
+
+        const result: { filePath: string; diagnostics: Diagnostic[]; text: string }[] = [];
+        for (const [fileName, diags] of byFile) {
+            const tsDoc = this.files.get(normalizePath(fileName));
+            if (!tsDoc) {
+                result.push(this.covertDiagnosticsForUnopenedFile(fileName, diags));
+                continue;
+            }
+
+            if (tsDoc instanceof SvelteDocumentSnapshot) {
+                const mappedDiags = mapAndFilterDiagnostics(
+                    this.tsAstModule,
+                    project,
+                    diags,
+                    tsDoc.parent,
+                    tsDoc
+                );
+                result.push({
+                    filePath: fileName,
+                    text: tsDoc.parent.getText(),
+                    diagnostics: mappedDiags
+                });
+            }
+
+            // TODO SvelteKit route files
+        }
+
+        return result;
     }
 
     async getDiagnosticsForPullMode(document: Document): Promise<DocumentDiagnosticReport> {
@@ -278,9 +326,31 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
         return [dtsBasename, virtualBasename];
     }
 
-    private createDocument(filePath: string, content: string): Document {
-        const document = new Document(pathToUrl(filePath), content);
-        return document;
+    private covertDiagnosticsForUnopenedFile(
+        filePath: string,
+        diagnostics: tsApiSync.Diagnostic[]
+    ): { filePath: string; diagnostics: Diagnostic[]; text: string } {
+        const text = ts.sys.readFile(filePath) ?? '';
+        const result: Diagnostic[] = [];
+        const lineOffsets = getLineOffsets(text);
+        const utf8Info = getUtf8LineOffsets(text);
+        for (const diag of diagnostics) {
+            const startOffset = toUtf16Pos(utf8Info, diag.pos, lineOffsets);
+            const endOffset = toUtf16Pos(utf8Info, diag.end, lineOffsets);
+
+            result.push({
+                range: {
+                    start: positionAt(startOffset, text, lineOffsets),
+                    end: positionAt(endOffset, text, lineOffsets)
+                },
+                severity: mapSeverity(diag.category),
+                message: flattenDiagnosticMessage(diag),
+                code: diag.code,
+                source: diag.fileName?.endsWith('js') ? 'js' : 'ts',
+                tags: getDiagnosticTag(diag)
+            });
+        }
+        return { filePath, diagnostics: result, text };
     }
 
     dispose() {
@@ -329,7 +399,6 @@ export function mapAndFilterDiagnostics(
     }
 
     const notGenerated = isNotGenerated(tsDoc.getFullText());
-    const virtualPath = toVirtualPath(tsDoc);
     diagnostics = diagnostics
         .filter(notGenerated)
         .filter(

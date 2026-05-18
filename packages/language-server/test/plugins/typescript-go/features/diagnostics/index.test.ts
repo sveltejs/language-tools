@@ -101,7 +101,8 @@ function setupService(dir: string) {
             syncApi,
             tsAst,
             tsconfig,
-            'svelte2tsx'
+            'svelte2tsx',
+            (filePath, content) => new Document(pathToUrl(filePath), content)
         );
         providerPool.set(tsconfig, service);
     });
