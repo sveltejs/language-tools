@@ -45,6 +45,9 @@ describe('Svelte Plugin', () => {
             isSvelte5Plus ? 'a11y_missing_attribute' : 'a11y-missing-attribute',
             'svelte'
         );
+        diagnostic.codeDescription = {
+            href: 'https://svelte.dev/docs/svelte/compiler-warnings#a11y_missing_attribute'
+        };
 
         assert.deepStrictEqual(diagnostics, [diagnostic]);
     });
@@ -63,6 +66,13 @@ describe('Svelte Plugin', () => {
             'svelte'
         );
 
+        diagnostic.codeDescription = {
+            href: isSvelte5Plus
+                ? 'https://svelte.dev/docs/svelte/compiler-errors#bind_invalid_name'
+                : // doesn't actually exist but at least points to the page
+                  'https://svelte.dev/docs/svelte/compiler-errors#binding_undeclared'
+        };
+
         assert.deepStrictEqual(diagnostics, [diagnostic]);
     });
 
@@ -75,6 +85,7 @@ describe('Svelte Plugin', () => {
     });
 
     describe('#formatDocument', () => {
+        const defaultDocumentPath = '/hello.svelte';
         function stubPrettierV2(config: any) {
             const formatStub = sinon.stub().returns('formatted');
 
@@ -130,7 +141,8 @@ describe('Svelte Plugin', () => {
             sinon.assert.calledOnceWithExactly(formatStub, 'unformatted', {
                 fromConfig: true,
                 plugins: [],
-                parser: 'svelte'
+                parser: 'svelte',
+                filepath: defaultDocumentPath
             });
         });
 
@@ -146,7 +158,8 @@ describe('Svelte Plugin', () => {
                 plugins: [
                     require.resolve('prettier-plugin-svelte', { paths: [urlToPath(documentUri)!] })
                 ],
-                parser: 'svelte'
+                parser: 'svelte',
+                filepath: urlToPath(documentUri)
             });
         });
 
@@ -166,6 +179,7 @@ describe('Svelte Plugin', () => {
                 fallbackConfig: true,
                 plugins: [],
                 parser: 'svelte',
+                filepath: defaultDocumentPath,
                 ...defaultSettings
             });
         });
@@ -177,6 +191,7 @@ describe('Svelte Plugin', () => {
                 useTabs: false,
                 plugins: [],
                 parser: 'svelte',
+                filepath: defaultDocumentPath,
                 ...defaultSettings
             });
         });
@@ -188,6 +203,7 @@ describe('Svelte Plugin', () => {
                 useTabs: false,
                 plugins: [],
                 parser: 'svelte',
+                filepath: defaultDocumentPath,
                 ...defaultSettings
             });
         });

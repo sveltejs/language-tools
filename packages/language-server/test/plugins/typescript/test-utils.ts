@@ -38,7 +38,13 @@ export function createVirtualTsSystem(currentDirectory: string): ts.System {
             const normalizedPath = normalizePath(toAbsolute(path));
             const existsBefore = virtualFs.has(normalizedPath);
             virtualFs.set(normalizedPath, data);
-            modifiedTime.set(normalizedPath, new Date());
+            const lastModified = modifiedTime.get(normalizedPath);
+            let newModifiedTime = new Date();
+            if (lastModified && newModifiedTime <= lastModified) {
+                newModifiedTime = new Date(lastModified.getTime() + 1);
+            }
+            // make sure modified time is always increasing to trigger watchers reliably in tests
+            modifiedTime.set(normalizedPath, newModifiedTime);
             triggerWatch(
                 normalizedPath,
                 existsBefore ? ts.FileWatcherEventKind.Changed : ts.FileWatcherEventKind.Created
@@ -155,8 +161,8 @@ export function setupVirtualEnvironment({
     fileContent,
     filename
 }: VirtualEnvironmentOptions) {
-    const docManager = new DocumentManager(
-        (textDocument) => new Document(textDocument.uri, textDocument.text)
+    const docManager = new DocumentManager((textDocument) =>
+        Document.createForTest(textDocument.uri, textDocument.text)
     );
 
     const lsConfigManager = new LSConfigManager();
@@ -299,8 +305,8 @@ export function serviceWarmup(
         const start = Date.now();
         console.log('Warming up language service...');
 
-        const docManager = new DocumentManager(
-            (textDocument) => new Document(textDocument.uri, textDocument.text)
+        const docManager = new DocumentManager((textDocument) =>
+            Document.createForTest(textDocument.uri, textDocument.text)
         );
 
         const lsAndTsDocResolver = new LSAndTSDocResolver(

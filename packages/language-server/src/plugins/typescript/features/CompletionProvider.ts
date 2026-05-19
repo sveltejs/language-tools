@@ -19,6 +19,7 @@ import {
     Document,
     getNodeIfIsInHTMLStartTag,
     getNodeIfIsInStartTag,
+    getNodeIfIsInTagName,
     getWordRangeAt,
     isInTag,
     mapCompletionItemToOriginal,
@@ -27,7 +28,7 @@ import {
 } from '../../../lib/documents';
 import { AttributeContext, getAttributeContextAtPosition } from '../../../lib/documents/parseHtml';
 import { LSConfigManager } from '../../../ls-config';
-import { flatten, getRegExpMatches, modifyLines, pathToUrl } from '../../../utils';
+import { getRegExpMatches, modifyLines, pathToUrl } from '../../../utils';
 import { AppCompletionItem, AppCompletionList, CompletionsProvider } from '../../interfaces';
 import { ComponentInfoProvider, ComponentPartInfo } from '../ComponentInfoProvider';
 import { SvelteDocumentSnapshot } from '../DocumentSnapshot';
@@ -45,6 +46,8 @@ import { getJsDocTemplateCompletion } from './getJsDocTemplateCompletion';
 import {
     checkRangeMappingWithGeneratedSemi,
     getComponentAtPosition,
+    getCustomElementsDocument,
+    getCustomElementsTags,
     getFormatCodeBasis,
     getNewScriptStartTag,
     isKitTypePath,
@@ -59,6 +62,7 @@ export interface CompletionResolveInfo
         TextDocumentIdentifier {
     position: Position;
     __is_sveltekit$typeImport?: boolean;
+    __is_custom_element?: boolean;
 }
 
 type validTriggerCharacter = '.' | '"' | "'" | '`' | '/' | '@' | '<' | '#';
@@ -94,7 +98,6 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
      * For performance reasons, try to reuse the last completion if possible.
      */
     private lastCompletion?: LastCompletion;
-
     private isValidTriggerCharacter(
         character: string | undefined
     ): character is validTriggerCharacter {
@@ -181,7 +184,8 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
                     'SnippetBlock',
                     'IfBlock',
                     'EachBlock',
-                    'AwaitBlock'
+                    'AwaitBlock',
+                    'Style'
                 ].includes(svelteNode.parent?.type as any)) ||
             // Cursor is at <div>|</div> in which case there's no TextNode inbetween
             document.getText().substring(originalOffset - 1, originalOffset + 2) === '></'
@@ -524,7 +528,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
         const rawImports = getRegExpMatches(scriptImportRegex, document.getText()).map((match) =>
             (match[1] ?? match[2]).split(',')
         );
-        const tidiedImports = flatten(rawImports).map((match) => match.trim());
+        const tidiedImports = rawImports.flat().map((match) => match.trim());
         return new Set(tidiedImports);
     }
 
@@ -573,87 +577,34 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
         position: Position
     ): CompletionItem[] | undefined {
         const offset = document.offsetAt(position);
-        const tag = getNodeIfIsInHTMLStartTag(document.html, offset);
+        const tag = getNodeIfIsInTagName(document.html, offset);
 
-        if (!tag) {
+        if (!tag || !tag.tag) {
             return;
         }
 
-        const tagNameEnd = tag.start + 1 + (tag.tag?.length ?? 0);
-        if (offset > tagNameEnd) {
-            return;
-        }
-
-        const program = lang.getProgram();
-        const sourceFile = program?.getSourceFile(tsDoc.filePath);
-        const typeChecker = program?.getTypeChecker();
-        if (!typeChecker || !sourceFile) {
-            return;
-        }
-
-        const typingsNamespace = lsContainer.getTsConfigSvelteOptions().namespace;
-
-        const typingsNamespaceSymbol = this.findTypingsNamespaceSymbol(
-            typingsNamespace,
-            typeChecker,
-            sourceFile
+        let tags = getCustomElementsTags(lang, lsContainer, tsDoc).filter((t) =>
+            t.startsWith(tag.tag!)
         );
 
-        if (!typingsNamespaceSymbol) {
-            return;
-        }
-
-        const elements = typeChecker
-            .getExportsOfModule(typingsNamespaceSymbol)
-            .find((symbol) => symbol.name === 'IntrinsicElements');
-
-        if (!elements || !(elements.flags & ts.SymbolFlags.Interface)) {
-            return;
-        }
-
-        let tagNames: string[] = typeChecker
-            .getDeclaredTypeOfSymbol(elements)
-            .getProperties()
-            .map((p) => ts.symbolName(p));
-
-        if (tagNames.length && tag.tag) {
-            tagNames = tagNames.filter((name) => name.startsWith(tag.tag ?? ''));
-        }
-
+        const tagNameEnd = tag.start + 1 + (tag.tag?.length ?? 0);
         const replacementRange = toRange(document, tag.start + 1, tagNameEnd);
 
-        return tagNames.map((name) => ({
-            label: name,
-            kind: CompletionItemKind.Property,
-            textEdit: TextEdit.replace(cloneRange(replacementRange), name),
-            commitCharacters: []
-        }));
-    }
-
-    private findTypingsNamespaceSymbol(
-        namespaceExpression: string,
-        typeChecker: ts.TypeChecker,
-        sourceFile: ts.SourceFile
-    ) {
-        if (!namespaceExpression || typeof namespaceExpression !== 'string') {
-            return;
-        }
-
-        const [first, ...rest] = namespaceExpression.split('.');
-
-        let symbol: ts.Symbol | undefined = typeChecker
-            .getSymbolsInScope(sourceFile, ts.SymbolFlags.Namespace)
-            .find((symbol) => symbol.name === first);
-
-        for (const part of rest) {
-            if (!symbol) {
-                return;
-            }
-
-            symbol = typeChecker.getExportsOfModule(symbol).find((symbol) => symbol.name === part);
-        }
-
-        return symbol;
+        return tags.map(
+            (tag) =>
+                ({
+                    label: tag,
+                    data: {
+                        uri: document.uri,
+                        position,
+                        name: tag,
+                        __is_custom_element: true
+                    },
+                    kind: CompletionItemKind.Property,
+                    textEdit: TextEdit.replace(cloneRange(replacementRange), tag),
+                    commitCharacters: []
+                }) as AppCompletionItem<CompletionResolveInfo>
+        );
     }
 
     private componentInfoToCompletionEntry(
@@ -896,8 +847,9 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
         name: string,
         source?: string
     ): boolean {
+        if (!source) return false;
         const importStatement = new RegExp(`import ${name} from ["'\`][\\s\\S]+\\.svelte["'\`]`);
-        return !!source && !!snapshot.getFullText().match(importStatement);
+        return importStatement.test(snapshot.getFullText());
     }
 
     private fixTextEditRange(
@@ -980,7 +932,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
         cancellationToken?: CancellationToken
     ): Promise<AppCompletionItem<CompletionResolveInfo>> {
         const { data: comp } = completionItem;
-        const { tsDoc, lang, userPreferences } =
+        const { tsDoc, lang, userPreferences, lsContainer } =
             await this.lsAndTsDocResolver.getLSAndTSDoc(document);
 
         const filePath = tsDoc.filePath;
@@ -990,6 +942,14 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
             tsDoc.scriptKind
         );
         if (!comp || !filePath || cancellationToken?.isCancellationRequested) {
+            return completionItem;
+        }
+
+        if (comp.__is_custom_element) {
+            const doc = getCustomElementsDocument(lang, lsContainer, tsDoc, comp.name);
+            if (doc) {
+                completionItem.documentation = { value: doc, kind: MarkupKind.Markdown };
+            }
             return completionItem;
         }
 

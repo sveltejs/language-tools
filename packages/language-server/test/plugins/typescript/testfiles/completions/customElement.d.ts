@@ -1,7 +1,11 @@
 declare global {
     namespace svelteHTML {
         interface IntrinsicElements {
-            'custom-element': any;
+            /** Custom doc for custom element */
+            'custom-element': {
+                /** bar */
+                foo: string
+            };
         }
     }
 }

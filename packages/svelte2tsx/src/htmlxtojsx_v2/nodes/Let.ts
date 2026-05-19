@@ -4,6 +4,7 @@ import { TransformationArray } from '../utils/node-utils';
 import { handleAttribute } from './Attribute';
 import { Element } from './Element';
 import { InlineComponent } from './InlineComponent';
+import { getLeadingCommentTransformation, getTrailingCommentTransformation } from './Comment';
 
 /**
  * `let:foo={bar}`  -->  `foo:bar`, which becomes `const {foo:bar} = $$_parent.$$slotDef['slotName'];`
@@ -44,7 +45,9 @@ export function handleLet(
                                   expression: node.expression
                               }
                           ]
-                        : true
+                        : true,
+                    leadingComments: node.leadingComments,
+                    trailingComments: node.trailingComments
                 },
                 parent,
                 preserveCase,
@@ -57,10 +60,12 @@ export function handleLet(
 
 function addSlotLet(node: BaseNode, element: Element | InlineComponent) {
     const letTransformation: TransformationArray = [
+        ...getLeadingCommentTransformation(node),
         [node.start + 'let:'.length, node.start + 'let:'.length + node.name.length]
     ];
     if (node.expression) {
         letTransformation.push(':', [node.expression.start, node.expression.end]);
     }
+    letTransformation.push(...getTrailingCommentTransformation(node));
     element.addSlotLet(letTransformation);
 }

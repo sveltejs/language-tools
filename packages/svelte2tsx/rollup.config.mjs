@@ -1,8 +1,8 @@
+import { builtinModules } from 'node:module';
 import commonjs from '@rollup/plugin-commonjs';
 import json from '@rollup/plugin-json';
 import resolve from '@rollup/plugin-node-resolve';
 import typescript from '@rollup/plugin-typescript';
-import builtins from 'builtin-modules';
 import fs from 'fs';
 import path from 'path';
 import { decode } from '@jridgewell/sourcemap-codec';
@@ -11,6 +11,7 @@ import { fileURLToPath } from 'url'
 
 const DEV = !!process.env.ROLLUP_WATCH;
 
+/** @returns {import('rollup').Plugin} */
 function repl() {
     const require = createRequire(import.meta.url);
     const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -102,7 +103,7 @@ export default [
             clearScreen: false
         },
         external: [
-            ...builtins,
+            ...builtinModules,
             'typescript',
             'svelte',
             'svelte/compiler',

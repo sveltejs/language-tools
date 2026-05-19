@@ -7,6 +7,7 @@ import {
     CompletionContext,
     CompletionList,
     Diagnostic,
+    DocumentDiagnosticReport,
     FormattingOptions,
     Hover,
     Position,
@@ -107,6 +108,33 @@ export class SveltePlugin
         );
     }
 
+    async getDiagnosticsForPullMode(
+        document: Document,
+        previousResultId: string | undefined,
+        cancellationToken?: CancellationToken
+    ): Promise<DocumentDiagnosticReport> {
+        if (!this.featureEnabled('diagnostics')) {
+            return {
+                kind: 'full',
+                items: []
+            };
+        }
+
+        const resultId = document.version.toString();
+        if (previousResultId === resultId) {
+            return {
+                kind: 'unchanged',
+                resultId
+            };
+        }
+        const diagnostics = await this.getDiagnostics(document, cancellationToken);
+        return {
+            kind: 'full',
+            items: diagnostics,
+            resultId
+        };
+    }
+
     async getCompiledResult(document: Document): Promise<SvelteCompileResult | null> {
         try {
             const svelteDoc = await this.getSvelteDoc(document);
@@ -140,7 +168,9 @@ export class SveltePlugin
             const getConfig = async (p: any) => {
                 // Try resolving the config through prettier and fall back to possible editor config
                 return this.configManager.getMergedPrettierConfig(
-                    await p.resolveConfig(filePath, { editorconfig: true }),
+                    await p.resolveConfig(filePath, {
+                        editorconfig: this.configManager.getPrettierConfigLoadingOptions()
+                    }),
                     // Be defensive here because IDEs other than VSCode might not have these settings
                     options && {
                         tabWidth: options.tabSize,
@@ -221,6 +251,7 @@ export class SveltePlugin
         // Prettier v3 format is async, v2 is not
         const formattedCode = await prettier.format(document.getText(), {
             ...config,
+            filepath: filePath,
             plugins: Array.from(
                 new Set([...resolvedPlugins, ...(await getSveltePlugin(resolvedPlugins))])
             ),

@@ -109,7 +109,7 @@ export function findNodeAtSpan<T extends ts.Node>(
 
     const end = start + length;
 
-    for (const child of node.getChildren()) {
+    return node.forEachChild((child) => {
         const childStart = child.getStart();
         if (end <= childStart) {
             return;
@@ -117,7 +117,7 @@ export function findNodeAtSpan<T extends ts.Node>(
 
         const childEnd = child.getEnd();
         if (start >= childEnd) {
-            continue;
+            return;
         }
 
         if (start === childStart && end === childEnd) {
@@ -133,7 +133,7 @@ export function findNodeAtSpan<T extends ts.Node>(
         if (foundInChildren) {
             return foundInChildren;
         }
-    }
+    });
 }
 
 /**
@@ -144,7 +144,7 @@ export function findNodeAtPosition<T extends ts.Node>(
     pos: number,
     predicate?: NodeTypePredicate<T>
 ): T | void {
-    for (const child of node.getChildren()) {
+    return node.forEachChild((child) => {
         const childStart = child.getStart();
         if (pos < childStart) {
             return;
@@ -152,7 +152,7 @@ export function findNodeAtPosition<T extends ts.Node>(
 
         const childEnd = child.getEnd();
         if (pos > childEnd) {
-            continue;
+            return;
         }
 
         const foundInChildren = findNodeAtPosition(child, pos, predicate);
@@ -166,7 +166,7 @@ export function findNodeAtPosition<T extends ts.Node>(
         if (predicate(child)) {
             return child;
         }
-    }
+    });
 }
 
 /**
@@ -204,9 +204,9 @@ export function gatherDescendants<T extends ts.Node>(
     if (predicate(node)) {
         dest.push(node);
     } else {
-        for (const child of node.getChildren()) {
+        node.forEachChild((child) => {
             gatherDescendants(child, predicate, dest);
-        }
+        });
     }
     return dest;
 }

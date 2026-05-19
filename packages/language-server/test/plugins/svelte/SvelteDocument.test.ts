@@ -34,6 +34,21 @@ describe('Svelte Document', () => {
         assert.strictEqual(svelteDoc.getText(), parent.getText());
     });
 
+    it('passes the document filepath to compile for warningFilter filename support', async () => {
+        const { parent, svelteDoc } = setup();
+        const compileStub = sinon.stub(parent.compiler, 'compile').returns(<any>{});
+        const compileOptions = {
+            generate: false
+        };
+
+        await svelteDoc.getCompiledWith(<any>compileOptions);
+
+        sinon.assert.calledOnce(compileStub);
+        const passedOptions = compileStub.firstCall.args[1];
+        assert.strictEqual(passedOptions?.filename, parent.getFilePath() || '');
+        assert.strictEqual(passedOptions?.generate, compileOptions.generate);
+    });
+
     describe('#transpiled (fallback)', () => {
         async function setupTranspiledWithStringSourceMap() {
             const stringSourceMapScript = () => ({

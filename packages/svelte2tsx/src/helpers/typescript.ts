@@ -43,6 +43,8 @@ export function findExports(ts: _ts, source: ts.SourceFile, isTsFile: boolean) {
             const hasTypeDefinition =
                 !!declaration.type ||
                 (!isTsFile && !!ts.getJSDocType(declaration)) ||
+                (!isTsFile &&
+                    ts.getJSDocTags(declaration).some((t) => t.tagName.text === 'satisfies')) ||
                 (!!declaration.initializer && ts.isSatisfiesExpression(declaration.initializer));
 
             if (

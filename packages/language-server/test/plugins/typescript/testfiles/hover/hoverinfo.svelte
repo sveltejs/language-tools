@@ -11,3 +11,4 @@
 </script>
 
 <HoverEventsInterface on:abc="{e => e}" />
+<custom-element foo="bar"></custom-element>

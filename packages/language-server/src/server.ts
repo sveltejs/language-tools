@@ -23,10 +23,18 @@ import {
     SemanticTokensRefreshRequest,
     InlayHintRefreshRequest,
     DidChangeWatchedFilesNotification,
-    RelativePattern
+    RelativePattern,
+    DocumentDiagnosticRequest,
+    DocumentDiagnosticParams,
+    DocumentDiagnosticReport,
+    DiagnosticRefreshRequest
 } from 'vscode-languageserver';
 import { IPCMessageReader, IPCMessageWriter, createConnection } from 'vscode-languageserver/node';
-import { DiagnosticsManager } from './lib/DiagnosticsManager';
+import {
+    DiagnosticsManager,
+    PullDiagnosticsManager,
+    PushDiagnosticsManager
+} from './lib/DiagnosticsManager';
 import { Document, DocumentManager } from './lib/documents';
 import { getSemanticTokenLegends } from './lib/semanticToken/semanticTokenLegend';
 import { Logger } from './logger';
@@ -51,7 +59,7 @@ import {
     REMOVE_UNUSED_IMPORTS_CODE_ACTION_KIND
 } from './plugins/typescript/features/CodeActionsProvider';
 import { createLanguageServices } from './plugins/css/service';
-import { FileSystemProvider } from './plugins/css/FileSystemProvider';
+import { FileSystemProvider } from './lib/FileSystemProvider';
 
 namespace TagCloseRequest {
     export const type: RequestType<TextDocumentPositionParams, string | null, any> =
@@ -184,15 +192,19 @@ export function startServer(options?: LSOptions) {
                 !evt.initializationOptions?.dontFilterIncompleteCompletions,
             definitionLinkSupport: !!evt.capabilities.textDocument?.definition?.linkSupport
         });
+
+        const fileSystemProvider = new FileSystemProvider();
+        const workspaceFolders = evt.workspaceFolders ?? [{ name: '', uri: evt.rootUri ?? '' }];
         // Order of plugin registration matters for FirstNonNull, which affects for example hover info
         pluginHost.register((sveltePlugin = new SveltePlugin(configManager)));
-        pluginHost.register(new HTMLPlugin(docManager, configManager));
+        pluginHost.register(
+            new HTMLPlugin(docManager, configManager, fileSystemProvider, workspaceFolders)
+        );
 
         const cssLanguageServices = createLanguageServices({
             clientCapabilities: evt.capabilities,
-            fileSystemProvider: new FileSystemProvider()
+            fileSystemProvider: fileSystemProvider
         });
-        const workspaceFolders = evt.workspaceFolders ?? [{ name: '', uri: evt.rootUri ?? '' }];
         pluginHost.register(
             new CSSPlugin(docManager, configManager, workspaceFolders, cssLanguageServices)
         );
@@ -219,6 +231,39 @@ export function startServer(options?: LSOptions) {
         const clientCodeActionCapabilities = evt.capabilities.textDocument?.codeAction;
         const clientSupportedCodeActionKinds =
             clientCodeActionCapabilities?.codeActionLiteralSupport?.codeActionKind.valueSet;
+
+        if (evt.capabilities.textDocument?.diagnostic) {
+            const refreshDiagnostics = evt.capabilities.workspace?.diagnostics?.refreshSupport;
+            diagnosticsManager = new PullDiagnosticsManager(
+                connection.sendDiagnostics,
+                refreshDiagnostics
+                    ? () => connection.sendRequest(DiagnosticRefreshRequest.method)
+                    : () => {}
+            );
+
+            connection.onRequest(
+                DocumentDiagnosticRequest.type,
+                async (
+                    evt: DocumentDiagnosticParams,
+                    token
+                ): Promise<DocumentDiagnosticReport | null> => {
+                    await new Promise((resolve) => setTimeout(resolve, 200));
+                    if (token.isCancellationRequested) {
+                        return null;
+                    }
+                    const diagnostics = await pluginHost.getDiagnosticsForPullMode(
+                        evt.textDocument,
+                        evt.previousResultId,
+                        token
+                    );
+                    return diagnostics;
+                }
+            );
+        } else {
+            connection.onDidSaveTextDocument(
+                diagnosticsManager.scheduleUpdateAll.bind(diagnosticsManager)
+            );
+        }
 
         return {
             capabilities: {
@@ -329,7 +374,11 @@ export function startServer(options?: LSOptions) {
                 documentHighlightProvider:
                     evt.initializationOptions?.configuration?.svelte?.plugin?.svelte
                         ?.documentHighlight?.enable ?? true,
-                workspaceSymbolProvider: true
+                workspaceSymbolProvider: true,
+                diagnosticProvider: {
+                    interFileDependencies: true,
+                    workspaceDiagnostics: false
+                }
             }
         };
     });
@@ -512,7 +561,7 @@ export function startServer(options?: LSOptions) {
 
     connection.onWorkspaceSymbol((evt, token) => pluginHost.getWorkspaceSymbols(evt.query, token));
 
-    const diagnosticsManager = new DiagnosticsManager(
+    let diagnosticsManager: DiagnosticsManager = new PushDiagnosticsManager(
         connection.sendDiagnostics,
         docManager,
         pluginHost.getDiagnostics.bind(pluginHost)
@@ -550,7 +599,6 @@ export function startServer(options?: LSOptions) {
         refreshCrossFilesSemanticFeatures();
     }
 
-    connection.onDidSaveTextDocument(diagnosticsManager.scheduleUpdateAll.bind(diagnosticsManager));
     connection.onNotification('$/onDidChangeTsOrJsFile', async (e: any) => {
         const path = urlToPath(e.uri);
         if (path) {
@@ -592,7 +640,7 @@ export function startServer(options?: LSOptions) {
         async (evt, token) => await pluginHost.getOutgoingCalls(evt.item, token)
     );
 
-    docManager.on('documentChange', diagnosticsManager.scheduleUpdate.bind(diagnosticsManager));
+    docManager.on('documentChange', (document) => diagnosticsManager.scheduleUpdate(document));
     docManager.on('documentClose', (document: Document) =>
         diagnosticsManager.removeDiagnostics(document)
     );

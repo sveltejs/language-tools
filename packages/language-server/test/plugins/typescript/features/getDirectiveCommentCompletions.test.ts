@@ -18,7 +18,7 @@ describe('can get typescript directive comment completions', function () {
         context: CompletionContext = { triggerKind: CompletionTriggerKind.Invoked }
     ) {
         const filePath = path.join(completionTestDir, 'ts-directive-comment.svelte');
-        const document = new Document(pathToUrl(filePath), ts.sys.readFile(filePath)!);
+        const document = Document.createForTest(pathToUrl(filePath), ts.sys.readFile(filePath)!);
         const result = getDirectiveCommentCompletions(position, document, context);
 
         return result;

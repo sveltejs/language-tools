@@ -1,5 +1,111 @@
 # Changelog
 
+## 0.18.0
+
+### Minor Changes
+
+-   feat: typescript 6.0 support ([#2985](https://github.com/sveltejs/language-tools/pull/2985))
+
+### Patch Changes
+
+-   Updated dependencies [[`29e2894`](https://github.com/sveltejs/language-tools/commit/29e2894c795f5b1fcfc091ba03d541148a18e4a2)]:
+    -   svelte2tsx@0.7.55
+
+## 0.17.31
+
+### Patch Changes
+
+-   fix: prevent duplicate diagnostics ([#3000](https://github.com/sveltejs/language-tools/pull/3000))
+
+-   fix: properly place svelte-ignore comment in quickfix when `<script module>` presents ([#3011](https://github.com/sveltejs/language-tools/pull/3011))
+
+-   fix: prevent incorrect $types imports being injected when moving +page.svelte files ([#3010](https://github.com/sveltejs/language-tools/pull/3010))
+
+-   fix: prevent extra script indentation when inserting svelte-ignore comments ([#3011](https://github.com/sveltejs/language-tools/pull/3011))
+
+-   fix: provide tsconfig.json diagnostics for svelte-check ([#3005](https://github.com/sveltejs/language-tools/pull/3005))
+
+-   Updated dependencies [[`8b103ba`](https://github.com/sveltejs/language-tools/commit/8b103bab7a8234397a8d4b88f75c88514354b5c5)]:
+    -   svelte2tsx@0.7.54
+
+## 0.17.30
+
+### Patch Changes
+
+-   perf: micro-optimizations in hot paths ([#2960](https://github.com/sveltejs/language-tools/pull/2960))
+
+-   fix: prevent config loading message in svelte-check --incremental ([#2974](https://github.com/sveltejs/language-tools/pull/2974))
+
+-   perf: enable incremental TypeScript reparsing via getChangeRange ([#2961](https://github.com/sveltejs/language-tools/pull/2961))
+
+-   perf: various optimization with ast walk ([#2969](https://github.com/sveltejs/language-tools/pull/2969))
+
+-   feat: pull diagnostics support ([#2978](https://github.com/sveltejs/language-tools/pull/2978))
+
+-   fix: prevent error with escape sequence in attribute ([#2968](https://github.com/sveltejs/language-tools/pull/2968))
+
+-   fix: typescript 6.0 compatibility ([#2988](https://github.com/sveltejs/language-tools/pull/2988))
+
+-   Updated dependencies [[`5b9a4ac`](https://github.com/sveltejs/language-tools/commit/5b9a4ac9f5949f709667d43a16766475bc5a63d8)]:
+    -   svelte2tsx@0.7.53
+
+## 0.17.29
+
+### Patch Changes
+
+-   fix: pass filename to `warningFilter` ([#2959](https://github.com/sveltejs/language-tools/pull/2959))
+
+## 0.17.28
+
+### Patch Changes
+
+-   feat: support for comments in tags ([#2944](https://github.com/sveltejs/language-tools/pull/2944))
+
+## 0.17.27
+
+### Patch Changes
+
+-   fix: handle relative imports reaching outside working directory when using `--incremental/--tsgo` flags ([#2942](https://github.com/sveltejs/language-tools/pull/2942))
+
+-   fix: extract style/script tag followed by destructuring in the template ([#2921](https://github.com/sveltejs/language-tools/pull/2921))
+
+-   fix: support SvelteKit zero types in svelte-check --incremental ([#2939](https://github.com/sveltejs/language-tools/pull/2939))
+
+-   Updated dependencies [[`6a04679`](https://github.com/sveltejs/language-tools/commit/6a04679e600c7a9ecd0bcdb9476c4edd4bdf6e72), [`b914d01`](https://github.com/sveltejs/language-tools/commit/b914d0104ba5326cc607039313dd8993a6e141fd)]:
+    -   svelte2tsx@0.7.49
+
+## 0.17.26
+
+### Patch Changes
+
+-   feat: add links to diagnostic error codes via codeDescription ([#2936](https://github.com/sveltejs/language-tools/pull/2936))
+
+-   chore: provide utils for svelte-check ([#2932](https://github.com/sveltejs/language-tools/pull/2932))
+
+-   Updated dependencies [[`0b8af82`](https://github.com/sveltejs/language-tools/commit/0b8af829a3ceadd0cd08754a9edcb6cc353cb20f)]:
+    -   svelte2tsx@0.7.48
+
+## 0.17.25
+
+### Patch Changes
+
+-   fix: apply text synchronize change in order ([#2927](https://github.com/sveltejs/language-tools/pull/2927))
+
+## 0.17.24
+
+### Patch Changes
+
+-   perf: only parse html once in a batch update ([#2923](https://github.com/sveltejs/language-tools/pull/2923))
+
+-   feat: support emmet.extensionsPath config ([#2918](https://github.com/sveltejs/language-tools/pull/2918))
+
+-   feat: custom element JSDoc documentation for completion/hover ([#2879](https://github.com/sveltejs/language-tools/pull/2879))
+
+-   fix: compatibility with prettier-plugin-tailwindcss in monorepo ([#2925](https://github.com/sveltejs/language-tools/pull/2925))
+
+-   Updated dependencies [[`e2f09eb`](https://github.com/sveltejs/language-tools/commit/e2f09eb1379a08983c48518e7af65a49736fa813)]:
+    -   svelte2tsx@0.7.47
+
 ## 0.17.23
 
 ### Patch Changes

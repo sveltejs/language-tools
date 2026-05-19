@@ -1,3 +1,4 @@
+import { builtinModules } from 'node:module';
 import typescript from '@rollup/plugin-typescript';
 import commonjs from '@rollup/plugin-commonjs';
 import resolve from '@rollup/plugin-node-resolve';
@@ -5,7 +6,6 @@ import json from '@rollup/plugin-json';
 import replace from '@rollup/plugin-replace';
 import cleanup from 'rollup-plugin-cleanup';
 import copy from 'rollup-plugin-copy';
-import builtins from 'builtin-modules';
 
 export default [
     {
@@ -54,7 +54,7 @@ export default [
             clearScreen: false
         },
         external: [
-            ...builtins,
+            ...builtinModules,
             // svelte-check dependencies that are system-dependent and should
             // be installed as dependencies through npm
             'picocolors',

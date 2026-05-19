@@ -65,7 +65,7 @@ function extractTags(
         .filter((tag) => {
             return isNotInsideControlFlowTag(tag) && isNotInsideHtmlTag(tag);
         });
-    return matchedNodes.map(transformToTagInfo);
+    return matchedNodes.map((node) => transformToTagInfo(node, text));
 
     /**
      * For every match AFTER the tag do a search for `{/X`.
@@ -119,28 +119,28 @@ function extractTags(
             rootContentBeforeTag.lastIndexOf('}')
         );
     }
+}
 
-    function transformToTagInfo(matchedNode: Node) {
-        const start = matchedNode.startTagEnd ?? matchedNode.start;
-        const end = matchedNode.endTagStart ?? matchedNode.end;
-        const startPos = positionAt(start, text);
-        const endPos = positionAt(end, text);
-        const container = {
-            start: matchedNode.start,
-            end: matchedNode.end
-        };
-        const content = text.substring(start, end);
+function transformToTagInfo(matchedNode: Node, text: string): TagInformation {
+    const start = matchedNode.startTagEnd ?? matchedNode.start;
+    const end = matchedNode.endTagStart ?? matchedNode.end;
+    const startPos = positionAt(start, text);
+    const endPos = positionAt(end, text);
+    const container = {
+        start: matchedNode.start,
+        end: matchedNode.end
+    };
+    const content = text.substring(start, end);
 
-        return {
-            content,
-            attributes: parseAttributes(matchedNode.attributes),
-            start,
-            end,
-            startPos,
-            endPos,
-            container
-        };
-    }
+    return {
+        content,
+        attributes: parseAttributes(matchedNode.attributes),
+        start,
+        end,
+        startPos,
+        endPos,
+        container
+    };
 }
 
 export function extractScriptTags(
@@ -169,6 +169,26 @@ export function extractStyleTag(source: string, html?: HTMLDocument): TagInforma
 
     // There can only be one style tag
     return styles[0];
+}
+
+export function extractStyleTagAtOffset(
+    source: string,
+    offset: number,
+    html: HTMLDocument
+): TagInformation | null {
+    const node = html.findNodeAt(offset);
+
+    if (node.tag !== 'style') {
+        return null;
+    }
+
+    const styleInfo = transformToTagInfo(node, source);
+
+    if (offset < styleInfo.start || offset > styleInfo.end) {
+        return null;
+    }
+
+    return styleInfo;
 }
 
 export function extractTemplateTag(source: string, html?: HTMLDocument): TagInformation | null {
@@ -350,6 +370,21 @@ export function getNodeIfIsInHTMLStartTag(html: HTMLDocument, offset: number): N
 }
 
 /**
+ * Returns the node if offset is on the actual tag name (start or end)
+ */
+export function getNodeIfIsInTagName(html: HTMLDocument, offset: number): Node | undefined {
+    const node = html.findNodeAt(offset);
+    if (
+        !!node.tag &&
+        node.tag[0] === node.tag[0].toLowerCase() &&
+        (offset <= node.start + 1 + (node.tag.length ?? 0) ||
+            (node.endTagStart && offset >= node.endTagStart && offset <= node.end))
+    ) {
+        return node;
+    }
+}
+
+/**
  * Returns the node if offset is inside a starttag (HTML or component)
  */
 export function getNodeIfIsInStartTag(html: HTMLDocument, offset: number): Node | undefined {
@@ -440,35 +475,170 @@ export function getLangAttribute(...tags: Array<TagInformation | null>): string 
     return attribute.replace(/^text\//, '');
 }
 
-/**
- * Checks whether given position is inside a moustache tag (which includes control flow tags)
- * using a simple bracket matching heuristic which might fail under conditions like
- * `{#if {a: true}.a}`
- */
-export function isInsideMoustacheTag(html: string, tagStart: number | null, position: number) {
-    if (tagStart === null) {
-        // Not inside <tag ... >
-        const charactersBeforePosition = html.substring(0, position);
-        return (
-            Math.max(
-                // TODO make this just check for '{'?
-                // Theoretically, someone could do {a < b} in a simple moustache tag
-                charactersBeforePosition.lastIndexOf('{#'),
-                charactersBeforePosition.lastIndexOf('{:'),
-                charactersBeforePosition.lastIndexOf('{@')
-            ) > charactersBeforePosition.lastIndexOf('}')
-        );
-    } else {
-        // Inside <tag ... >
-        const charactersInNode = html.substring(tagStart, position);
-        return charactersInNode.lastIndexOf('{') > charactersInNode.lastIndexOf('}');
-    }
-}
-
 export function inStyleOrScript(document: Document, position: Position) {
     return (
         isInTag(position, document.styleInfo) ||
         isInTag(position, document.scriptInfo) ||
         isInTag(position, document.moduleScriptInfo)
     );
+}
+
+const backtickCode = '`'.charCodeAt(0);
+const braceStartCode = '{'.charCodeAt(0);
+const braceEndCode = '}'.charCodeAt(0);
+const singleQuoteCode = "'".charCodeAt(0);
+const doubleQuoteCode = '"'.charCodeAt(0);
+const forwardSlashCode = '/'.charCodeAt(0);
+const starCode = '*'.charCodeAt(0);
+const crCode = '\r'.charCodeAt(0);
+const lfCode = '\n'.charCodeAt(0);
+const escapeCode = 92; // '\'
+const dollarCode = '$'.charCodeAt(0);
+
+interface BraceMatchResult {
+    terminated: boolean;
+    endOffset: number;
+}
+/**
+ * Matches until braces are balanced using a simple parsing logic.
+ * Should only be called when positioned at an opening brace.
+ */
+export function scanMatchingBraces(html: string, startOffset: number): BraceMatchResult {
+    if (html.charCodeAt(startOffset) !== braceStartCode) {
+        return { terminated: true, endOffset: startOffset };
+    }
+
+    let depth = 0;
+    let templateStack: number[] | undefined;
+    let index = startOffset;
+
+    while (index < html.length) {
+        const char = html.charCodeAt(index);
+        switch (char) {
+            case braceStartCode:
+                depth++;
+                break;
+            case braceEndCode:
+                if (depth > 0) {
+                    depth--;
+                }
+                if (depth === 0 && templateStack !== undefined && templateStack.length > 0) {
+                    depth = templateStack.pop() || 0;
+                    scanTemplateString();
+                }
+                break;
+            case singleQuoteCode:
+            case doubleQuoteCode: {
+                index++;
+                scanString(char);
+                break;
+            }
+
+            case backtickCode:
+                index++;
+                scanTemplateString();
+                break;
+            case forwardSlashCode: {
+                // /
+                const nextChar = html.charCodeAt(index + 1);
+                if (nextChar === forwardSlashCode) {
+                    skipToNewLine();
+                } else if (nextChar === starCode) {
+                    index += 2; // skip /*
+                    skipToEndOfMultiLineComment();
+                }
+                // Theoretically it could be a regex here. But it clashes with an end block and self-close tag.
+                // There is also /[/]/ that makes it hard to do a simple scan. So we skip regex handling for now.
+                break;
+            }
+        }
+
+        index++;
+        if (depth === 0 && (templateStack === undefined || templateStack.length === 0)) {
+            return { terminated: true, endOffset: index };
+        }
+    }
+
+    return { terminated: false, endOffset: index };
+
+    function scanString(quote: number) {
+        while (index < html.length) {
+            const char = html.charCodeAt(index);
+            if (char === quote || char == lfCode) {
+                return;
+            }
+            if (char === escapeCode) {
+                index += 2;
+                continue;
+            }
+            index++;
+        }
+    }
+
+    function scanTemplateString() {
+        while (index < html.length) {
+            const char = html.charCodeAt(index);
+            switch (char) {
+                case backtickCode:
+                    return;
+
+                case dollarCode: // $
+                    if (html.charCodeAt(index + 1) === braceStartCode) {
+                        templateStack = templateStack || [];
+                        templateStack.push(depth);
+                        depth = 0;
+                        return;
+                    }
+                    break;
+
+                case escapeCode: // \
+                    // skip next character
+                    index++;
+                    break;
+            }
+            index++;
+        }
+        return;
+    }
+
+    function skipToNewLine() {
+        while (index < html.length) {
+            const char = html.charCodeAt(index);
+            if (char === crCode || char === lfCode) {
+                return;
+            }
+            index++;
+        }
+    }
+
+    function skipToEndOfMultiLineComment() {
+        while (index < html.length) {
+            const char = html.charCodeAt(index);
+            if (char === starCode && html.charCodeAt(index + 1) === forwardSlashCode) {
+                index += 2;
+                return;
+            }
+            index++;
+        }
+    }
+}
+
+export function isInsideMoustacheTag(text: string, tagStart: number, offset: number): boolean {
+    const firstBraceIndex = text.indexOf('{', tagStart);
+    if (firstBraceIndex > offset) {
+        return false;
+    }
+    let index = firstBraceIndex;
+    while (index < offset) {
+        if (text.charCodeAt(index) !== braceStartCode) {
+            index++;
+            continue;
+        }
+        const result = scanMatchingBraces(text, index);
+        if (!result.terminated) {
+            return true;
+        }
+        index = result.endOffset;
+    }
+    return index > offset;
 }

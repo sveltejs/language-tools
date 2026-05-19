@@ -408,7 +408,9 @@ export class LSConfigManager {
         this.notifyListeners();
     }
 
-    getEmmetConfig(): VSCodeEmmetConfig {
+    getEmmetConfig(): VSCodeEmmetConfig & {
+        extensionsPath?: string[];
+    } {
         return this.emmetConfig;
     }
 
@@ -419,6 +421,12 @@ export class LSConfigManager {
 
     getPrettierConfig(): any {
         return this.prettierConfig;
+    }
+
+    getPrettierConfigLoadingOptions() {
+        return {
+            editorconfig: this.prettierConfig?.useEditorConfig ?? true
+        };
     }
 
     /**
@@ -696,9 +704,10 @@ export class LSConfigManager {
         }
 
         const prettierConfig = this.getMergedPrettierConfig(
-            await importPrettier(filePath).resolveConfig(filePath, {
-                editorconfig: true
-            })
+            await importPrettier(filePath).resolveConfig(
+                filePath,
+                this.getPrettierConfigLoadingOptions()
+            )
         );
         const useSemicolons = prettierConfig.semi ?? true;
         const documentUseLf =

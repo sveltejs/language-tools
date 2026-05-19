@@ -60,8 +60,24 @@ export class ExportedNames {
         private basename: string,
         private isTsFile: boolean,
         private isSvelte5Plus: boolean,
-        private isRunes: boolean
+        private isRunes: boolean,
+        private emitJsDoc: boolean
     ) {}
+
+    /**
+     * Emits a Kit type annotation (e.g. `: import('./$types.js').PageData`) either as a
+     * JSDoc @type comment (for JS files in emitJsDoc mode) or as a TS type annotation
+     * wrapped in ignore comments.
+     */
+    private emitKitType(kitType: string, nameStart: number, nameEnd: number): void {
+        if (!kitType) return;
+        if (this.emitJsDoc && !this.isTsFile) {
+            const kitTypeRef = kitType.slice(2); // strip leading ": "
+            preprendStr(this.str, nameStart, `/** @type {${kitTypeRef}} */ `);
+        } else {
+            preprendStr(this.str, nameEnd, surroundWithIgnoreComments(kitType));
+        }
+    }
 
     handleVariableStatement(node: ts.VariableStatement, parent: ts.Node): void {
         const exportModifier = findExportKeyword(node);
@@ -86,10 +102,11 @@ export class ExportedNames {
                         // TS types are not allowed in JS files, but TS will still pick it up and the ignore comment will filter out the error
                         const kitType =
                             isKitExport && !type ? `: import('./$types.js').Snapshot` : '';
-                        const nameEnd = n.name.end + this.astOffset;
-                        if (kitType) {
-                            preprendStr(this.str, nameEnd, surroundWithIgnoreComments(kitType));
-                        }
+                        this.emitKitType(
+                            kitType,
+                            n.name.getStart() + this.astOffset,
+                            n.name.end + this.astOffset
+                        );
                     }
                 });
             }
@@ -148,6 +165,7 @@ export class ExportedNames {
             initializer: ts.CallExpression & { expression: ts.Identifier };
         }
     ): void {
+        const bindingLocalNames: string[] = [];
         // Check if the $props() rune uses $bindable()
         if (ts.isObjectBindingPattern(node.name)) {
             for (const element of node.name.elements) {
@@ -170,6 +188,7 @@ export class ExportedNames {
                         if (ts.isCallExpression(call) && ts.isIdentifier(call.expression)) {
                             if (call.expression.text === '$bindable') {
                                 this.$props.bindings.push(name);
+                                bindingLocalNames.push(element.name.text);
                             }
                         }
                     }
@@ -177,11 +196,11 @@ export class ExportedNames {
             }
         }
 
-        if (this.$props.bindings.length > 0) {
+        if (bindingLocalNames.length > 0) {
             this.str.appendLeft(
                 node.end + this.astOffset,
                 surroundWithIgnoreComments(
-                    ';' + this.$props.bindings.map((prop) => prop + ';').join('')
+                    ';' + bindingLocalNames.map((prop) => prop + ';').join('')
                 )
             );
         }
@@ -440,25 +459,28 @@ export class ExportedNames {
                 const name = identifier.getText();
 
                 if (nameEnd === end) {
+                    if (kitType && this.emitJsDoc && !this.isTsFile) {
+                        const kitTypeRef = kitType.slice(2);
+                        const nameStart = identifier.getStart() + this.astOffset;
+                        preprendStr(this.str, nameStart, `/** @type {${kitTypeRef}} */ `);
+                    }
                     preprendStr(
                         this.str,
                         end,
                         surroundWithIgnoreComments(
-                            `${kitType};${name} = __sveltets_2_any(${name});`
+                            `${(this.isTsFile || !this.emitJsDoc) && kitType ? kitType : ''};${name} = __sveltets_2_any(${name});`
                         )
                     );
                 } else {
-                    if (kitType) {
-                        preprendStr(this.str, nameEnd, surroundWithIgnoreComments(kitType));
-                    }
+                    this.emitKitType(kitType, identifier.getStart() + this.astOffset, nameEnd);
                     preprendStr(
                         this.str,
                         end,
                         surroundWithIgnoreComments(`;${name} = __sveltets_2_any(${name});`)
                     );
                 }
-            } else if (kitType) {
-                preprendStr(this.str, nameEnd, surroundWithIgnoreComments(kitType));
+            } else {
+                this.emitKitType(kitType, identifier.getStart() + this.astOffset, nameEnd);
             }
         };
 

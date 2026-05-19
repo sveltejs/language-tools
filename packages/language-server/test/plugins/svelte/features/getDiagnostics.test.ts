@@ -471,11 +471,18 @@ describe('SveltePlugin#getDiagnostics', () => {
             {
                 range: { start: { line: 1, character: 15 }, end: { line: 1, character: 27 } },
                 message:
-                    "Component has unused export property 'name'. If it is for external reference only, please consider using `export const name`" +
+                    (isSvelte5Plus ? 'Component' : 'Diagnostics') +
+                    " has unused export property 'name'. If it is for external reference only, please consider using `export const name`" +
                     (isSvelte5Plus ? '\nhttps://svelte.dev/e/export_let_unused' : ''),
                 severity: 2,
                 source: 'svelte',
-                code: isSvelte5Plus ? 'export_let_unused' : 'unused-export-let'
+                code: isSvelte5Plus ? 'export_let_unused' : 'unused-export-let',
+                codeDescription: {
+                    href: isSvelte5Plus
+                        ? 'https://svelte.dev/docs/svelte/compiler-warnings#export_let_unused'
+                        : // doesn't actually exist but at least points to the page
+                          'https://svelte.dev/docs/svelte/compiler-warnings#unused_export_let'
+                }
             }
         ]);
     });
@@ -496,7 +503,12 @@ describe('SveltePlugin#getDiagnostics', () => {
                     source: 'svelte',
                     code: isSvelte5Plus
                         ? 'reactive_declaration_invalid_placement'
-                        : 'module-script-reactive-declaration'
+                        : 'module-script-reactive-declaration',
+                    codeDescription: {
+                        href: isSvelte5Plus
+                            ? 'https://svelte.dev/docs/svelte/compiler-warnings#reactive_declaration_invalid_placement'
+                            : 'https://svelte.dev/docs/svelte/compiler-warnings#module_script_reactive_declaration'
+                    }
                 }
             ]
         );
@@ -512,7 +524,8 @@ describe('SveltePlugin#getDiagnostics', () => {
                 {
                     code: isSvelte5Plus ? 'export_let_unused' : 'unused-export-let',
                     message:
-                        "Component has unused export property 'unused1'. If it is for external reference only, please consider using `export const unused1`" +
+                        (isSvelte5Plus ? 'Component' : 'Diagnostics_module_and_instance') +
+                        " has unused export property 'unused1'. If it is for external reference only, please consider using `export const unused1`" +
                         (isSvelte5Plus ? '\nhttps://svelte.dev/e/export_let_unused' : ''),
                     range: {
                         start: {
@@ -525,12 +538,19 @@ describe('SveltePlugin#getDiagnostics', () => {
                         }
                     },
                     severity: 2,
-                    source: 'svelte'
+                    source: 'svelte',
+                    codeDescription: {
+                        href: isSvelte5Plus
+                            ? 'https://svelte.dev/docs/svelte/compiler-warnings#export_let_unused'
+                            : // doesn't actually exist but at least points to the page
+                              'https://svelte.dev/docs/svelte/compiler-warnings#unused_export_let'
+                    }
                 },
                 {
                     code: isSvelte5Plus ? 'export_let_unused' : 'unused-export-let',
                     message:
-                        "Component has unused export property 'unused2'. If it is for external reference only, please consider using `export const unused2`" +
+                        (isSvelte5Plus ? 'Component' : 'Diagnostics_module_and_instance') +
+                        " has unused export property 'unused2'. If it is for external reference only, please consider using `export const unused2`" +
                         (isSvelte5Plus ? '\nhttps://svelte.dev/e/export_let_unused' : ''),
                     range: {
                         start: {
@@ -543,7 +563,13 @@ describe('SveltePlugin#getDiagnostics', () => {
                         }
                     },
                     severity: 2,
-                    source: 'svelte'
+                    source: 'svelte',
+                    codeDescription: {
+                        href: isSvelte5Plus
+                            ? 'https://svelte.dev/docs/svelte/compiler-warnings#export_let_unused'
+                            : // doesn't actually exist but at least points to the page
+                              'https://svelte.dev/docs/svelte/compiler-warnings#unused_export_let'
+                    }
                 }
             ]
         );

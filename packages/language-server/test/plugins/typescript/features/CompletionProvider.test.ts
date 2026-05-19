@@ -45,8 +45,8 @@ describe('CompletionProviderImpl', function () {
     serviceWarmup(this, testFilesDir, pathToUrl(testDir));
 
     function setup(filename: string) {
-        const docManager = new DocumentManager(
-            (textDocument) => new Document(textDocument.uri, textDocument.text)
+        const docManager = new DocumentManager((textDocument) =>
+            Document.createForTest(textDocument.uri, textDocument.text)
         );
         const lsConfigManager = new LSConfigManager();
         const lsAndTsDocResolver = new LSAndTSDocResolver(
@@ -294,9 +294,16 @@ describe('CompletionProviderImpl', function () {
         );
 
         const item = completions!.items.find((item) => item.label === 'custom-element');
+        assert.ok(item);
+        await completionProvider.resolveCompletion(document, item);
+        delete item.data;
 
         assert.deepStrictEqual(item, <CompletionItem>{
             label: 'custom-element',
+            documentation: {
+                value: 'Custom doc for custom element',
+                kind: 'markdown'
+            },
             kind: CompletionItemKind.Property,
             commitCharacters: [],
             textEdit: {

@@ -11,6 +11,7 @@ import {
     CompletionList,
     DefinitionLink,
     Diagnostic,
+    DocumentDiagnosticReport,
     DocumentHighlight,
     FileChangeType,
     FoldingRange,
@@ -234,6 +235,25 @@ export class TypeScriptPlugin
         }
 
         return this.diagnosticsProvider.getDiagnostics(document, cancellationToken);
+    }
+
+    async getDiagnosticsForPullMode(
+        document: Document,
+        previousResultId?: string,
+        cancellationToken?: CancellationToken
+    ): Promise<DocumentDiagnosticReport> {
+        if (!this.featureEnabled('diagnostics')) {
+            return {
+                kind: 'full',
+                items: []
+            };
+        }
+
+        return this.diagnosticsProvider.getDiagnosticsForPullMode(
+            document,
+            previousResultId,
+            cancellationToken
+        );
     }
 
     async doHover(document: Document, position: Position): Promise<Hover | null> {

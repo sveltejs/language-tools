@@ -1,7 +1,6 @@
 import { Hover, Position } from 'vscode-languageserver';
 import { SvelteDocument } from '../SvelteDocument';
 import { documentation, SvelteTag, getLatestOpeningTag } from './SvelteTags';
-import { flatten } from '../../../utils';
 import { Document } from '../../../lib/documents';
 import { AttributeContext, getAttributeContextAtPosition } from '../../../lib/documents/parseHtml';
 import { attributeCanHaveEventModifier, inStyleOrScript } from './utils';
@@ -117,7 +116,7 @@ const tagPossibilities: Array<{ tag: SvelteTag | ':else'; values: string[] }> = 
 ];
 
 const tagRegexp = new RegExp(
-    `[\\s\\S]*{\\s*(${flatten(tagPossibilities.map((p) => p.values)).join('|')})(\\s|})`
+    `[\\s\\S]*{\\s*(${tagPossibilities.flatMap((p) => p.values).join('|')})(\\s|})`
 );
 function getEventModifierHoverInfo(
     attributeContext: AttributeContext,

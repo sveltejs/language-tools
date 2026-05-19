@@ -1,5 +1,6 @@
 import {
     CancellationToken,
+    CodeDescription,
     Diagnostic,
     DiagnosticSeverity,
     Position,
@@ -77,7 +78,7 @@ async function tryGetDiagnostics(
             .map((warning) => {
                 const start = warning.start || { line: 1, column: 0 };
                 const end = warning.end || start;
-                return {
+                const result: Diagnostic = {
                     range: Range.create(start.line - 1, start.column, end.line - 1, end.column),
                     message: warning.message,
                     severity:
@@ -87,6 +88,14 @@ async function tryGetDiagnostics(
                     source: 'svelte',
                     code: warning.code
                 };
+                const codeDescription = getCodeDescription(
+                    warning.code,
+                    'https://svelte.dev/docs/svelte/compiler-warnings#'
+                );
+                if (codeDescription) {
+                    result.codeDescription = codeDescription;
+                }
+                return result;
             })
             .map((diag) => mapObjWithRangeToOriginal(transpiled, diag))
             .map((diag) => adjustMappings(diag, document))
@@ -154,7 +163,32 @@ function createParserErrorDiagnostic(error: any, document: Document) {
         }
     }
 
+    const codeDescription = getCodeDescription(
+        error.code,
+        'https://svelte.dev/docs/svelte/compiler-errors#'
+    );
+    if (codeDescription) {
+        diagnostic.codeDescription = codeDescription;
+    }
+
     return [diagnostic];
+}
+
+function getCodeDescription(code: unknown, url: string): CodeDescription | undefined {
+    if (typeof code !== 'string') {
+        return undefined;
+    }
+
+    const firstChar = code.charCodeAt(0);
+    if (isLowerLetter(firstChar) && (code.includes('-') || code.includes('_'))) {
+        return {
+            href: url + code.replace(/-/g, '_')
+        };
+    }
+}
+
+function isLowerLetter(charCode: number) {
+    return charCode >= 97 && charCode <= 122;
 }
 
 /**

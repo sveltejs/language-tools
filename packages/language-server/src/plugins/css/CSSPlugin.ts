@@ -15,7 +15,9 @@ import {
     CompletionItemKind,
     SelectionRange,
     DocumentHighlight,
-    WorkspaceFolder
+    WorkspaceFolder,
+    FullDocumentDiagnosticReport,
+    UnchangedDocumentDiagnosticReport
 } from 'vscode-languageserver';
 import {
     Document,
@@ -29,7 +31,8 @@ import {
     mapSelectionRangeToParent,
     isInTag,
     mapRangeToOriginal,
-    TagInformation
+    TagInformation,
+    extractStyleTagAtOffset
 } from '../../lib/documents';
 import { LSConfigManager, LSCSSConfig } from '../../ls-config';
 import {
@@ -144,16 +147,43 @@ export class CSSPlugin
             .map((diagnostic) => mapObjWithRangeToOriginal(cssDocument, diagnostic));
     }
 
+    getDiagnosticsForPullMode(
+        document: Document,
+        previousResultId: string | undefined
+    ): FullDocumentDiagnosticReport | UnchangedDocumentDiagnosticReport {
+        if (!this.featureEnabled('diagnostics')) {
+            return {
+                kind: 'full',
+                items: []
+            };
+        }
+
+        const resultId = document.version.toString();
+        if (previousResultId === resultId) {
+            return {
+                kind: 'unchanged',
+                resultId
+            };
+        }
+        const diagnostics = this.getDiagnostics(document);
+        return {
+            kind: 'full',
+            items: diagnostics,
+            resultId
+        };
+    }
+
     doHover(document: Document, position: Position): Hover | null {
         if (!this.featureEnabled('hover')) {
             return null;
         }
 
-        const cssDocument = this.getCSSDoc(document);
-        if (shouldExcludeHover(cssDocument)) {
-            return null;
-        }
-        if (cssDocument.isInGenerated(position)) {
+        const cssDocument = this.getCSSDocAtPosition(document, position);
+        if (cssDocument) {
+            if (shouldExcludeHover(cssDocument)) {
+                return null;
+            }
+
             return this.doHoverInternal(cssDocument, position);
         }
         const attributeContext = getAttributeContextAtPosition(document, position);
@@ -200,9 +230,9 @@ export class CSSPlugin
             return null;
         }
 
-        const cssDocument = this.getCSSDoc(document);
+        const cssDocument = this.getCSSDocAtPosition(document, position);
 
-        if (cssDocument.isInGenerated(position)) {
+        if (cssDocument) {
             return this.getCompletionsInternal(document, position, cssDocument);
         }
 
@@ -219,7 +249,7 @@ export class CSSPlugin
                 new StyleAttributeDocument(document, start, end, this.cssLanguageServices)
             );
         } else {
-            return getIdClassCompletion(cssDocument, attributeContext);
+            return getIdClassCompletion(this.getCSSDoc(document), attributeContext);
         }
     }
 
@@ -450,8 +480,8 @@ export class CSSPlugin
     }
 
     findDocumentHighlight(document: Document, position: Position): DocumentHighlight[] | null {
-        const cssDocument = this.getCSSDoc(document);
-        if (cssDocument.isInGenerated(position)) {
+        const cssDocument = this.getCSSDocAtPosition(document, position);
+        if (cssDocument) {
             if (shouldExcludeDocumentHighlights(cssDocument)) {
                 return wordHighlightForTag(document, position, document.styleInfo, wordPattern);
             }
@@ -498,6 +528,28 @@ export class CSSPlugin
             this.cssDocuments.set(document, cssDoc);
         }
         return cssDoc;
+    }
+
+    private getCSSDocAtPosition(document: Document, position: Position): CSSDocument | null {
+        if (isInTag(position, document.styleInfo)) {
+            return this.getCSSDoc(document);
+        }
+
+        if (
+            isInTag(position, document.scriptInfo) ||
+            isInTag(position, document.moduleScriptInfo) ||
+            isInTag(position, document.templateInfo)
+        ) {
+            return null;
+        }
+
+        const styleInfo = extractStyleTagAtOffset(
+            document.getText(),
+            document.offsetAt(position),
+            document.html
+        );
+
+        return styleInfo ? new CSSDocument(document, this.cssLanguageServices, styleInfo) : null;
     }
 
     private updateConfigs() {
