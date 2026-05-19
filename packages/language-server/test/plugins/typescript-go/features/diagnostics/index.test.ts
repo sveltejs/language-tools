@@ -4,7 +4,10 @@ import { existsSync, readdirSync, readFileSync, statSync } from 'fs';
 import { VERSION } from 'svelte/compiler';
 import { SvelteCheckTSGoDiagnosticsProvider } from '../../../../../src/plugins/typescript-go/features/DiagnosticsProvider';
 import { describe } from 'mocha';
-import { createJsonSnapshotFormatter, updateSnapshotIfFailedOrEmpty } from '../../../typescript/test-utils';
+import {
+    createJsonSnapshotFormatter,
+    updateSnapshotIfFailedOrEmpty
+} from '../../../typescript/test-utils';
 import { Document } from '../../../../../src/lib/documents';
 import ts from 'typescript';
 import { getPackageInfo } from '../../../../../src/importPackage';
@@ -70,7 +73,7 @@ function executeTests(testOptions: { dir: string; workspaceDir: string }) {
 
 async function executeTest(
     inputFile: string,
-    testOptions: { workspaceDir: string, dir: string },
+    testOptions: { workspaceDir: string; dir: string },
     plugin: SvelteCheckTSGoDiagnosticsProvider
 ) {
     const { dir } = testOptions;

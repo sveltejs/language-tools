@@ -602,11 +602,7 @@ async function runWithTsGoApi(
 
     const diagnostics = await svelteCheck.getDiagnostics();
 
-    const result = writeDiagnostics(
-        opts.workspaceUri,
-        writer,
-        diagnostics
-    );
+    const result = writeDiagnostics(opts.workspaceUri, writer, diagnostics);
     return result.errorCount === 0 && (!opts.failOnWarnings || result.warningCount === 0) ? 0 : 1;
 }
 

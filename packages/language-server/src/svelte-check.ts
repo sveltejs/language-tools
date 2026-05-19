@@ -450,6 +450,7 @@ export class SvelteCheck {
                 'Cannot get diagnostics for tsconfig without TSGo diagnostics provider'
             );
         }
+
         const project = this.tsGoDiagnosticsProvider.getProject();
         if (!project) {
             throw new Error('Expected to have api project');
@@ -462,7 +463,7 @@ export class SvelteCheck {
         // allDiagnostics = allDiagnostics.concat(project.program.getProgramDiagnostics());
 
         if (allTsDiagnostics.length == configFileParsingDiagnosticsLength) {
-            allTsDiagnostics = allTsDiagnostics.concat(project.program.getSyntacticDiagnostics());
+            allTsDiagnostics = allTsDiagnostics.concat(project.program.getSemanticDiagnostics());
         }
 
         const result = this.tsGoDiagnosticsProvider.mapAndFilterDiagnostics(

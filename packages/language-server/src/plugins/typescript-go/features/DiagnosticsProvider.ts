@@ -221,6 +221,12 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
         Pick<FileSystem, 'readFile' | 'fileExists' | 'getAccessibleEntries'>
     > {
         const service = this;
+        const kitFiles: Parameters<typeof internalHelpers.isKitFile>[1] = {
+            serverHooksPath: 'src/hooks.client',
+            clientHooksPath: 'src/hooks.client',
+            universalHooksPath: 'src/hooks',
+            paramsPath: 'src/params'
+        };
 
         return {
             getAccessibleEntries(directory: string) {
@@ -262,12 +268,32 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
                 }
             },
             readFile(path: string) {
-                const virtualEntry = service.virtualFiles.get(normalizePath(path));
+                const normalizedPath = normalizePath(path);
+                const virtualEntry = service.virtualFiles.get(normalizedPath);
                 if (virtualEntry !== undefined) {
                     return virtualEntry;
                 }
 
-                return ts.sys.readFile(path);
+                if (normalizedPath.endsWith('node_modules/svelte/types/ambient.d.ts')) {
+                    return '';
+                }
+
+                if (
+                    normalizedPath.endsWith('node_modules/svelte/types/index.d.ts') ||
+                    internalHelpers.isKitFile(normalizedPath, kitFiles)
+                ) {
+                    const snapshot = DocumentSnapshot.fromFilePath(
+                        normalizedPath,
+                        service.createDocument,
+                        service.snapshotOptions,
+                        ts.sys
+                    );
+                    service.files.set(normalizedPath, snapshot);
+                    return snapshot.getFullText();
+                }
+
+                // undefined to signal api to read from disk by itself
+                return undefined;
             },
             fileExists(path: string) {
                 if (path.endsWith('.d.svelte.ts')) {
@@ -283,7 +309,8 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
                     }
                 }
 
-                return fs.existsSync(path);
+                // undefined to signal api to check existence by itself
+                return undefined;
             }
         };
     }
