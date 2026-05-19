@@ -578,8 +578,8 @@ function exitAfterFlush(code: number): void {
 }
 
 async function runWithTsGoApi(
-    api: typeof import('@typescript/native-preview/sync'),
-    ast: typeof import('@typescript/native-preview/ast'),
+    api: typeof import('@typescript/native-preview/unstable/sync'),
+    ast: typeof import('@typescript/native-preview/unstable/ast'),
     opts: SvelteCheckCliOptions
 ): Promise<number> {
     if (!opts.tsconfig) {

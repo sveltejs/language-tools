@@ -1,4 +1,4 @@
-import type { FileSystem } from '@typescript/native-preview/fs' with { 'resolution-mode': 'import' };
+import type { FileSystem } from '@typescript/native-preview/unstable/fs' with { 'resolution-mode': 'import' };
 import fs from 'node:fs';
 import { dirname } from 'node:path';
 import path from 'path';
@@ -64,7 +64,7 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
     private readonly virtualTsconfigPath: string;
     private readonly ambientTypesSource: string;
     private readonly snapshotOptions: SvelteSnapshotOptions;
-    private readonly tsconfigPath: string;    
+    private readonly tsconfigPath: string;
 
     private createDocument: (filePath: string, content: string) => Document;
 
@@ -926,7 +926,7 @@ function movePropsErrorRangeBackIfNecessary(
     if (diagnostic.message.includes(aliasFor)) {
         return mapRangeToOriginal(snapshot, {
             start: snapshot.positionAt(
-                getStartOfNode(tsAstModule, propsDef, propsDef.getSourceFile())
+                getStartOfNode(tsAstModule, propsDef.name, propsDef.getSourceFile())
             ),
             end: snapshot.positionAt(propsDef.name.end)
         });
