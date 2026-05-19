@@ -28,6 +28,13 @@ describe.only('SvelteCheckTSGoDiagnosticsProvider', function () {
         dir: fixturesDir,
         workspaceDir: fixturesDir
     });
+
+    after(() => {
+        for (const provider of providerPool.values()) {
+            provider.dispose();
+        }
+        providerPool.clear();
+    });
 });
 
 function executeTests(testOptions: { dir: string; workspaceDir: string }) {

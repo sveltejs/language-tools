@@ -31,10 +31,7 @@ import {
 import { normalizePath, pathToUrl, urlToPath } from './utils';
 import { groupBy } from 'lodash';
 import { tsApiSync, tsAst } from './plugins/typescript-go/types';
-import {
-    SvelteCheckTSGoDiagnosticsProvider,
-    mapAndFilterDiagnostics as mapAndFilterDiagnosticsForTsGo
-} from './plugins/typescript-go/features/DiagnosticsProvider';
+import { SvelteCheckTSGoDiagnosticsProvider } from './plugins/typescript-go/features/DiagnosticsProvider';
 
 export function mapSvelteCheckDiagnostics(
     sourcePath: string,
@@ -472,11 +469,14 @@ export class SvelteCheck {
             project,
             allTsDiagnostics
         );
-        const map = new Map<string, { filePath: string; text: string; diagnostics: Diagnostic[] }>();
+        const map = new Map<
+            string,
+            { filePath: string; text: string; diagnostics: Diagnostic[] }
+        >();
         for (const diag of result) {
             map.set(diag.filePath, diag);
         }
-    
+
         // No api for extracting all the files in the project yet.
         const checkingSvelteFiles = new Set(
             result

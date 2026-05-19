@@ -58,6 +58,7 @@ const textEncoder = new TextEncoder();
 
 export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
     private readonly api: tsApiSync.API;
+    private readonly tsApiModule: typeof tsApiSync;
     private readonly files: FileMap<DocumentSnapshot> = new FileMap();
     private readonly virtualFiles: FileMap<string> = new FileMap();
     private readonly tsAstModule: typeof tsAst;
@@ -75,6 +76,7 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
         ambientTypesSource: string,
         createDocument: (filePath: string, content: string) => Document
     ) {
+        this.tsApiModule = apiModule;
         this.tsAstModule = tsAstModule;
         this.tsconfigPath = tsconfigPath;
         this.virtualTsconfigPath = path.join(
@@ -147,7 +149,14 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
             diagnostics.push({ ...diag, pos: startOffset, end: endOffset });
         }
 
-        return mapAndFilterDiagnostics(this.tsAstModule, project, diagnostics, document, tsDoc);
+        return mapAndFilterDiagnostics(
+            this.tsAstModule,
+            this.tsApiModule,
+            project,
+            diagnostics,
+            document,
+            tsDoc
+        );
     }
 
     getProject() {
@@ -182,6 +191,7 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
             if (tsDoc instanceof SvelteDocumentSnapshot) {
                 const mappedDiags = mapAndFilterDiagnostics(
                     this.tsAstModule,
+                    this.tsApiModule,
                     project,
                     diags,
                     tsDoc.parent,
@@ -382,6 +392,7 @@ function toVirtualPath(snapshot: DocumentSnapshot) {
 
 export function mapAndFilterDiagnostics(
     tsAstModule: typeof tsAst,
+    tsApiModule: typeof tsApiSync,
     tsApiProject: tsApiSync.Project,
     diagnostics: tsApiSync.Diagnostic[],
     document: Document,
@@ -415,7 +426,7 @@ export function mapAndFilterDiagnostics(
         tsDoc.scriptKind === ts.ScriptKind.TSX || tsDoc.scriptKind === ts.ScriptKind.TS
             ? 'ts'
             : 'js';
-    const mapRange = rangeMapper(tsAstModule, tsApiProject, tsDoc, document);
+    const mapRange = rangeMapper(tsAstModule, tsApiModule, tsApiProject, tsDoc, document);
     const noFalsePositive = isNoFalsePositive(document, tsDoc);
     const converted: Diagnostic[] = [];
 
@@ -511,13 +522,14 @@ function moveBindingErrorMessage(
 
 function rangeMapper(
     tsAstModule: typeof tsAst,
+    tsApiModule: typeof tsApiSync,
     project: tsApiSync.Project,
     snapshot: SvelteDocumentSnapshot,
     document: Document
 ): (value: Diagnostic) => Diagnostic {
     const get$$PropsDefWithCache = memoize(() => get$$PropsDef(tsAstModule, project, snapshot));
     const get$$PropsAliasInfoWithCache = memoize(() =>
-        get$$PropsAliasForInfo(tsAstModule, project, get$$PropsDefWithCache, document)
+        get$$PropsAliasForInfo(tsAstModule, tsApiModule, project, get$$PropsDefWithCache, document)
     );
 
     return (diagnostic) => {
@@ -526,7 +538,6 @@ function rangeMapper(
             range =
                 movePropsErrorRangeBackIfNecessary(
                     tsAstModule,
-                    project,
                     diagnostic,
                     snapshot,
                     get$$PropsDefWithCache,
@@ -830,6 +841,7 @@ function dedupDiagnostics() {
 
 function get$$PropsAliasForInfo(
     tsAstModule: typeof tsAst,
+    tsApiModule: typeof tsApiSync,
     project: tsApiSync.Project,
     get$$PropsDefWithCache: () => ReturnType<typeof get$$PropsDef>,
     document: Document
@@ -851,6 +863,17 @@ function get$$PropsAliasForInfo(
     // TS says symbol is always defined but it's not
     // TODO no API for getting the aliased symbol?
     // const rootSymbolName = (type.aliasSymbol ?? type.symbol)?.name;
+    const rootSymbol = type.getSymbol();
+    if (!rootSymbol) {
+        return;
+    }
+    if (rootSymbol.flags & tsApiModule.SymbolFlags.TypeLiteral) {
+        const node = rootSymbol.declarations?.[0]?.resolve(project);
+        if (!node || !tsAstModule.isTypeAliasDeclaration(node.parent) || !node.parent.name) {
+            return;
+        }
+        return [node.parent.name.text, propsDef] as const;
+    }
     const rootSymbolName = type.getSymbol()?.name;
     if (!rootSymbolName) {
         return;
@@ -885,7 +908,6 @@ function get$$PropsDef(
 
 function movePropsErrorRangeBackIfNecessary(
     tsAstModule: typeof tsAst,
-    project: tsApiSync.Project,
     diagnostic: Diagnostic,
     snapshot: SvelteDocumentSnapshot,
     get$$PropsDefWithCache: () => ReturnType<typeof get$$PropsDef>,
@@ -904,7 +926,11 @@ function movePropsErrorRangeBackIfNecessary(
         if (!propsDef) {
             return;
         }
-        const generatedPropsStart = getStartOfNode(tsAstModule, propsDef, propsDef.getSourceFile());
+        const generatedPropsStart = getStartOfNode(
+            tsAstModule,
+            propsDef.name,
+            propsDef.getSourceFile()
+        );
         const propsStart = snapshot.getOriginalPosition(snapshot.positionAt(generatedPropsStart));
 
         if (propsStart) {
