@@ -40,7 +40,7 @@ import {
 import { DiagnosticCode } from '../../typescript/features/DiagnosticsProvider';
 import { isAfterSvelte2TsxPropsReturn, isInGeneratedCode } from '../../typescript/features/utils';
 import { isAttributeName, isEventHandler } from '../../typescript/svelte-ast-utils';
-import { hasNonZeroRange, mapSeverity } from '../../typescript/utils';
+import { hasNonZeroRange, isSvelteFilePath, mapSeverity } from '../../typescript/utils';
 import { tsApiSync, tsAst } from '../types';
 import {
     gatherIdentifiers,
@@ -90,13 +90,14 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
             parse: sveltePackage.parse,
             transformOnTemplateError: false,
             typingsNamespace: 'svelteHTML',
-            version: sveltePackage.VERSION
+            version: sveltePackage.VERSION,
+            emitJsDoc: true
         };
 
-        this.writeVirtualTsconfig(tsconfigPath);
         this.api = new apiModule.API({
             fs: this.createFsProxy()
         });
+        this.writeVirtualTsconfig(tsconfigPath);
     }
 
     async getDiagnostics(
@@ -132,22 +133,11 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
         }
 
         const virtualPath = toVirtualPath(tsDoc);
-        const diagnosticsWithUtf8Pos: tsApiSync.Diagnostic[] = [];
-        const program = project.program;
-        diagnosticsWithUtf8Pos.push(...(program.getSyntacticDiagnostics(virtualPath) || []));
-        diagnosticsWithUtf8Pos.push(...(program.getSuggestionDiagnostics(virtualPath) || []));
-        diagnosticsWithUtf8Pos.push(...(program.getSemanticDiagnostics(virtualPath) || []));
-
-        // TODO: The sourceFile positions are already in UTF-16,
-        // So it probably is a bug that typescript api returns diagnostics with UTF-8 positions
-        const utf8Info = getUtf8LineOffsets(tsDoc.getFullText());
         const diagnostics: tsApiSync.Diagnostic[] = [];
-        const lineOffsets = getLineOffsets(tsDoc.getFullText());
-        for (const diag of diagnosticsWithUtf8Pos) {
-            const startOffset = toUtf16Pos(utf8Info, diag.pos, lineOffsets);
-            const endOffset = toUtf16Pos(utf8Info, diag.end, lineOffsets);
-            diagnostics.push({ ...diag, pos: startOffset, end: endOffset });
-        }
+        const program = project.program;
+        diagnostics.push(...(program.getSyntacticDiagnostics(virtualPath) || []));
+        diagnostics.push(...(program.getSuggestionDiagnostics(virtualPath) || []));
+        diagnostics.push(...(program.getSemanticDiagnostics(virtualPath) || []));
 
         return mapAndFilterDiagnostics(
             this.tsAstModule,
@@ -167,15 +157,21 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
         return project;
     }
 
+    getAllSvelteFiles(): string[] {
+        return Array.from(this.files.keys()).filter(isSvelteFilePath);
+    }
+
     mapAndFilterDiagnostics(
         project: tsApiSync.Project,
         diagnostics: tsApiSync.Diagnostic[]
     ): { filePath: string; text: string; diagnostics: Diagnostic[] }[] {
         const byFile = new Map<string, tsApiSync.Diagnostic[]>();
         for (const diag of diagnostics) {
-            let bucket = byFile.get(diag.fileName ?? this.tsconfigPath);
+            const key = toRealPath(diag.fileName ?? this.tsconfigPath);
+            let bucket = byFile.get(key);
             if (!bucket) {
                 bucket = [];
+                byFile.set(key, bucket);
             }
             bucket.push(diag);
         }
@@ -203,8 +199,6 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
                     diagnostics: mappedDiags
                 });
             }
-
-            // TODO SvelteKit route files
         }
 
         return result;
@@ -296,7 +290,7 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
                 return undefined;
             },
             fileExists(path: string) {
-                if (path.endsWith('.d.svelte.ts')) {
+                if (path.endsWith('.d.svelte.ts') || path.includes(VIRTUAL_SUFFIX)) {
                     if (fs.existsSync(path) || service.virtualFiles.has(normalizePath(path))) {
                         return true;
                     }
@@ -316,9 +310,16 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
     }
 
     private writeVirtualTsconfig(tsconfigPath: string) {
-        const json = ts.parseConfigFileTextToJson(
-            tsconfigPath,
-            ts.sys.readFile(tsconfigPath) || ''
+        const commandLine = ts.parseJsonSourceFileConfigFileContent(
+            ts.parseJsonText(tsconfigPath, ts.sys.readFile(tsconfigPath) || ''),
+            {
+                ...ts.sys,
+                readDirectory() {
+                    // skip project file searching
+                    return [];
+                }
+            },
+            path.dirname(tsconfigPath)
         );
         const sveltePackageInfo = getPackageInfo('svelte', this.virtualTsconfigPath);
         const tsconfigDir = path.dirname(this.virtualTsconfigPath);
@@ -333,9 +334,11 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
         const virtualTsConfigContent = JSON.stringify({
             extends: './' + path.basename(tsconfigPath),
             compilerOptions: { allowArbitraryExtensions: true },
-            files: json.config.files ? [...json.config.files, ...svelteTsxFiles] : svelteTsxFiles,
-            // otherwise only "files" will be included and not the default everything
-            include: json.config.include ? undefined : ['**/*']
+            files: commandLine.raw.files
+                ? [...commandLine.raw.files, ...svelteTsxFiles]
+                : svelteTsxFiles,
+            // otherwise only "files" will be included and not the default "everything"
+            include: commandLine.raw.include ? undefined : ['**/*']
         });
         this.virtualFiles.set(normalizePath(this.virtualTsconfigPath), virtualTsConfigContent);
     }
@@ -417,11 +420,18 @@ function toVirtualPath(snapshot: DocumentSnapshot) {
     return normalizePath(snapshot.filePath.slice(0, -svelteExtLength) + VIRTUAL_SUFFIX + ext);
 }
 
-export function mapAndFilterDiagnostics(
+function toRealPath(path: string) {
+    if (!path.includes(VIRTUAL_SUFFIX)) {
+        return path;
+    }
+    return path.slice(0, -3).replace(VIRTUAL_SUFFIX, '') + '.svelte';
+}
+
+function mapAndFilterDiagnostics(
     tsAstModule: typeof tsAst,
     tsApiModule: typeof tsApiSync,
     tsApiProject: tsApiSync.Project,
-    diagnostics: tsApiSync.Diagnostic[],
+    diagnosticsWithUtf8Pos: tsApiSync.Diagnostic[],
     document: Document,
     tsDoc: SvelteDocumentSnapshot
 ): Diagnostic[] {
@@ -434,6 +444,17 @@ export function mapAndFilterDiagnostics(
     const parserErrorDiag = getParserErrorDiagnostic(tsDoc);
     if (parserErrorDiag) {
         return [parserErrorDiag];
+    }
+
+    // TODO: The sourceFile positions are already in UTF-16,
+    // So it probably is a bug that typescript api returns diagnostics with UTF-8 positions
+    const utf8Info = getUtf8LineOffsets(tsDoc.getFullText());
+    let diagnostics: tsApiSync.Diagnostic[] = [];
+    const lineOffsets = getLineOffsets(tsDoc.getFullText());
+    for (const diag of diagnosticsWithUtf8Pos) {
+        const startOffset = toUtf16Pos(utf8Info, diag.pos, lineOffsets);
+        const endOffset = toUtf16Pos(utf8Info, diag.end, lineOffsets);
+        diagnostics.push({ ...diag, pos: startOffset, end: endOffset });
     }
 
     const notGenerated = isNotGenerated(tsDoc.getFullText());
@@ -1056,17 +1077,15 @@ function getUtf8LineOffsets(text: string): Utf8LineOffsetInfo {
     const lineOffsets: number[] = [0];
     const utf8Bytes = textEncoder.encode(text);
     for (let i = 0; i < utf8Bytes.length; i++) {
-        if (utf8Bytes[i] === 13 /* \r */) {
+        const byte = utf8Bytes[i];
+        const isNewLine = byte === 10 /* \n */ || byte === 13 /* \r */;
+        if (!isNewLine) {
+            continue;
+        }
+        if (byte === 13 /* \r */ && utf8Bytes[i + 1] === 10 /* \n */) {
             i++;
-            if (utf8Bytes[i] === 10 /* \n */) {
-                lineOffsets.push(i + 1);
-            } else {
-                lineOffsets.push(i);
-            }
         }
-        if (utf8Bytes[i] === 10 /* \n */) {
-            lineOffsets.push(i + 1);
-        }
+        lineOffsets.push(i + 1);
     }
 
     return {

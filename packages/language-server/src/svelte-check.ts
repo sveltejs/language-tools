@@ -156,28 +156,28 @@ export class SvelteCheck {
                             /* openedByClient */ true
                         )
                 );
-                return;
-            }
-            this.lsAndTSDocResolver = new LSAndTSDocResolver(
-                this.docManager,
-                workspaceUris,
-                this.configManager,
-                {
-                    tsconfigPath: options.tsconfig,
-                    isSvelteCheck: true,
-                    onProjectReloaded: options.onProjectReload,
-                    watch: options.watch,
-                    onFileSnapshotCreated: options.onFileSnapshotCreated
-                }
-            );
-            this.pluginHost.register(
-                new TypeScriptPlugin(
-                    this.configManager,
-                    this.lsAndTSDocResolver,
+            } else {
+                this.lsAndTSDocResolver = new LSAndTSDocResolver(
+                    this.docManager,
                     workspaceUris,
-                    this.docManager
-                )
-            );
+                    this.configManager,
+                    {
+                        tsconfigPath: options.tsconfig,
+                        isSvelteCheck: true,
+                        onProjectReloaded: options.onProjectReload,
+                        watch: options.watch,
+                        onFileSnapshotCreated: options.onFileSnapshotCreated
+                    }
+                );
+                this.pluginHost.register(
+                    new TypeScriptPlugin(
+                        this.configManager,
+                        this.lsAndTSDocResolver,
+                        workspaceUris,
+                        this.docManager
+                    )
+                );
+            }
         }
 
         function shouldRegister(source: SvelteCheckDiagnosticSource) {
@@ -478,14 +478,7 @@ export class SvelteCheck {
             map.set(diag.filePath, diag);
         }
 
-        // No api for extracting all the files in the project yet.
-        const checkingSvelteFiles = new Set(
-            result
-                .map((diag) => diag.filePath)
-                .concat(project.rootFiles)
-                .filter(isSvelteFilePath)
-        );
-        for (const filePath of checkingSvelteFiles) {
+        for (const filePath of this.tsGoDiagnosticsProvider.getAllSvelteFiles()) {
             const uri = pathToUrl(filePath);
             if (!uri) {
                 continue;
@@ -504,7 +497,7 @@ export class SvelteCheck {
             }
         }
 
-        return result;
+        return Array.from(map.values());
     }
 
     private async getDiagnosticsForFile(uri: string) {
