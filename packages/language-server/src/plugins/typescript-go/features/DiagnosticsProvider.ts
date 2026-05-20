@@ -51,6 +51,9 @@ import {
 
 const VIRTUAL_SUFFIX = '_virtual__';
 const svelteExtLength = '.svelte'.length;
+const DSvelteTsExtension = '.d.svelte.ts';
+const SvelteDtsExtension = '.svelte.d.ts';
+const dSvelteDtsExtLength = DSvelteTsExtension.length;
 
 const UTF8_RUNE_SELF = 0x80;
 const textDecoder = new TextDecoder();
@@ -224,41 +227,36 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
 
         return {
             getAccessibleEntries(directory: string) {
-                const files: string[] = [];
+                const realFiles: string[] = [];
                 const directories: string[] = [];
+                const resultFiles: string[] = [];
                 try {
                     const entries = fs.readdirSync(directory, { withFileTypes: true });
                     for (const entry of entries) {
                         if (entry.isFile()) {
-                            addFileEntry(path.join(directory, entry.name));
+                            realFiles.push(entry.name);
                         } else if (entry.isDirectory()) {
                             directories.push(entry.name);
                         } else if (entry.isSymbolicLink()) {
                             const fullPath = path.join(directory, entry.name);
-                            const stats = fs.statSync(fullPath);
+                            const stats = fs.statSync(fs.realpathSync(fullPath));
                             if (stats.isFile()) {
-                                addFileEntry(fullPath);
+                                realFiles.push(entry.name);
                             } else if (stats.isDirectory()) {
                                 directories.push(entry.name);
                             }
                         }
                     }
-
+                    for (const file of realFiles) {
+                        addFileEntry(path.join(directory, file), realFiles, resultFiles);
+                    }
                     return {
-                        files: files,
-                        directories: directories
+                        files: resultFiles,
+                        directories
                     };
                 } catch (error) {
                     Logger.error(`Error reading directory ${directory}:`, error);
                     return undefined;
-                }
-
-                function addFileEntry(fullPath: string) {
-                    if (fullPath.endsWith('.svelte')) {
-                        files.push(...service.addVirtualSvelteFile(fullPath));
-                    } else {
-                        files.push(path.basename(fullPath));
-                    }
                 }
             },
             readFile(path: string) {
@@ -289,14 +287,28 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
                 // undefined to signal api to read from disk by itself
                 return undefined;
             },
-            fileExists(path: string) {
-                if (path.endsWith('.d.svelte.ts') || path.includes(VIRTUAL_SUFFIX)) {
-                    if (fs.existsSync(path) || service.virtualFiles.has(normalizePath(path))) {
+            fileExists(filePath: string) {
+                const virtualFiles = service.virtualFiles;
+
+                if (
+                    filePath.includes(VIRTUAL_SUFFIX) &&
+                    virtualFiles.has(normalizePath(filePath))
+                ) {
+                    return true;
+                }
+
+                if (filePath.endsWith(DSvelteTsExtension)) {
+                    if (virtualFiles.has(normalizePath(filePath)) || fs.existsSync(filePath)) {
                         return true;
                     }
 
-                    const targetSvelteFile = path.slice(0, -'.d.svelte.ts'.length) + '.svelte';
-
+                    const withoutExtension = filePath.slice(0, -dSvelteDtsExtLength);
+                    const svelteDtsPath = withoutExtension + SvelteDtsExtension;
+                    if (fs.existsSync(svelteDtsPath)) {
+                        service.addDtsRedirect(filePath, path.basename(svelteDtsPath));
+                        return true;
+                    }
+                    const targetSvelteFile = withoutExtension + '.svelte';
                     if (fs.existsSync(targetSvelteFile)) {
                         service.addVirtualSvelteFile(targetSvelteFile);
                         return true;
@@ -307,6 +319,28 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
                 return undefined;
             }
         };
+
+        function addFileEntry(fullPath: string, realFiles: string[], resultFiles: string[]) {
+            const name = path.basename(fullPath);
+            if (!fullPath.endsWith('.svelte')) {
+                resultFiles.push(name);
+                return;
+            }
+
+            const virtualBaseName = service.addVirtualSvelteFile(fullPath);
+            resultFiles.push(virtualBaseName);
+            const dSvelteTsPath = changeExtension(fullPath, DSvelteTsExtension);
+            const dSvelteTsName = path.basename(dSvelteTsPath);
+            if (realFiles.includes(dSvelteTsName)) {
+                return;
+            }
+            const svelteDtsName = changeExtension(name, SvelteDtsExtension);
+            const dSvelteTsTarget = realFiles.includes(svelteDtsName)
+                ? svelteDtsName
+                : virtualBaseName;
+            service.addDtsRedirect(dSvelteTsPath, dSvelteTsTarget);
+            resultFiles.push(dSvelteTsName);
+        }
     }
 
     private writeVirtualTsconfig(tsconfigPath: string) {
@@ -343,6 +377,15 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
         this.virtualFiles.set(normalizePath(this.virtualTsconfigPath), virtualTsConfigContent);
     }
 
+    private addDtsRedirect(dSvelteTsPath: string, targetFileName: string) {
+        const specifierFileName = targetFileName.endsWith(SvelteDtsExtension)
+            ? targetFileName.replace(SvelteDtsExtension, '.svelte.js')
+            : changeExtension(targetFileName, '.js');
+        const dtsImportPath = './' + specifierFileName;
+        const dtsContent = `export { default } from "${dtsImportPath}";\nexport * from "${dtsImportPath}";\n`;
+        this.virtualFiles.set(normalizePath(dSvelteTsPath), dtsContent);
+    }
+
     private addVirtualSvelteFile(filePath: string) {
         const svelteFile = DocumentSnapshot.fromFilePath(
             filePath,
@@ -353,17 +396,11 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
         const normalizedPath = normalizePath(filePath);
         this.files.set(normalizedPath, svelteFile);
 
-        const dtsPath = normalizedPath.slice(0, -svelteExtLength) + '.d.svelte.ts';
         const virtualPath = toVirtualPath(svelteFile);
         this.virtualFiles.set(virtualPath, svelteFile.getFullText());
-        const dtsBasename = path.basename(dtsPath);
         const virtualBasename = path.basename(virtualPath);
 
-        const dtsImportPath = `./${virtualBasename}`;
-        const dtsContent = `export { default } from "${dtsImportPath}";\nexport * from "${dtsImportPath}";\n`;
-        this.virtualFiles.set(dtsPath, dtsContent);
-
-        return [dtsBasename, virtualBasename];
+        return virtualBasename;
     }
 
     private covertDiagnosticsForUnopenedFile(
@@ -396,6 +433,10 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
     dispose() {
         this.api.close();
     }
+}
+
+function changeExtension(path: string, newExtension: string) {
+    return path.slice(0, path.lastIndexOf('.')) + newExtension;
 }
 
 function getParserErrorDiagnostic(tsDoc: SvelteDocumentSnapshot): Diagnostic | undefined {
@@ -1078,7 +1119,7 @@ function getUtf8LineOffsets(text: string): Utf8LineOffsetInfo {
     const utf8Bytes = textEncoder.encode(text);
     for (let i = 0; i < utf8Bytes.length; i++) {
         const byte = utf8Bytes[i];
-        const isNewLine = byte === 10 /* \n */ || byte === 13 /* \r */;
+        const isNewLine = byte === 10 /* \n */ || byte === 13; /* \r */
         if (!isNewLine) {
             continue;
         }
