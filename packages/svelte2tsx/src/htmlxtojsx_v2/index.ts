@@ -30,7 +30,12 @@ import { handleSpread } from './nodes/Spread';
 import { handleStyleDirective } from './nodes/StyleDirective';
 import { handleText } from './nodes/Text';
 import { handleTransitionDirective } from './nodes/Transition';
-import { handleImplicitChildren, handleSnippet, hoistSnippetBlock } from './nodes/SnippetBlock';
+import {
+    collectSnippetComponentGlobals,
+    handleImplicitChildren,
+    handleSnippet,
+    hoistSnippetBlock
+} from './nodes/SnippetBlock';
 import { handleRenderTag } from './nodes/RenderTag';
 import { ComponentDocumentation } from '../svelte2tsx/nodes/ComponentDocumentation';
 import { ScopeStack } from '../svelte2tsx/utils/Scope';
@@ -347,6 +352,12 @@ export function convertHtmlxToJsx(
                                     body: node.children as any[] // wrong AST, but periscopic doesn't care
                                 }
                             });
+
+                            for (const name of collectSnippetComponentGlobals(node.children)) {
+                                if (!result.globals.has(name)) {
+                                    result.globals.set(name, { name } as any);
+                                }
+                            }
 
                             rootSnippets.push([
                                 node.start,

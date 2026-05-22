@@ -1,3 +1,4 @@
+import { walk } from 'estree-walker';
 import MagicString from 'magic-string';
 import { BaseNode } from '../../interfaces';
 import { isImplicitlyClosedBlock, transform, TransformationArray } from '../utils/node-utils';
@@ -213,4 +214,35 @@ export function hoistSnippetBlock(str: MagicString, blockOrEl: BaseNode) {
 
         str.move(node.start, node.end, targetPosition);
     }
+}
+
+/**
+ * Periscopic's `analyze()` does not treat `<Foo />` template tags as references to `Foo`.
+ * Collect those component names so snippet hoisting does not move snippets that use
+ * instance-scope components into the module script.
+ */
+export function collectSnippetComponentGlobals(body: BaseNode[] | undefined): string[] {
+    const names = new Set<string>();
+
+    for (const root of body ?? []) {
+        walk(root as any, {
+            enter(node: BaseNode) {
+                if (node.type === 'InlineComponent') {
+                    if (node.name === 'svelte:component') {
+                        if (node.expression?.type === 'Identifier') {
+                            names.add(node.expression.name);
+                        }
+                    } else if (
+                        node.name !== 'svelte:self' &&
+                        !node.name.startsWith('svelte:') &&
+                        /^[A-Z]/.test(node.name)
+                    ) {
+                        names.add(node.name);
+                    }
+                }
+            }
+        });
+    }
+
+    return [...names];
 }
