@@ -101,6 +101,7 @@ export function convertHtmlxToJsx(
     let element: Element | InlineComponent | undefined;
 
     const pendingSnippetHoistCheck = new Set<BaseNode>();
+    let elementBeforeSnippet: Array<Element | InlineComponent | undefined> = [];
 
     let uses$$props = false;
     let uses$$restProps = false;
@@ -320,18 +321,17 @@ export function convertHtmlxToJsx(
                         break;
                     case 'SnippetBlock':
                         scopeStack.push();
-                        handleSnippet(
-                            str,
-                            node,
+                        const parentComponent =
                             (element instanceof InlineComponent &&
                                 estreeTypedParent.type === 'InlineComponent') ||
-                                (element instanceof Element &&
-                                    element.tagName === 'svelte:boundary')
+                            (element instanceof Element && element.tagName === 'svelte:boundary')
                                 ? element
-                                : undefined,
-                            emitJsDoc,
-                            isTsFile
-                        );
+                                : undefined;
+
+                        elementBeforeSnippet.push(element);
+                        element = undefined;
+
+                        handleSnippet(str, node, parentComponent, emitJsDoc, isTsFile);
                         if (parent === ast) {
                             // root snippet -> move to instance script or possibly even module script
                             const result = analyze({
@@ -567,8 +567,11 @@ export function convertHtmlxToJsx(
                     case 'BlockStatement':
                     case 'FunctionDeclaration':
                     case 'ArrowFunctionExpression':
+                        scopeStack.pop();
+                        break;
                     case 'SnippetBlock':
                         scopeStack.pop();
+                        element = elementBeforeSnippet.pop();
                         break;
                     case 'EachBlock':
                         onTemplateScopeLeave();
