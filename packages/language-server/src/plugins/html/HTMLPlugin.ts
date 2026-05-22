@@ -49,6 +49,7 @@ import { Logger } from '../../logger';
 import { indentBasedFoldingRangeForTag } from '../../lib/foldingRange/indentFolding';
 import { wordHighlightForTag } from '../../lib/documentHighlight/wordHighlight';
 import { URI } from 'vscode-uri';
+import { getFoldingRanges } from './getFoldingRanges';
 
 // https://github.com/microsoft/vscode/blob/c6f507deeb99925e713271b1048f21dbaab4bd54/extensions/html/language-configuration.json#L34
 const wordPattern = /(-?\d*\.\d\w*)|([^`~!@$^&*()=+[{\]}\|;:'",.<>\/\s]+)/g;
@@ -407,68 +408,13 @@ export class HTMLPlugin
     }
 
     getFoldingRanges(document: Document): FoldingRange[] {
-        const result = this.lang.getFoldingRanges(document);
+        const result = getFoldingRanges(
+            document,
+            this.configManager.getClientCapabilities()?.textDocument?.foldingRange
+        );
         const templateRange = document.templateInfo
             ? indentBasedFoldingRangeForTag(document, document.templateInfo)
             : [];
-
-        const ARROW = '=>';
-
-        if (!document.getText().includes(ARROW)) {
-            return result.concat(templateRange);
-        }
-
-        const byEnd = new Map<number, FoldingRange[]>();
-        for (const fold of result) {
-            byEnd.set(fold.endLine, (byEnd.get(fold.endLine) ?? []).concat(fold));
-        }
-
-        let startIndex = 0;
-        while (startIndex < document.getTextLength()) {
-            const index = document.getText().indexOf(ARROW, startIndex);
-            startIndex = index + ARROW.length;
-
-            if (index === -1) {
-                break;
-            }
-            const position = document.positionAt(index);
-            const isInStyleOrScript =
-                isInTag(position, document.styleInfo) ||
-                isInTag(position, document.scriptInfo) ||
-                isInTag(position, document.moduleScriptInfo);
-
-            if (isInStyleOrScript) {
-                continue;
-            }
-
-            const tag = document.html.findNodeAt(index);
-
-            // our version of html document patched it so it's within the start tag
-            // but not the folding range returned by the language service
-            // which uses unpatched scanner
-            if (!tag.startTagEnd || index > tag.startTagEnd) {
-                continue;
-            }
-
-            const tagStartPosition = document.positionAt(tag.start);
-            const range = byEnd
-                .get(position.line)
-                ?.find((r) => r.startLine === tagStartPosition.line);
-
-            const newEndLine = document.positionAt(tag.end).line - 1;
-            if (newEndLine <= tagStartPosition.line) {
-                continue;
-            }
-
-            if (range) {
-                range.endLine = newEndLine;
-            } else {
-                result.push({
-                    startLine: tagStartPosition.line,
-                    endLine: newEndLine
-                });
-            }
-        }
 
         return result.concat(templateRange);
     }

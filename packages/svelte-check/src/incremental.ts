@@ -111,7 +111,12 @@ const dynamicImport = new Function('modulePath', 'return import(modulePath)') as
 async function loadKitFilesSettings(
     workspacePath: string
 ): Promise<InternalHelpers.KitFilesSettings> {
-    const configExtensions = ['js', 'cjs', 'mjs'];
+    const loadSvelteConfigTs =
+        process.features && 'typescript' in process.features && !!process.features.typescript;
+    const configExtensions = loadSvelteConfigTs
+        ? ['js', 'ts', 'cjs', 'mjs', 'mts']
+        : ['js', 'cjs', 'mjs'];
+
     let configPath: string | undefined;
 
     for (const ext of configExtensions) {
