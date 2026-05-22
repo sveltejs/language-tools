@@ -92,18 +92,82 @@ const defaultKitFilesSettings: InternalHelpers.KitFilesSettings = {
     universalHooksPath: 'src/hooks'
 };
 
+const VITE_CONFIG_EXTENSIONS = ['js', 'mjs', 'ts', 'cjs', 'mts', 'cts'];
+
+function kitFilesSettingsFromConfig(config: any): InternalHelpers.KitFilesSettings {
+    if (!config?.kit?.files) {
+        return defaultKitFilesSettings;
+    }
+
+    const files = config.kit.files;
+    return {
+        paramsPath: files.params ?? defaultKitFilesSettings.paramsPath,
+        serverHooksPath: files.hooks?.server ?? defaultKitFilesSettings.serverHooksPath,
+        clientHooksPath: files.hooks?.client ?? defaultKitFilesSettings.clientHooksPath,
+        universalHooksPath: files.hooks?.universal ?? defaultKitFilesSettings.universalHooksPath
+    };
+}
+
+function findViteConfigFile(workspacePath: string): string | undefined {
+    for (const ext of VITE_CONFIG_EXTENSIONS) {
+        const tryPath = path.join(workspacePath, `vite.config.${ext}`);
+        if (fs.existsSync(tryPath)) {
+            return tryPath;
+        }
+    }
+}
+
+async function tryImportVite(): Promise<{ resolveConfig: Function } | undefined> {
+    try {
+        return await dynamicImport('vite');
+    } catch {
+        return undefined;
+    }
+}
+
+async function loadKitFilesSettingsFromVite(
+    workspacePath: string
+): Promise<InternalHelpers.KitFilesSettings | undefined> {
+    if (!findViteConfigFile(workspacePath)) {
+        return undefined;
+    }
+
+    const vite = await tryImportVite();
+    if (!vite) {
+        return undefined;
+    }
+
+    try {
+        const resolved = await vite.resolveConfig(
+            { root: workspacePath, logLevel: 'error' },
+            'serve'
+        );
+        const plugin = resolved.plugins.find(
+            (p: { name?: string }) => p.name === 'vite-plugin-svelte:config'
+        );
+        const options = (plugin as { api?: { options?: { kit?: unknown } } } | undefined)?.api
+            ?.options;
+        if (!options) {
+            return undefined;
+        }
+        return kitFilesSettingsFromConfig(options);
+    } catch {
+        return undefined;
+    }
+}
+
 /**
  * This function encapsulates the import call in a way
  * that TypeScript does not transpile `import()`.
  * https://github.com/microsoft/TypeScript/issues/43329
  */
 const dynamicImport = new Function('modulePath', 'return import(modulePath)') as (
-    modulePath: URL
+    modulePath: URL | string
 ) => Promise<any>;
 
 /**
  * Loads the svelte.config.js file and extracts SvelteKit file path settings.
- * Falls back to default paths if config doesn't exist or doesn't specify custom paths.
+ * Falls back to vite.config.* when no svelte config exists, then to default paths.
  *
  * @param workspacePath - Root directory of the project
  * @returns KitFilesSettings with paths for params, hooks files
@@ -123,22 +187,12 @@ async function loadKitFilesSettings(
     }
 
     if (!configPath) {
-        return defaultKitFilesSettings;
+        return (await loadKitFilesSettingsFromVite(workspacePath)) ?? defaultKitFilesSettings;
     }
 
     try {
         const config = (await dynamicImport(pathToFileURL(configPath)))?.default;
-        if (!config?.kit?.files) {
-            return defaultKitFilesSettings;
-        }
-
-        const files = config.kit.files;
-        return {
-            paramsPath: files.params ?? defaultKitFilesSettings.paramsPath,
-            serverHooksPath: files.hooks?.server ?? defaultKitFilesSettings.serverHooksPath,
-            clientHooksPath: files.hooks?.client ?? defaultKitFilesSettings.clientHooksPath,
-            universalHooksPath: files.hooks?.universal ?? defaultKitFilesSettings.universalHooksPath
-        };
+        return kitFilesSettingsFromConfig(config);
     } catch {
         return defaultKitFilesSettings;
     }

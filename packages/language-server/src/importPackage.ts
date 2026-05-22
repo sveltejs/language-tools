@@ -69,6 +69,43 @@ export function importSvelte(fromPath: string): typeof svelte {
 }
 
 /** Can throw because no fallback guaranteed */
+export function importVite(fromPath: string): {
+    resolveConfig: (
+        inlineConfig: { root: string; logLevel?: string },
+        command: 'build' | 'serve'
+    ) => Promise<{ plugins: Array<{ name?: string; api?: { options?: Record<string, unknown> } }> }>;
+} {
+    const paths: string[] = [];
+    if (isTrusted) {
+        paths.push(fromPath);
+    }
+    if (paths.length === 0) {
+        throw new Error('Cannot import vite from untrusted workspace');
+    }
+    const main = require.resolve('vite', { paths });
+    Logger.debug('Using Vite from', main);
+    return dynamicRequire(main);
+}
+
+export function tryImportVite(fromPath: string):
+    | {
+          resolveConfig: (
+              inlineConfig: { root: string; logLevel?: string },
+              command: 'build' | 'serve'
+          ) => Promise<{
+              plugins: Array<{ name?: string; api?: { options?: Record<string, unknown> } }>;
+          }>;
+      }
+    | undefined {
+    try {
+        return importVite(fromPath);
+    } catch (e) {
+        Logger.debug('Failed to import vite', e);
+        return undefined;
+    }
+}
+
+/** Can throw because no fallback guaranteed */
 export function importSveltePreprocess(fromPath: string): any {
     const pkg = getPackageInfo(
         'svelte-preprocess',

@@ -228,6 +228,8 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
                 // /^tsconfig\.json$/,
                 // /^jsconfig\.json$/,
                 /^svelte\.config\.(js|cjs|mjs)$/,
+                // Vite config can contain Svelte config
+                /^vite\.config\.(js|cjs|mjs|ts|cjs|mts)$/,
                 // https://prettier.io/docs/en/configuration.html
                 /^\.prettierrc$/,
                 /^\.prettierrc\.(json|yml|yaml|json5|toml)$/,

@@ -228,7 +228,7 @@ describe('SveltePlugin#getDiagnostics', () => {
                     'expected x to not be here' +
                     '\n\nIf you expect this syntax to work, here are some suggestions: ' +
                     '\nIf you use typescript with `svelte-preprocess`, did you add `lang="ts"` to your `script` tag? ' +
-                    '\nDid you setup a `svelte.config.js`? ' +
+                    '\nDid you setup a `svelte.config.js` or `vite.config.js`? ' +
                     '\nSee https://github.com/sveltejs/language-tools/tree/master/docs#using-with-preprocessors for more info.',
                 range: {
                     start: {
