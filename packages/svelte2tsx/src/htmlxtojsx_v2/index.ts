@@ -101,6 +101,9 @@ export function convertHtmlxToJsx(
     let element: Element | InlineComponent | undefined;
 
     const pendingSnippetHoistCheck = new Set<BaseNode>();
+    let isInsideSnippetBlock = false;
+    let snippetElementDepth = 0;
+    const elementsBeforeSnippet: Array<Element | InlineComponent | undefined> = [];
 
     let uses$$props = false;
     let uses$$restProps = false;
@@ -320,6 +323,9 @@ export function convertHtmlxToJsx(
                         break;
                     case 'SnippetBlock':
                         scopeStack.push();
+                        elementsBeforeSnippet.push(element);
+                        isInsideSnippetBlock = true;
+                        snippetElementDepth = 0;
                         handleSnippet(
                             str,
                             node,
@@ -380,11 +386,17 @@ export function convertHtmlxToJsx(
                         handleAttachTag(node, element);
                         break;
                     case 'InlineComponent':
-                        if (element) {
+                        if (
+                            element &&
+                            !(isInsideSnippetBlock && snippetElementDepth === 0)
+                        ) {
                             element.child = new InlineComponent(str, node, element);
                             element = element.child;
                         } else {
                             element = new InlineComponent(str, node);
+                        }
+                        if (isInsideSnippetBlock) {
+                            snippetElementDepth++;
                         }
                         if (options.svelte5Plus) {
                             handleImplicitChildren(node, element as InlineComponent);
@@ -412,7 +424,10 @@ export function convertHtmlxToJsx(
                         if (node.name === '!DOCTYPE') {
                             str.remove(node.start, node.end);
                         } else {
-                            if (element) {
+                            if (
+                                element &&
+                                !(isInsideSnippetBlock && snippetElementDepth === 0)
+                            ) {
                                 element.child = new Element(
                                     str,
                                     node,
@@ -422,6 +437,9 @@ export function convertHtmlxToJsx(
                                 element = element.child;
                             } else {
                                 element = new Element(str, node, options.typingsNamespace);
+                            }
+                            if (isInsideSnippetBlock) {
+                                snippetElementDepth++;
                             }
                         }
                         break;
@@ -567,8 +585,13 @@ export function convertHtmlxToJsx(
                     case 'BlockStatement':
                     case 'FunctionDeclaration':
                     case 'ArrowFunctionExpression':
+                        scopeStack.pop();
+                        break;
                     case 'SnippetBlock':
                         scopeStack.pop();
+                        isInsideSnippetBlock = false;
+                        snippetElementDepth = 0;
+                        element = elementsBeforeSnippet.pop();
                         break;
                     case 'EachBlock':
                         onTemplateScopeLeave();
@@ -594,6 +617,9 @@ export function convertHtmlxToJsx(
                         if (node.name !== '!DOCTYPE') {
                             element.performTransformation();
                             element = element.parent;
+                            if (isInsideSnippetBlock) {
+                                snippetElementDepth--;
+                            }
                         }
                         break;
                 }
