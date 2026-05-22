@@ -53,6 +53,7 @@ const NO_GENERATE: CompileOptions = {
 };
 
 const SVELTE_CONFIG_EXTENSIONS = ['js', 'cjs', 'mjs'] as const;
+const SVELTE_CONFIG_TS_EXTENSIONS = ['ts', 'mts'] as const;
 
 /**
  * This function encapsulates the import call in a way
@@ -63,12 +64,13 @@ const _dynamicImport = new Function('modulePath', 'return import(modulePath)') a
     modulePath: URL
 ) => Promise<any>;
 
-const configRegex = /\/svelte\.config\.(js|cjs|mjs)$/;
+const configRegex = /\/svelte\.config\.(js|ts|cjs|mjs|mts)$/;
+const configRegexWithoutTs = /\/svelte\.config\.(js|cjs|mjs)$/;
 
 /**
- * Loads svelte.config.{js,cjs,mjs} files, falling back to vite.config.* when no svelte config
- * exists. Provides both a synchronous and asynchronous interface to get a config file because
- * snapshots need access to it synchronously.
+ * Loads svelte.config.{js,ts,cjs,mjs,mts} files, falling back to vite.config.* when no svelte
+ * config exists. Provides both a synchronous and asynchronous interface to get a config file
+ * because snapshots need access to it synchronously.
  * This means that another instance (the ts service host on startup) should make
  * sure that all config files are loaded before snapshots are retrieved.
  * Asynchronousity is needed because we use the dynamic `import()` statement.
@@ -78,14 +80,21 @@ export class ConfigLoader {
     private configFilesAsync = new FileMap<Promise<SvelteConfig>>();
     private filePathToConfigPath = new FileMap<string>();
     private disabled = false;
+    private loadSvelteConfigTs: boolean;
 
     constructor(
         private globSync: typeof fdir,
         private fs: Pick<typeof _fs, 'existsSync'>,
         private path: Pick<typeof _path, 'dirname' | 'relative' | 'join'>,
         private dynamicImport: typeof _dynamicImport,
+        processFeatures: (typeof process)['features'] & {
+            typescript?: false | 'transform';
+        },
         private loadFromVite: LoadSvelteConfigFromViteFn = loadSvelteConfigFromVite
-    ) {}
+    ) {
+        this.loadSvelteConfigTs =
+            processFeatures && 'typescript' in processFeatures && !!processFeatures.typescript;
+    }
 
     /**
      * Enable/disable loading of configs (for security reasons for example)
@@ -101,6 +110,7 @@ export class ConfigLoader {
      * @param directory Directory where to load the configs from
      */
     async loadConfigs(directory: string): Promise<void> {
+        const targetRegex = this.loadSvelteConfigTs ? configRegex : configRegexWithoutTs;
         Logger.log('Trying to load configs for', directory);
 
         try {
@@ -111,7 +121,7 @@ export class ConfigLoader {
                     return path.includes('node_modules/') || path.includes('/.') || path[0] === '.';
                 })
                 .filter((path, isDir) => {
-                    return !isDir && configRegex.test(path);
+                    return !isDir && targetRegex.test(path);
                 })
                 .withRelativePaths()
                 .crawl(directory)
@@ -169,7 +179,12 @@ export class ConfigLoader {
         let currentDir = path;
         let nextDir = this.path.dirname(path);
         while (currentDir !== nextDir) {
-            const configPath = findSvelteConfigInDirectory(this.fs, this.path, currentDir);
+            const configPath = findSvelteConfigInDirectory(
+                this.fs,
+                this.path,
+                currentDir,
+                this.loadSvelteConfigTs
+            );
             if (configPath) {
                 return configPath;
             }
@@ -328,7 +343,7 @@ export class ConfigLoader {
     }
 
     private tryGetConfigForDirectory(file: string, fromDirectory: string) {
-        for (const ending of SVELTE_CONFIG_EXTENSIONS) {
+        for (const ending of getSvelteConfigExtensions(this.loadSvelteConfigTs)) {
             const configPath = this.path.join(fromDirectory, `svelte.config.${ending}`);
             const config = this.configFiles.get(configPath);
             if (config) {
@@ -395,12 +410,19 @@ export class ConfigLoader {
     }
 }
 
+function getSvelteConfigExtensions(loadSvelteConfigTs: boolean) {
+    return loadSvelteConfigTs
+        ? [...SVELTE_CONFIG_EXTENSIONS, ...SVELTE_CONFIG_TS_EXTENSIONS]
+        : SVELTE_CONFIG_EXTENSIONS;
+}
+
 function findSvelteConfigInDirectory(
     fs: Pick<typeof _fs, 'existsSync'>,
     pathUtils: Pick<typeof _path, 'join'>,
-    directory: string
+    directory: string,
+    loadSvelteConfigTs: boolean
 ) {
-    for (const ending of SVELTE_CONFIG_EXTENSIONS) {
+    for (const ending of getSvelteConfigExtensions(loadSvelteConfigTs)) {
         const configPath = pathUtils.join(directory, `svelte.config.${ending}`);
         if (fs.existsSync(configPath)) {
             return configPath;
@@ -408,7 +430,10 @@ function findSvelteConfigInDirectory(
     }
 }
 
-function getFallbackLogMessage(foundConfig: boolean, configKind: 'svelte' | 'vite' | 'vite-error' | 'none') {
+function getFallbackLogMessage(
+    foundConfig: boolean,
+    configKind: 'svelte' | 'vite' | 'vite-error' | 'none'
+) {
     if (foundConfig && configKind === 'svelte') {
         return 'Found svelte.config.js but there was an error loading it. ';
     }
@@ -421,4 +446,4 @@ function getFallbackLogMessage(foundConfig: boolean, configKind: 'svelte' | 'vit
     return 'No svelte.config.js or vite.config found. ';
 }
 
-export const configLoader = new ConfigLoader(fdir, _fs, _path, _dynamicImport);
+export const configLoader = new ConfigLoader(fdir, _fs, _path, _dynamicImport, process.features);

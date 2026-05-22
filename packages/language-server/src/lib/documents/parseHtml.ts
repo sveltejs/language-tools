@@ -183,17 +183,8 @@ export function parseHtml(text: string): HTMLDocument {
     function skipExpressionInCurrentRange() {
         const start = scanner.getTokenOffset();
         const end = scanner.getTokenEnd();
-        let index = start;
-        while (index < end) {
-            if (text.charCodeAt(index) !== braceStartCode) {
-                index++;
-                continue;
-            }
-            const matchResult = scanMatchingBraces(text, index);
-            index = matchResult.endOffset;
-        }
 
-        return Math.max(index, end);
+        return skipExpressionInRange(text, start, end);
     }
 
     function restartScannerAt(offset: number, scannerState: ScannerState) {
@@ -459,4 +450,48 @@ export class HTMLNode implements Node {
         }
         return low;
     }
+}
+
+function skipExpressionInRange(text: string, start: number, end: number) {
+    let index = start;
+    while (index < end) {
+        if (text.charCodeAt(index) !== braceStartCode) {
+            index++;
+            continue;
+        }
+        const matchResult = scanMatchingBraces(text, index);
+        index = matchResult.endOffset;
+    }
+
+    return Math.max(index, end);
+}
+
+export function scanCommentWithinTextOrComment(
+    text: string,
+    startOffset: number,
+    endOffset: number
+): { start: number; end: number }[] {
+    let scanner = createScanner(text, startOffset, ScannerState.WithinContent);
+    let token = scanner.scan();
+    const results: { start: number; end: number }[] = [];
+
+    while (token !== TokenType.EOS && scanner.getTokenOffset() < endOffset) {
+        if (token === TokenType.Comment) {
+            results.push({ start: scanner.getTokenOffset(), end: scanner.getTokenEnd() });
+        } else if (token === TokenType.Content) {
+            const expressionEnd = skipExpressionInRange(
+                text,
+                scanner.getTokenOffset(),
+                scanner.getTokenEnd()
+            );
+            if (expressionEnd > scanner.getTokenEnd()) {
+                scanner = createScanner(text, expressionEnd, ScannerState.WithinContent);
+            }
+        } else if (token !== TokenType.StartCommentTag && token !== TokenType.EndCommentTag) {
+            break;
+        }
+        token = scanner.scan();
+    }
+
+    return results;
 }

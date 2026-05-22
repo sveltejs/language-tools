@@ -70,7 +70,8 @@ describe('ConfigLoader', () => {
             mockFdir(['svelte.config.js', 'below/svelte.config.js']),
             { existsSync: () => true },
             path,
-            (module: URL) => Promise.resolve({ default: { preprocess: module.toString() } })
+            (module: URL) => Promise.resolve({ default: { preprocess: module.toString() } }),
+            process.features
         );
         await configLoader.loadConfigs(normalizePath('/some/path'));
 
@@ -104,7 +105,8 @@ describe('ConfigLoader', () => {
                     typeof p === 'string' && p.endsWith(path.join('some', 'svelte.config.js'))
             },
             path,
-            (module: URL) => Promise.resolve({ default: { preprocess: module.toString() } })
+            (module: URL) => Promise.resolve({ default: { preprocess: module.toString() } }),
+            process.features
         );
         await configLoader.loadConfigs(normalizePath('/some/path'));
 
@@ -116,7 +118,8 @@ describe('ConfigLoader', () => {
             mockFdir([]),
             { existsSync: () => false },
             path,
-            (module: URL) => Promise.resolve({ default: { preprocess: module.toString() } })
+            (module: URL) => Promise.resolve({ default: { preprocess: module.toString() } }),
+            process.features
         );
         await configLoader.loadConfigs(normalizePath('/some/path'));
 
@@ -152,7 +155,8 @@ describe('ConfigLoader', () => {
                 return new Promise((resolve) => {
                     setTimeout(() => resolve({ default: { preprocess: module.toString() } }), 500);
                 });
-            }
+            },
+            process.features
         );
         await Promise.all([
             configLoader.loadConfigs(normalizePath('/some/path')),
@@ -174,8 +178,12 @@ describe('ConfigLoader', () => {
     });
 
     it('can deal with missing config', () => {
-        const configLoader = new ConfigLoader(mockFdir([]), { existsSync: () => false }, path, () =>
-            Promise.resolve('unimportant')
+        const configLoader = new ConfigLoader(
+            mockFdir([]),
+            { existsSync: () => false },
+            path,
+            () => Promise.resolve('unimportant'),
+            process.features
         );
         assert.deepStrictEqual(
             configLoader.getConfig(normalizePath('/some/file.svelte')),
@@ -188,7 +196,8 @@ describe('ConfigLoader', () => {
             mockFdir([]),
             { existsSync: () => true },
             path,
-            (module: URL) => Promise.resolve({ default: { preprocess: module.toString() } })
+            (module: URL) => Promise.resolve({ default: { preprocess: module.toString() } }),
+            process.features
         );
         assert.deepStrictEqual(
             await configLoader.awaitConfig(normalizePath('some/file.svelte')),
@@ -202,7 +211,8 @@ describe('ConfigLoader', () => {
             mockFdir([]),
             { existsSync: () => true },
             path,
-            moduleLoader
+            moduleLoader,
+            process.features
         );
         configLoader.setDisabled(true);
         await configLoader.awaitConfig(normalizePath('some/file.svelte'));
@@ -219,6 +229,7 @@ describe('ConfigLoader', () => {
             },
             path,
             () => Promise.resolve({ default: {} }),
+            process.features,
             async (root) => {
                 assert.equal(root, viteConfigDir);
                 return viteConfig();
@@ -245,6 +256,7 @@ describe('ConfigLoader', () => {
             },
             path,
             (module: URL) => Promise.resolve({ default: { preprocess: module.toString() } }),
+            process.features,
             loadFromVite
         );
         await configLoader.loadConfigs(normalizePath('/some/path'));
@@ -266,6 +278,7 @@ describe('ConfigLoader', () => {
             },
             path,
             () => Promise.resolve({ default: {} }),
+            process.features,
             async () => undefined
         );
         await configLoader.loadConfigs(normalizePath('/some/path'));
@@ -275,6 +288,49 @@ describe('ConfigLoader', () => {
                 configLoader.getConfig(normalizePath('/some/path/comp.svelte'))?.preprocess || {}
             ).sort(),
             ['name', 'script'].sort()
+        );
+    });
+
+    it('can scan svelte.config.ts', async () => {
+        const configLoader = new ConfigLoader(
+            mockFdir(['svelte.config.ts']),
+            {
+                existsSync: (p) =>
+                    typeof p === 'string' &&
+                    p.endsWith(path.join('some', 'path', 'svelte.config.ts'))
+            },
+            path,
+            (module: URL) => Promise.resolve({ default: { preprocess: module.toString() } }),
+            { ...process.features, typescript: 'transform' }
+        );
+        await configLoader.loadConfigs(normalizePath('/some/path'));
+
+        await assertFindsConfig(
+            configLoader,
+            '/some/path/comp.svelte',
+            '/some/path/svelte.config.ts'
+        );
+    });
+
+    it('can skips svelte.config.ts loading', async () => {
+        const configLoader = new ConfigLoader(
+            mockFdir(['svelte.config.ts', 'svelte.config.cjs']),
+            {
+                existsSync: (p) =>
+                    typeof p === 'string' &&
+                    (p.endsWith(path.join('some', 'path', 'svelte.config.ts')) ||
+                        p.endsWith(path.join('some', 'path', 'svelte.config.cjs')))
+            },
+            path,
+            (module: URL) => Promise.resolve({ default: { preprocess: module.toString() } }),
+            { ...process.features, typescript: false }
+        );
+        await configLoader.loadConfigs(normalizePath('/some/path'));
+
+        await assertFindsConfig(
+            configLoader,
+            '/some/path/comp.svelte',
+            '/some/path/svelte.config.cjs'
         );
     });
 });
