@@ -2,7 +2,14 @@ import MagicString from 'magic-string';
 import { walk } from 'estree-walker';
 // @ts-ignore
 import { TemplateNode, Text } from 'svelte/types/compiler/interfaces';
-import { Attribute, BaseNode, BaseDirective, StyleDirective, ConstTag } from '../interfaces';
+import {
+    Attribute,
+    BaseNode,
+    BaseDirective,
+    StyleDirective,
+    ConstTag,
+    DeclarationTag
+} from '../interfaces';
 import { parseHtmlx } from '../utils/htmlxparser';
 import { handleActionDirective } from './nodes/Action';
 import { handleAnimateDirective } from './nodes/Animation';
@@ -16,6 +23,7 @@ import {
     handleTrailingEndComment
 } from './nodes/Comment';
 import { handleConstTag } from './nodes/ConstTag';
+import { handleDeclarationTag } from './nodes/DeclarationTag';
 import { handleDebug } from './nodes/DebugTag';
 import { handleEach } from './nodes/EachBlock';
 import { Element } from './nodes/Element';
@@ -370,6 +378,9 @@ export function convertHtmlxToJsx(
                         break;
                     case 'ConstTag':
                         handleConstTag(str, node as ConstTag);
+                        break;
+                    case 'DeclarationTag':
+                        handleDeclarationTag(str, node as DeclarationTag);
                         break;
                     case 'RenderTag':
                         handleRenderTag(str, node);

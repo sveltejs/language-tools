@@ -1,0 +1,46 @@
+[
+    {
+        "range": {
+            "start": { "line": 11, "character": 9 },
+            "end": { "line": 11, "character": 14 }
+        },
+        "severity": 1,
+        "source": "ts",
+        "message": "Type 'string' is not assignable to type 'number'.",
+        "code": 2322,
+        "tags": []
+    },
+    {
+        "range": {
+            "start": { "line": 12, "character": 9 },
+            "end": { "line": 12, "character": 16 }
+        },
+        "severity": 1,
+        "source": "ts",
+        "message": "Type 'number' is not assignable to type 'string'.",
+        "code": 2322,
+        "tags": []
+    },
+    {
+        "range": {
+            "start": { "line": 14, "character": 21 },
+            "end": { "line": 14, "character": 28 }
+        },
+        "severity": 1,
+        "source": "ts",
+        "message": "Property 'toFixed' does not exist on type 'string'. Did you mean 'fixed'?",
+        "code": 2551,
+        "tags": []
+    },
+    {
+        "range": {
+            "start": { "line": 17, "character": 26 },
+            "end": { "line": 17, "character": 43 }
+        },
+        "severity": 1,
+        "source": "ts",
+        "message": "This comparison appears to be unintentional because the types 'number' and 'string' have no overlap.",
+        "code": 2367,
+        "tags": []
+    }
+]
