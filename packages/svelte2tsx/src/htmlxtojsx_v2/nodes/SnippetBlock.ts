@@ -235,7 +235,7 @@ export function collectSnippetComponentGlobals(body: BaseNode[] | undefined): st
                     } else if (
                         node.name !== 'svelte:self' &&
                         !node.name.startsWith('svelte:') &&
-                        /^[A-Z]/.test(node.name)
+                        /^([A-Z]|([a-zA-Z]+\.))/.test(node.name)
                     ) {
                         names.add(node.name);
                     }
