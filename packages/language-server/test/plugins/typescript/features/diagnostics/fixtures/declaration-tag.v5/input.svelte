@@ -10,12 +10,9 @@
 {#each boxes as box}
     {const area = box.width * box.height}
     {let label: number = $state(`${area} square pixels`)}
-    {var doubled: string = area * 2}
-    {function format(value: string) {
-        return value.toFixed(2);
-    }}
+    {const doubled: string = area * 2}
 
-    <p>{format(doubled)} {label === 'large'}</p>
+    <p>{doubled === 1} {label === 'large'}</p>
     <div>
         {const area = 'nested'}
         {area}

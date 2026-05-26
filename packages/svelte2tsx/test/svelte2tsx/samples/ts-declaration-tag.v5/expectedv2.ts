@@ -13,12 +13,9 @@ async () => {
   for(let box of __sveltets_2_ensureArray(boxes)){
     const area = box.width * box.height;
     let label = $state(`${area} square pixels`);
-    var doubled = area * 2;
-    function format(value: number) {
-        return `${value}px`;
-    };
+    const doubled = area * 2;
 
-     { svelteHTML.createElement("p", {});format(doubled); label; }
+     { svelteHTML.createElement("p", {});doubled; label; }
      { svelteHTML.createElement("div", {});
         const area = 'nested';
         area;

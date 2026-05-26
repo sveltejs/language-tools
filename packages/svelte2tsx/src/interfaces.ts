@@ -1,6 +1,5 @@
 import {
     ArrayPattern,
-    FunctionDeclaration,
     Identifier,
     ObjectPattern,
     Node,
@@ -32,7 +31,7 @@ export interface ConstTag extends NodeRange {
 
 export interface DeclarationTag extends NodeRange {
     type: 'DeclarationTag';
-    declaration: (VariableDeclaration | FunctionDeclaration) & NodeRange;
+    declaration: VariableDeclaration & NodeRange & { kind: 'let' | 'const' };
 }
 
 // Copied from the Svelte type definitions
