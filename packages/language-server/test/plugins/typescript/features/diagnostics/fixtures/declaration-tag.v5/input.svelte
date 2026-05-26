@@ -16,4 +16,8 @@
     }}
 
     <p>{format(doubled)} {label === 'large'}</p>
+    <div>
+        {const area = 'nested'}
+        {area}
+    </div>
 {/each}
