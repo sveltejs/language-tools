@@ -77,8 +77,8 @@ export interface SvelteCheckOptions {
 
     experimental?: {
         tsgo: {
-            apiModule: typeof tsApiSync;
-            astModule: typeof tsAst;
+            apiModule: unknown;
+            astModule: unknown;
         };
     };
 }
@@ -140,7 +140,7 @@ export class SvelteCheck {
                     astModule: typeof tsAst;
                 };
                 if (!apiModule.API || !('ScriptKind' in astModule)) {
-                    throw new Error('Invalid tsgo modules provided in options.experimental.tsgo');
+                    throw new Error('Unsupported typescript-go version');
                 }
                 this.tsGoDiagnosticsProvider = new SvelteCheckTSGoDiagnosticsProvider(
                     apiModule,
@@ -193,6 +193,11 @@ export class SvelteCheck {
      */
     async upsertDocument(doc: { text: string; uri: string }, isNew: boolean): Promise<void> {
         const filePath = urlToPath(doc.uri) || '';
+        // in tsgo mode, let typescript check whether the file belongs to the project
+        if (this.tsGoDiagnosticsProvider) {
+            this.tsGoDiagnosticsProvider.watchUpdate(doc, isNew ? 'created' : 'changed')
+            return;
+        }
 
         if (this.options.tsconfig) {
             const lsContainer = await this.getLSContainer(this.options.tsconfig);
@@ -241,8 +246,12 @@ export class SvelteCheck {
         this.docManager.closeDocument(uri);
         this.docManager.releaseDocument(uri);
         if (this.options.tsconfig) {
-            const lsContainer = await this.getLSContainer(this.options.tsconfig);
-            lsContainer.deleteSnapshot(urlToPath(uri) || '');
+            if (this.tsGoDiagnosticsProvider) {
+                this.tsGoDiagnosticsProvider.watchUpdate({ text: '', uri }, 'deleted');
+            } else {
+                const lsContainer = await this.getLSContainer(this.options.tsconfig);
+                lsContainer.deleteSnapshot(urlToPath(uri) || '');
+            }
         }
     }
 
@@ -524,8 +533,14 @@ export class SvelteCheck {
         if (!this.options.tsconfig) {
             return null;
         }
-        const lsContainer = await this.getLSContainer(this.options.tsconfig);
-        const projectConfig = lsContainer.getProjectConfig();
+
+        let projectConfig: { wildcardDirectories?: Record<string, ts.WatchDirectoryFlags> };
+        if (this.tsGoDiagnosticsProvider) {
+            projectConfig = this.tsGoDiagnosticsProvider.getProjectConfig();
+        } else {
+            const lsContainer = await this.getLSContainer(this.options.tsconfig);
+            projectConfig = lsContainer.getProjectConfig();
+        }
 
         if (!projectConfig.wildcardDirectories) {
             return null;

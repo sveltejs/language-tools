@@ -577,35 +577,6 @@ function exitAfterFlush(code: number): void {
     process.stderr.write('', done);
 }
 
-async function runWithTsGoApi(
-    api: typeof import('@typescript/native-preview/unstable/sync'),
-    ast: typeof import('@typescript/native-preview/unstable/ast'),
-    opts: SvelteCheckCliOptions
-): Promise<number> {
-    if (!opts.tsconfig) {
-        throw new Error('`--tsgo` requires a tsconfig/jsconfig file');
-    }
-
-    const svelteCheck = new SvelteCheck(opts.workspaceUri.fsPath, {
-        compilerWarnings: opts.compilerWarnings,
-        diagnosticSources: opts.diagnosticSources,
-        watch: false,
-        tsconfig: opts.tsconfig,
-        experimental: {
-            tsgo: {
-                apiModule: api,
-                astModule: ast
-            }
-        }
-    });
-    const writer = instantiateWriter(opts);
-
-    const diagnostics = await svelteCheck.getDiagnostics();
-
-    const result = writeDiagnostics(opts.workspaceUri, writer, diagnostics);
-    return result.errorCount === 0 && (!opts.failOnWarnings || result.warningCount === 0) ? 0 : 1;
-}
-
 parseOptions(async (opts) => {
     try {
         const writer = instantiateWriter(opts);
@@ -618,20 +589,17 @@ parseOptions(async (opts) => {
         };
 
         if (opts.tsgoExperimental) {
-            const api = tryLoadTsApi(opts.workspaceUri.fsPath);
-            const ast = tryLoadTsAst(opts.workspaceUri.fsPath);
-            if (!api || !ast) {
+            if (!opts.tsconfig) {
+                throw new Error('`--tsgo-experimental` requires a tsconfig/jsconfig file');
+            }
+            const apiModule = await tryLoadTsApi(opts.workspaceUri.fsPath);
+            const astModule = await tryLoadTsAst(opts.workspaceUri.fsPath);
+            if (!apiModule || !astModule) {
                 throw new Error(
-                    'Failed to load tsgo API. Make sure @typescript/native-preview is installed and up to date.'
+                    '--tsgo-experimental requires @typescript/native-preview to be installed in the workspace'
                 );
             }
-            if (opts.watch) {
-                throw new Error('Watching is not supported with the TSGo API yet');
-            } else {
-                const exitCode = await runWithTsGoApi(api, ast, opts);
-                exitAfterFlush(exitCode);
-                return;
-            }
+            svelteCheckOptions.experimental = { tsgo: { apiModule, astModule } };
         }
 
         const useVirtualFiles = opts.incremental || opts.tsgo;

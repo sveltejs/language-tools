@@ -29,7 +29,8 @@ import {
     memoize,
     normalizePath,
     passMap,
-    swapRangeStartEndIfNecessary
+    swapRangeStartEndIfNecessary,
+    urlToPath
 } from '../../../utils';
 import { DiagnosticsProvider } from '../../interfaces';
 import {
@@ -50,10 +51,10 @@ import {
 } from './utils';
 
 const VIRTUAL_SUFFIX = '_virtual__';
-const svelteExtLength = '.svelte'.length;
-const DSvelteTsExtension = '.d.svelte.ts';
-const SvelteDtsExtension = '.svelte.d.ts';
-const dSvelteDtsExtLength = DSvelteTsExtension.length;
+const SVELTE_EXT_LENGTH = '.svelte'.length;
+const D_SVELTE_TS_EXTENSION = '.d.svelte.ts';
+const D_SVELTE_TS_LENGTH = D_SVELTE_TS_EXTENSION.length;
+const SVELTE_DTS_EXTENSION = '.svelte.d.ts';
 
 const UTF8_RUNE_SELF = 0x80;
 const textDecoder = new TextDecoder();
@@ -69,8 +70,18 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
     private readonly ambientTypesSource: string;
     private readonly snapshotOptions: SvelteSnapshotOptions;
     private readonly tsconfigPath: string;
+    /**
+     * files is currently empty
+     */
+    private projectConfig: ts.ParsedCommandLine | undefined;
 
     private createDocument: (filePath: string, content: string) => Document;
+
+    private pendingChanges = {
+        created: new Set<string>(),
+        changed: new Set<string>(),
+        deleted: new Set<string>()
+    };
 
     constructor(
         apiModule: typeof tsApiSync,
@@ -154,8 +165,16 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
 
     getProject() {
         const snapshot = this.api.updateSnapshot({
-            openProject: this.virtualTsconfigPath
+            openProject: this.virtualTsconfigPath,
+            fileChanges: {
+                created: Array.from(this.pendingChanges.created),
+                changed: Array.from(this.pendingChanges.changed),
+                deleted: Array.from(this.pendingChanges.deleted)
+            }
         });
+        this.pendingChanges.created.clear();
+        this.pendingChanges.changed.clear();
+        this.pendingChanges.deleted.clear();
         const project = snapshot.getProject(this.virtualTsconfigPath);
         return project;
     }
@@ -212,6 +231,47 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
             items: await this.getDiagnostics(document),
             kind: 'full'
         };
+    }
+
+    watchUpdate(doc: { text: string; uri: string }, kind: 'created' | 'changed' | 'deleted') {
+        const filePath = urlToPath(doc.uri) || '';
+        const normalizedPath = normalizePath(filePath);
+        if (kind === 'created') {
+            if (isSvelteFilePath(normalizedPath)) {
+                // trigger project files invalidation should be enough
+                this.pendingChanges.created.add(
+                    changeExtension(normalizedPath, D_SVELTE_TS_EXTENSION)
+                );
+            } else {
+                this.pendingChanges.created.add(normalizedPath);
+            }
+        } else if (kind === 'deleted') {
+            this.pendingChanges.deleted.add(normalizedPath);
+        } else if (kind === 'changed') {
+            let changedPath = normalizedPath;
+            if (this.files.has(normalizedPath)) {
+                const newSnapshot = DocumentSnapshot.fromFilePath(
+                    filePath,
+                    this.createDocument,
+                    this.snapshotOptions,
+                    ts.sys
+                );
+                if (newSnapshot instanceof SvelteDocumentSnapshot) {
+                    changedPath = toVirtualPath(newSnapshot);
+                }
+                this.virtualFiles.set(changedPath, newSnapshot.getFullText());
+                this.files.set(normalizedPath, newSnapshot);
+            }
+            this.pendingChanges.changed.add(changedPath);
+        }
+    }
+
+    getProjectConfig() {
+        if (!this.projectConfig) {
+            throw new Error('Project config not initialized yet');
+        }
+
+        return this.projectConfig;
     }
 
     private createFsProxy(): Required<
@@ -297,20 +357,21 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
                     return true;
                 }
 
-                if (filePath.endsWith(DSvelteTsExtension)) {
+                if (filePath.endsWith(D_SVELTE_TS_EXTENSION)) {
                     if (virtualFiles.has(normalizePath(filePath)) || fs.existsSync(filePath)) {
                         return true;
                     }
 
-                    const withoutExtension = filePath.slice(0, -dSvelteDtsExtLength);
-                    const svelteDtsPath = withoutExtension + SvelteDtsExtension;
+                    const withoutExtension = filePath.slice(0, -D_SVELTE_TS_LENGTH);
+                    const svelteDtsPath = withoutExtension + SVELTE_DTS_EXTENSION;
                     if (fs.existsSync(svelteDtsPath)) {
                         service.addDtsRedirect(filePath, path.basename(svelteDtsPath));
                         return true;
                     }
                     const targetSvelteFile = withoutExtension + '.svelte';
                     if (fs.existsSync(targetSvelteFile)) {
-                        service.addVirtualSvelteFile(targetSvelteFile);
+                        const virtualBaseName = service.addVirtualSvelteFile(targetSvelteFile);
+                        service.addDtsRedirect(filePath, virtualBaseName);
                         return true;
                     }
                 }
@@ -329,12 +390,12 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
 
             const virtualBaseName = service.addVirtualSvelteFile(fullPath);
             resultFiles.push(virtualBaseName);
-            const dSvelteTsPath = changeExtension(fullPath, DSvelteTsExtension);
+            const dSvelteTsPath = changeExtension(fullPath, D_SVELTE_TS_EXTENSION);
             const dSvelteTsName = path.basename(dSvelteTsPath);
             if (realFiles.includes(dSvelteTsName)) {
                 return;
             }
-            const svelteDtsName = changeExtension(name, SvelteDtsExtension);
+            const svelteDtsName = changeExtension(name, SVELTE_DTS_EXTENSION);
             const dSvelteTsTarget = realFiles.includes(svelteDtsName)
                 ? svelteDtsName
                 : virtualBaseName;
@@ -355,14 +416,23 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
             },
             path.dirname(tsconfigPath)
         );
+        this.projectConfig = commandLine;
         const sveltePackageInfo = getPackageInfo('svelte', this.virtualTsconfigPath);
-        const tsconfigDir = path.dirname(this.virtualTsconfigPath);
+
+        let svelteTsPath: string;
+        try {
+            // For when svelte2tsx/svelte-check is part of node_modules, for example VS Code extension
+            svelteTsPath = dirname(require.resolve(this.ambientTypesSource));
+        } catch (e) {
+            // Fall back to dirname
+            svelteTsPath = __dirname;
+        }
 
         const svelteTsxFiles = internalHelpers.get_global_types(
             ts.sys,
             sveltePackageInfo.version.major === 3,
             sveltePackageInfo.path,
-            dirname(require.resolve(this.ambientTypesSource, { paths: [tsconfigDir] })),
+            svelteTsPath,
             undefined
         );
         const virtualTsConfigContent = JSON.stringify({
@@ -378,8 +448,8 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
     }
 
     private addDtsRedirect(dSvelteTsPath: string, targetFileName: string) {
-        const specifierFileName = targetFileName.endsWith(SvelteDtsExtension)
-            ? targetFileName.replace(SvelteDtsExtension, '.svelte.js')
+        const specifierFileName = targetFileName.endsWith(SVELTE_DTS_EXTENSION)
+            ? targetFileName.replace(SVELTE_DTS_EXTENSION, '.svelte.js')
             : changeExtension(targetFileName, '.js');
         const dtsImportPath = './' + specifierFileName;
         const dtsContent = `export { default } from "${dtsImportPath}";\nexport * from "${dtsImportPath}";\n`;
@@ -458,7 +528,7 @@ function getParserErrorDiagnostic(tsDoc: SvelteDocumentSnapshot): Diagnostic | u
 
 function toVirtualPath(snapshot: DocumentSnapshot) {
     const ext = snapshot.scriptKind === ts.ScriptKind.TS ? '.ts' : '.js';
-    return normalizePath(snapshot.filePath.slice(0, -svelteExtLength) + VIRTUAL_SUFFIX + ext);
+    return normalizePath(snapshot.filePath.slice(0, -SVELTE_EXT_LENGTH) + VIRTUAL_SUFFIX + ext);
 }
 
 function toRealPath(path: string) {
