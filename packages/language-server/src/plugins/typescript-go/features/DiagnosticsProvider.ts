@@ -22,6 +22,7 @@ import {
     mapRangeToOriginal,
     positionAt
 } from '../../../lib/documents';
+import { configLoader } from '../../../lib/documents/configLoader';
 import { FileMap } from '../../../lib/documents/fileCollection';
 import { Logger } from '../../../logger';
 import {
@@ -49,7 +50,6 @@ import {
     isInReactiveStatement,
     isReactiveStatement
 } from './utils';
-import { configLoader } from '../../../lib/documents/configLoader';
 
 const VIRTUAL_SUFFIX = '_virtual__';
 const SVELTE_EXT_LENGTH = '.svelte'.length;

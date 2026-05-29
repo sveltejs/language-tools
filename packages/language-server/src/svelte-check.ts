@@ -22,12 +22,7 @@ import {
 } from './plugins/typescript/DocumentSnapshot';
 import { isInGeneratedCode } from './plugins/typescript/features/utils';
 import { mapAndFilterDiagnostics } from './plugins/typescript/features/DiagnosticsProvider';
-import {
-    convertRange,
-    getDiagnosticTag,
-    isSvelteFilePath,
-    mapSeverity
-} from './plugins/typescript/utils';
+import { convertRange, getDiagnosticTag, mapSeverity } from './plugins/typescript/utils';
 import { normalizePath, pathToUrl, urlToPath } from './utils';
 import { groupBy } from 'lodash';
 import { tsApiSync, tsAst } from './plugins/typescript-go/types';
