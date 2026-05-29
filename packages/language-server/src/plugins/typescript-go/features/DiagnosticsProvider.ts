@@ -49,6 +49,7 @@ import {
     isInReactiveStatement,
     isReactiveStatement
 } from './utils';
+import { configLoader } from '../../../lib/documents/configLoader';
 
 const VIRTUAL_SUFFIX = '_virtual__';
 const SVELTE_EXT_LENGTH = '.svelte'.length;
@@ -73,7 +74,8 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
     /**
      * files is currently empty
      */
-    private projectConfig: ts.ParsedCommandLine | undefined;
+    private projectConfig: ts.ParsedCommandLine;
+    private pendingConfigLoading: Promise<void> | undefined;
 
     private createDocument: (filePath: string, content: string) => Document;
 
@@ -111,7 +113,12 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
         this.api = new apiModule.API({
             fs: this.createFsProxy()
         });
-        this.writeVirtualTsconfig(tsconfigPath);
+        this.projectConfig = this.parseConfig();
+        if (this.projectConfig?.raw.svelteOptions?.namespace) {
+            this.snapshotOptions.typingsNamespace = this.projectConfig.raw.svelteOptions.namespace;
+        }
+        this.pendingConfigLoading = configLoader.loadConfigs(path.dirname(tsconfigPath));
+        this.writeVirtualTsconfig();
     }
 
     async getDiagnostics(
@@ -122,7 +129,7 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
         if (!filePath) {
             return [];
         }
-        const project = this.getProject();
+        const project = await this.getProject();
         if (!project) {
             return [];
         }
@@ -163,7 +170,11 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
         );
     }
 
-    getProject() {
+    async getProject() {
+        if (this.pendingConfigLoading) {
+            await this.pendingConfigLoading;
+            this.pendingConfigLoading = undefined;
+        }
         const snapshot = this.api.updateSnapshot({
             openProject: this.virtualTsconfigPath,
             fileChanges: {
@@ -267,10 +278,6 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
     }
 
     getProjectConfig() {
-        if (!this.projectConfig) {
-            throw new Error('Project config not initialized yet');
-        }
-
         return this.projectConfig;
     }
 
@@ -404,9 +411,9 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
         }
     }
 
-    private writeVirtualTsconfig(tsconfigPath: string) {
+    private parseConfig() {
         const commandLine = ts.parseJsonSourceFileConfigFileContent(
-            ts.parseJsonText(tsconfigPath, ts.sys.readFile(tsconfigPath) || ''),
+            ts.parseJsonText(this.tsconfigPath, ts.sys.readFile(this.tsconfigPath) || ''),
             {
                 ...ts.sys,
                 readDirectory() {
@@ -414,9 +421,14 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
                     return [];
                 }
             },
-            path.dirname(tsconfigPath)
+            path.dirname(this.tsconfigPath)
         );
-        this.projectConfig = commandLine;
+        return commandLine;
+    }
+
+    private writeVirtualTsconfig() {
+        const commandLine = this.projectConfig;
+        const tsconfigPath = this.tsconfigPath;
         const sveltePackageInfo = getPackageInfo('svelte', this.virtualTsconfigPath);
 
         let svelteTsPath: string;

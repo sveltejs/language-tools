@@ -1,5 +1,5 @@
 import path from 'path';
-import { pathToUrl } from '../../../../../src/utils';
+import { normalizePath, pathToUrl } from '../../../../../src/utils';
 import { existsSync, readdirSync, readFileSync, statSync } from 'fs';
 import { VERSION } from 'svelte/compiler';
 import { SvelteCheckTSGoDiagnosticsProvider } from '../../../../../src/plugins/typescript-go/features/DiagnosticsProvider';
@@ -22,10 +22,21 @@ const {
 } = getPackageInfo('svelte', __dirname);
 const expected = 'expectedv2.json';
 const newSvelteMajorExpected = `expected_svelte_${major}.json`;
+const expectedTsGo = 'expected_tsgo.json';
+const newSvelteMajorExpectedTsGo = `expected_tsgo_svelte_${major}.json`;
+
+const skips = [
+    // No API available for this case. Check later.
+    '/fixtures/$store-wrong-usage',
+
+    // Has to do with project assignment so not related to svelte-check --tsconfig support.
+    '/fixtures/project-reference/nested',
+    '/fixtures/project-reference/paths'
+];
 
 const providerPool = new Map<string, SvelteCheckTSGoDiagnosticsProvider>();
 
-describe.only('SvelteCheckTSGoDiagnosticsProvider', function () {
+describe('SvelteCheckTSGoDiagnosticsProvider', function () {
     const fixturesDir = path.join(root, 'fixtures');
     executeTests({
         dir: fixturesDir,
@@ -47,9 +58,15 @@ function executeTests(testOptions: { dir: string; workspaceDir: string }) {
     const getService = setupService(testOptions.dir);
 
     if (existsSync(inputFile)) {
+        const name = dir.substring(root.length);
         const _it =
-            dir.endsWith('.v5') && !isSvelte5Plus ? it.skip : dir.endsWith('.only') ? it.only : it;
-        _it(dir.substring(root.length), async () => {
+            (dir.endsWith('.v5') && !isSvelte5Plus) || skips.includes(normalizePath(name))
+                ? it.skip
+                : dir.endsWith('.only')
+                  ? it.only
+                  : it;
+
+        _it(name, async () => {
             const service = getService(testOptions.dir);
             await executeTest(inputFile, testOptions, service);
         });
@@ -81,10 +98,12 @@ async function executeTest(
     const diagnostics = await plugin.getDiagnostics(document);
 
     const defaultExpectedFile = path.join(dir, expected);
-    const expectedFileForCurrentSvelteMajor = path.join(dir, newSvelteMajorExpected);
-    const expectedFile = existsSync(expectedFileForCurrentSvelteMajor)
-        ? expectedFileForCurrentSvelteMajor
-        : defaultExpectedFile;
+    const expectedFileVariants = [
+        path.join(dir, newSvelteMajorExpectedTsGo),
+        path.join(dir, newSvelteMajorExpected),
+        path.join(dir, expectedTsGo)
+    ];
+    const expectedFile = expectedFileVariants.find(existsSync) ?? defaultExpectedFile;
     const snapshotFormatter = await createJsonSnapshotFormatter(dir);
 
     await updateSnapshotIfFailedOrEmpty({

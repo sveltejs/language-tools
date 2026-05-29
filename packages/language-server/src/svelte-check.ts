@@ -195,7 +195,7 @@ export class SvelteCheck {
         const filePath = urlToPath(doc.uri) || '';
         // in tsgo mode, let typescript check whether the file belongs to the project
         if (this.tsGoDiagnosticsProvider) {
-            this.tsGoDiagnosticsProvider.watchUpdate(doc, isNew ? 'created' : 'changed')
+            this.tsGoDiagnosticsProvider.watchUpdate(doc, isNew ? 'created' : 'changed');
             return;
         }
 
@@ -460,7 +460,7 @@ export class SvelteCheck {
             );
         }
 
-        const project = this.tsGoDiagnosticsProvider.getProject();
+        const project = await this.tsGoDiagnosticsProvider.getProject();
         if (!project) {
             throw new Error('Expected to have api project');
         }

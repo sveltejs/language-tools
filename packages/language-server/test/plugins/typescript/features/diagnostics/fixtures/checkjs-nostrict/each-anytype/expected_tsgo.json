@@ -1,0 +1,10 @@
+[
+    {
+        "range": { "start": { "line": 1, "character": 6 }, "end": { "line": 1, "character": 13 } },
+        "severity": 4,
+        "source": "js",
+        "message": "Variable 'anyType' implicitly has an 'any' type, but a better type may be inferred from usage.",
+        "code": 7043,
+        "tags": []
+    }
+]
