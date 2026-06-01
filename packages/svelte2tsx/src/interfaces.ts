@@ -1,10 +1,4 @@
-import {
-    ArrayPattern,
-    Identifier,
-    ObjectPattern,
-    Node,
-    VariableDeclaration
-} from 'estree';
+import { ArrayPattern, Identifier, ObjectPattern, Node, VariableDeclaration } from 'estree';
 // @ts-ignore
 import { DirectiveType, TemplateNode } from 'svelte/types/compiler/interfaces';
 
