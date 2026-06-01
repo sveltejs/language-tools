@@ -14,8 +14,8 @@ export function debounce<T>(
 ): (...args: T[]) => void {
     let timeout: ReturnType<typeof setTimeout>;
 
-    return () => {
+    return (...args: T[]) => {
         clearTimeout(timeout);
-        timeout = setTimeout(fn, miliseconds);
+        timeout = setTimeout(() => fn(...args), miliseconds);
     };
 }
