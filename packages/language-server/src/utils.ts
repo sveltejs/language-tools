@@ -1,6 +1,6 @@
-import { isEqual, uniqWith } from 'lodash';
 import { Node } from 'vscode-html-languageservice';
 import { Position, Range } from 'vscode-languageserver';
+import { isDeepStrictEqual } from 'node:util';
 import { URI } from 'vscode-uri';
 
 type Predicate<T> = (x: T) => boolean;
@@ -18,7 +18,18 @@ export function and<T>(...predicates: Array<Predicate<T>>) {
 }
 
 export function unique<T>(array: T[]): T[] {
-    return uniqWith(array, isEqual);
+    return array.filter((item, index) => {
+        return array.findIndex((step) => isDeepStrictEqual(item, step)) === index;
+    });
+}
+
+// todo: replace with `Object.groupBy` when minimum node is bumped to v22
+export function groupBy<T>(array: readonly T[], predicate: (item: T) => string) {
+    return array.reduce<Record<string, T>>((acc, item) => {
+        const key = predicate(item);
+        if (!acc[key]) acc[key] = item;
+        return acc;
+    }, {});
 }
 
 export function clamp(num: number, min: number, max: number): number {
@@ -152,7 +163,7 @@ export function debounceSameArg<T>(
     shouldCancelPrevious: (newArg: T, prevArg?: T) => boolean,
     miliseconds: number
 ): (arg: T) => void {
-    let timeout: any;
+    let timeout: ReturnType<typeof setTimeout>;
     let prevArg: T | undefined;
 
     return (arg: T) => {
@@ -168,6 +179,15 @@ export function debounceSameArg<T>(
     };
 }
 
+export function debounce(fn: () => void, miliseconds: number): () => void {
+    let timeout: ReturnType<typeof setTimeout>;
+
+    return () => {
+        clearTimeout(timeout);
+        timeout = setTimeout(fn, miliseconds);
+    };
+}
+
 /**
  * Debounces a function but also waits at minimum the specified number of miliseconds until
  * the next invocation. This avoids needless calls when a synchronous call (like diagnostics)
@@ -177,7 +197,7 @@ export function debounceSameArg<T>(
  * @param miliseconds Number of miliseconds to debounce/throttle
  */
 export function debounceThrottle(fn: () => void, miliseconds: number): () => void {
-    let timeout: any;
+    let timeout: ReturnType<typeof setTimeout>;
     let lastInvocation = Date.now() - miliseconds;
 
     function maybeCall() {

@@ -770,7 +770,6 @@
         ]
     },
     "devDependencies": {
-        "@types/lodash": "^4.14.116",
         "@types/node": "^18.0.0",
         "@types/semver": "^7.7.0",
         "@types/vscode": "^1.67",
@@ -781,7 +780,6 @@
         "textmate-grammar-test": "^0.6.0"
     },
     "dependencies": {
-        "lodash": "^4.17.21",
         "svelte-language-server": "workspace:*",
         "typescript-svelte-plugin": "workspace:*",
         "vscode-languageclient": "^9.0.1",
