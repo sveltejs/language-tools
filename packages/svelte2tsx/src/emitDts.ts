@@ -194,7 +194,7 @@ async function createTsCompilerHost(options: any, svelteMap: SvelteMap, absDecla
             // rootDir and falls back to emitting declarations next to the source.
             if (fileName.endsWith('.d.ts') || fileName.endsWith('.d.ts.map')) {
                 const resolved = path.resolve(fileName).replace(/\\/g, '/');
-                if (!resolved.startsWith(absDeclarationDir.replace(/\\/g, '/') + '/'))) {
+                if (!resolved.startsWith(absDeclarationDir.replace(/\\/g, '/') + '/')) {
                     return;
                 }
             }
