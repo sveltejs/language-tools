@@ -202,6 +202,9 @@ async function createTsCompilerHost(options: any, svelteMap: SvelteMap, absDecla
                 if (!resolved.startsWith(absDeclarationDir.replace(/\\/g, '/') + '/'))) {
                     return;
                 }
+                if (!resolved.startsWith(absDeclarationDir.replace(/\\/g, '/') + '/'))) {
+                    return;
+                }
             }
 
             if (fileName.endsWith('d.ts.map')) {
