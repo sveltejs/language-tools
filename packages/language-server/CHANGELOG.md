@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.18.1
+
+### Patch Changes
+
+-   feat: add support for svelte config ts/mts files ([#3009](https://github.com/sveltejs/language-tools/pull/3009))
+
+-   feat: support CSS completions in nested style tags ([#3022](https://github.com/sveltejs/language-tools/pull/3022))
+
+-   fix: support prettier.useEditorConfig setting ([#3026](https://github.com/sveltejs/language-tools/pull/3026))
+
+-   fix: prevent > in expression affects HTML folding ([#3029](https://github.com/sveltejs/language-tools/pull/3029))
+
+-   Updated dependencies [[`86fafb1`](https://github.com/sveltejs/language-tools/commit/86fafb1f42ab87aeda282c9457fd44303a75f45c), [`6bd8b17`](https://github.com/sveltejs/language-tools/commit/6bd8b175ad5918b5822e4323a4e67d79918eff84), [`4a064e5`](https://github.com/sveltejs/language-tools/commit/4a064e5ef6d1c0148b2f833fadafea1b134e9d5c), [`e9f4ce9`](https://github.com/sveltejs/language-tools/commit/e9f4ce9594cd63e6f260be7efd482e7e2b1c53cd), [`3474048`](https://github.com/sveltejs/language-tools/commit/3474048822eca390e58940e10ae844c77b81501a)]:
+    -   svelte2tsx@0.7.56
+
 ## 0.18.0
 
 ### Minor Changes
