@@ -363,7 +363,7 @@ export class LSConfigManager {
         // Ideally we shouldn't need the merge here because all updates should be valid and complete configs.
         // But since those configs come from the client they might be out of sync with the valid config:
         // We might at some point in the future forget to sync config settings in all packages after updating the config.
-        this.config = defu({}, defaultLSConfig, this.config, config);
+        this.config = defu(config, this.config, defaultLSConfig);
         // Merge will keep arrays/objects if the new one is empty/has less entries,
         // therefore we need some extra checks if there are new settings
         if (config?.svelte?.compilerWarnings) {
@@ -444,11 +444,10 @@ export class LSConfigManager {
         return (
             returnObjectIfHasKeys(prettierFromFileConfig) ||
             defu(
-                {}, // merge into empty obj to not manipulate own config
-                this.get('svelte.format.config'),
                 returnObjectIfHasKeys(this.getPrettierConfig()) ||
                     overridesWhenNoPrettierConfig ||
-                    {}
+                    {},
+                this.get('svelte.format.config') as any
             )
         );
     }
