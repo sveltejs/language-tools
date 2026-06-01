@@ -198,6 +198,9 @@ async function createTsCompilerHost(options: any, svelteMap: SvelteMap, absDecla
                     ts.sys.useCaseSensitiveFileNames ? p : p.toLowerCase();
                 if (!normalise(resolved).startsWith(normalise(absDeclarationDir + path.sep))) {
                     return;
+                const resolved = path.resolve(fileName).replace(/\\/g, '/');
+                if (!resolved.startsWith(absDeclarationDir.replace(/\\/g, '/') + '/'))) {
+                    return;
                 }
             }
 
