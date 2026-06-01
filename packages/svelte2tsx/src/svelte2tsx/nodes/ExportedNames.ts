@@ -165,6 +165,7 @@ export class ExportedNames {
             initializer: ts.CallExpression & { expression: ts.Identifier };
         }
     ): void {
+        const bindingLocalNames: string[] = [];
         // Check if the $props() rune uses $bindable()
         if (ts.isObjectBindingPattern(node.name)) {
             for (const element of node.name.elements) {
@@ -187,6 +188,7 @@ export class ExportedNames {
                         if (ts.isCallExpression(call) && ts.isIdentifier(call.expression)) {
                             if (call.expression.text === '$bindable') {
                                 this.$props.bindings.push(name);
+                                bindingLocalNames.push(element.name.text);
                             }
                         }
                     }
@@ -194,11 +196,11 @@ export class ExportedNames {
             }
         }
 
-        if (this.$props.bindings.length > 0) {
+        if (bindingLocalNames.length > 0) {
             this.str.appendLeft(
                 node.end + this.astOffset,
                 surroundWithIgnoreComments(
-                    ';' + this.$props.bindings.map((prop) => prop + ';').join('')
+                    ';' + bindingLocalNames.map((prop) => prop + ';').join('')
                 )
             );
         }

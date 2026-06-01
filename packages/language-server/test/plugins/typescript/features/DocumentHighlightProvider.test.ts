@@ -20,8 +20,8 @@ describe('DocumentHighlightProvider', function () {
     }
 
     function setup(filename: string) {
-        const docManager = new DocumentManager(
-            (textDocument) => new Document(textDocument.uri, textDocument.text)
+        const docManager = new DocumentManager((textDocument) =>
+            Document.createForTest(textDocument.uri, textDocument.text)
         );
         const lsAndTsDocResolver = new LSAndTSDocResolver(
             docManager,
@@ -102,8 +102,8 @@ describe('DocumentHighlightProvider', function () {
         }
 
         function setup(content: string) {
-            const docManager = new DocumentManager(
-                (textDocument) => new Document(textDocument.uri, textDocument.text)
+            const docManager = new DocumentManager((textDocument) =>
+                Document.createForTest(textDocument.uri, textDocument.text)
             );
             const lsAndTsDocResolver = new LSAndTSDocResolver(
                 docManager,

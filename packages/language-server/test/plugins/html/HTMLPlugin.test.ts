@@ -22,12 +22,18 @@ const isSvelte5Plus = Number(VERSION.split('.')[0]) >= 5;
 
 describe('HTML Plugin', () => {
     function setup(content: string) {
-        const document = new Document('file:///hello.svelte', content);
+        const document = new Document('file:///hello.svelte', content, /*skipConfigLoading*/ true);
         const docManager = new DocumentManager(() => document);
         const configManager = new LSConfigManager();
         const plugin = new HTMLPlugin(docManager, configManager, new FileSystemProvider(), []);
         docManager.openClientDocument(<any>'some doc');
         return { plugin, document, configManager };
+    }
+
+    function setFoldingRangeCapability(configManager: LSConfigManager) {
+        configManager.updateClientCapabilities({
+            textDocument: { foldingRange: { lineFoldingOnly: true } }
+        });
     }
 
     it('provides hover info', async () => {
@@ -288,27 +294,48 @@ describe('HTML Plugin', () => {
     });
 
     it('provides folding range', () => {
-        const { plugin, document } = setup('<div>\n  <div>\n  </div>\n  </div>');
+        const { plugin, document, configManager } = setup('<div>\n  <div>\n  </div>\n  </div>');
+        setFoldingRangeCapability(configManager);
 
         const ranges = plugin.getFoldingRanges(document);
         assert.deepStrictEqual(ranges, <FoldingRange[]>[{ startLine: 0, endLine: 2 }]);
     });
 
     it('provides folding range for element with arrow function handler', () => {
-        const { plugin, document } = setup('<div \non:click={() => {}}\n />');
+        const { plugin, document, configManager } = setup('<div \non:click={() => {}}\n />');
+        setFoldingRangeCapability(configManager);
 
         const ranges = plugin.getFoldingRanges(document);
         assert.deepStrictEqual(ranges, <FoldingRange[]>[{ startLine: 0, endLine: 1 }]);
     });
 
     it('provides indent based folding range for template tag', () => {
-        const { plugin, document } = setup('<template lang="pug">\np\n  div\n</template>');
+        const { plugin, document, configManager } = setup(
+            '<template lang="pug">\np\n  div\n</template>'
+        );
+        setFoldingRangeCapability(configManager);
 
         const ranges = plugin.getFoldingRanges(document);
         assert.deepStrictEqual(ranges, <FoldingRange[]>[
             { startLine: 0, endLine: 2 },
             { startLine: 1, endLine: 2 }
         ]);
+    });
+
+    it('provides folding range for element with arrow function handler', () => {
+        const { plugin, document, configManager } = setup(
+            [
+                '{#if step < 1}',
+                '    <div>',
+                '        Not collapsible (Neither <!-- {#if} nor <div> -->)',
+                '    </div>',
+                '{/if}'
+            ].join('\n')
+        );
+        setFoldingRangeCapability(configManager);
+
+        const ranges = plugin.getFoldingRanges(document);
+        assert.deepStrictEqual(ranges, <FoldingRange[]>[{ startLine: 1, endLine: 2 }]);
     });
 
     it('provide document highlight', () => {

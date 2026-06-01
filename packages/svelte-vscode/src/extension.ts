@@ -32,7 +32,18 @@ import { TsPlugin } from './tsplugin';
 import { addFindComponentReferencesListener } from './typescript/findComponentReferences';
 import { addFindFileReferencesListener } from './typescript/findFileReferences';
 import { setupSvelteKit } from './sveltekit';
-import { resolveCodeLensMiddleware } from './middlewares';
+import { resolveCodeLensMiddleware } from './typescript/codeLensMiddleware';
+import {
+    getMergedConfiguration as getMergedTsConfigurations,
+    sendNotificationMiddleware
+} from './typescript/configurationMiddleware';
+import { versions } from 'node:process';
+
+const [node_major, node_minor] = (versions?.node ?? '0.0.0-unknown').split('.', 3).map(Number);
+
+const add_experimental_strip_types_flag =
+    (node_major === 22 && node_minor > 5 && node_minor < 18) || // flag added in 22.6.0, removed in 22.18.0
+    (node_major === 23 && node_minor < 6); // flag removed in 23.6.0
 
 namespace TagCloseRequest {
     export const type: RequestType<TextDocumentPositionParams, string, any> = new RequestType(
@@ -120,7 +131,12 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
     const serverModule = require.resolve(lsPath || 'svelte-language-server/bin/server.js');
     console.log('Loading server from ', serverModule);
 
+    const serverRuntime = runtimeConfig.get<string>('runtime');
+
     const runExecArgv: string[] = [];
+    if (!serverRuntime && add_experimental_strip_types_flag) {
+        runExecArgv.push('--experimental-strip-types');
+    }
 
     const runtimeArgs = runtimeConfig.get<string[]>('runtime-args');
     if (runtimeArgs !== undefined) {
@@ -152,7 +168,6 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
         }
     };
 
-    const serverRuntime = runtimeConfig.get<string>('runtime');
     if (serverRuntime) {
         serverOptions.run.runtime = serverRuntime;
         serverOptions.debug.runtime = serverRuntime;
@@ -185,9 +200,7 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
                 svelte: workspace.getConfiguration('svelte'),
                 prettier: workspace.getConfiguration('prettier'),
                 emmet: workspace.getConfiguration('emmet'),
-                typescript: workspace.getConfiguration('typescript'),
-                javascript: workspace.getConfiguration('javascript'),
-                'js/ts': workspace.getConfiguration('js/ts'),
+                ...getMergedTsConfigurations(),
                 css: workspace.getConfiguration('css'),
                 less: workspace.getConfiguration('less'),
                 scss: workspace.getConfiguration('scss'),
@@ -197,7 +210,8 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
             isTrusted: workspace.isTrusted
         },
         middleware: {
-            resolveCodeLens: resolveCodeLensMiddleware
+            resolveCodeLens: resolveCodeLensMiddleware,
+            sendNotification: sendNotificationMiddleware
         }
     };
 
@@ -224,7 +238,7 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
             [
                 // /^tsconfig\.json$/,
                 // /^jsconfig\.json$/,
-                /^svelte\.config\.(js|cjs|mjs)$/,
+                /^svelte\.config\.(js|ts|cjs|mjs|mts)$/,
                 // https://prettier.io/docs/en/configuration.html
                 /^\.prettierrc$/,
                 /^\.prettierrc\.(json|yml|yaml|json5|toml)$/,
@@ -262,7 +276,7 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
 
     addRenameFileListener(getLS);
 
-    addCompilePreviewCommand(getLS, context);
+    addCompilePreviewCommands(getLS, context);
 
     addExtracComponentCommand(getLS, context);
 
@@ -443,7 +457,7 @@ function addRenameFileListener(getLS: () => LanguageClient) {
     });
 }
 
-function addCompilePreviewCommand(getLS: () => LanguageClient, context: ExtensionContext) {
+function addCompilePreviewCommands(getLS: () => LanguageClient, context: ExtensionContext) {
     const compiledCodeContentProvider = new CompiledCodeContentProvider(getLS);
 
     context.subscriptions.push(
@@ -466,7 +480,26 @@ function addCompilePreviewCommand(getLS: () => LanguageClient, context: Extensio
                 async () => {
                     // Open a new preview window for the compiled code
                     return await window.showTextDocument(
-                        CompiledCodeContentProvider.previewWindowUri,
+                        CompiledCodeContentProvider.jsPreviewWindowUri,
+                        {
+                            preview: true,
+                            viewColumn: ViewColumn.Beside
+                        }
+                    );
+                }
+            );
+        }),
+        commands.registerTextEditorCommand('svelte.showCompiledCSSToSide', async (editor) => {
+            if (editor?.document?.languageId !== 'svelte') {
+                return;
+            }
+
+            window.withProgress(
+                { location: ProgressLocation.Window, title: 'Compiling...' },
+                async () => {
+                    // Open a new preview window for the compiled code
+                    return await window.showTextDocument(
+                        CompiledCodeContentProvider.cssPreviewWindowUri,
                         {
                             preview: true,
                             viewColumn: ViewColumn.Beside

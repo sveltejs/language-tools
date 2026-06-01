@@ -16,8 +16,8 @@ describe('SelectionRangeProvider', function () {
     serviceWarmup(this, selectionRangeTestDir, pathToUrl(testDir));
 
     function setup(fileName: string) {
-        const docManager = new DocumentManager(
-            (textDocument) => new Document(textDocument.uri, textDocument.text)
+        const docManager = new DocumentManager((textDocument) =>
+            Document.createForTest(textDocument.uri, textDocument.text)
         );
         const filePath = path.join(testDir, 'testfiles', 'selection-range', fileName);
         const lsAndTsDocResolver = new LSAndTSDocResolver(

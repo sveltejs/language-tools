@@ -569,6 +569,14 @@
                 }
             },
             {
+                "command": "svelte.showCompiledCSSToSide",
+                "title": "Svelte: Show Compiled CSS",
+                "icon": {
+                    "light": "icons/preview-css-right-light.svg",
+                    "dark": "icons/preview-css-right-dark.svg"
+                }
+            },
+            {
                 "command": "svelte.extractComponent",
                 "title": "Svelte: Extract Component"
             },
@@ -628,6 +636,10 @@
                     "when": "editorLangId == svelte"
                 },
                 {
+                    "command": "svelte.showCompiledCSSToSide",
+                    "when": "editorLangId == svelte"
+                },
+                {
                     "command": "svelte.typescript.findAllFileReferences",
                     "when": "editorLangId == svelte && resourceScheme == file"
                 },
@@ -639,6 +651,11 @@
             "editor/title": [
                 {
                     "command": "svelte.showCompiledCodeToSide",
+                    "when": "editorLangId == svelte",
+                    "group": "navigation"
+                },
+                {
+                    "command": "svelte.showCompiledCSSToSide",
                     "when": "editorLangId == svelte",
                     "group": "navigation"
                 }
@@ -760,7 +777,6 @@
         "js-yaml": "^3.14.0",
         "semver": "^7.7.2",
         "tslib": "^2.4.0",
-        "typescript": "^5.9.2",
         "vitest": "^3.2.4",
         "textmate-grammar-test": "^0.6.0"
     },
@@ -769,6 +785,7 @@
         "svelte-language-server": "workspace:*",
         "typescript-svelte-plugin": "workspace:*",
         "vscode-languageclient": "^9.0.1",
-        "vscode-languageserver-protocol": "3.17.5"
+        "vscode-languageserver-protocol": "3.17.5",
+        "typescript": "^6.0.3"
     }
 }

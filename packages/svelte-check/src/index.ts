@@ -460,7 +460,8 @@ async function runWithVirtualFiles(
             opts.incremental,
             opts.workspaceUri.fsPath
         ),
-        emitResult
+        emitResult,
+        opts.tsconfig
     );
 
     const {
@@ -563,6 +564,18 @@ async function watchWithVirtualFiles(opts: SvelteCheckCliOptions, writer: Writer
         .add(opts.workspaceUri.fsPath);
 }
 
+// `process.stdout.write` is asynchronous on non-TTY pipes, and `process.exit`
+// does not wait for queued writes to drain. Under heavy diagnostic load this
+// caused the output to be cut short when using `--output machine-verbose`.
+function exitAfterFlush(code: number): void {
+    let pending = 2;
+    const done = () => {
+        if (--pending === 0) process.exit(code);
+    };
+    process.stdout.write('', done);
+    process.stderr.write('', done);
+}
+
 parseOptions(async (opts) => {
     try {
         const writer = instantiateWriter(opts);
@@ -579,15 +592,13 @@ parseOptions(async (opts) => {
             await watchWithVirtualFiles(opts, writer);
         } else if (useVirtualFiles) {
             const result = await runWithVirtualFiles(opts, writer);
-            if (
+            const exitCode =
                 result &&
                 result.errorCount === 0 &&
                 (!opts.failOnWarnings || result.warningCount === 0)
-            ) {
-                process.exit(0);
-            } else {
-                process.exit(1);
-            }
+                    ? 0
+                    : 1;
+            exitAfterFlush(exitCode);
         } else if (opts.watch) {
             // Wire callbacks that can reference the watcher instance created below
             let watcher: DiagnosticsWatcher;
@@ -613,15 +624,13 @@ parseOptions(async (opts) => {
                 await openAllDocuments(opts.workspaceUri, opts.filePathsToIgnore, svelteCheck);
             }
             const result = await getDiagnostics(opts.workspaceUri, writer, svelteCheck);
-            if (
+            const exitCode =
                 result &&
                 result.errorCount === 0 &&
                 (!opts.failOnWarnings || result.warningCount === 0)
-            ) {
-                process.exit(0);
-            } else {
-                process.exit(1);
-            }
+                    ? 0
+                    : 1;
+            exitAfterFlush(exitCode);
         }
     } catch (_err) {
         console.error(_err);

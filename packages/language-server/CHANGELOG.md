@@ -1,5 +1,54 @@
 # Changelog
 
+## 0.18.0
+
+### Minor Changes
+
+-   feat: typescript 6.0 support ([#2985](https://github.com/sveltejs/language-tools/pull/2985))
+
+### Patch Changes
+
+-   Updated dependencies [[`29e2894`](https://github.com/sveltejs/language-tools/commit/29e2894c795f5b1fcfc091ba03d541148a18e4a2)]:
+    -   svelte2tsx@0.7.55
+
+## 0.17.31
+
+### Patch Changes
+
+-   fix: prevent duplicate diagnostics ([#3000](https://github.com/sveltejs/language-tools/pull/3000))
+
+-   fix: properly place svelte-ignore comment in quickfix when `<script module>` presents ([#3011](https://github.com/sveltejs/language-tools/pull/3011))
+
+-   fix: prevent incorrect $types imports being injected when moving +page.svelte files ([#3010](https://github.com/sveltejs/language-tools/pull/3010))
+
+-   fix: prevent extra script indentation when inserting svelte-ignore comments ([#3011](https://github.com/sveltejs/language-tools/pull/3011))
+
+-   fix: provide tsconfig.json diagnostics for svelte-check ([#3005](https://github.com/sveltejs/language-tools/pull/3005))
+
+-   Updated dependencies [[`8b103ba`](https://github.com/sveltejs/language-tools/commit/8b103bab7a8234397a8d4b88f75c88514354b5c5)]:
+    -   svelte2tsx@0.7.54
+
+## 0.17.30
+
+### Patch Changes
+
+-   perf: micro-optimizations in hot paths ([#2960](https://github.com/sveltejs/language-tools/pull/2960))
+
+-   fix: prevent config loading message in svelte-check --incremental ([#2974](https://github.com/sveltejs/language-tools/pull/2974))
+
+-   perf: enable incremental TypeScript reparsing via getChangeRange ([#2961](https://github.com/sveltejs/language-tools/pull/2961))
+
+-   perf: various optimization with ast walk ([#2969](https://github.com/sveltejs/language-tools/pull/2969))
+
+-   feat: pull diagnostics support ([#2978](https://github.com/sveltejs/language-tools/pull/2978))
+
+-   fix: prevent error with escape sequence in attribute ([#2968](https://github.com/sveltejs/language-tools/pull/2968))
+
+-   fix: typescript 6.0 compatibility ([#2988](https://github.com/sveltejs/language-tools/pull/2988))
+
+-   Updated dependencies [[`5b9a4ac`](https://github.com/sveltejs/language-tools/commit/5b9a4ac9f5949f709667d43a16766475bc5a63d8)]:
+    -   svelte2tsx@0.7.53
+
 ## 0.17.29
 
 ### Patch Changes

@@ -2,7 +2,14 @@ import MagicString from 'magic-string';
 import { walk } from 'estree-walker';
 // @ts-ignore
 import { TemplateNode, Text } from 'svelte/types/compiler/interfaces';
-import { Attribute, BaseNode, BaseDirective, StyleDirective, ConstTag } from '../interfaces';
+import {
+    Attribute,
+    BaseNode,
+    BaseDirective,
+    StyleDirective,
+    ConstTag,
+    DeclarationTag
+} from '../interfaces';
 import { parseHtmlx } from '../utils/htmlxparser';
 import { handleActionDirective } from './nodes/Action';
 import { handleAnimateDirective } from './nodes/Animation';
@@ -16,6 +23,7 @@ import {
     handleTrailingEndComment
 } from './nodes/Comment';
 import { handleConstTag } from './nodes/ConstTag';
+import { handleDeclarationTag } from './nodes/DeclarationTag';
 import { handleDebug } from './nodes/DebugTag';
 import { handleEach } from './nodes/EachBlock';
 import { Element } from './nodes/Element';
@@ -30,7 +38,12 @@ import { handleSpread } from './nodes/Spread';
 import { handleStyleDirective } from './nodes/StyleDirective';
 import { handleText } from './nodes/Text';
 import { handleTransitionDirective } from './nodes/Transition';
-import { handleImplicitChildren, handleSnippet, hoistSnippetBlock } from './nodes/SnippetBlock';
+import {
+    collectSnippetComponentGlobals,
+    handleImplicitChildren,
+    handleSnippet,
+    hoistSnippetBlock
+} from './nodes/SnippetBlock';
 import { handleRenderTag } from './nodes/RenderTag';
 import { ComponentDocumentation } from '../svelte2tsx/nodes/ComponentDocumentation';
 import { ScopeStack } from '../svelte2tsx/utils/Scope';
@@ -101,6 +114,7 @@ export function convertHtmlxToJsx(
     let element: Element | InlineComponent | undefined;
 
     const pendingSnippetHoistCheck = new Set<BaseNode>();
+    let elementBeforeSnippet: Array<Element | InlineComponent | undefined> = [];
 
     let uses$$props = false;
     let uses$$restProps = false;
@@ -320,18 +334,17 @@ export function convertHtmlxToJsx(
                         break;
                     case 'SnippetBlock':
                         scopeStack.push();
-                        handleSnippet(
-                            str,
-                            node,
+                        const parentComponent =
                             (element instanceof InlineComponent &&
                                 estreeTypedParent.type === 'InlineComponent') ||
-                                (element instanceof Element &&
-                                    element.tagName === 'svelte:boundary')
+                            (element instanceof Element && element.tagName === 'svelte:boundary')
                                 ? element
-                                : undefined,
-                            emitJsDoc,
-                            isTsFile
-                        );
+                                : undefined;
+
+                        elementBeforeSnippet.push(element);
+                        element = undefined;
+
+                        handleSnippet(str, node, parentComponent, emitJsDoc, isTsFile);
                         if (parent === ast) {
                             // root snippet -> move to instance script or possibly even module script
                             const result = analyze({
@@ -347,6 +360,12 @@ export function convertHtmlxToJsx(
                                     body: node.children as any[] // wrong AST, but periscopic doesn't care
                                 }
                             });
+
+                            for (const name of collectSnippetComponentGlobals(node.children)) {
+                                if (!result.globals.has(name)) {
+                                    result.globals.set(name, { name } as any);
+                                }
+                            }
 
                             rootSnippets.push([
                                 node.start,
@@ -370,6 +389,9 @@ export function convertHtmlxToJsx(
                         break;
                     case 'ConstTag':
                         handleConstTag(str, node as ConstTag);
+                        break;
+                    case 'DeclarationTag':
+                        handleDeclarationTag(str, node as DeclarationTag);
                         break;
                     case 'RenderTag':
                         handleRenderTag(str, node);
@@ -567,8 +589,11 @@ export function convertHtmlxToJsx(
                     case 'BlockStatement':
                     case 'FunctionDeclaration':
                     case 'ArrowFunctionExpression':
+                        scopeStack.pop();
+                        break;
                     case 'SnippetBlock':
                         scopeStack.pop();
+                        element = elementBeforeSnippet.pop();
                         break;
                     case 'EachBlock':
                         onTemplateScopeLeave();

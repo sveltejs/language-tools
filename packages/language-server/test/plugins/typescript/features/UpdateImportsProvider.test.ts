@@ -24,7 +24,7 @@ describe('UpdateImportsProviderImpl', function () {
 
     async function setup(filename: string, useCaseSensitiveFileNames: boolean) {
         const docManager = new DocumentManager(
-            (textDocument) => new Document(textDocument.uri, textDocument.text),
+            (textDocument) => Document.createForTest(textDocument.uri, textDocument.text),
             { useCaseSensitiveFileNames }
         );
         const lsAndTsDocResolver = new LSAndTSDocResolver(
@@ -67,6 +67,24 @@ describe('UpdateImportsProviderImpl', function () {
                     './documentation.svelte'
                 )
             ])
+        ]);
+    });
+
+    it("doesn't update imports for ./$types", async () => {
+        const { updateImportsProvider, fileUri } = await setup(
+            '+page.svelte',
+            ts.sys.useCaseSensitiveFileNames
+        );
+        const newUri = pathToUrl(join(updateImportTestDir, 'subdirectory/+page.svelte'));
+        const workspaceEdit = await updateImportsProvider.updateImports({
+            oldUri: fileUri,
+            newUri
+        });
+        assert.deepStrictEqual(workspaceEdit?.documentChanges, [
+            TextDocumentEdit.create(
+                OptionalVersionedTextDocumentIdentifier.create(newUri, null),
+                []
+            )
         ]);
     });
 

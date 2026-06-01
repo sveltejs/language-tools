@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.7.55
+
+### Patch Changes
+
+-   feat: typescript 6.0 support ([#2985](https://github.com/sveltejs/language-tools/pull/2985))
+
+## 0.7.54
+
+### Patch Changes
+
+-   fix: hoist self-referenced props interface ([#2998](https://github.com/sveltejs/language-tools/pull/2998))
+
+## 0.7.53
+
+### Patch Changes
+
+-   fix: prevent error with escape sequence in attribute ([#2968](https://github.com/sveltejs/language-tools/pull/2968))
+
 ## 0.7.52
 
 ### Patch Changes

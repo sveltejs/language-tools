@@ -22,7 +22,7 @@ import { FileType, LanguageServiceOptions } from 'vscode-css-languageservice';
 
 describe('CSS Plugin', () => {
     function setup(content: string, lsOptions?: LanguageServiceOptions) {
-        const document = new Document('file:///hello.svelte', content);
+        const document = Document.createForTest('file:///hello.svelte', content);
         const docManager = new DocumentManager(() => document);
         const pluginManager = new LSConfigManager();
         const plugin = new CSSPlugin(
@@ -83,6 +83,18 @@ describe('CSS Plugin', () => {
         it('not for style attribute with interpolation', () => {
             const { plugin, document } = setup('<div style="height: {}"></div>');
             assert.deepStrictEqual(plugin.doHover(document, Position.create(0, 13)), null);
+        });
+
+        it('provides hover info inside nested style tag', () => {
+            const { plugin, document } = setup('<svelte:head><style>h1 {}</style></svelte:head>');
+
+            assert.deepStrictEqual(plugin.doHover(document, Position.create(0, 20)), <Hover>{
+                contents: [
+                    { language: 'html', value: '<h1>' },
+                    '[Selector Specificity](https://developer.mozilla.org/docs/Web/CSS/Specificity): (0, 0, 1)'
+                ],
+                range: Range.create(0, 20, 0, 22)
+            });
         });
     });
 
@@ -207,6 +219,24 @@ describe('CSS Plugin', () => {
                         }
                     }
                 }
+            );
+        });
+
+        it('provides completions inside nested style tag', async () => {
+            const { plugin, document } = setup(`<svelte:head><style></style></svelte:head>`);
+
+            const completions = await plugin.getCompletions(document, Position.create(0, 20), {
+                triggerCharacter: '.'
+            } as CompletionContext);
+
+            assert.ok(
+                Array.isArray(completions?.items),
+                'Expected completion items to be an array'
+            );
+            assert.ok(completions.items.length > 0, 'Expected completions to have length');
+            assert.ok(
+                completions.items.some((item) => item.label === '@charset'),
+                'Expected CSS completions'
             );
         });
     });

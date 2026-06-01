@@ -1,5 +1,33 @@
 # Changelog
 
+## 4.4.8
+
+### Patch Changes
+
+-   feat: typescript 6.0 support ([#2985](https://github.com/sveltejs/language-tools/pull/2985))
+
+## 4.4.7
+
+### Patch Changes
+
+-   fix: flush stdout/stderr before exit ([#3014](https://github.com/sveltejs/language-tools/pull/3014))
+
+-   fix: report diagnostics in tsconfig.json ([#3005](https://github.com/sveltejs/language-tools/pull/3005))
+
+## 4.4.6
+
+### Patch Changes
+
+-   fix: prevent config loading message in svelte-check --incremental ([#2974](https://github.com/sveltejs/language-tools/pull/2974))
+
+-   fix: resolve svelte files with NodeNext in --incremental/tsgo ([#2990](https://github.com/sveltejs/language-tools/pull/2990))
+
+-   perf: various optimization with ast walk ([#2969](https://github.com/sveltejs/language-tools/pull/2969))
+
+-   fix: prevent error with escape sequence in attribute ([#2968](https://github.com/sveltejs/language-tools/pull/2968))
+
+-   fix: typescript 6.0 compatibility ([#2988](https://github.com/sveltejs/language-tools/pull/2988))
+
 ## 4.4.5
 
 ### Patch Changes

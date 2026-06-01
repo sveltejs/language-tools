@@ -184,7 +184,8 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
                     'SnippetBlock',
                     'IfBlock',
                     'EachBlock',
-                    'AwaitBlock'
+                    'AwaitBlock',
+                    'Style'
                 ].includes(svelteNode.parent?.type as any)) ||
             // Cursor is at <div>|</div> in which case there's no TextNode inbetween
             document.getText().substring(originalOffset - 1, originalOffset + 2) === '></'
