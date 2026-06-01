@@ -387,7 +387,7 @@ export class LSConfigManager {
      */
     get<T>(key: string): T {
         // @ts-expect-error we know it works within expectations
-        return key.split('.').reduce((acc, s) => (acc ? acc[s] : null), this.config);
+        return key.split('.').reduce((acc, s) => (acc ? acc[s] : undefined), this.config);
     }
 
     /**
