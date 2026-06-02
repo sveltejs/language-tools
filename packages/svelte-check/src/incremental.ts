@@ -95,11 +95,11 @@ const defaultKitFilesSettings: InternalHelpers.KitFilesSettings = {
 const VITE_CONFIG_EXTENSIONS = ['js', 'mjs', 'ts', 'cjs', 'mts', 'cts'];
 
 function kitFilesSettingsFromConfig(config: any): InternalHelpers.KitFilesSettings {
-    if (!config?.kit?.files) {
+    if (!config?.files) {
         return defaultKitFilesSettings;
     }
 
-    const files = config.kit.files;
+    const files = config.files;
     return {
         paramsPath: files.params ?? defaultKitFilesSettings.paramsPath,
         serverHooksPath: files.hooks?.server ?? defaultKitFilesSettings.serverHooksPath,
@@ -143,10 +143,9 @@ async function loadKitFilesSettingsFromVite(
             'serve'
         );
         const plugin = resolved.plugins.find(
-            (p: { name?: string }) => p.name === 'vite-plugin-svelte:config'
+            (p: { name?: string }) => p.name === 'vite-plugin-sveltekit-setup'
         );
-        const options = (plugin as { api?: { options?: { kit?: unknown } } } | undefined)?.api
-            ?.options;
+        const options = (plugin as { api?: { options?: unknown } } | undefined)?.api?.options;
         if (!options) {
             return undefined;
         }

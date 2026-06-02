@@ -3,8 +3,6 @@ import { tryImportVite } from '../../importPackage';
 
 export const VITE_CONFIG_EXTENSIONS = ['js', 'mjs', 'ts', 'cjs', 'mts', 'cts'] as const;
 
-const SVELTE_CONFIG_PLUGIN_NAME = 'vite-plugin-svelte:config';
-
 const viteConfigCache = new Map<string, Promise<ViteSvelteOptions | undefined>>();
 
 export interface ViteSvelteOptions {
@@ -12,6 +10,7 @@ export interface ViteSvelteOptions {
     preprocess?: unknown;
     extensions?: string[];
     onwarn?: unknown;
+    vitePlugin?: unknown;
     kit?: unknown;
 }
 
@@ -71,7 +70,7 @@ export async function loadSvelteConfigFromVite(
     }
 
     const loading = (async () => {
-        const vite = tryImportVite(fromPath);
+        const vite = await tryImportVite(fromPath);
         if (!vite) {
             Logger.log('vite is not installed in', root);
             return undefined;
@@ -79,15 +78,30 @@ export async function loadSvelteConfigFromVite(
 
         try {
             const resolved = await vite.resolveConfig({ root, logLevel: 'error' }, 'serve');
-            const plugin = resolved.plugins.find(
-                (p: { name?: string }) => p.name === SVELTE_CONFIG_PLUGIN_NAME
+
+            // Try SvelteKit plugin config first, as it also contains kit options.
+            let plugin = resolved.plugins.find(
+                (p: { name?: string }) => p.name === 'vite-plugin-sveltekit-setup'
             );
-            const options = (plugin as { api?: { options?: ViteSvelteOptions } } | undefined)?.api
+            let options = (plugin as { api?: { options?: ViteSvelteOptions } } | undefined)?.api
                 ?.options;
-            if (!options) {
-                Logger.log('No vite-plugin-svelte config found in', root);
-                return undefined;
+            if (options) {
+                // SvelteKit plugin has SvelteKit options flattened together with other options, unflatten them
+                const { preprocess, compilerOptions, extensions, vitePlugin, ...kit } = options;
+                options = { preprocess, compilerOptions, extensions, vitePlugin, kit };
+            } else {
+                // If not SvelteKit plugin options found, try vite-plugin-svelte config
+                plugin = resolved.plugins.find(
+                    (p: { name?: string }) => p.name === 'vite-plugin-svelte:config'
+                );
+                options = (plugin as { api?: { options?: ViteSvelteOptions } } | undefined)?.api
+                    ?.options;
+                if (!options) {
+                    Logger.log('No vite-plugin-svelte config found in', root);
+                    return undefined;
+                }
             }
+
             Logger.log('Loaded Svelte config from vite config at', root);
             return options;
         } catch (err) {

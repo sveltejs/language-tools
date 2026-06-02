@@ -1,4 +1,5 @@
 import { dirname, resolve } from 'path';
+import { pathToFileURL } from 'url';
 import * as prettier from 'prettier';
 import * as svelte from 'svelte/compiler';
 import { Logger } from './logger';
@@ -23,6 +24,15 @@ function dynamicRequire(dynamicFileToRequire: string): any {
     // prettier-ignore
     return require(dynamicFileToRequire);
 }
+
+/**
+ * This function encapsulates the import call in a way
+ * that TypeScript does not transpile `import()`.
+ * https://github.com/microsoft/TypeScript/issues/43329
+ */
+const dynamicImport = new Function('modulePath', 'return import(modulePath)') as (
+    modulePath: URL | string
+) => Promise<any>;
 
 export function getPackageInfo(packageName: string, fromPath: string, use_fallback = true) {
     const paths: string[] = [];
@@ -69,12 +79,14 @@ export function importSvelte(fromPath: string): typeof svelte {
 }
 
 /** Can throw because no fallback guaranteed */
-export function importVite(fromPath: string): {
+export function importVite(fromPath: string): Promise<{
     resolveConfig: (
         inlineConfig: { root: string; logLevel?: string },
         command: 'build' | 'serve'
-    ) => Promise<{ plugins: Array<{ name?: string; api?: { options?: Record<string, unknown> } }> }>;
-} {
+    ) => Promise<{
+        plugins: Array<{ name?: string; api?: { options?: Record<string, unknown> } }>;
+    }>;
+}> {
     const paths: string[] = [];
     if (isTrusted) {
         paths.push(fromPath);
@@ -84,10 +96,10 @@ export function importVite(fromPath: string): {
     }
     const main = require.resolve('vite', { paths });
     Logger.debug('Using Vite from', main);
-    return dynamicRequire(main);
+    return dynamicImport(pathToFileURL(main).href);
 }
 
-export function tryImportVite(fromPath: string):
+export async function tryImportVite(fromPath: string): Promise<
     | {
           resolveConfig: (
               inlineConfig: { root: string; logLevel?: string },
@@ -96,9 +108,10 @@ export function tryImportVite(fromPath: string):
               plugins: Array<{ name?: string; api?: { options?: Record<string, unknown> } }>;
           }>;
       }
-    | undefined {
+    | undefined
+> {
     try {
-        return importVite(fromPath);
+        return await importVite(fromPath);
     } catch (e) {
         Logger.debug('Failed to import vite', e);
         return undefined;
