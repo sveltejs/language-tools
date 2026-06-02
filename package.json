@@ -7,7 +7,7 @@
     "scripts": {
         "bootstrap": "cd ./packages/svelte2tsx && pnpm build && cd ../svelte-vscode && pnpm build:grammar",
         "build": "tsc -b",
-        "test": "cross-env CI=true pnpm test -r",
+        "test": "CI=true pnpm run -r test",
         "watch": "tsc -b -watch",
         "format": "prettier --write .",
         "lint": "prettier --check .",
@@ -20,9 +20,8 @@
     "devDependencies": {
         "@changesets/cli": "^2.29.7",
         "@svitejs/changesets-changelog-github-compact": "^1.1.0",
-        "cross-env": "^7.0.2",
         "prettier": "~3.3.3",
         "ts-node": "^10.0.0"
     },
-    "packageManager": "pnpm@9.3.0"
+    "packageManager": "pnpm@10.32.1"
 }
