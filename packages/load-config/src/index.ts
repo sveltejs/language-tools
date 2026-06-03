@@ -135,6 +135,8 @@ async function loadConfigFromDirectory(dir: string): Promise<LoadConfigResult> {
     return (await loadSvelteConfig(svelteConfigPath)) ?? viteError;
 }
 
+let resolving: Promise<void> | null = null;
+
 async function loadSvelteConfigFromVite(
     root: string,
     configFilePath: string
@@ -144,7 +146,16 @@ async function loadSvelteConfigFromVite(
         return undefined;
     }
 
+    // Make sure that only one Vite config is resolved at a time, to prevent race conditions with multiple
+    // calls to `loadConfig` ending up with changing the process' current working directory mid-resolution.
+    await resolving;
+
+    let resolve;
+    resolving = new Promise((r) => (resolve = r));
+    const cwd = process.cwd();
+
     try {
+        process.chdir(root);
         const resolved = await vite.resolveConfig(
             { root, configFile: configFilePath, logLevel: 'error' },
             'serve'
@@ -179,6 +190,9 @@ async function loadSvelteConfigFromVite(
             configFilePath,
             configSource: 'vite'
         };
+    } finally {
+        process.chdir(cwd);
+        resolve!();
     }
 }
 
