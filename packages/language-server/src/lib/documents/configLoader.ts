@@ -46,15 +46,6 @@ const SVELTE_CONFIG_EXTENSIONS = ['js', 'cjs', 'mjs'] as const;
 const SVELTE_CONFIG_TS_EXTENSIONS = ['ts', 'mts'] as const;
 const VITE_CONFIG_EXTENSIONS = ['js', 'mjs', 'ts', 'cjs', 'mts', 'cts'] as const;
 
-/**
- * This function encapsulates the import call in a way
- * that TypeScript does not transpile `import()`.
- * https://github.com/microsoft/TypeScript/issues/43329
- */
-const _dynamicImport = new Function('modulePath', 'return import(modulePath)') as (
-    modulePath: URL
-) => Promise<any>;
-
 const configRegex =
     /\/(svelte\.config\.(js|ts|cjs|mjs|mts)|vite\.config\.(js|mjs|ts|cjs|mts|cts))$/;
 const configRegexWithoutTs =
@@ -470,7 +461,6 @@ export const configLoader = new ConfigLoader(
     fdir,
     _fs,
     _path,
-    _dynamicImport,
     process.features,
     loadConfigFromDirectory
 );
