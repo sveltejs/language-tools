@@ -765,9 +765,17 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
             };
         }
 
+        // Optional members are reported by TypeScript through the `optional` kind
+        // modifier. Surface that in the label with a trailing `?` (matching the
+        // TypeScript language service), while keeping the inserted text as the
+        // bare name so the `?` is display-only.
+        const isOptional = kindModifiers
+            ?.split(/,|\s+/)
+            .includes(ts.ScriptElementKindModifier.optionalModifier);
+
         return {
-            label: name,
-            insertText,
+            label: isOptional ? `${name}?` : name,
+            insertText: isOptional ? (insertText ?? name) : insertText,
             isSvelteComp,
             isRunesCompletion
         };
