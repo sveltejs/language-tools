@@ -113,6 +113,11 @@ export interface EmitDtsConfig {
      */
     svelteShimsPath: string;
     /**
+     * Additional file paths that need to be present when doing the dts emit.
+     * Example: `[require.resolve('svelte2tsx/svelte-jsx.d.ts')]` for the Svelte HTML ambient type definitions
+     */
+    additionalPaths?: string[];
+    /**
      * If you want to emit types only for part of your project,
      * then set this to the folder for which the types should be emitted.
      * Most of the time you don't need this. For SvelteKit, this is for example
