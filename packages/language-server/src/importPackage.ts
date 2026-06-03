@@ -1,5 +1,4 @@
 import { dirname, resolve } from 'path';
-import { pathToFileURL } from 'url';
 import * as prettier from 'prettier';
 import * as svelte from 'svelte/compiler';
 import { Logger } from './logger';
@@ -24,15 +23,6 @@ function dynamicRequire(dynamicFileToRequire: string): any {
     // prettier-ignore
     return require(dynamicFileToRequire);
 }
-
-/**
- * This function encapsulates the import call in a way
- * that TypeScript does not transpile `import()`.
- * https://github.com/microsoft/TypeScript/issues/43329
- */
-const dynamicImport = new Function('modulePath', 'return import(modulePath)') as (
-    modulePath: URL | string
-) => Promise<any>;
 
 export function getPackageInfo(packageName: string, fromPath: string, use_fallback = true) {
     const paths: string[] = [];
@@ -75,46 +65,6 @@ export function importSvelte(fromPath: string): typeof svelte {
         return dynamicRequire(main + '.cjs');
     } else {
         return dynamicRequire(main);
-    }
-}
-
-/** Can throw because no fallback guaranteed */
-export function importVite(fromPath: string): Promise<{
-    resolveConfig: (
-        inlineConfig: { root: string; logLevel?: string },
-        command: 'build' | 'serve'
-    ) => Promise<{
-        plugins: Array<{ name?: string; api?: { options?: Record<string, unknown> } }>;
-    }>;
-}> {
-    const paths: string[] = [];
-    if (isTrusted) {
-        paths.push(fromPath);
-    }
-    if (paths.length === 0) {
-        throw new Error('Cannot import vite from untrusted workspace');
-    }
-    const main = require.resolve('vite', { paths });
-    Logger.debug('Using Vite from', main);
-    return dynamicImport(pathToFileURL(main).href);
-}
-
-export async function tryImportVite(fromPath: string): Promise<
-    | {
-          resolveConfig: (
-              inlineConfig: { root: string; logLevel?: string },
-              command: 'build' | 'serve'
-          ) => Promise<{
-              plugins: Array<{ name?: string; api?: { options?: Record<string, unknown> } }>;
-          }>;
-      }
-    | undefined
-> {
-    try {
-        return await importVite(fromPath);
-    } catch (e) {
-        Logger.debug('Failed to import vite', e);
-        return undefined;
     }
 }
 

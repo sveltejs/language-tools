@@ -11,7 +11,7 @@ import {
     positionAt,
     getLineOffsets
 } from 'svelte-language-server';
-import { pathToFileURL } from 'url';
+import { loadConfig } from '@sveltejs/load-config';
 import { findFiles } from './utils';
 
 type ManifestEntry = {
@@ -92,8 +92,6 @@ const defaultKitFilesSettings: InternalHelpers.KitFilesSettings = {
     universalHooksPath: 'src/hooks'
 };
 
-const VITE_CONFIG_EXTENSIONS = ['js', 'mjs', 'ts', 'cjs', 'mts', 'cts'];
-
 function kitFilesSettingsFromConfig(config: any): InternalHelpers.KitFilesSettings {
     if (!config?.files) {
         return defaultKitFilesSettings;
@@ -108,65 +106,9 @@ function kitFilesSettingsFromConfig(config: any): InternalHelpers.KitFilesSettin
     };
 }
 
-function findViteConfigFile(workspacePath: string): string | undefined {
-    for (const ext of VITE_CONFIG_EXTENSIONS) {
-        const tryPath = path.join(workspacePath, `vite.config.${ext}`);
-        if (fs.existsSync(tryPath)) {
-            return tryPath;
-        }
-    }
-}
-
-async function tryImportVite(): Promise<{ resolveConfig: Function } | undefined> {
-    try {
-        return await dynamicImport('vite');
-    } catch {
-        return undefined;
-    }
-}
-
-async function loadKitFilesSettingsFromVite(
-    workspacePath: string
-): Promise<InternalHelpers.KitFilesSettings | undefined> {
-    if (!findViteConfigFile(workspacePath)) {
-        return undefined;
-    }
-
-    const vite = await tryImportVite();
-    if (!vite) {
-        return undefined;
-    }
-
-    try {
-        const resolved = await vite.resolveConfig(
-            { root: workspacePath, logLevel: 'error' },
-            'serve'
-        );
-        const plugin = resolved.plugins.find(
-            (p: { name?: string }) => p.name === 'vite-plugin-sveltekit-setup'
-        );
-        const options = (plugin as { api?: { options?: unknown } } | undefined)?.api?.options;
-        if (!options) {
-            return undefined;
-        }
-        return kitFilesSettingsFromConfig(options);
-    } catch {
-        return undefined;
-    }
-}
-
-/**
- * This function encapsulates the import call in a way
- * that TypeScript does not transpile `import()`.
- * https://github.com/microsoft/TypeScript/issues/43329
- */
-const dynamicImport = new Function('modulePath', 'return import(modulePath)') as (
-    modulePath: URL | string
-) => Promise<any>;
-
 /**
  * Loads the svelte.config.js file and extracts SvelteKit file path settings.
- * Falls back to vite.config.* when no svelte config exists, then to default paths.
+ * Falls back to default paths when no Svelte config can be loaded.
  *
  * @param workspacePath - Root directory of the project
  * @returns KitFilesSettings with paths for params, hooks files
@@ -174,32 +116,12 @@ const dynamicImport = new Function('modulePath', 'return import(modulePath)') as
 async function loadKitFilesSettings(
     workspacePath: string
 ): Promise<InternalHelpers.KitFilesSettings> {
-    const loadSvelteConfigTs =
-        process.features && 'typescript' in process.features && !!process.features.typescript;
-    const configExtensions = loadSvelteConfigTs
-        ? ['js', 'ts', 'cjs', 'mjs', 'mts']
-        : ['js', 'cjs', 'mjs'];
-
-    let configPath: string | undefined;
-
-    for (const ext of configExtensions) {
-        const tryPath = path.join(workspacePath, `svelte.config.${ext}`);
-        if (fs.existsSync(tryPath)) {
-            configPath = tryPath;
-            break;
-        }
-    }
-
-    if (!configPath) {
-        return (await loadKitFilesSettingsFromVite(workspacePath)) ?? defaultKitFilesSettings;
-    }
-
-    try {
-        const config = (await dynamicImport(pathToFileURL(configPath)))?.default;
-        return kitFilesSettingsFromConfig(config);
-    } catch {
+    const result = await loadConfig(workspacePath, { traverse: false });
+    if (!result || !('config' in result)) {
         return defaultKitFilesSettings;
     }
+
+    return kitFilesSettingsFromConfig(result.config.kit);
 }
 
 /**
