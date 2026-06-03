@@ -1,5 +1,5 @@
 ---
-'svelte-language-server': path
+'svelte-language-server': patch
 'svelte-check': minor
 ---
 
