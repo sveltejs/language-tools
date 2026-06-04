@@ -29,6 +29,7 @@ let failed = 0;
  * @param {string} opts.workspace
  * @param {string} opts.tsconfig
  * @param {boolean} [opts.incremental]
+ * @param {boolean} [opts.tsgoExp]
  * @param {ExpectedError[]} [opts.errors]
  */
 function test(name, opts) {
@@ -43,6 +44,9 @@ function test(name, opts) {
     ];
     if (opts.incremental) {
         args.push('--incremental');
+    }
+    if (opts.tsgoExp) {
+        args.push('--tsgo-experimental');
     }
 
     let stdout;
@@ -123,6 +127,12 @@ test('clean project', {
     tsconfig: './tsconfig.json'
 });
 
+test('clean project --tsgo-experimental', {
+    workspace: './test-success',
+    tsconfig: './tsconfig.json',
+    tsgoExp: true
+});
+
 rmSync('./test-success/.svelte-check', { recursive: true, force: true });
 test('clean project (incremental, cold cache)', {
     workspace: './test-success',
@@ -184,6 +194,13 @@ const errors = [
 test('project with errors', {
     workspace: './test-error',
     tsconfig: './tsconfig.json',
+    errors
+});
+
+test('project with errors --tsgo-experimental', {
+    workspace: './test-error',
+    tsconfig: './tsconfig.json',
+    tsgoExp: true,
     errors
 });
 

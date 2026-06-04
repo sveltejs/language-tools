@@ -36,6 +36,7 @@ import {
 import { DiagnosticsProvider } from '../../interfaces';
 import {
     DocumentSnapshot,
+    JSOrTSDocumentSnapshot,
     SvelteDocumentSnapshot,
     SvelteSnapshotOptions
 } from '../../typescript/DocumentSnapshot';
@@ -231,6 +232,27 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
                     text: tsDoc.parent.getText(),
                     diagnostics: mappedDiags
                 });
+            } else if (tsDoc instanceof JSOrTSDocumentSnapshot) {
+                const mappedDiags = diags.map((diag): Diagnostic => {
+                    return {
+                        range: {
+                            start: tsDoc.getOriginalPosition(tsDoc.positionAt(diag.pos)),
+                            end: tsDoc.getOriginalPosition(tsDoc.positionAt(diag.end))
+                        },
+                        message: flattenDiagnosticMessage(diag),
+                        severity: mapSeverity(diag.category),
+                        source: diag.fileName?.endsWith('js') ? 'js' : 'ts',
+                        tags: getDiagnosticTag(diag),
+                        code: diag.code
+                    };
+                });
+                result.push({
+                    filePath: fileName,
+                    text: tsDoc.originalText,
+                    diagnostics: mappedDiags
+                });
+            } else {
+                result.push(this.covertDiagnosticsForUnopenedFile(fileName, diags));
             }
         }
 
@@ -447,12 +469,26 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
             svelteTsPath,
             undefined
         );
+
+        const filesConfig = commandLine.raw.files;
+        const rebasedFiles: string[] = [];
+        if (filesConfig) {
+            for (const file of filesConfig) {
+                if (file.endsWith('.svelte')) {
+                    const virtualBaseName = this.addVirtualSvelteFile(
+                        path.join(path.dirname(tsconfigPath), file)
+                    );
+                    rebasedFiles.push(virtualBaseName);
+                    // let fileExists handle the .d.svelte.ts redirection
+                } else {
+                    rebasedFiles.push(file);
+                }
+            }
+        }
         const virtualTsConfigContent = JSON.stringify({
             extends: './' + path.basename(tsconfigPath),
             compilerOptions: { allowArbitraryExtensions: true },
-            files: commandLine.raw.files
-                ? [...commandLine.raw.files, ...svelteTsxFiles]
-                : svelteTsxFiles,
+            files: rebasedFiles.concat(svelteTsxFiles),
             // otherwise only "files" will be included and not the default "everything"
             include: commandLine.raw.include ? undefined : ['**/*']
         });
