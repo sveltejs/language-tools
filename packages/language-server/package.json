@@ -11,7 +11,7 @@
     },
     "scripts": {
         "test": "cross-env TS_NODE_TRANSPILE_ONLY=true mocha --require ts-node/register \"test/**/*.test.ts\" --no-experimental-strip-types",
-        "build": "tsc",
+        "build": "pnpm --dir ../load-config build && tsc",
         "prepublishOnly": "npm run build",
         "watch": "tsc -w"
     },
