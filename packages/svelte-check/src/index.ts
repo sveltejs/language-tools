@@ -25,7 +25,7 @@ import {
     writeOverlayTsconfig
 } from './incremental';
 import { createIgnored, findFiles } from './utils';
-import { tryLoadApi as tryLoadTsApi, tryLoadAst as tryLoadTsAst } from './tsgo';
+import { tryLoadApi as tryLoadTsApi, tryLoadAst as tryLoadTsAst, tryLoadVersion } from './tsgo';
 
 type Result = {
     fileCount: number;
@@ -592,12 +592,30 @@ parseOptions(async (opts) => {
             if (!opts.tsconfig) {
                 throw new Error('`--tsgo-experimental` requires a tsconfig/jsconfig file');
             }
-            const apiModule = await tryLoadTsApi(opts.workspaceUri.fsPath);
-            const astModule = await tryLoadTsAst(opts.workspaceUri.fsPath);
-            if (!apiModule || !astModule) {
+            const version = tryLoadVersion(opts.tsconfig);
+            if (!version) {
                 throw new Error(
                     '--tsgo-experimental requires @typescript/native-preview to be installed in the workspace'
                 );
+            }
+
+            const minPre7_0Nightly = 'dev.20260603.1';
+            if (
+                version.major === 7 &&
+                version.minor === 0 &&
+                version.patch === 0 &&
+                version.preRelease?.includes('dev')
+            ) {
+                // ex: 7.0.0-dev.20260518.1
+                if (version.preRelease.localeCompare(minPre7_0Nightly) < 0) {
+                    throw new Error(formatUnsupportedTsGoVersionError(`7.0.0-${minPre7_0Nightly}`));
+                }
+            }
+
+            const apiModule = await tryLoadTsApi(opts.tsconfig);
+            const astModule = await tryLoadTsAst(opts.tsconfig);
+            if (!apiModule || !astModule) {
+                throw new Error(formatUnsupportedTsGoVersionError(`7.0.0-${minPre7_0Nightly}`));
             }
             svelteCheckOptions.experimental = { tsgo: { apiModule, astModule } };
         }
@@ -652,3 +670,7 @@ parseOptions(async (opts) => {
         console.error('svelte-check failed');
     }
 });
+
+function formatUnsupportedTsGoVersionError(min: string) {
+    return `Unsupported  @typescript/native-preview version. Please upgrade to at least ${min}`;
+}

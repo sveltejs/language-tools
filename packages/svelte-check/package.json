@@ -51,7 +51,7 @@
         "@rollup/plugin-replace": "5.0.2",
         "@rollup/plugin-typescript": "^10.0.0",
         "@types/sade": "^1.7.2",
-        "@typescript/native-preview": "7.0.0-dev.20260518.1",
+        "@typescript/native-preview": "7.0.0-dev.20260603.1",
         "rollup": "3.7.5",
         "rollup-plugin-cleanup": "^3.2.0",
         "rollup-plugin-copy": "^3.4.0",
