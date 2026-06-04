@@ -1,0 +1,18 @@
+{
+    "compilerOptions": {
+        "lib": ["es2021"],
+        "target": "es2021",
+        "moduleResolution": "node16",
+        "module": "node16",
+        "outDir": "dist",
+        "strict": true,
+        "declaration": true,
+        "esModuleInterop": true,
+        "sourceMap": true,
+        "composite": true,
+        "skipLibCheck": true,
+        "rootDir": ".",
+        "forceConsistentCasingInFileNames": true,
+        "types": ["node"]
+    }
+}

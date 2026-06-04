@@ -1,4 +1,5 @@
 import { Logger } from '../../logger';
+import { loadConfig as loadConfigFromDirectory } from '@sveltejs/load-config';
 // @ts-ignore
 import { CompileOptions } from 'svelte/types/compiler/interfaces';
 // @ts-ignore
@@ -7,7 +8,7 @@ import { importSveltePreprocess } from '../../importPackage';
 import { fdir } from 'fdir';
 import _path from 'path';
 import _fs from 'fs';
-import { pathToFileURL, URL } from 'url';
+import { URL } from 'url';
 import { FileMap } from './fileCollection';
 import ts from 'typescript';
 
@@ -27,8 +28,11 @@ export interface SvelteConfig {
     preprocess?: InternalPreprocessorGroup | InternalPreprocessorGroup[];
     loadConfigError?: any;
     isFallbackConfig?: boolean;
+    configSource?: 'svelte' | 'vite';
     kit?: any;
 }
+
+type LoadConfigFromDirectoryFn = typeof loadConfigFromDirectory;
 
 const DEFAULT_OPTIONS: CompileOptions = {
     dev: true
@@ -38,20 +42,19 @@ const NO_GENERATE: CompileOptions = {
     generate: false
 };
 
-/**
- * This function encapsulates the import call in a way
- * that TypeScript does not transpile `import()`.
- * https://github.com/microsoft/TypeScript/issues/43329
- */
-const _dynamicImport = new Function('modulePath', 'return import(modulePath)') as (
-    modulePath: URL
-) => Promise<any>;
+const SVELTE_CONFIG_EXTENSIONS = ['js', 'cjs', 'mjs'] as const;
+const SVELTE_CONFIG_TS_EXTENSIONS = ['ts', 'mts'] as const;
+const VITE_CONFIG_EXTENSIONS = ['js', 'mjs', 'ts', 'cjs', 'mts', 'cts'] as const;
 
-const configRegex = /\/svelte\.config\.(js|cjs|mjs)$/;
+const configRegex =
+    /\/(svelte\.config\.(js|ts|cjs|mjs|mts)|vite\.config\.(js|mjs|ts|cjs|mts|cts))$/;
+const configRegexWithoutTs =
+    /\/(svelte\.config\.(js|cjs|mjs)|vite\.config\.(js|mjs|ts|cjs|mts|cts))$/;
 
 /**
- * Loads svelte.config.{js,cjs,mjs} files. Provides both a synchronous and asynchronous
- * interface to get a config file because snapshots need access to it synchronously.
+ * Loads vite.config.* and svelte.config.{js,ts,cjs,mjs,mts} files. Provides both
+ * a synchronous and asynchronous interface to get a config file
+ * because snapshots need access to it synchronously.
  * This means that another instance (the ts service host on startup) should make
  * sure that all config files are loaded before snapshots are retrieved.
  * Asynchronousity is needed because we use the dynamic `import()` statement.
@@ -61,13 +64,20 @@ export class ConfigLoader {
     private configFilesAsync = new FileMap<Promise<SvelteConfig>>();
     private filePathToConfigPath = new FileMap<string>();
     private disabled = false;
+    private loadSvelteConfigTs: boolean;
 
     constructor(
         private globSync: typeof fdir,
         private fs: Pick<typeof _fs, 'existsSync'>,
         private path: Pick<typeof _path, 'dirname' | 'relative' | 'join'>,
-        private dynamicImport: typeof _dynamicImport
-    ) {}
+        processFeatures: (typeof process)['features'] & {
+            typescript?: false | 'transform';
+        },
+        private loadFromDirectory: LoadConfigFromDirectoryFn
+    ) {
+        this.loadSvelteConfigTs =
+            processFeatures && 'typescript' in processFeatures && !!processFeatures.typescript;
+    }
 
     /**
      * Enable/disable loading of configs (for security reasons for example)
@@ -83,6 +93,7 @@ export class ConfigLoader {
      * @param directory Directory where to load the configs from
      */
     async loadConfigs(directory: string): Promise<void> {
+        const targetRegex = this.loadSvelteConfigTs ? configRegex : configRegexWithoutTs;
         Logger.log('Trying to load configs for', directory);
 
         try {
@@ -93,14 +104,18 @@ export class ConfigLoader {
                     return path.includes('node_modules/') || path.includes('/.') || path[0] === '.';
                 })
                 .filter((path, isDir) => {
-                    return !isDir && configRegex.test(path);
+                    return !isDir && targetRegex.test(path);
                 })
                 .withRelativePaths()
                 .crawl(directory)
                 .sync();
 
             const someConfigIsImmediateFileInDirectory =
-                pathResults.length > 0 && pathResults.some((res) => !this.path.dirname(res));
+                pathResults.length > 0 &&
+                pathResults.some((res) => {
+                    const dirname = this.path.dirname(res);
+                    return !dirname || dirname === '.';
+                });
             if (!someConfigIsImmediateFileInDirectory) {
                 const configPathUpwards = this.searchConfigPathUpwards(directory);
                 if (configPathUpwards) {
@@ -108,7 +123,7 @@ export class ConfigLoader {
                 }
             }
             if (pathResults.length === 0) {
-                this.addFallbackConfig(directory);
+                await this.addFallbackConfig(directory);
                 return;
             }
 
@@ -127,23 +142,57 @@ export class ConfigLoader {
         }
     }
 
-    private addFallbackConfig(directory: string) {
-        const fallback = this.useFallbackPreprocessor(directory, false);
+    private async addFallbackConfig(directory: string) {
+        const configPath = this.searchConfigPathUpwards(directory);
+        if (configPath) {
+            const loadedConfigPath = await this.loadAndCacheConfig(configPath, directory);
+            const config = loadedConfigPath && this.configFiles.get(loadedConfigPath);
+            if (config && !config.loadConfigError && !config.isFallbackConfig) {
+                return;
+            }
+        }
+
+        const fallback = this.useFallbackPreprocessor(
+            directory,
+            false,
+            configPath && isViteConfigPath(configPath) ? 'vite-error' : 'none'
+        );
         const path = this.path.join(directory, 'svelte.config.js');
         this.configFilesAsync.set(path, Promise.resolve(fallback));
         this.configFiles.set(path, fallback);
+    }
+
+    private searchSvelteConfigPathUpwards(path: string) {
+        let currentDir = path;
+        let nextDir = this.path.dirname(path);
+        while (currentDir !== nextDir) {
+            const configPath = findSvelteConfigInDirectory(
+                this.fs,
+                this.path,
+                currentDir,
+                this.loadSvelteConfigTs
+            );
+            if (configPath) {
+                return configPath;
+            }
+
+            currentDir = nextDir;
+            nextDir = this.path.dirname(currentDir);
+        }
     }
 
     private searchConfigPathUpwards(path: string) {
         let currentDir = path;
         let nextDir = this.path.dirname(path);
         while (currentDir !== nextDir) {
-            const tryFindConfigPath = (ending: string) => {
-                const path = this.path.join(currentDir, `svelte.config.${ending}`);
-                return this.fs.existsSync(path) ? path : undefined;
-            };
             const configPath =
-                tryFindConfigPath('js') || tryFindConfigPath('cjs') || tryFindConfigPath('mjs');
+                findViteConfigInDirectory(this.fs, this.path, currentDir) ??
+                findSvelteConfigInDirectory(
+                    this.fs,
+                    this.path,
+                    currentDir,
+                    this.loadSvelteConfigTs
+                );
             if (configPath) {
                 return configPath;
             }
@@ -157,47 +206,84 @@ export class ConfigLoader {
         const loadingConfig = this.configFilesAsync.get(configPath);
         if (loadingConfig) {
             await loadingConfig;
+            return configPath;
         } else {
             const newConfig = this.loadConfig(configPath, directory);
-            this.configFilesAsync.set(configPath, newConfig);
-            this.configFiles.set(configPath, await newConfig);
+            this.configFilesAsync.set(
+                configPath,
+                newConfig.then(({ config }) => config)
+            );
+            const { config, configFilePath } = await newConfig;
+            this.configFiles.set(configFilePath, config);
+            if (configFilePath !== configPath) {
+                this.configFiles.set(configPath, config);
+            }
+            return configFilePath;
         }
     }
 
     private async loadConfig(configPath: string, directory: string) {
-        try {
-            let config = this.disabled
-                ? {}
-                : (await this.dynamicImport(pathToFileURL(configPath)))?.default;
+        const configDirectory = this.path.dirname(configPath);
 
-            if (!config) {
-                throw new Error(
-                    'Missing exports in the config. Make sure to include "export default config" or "module.exports = config"'
-                );
-            }
-            config = {
-                ...config,
+        if (this.disabled) {
+            return {
+                config: {
+                    ...this.useFallbackPreprocessor(directory, true, getConfigSource(configPath)),
+                    configSource: getConfigSource(configPath),
+                    compilerOptions: {
+                        ...DEFAULT_OPTIONS,
+                        ...NO_GENERATE
+                    },
+                    loadConfigError: new Error('Config loading is disabled')
+                },
+                configFilePath: configPath
+            };
+        }
+
+        const result = await this.loadFromDirectory(configDirectory, { traverse: false });
+
+        if (result && 'config' in result) {
+            const configSource = result.configSource;
+            const config: SvelteConfig = {
+                ...(result.config as SvelteConfig),
+                configSource,
                 compilerOptions: {
                     ...DEFAULT_OPTIONS,
-                    ...config.compilerOptions,
+                    ...(result.config.compilerOptions as CompileOptions | undefined),
                     ...NO_GENERATE
                 }
             };
-            Logger.log('Loaded config at ', configPath);
-            return config;
-        } catch (err) {
-            Logger.error('Error while loading config at ', configPath);
-            Logger.error(err);
-            const config = {
-                ...this.useFallbackPreprocessor(directory, true),
+            Logger.log('Loaded config at ', result.configFilePath);
+            return {
+                config,
+                configFilePath: result.configFilePath
+            };
+        }
+
+        const configSource = result?.configSource ?? getConfigSource(configPath);
+        const error =
+            result?.error ??
+            new Error(
+                configSource === 'vite'
+                    ? 'No Svelte configuration found in vite config. Is @sveltejs/vite-plugin-svelte configured?'
+                    : 'No Svelte configuration found'
+            );
+        const errorConfigPath = result?.configFilePath ?? configPath;
+        Logger.error('Error while loading config at ', errorConfigPath);
+        Logger.error(error);
+
+        return {
+            config: {
+                ...this.useFallbackPreprocessor(directory, true, configSource),
+                configSource,
                 compilerOptions: {
                     ...DEFAULT_OPTIONS,
                     ...NO_GENERATE
                 },
-                loadConfigError: err
-            };
-            return config;
-        }
+                loadConfigError: error
+            },
+            configFilePath: errorConfigPath
+        };
     }
 
     /**
@@ -219,10 +305,7 @@ export class ConfigLoader {
         let nextDir = this.path.dirname(file);
         while (currentDir !== nextDir) {
             currentDir = nextDir;
-            const config =
-                this.tryGetConfig(file, currentDir, 'js') ||
-                this.tryGetConfig(file, currentDir, 'cjs') ||
-                this.tryGetConfig(file, currentDir, 'mjs');
+            const config = this.tryGetConfigForDirectory(file, currentDir);
             if (config) {
                 return config;
             }
@@ -244,27 +327,39 @@ export class ConfigLoader {
         if (configPath) {
             await this.loadAndCacheConfig(configPath, fileDirectory);
         } else {
-            this.addFallbackConfig(fileDirectory);
+            await this.addFallbackConfig(fileDirectory);
         }
         return this.getConfig(file);
     }
 
-    private tryGetConfig(file: string, fromDirectory: string, configFileEnding: string) {
-        const path = this.path.join(fromDirectory, `svelte.config.${configFileEnding}`);
-        const config = this.configFiles.get(path);
-        if (config) {
-            this.filePathToConfigPath.set(file, path);
-            return config;
+    private tryGetConfigForDirectory(file: string, fromDirectory: string) {
+        for (const ending of VITE_CONFIG_EXTENSIONS) {
+            const configPath = this.path.join(fromDirectory, `vite.config.${ending}`);
+            const config = this.configFiles.get(configPath);
+            if (config) {
+                this.filePathToConfigPath.set(file, configPath);
+                return config;
+            }
+        }
+        for (const ending of getSvelteConfigExtensions(this.loadSvelteConfigTs)) {
+            const configPath = this.path.join(fromDirectory, `svelte.config.${ending}`);
+            const config = this.configFiles.get(configPath);
+            if (config) {
+                this.filePathToConfigPath.set(file, configPath);
+                return config;
+            }
         }
     }
 
-    private useFallbackPreprocessor(path: string, foundConfig: boolean): SvelteConfig {
+    private useFallbackPreprocessor(
+        path: string,
+        foundConfig: boolean,
+        configKind: 'svelte' | 'vite' | 'vite-error' | 'none'
+    ): SvelteConfig {
         try {
             const sveltePreprocess = importSveltePreprocess(path);
             Logger.log(
-                (foundConfig
-                    ? 'Found svelte.config.js but there was an error loading it. '
-                    : 'No svelte.config.js found. ') +
+                getFallbackLogMessage(foundConfig, configKind) +
                     'Using https://github.com/sveltejs/svelte-preprocess as fallback'
             );
             return {
@@ -305,4 +400,67 @@ export class ConfigLoader {
     }
 }
 
-export const configLoader = new ConfigLoader(fdir, _fs, _path, _dynamicImport);
+function getSvelteConfigExtensions(loadSvelteConfigTs: boolean) {
+    return loadSvelteConfigTs
+        ? [...SVELTE_CONFIG_EXTENSIONS, ...SVELTE_CONFIG_TS_EXTENSIONS]
+        : SVELTE_CONFIG_EXTENSIONS;
+}
+
+function findSvelteConfigInDirectory(
+    fs: Pick<typeof _fs, 'existsSync'>,
+    pathUtils: Pick<typeof _path, 'join'>,
+    directory: string,
+    loadSvelteConfigTs: boolean
+) {
+    for (const ending of getSvelteConfigExtensions(loadSvelteConfigTs)) {
+        const configPath = pathUtils.join(directory, `svelte.config.${ending}`);
+        if (fs.existsSync(configPath)) {
+            return configPath;
+        }
+    }
+}
+
+function findViteConfigInDirectory(
+    fs: Pick<typeof _fs, 'existsSync'>,
+    pathUtils: Pick<typeof _path, 'join'>,
+    directory: string
+) {
+    for (const ending of VITE_CONFIG_EXTENSIONS) {
+        const configPath = pathUtils.join(directory, `vite.config.${ending}`);
+        if (fs.existsSync(configPath)) {
+            return configPath;
+        }
+    }
+}
+
+function isViteConfigPath(configPath: string): boolean {
+    return /[/\\]vite\.config\.(js|mjs|ts|cjs|mts|cts)$/.test(configPath);
+}
+
+function getConfigSource(configPath: string): 'svelte' | 'vite' {
+    return isViteConfigPath(configPath) ? 'vite' : 'svelte';
+}
+
+function getFallbackLogMessage(
+    foundConfig: boolean,
+    configKind: 'svelte' | 'vite' | 'vite-error' | 'none'
+) {
+    if (foundConfig && configKind === 'svelte') {
+        return 'Found svelte.config.js but there was an error loading it. ';
+    }
+    if (foundConfig && configKind === 'vite') {
+        return 'Found vite.config but there was an error loading it. ';
+    }
+    if (configKind === 'vite-error') {
+        return 'Found vite.config but there was an error loading Svelte options from it. ';
+    }
+    return 'No svelte.config.js or vite.config found. ';
+}
+
+export const configLoader = new ConfigLoader(
+    fdir,
+    _fs,
+    _path,
+    process.features,
+    loadConfigFromDirectory
+);

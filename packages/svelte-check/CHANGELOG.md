@@ -1,5 +1,17 @@
 # Changelog
 
+## 4.5.0
+
+### Minor Changes
+
+-   feat: support Svelte 5 declaration tags ([#3033](https://github.com/sveltejs/language-tools/pull/3033))
+
+### Patch Changes
+
+-   fix: properly handle props with the name `slot` inside Svelte 5 snippets ([#3030](https://github.com/sveltejs/language-tools/pull/3030))
+
+-   feat: add support for svelte config ts/mts files ([#3009](https://github.com/sveltejs/language-tools/pull/3009))
+
 ## 4.4.8
 
 ### Patch Changes

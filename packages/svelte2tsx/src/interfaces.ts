@@ -1,4 +1,4 @@
-import { ArrayPattern, Identifier, ObjectPattern, Node } from 'estree';
+import { ArrayPattern, Identifier, ObjectPattern, Node, VariableDeclaration } from 'estree';
 // @ts-ignore
 import { DirectiveType, TemplateNode } from 'svelte/types/compiler/interfaces';
 
@@ -21,6 +21,11 @@ export interface WithName {
 export interface ConstTag extends NodeRange {
     type: 'ConstTag';
     expression: any;
+}
+
+export interface DeclarationTag extends NodeRange {
+    type: 'DeclarationTag';
+    declaration: VariableDeclaration & NodeRange & { kind: 'let' | 'const' };
 }
 
 // Copied from the Svelte type definitions

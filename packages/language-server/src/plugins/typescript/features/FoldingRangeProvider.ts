@@ -55,7 +55,9 @@ export class FoldingRangeProviderImpl implements FoldingRangeProvider {
             .filter(isNotNullOrUndefined)
             .concat(this.collectSvelteBlockFolding(document, tsDoc, lineFoldingOnly))
             .concat(this.getSvelteTagFoldingIfParserError(document, tsDoc))
-            .filter((r) => (lineFoldingOnly ? r.startLine < r.endLine : r.startLine <= r.endLine));
+            .filter(
+                lineFoldingOnly ? (r) => r.startLine < r.endLine : (r) => r.startLine <= r.endLine
+            );
 
         return result;
     }
