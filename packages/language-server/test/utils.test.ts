@@ -128,9 +128,11 @@ describe('utils', () => {
             assert.ok('a' in result);
             assert.ok('b' in result);
             assert.strictEqual(Object.keys(result).length, 2);
+            assert.deepStrictEqual(result['a'], ['apple', 'avocado']);
+            assert.deepStrictEqual(result['b'], ['banana']);
         });
 
-        it('keeps the first occurrence when multiple items share a key', () => {
+        it('groups all items sharing a key into an array', () => {
             const items = [
                 { file: 'a.ts', msg: 'first' },
                 { file: 'a.ts', msg: 'second' },
@@ -138,8 +140,11 @@ describe('utils', () => {
             ];
             const result = groupBy(items, (i) => i.file);
             assert.strictEqual(Object.keys(result).length, 2);
-            assert.strictEqual(result['a.ts'].msg, 'first');
-            assert.strictEqual(result['b.ts'].msg, 'only');
+            assert.deepStrictEqual(result['a.ts'], [
+                { file: 'a.ts', msg: 'first' },
+                { file: 'a.ts', msg: 'second' }
+            ]);
+            assert.deepStrictEqual(result['b.ts'], [{ file: 'b.ts', msg: 'only' }]);
         });
 
         it('returns an empty object for an empty array', () => {

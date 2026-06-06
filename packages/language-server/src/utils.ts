@@ -25,9 +25,10 @@ export function unique<T>(array: T[]): T[] {
 
 // todo: replace with `Object.groupBy` when minimum node is bumped to v22
 export function groupBy<T>(array: readonly T[], predicate: (item: T) => string) {
-    return array.reduce<Record<string, T>>((acc, item) => {
+    return array.reduce<Record<string, T[]>>((acc, item) => {
         const key = predicate(item);
-        if (!acc[key]) acc[key] = item;
+        acc[key] ??= [];
+        acc[key].push(item);
         return acc;
     }, {});
 }
