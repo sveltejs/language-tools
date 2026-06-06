@@ -1,4 +1,3 @@
-import { sum } from 'lodash';
 import { FoldingRange } from 'vscode-languageserver-types';
 import { Document, TagInformation } from '../documents';
 
@@ -49,8 +48,8 @@ export function indentBasedFoldingRange({
         }))
         .filter((line) => !line.empty);
 
-    const tabs = sum(indents.map((l) => l.tabCount));
-    const spaces = sum(indents.map((l) => l.spaceCount));
+    const tabs = indents.reduce((count, indent) => count + indent.tabCount, 0);
+    const spaces = indents.reduce((count, indent) => count + indent.spaceCount, 0);
 
     const tabSize = tabs && spaces ? guessTabSize(indents) : 4;
 
