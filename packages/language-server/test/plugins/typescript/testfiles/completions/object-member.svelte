@@ -10,4 +10,7 @@
     class A implements SayHi {
         h
     }
+
+    function takeOptions(options: { bar: boolean; baz?: number }) {}
+    takeOptions({ bar: false,  })
 </script>

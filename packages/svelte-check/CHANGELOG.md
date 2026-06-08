@@ -1,5 +1,16 @@
 # Changelog
 
+## 4.6.0
+
+### Minor Changes
+
+-   feat: support reading Svelte config from `vite.config.js/ts` ([#3031](https://github.com/sveltejs/language-tools/pull/3031))
+
+### Patch Changes
+
+-   Updated dependencies [[`151cf45`](https://github.com/sveltejs/language-tools/commit/151cf4593efb4cc3a88cd3c00d5a2f847ac345fe)]:
+    -   @sveltejs/load-config@0.1.1
+
 ## 4.5.0
 
 ### Minor Changes

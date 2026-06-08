@@ -765,9 +765,13 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
             };
         }
 
+        const isOptional = kindModifiers
+            ?.split(/,|\s+/)
+            .includes(ts.ScriptElementKindModifier.optionalModifier);
+
         return {
-            label: name,
-            insertText,
+            label: isOptional ? `${name}?` : name,
+            insertText: isOptional ? (insertText ?? name) : insertText, // else label with ? is used if no insertText available,
             isSvelteComp,
             isRunesCompletion
         };
