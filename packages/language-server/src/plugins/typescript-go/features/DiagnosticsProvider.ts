@@ -41,7 +41,12 @@ import {
     SvelteSnapshotOptions
 } from '../../typescript/DocumentSnapshot';
 import { DiagnosticCode } from '../../typescript/features/DiagnosticsProvider';
-import { isAfterSvelte2TsxPropsReturn, isInGeneratedCode } from '../../typescript/features/utils';
+import {
+    get$storeOffsetOf$storeDeclaration,
+    isAfterSvelte2TsxPropsReturn,
+    isInGeneratedCode,
+    isStoreVariableIn$storeDeclaration
+} from '../../typescript/features/utils';
 import { isAttributeName, isEventHandler } from '../../typescript/svelte-ast-utils';
 import { hasNonZeroRange, isSvelteFilePath, mapSeverity } from '../../typescript/utils';
 import { tsApiSync, tsAst } from '../types';
@@ -617,6 +622,50 @@ function mapAndFilterDiagnostics(
     }
 
     const notGenerated = isNotGenerated(tsDoc.getFullText());
+
+    const additionalStoreDiagnostics: tsApiSync.Diagnostic[] = [];
+    for (const diagnostic of diagnostics) {
+        if (
+            (diagnostic.code === DiagnosticCode.NO_OVERLOAD_MATCHES_CALL ||
+                diagnostic.code === DiagnosticCode.ARG_TYPE_X_NOT_ASSIGNABLE_TO_TYPE_Y) &&
+            !notGenerated(diagnostic) &&
+            diagnostic.fileName
+        ) {
+            if (isStoreVariableIn$storeDeclaration(tsDoc.getFullText(), diagnostic.pos)) {
+                const storeName = tsDoc.getFullText().substring(diagnostic.pos, diagnostic.end);
+                const symbol = tsApiProject.checker.getSymbolAtPosition(
+                    diagnostic.fileName,
+                    get$storeOffsetOf$storeDeclaration(tsDoc.getFullText(), diagnostic.pos)
+                );
+                if (!symbol) {
+                    continue;
+                }
+                const sourceFile = tsApiProject.program.getSourceFile(diagnostic.fileName);
+                if (!sourceFile) {
+                    continue;
+                }
+                const storeUsages = tsApiProject.checker.getReferencesToSymbolInFile(
+                    diagnostic.fileName,
+                    symbol
+                );
+                for (const storeUsage of storeUsages) {
+                    const node = storeUsage.resolve(tsApiProject);
+                    if (node) {
+                        additionalStoreDiagnostics.push({
+                            ...diagnostic,
+                            text:
+                                `Cannot use '${storeName}' as a store. '${storeName}' needs to be an object with a subscribe method on it.\n\n` +
+                                diagnostic.text,
+                            pos: getStartOfNode(tsAstModule, node, sourceFile),
+                            end: node.end
+                        });
+                    }
+                }
+            }
+        }
+    }
+    diagnostics.push(...additionalStoreDiagnostics);
+
     diagnostics = diagnostics
         .filter(notGenerated)
         .filter(
