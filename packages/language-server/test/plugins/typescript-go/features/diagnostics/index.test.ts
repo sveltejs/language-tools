@@ -26,9 +26,6 @@ const expectedTsGo = 'expected_tsgo.json';
 const newSvelteMajorExpectedTsGo = `expected_tsgo_svelte_${major}.json`;
 
 const skips = [
-    // No API available for this case. Check later.
-    '/fixtures/$store-wrong-usage',
-
     // Has to do with project assignment so not related to svelte-check --tsconfig support.
     '/fixtures/project-reference/nested',
     '/fixtures/project-reference/paths'
