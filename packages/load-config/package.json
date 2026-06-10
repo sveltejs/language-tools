@@ -1,7 +1,11 @@
 {
     "name": "@sveltejs/load-config",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "description": "Load Svelte config via vite.config or svelte.config",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/sveltejs/language-tools.git"
+    },
     "main": "dist/src/index.js",
     "typings": "dist/src/index.d.ts",
     "exports": {
