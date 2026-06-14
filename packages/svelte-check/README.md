@@ -66,6 +66,38 @@ Usage:
 | `--incremental`                                                 | Opts into TypeScript's incremental build cache, which speeds up subsequent runs. Saved within `.svelte-kit` or if not available within `.svelte-check`. This might result in slightly different type check outcomes, and certain patterns are not supported. Specifically, anything that is not in the root dir of your tsconfig.json and is a Svelte file will not be properly loaded and type-checked. |
 | `--tsgo`                                                        | Use TypeScript's Go implementation. Needs to have `@typescript/native-preview` installed. Subject to the same limitations as `--incremental`                                                                                                                                                                                                                                                             |
 
+### Custom attribute namespaces
+
+Frameworks built on top of Svelte sometimes attach custom namespaced attributes to elements and
+components to carry framework-level metadata, e.g. `<Counter mochi:hydrate />`. At runtime Svelte
+passes these through, but at type-check time `svelte-check` reports
+`Type 'true' is not assignable to type 'never'` because the component/element has no such prop.
+
+To exempt one or more namespaces from prop/attribute validation, list them under
+`customNamespaces` in your `svelte.config.js`:
+
+```js
+// svelte.config.js
+export default {
+    preprocess: [
+        /* ... */
+    ],
+    // Attributes named exactly `mochi` or starting with `mochi:` are treated as opaque metadata.
+    customNamespaces: ['mochi']
+};
+```
+
+This option is read from the same `svelte.config.js` by both the CLI and the editor (the Svelte
+language server / VS Code extension), so the editor experience matches `svelte-check`. Matching
+attributes are still emitted such that any value expression is type-checked
+(`mochi:defer={someVar}` still errors if `someVar` is undefined), but the attribute name itself is
+no longer validated against the component's props.
+
+Note that the Svelte compiler also emits an `attribute_illegal_colon` warning for namespaced
+attributes. `customNamespaces` only addresses the TypeScript prop/attribute error; to silence the
+compiler warning as well, combine it with
+`--compiler-warnings "attribute_illegal_colon:ignore"`. Frameworks typically need both.
+
 ### FAQ
 
 #### Why is there no option to only check specific files (for example only staged files)?

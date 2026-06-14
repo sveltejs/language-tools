@@ -103,6 +103,7 @@ export function convertHtmlxToJsx(
         emitJsDoc?: boolean;
         isTsFile?: boolean;
         rewriteExternalImports?: RewriteExternalImportsOptions;
+        customNamespaces?: string[];
     } = { svelte5Plus: false }
 ): TemplateProcessResult {
     options.typingsNamespace = options.typingsNamespace || 'svelteHTML';
@@ -498,7 +499,8 @@ export function convertHtmlxToJsx(
                             parent,
                             preserveAttributeCase,
                             options.svelte5Plus,
-                            element
+                            element,
+                            options.customNamespaces
                         );
                         break;
                     case 'Spread':
@@ -675,6 +677,7 @@ export function htmlx2jsx(
         preserveAttributeCase: boolean;
         typingsNamespace: string;
         svelte5Plus: boolean;
+        customNamespaces?: string[];
     }
 ) {
     const { htmlxAst, tags } = parseHtmlx(htmlx, parse, { ...options });

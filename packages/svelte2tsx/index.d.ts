@@ -95,6 +95,15 @@ export function svelte2tsx(
          * from the generated file location.
          */
         rewriteExternalImports?: InternalHelpers.RewriteExternalImportsConfig;
+        /**
+         * Attribute namespaces that should be treated as opaque framework metadata rather than
+         * typed props/attributes. An entry `'mochi'` matches an attribute named exactly `mochi`
+         * or any attribute starting with `mochi:`. Matching attributes are emitted so their
+         * value expressions are still type-checked, but the attribute name itself is exempt from
+         * prop/attribute validation. A trailing `:` in an entry is ignored, so both `'mochi'`
+         * and `'mochi:'` work.
+         */
+        customNamespaces?: string[];
     }
 ): SvelteCompiledToTsx
 

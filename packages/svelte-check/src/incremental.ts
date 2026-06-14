@@ -107,21 +107,38 @@ function kitFilesSettingsFromConfig(config: any): InternalHelpers.KitFilesSettin
 }
 
 /**
- * Loads the svelte.config.js file and extracts SvelteKit file path settings.
+ * Reads the `customNamespaces` option from a loaded Svelte config, normalizing it to a
+ * string array (or undefined when absent/invalid).
+ */
+function customNamespacesFromConfig(config: any): string[] | undefined {
+    const namespaces = config?.customNamespaces;
+    if (!Array.isArray(namespaces)) {
+        return undefined;
+    }
+    return namespaces.filter((ns): ns is string => typeof ns === 'string');
+}
+
+/**
+ * Loads the svelte.config.js file and extracts the settings svelte2tsx needs:
+ * SvelteKit file path settings and the `customNamespaces` option.
  * Falls back to default paths when no Svelte config can be loaded.
  *
  * @param workspacePath - Root directory of the project
- * @returns KitFilesSettings with paths for params, hooks files
+ * @returns Kit file path settings and custom namespaces
  */
-async function loadKitFilesSettings(
-    workspacePath: string
-): Promise<InternalHelpers.KitFilesSettings> {
+async function loadSvelteConfigSettings(workspacePath: string): Promise<{
+    kitFilesSettings: InternalHelpers.KitFilesSettings;
+    customNamespaces: string[] | undefined;
+}> {
     const result = await loadConfig(workspacePath, { traverse: false });
     if (!result || !('config' in result)) {
-        return defaultKitFilesSettings;
+        return { kitFilesSettings: defaultKitFilesSettings, customNamespaces: undefined };
     }
 
-    return kitFilesSettingsFromConfig(result.config.kit);
+    return {
+        kitFilesSettings: kitFilesSettingsFromConfig(result.config.kit),
+        customNamespaces: customNamespacesFromConfig(result.config)
+    };
 }
 
 /**
@@ -146,7 +163,7 @@ export async function emitSvelteFiles(
     const manifest = incremental
         ? loadManifest(manifestPath, workspacePath)
         : { version: MANIFEST_VERSION, entries: {} as Record<string, ManifestEntry> };
-    const kitFilesSettings = await loadKitFilesSettings(workspacePath);
+    const { kitFilesSettings, customNamespaces } = await loadSvelteConfigSettings(workspacePath);
     const isJsOrTsFile = (filePath: string) => filePath.endsWith('.ts') || filePath.endsWith('.js');
     const allRelevantFiles = await findFiles(
         workspacePath,
@@ -232,7 +249,8 @@ export async function emitSvelteFiles(
                 rewriteExternalImports: {
                     workspacePath,
                     generatedPath: outPath
-                }
+                },
+                customNamespaces
             });
 
             fs.writeFileSync(outPath, tsx.code, 'utf-8');

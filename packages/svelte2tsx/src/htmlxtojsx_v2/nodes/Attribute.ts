@@ -45,6 +45,20 @@ const numberOnlyAttributes = new Set([
 ]);
 
 /**
+ * Returns whether the given attribute name belongs to one of the configured
+ * custom namespaces. A namespace entry `'mochi'` matches an attribute named
+ * exactly `mochi` or any attribute starting with `mochi:`.
+ *
+ * Entries are expected to be normalized (no trailing `:`) by the caller.
+ */
+function matchesCustomNamespace(name: string, customNamespaces: string[] | undefined): boolean {
+    if (!customNamespaces?.length) {
+        return false;
+    }
+    return customNamespaces.some((ns) => name === ns || name.startsWith(ns + ':'));
+}
+
+/**
  * Handle various kinds of attributes and make them conform to being valid in context of a object definition
  * - {x}   --->    x
  * - x="{..}"   --->    x:..
@@ -57,7 +71,8 @@ export function handleAttribute(
     parent: BaseNode,
     preserveCase: boolean,
     svelte5Plus: boolean,
-    element: Element | InlineComponent
+    element: Element | InlineComponent,
+    customNamespaces?: string[]
 ): void {
     if (
         parent.name === '!DOCTYPE' ||
@@ -91,6 +106,15 @@ export function handleAttribute(
                           value = ['__sveltets_2_any()'];
                       }
                       value.push('})');
+                  } else if (matchesCustomNamespace(attr.name, customNamespaces)) {
+                      // Attributes in a configured custom namespace are opaque framework
+                      // metadata, not typed attributes. Wrap them so the attribute name is
+                      // exempt from validation while any value expression stays type-checked.
+                      name.unshift('...__sveltets_2_empty({');
+                      if (!value) {
+                          value = ['__sveltets_2_any()'];
+                      }
+                      value.push('})');
                   }
                   element.addAttribute(name, value);
               }
@@ -101,6 +125,15 @@ export function handleAttribute(
                       name.unshift('...__sveltets_2_cssProp({');
                       if (!value) {
                           value = ['""'];
+                      }
+                      value.push('})');
+                  } else if (matchesCustomNamespace(attr.name, customNamespaces)) {
+                      // Attributes in a configured custom namespace are opaque framework
+                      // metadata, not typed props. Wrap them so the attribute name is
+                      // exempt from validation while any value expression stays type-checked.
+                      name.unshift('...__sveltets_2_empty({');
+                      if (!value) {
+                          value = ['__sveltets_2_any()'];
                       }
                       value.push('})');
                   }

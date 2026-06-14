@@ -372,6 +372,7 @@ type BaseConfig = {
     emitOnTemplateError?: boolean;
     filename?: string;
     rewriteExternalImports?: Svelte2TsxConfig['rewriteExternalImports'];
+    customNamespaces?: string[];
 };
 type Svelte2TsxConfig = Required<Parameters<typeof svelte2tsx>[1]>;
 
@@ -386,7 +387,8 @@ export function get_svelte2tsx_config(base: BaseConfig, sampleName: string): Sve
         accessors: sampleName.startsWith('accessors-config'),
         emitJsDoc: sampleName.startsWith('jsdoc-'),
         version: VERSION,
-        rewriteExternalImports: base.rewriteExternalImports
+        rewriteExternalImports: base.rewriteExternalImports,
+        customNamespaces: base.customNamespaces
     };
 }
 

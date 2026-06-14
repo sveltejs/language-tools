@@ -26,6 +26,7 @@ function processSvelteTemplate(
         emitJsDoc?: boolean;
         isTsFile?: boolean;
         rewriteExternalImports?: RewriteExternalImportsOptions;
+        customNamespaces?: string[];
     }
 ): TemplateProcessResult {
     const { htmlxAst, tags } = parseHtmlx(str.original, parse, options);
@@ -55,10 +56,22 @@ export function svelte2tsx(
             workspacePath: string;
             generatedPath: string;
         };
+        /**
+         * Attribute namespaces that should be treated as opaque framework metadata rather than
+         * typed props/attributes. An entry `'mochi'` matches an attribute named exactly `mochi`
+         * or any attribute starting with `mochi:`. Matching attributes are emitted so their
+         * value expressions are still type-checked, but the attribute name itself is exempt from
+         * prop/attribute validation.
+         */
+        customNamespaces?: string[];
     } = { parse }
 ) {
     options.mode = options.mode || 'ts';
     options.version = options.version || VERSION;
+    // Normalize custom namespaces by stripping a trailing `:` so both `'mochi'` and `'mochi:'` work.
+    const customNamespaces = options.customNamespaces
+        ?.map((ns) => (ns.endsWith(':') ? ns.slice(0, -1) : ns))
+        .filter((ns) => ns.length > 0);
 
     const str = new MagicString(svelte);
 
@@ -93,7 +106,8 @@ export function svelte2tsx(
     } = processSvelteTemplate(str, options.parse || parse, {
         ...options,
         svelte5Plus,
-        rewriteExternalImports: rewriteExternalImportsOptions
+        rewriteExternalImports: rewriteExternalImportsOptions,
+        customNamespaces
     });
 
     /* Rearrange the script tags so that module is first, and instance second followed finally by the template

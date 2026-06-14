@@ -30,6 +30,12 @@ export interface SvelteConfig {
     isFallbackConfig?: boolean;
     configSource?: 'svelte' | 'vite';
     kit?: any;
+    /**
+     * Attribute namespaces (e.g. `'mochi'`) that frameworks built on top of Svelte attach to
+     * elements and components as opaque metadata. Matching attributes (`mochi` or `mochi:*`)
+     * are exempt from prop/attribute type validation. See svelte2tsx' `customNamespaces` option.
+     */
+    customNamespaces?: string[];
 }
 
 type LoadConfigFromDirectoryFn = typeof loadConfigFromDirectory;
