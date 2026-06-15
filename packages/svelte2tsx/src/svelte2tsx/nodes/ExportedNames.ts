@@ -666,6 +666,10 @@ export class ExportedNames {
         }
 
         name.elements.forEach((child) => {
+            // Skip array binding holes (`[a, , c]`), which have no `name`.
+            if (ts.isOmittedExpression(child)) {
+                return;
+            }
             this.addExportForBindingPattern(child.name, isLet, undefined, type, required);
         });
     }
