@@ -533,15 +533,11 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
         const text = ts.sys.readFile(filePath) ?? '';
         const result: Diagnostic[] = [];
         const lineOffsets = getLineOffsets(text);
-        const utf8Info = getUtf8LineOffsets(text);
         for (const diag of diagnostics) {
-            const startOffset = toUtf16Pos(utf8Info, diag.pos, lineOffsets);
-            const endOffset = toUtf16Pos(utf8Info, diag.end, lineOffsets);
-
             result.push({
                 range: {
-                    start: positionAt(startOffset, text, lineOffsets),
-                    end: positionAt(endOffset, text, lineOffsets)
+                    start: positionAt(diag.pos, text, lineOffsets),
+                    end: positionAt(diag.end, text, lineOffsets)
                 },
                 severity: mapSeverity(diag.category),
                 message: flattenDiagnosticMessage(diag),
@@ -595,7 +591,7 @@ function mapAndFilterDiagnostics(
     tsAstModule: typeof tsAst,
     tsApiModule: typeof tsApiSync,
     tsApiProject: tsApiSync.Project,
-    diagnosticsWithUtf8Pos: tsApiSync.Diagnostic[],
+    diagnostics: tsApiSync.Diagnostic[],
     document: Document,
     tsDoc: SvelteDocumentSnapshot
 ): Diagnostic[] {
@@ -608,17 +604,6 @@ function mapAndFilterDiagnostics(
     const parserErrorDiag = getParserErrorDiagnostic(tsDoc);
     if (parserErrorDiag) {
         return [parserErrorDiag];
-    }
-
-    // TODO: The sourceFile positions are already in UTF-16,
-    // So it probably is a bug that typescript api returns diagnostics with UTF-8 positions
-    const utf8Info = getUtf8LineOffsets(tsDoc.getFullText());
-    let diagnostics: tsApiSync.Diagnostic[] = [];
-    const lineOffsets = getLineOffsets(tsDoc.getFullText());
-    for (const diag of diagnosticsWithUtf8Pos) {
-        const startOffset = toUtf16Pos(utf8Info, diag.pos, lineOffsets);
-        const endOffset = toUtf16Pos(utf8Info, diag.end, lineOffsets);
-        diagnostics.push({ ...diag, pos: startOffset, end: endOffset });
     }
 
     const notGenerated = isNotGenerated(tsDoc.getFullText());
@@ -1256,83 +1241,4 @@ function getDiagnosticTag(tsDiag: tsApiSync.Diagnostic): DiagnosticTag[] | undef
         tags.push(DiagnosticTag.Deprecated);
     }
     return tags;
-}
-
-type Utf8LineOffsetInfo =
-    | { isAsciiOnly: true }
-    | {
-          isAsciiOnly: false;
-          lineOffsets: number[];
-          bytes: Uint8Array;
-      };
-
-function getUtf8LineOffsets(text: string): Utf8LineOffsetInfo {
-    let asciiOnly = true;
-    for (let i = 0; i < text.length; i++) {
-        const charCode = text.charCodeAt(i);
-        if (charCode >= UTF8_RUNE_SELF) {
-            asciiOnly = false;
-            break;
-        }
-    }
-
-    if (asciiOnly) {
-        return {
-            isAsciiOnly: true
-        };
-    }
-
-    const lineOffsets: number[] = [0];
-    const utf8Bytes = textEncoder.encode(text);
-    for (let i = 0; i < utf8Bytes.length; i++) {
-        const byte = utf8Bytes[i];
-        const isNewLine = byte === 10 /* \n */ || byte === 13; /* \r */
-        if (!isNewLine) {
-            continue;
-        }
-        if (byte === 13 /* \r */ && utf8Bytes[i + 1] === 10 /* \n */) {
-            i++;
-        }
-        lineOffsets.push(i + 1);
-    }
-
-    return {
-        isAsciiOnly: false,
-        lineOffsets,
-        bytes: utf8Bytes
-    };
-}
-
-function toUtf16Pos(info: Utf8LineOffsetInfo, offset: number, utf16LineOffsets: number[]): number {
-    if (info.isAsciiOnly) {
-        return offset;
-    }
-
-    offset = clamp(offset, 0, info.bytes.length);
-    const lineOffsets = info.lineOffsets;
-
-    let low = 0;
-    let high = lineOffsets.length;
-    if (high === 0) {
-        return offset;
-    }
-
-    while (low <= high) {
-        const mid = Math.floor((low + high) / 2);
-        const lineOffset = lineOffsets[mid];
-
-        if (lineOffset === offset) {
-            return utf16LineOffsets[mid];
-        } else if (offset > lineOffset) {
-            low = mid + 1;
-        } else {
-            high = mid - 1;
-        }
-    }
-
-    // low is the least x for which the line offset is larger than the current offset
-    // or array.length if no line offset is larger than the current offset
-    const line = low - 1;
-    const lineText = textDecoder.decode(info.bytes.subarray(lineOffsets[line], offset));
-    return utf16LineOffsets[line] + lineText.length;
 }
