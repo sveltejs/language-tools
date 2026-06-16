@@ -147,13 +147,13 @@ declare function __sveltets_2_componentAttr(attr: svelteHTML.ComponentAttributes
 declare namespace svelteHTML {
     /**
      * Augment this interface to globally allow custom namespaced attributes
-     * (e.g. `mochi:defer`) on any Svelte component. All members should be optional.
+     * (e.g. `custom:defer`) on any Svelte component. All members should be optional.
      *
      * ```ts
      * declare namespace svelteHTML {
      *     interface ComponentAttributes {
-     *         'mochi:defer'?: boolean;
-     *         'mochi:hydrate:visible'?: { rootMargin?: string };
+     *         'custom:defer'?: boolean;
+     *         'custom:hydrate:visible'?: { rootMargin?: string };
      *     }
      * }
      * ```

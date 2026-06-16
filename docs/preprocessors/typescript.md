@@ -197,19 +197,19 @@ export function myAction(node: HTMLElement, parameter: Parameter): ActionReturn<
 
 ### I want to allow custom (namespaced) attributes on every Svelte component
 
-The typings above only add attributes to DOM elements. If you instead want to allow extra attributes on _any Svelte component_ — for example a framework that adds namespaced attributes such as `<MyComponent mochi:defer />` — augment the `svelteHTML.ComponentAttributes` interface:
+The typings above only add attributes to DOM elements. If you instead want to allow extra attributes on _any Svelte component_ — for example a framework that adds namespaced attributes such as `<MyComponent custom:defer />` — augment the `svelteHTML.ComponentAttributes` interface:
 
 ```ts
 declare namespace svelteHTML {
     interface ComponentAttributes {
         // All members should be optional. Namespaced names (containing a `:`) are supported.
-        'mochi:defer'?: boolean;
-        'mochi:hydrate:visible'?: { rootMargin?: string };
+        'custom:defer'?: boolean;
+        'custom:hydrate:visible'?: { rootMargin?: string };
     }
 }
 ```
 
-With this in place, `<MyComponent mochi:defer mochi:hydrate:visible={{ rootMargin: '200px' }} />` type-checks against the declared types on every component, while regular props (like `someOtherProps="foo"`) keep being checked against that component's own prop definition. Only attribute names containing a `:` are treated as custom component attributes; any namespaced attribute you don't declare here is reported as an error, so typos are caught. As with the DOM typings above, make sure the `d.ts` file is referenced by your `tsconfig.json`.
+With this in place, `<MyComponent custom:defer custom:hydrate:visible={{ rootMargin: '200px' }} />` type-checks against the declared types on every component, while regular props (like `someOtherProps="foo"`) keep being checked against that component's own prop definition. Only attribute names containing a `:` are treated as custom component attributes; any namespaced attribute you don't declare here is reported as an error, so typos are caught. As with the DOM typings above, make sure the `d.ts` file is referenced by your `tsconfig.json`.
 
 ### I'm getting deprecation warnings for svelte.JSX / I want to migrate to the new typings
 

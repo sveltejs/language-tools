@@ -104,7 +104,7 @@ export function handleAttribute(
                       }
                       value.push('})');
                   } else if (attr.name.includes(':')) {
-                      // Namespaced attributes (e.g. `mochi:defer`) are not part of the
+                      // Namespaced attributes (e.g. `custom:defer`) are not part of the
                       // component's props definition. They can be opted into globally by
                       // augmenting `svelteHTML.ComponentAttributes`, so route them through
                       // a helper that validates against that interface instead.
