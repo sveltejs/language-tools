@@ -1,0 +1,43 @@
+[
+    {
+        "range": { "start": { "line": 9, "character": 6 }, "end": { "line": 9, "character": 27 } },
+        "severity": 1,
+        "source": "ts",
+        "message": "Type 'string' has no properties in common with type '{ rootMargin?: string; }'.",
+        "code": 2559,
+        "tags": []
+    },
+    {
+        "range": {
+            "start": { "line": 12, "character": 6 },
+            "end": { "line": 12, "character": 16 }
+        },
+        "severity": 1,
+        "source": "ts",
+        "message": "Object literal may only specify known properties, and '\"mochi:typo\"' does not exist in type 'ComponentAttributes'.",
+        "code": 2353,
+        "tags": []
+    },
+    {
+        "range": {
+            "start": { "line": 15, "character": 6 },
+            "end": { "line": 15, "character": 20 }
+        },
+        "severity": 1,
+        "source": "ts",
+        "message": "Type 'number' is not assignable to type 'string'.",
+        "code": 2322,
+        "tags": []
+    },
+    {
+        "range": {
+            "start": { "line": 16, "character": 6 },
+            "end": { "line": 16, "character": 17 }
+        },
+        "severity": 1,
+        "source": "ts",
+        "message": "Object literal may only specify known properties, and '\"unknownProp\"' does not exist in type '{ someOtherProps?: string; }'.",
+        "code": 2353,
+        "tags": []
+    }
+]

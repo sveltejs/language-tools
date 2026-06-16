@@ -103,6 +103,16 @@ export function handleAttribute(
                           value = ['""'];
                       }
                       value.push('})');
+                  } else if (attr.name.includes(':')) {
+                      // Namespaced attributes (e.g. `mochi:defer`) are not part of the
+                      // component's props definition. They can be opted into globally by
+                      // augmenting `svelteHTML.ComponentAttributes`, so route them through
+                      // a helper that validates against that interface instead.
+                      name.unshift('...__sveltets_2_componentAttr({');
+                      if (!value) {
+                          value = ['true'];
+                      }
+                      value.push('})');
                   }
                   element.addProp(name, value);
               };

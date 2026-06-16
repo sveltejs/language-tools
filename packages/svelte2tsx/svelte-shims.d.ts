@@ -225,6 +225,25 @@ declare function __sveltets_2_nonNullable<T>(type: T): NonNullable<T>;
 
 declare function __sveltets_2_cssProp(prop: Record<string, any>): {};
 
+declare function __sveltets_2_componentAttr(attr: svelteHTML.ComponentAttributes): {};
+
+declare namespace svelteHTML {
+    /**
+     * Augment this interface to globally allow custom namespaced attributes
+     * (e.g. `mochi:defer`) on any Svelte component. All members should be optional.
+     *
+     * ```ts
+     * declare namespace svelteHTML {
+     *     interface ComponentAttributes {
+     *         'mochi:defer'?: boolean;
+     *         'mochi:hydrate:visible'?: { rootMargin?: string };
+     *     }
+     * }
+     * ```
+     */
+    interface ComponentAttributes {}
+}
+
 /** @internal PRIVATE API, DO NOT USE */
 type __sveltets_2_SvelteAnimationReturnType = {
     delay?: number,
