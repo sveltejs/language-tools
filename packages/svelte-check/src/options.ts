@@ -47,8 +47,8 @@ export function parseOptions(cb: (opts: SvelteCheckCliOptions) => any) {
             false
         )
         .option(
-            '--tsgo-experimental',
-            'Use tsgo with experimental API, experimental feature may break without warning',
+            '--tsgo-experimental-api',
+            'Use tsgo for TypeScript diagnostics with the experimental API. Cannot be used with --incremental. Experimental feature, might break without warning.',
             false
         )
         .option(

@@ -46,7 +46,7 @@ function test(name, opts) {
         args.push('--incremental');
     }
     if (opts.tsgoExp) {
-        args.push('--tsgo-experimental');
+        args.push('--tsgo-experimental-api');
     }
 
     let stdout;
@@ -127,7 +127,7 @@ test('clean project', {
     tsconfig: './tsconfig.json'
 });
 
-test('clean project --tsgo-experimental', {
+test('clean project --tsgo-experimental-api', {
     workspace: './test-success',
     tsconfig: './tsconfig.json',
     tsgoExp: true
@@ -197,7 +197,7 @@ test('project with errors', {
     errors
 });
 
-test('project with errors --tsgo-experimental', {
+test('project with errors --tsgo-experimental-api', {
     workspace: './test-error',
     tsconfig: './tsconfig.json',
     tsgoExp: true,

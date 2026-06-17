@@ -2,11 +2,24 @@ import * as syncApi from '@typescript/native-preview/unstable/sync';
 import * as syncAst from '@typescript/native-preview/unstable/ast';
 import { pathToFileURL } from 'url';
 
-export function tryLoadVersion(
-    tsconfigPath: string
-): { major: number; minor: number; patch: number; preRelease: string | null } | null {
+interface PkgInfo {
+    name: string;
+    major: number;
+    minor: number;
+    patch: number;
+    preRelease: string | null;
+}
+
+export function tryParseTsGoVersion(tsconfigPath: string): PkgInfo | null {
+    // TODO: Most likely it'll eventually be released under the 'typescript' package.
+    // When it happened, check where the nightly versions are released and decide which package to prioritize.
+
+    return tryParsePkg(tsconfigPath, '@typescript/native-preview');
+}
+
+function tryParsePkg(tsconfigPath: string, name: string): PkgInfo | null {
     try {
-        const apiPath = require.resolve('@typescript/native-preview/package.json', {
+        const apiPath = require.resolve(name + '/package.json', {
             paths: [tsconfigPath, __dirname]
         });
         const pkg = require(apiPath);
@@ -19,48 +32,39 @@ export function tryLoadVersion(
         const [major, minor] = parts.slice(0, 2).map((part) => parseInt(part, 10));
         const patch = parseInt(parts[2].split('-')[0], 10);
         const preRelease = version.includes('-') ? version.split('-')[1] : null;
-        return { major, minor, patch, preRelease };
+        return { major, minor, patch, preRelease, name: pkg.name };
     } catch (e) {
         return null;
     }
 }
 
-export async function tryLoadApi(tsconfigPath: string): Promise<typeof syncApi | null> {
-    try {
-        const apiPath = require.resolve('@typescript/native-preview/unstable/sync', {
-            paths: [tsconfigPath, __dirname]
-        });
-        const syncApiModule = await import(pathToFileURL(apiPath).href);
-        return syncApiModule;
-    } catch (e) {
-        try {
-            const apiPath = require.resolve('@typescript/native-preview/sync', {
-                paths: [tsconfigPath, __dirname]
-            });
-            const syncApiModule = await import(pathToFileURL(apiPath).href);
-            return syncApiModule;
-        } catch (e) {
-            return null;
-        }
-    }
+export async function tryLoadApi(
+    tsconfigPath: string,
+    info: PkgInfo
+): Promise<typeof syncApi | null> {
+    return (
+        (await tryImport(info.name + '/unstable/sync', tsconfigPath)) ??
+        (await tryImport(info.name + '/sync', tsconfigPath))
+    );
 }
 
-export async function tryLoadAst(tsconfigPath: string): Promise<typeof syncAst | null> {
+export async function tryLoadAst(
+    tsconfigPath: string,
+    info: PkgInfo
+): Promise<typeof syncAst | null> {
+    return (
+        (await tryImport(info.name + '/unstable/ast', tsconfigPath)) ??
+        (await tryImport(info.name + '/ast', tsconfigPath))
+    );
+}
+
+async function tryImport(moduleName: string, tsconfigPath: string): Promise<any | null> {
     try {
-        const astPath = require.resolve('@typescript/native-preview/unstable/ast', {
+        const modulePath = require.resolve(moduleName, {
             paths: [tsconfigPath, __dirname]
         });
-        const syncAstModule = await import(pathToFileURL(astPath).href);
-        return syncAstModule;
+        return await import(pathToFileURL(modulePath).href);
     } catch (e) {
-        try {
-            const apiPath = require.resolve('@typescript/native-preview/sync', {
-                paths: [tsconfigPath, __dirname]
-            });
-            const syncApiModule = await import(pathToFileURL(apiPath).href);
-            return syncApiModule;
-        } catch (e) {
-            return null;
-        }
+        return null;
     }
 }

@@ -63,10 +63,6 @@ const D_SVELTE_TS_EXTENSION = '.d.svelte.ts';
 const D_SVELTE_TS_LENGTH = D_SVELTE_TS_EXTENSION.length;
 const SVELTE_DTS_EXTENSION = '.svelte.d.ts';
 
-const UTF8_RUNE_SELF = 0x80;
-const textDecoder = new TextDecoder();
-const textEncoder = new TextEncoder();
-
 export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
     private readonly api: tsApiSync.API;
     private readonly tsApiModule: typeof tsApiSync;
