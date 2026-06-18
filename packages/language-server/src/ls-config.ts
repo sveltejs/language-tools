@@ -430,6 +430,12 @@ export class LSConfigManager {
         return this.prettierConfig;
     }
 
+    getPrettierConfigLoadingOptions() {
+        return {
+            editorconfig: this.prettierConfig?.useEditorConfig ?? true
+        };
+    }
+
     /**
      * Returns a merged Prettier config following these rules:
      * - If `prettierFromFileConfig` exists, that one is returned
@@ -705,9 +711,10 @@ export class LSConfigManager {
         }
 
         const prettierConfig = this.getMergedPrettierConfig(
-            await importPrettier(filePath).resolveConfig(filePath, {
-                editorconfig: true
-            })
+            await importPrettier(filePath).resolveConfig(
+                filePath,
+                this.getPrettierConfigLoadingOptions()
+            )
         );
         const useSemicolons = prettierConfig.semi ?? true;
         const documentUseLf =

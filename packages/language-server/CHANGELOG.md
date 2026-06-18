@@ -1,5 +1,63 @@
 # Changelog
 
+## 0.18.2
+
+### Patch Changes
+
+-   fix: don't show type inlay hint for component inside snippets ([#3041](https://github.com/sveltejs/language-tools/pull/3041))
+
+-   fix: correct 'occured' typo in `svelte:boundary` `onerror` description (shown in editor IntelliSense) ([#3039](https://github.com/sveltejs/language-tools/pull/3039))
+
+-   feat: support reading Svelte config from `vite.config.js/ts` ([#3031](https://github.com/sveltejs/language-tools/pull/3031))
+
+-   fix: mark optional members with a trailing `?` in completion labels ([#3044](https://github.com/sveltejs/language-tools/pull/3044))
+
+-   Updated dependencies [[`151cf45`](https://github.com/sveltejs/language-tools/commit/151cf4593efb4cc3a88cd3c00d5a2f847ac345fe)]:
+    -   @sveltejs/load-config@0.1.1
+
+## 0.18.1
+
+### Patch Changes
+
+-   feat: add support for svelte config ts/mts files ([#3009](https://github.com/sveltejs/language-tools/pull/3009))
+
+-   feat: support CSS completions in nested style tags ([#3022](https://github.com/sveltejs/language-tools/pull/3022))
+
+-   fix: support prettier.useEditorConfig setting ([#3026](https://github.com/sveltejs/language-tools/pull/3026))
+
+-   fix: prevent > in expression affects HTML folding ([#3029](https://github.com/sveltejs/language-tools/pull/3029))
+
+-   Updated dependencies [[`86fafb1`](https://github.com/sveltejs/language-tools/commit/86fafb1f42ab87aeda282c9457fd44303a75f45c), [`6bd8b17`](https://github.com/sveltejs/language-tools/commit/6bd8b175ad5918b5822e4323a4e67d79918eff84), [`4a064e5`](https://github.com/sveltejs/language-tools/commit/4a064e5ef6d1c0148b2f833fadafea1b134e9d5c), [`e9f4ce9`](https://github.com/sveltejs/language-tools/commit/e9f4ce9594cd63e6f260be7efd482e7e2b1c53cd), [`3474048`](https://github.com/sveltejs/language-tools/commit/3474048822eca390e58940e10ae844c77b81501a)]:
+    -   svelte2tsx@0.7.56
+
+## 0.18.0
+
+### Minor Changes
+
+-   feat: typescript 6.0 support ([#2985](https://github.com/sveltejs/language-tools/pull/2985))
+
+### Patch Changes
+
+-   Updated dependencies [[`29e2894`](https://github.com/sveltejs/language-tools/commit/29e2894c795f5b1fcfc091ba03d541148a18e4a2)]:
+    -   svelte2tsx@0.7.55
+
+## 0.17.31
+
+### Patch Changes
+
+-   fix: prevent duplicate diagnostics ([#3000](https://github.com/sveltejs/language-tools/pull/3000))
+
+-   fix: properly place svelte-ignore comment in quickfix when `<script module>` presents ([#3011](https://github.com/sveltejs/language-tools/pull/3011))
+
+-   fix: prevent incorrect $types imports being injected when moving +page.svelte files ([#3010](https://github.com/sveltejs/language-tools/pull/3010))
+
+-   fix: prevent extra script indentation when inserting svelte-ignore comments ([#3011](https://github.com/sveltejs/language-tools/pull/3011))
+
+-   fix: provide tsconfig.json diagnostics for svelte-check ([#3005](https://github.com/sveltejs/language-tools/pull/3005))
+
+-   Updated dependencies [[`8b103ba`](https://github.com/sveltejs/language-tools/commit/8b103bab7a8234397a8d4b88f75c88514354b5c5)]:
+    -   svelte2tsx@0.7.54
+
 ## 0.17.30
 
 ### Patch Changes

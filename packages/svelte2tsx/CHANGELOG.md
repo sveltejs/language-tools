@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.7.56
+
+### Patch Changes
+
+-   fix: properly handle props with the name `slot` inside Svelte 5 snippets ([#3030](https://github.com/sveltejs/language-tools/pull/3030))
+
+-   fix: take into account component references when calculating snippet hoistabilty ([#3032](https://github.com/sveltejs/language-tools/pull/3032))
+
+-   fix: use local name for marking bindable props used ([#3017](https://github.com/sveltejs/language-tools/pull/3017))
+
+-   feat: support Svelte 5 declaration tags ([#3033](https://github.com/sveltejs/language-tools/pull/3033))
+
+-   fix: drop declarations emitted outside declarationDir ([#2965](https://github.com/sveltejs/language-tools/pull/2965))
+
+## 0.7.55
+
+### Patch Changes
+
+-   feat: typescript 6.0 support ([#2985](https://github.com/sveltejs/language-tools/pull/2985))
+
+## 0.7.54
+
+### Patch Changes
+
+-   fix: hoist self-referenced props interface ([#2998](https://github.com/sveltejs/language-tools/pull/2998))
+
 ## 0.7.53
 
 ### Patch Changes

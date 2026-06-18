@@ -1,9 +1,9 @@
 {
     "compilerOptions": {
         "lib": ["es2021"],
-        "module": "CommonJS",
+        "module": "node16",
         "target": "es2021",
-        "moduleResolution": "node",
+        "moduleResolution": "node16",
 
         "outDir": "dist",
         "strict": true,

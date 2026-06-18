@@ -11,7 +11,7 @@ import {
     positionAt,
     getLineOffsets
 } from 'svelte-language-server';
-import { pathToFileURL } from 'url';
+import { loadConfig } from '@sveltejs/load-config';
 import { findFiles } from './utils';
 
 type ManifestEntry = {
@@ -45,7 +45,7 @@ export type EmitResult = {
 };
 
 export type ParsedDiagnostic = {
-    filePath: string;
+    filePath: string | null;
     line: number;
     character: number;
     /** Span length in characters, parsed from tsc pretty-output ~~ underlines */
@@ -92,18 +92,23 @@ const defaultKitFilesSettings: InternalHelpers.KitFilesSettings = {
     universalHooksPath: 'src/hooks'
 };
 
-/**
- * This function encapsulates the import call in a way
- * that TypeScript does not transpile `import()`.
- * https://github.com/microsoft/TypeScript/issues/43329
- */
-const dynamicImport = new Function('modulePath', 'return import(modulePath)') as (
-    modulePath: URL
-) => Promise<any>;
+function kitFilesSettingsFromConfig(config: any): InternalHelpers.KitFilesSettings {
+    if (!config?.files) {
+        return defaultKitFilesSettings;
+    }
+
+    const files = config.files;
+    return {
+        paramsPath: files.params ?? defaultKitFilesSettings.paramsPath,
+        serverHooksPath: files.hooks?.server ?? defaultKitFilesSettings.serverHooksPath,
+        clientHooksPath: files.hooks?.client ?? defaultKitFilesSettings.clientHooksPath,
+        universalHooksPath: files.hooks?.universal ?? defaultKitFilesSettings.universalHooksPath
+    };
+}
 
 /**
  * Loads the svelte.config.js file and extracts SvelteKit file path settings.
- * Falls back to default paths if config doesn't exist or doesn't specify custom paths.
+ * Falls back to default paths when no Svelte config can be loaded.
  *
  * @param workspacePath - Root directory of the project
  * @returns KitFilesSettings with paths for params, hooks files
@@ -111,37 +116,12 @@ const dynamicImport = new Function('modulePath', 'return import(modulePath)') as
 async function loadKitFilesSettings(
     workspacePath: string
 ): Promise<InternalHelpers.KitFilesSettings> {
-    const configExtensions = ['js', 'cjs', 'mjs'];
-    let configPath: string | undefined;
-
-    for (const ext of configExtensions) {
-        const tryPath = path.join(workspacePath, `svelte.config.${ext}`);
-        if (fs.existsSync(tryPath)) {
-            configPath = tryPath;
-            break;
-        }
-    }
-
-    if (!configPath) {
+    const result = await loadConfig(workspacePath, { traverse: false });
+    if (!result || !('config' in result)) {
         return defaultKitFilesSettings;
     }
 
-    try {
-        const config = (await dynamicImport(pathToFileURL(configPath)))?.default;
-        if (!config?.kit?.files) {
-            return defaultKitFilesSettings;
-        }
-
-        const files = config.kit.files;
-        return {
-            paramsPath: files.params ?? defaultKitFilesSettings.paramsPath,
-            serverHooksPath: files.hooks?.server ?? defaultKitFilesSettings.serverHooksPath,
-            clientHooksPath: files.hooks?.client ?? defaultKitFilesSettings.clientHooksPath,
-            universalHooksPath: files.hooks?.universal ?? defaultKitFilesSettings.universalHooksPath
-        };
-    } catch {
-        return defaultKitFilesSettings;
-    }
+    return kitFilesSettingsFromConfig(result.config.kit);
 }
 
 /**
@@ -548,7 +528,8 @@ export function runTypeScriptDiagnostics(
  */
 export function mapCliDiagnosticsToLsp(
     diagnostics: ParsedDiagnostic[],
-    emitResult: EmitResult
+    emitResult: EmitResult,
+    tsconfigPath: string
 ): Array<{ filePath: string; text: string; diagnostics: Diagnostic[] }> {
     const entryByOutPath = new Map(
         emitResult.entries.map((entry) => [path.normalize(entry.outPath), entry])
@@ -561,7 +542,8 @@ export function mapCliDiagnosticsToLsp(
 
     const diagnosticsByFile = new Map<string, ParsedDiagnostic[]>();
     for (const diagnostic of diagnostics) {
-        const key = path.normalize(diagnostic.filePath);
+        const filePath = diagnostic.filePath ?? tsconfigPath;
+        const key = filePath ? path.normalize(filePath) : '';
         // Even though we try to exclude +page.js etc files that had code inserted (due to SvelteKit's zero types feature)
         // we might still have them included through code in .svelte-kit/types importing them. So we exclude the diagnostics for these.
         if (excludedSourcePaths.has(key)) {
@@ -662,7 +644,10 @@ export function mapCliDiagnosticsToLsp(
                 severity: diag.severity,
                 code: diag.code,
                 message: diag.message,
-                source
+                source,
+                data: {
+                    positionUnknown: diag.filePath === null
+                }
             }));
 
             results.set(filePath, {
@@ -704,7 +689,7 @@ function parseDiagnostics(output: string, baseDir: string): ParsedDiagnostic[] {
     const diagnostics: ParsedDiagnostic[] = [];
     const lines = clean.split(/\r?\n/);
     // Pretty format: file.ts:5:10 - error TS2322: message
-    const headerRegex = /^(.+):(\d+):(\d+) - (error|warning) TS(\d+): (.*)$/;
+    const headerRegex = /^((.+):(\d+):(\d+) - )?(error|warning) TS(\d+): (.*)$/;
     // Tilde underline: optional leading whitespace followed by one or more tildes
     const tildeRegex = /^(\s*)(~+)\s*$/;
 
@@ -713,23 +698,31 @@ function parseDiagnostics(output: string, baseDir: string): ParsedDiagnostic[] {
         if (!match) {
             continue;
         }
-        const [, filePath, lineStr, colStr, severity, codeStr, message] = match;
-        const resolvedPath = path.isAbsolute(filePath) ? filePath : path.resolve(baseDir, filePath);
+        const [, , filePath, lineStr = '0', colStr = '0', severity, codeStr, message] = match;
+        const resolvedPath = filePath
+            ? path.isAbsolute(filePath)
+                ? filePath
+                : path.resolve(baseDir, filePath)
+            : null;
         const lineNum = Math.max(0, Number(lineStr) - 1);
         const colNum = Math.max(0, Number(colStr) - 1);
 
         // Look ahead (up to 4 lines) for a ~~ underline to determine span length.
         // The underline appears after the source context line in pretty output.
         let length = 1;
-        for (let j = i + 1; j < Math.min(i + 5, lines.length); j++) {
-            const tildeMatch = tildeRegex.exec(lines[j]);
-            if (tildeMatch) {
-                length = tildeMatch[2].length;
-                break;
-            }
-            // Stop looking if we hit another diagnostic header
-            if (headerRegex.test(lines[j].trim())) {
-                break;
+        // No file path, so no source context line.
+        if (filePath) {
+            for (let j = i + 1; j < Math.min(i + 5, lines.length); j++) {
+                const tildeMatch = tildeRegex.exec(lines[j]);
+                if (tildeMatch) {
+                    length = tildeMatch[2].length;
+                    break;
+                }
+
+                // Stop looking if we hit another diagnostic header
+                if (headerRegex.test(lines[j].trim())) {
+                    break;
+                }
             }
         }
 

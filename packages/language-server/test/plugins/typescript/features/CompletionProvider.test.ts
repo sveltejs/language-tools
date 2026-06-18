@@ -1776,6 +1776,28 @@ describe('CompletionProviderImpl', function () {
         });
     });
 
+    it('marks optional object literal members with a trailing ? in the label', async () => {
+        const { completionProvider, document } = setup('object-member.svelte');
+
+        const completions = await completionProvider.getCompletions(
+            document,
+            {
+                line: 14,
+                character: 30
+            },
+            {
+                triggerKind: CompletionTriggerKind.Invoked
+            }
+        );
+
+        const item = completions?.items.find((item) => item.label === 'baz?');
+
+        assert.ok(item, 'Expected optional property completion to be labelled "baz?"');
+        // The `?` is display-only — the inserted text must remain the bare name.
+        assert.strictEqual(item?.insertText ?? item?.label, 'baz');
+        assert.strictEqual(item?.data?.name, 'baz');
+    });
+
     it('provides import completions store that isnt imported yet', async () => {
         const { completionProvider, document } = setup('importcompletions-store.svelte');
 

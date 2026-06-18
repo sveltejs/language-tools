@@ -73,7 +73,7 @@ export class HumanFriendlyWriter implements Writer {
     }
 
     private formatRelatedCode(diagnostic: Diagnostic, text: string) {
-        if (!text) {
+        if (!text || diagnostic.data?.positionUnknown) {
             return '';
         }
 

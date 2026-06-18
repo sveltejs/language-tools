@@ -197,7 +197,8 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
                     'SnippetBlock',
                     'IfBlock',
                     'EachBlock',
-                    'AwaitBlock'
+                    'AwaitBlock',
+                    'Style'
                 ].includes(svelteNode.parent?.type as any)) ||
             // Cursor is at <div>|</div> in which case there's no TextNode inbetween
             document.getText().substring(originalOffset - 1, originalOffset + 2) === '></'
@@ -774,9 +775,13 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
             };
         }
 
+        const isOptional = kindModifiers
+            ?.split(/,|\s+/)
+            .includes(ts.ScriptElementKindModifier.optionalModifier);
+
         return {
-            label: name,
-            insertText,
+            label: isOptional ? `${name}?` : name,
+            insertText: isOptional ? (insertText ?? name) : insertText, // else label with ? is used if no insertText available,
             isSvelteComp,
             isRunesCompletion
         };

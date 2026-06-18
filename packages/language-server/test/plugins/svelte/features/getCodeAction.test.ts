@@ -445,7 +445,7 @@ describe('SveltePlugin#getCodeAction', () => {
                             {
                                 edits: [
                                     {
-                                        newText: `\t// svelte-ignore state_referenced_locally${EOL}\t`,
+                                        newText: `\t// svelte-ignore state_referenced_locally${EOL}`,
                                         range: {
                                             end: {
                                                 character: 0,
@@ -460,6 +460,55 @@ describe('SveltePlugin#getCodeAction', () => {
                                 ],
                                 textDocument: {
                                     uri: getUri(svelteIgnoreCodeAction),
+                                    version: null
+                                }
+                            }
+                        ]
+                    },
+                    title: '(svelte) Disable state_referenced_locally for this line',
+                    kind: 'quickfix'
+                }
+            ]);
+        });
+
+        it('should properly place svelte ignore code actions when the html is on both sides of the script tag', async () => {
+            (
+                await expectCodeActionFor('svelte-ignore-correct-script-placement.svelte', {
+                    diagnostics: [
+                        {
+                            severity: DiagnosticSeverity.Warning,
+                            code: 'state_referenced_locally',
+                            range: Range.create(
+                                { line: 7, character: 16 },
+                                { line: 7, character: 17 }
+                            ),
+                            message: '',
+                            source: 'svelte'
+                        }
+                    ]
+                })
+            ).toEqual([
+                {
+                    edit: {
+                        documentChanges: [
+                            {
+                                edits: [
+                                    {
+                                        newText: `\t// svelte-ignore state_referenced_locally${EOL}`,
+                                        range: {
+                                            end: {
+                                                character: 0,
+                                                line: 7
+                                            },
+                                            start: {
+                                                character: 0,
+                                                line: 7
+                                            }
+                                        }
+                                    }
+                                ],
+                                textDocument: {
+                                    uri: getUri('svelte-ignore-correct-script-placement.svelte'),
                                     version: null
                                 }
                             }

@@ -18,7 +18,8 @@ import {
     findChildOfKind,
     findRenderFunction,
     SnapshotMap,
-    startsWithIgnoredPosition
+    startsWithIgnoredPosition,
+    findClosestContainingNode
 } from './utils';
 import { convertRange, isSvelte2tsxShimFile } from '../utils';
 
@@ -243,7 +244,7 @@ export class InlayHintProviderImpl implements InlayHintProvider {
             return true;
         }
 
-        const declaration = findContainingNode(
+        const declaration = findClosestContainingNode(
             sourceFile,
             { start: inlayHint.position, length: 0 },
             ts.isVariableDeclaration

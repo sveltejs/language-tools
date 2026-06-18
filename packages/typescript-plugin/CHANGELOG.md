@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.52
+
+### Patch Changes
+
+-   fix: prevent incorrect $types imports being injected when moving +page.svelte files ([#3010](https://github.com/sveltejs/language-tools/pull/3010))
+
+-   Updated dependencies [[`8b103ba`](https://github.com/sveltejs/language-tools/commit/8b103bab7a8234397a8d4b88f75c88514354b5c5)]:
+    -   svelte2tsx@0.7.54
+
 ## 0.3.51
 
 ### Patch Changes
