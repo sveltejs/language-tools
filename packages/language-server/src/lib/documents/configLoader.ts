@@ -101,7 +101,12 @@ export class ConfigLoader {
                 .withPathSeparator('/')
                 .exclude((_, path) => {
                     // no / at the start, path could start with node_modules
-                    return path.includes('node_modules/') || path.includes('/.') || path[0] === '.';
+                    return (
+                        path.includes('node_modules/') ||
+                        path.includes('/vendor/') ||
+                        path.includes('/.') ||
+                        path[0] === '.'
+                    );
                 })
                 .filter((path, isDir) => {
                     return !isDir && targetRegex.test(path);

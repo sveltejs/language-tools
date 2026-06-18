@@ -63,7 +63,11 @@ export async function findFiles(
     return new fdir()
         .filter((filePath) => filter(filePath) && !isIgnored(filePath))
         .exclude((_, filePath) => {
-            return filePath.includes('/node_modules/') || filePath.includes('/.');
+            return (
+                filePath.includes('/node_modules/') ||
+                filePath.includes('/vendor/') ||
+                filePath.includes('/.')
+            );
         })
         .withPathSeparator('/')
         .withFullPaths()
