@@ -54,6 +54,35 @@ describe('ConfigLoader', () => {
         };
     }
 
+    /**
+     * Like mockFdir, but actually applies the exclude callback so we can
+     * verify that node_modules, vendor, and dotfile exclusion works.
+     */
+    function mockFdirWithExclude(rawFiles: string[]): any {
+        let excludeFn: (path: string) => boolean;
+        return class {
+            withPathSeparator() {
+                return this;
+            }
+            exclude(cb: (isDir: boolean, path: string) => boolean) {
+                excludeFn = (p: string) => cb(false, p);
+                return this;
+            }
+            filter() {
+                return this;
+            }
+            withRelativePaths() {
+                return this;
+            }
+            crawl() {
+                return this;
+            }
+            sync() {
+                return rawFiles.filter((f) => !excludeFn(f));
+            }
+        };
+    }
+
     function createConfigLoader(
         globSync: any,
         fs: Pick<typeof import('fs'), 'existsSync'>,
@@ -377,6 +406,96 @@ describe('ConfigLoader', () => {
             configLoader,
             '/some/path/comp.svelte',
             '/some/path/svelte.config.cjs'
+        );
+    });
+
+    it('should exclude vendor directory from config crawl', async () => {
+        const configLoader = createConfigLoader(
+            mockFdirWithExclude(['vendor/laravel/svelte.config.js', 'src/svelte.config.js']),
+            {
+                existsSync: (p) =>
+                    typeof p === 'string' &&
+                    (p.endsWith(path.join('vendor', 'laravel', 'svelte.config.js')) ||
+                        p.endsWith(path.join('src', 'svelte.config.js')))
+            },
+            (module: URL) => Promise.resolve({ default: { preprocess: module.toString() } }),
+            process.features
+        );
+        await configLoader.loadConfigs(normalizePath('/some/path'));
+
+        // vendor config should NOT be found
+        assert.deepStrictEqual(
+            configLoader.getConfig(normalizePath('/some/path/vendor/laravel/comp.svelte')),
+            undefined
+        );
+        // src config SHOULD be found
+        await assertFindsConfig(
+            configLoader,
+            '/some/path/src/comp.svelte',
+            '/some/path/src/svelte.config.js'
+        );
+    });
+
+    it('should exclude node_modules directory from config crawl', async () => {
+        const configLoader = createConfigLoader(
+            mockFdirWithExclude(['node_modules/some-pkg/svelte.config.js', 'src/svelte.config.js']),
+            {
+                existsSync: (p) =>
+                    typeof p === 'string' &&
+                    (p.endsWith(path.join('node_modules', 'some-pkg', 'svelte.config.js')) ||
+                        p.endsWith(path.join('src', 'svelte.config.js')))
+            },
+            (module: URL) => Promise.resolve({ default: { preprocess: module.toString() } }),
+            process.features
+        );
+        await configLoader.loadConfigs(normalizePath('/some/path'));
+
+        // node_modules config should NOT be found
+        assert.deepStrictEqual(
+            configLoader.getConfig(normalizePath('/some/path/node_modules/some-pkg/comp.svelte')),
+            undefined
+        );
+        // src config SHOULD be found
+        await assertFindsConfig(
+            configLoader,
+            '/some/path/src/comp.svelte',
+            '/some/path/src/svelte.config.js'
+        );
+    });
+
+    it('should exclude dotfiles and dot-directories from config crawl', async () => {
+        const configLoader = createConfigLoader(
+            mockFdirWithExclude([
+                '.hidden/svelte.config.js',
+                '.config/svelte.config.js',
+                'src/svelte.config.js'
+            ]),
+            {
+                existsSync: (p) =>
+                    typeof p === 'string' &&
+                    (p.endsWith(path.join('.hidden', 'svelte.config.js')) ||
+                        p.endsWith(path.join('.config', 'svelte.config.js')) ||
+                        p.endsWith(path.join('src', 'svelte.config.js')))
+            },
+            (module: URL) => Promise.resolve({ default: { preprocess: module.toString() } }),
+            process.features
+        );
+        await configLoader.loadConfigs(normalizePath('/some/path'));
+
+        // dotfile configs should NOT be found
+        assert.deepStrictEqual(
+            configLoader.getConfig(normalizePath('/some/path/.hidden/comp.svelte')),
+            undefined
+        );
+        assert.deepStrictEqual(
+            configLoader.getConfig(normalizePath('/some/path/.config/comp.svelte')),
+            undefined
+        );
+        // src config SHOULD be found
+        await assertFindsConfig(
+            configLoader,
+            '/some/path/src/comp.svelte',
+            '/some/path/src/svelte.config.js'
         );
     });
 });

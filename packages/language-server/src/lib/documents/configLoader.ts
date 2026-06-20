@@ -100,10 +100,10 @@ export class ConfigLoader {
             const pathResults = new this.globSync({})
                 .withPathSeparator('/')
                 .exclude((_, path) => {
-                    // no / at the start, path could start with node_modules
+                    // no / at the start for node_modules and vendor, path could start with them
                     return (
                         path.includes('node_modules/') ||
-                        path.includes('/vendor/') ||
+                        path.includes('vendor/') ||
                         path.includes('/.') ||
                         path[0] === '.'
                     );
