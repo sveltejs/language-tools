@@ -32,6 +32,7 @@ export function mapSvelteCheckDiagnostics(
     sourceText: string,
     tsDiagnostics: ts.Diagnostic[],
     options?: {
+        tsModule?: typeof ts;
         rewriteExternalImports?: {
             workspacePath: string;
             generatedPath: string;
@@ -48,14 +49,19 @@ export function mapSvelteCheckDiagnostics(
         emitJsDoc: true,
         rewriteExternalImports: options?.rewriteExternalImports
     } satisfies SvelteSnapshotOptions) as SvelteDocumentSnapshot;
-    const ts = importTypeScript();
 
-    return mapAndFilterDiagnostics(ts, tsDiagnostics, document, snapshot);
+    return mapAndFilterDiagnostics(
+        options?.tsModule ?? importTypeScript(),
+        tsDiagnostics,
+        document,
+        snapshot
+    );
 }
 
 export type SvelteCheckDiagnosticSource = 'js' | 'css' | 'svelte';
 
 export interface SvelteCheckOptions {
+    tsModule?: typeof ts;
     compilerWarnings?: Record<string, 'ignore' | 'error'>;
     diagnosticSources?: SvelteCheckDiagnosticSource[];
     /**
@@ -89,7 +95,7 @@ export class SvelteCheck {
         private options: SvelteCheckOptions = {}
     ) {
         Logger.setLogErrorsOnly(true);
-        this.tsModule = importTypeScript();
+        this.tsModule = options.tsModule ?? importTypeScript();
         this.configManager = new LSConfigManager(this.tsModule);
         this.initialize(workspacePath, options);
     }

@@ -5,6 +5,7 @@
 import { watch, FSWatcher } from 'chokidar';
 import * as fs from 'fs';
 import * as path from 'path';
+import type ts from 'typescript';
 import { SvelteCheck, SvelteCheckOptions } from 'svelte-language-server';
 import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver-protocol';
 import { URI } from 'vscode-uri';
@@ -25,6 +26,12 @@ import {
     writeOverlayTsconfig
 } from './incremental';
 import { createIgnored, findFiles } from './utils';
+import {
+    getTypeScriptPackageInfo,
+    importAliasedTs6,
+    importTypeScript,
+    PkgInfo
+} from './importPackages';
 
 type Result = {
     fileCount: number;
@@ -308,6 +315,7 @@ function writeDiagnostics(
 }
 
 async function getSvelteDiagnosticsForIncremental(
+    tsModule: typeof ts,
     opts: SvelteCheckCliOptions,
     emitResult: EmitResult
 ): Promise<{
@@ -371,7 +379,8 @@ async function getSvelteDiagnosticsForIncremental(
         const svelteCheck = new SvelteCheck(opts.workspaceUri.fsPath, {
             compilerWarnings: opts.compilerWarnings,
             diagnosticSources: enabledSources,
-            watch: false
+            watch: false,
+            tsModule
         });
         await openDocuments(filesNeedingDiagnostics, svelteCheck);
         const runDiagnostics = await svelteCheck.getDiagnostics();
@@ -434,7 +443,13 @@ async function getSvelteDiagnosticsForIncremental(
     };
 }
 
+interface TsPkgInfo {
+    info: PkgInfo | null;
+    ts6Module: typeof ts;
+}
+
 async function runWithVirtualFiles(
+    tsPkgInfo: TsPkgInfo,
     opts: SvelteCheckCliOptions,
     writer: Writer
 ): Promise<Result | null> {
@@ -443,18 +458,22 @@ async function runWithVirtualFiles(
     }
 
     const emitResult = await emitSvelteFiles(
+        tsPkgInfo.ts6Module,
         opts.workspaceUri.fsPath,
         opts.filePathsToIgnore,
         opts.incremental
     );
     const overlayTsconfig = writeOverlayTsconfig(
+        tsPkgInfo.ts6Module,
         opts.tsconfig,
         emitResult,
         opts.incremental,
         opts.tsgo
     );
     const tsDiagnostics = mapCliDiagnosticsToLsp(
+        tsPkgInfo.ts6Module,
         await runTypeScriptDiagnostics(
+            tsPkgInfo.info,
             overlayTsconfig,
             opts.tsgo,
             opts.incremental,
@@ -468,7 +487,7 @@ async function runWithVirtualFiles(
         diagnostics: svelteDiagnostics,
         compilerWarningsByFile,
         cssDiagnosticsByFile
-    } = await getSvelteDiagnosticsForIncremental(opts, emitResult);
+    } = await getSvelteDiagnosticsForIncremental(tsPkgInfo.ts6Module, opts, emitResult);
     if (opts.incremental) {
         updateDiagnosticsCache(emitResult, {
             compilerWarningsByFile,
@@ -501,7 +520,11 @@ async function runWithVirtualFiles(
     return writeDiagnostics(opts.workspaceUri, writer, Array.from(diagnosticsByFile.values()));
 }
 
-async function watchWithVirtualFiles(opts: SvelteCheckCliOptions, writer: Writer) {
+async function watchWithVirtualFiles(
+    tsPkgInfo: TsPkgInfo,
+    opts: SvelteCheckCliOptions,
+    writer: Writer
+) {
     let pending: NodeJS.Timeout | undefined;
     let running = false;
     let rerun = false;
@@ -514,7 +537,7 @@ async function watchWithVirtualFiles(opts: SvelteCheckCliOptions, writer: Writer
         }
         running = true;
         try {
-            await runWithVirtualFiles(opts, writer);
+            await runWithVirtualFiles(tsPkgInfo, opts, writer);
         } catch (err: any) {
             writer.failure(err);
         } finally {
@@ -580,18 +603,38 @@ parseOptions(async (opts) => {
     try {
         const writer = instantiateWriter(opts);
 
+        const pkgResolveTarget = opts.tsconfig || opts.workspaceUri.fsPath;
+        const typeScriptPackageInfo = getTypeScriptPackageInfo(pkgResolveTarget);
+        const tsModule =
+            !typeScriptPackageInfo || typeScriptPackageInfo.major >= 7
+                ? await importAliasedTs6(pkgResolveTarget)
+                : await importTypeScript(pkgResolveTarget);
+
+        if (!tsModule) {
+            throw new Error(
+                typeScriptPackageInfo && typeScriptPackageInfo.major >= 7
+                    ? `You're using TypeScript ${typeScriptPackageInfo.major}, but svelte-check also requires TypeScript 6.` +
+                      'Please ensure to install @typescript/typescript6 in your project.'
+                    : 'Failed to load TypeScript. Please ensure TypeScript is installed in your project.'
+            );
+        }
         const svelteCheckOptions: SvelteCheckOptions = {
             compilerWarnings: opts.compilerWarnings,
             diagnosticSources: opts.diagnosticSources,
             tsconfig: opts.tsconfig,
-            watch: opts.watch
+            watch: opts.watch,
+            tsModule
         };
 
         const useVirtualFiles = opts.incremental || opts.tsgo;
+        const tsPkgInfo: TsPkgInfo = {
+            info: typeScriptPackageInfo,
+            ts6Module: tsModule
+        };
         if (useVirtualFiles && opts.watch) {
-            await watchWithVirtualFiles(opts, writer);
+            await watchWithVirtualFiles(tsPkgInfo, opts, writer);
         } else if (useVirtualFiles) {
-            const result = await runWithVirtualFiles(opts, writer);
+            const result = await runWithVirtualFiles(tsPkgInfo, opts, writer);
             const exitCode =
                 result &&
                 result.errorCount === 0 &&

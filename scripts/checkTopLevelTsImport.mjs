@@ -9,6 +9,8 @@ const typeOnlyTsServerImportRegex =
 
 checkDirectory('./packages/language-server/src');
 checkDirectory('./packages/typescript-plugin/src');
+checkDirectory('./packages/svelte2tsx/src');
+checkDirectory('./packages/svelte-check/src');
 
 /**
  *

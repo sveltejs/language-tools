@@ -3,7 +3,7 @@ import * as path from 'path';
 import { spawn } from 'child_process';
 import { svelte2tsx, internalHelpers, InternalHelpers } from 'svelte2tsx';
 import { parse, VERSION as svelteVersion, VERSION } from 'svelte/compiler';
-import ts from 'typescript';
+import type ts from 'typescript';
 import { Diagnostic, DiagnosticSeverity, Range } from 'vscode-languageserver-protocol';
 import {
     mapSvelteCheckDiagnostics,
@@ -13,6 +13,7 @@ import {
 } from 'svelte-language-server';
 import { loadConfig } from '@sveltejs/load-config';
 import { findFiles } from './utils';
+import { PkgInfo } from './importPackages';
 
 type ManifestEntry = {
     sourcePath: string;
@@ -134,6 +135,7 @@ async function loadKitFilesSettings(
  * @returns Paths to cache/emit directories, manifest, processed entries, and list of changed files
  */
 export async function emitSvelteFiles(
+    tsModule: typeof ts,
     workspacePath: string,
     filePathsToIgnore: string[],
     incremental: boolean
@@ -291,16 +293,16 @@ export async function emitSvelteFiles(
         const isTsFile = sourcePath.endsWith('.ts');
 
         const result = internalHelpers.upsertKitFile(
-            ts,
+            tsModule,
             sourcePath,
             kitFilesSettings,
             () =>
-                ts.createSourceFile(
+                tsModule.createSourceFile(
                     sourcePath,
                     text,
-                    ts.ScriptTarget.Latest,
+                    tsModule.ScriptTarget.Latest,
                     true,
-                    isTsFile ? ts.ScriptKind.TS : ts.ScriptKind.JS
+                    isTsFile ? tsModule.ScriptKind.TS : tsModule.ScriptKind.JS
                 ),
             undefined,
             {
@@ -357,6 +359,7 @@ export async function emitSvelteFiles(
  * @returns Path to the generated overlay tsconfig.json
  */
 export function writeOverlayTsconfig(
+    ts: typeof import('typescript'),
     tsconfigPath: string,
     emitResult: EmitResult,
     incremental: boolean,
@@ -454,24 +457,27 @@ export function writeOverlayTsconfig(
  * @returns Parsed diagnostics containing file paths, positions, severity, and messages
  */
 export function runTypeScriptDiagnostics(
+    typescriptPkgInfo: PkgInfo | null,
     tsconfigPath: string,
     useTsgo: boolean,
     incremental: boolean,
     cwd: string
 ): Promise<ParsedDiagnostic[]> {
-    const args = [
-        useTsgo
-            ? path.join(
-                  path.dirname(require.resolve('@typescript/native-preview/package.json')),
-                  'bin/tsgo.js'
-              )
-            : require.resolve('typescript/bin/tsc'),
-        '-p',
-        tsconfigPath,
-        '--pretty',
-        'true',
-        '--noErrorTruncation'
-    ];
+    let binPath: string;
+    if (useTsgo) {
+        const ts7Plus = typescriptPkgInfo && typescriptPkgInfo.major >= 7;
+        const moduleName = ts7Plus ? 'typescript' : '@typescript/native-preview';
+        const pkgPath = require.resolve(moduleName + '/package.json', {
+            paths: [tsconfigPath, __dirname]
+        });
+        binPath = path.join(path.dirname(pkgPath), ts7Plus ? 'lib/tsc.js' : 'bin/tsgo.js');
+    } else {
+        binPath = require.resolve('typescript/bin/tsc', {
+            paths: [tsconfigPath, __dirname]
+        });
+    }
+
+    const args = [binPath, '-p', tsconfigPath, '--pretty', 'true', '--noErrorTruncation'];
 
     if (incremental) {
         args.push('--incremental');
@@ -527,6 +533,7 @@ export function runTypeScriptDiagnostics(
  * @returns Diagnostics grouped by file with positions mapped to original sources
  */
 export function mapCliDiagnosticsToLsp(
+    tsModule: typeof ts,
     diagnostics: ParsedDiagnostic[],
     emitResult: EmitResult,
     tsconfigPath: string
@@ -609,6 +616,7 @@ export function mapCliDiagnosticsToLsp(
                 const generatedText = fs.readFileSync(entry.outPath, 'utf-8');
                 const tsDiagnostics = fileDiagnostics.map((diag) =>
                     cliDiagnosticToTsDiagnostic(
+                        tsModule,
                         diag,
                         entry.outPath,
                         generatedText,
@@ -789,17 +797,18 @@ function isTypescriptFile(filePath: string): boolean {
  * @returns TypeScript Diagnostic object suitable for further processing
  */
 function cliDiagnosticToTsDiagnostic(
+    tsModule: typeof ts,
     diag: ParsedDiagnostic,
     filePath: string,
     generatedText: string,
     isTsFile: boolean
 ): ts.Diagnostic {
-    const sourceFile = ts.createSourceFile(
+    const sourceFile = tsModule.createSourceFile(
         filePath,
         generatedText,
-        ts.ScriptTarget.Latest,
+        tsModule.ScriptTarget.Latest,
         true,
-        isTsFile ? ts.ScriptKind.TS : ts.ScriptKind.JS
+        isTsFile ? tsModule.ScriptKind.TS : tsModule.ScriptKind.JS
     );
     const start = sourceFile.getPositionOfLineAndCharacter(diag.line, diag.character);
 
@@ -809,8 +818,8 @@ function cliDiagnosticToTsDiagnostic(
         length: diag.length,
         category:
             diag.severity === DiagnosticSeverity.Warning
-                ? ts.DiagnosticCategory.Warning
-                : ts.DiagnosticCategory.Error,
+                ? tsModule.DiagnosticCategory.Warning
+                : tsModule.DiagnosticCategory.Error,
         code: diag.code,
         messageText: diag.message,
         source: 'ts'
