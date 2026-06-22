@@ -1,4 +1,4 @@
-import { pathToFileURL } from 'node:url'
+import { pathToFileURL } from 'node:url';
 import type ts from 'typescript';
 
 export function getTypeScriptPackageInfo(root: string): PkgInfo | null {
@@ -20,7 +20,6 @@ export interface PkgInfo {
     patch: number;
     preRelease: string | null;
 }
-
 
 function tryParsePkg(tsconfigPath: string, name: string): PkgInfo | null {
     try {

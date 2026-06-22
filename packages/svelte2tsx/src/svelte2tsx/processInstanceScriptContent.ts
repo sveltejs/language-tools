@@ -208,13 +208,18 @@ export function processInstanceScriptContent(
         const onLeaveCallbacks: onLeaveCallback[] = [];
 
         if (rewriteExternalImports) {
-            rewriteExternalImportsInNode(tsModule, node, rewriteExternalImports, (specifier, rewrite) => {
-                str.overwrite(
-                    specifier.getStart(tsAst) + astOffset + 1,
-                    specifier.getEnd() + astOffset - 1,
-                    rewrite.rewritten
-                );
-            });
+            rewriteExternalImportsInNode(
+                tsModule,
+                node,
+                rewriteExternalImports,
+                (specifier, rewrite) => {
+                    str.overwrite(
+                        specifier.getStart(tsAst) + astOffset + 1,
+                        specifier.getEnd() + astOffset - 1,
+                        rewrite.rewritten
+                    );
+                }
+            );
         }
 
         if (parent === tsAst) {

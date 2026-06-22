@@ -58,13 +58,18 @@ export function processModuleScriptTag(
 
     const walk = (node: ts.Node) => {
         if (rewriteExternalImports) {
-            rewriteExternalImportsInNode(tsModule, node, rewriteExternalImports, (specifier, rewrite) => {
-                str.overwrite(
-                    specifier.getStart(tsAst) + astOffset + 1,
-                    specifier.getEnd() + astOffset - 1,
-                    rewrite.rewritten
-                );
-            });
+            rewriteExternalImportsInNode(
+                tsModule,
+                node,
+                rewriteExternalImports,
+                (specifier, rewrite) => {
+                    str.overwrite(
+                        specifier.getStart(tsAst) + astOffset + 1,
+                        specifier.getEnd() + astOffset - 1,
+                        rewrite.rewritten
+                    );
+                }
+            );
         }
 
         resolveImplicitStoreValue(tsModule, node, implicitStoreValues, str, astOffset);
@@ -118,19 +123,34 @@ function resolveImplicitStoreValue(
     }
 }
 
-function throwIfIs$$EventsDeclaration(tsModule: typeof ts, node: ts.Node, str: MagicString, astOffset: number) {
+function throwIfIs$$EventsDeclaration(
+    tsModule: typeof ts,
+    node: ts.Node,
+    str: MagicString,
+    astOffset: number
+) {
     if (is$$EventsDeclaration(tsModule, node)) {
         throw$$Error(node, str, astOffset, '$$Events');
     }
 }
 
-function throwIfIs$$SlotsDeclaration(tsModule: typeof ts, node: ts.Node, str: MagicString, astOffset: number) {
+function throwIfIs$$SlotsDeclaration(
+    tsModule: typeof ts,
+    node: ts.Node,
+    str: MagicString,
+    astOffset: number
+) {
     if (is$$SlotsDeclaration(tsModule, node)) {
         throw$$Error(node, str, astOffset, '$$Slots');
     }
 }
 
-function throwIfIs$$PropsDeclaration(tsModule: typeof ts, node: ts.Node, str: MagicString, astOffset: number) {
+function throwIfIs$$PropsDeclaration(
+    tsModule: typeof ts,
+    node: ts.Node,
+    str: MagicString,
+    astOffset: number
+) {
     if (is$$PropsDeclaration(tsModule, node)) {
         throw$$Error(node, str, astOffset, '$$Props');
     }

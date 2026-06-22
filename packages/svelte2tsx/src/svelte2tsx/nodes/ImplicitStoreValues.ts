@@ -57,7 +57,9 @@ export class ImplicitStoreValues {
             extractIdentifiers(this.tsModule, node.name).forEach((id) => globals.delete(id.text))
         );
         this.reactiveDeclarations.forEach((node) =>
-            getNamesFromLabeledStatement(this.tsModule, node).forEach((name) => globals.delete(name))
+            getNamesFromLabeledStatement(this.tsModule, node).forEach((name) =>
+                globals.delete(name)
+            )
         );
         this.importStatements.forEach(({ name }) => name && globals.delete(name.getText()));
         return [...globals].map((name) => `$${name}`);
@@ -79,7 +81,8 @@ export class ImplicitStoreValues {
             this.createStoreDeclarations(storeNames)
         );
         const nodeEnd =
-            this.tsModule.isVariableDeclarationList(node.parent) && node.parent.declarations.length > 1
+            this.tsModule.isVariableDeclarationList(node.parent) &&
+            node.parent.declarations.length > 1
                 ? node.parent.declarations[node.parent.declarations.length - 1].getEnd()
                 : node.getEnd();
 

@@ -63,7 +63,7 @@ export class ExportedNames {
         private isTsFile: boolean,
         private isSvelte5Plus: boolean,
         private isRunes: boolean,
-        private emitJsDoc: boolean,
+        private emitJsDoc: boolean
     ) {
         this.hoistableInterfaces = new HoistableInterfaces(tsModule);
     }
@@ -96,7 +96,10 @@ export class ExportedNames {
                 this.propTypeAssertToUserDefined(node.declarationList);
             } else if (isConst) {
                 node.declarationList.forEachChild((n) => {
-                    if (this.tsModule.isVariableDeclaration(n) && this.tsModule.isIdentifier(n.name)) {
+                    if (
+                        this.tsModule.isVariableDeclaration(n) &&
+                        this.tsModule.isIdentifier(n.name)
+                    ) {
                         this.addGetter(n.name);
 
                         const type = n.type || this.tsModule.getJSDocType(n);
@@ -189,7 +192,10 @@ export class ExportedNames {
                         if (this.tsModule.isAsExpression(call)) {
                             call = call.expression;
                         }
-                        if (this.tsModule.isCallExpression(call) && this.tsModule.isIdentifier(call.expression)) {
+                        if (
+                            this.tsModule.isCallExpression(call) &&
+                            this.tsModule.isIdentifier(call.expression)
+                        ) {
                             if (call.expression.text === '$bindable') {
                                 this.$props.bindings.push(name);
                                 bindingLocalNames.push(element.name.text);
@@ -248,7 +254,9 @@ export class ExportedNames {
             let start = -1;
             let comment: string;
             // reverse because we want to look at the last comment before the node first
-            for (const c of [...(this.tsModule.getLeadingCommentRanges(text, node.pos) || [])].reverse()) {
+            for (const c of [
+                ...(this.tsModule.getLeadingCommentRanges(text, node.pos) || [])
+            ].reverse()) {
                 const potential_match = text.substring(c.pos, c.end);
                 if (/@type\b/.test(potential_match)) {
                     comment = potential_match;
@@ -258,7 +266,9 @@ export class ExportedNames {
             }
             if (!comment) {
                 for (const c of [
-                    ...(this.tsModule.getLeadingCommentRanges(text, node.parent.pos) || []).reverse()
+                    ...(
+                        this.tsModule.getLeadingCommentRanges(text, node.parent.pos) || []
+                    ).reverse()
                 ]) {
                     const potential_match = text.substring(c.pos, c.end);
                     if (/@type\b/.test(potential_match)) {
@@ -456,9 +466,10 @@ export class ExportedNames {
                     // Edge case: TS infers `export let bla = false` to type `false`.
                     // prevent that by adding the any-wrap in this case, too.
                     (!type &&
-                        [this.tsModule.SyntaxKind.FalseKeyword, this.tsModule.SyntaxKind.TrueKeyword].includes(
-                            declaration.initializer.kind
-                        )))
+                        [
+                            this.tsModule.SyntaxKind.FalseKeyword,
+                            this.tsModule.SyntaxKind.TrueKeyword
+                        ].includes(declaration.initializer.kind)))
             ) {
                 const name = identifier.getText();
 
@@ -489,7 +500,9 @@ export class ExportedNames {
         };
 
         const findComma = (target: ts.Node) =>
-            target.getChildren().filter((child) => child.kind === this.tsModule.SyntaxKind.CommaToken);
+            target
+                .getChildren()
+                .filter((child) => child.kind === this.tsModule.SyntaxKind.CommaToken);
         const splitDeclaration = () => {
             const commas = node
                 .getChildren()

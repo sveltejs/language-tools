@@ -47,7 +47,10 @@ export class ComponentEvents {
         private str: MagicString
     ) {
         this.componentEventsInterface = new ComponentEventsFromInterface(tsModule);
-        this.componentEventsFromEventsMap = new ComponentEventsFromEventsMap(tsModule, eventHandler);
+        this.componentEventsFromEventsMap = new ComponentEventsFromEventsMap(
+            tsModule,
+            eventHandler
+        );
     }
 
     /**
