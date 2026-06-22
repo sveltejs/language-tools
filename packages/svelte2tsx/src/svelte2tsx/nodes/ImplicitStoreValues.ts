@@ -1,5 +1,5 @@
 import MagicString from 'magic-string';
-import ts from 'typescript';
+import type ts from 'typescript';
 import { surroundWithIgnoreComments } from '../../utils/ignore';
 import { getCurrentPrepends, preprendStr } from '../../utils/magic-string';
 import { extractIdentifiers, getNamesFromLabeledStatement } from '../utils/tsAst';
@@ -22,6 +22,7 @@ export class ImplicitStoreValues {
     public addImportStatement = this.importStatements.push.bind(this.importStatements);
 
     constructor(
+        private tsModule: typeof ts,
         storesResolvedInTemplate: string[] = [],
         private renderFunctionStart: number,
         private isSvelte5Plus: boolean,
@@ -53,10 +54,10 @@ export class ImplicitStoreValues {
     public getGlobals(): string[] {
         const globals = new Set<string>(this.accessedStores);
         this.variableDeclarations.forEach((node) =>
-            extractIdentifiers(node.name).forEach((id) => globals.delete(id.text))
+            extractIdentifiers(this.tsModule, node.name).forEach((id) => globals.delete(id.text))
         );
         this.reactiveDeclarations.forEach((node) =>
-            getNamesFromLabeledStatement(node).forEach((name) => globals.delete(name))
+            getNamesFromLabeledStatement(this.tsModule, node).forEach((name) => globals.delete(name))
         );
         this.importStatements.forEach(({ name }) => name && globals.delete(name.getText()));
         return [...globals].map((name) => `$${name}`);
@@ -67,7 +68,7 @@ export class ImplicitStoreValues {
         astOffset: number,
         str: MagicString
     ) {
-        const storeNames = extractIdentifiers(node.name)
+        const storeNames = extractIdentifiers(this.tsModule, node.name)
             .map((id) => id.text)
             .filter((name) => this.accessedStores.has(name));
         if (!storeNames.length) {
@@ -78,7 +79,7 @@ export class ImplicitStoreValues {
             this.createStoreDeclarations(storeNames)
         );
         const nodeEnd =
-            ts.isVariableDeclarationList(node.parent) && node.parent.declarations.length > 1
+            this.tsModule.isVariableDeclarationList(node.parent) && node.parent.declarations.length > 1
                 ? node.parent.declarations[node.parent.declarations.length - 1].getEnd()
                 : node.getEnd();
 
@@ -98,7 +99,7 @@ export class ImplicitStoreValues {
         astOffset: number,
         str: MagicString
     ) {
-        const storeNames = getNamesFromLabeledStatement(node).filter((name) =>
+        const storeNames = getNamesFromLabeledStatement(this.tsModule, node).filter((name) =>
             this.accessedStores.has(name)
         );
         if (!storeNames.length) {
@@ -143,14 +144,14 @@ export class ImplicitStoreValues {
 
     private isSvelteStoreDerivedImport(declaration: ts.ImportClause | ts.ImportSpecifier): boolean {
         // named import of 'derived' from 'svelte/store'
-        if (!ts.isImportSpecifier(declaration) || declaration.name.text !== 'derived') {
+        if (!this.tsModule.isImportSpecifier(declaration) || declaration.name.text !== 'derived') {
             return false;
         }
         const importDeclaration = declaration.parent.parent.parent;
         return (
-            ts.isImportDeclaration(importDeclaration) &&
+            this.tsModule.isImportDeclaration(importDeclaration) &&
             importDeclaration.moduleSpecifier &&
-            ts.isStringLiteral(importDeclaration.moduleSpecifier) &&
+            this.tsModule.isStringLiteral(importDeclaration.moduleSpecifier) &&
             importDeclaration.moduleSpecifier.text === 'svelte/store'
         );
     }

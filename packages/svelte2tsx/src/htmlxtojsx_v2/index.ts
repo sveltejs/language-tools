@@ -63,6 +63,7 @@ import {
     getExternalImportRewrite,
     RewriteExternalImportsOptions
 } from '../helpers/rewriteExternalImports';
+import type ts from 'typescript';
 
 export interface TemplateProcessResult {
     /**
@@ -90,6 +91,7 @@ export interface TemplateProcessResult {
  * and converts it to JSX
  */
 export function convertHtmlxToJsx(
+    tsModule: typeof ts,
     str: MagicString,
     ast: TemplateNode,
     tags: BaseNode[],
@@ -650,6 +652,7 @@ export function convertHtmlxToJsx(
         rootSnippets,
         slots: slotHandler.getSlotDef(),
         events: new ComponentEvents(
+            tsModule,
             eventHandler,
             tags.some((tag) => tag.attributes?.some((a) => a.name === 'strictEvents')),
             str
@@ -668,6 +671,7 @@ export function convertHtmlxToJsx(
  * @internal For testing only
  */
 export function htmlx2jsx(
+    tsModule: typeof ts,
     htmlx: string,
     parse: typeof import('svelte/compiler').parse,
     options?: {
@@ -680,7 +684,7 @@ export function htmlx2jsx(
     const { htmlxAst, tags } = parseHtmlx(htmlx, parse, { ...options });
     const str = new MagicString(htmlx);
 
-    convertHtmlxToJsx(str, htmlxAst, tags, {
+    convertHtmlxToJsx(tsModule, str, htmlxAst, tags, {
         ...options,
         namespace: options?.preserveAttributeCase ? 'foreign' : undefined
     });

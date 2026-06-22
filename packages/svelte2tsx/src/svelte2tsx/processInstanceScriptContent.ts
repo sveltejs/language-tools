@@ -1,6 +1,6 @@
 import MagicString from 'magic-string';
 import { Node } from 'estree-walker';
-import ts, { VariableDeclaration } from 'typescript';
+import type ts from 'typescript';
 import { getBinaryAssignmentExpr, isNotPropertyNameOfImport, moveNode } from './utils/tsAst';
 import { ExportedNames, is$$PropsDeclaration } from './nodes/ExportedNames';
 import { ImplicitTopLevelNames } from './nodes/ImplicitTopLevelNames';
@@ -42,6 +42,7 @@ interface PendingStoreResolution {
 }
 
 export function processInstanceScriptContent(
+    tsModule: typeof ts,
     str: MagicString,
     script: Node,
     events: ComponentEvents,
@@ -57,15 +58,16 @@ export function processInstanceScriptContent(
 ): InstanceScriptProcessResult {
     const htmlx = str.original;
     const scriptContent = htmlx.substring(script.content.start, script.content.end);
-    const tsAst = ts.createSourceFile(
+    const tsAst = tsModule.createSourceFile(
         'component.ts.svelte',
         scriptContent,
-        ts.ScriptTarget.Latest,
+        tsModule.ScriptTarget.Latest,
         true,
-        ts.ScriptKind.TS
+        tsModule.ScriptKind.TS
     );
     const astOffset = script.content.start;
     const exportedNames = new ExportedNames(
+        tsModule,
         str,
         astOffset,
         basename,
@@ -74,7 +76,7 @@ export function processInstanceScriptContent(
         isRunes,
         emitJsDoc
     );
-    const generics = new Generics(str, astOffset, script);
+    const generics = new Generics(tsModule, str, astOffset, script);
     const interfacesAndTypes = new InterfacesAndTypes();
 
     if (moduleAst) {
@@ -83,7 +85,7 @@ export function processInstanceScriptContent(
         );
     }
 
-    const implicitTopLevelNames = new ImplicitTopLevelNames(str, astOffset);
+    const implicitTopLevelNames = new ImplicitTopLevelNames(tsModule, str, astOffset);
     let uses$$props = false;
     let uses$$restProps = false;
     let uses$$slots = false;
@@ -94,7 +96,7 @@ export function processInstanceScriptContent(
     let isDeclaration = false;
 
     //track the variable declaration node
-    let variableDeclarationNode: VariableDeclaration | null = null;
+    let variableDeclarationNode: ts.VariableDeclaration | null = null;
 
     //track $store variables since we are only supposed to give top level scopes special treatment, and users can declare $blah variables at higher scopes
     //which prevents us just changing all instances of Identity that start with $
@@ -137,7 +139,7 @@ export function processInstanceScriptContent(
             return;
         }
 
-        if (ts.isLabeledStatement(parent) && parent.label == ident) {
+        if (tsModule.isLabeledStatement(parent) && parent.label == ident) {
             return;
         }
 
@@ -146,16 +148,16 @@ export function processInstanceScriptContent(
             ident.text === 'props' &&
             variableDeclarationNode &&
             variableDeclarationNode.initializer &&
-            ts.isCallExpression(variableDeclarationNode.initializer) &&
+            tsModule.isCallExpression(variableDeclarationNode.initializer) &&
             variableDeclarationNode.initializer.getText() === '$props()'
         ) {
             isPropsDeclarationRune = true;
         }
 
-        if (isDeclaration || ts.isParameter(parent)) {
+        if (isDeclaration || tsModule.isParameter(parent)) {
             if (
-                isNotPropertyNameOfImport(ident) &&
-                (!ts.isBindingElement(ident.parent) || ident.parent.name == ident)
+                isNotPropertyNameOfImport(tsModule, ident) &&
+                (!tsModule.isBindingElement(ident.parent) || ident.parent.name == ident)
             ) {
                 // we are a key, not a name, so don't care
                 if (ident.text.startsWith('$') || scope == rootScope) {
@@ -168,20 +170,20 @@ export function processInstanceScriptContent(
             //track potential store usage to be resolved
             if (text.startsWith('$')) {
                 if (
-                    (!ts.isPropertyAccessExpression(parent) || parent.expression == ident) &&
-                    (!ts.isPropertyAssignment(parent) || parent.initializer == ident) &&
-                    !ts.isPropertySignature(parent) &&
-                    !ts.isPropertyDeclaration(parent) &&
-                    !ts.isTypeReferenceNode(parent) &&
-                    !ts.isTypeAliasDeclaration(parent) &&
-                    !ts.isInterfaceDeclaration(parent)
+                    (!tsModule.isPropertyAccessExpression(parent) || parent.expression == ident) &&
+                    (!tsModule.isPropertyAssignment(parent) || parent.initializer == ident) &&
+                    !tsModule.isPropertySignature(parent) &&
+                    !tsModule.isPropertyDeclaration(parent) &&
+                    !tsModule.isTypeReferenceNode(parent) &&
+                    !tsModule.isTypeAliasDeclaration(parent) &&
+                    !tsModule.isInterfaceDeclaration(parent)
                 ) {
                     let isPropsId = false;
                     if (
                         text === '$props' &&
-                        ts.isPropertyAccessExpression(parent) &&
+                        tsModule.isPropertyAccessExpression(parent) &&
                         parent.parent &&
-                        ts.isCallExpression(parent.parent) &&
+                        tsModule.isCallExpression(parent.parent) &&
                         parent.parent.arguments.length === 0
                     ) {
                         const text = parent.getText();
@@ -190,8 +192,8 @@ export function processInstanceScriptContent(
                     // Handle the const { ...props } = $props() case
                     const is_rune =
                         (text === '$props' || text === '$derived' || text === '$state') &&
-                        ts.isCallExpression(parent) &&
-                        ts.isVariableDeclaration(parent.parent) &&
+                        tsModule.isCallExpression(parent) &&
+                        tsModule.isVariableDeclaration(parent.parent) &&
                         parent.parent.name.getText().includes(text.slice(1));
                     if (!is_rune) {
                         pendingStoreResolutions.push({ node: ident, parent, scope, isPropsId });
@@ -206,7 +208,7 @@ export function processInstanceScriptContent(
         const onLeaveCallbacks: onLeaveCallback[] = [];
 
         if (rewriteExternalImports) {
-            rewriteExternalImportsInNode(ts, node, rewriteExternalImports, (specifier, rewrite) => {
+            rewriteExternalImportsInNode(tsModule, node, rewriteExternalImports, (specifier, rewrite) => {
                 str.overwrite(
                     specifier.getStart(tsAst) + astOffset + 1,
                     specifier.getEnd() + astOffset - 1,
@@ -221,46 +223,46 @@ export function processInstanceScriptContent(
 
         generics.addIfIsGeneric(node);
 
-        if (is$$EventsDeclaration(node)) {
+        if (is$$EventsDeclaration(tsModule, node)) {
             events.setComponentEventsInterface(node, astOffset);
         }
-        if (is$$SlotsDeclaration(node)) {
+        if (is$$SlotsDeclaration(tsModule, node)) {
             uses$$SlotsInterface = true;
         }
-        if (is$$PropsDeclaration(node)) {
+        if (is$$PropsDeclaration(tsModule, node)) {
             exportedNames.uses$$Props = true;
         }
 
-        if (ts.isVariableStatement(node)) {
+        if (tsModule.isVariableStatement(node)) {
             exportedNames.handleVariableStatement(node, parent);
         }
 
-        if (ts.isFunctionDeclaration(node)) {
+        if (tsModule.isFunctionDeclaration(node)) {
             exportedNames.handleExportFunctionOrClass(node);
         }
 
-        if (ts.isClassDeclaration(node)) {
+        if (tsModule.isClassDeclaration(node)) {
             exportedNames.handleExportFunctionOrClass(node);
         }
 
-        if (ts.isBlock(node) || ts.isFunctionLike(node)) {
+        if (tsModule.isBlock(node) || tsModule.isFunctionLike(node)) {
             pushScope();
             onLeaveCallbacks.push(() => popScope());
         }
 
-        if (ts.isExportDeclaration(node)) {
+        if (tsModule.isExportDeclaration(node)) {
             exportedNames.handleExportDeclaration(node);
         }
 
-        if (ts.isImportDeclaration(node)) {
-            handleImportDeclaration(node, str, astOffset, script.start, tsAst);
+        if (tsModule.isImportDeclaration(node)) {
+            handleImportDeclaration(tsModule, node, str, astOffset, script.start, tsAst);
 
             // Check if import is the event dispatcher
             events.checkIfImportIsEventDispatcher(node);
         }
 
         // workaround for import statement completion
-        if (ts.isImportEqualsDeclaration(node)) {
+        if (tsModule.isImportEqualsDeclaration(node)) {
             const end = node.getEnd() + astOffset;
 
             if (str.original[end - 1] !== ';') {
@@ -268,7 +270,7 @@ export function processInstanceScriptContent(
             }
         }
 
-        if (ts.isVariableDeclaration(node)) {
+        if (tsModule.isVariableDeclaration(node)) {
             events.checkIfIsStringLiteralDeclaration(node);
             events.checkIfDeclarationInstantiatedEventDispatcher(node);
             // Only top level declarations can be stores
@@ -277,11 +279,11 @@ export function processInstanceScriptContent(
             }
         }
 
-        if (ts.isCallExpression(node)) {
+        if (tsModule.isCallExpression(node)) {
             events.checkIfCallExpressionIsDispatch(node);
         }
 
-        if (ts.isVariableDeclaration(parent) && parent.name == node) {
+        if (tsModule.isVariableDeclaration(parent) && parent.name == node) {
             isDeclaration = true;
             variableDeclarationNode = parent;
             onLeaveCallbacks.push(() => {
@@ -290,40 +292,40 @@ export function processInstanceScriptContent(
             });
         }
 
-        if (ts.isBindingElement(parent) && parent.name == node) {
+        if (tsModule.isBindingElement(parent) && parent.name == node) {
             isDeclaration = true;
             onLeaveCallbacks.push(() => (isDeclaration = false));
         }
 
-        if (ts.isImportClause(node)) {
+        if (tsModule.isImportClause(node)) {
             isDeclaration = true;
             onLeaveCallbacks.push(() => (isDeclaration = false));
             implicitStoreValues.addImportStatement(node);
         }
 
-        if (ts.isImportSpecifier(node)) {
+        if (tsModule.isImportSpecifier(node)) {
             implicitStoreValues.addImportStatement(node);
         }
 
-        if (ts.isTypeAliasDeclaration(node) || ts.isInterfaceDeclaration(node)) {
+        if (tsModule.isTypeAliasDeclaration(node) || tsModule.isInterfaceDeclaration(node)) {
             interfacesAndTypes.node = node;
             interfacesAndTypes.add(node);
             onLeaveCallbacks.push(() => (interfacesAndTypes.node = null));
         }
 
         //handle stores etc
-        if (ts.isIdentifier(node)) {
+        if (tsModule.isIdentifier(node)) {
             handleIdentifier(node, parent);
         }
 
         //track implicit declarations in reactive blocks at the top level
         if (
-            ts.isLabeledStatement(node) &&
+            tsModule.isLabeledStatement(node) &&
             parent == tsAst && //top level
             node.label.text == '$' &&
             node.statement
         ) {
-            const binaryExpression = getBinaryAssignmentExpr(node);
+            const binaryExpression = getBinaryAssignmentExpr(tsModule, node);
             if (binaryExpression) {
                 implicitTopLevelNames.add(node);
                 implicitStoreValues.addReactiveDeclaration(node);
@@ -332,19 +334,19 @@ export function processInstanceScriptContent(
         }
 
         // Check for top-level await expressions
-        if (isSvelte5Plus && ts.isAwaitExpression(node) && scope === rootScope) {
+        if (isSvelte5Plus && tsModule.isAwaitExpression(node) && scope === rootScope) {
             hasTopLevelAwait = true;
         }
 
         // Defensively call function (checking for undefined) because it got added only recently (TS 4.0)
         // and therefore might break people using older TS versions
         // Don't transform in ts mode because <type>value type assertions are valid in this case
-        if (mode !== 'ts' && ts.isTypeAssertionExpression?.(node)) {
+        if (mode !== 'ts' && tsModule.isTypeAssertionExpression?.(node)) {
             handleTypeAssertion(str, node, astOffset);
         }
 
         //to save a bunch of condition checks on each node, we recurse into processChild which skips all the checks for top level items
-        ts.forEachChild(node, (n) => walk(n, node));
+        tsModule.forEachChild(node, (n) => walk(n, node));
         //fire off the on leave callbacks
         onLeaveCallbacks.map((c) => c());
     };
@@ -363,13 +365,13 @@ export function processInstanceScriptContent(
     implicitTopLevelNames.modifyCode(rootScope.declared);
     implicitStoreValues.modifyCode(astOffset, str);
 
-    handleFirstInstanceImport(tsAst, astOffset, !!moduleAst, str);
+    handleFirstInstanceImport(tsModule, tsAst, astOffset, !!moduleAst, str);
 
     // move interfaces and types out of the render function if they are referenced
     // by a $$Generic, otherwise it will be used before being defined after the transformation
     const nodesToMove = interfacesAndTypes.getNodesWithNames(generics.getTypeReferences());
     for (const node of nodesToMove) {
-        moveNode(node, str, astOffset, script.start, tsAst);
+        moveNode(tsModule, node, str, astOffset, script.start, tsAst);
     }
 
     exportedNames.hoistableInterfaces.addDisallowed(implicitStoreValues.getAccessedStores());
@@ -388,13 +390,14 @@ export function processInstanceScriptContent(
         // break dts generation (file will not be generated).
         if (hoisted) {
             transformInterfacesToTypes(
+                tsModule,
                 tsAst,
                 str,
                 astOffset,
                 [...hoisted.values()].concat(nodesToMove)
             );
         } else {
-            transformInterfacesToTypes(tsAst, str, astOffset, nodesToMove);
+            transformInterfacesToTypes(tsModule, tsAst, str, astOffset, nodesToMove);
         }
     }
 
@@ -411,13 +414,14 @@ export function processInstanceScriptContent(
 }
 
 function transformInterfacesToTypes(
+    tsModule: typeof ts,
     tsAst: ts.SourceFile,
     str: MagicString,
     astOffset: any,
     movedNodes: ts.Node[]
 ) {
     tsAst.statements
-        .filter(ts.isInterfaceDeclaration)
+        .filter(tsModule.isInterfaceDeclaration)
         .filter((i) => !movedNodes.includes(i))
         .forEach((node) => {
             str.overwrite(

@@ -12,8 +12,11 @@ import path from 'path';
 import { parse, VERSION } from 'svelte/compiler';
 import { getTopLevelImports } from './utils/tsAst';
 import { RewriteExternalImportsOptions } from '../helpers/rewriteExternalImports';
+import type ts from 'typescript';
+import { importTsSync } from '../utils/importPackage';
 
 function processSvelteTemplate(
+    tsModule: typeof ts,
     str: MagicString,
     parse: typeof import('svelte/compiler').parse,
     options: {
@@ -29,12 +32,13 @@ function processSvelteTemplate(
     }
 ): TemplateProcessResult {
     const { htmlxAst, tags } = parseHtmlx(str.original, parse, options);
-    return convertHtmlxToJsx(str, htmlxAst, tags, options);
+    return convertHtmlxToJsx(tsModule, str, htmlxAst, tags, options);
 }
 
 export function svelte2tsx(
     svelte: string,
     options: {
+        tsModule?: typeof import('typescript');
         parse?: typeof import('svelte/compiler').parse;
         version?: string;
         filename?: string;
@@ -75,6 +79,8 @@ export function svelte2tsx(
     const isTsFile = options?.isTsFile;
     const emitJsDoc = options?.emitJsDoc ?? false;
 
+    const tsModule = options.tsModule ?? importTsSync();
+
     // process the htmlx as a svelte template
     let {
         htmlAst,
@@ -90,7 +96,7 @@ export function svelte2tsx(
         resolvedStores,
         usesAccessors,
         isRunes
-    } = processSvelteTemplate(str, options.parse || parse, {
+    } = processSvelteTemplate(tsModule, str, options.parse || parse, {
         ...options,
         svelte5Plus,
         rewriteExternalImports: rewriteExternalImportsOptions
@@ -106,7 +112,7 @@ export function svelte2tsx(
     let moduleAst: ModuleAst | undefined;
 
     if (moduleScriptTag) {
-        moduleAst = createModuleAst(str, moduleScriptTag);
+        moduleAst = createModuleAst(tsModule, str, moduleScriptTag);
 
         if (moduleScriptTag.start != 0) {
             //move our module tag to the top
@@ -121,12 +127,14 @@ export function svelte2tsx(
         ? str.original.lastIndexOf('>', scriptTag.content.start) + 1
         : instanceScriptTarget;
     const implicitStoreValues = new ImplicitStoreValues(
+        tsModule,
         resolvedStores,
         renderFunctionStart,
         svelte5Plus
     );
     //move the instance script and process the content
     let exportedNames = new ExportedNames(
+        tsModule,
         str,
         0,
         basename,
@@ -135,7 +143,7 @@ export function svelte2tsx(
         isRunes,
         emitJsDoc
     );
-    let generics = new Generics(str, 0, { attributes: [] } as any);
+    let generics = new Generics(tsModule, str, 0, { attributes: [] } as any);
     let uses$$SlotsInterface = false;
     let hasTopLevelAwait = false;
     if (scriptTag) {
@@ -144,6 +152,7 @@ export function svelte2tsx(
             str.move(scriptTag.start, scriptTag.end, instanceScriptTarget);
         }
         const res = processInstanceScriptContent(
+            tsModule,
             str,
             scriptTag,
             events,
@@ -195,9 +204,11 @@ export function svelte2tsx(
     // we need to process the module script after the instance script has moved otherwise we get warnings about moving edited items
     if (moduleScriptTag) {
         processModuleScriptTag(
+            tsModule,
             str,
             moduleScriptTag,
             new ImplicitStoreValues(
+                tsModule,
                 implicitStoreValues.getAccessedStores(),
                 renderFunctionStart,
                 svelte5Plus,
@@ -223,7 +234,7 @@ export function svelte2tsx(
             if (scriptTag) {
                 snippetHoistTargetForModule = scriptTag.start + 1; // +1 because imports are also moved at that position, and we want to move interfaces after imports
             } else {
-                const imports = getTopLevelImports(moduleAst.tsAst);
+                const imports = getTopLevelImports(tsModule, moduleAst.tsAst);
                 const lastImport = imports[imports.length - 1];
                 snippetHoistTargetForModule = lastImport
                     ? lastImport.end + moduleAst.astOffset

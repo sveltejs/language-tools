@@ -24,6 +24,8 @@ export interface ComponentEvents {
 export function svelte2tsx(
     svelte: string,
     options?: {
+        tsModule?: typeof ts;
+
         /**
          * Path of the file
          */

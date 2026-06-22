@@ -1,6 +1,6 @@
 import MagicString from 'magic-string';
 import { Node } from 'estree-walker';
-import ts from 'typescript';
+import type ts from 'typescript';
 import { ImplicitStoreValues } from './nodes/ImplicitStoreValues';
 import { handleTypeAssertion } from './nodes/handleTypeAssertion';
 import { Generics } from './nodes/Generics';
@@ -19,15 +19,15 @@ export interface ModuleAst {
     astOffset: number;
 }
 
-export function createModuleAst(str: MagicString, script: Node): ModuleAst {
+export function createModuleAst(tsModule: typeof ts, str: MagicString, script: Node): ModuleAst {
     const htmlx = str.original;
     const scriptContent = htmlx.substring(script.content.start, script.content.end);
-    const tsAst = ts.createSourceFile(
+    const tsAst = tsModule.createSourceFile(
         'component.module.ts.svelte',
         scriptContent,
-        ts.ScriptTarget.Latest,
+        tsModule.ScriptTarget.Latest,
         true,
-        ts.ScriptKind.TS
+        tsModule.ScriptKind.TS
     );
 
     const astOffset = script.content.start;
@@ -36,6 +36,7 @@ export function createModuleAst(str: MagicString, script: Node): ModuleAst {
 }
 
 export function processModuleScriptTag(
+    tsModule: typeof ts,
     str: MagicString,
     script: Node,
     implicitStoreValues: ImplicitStoreValues,
@@ -44,7 +45,7 @@ export function processModuleScriptTag(
 ) {
     const { htmlx, tsAst, astOffset } = moduleAst;
 
-    const generics = new Generics(str, astOffset, script);
+    const generics = new Generics(tsModule, str, astOffset, script);
     if (generics.genericsAttr) {
         const start = htmlx.indexOf('generics', script.start);
         throwError(
@@ -57,7 +58,7 @@ export function processModuleScriptTag(
 
     const walk = (node: ts.Node) => {
         if (rewriteExternalImports) {
-            rewriteExternalImportsInNode(ts, node, rewriteExternalImports, (specifier, rewrite) => {
+            rewriteExternalImportsInNode(tsModule, node, rewriteExternalImports, (specifier, rewrite) => {
                 str.overwrite(
                     specifier.getStart(tsAst) + astOffset + 1,
                     specifier.getEnd() + astOffset - 1,
@@ -66,14 +67,14 @@ export function processModuleScriptTag(
             });
         }
 
-        resolveImplicitStoreValue(node, implicitStoreValues, str, astOffset);
+        resolveImplicitStoreValue(tsModule, node, implicitStoreValues, str, astOffset);
 
         generics.throwIfIsGeneric(node);
-        throwIfIs$$EventsDeclaration(node, str, astOffset);
-        throwIfIs$$SlotsDeclaration(node, str, astOffset);
-        throwIfIs$$PropsDeclaration(node, str, astOffset);
+        throwIfIs$$EventsDeclaration(tsModule, node, str, astOffset);
+        throwIfIs$$SlotsDeclaration(tsModule, node, str, astOffset);
+        throwIfIs$$PropsDeclaration(tsModule, node, str, astOffset);
 
-        ts.forEachChild(node, (n) => walk(n));
+        tsModule.forEachChild(node, (n) => walk(n));
     };
 
     //walk the ast and convert to tsx as we go
@@ -94,42 +95,43 @@ export function processModuleScriptTag(
 }
 
 function resolveImplicitStoreValue(
+    tsModule: typeof ts,
     node: ts.Node,
     implicitStoreValues: ImplicitStoreValues,
     str: MagicString,
     astOffset: any
 ) {
-    if (ts.isVariableDeclaration(node)) {
+    if (tsModule.isVariableDeclaration(node)) {
         implicitStoreValues.addVariableDeclaration(node);
     }
 
-    if (ts.isImportClause(node)) {
+    if (tsModule.isImportClause(node)) {
         implicitStoreValues.addImportStatement(node);
     }
 
-    if (ts.isImportSpecifier(node)) {
+    if (tsModule.isImportSpecifier(node)) {
         implicitStoreValues.addImportStatement(node);
     }
 
-    if (ts.isTypeAssertionExpression?.(node)) {
+    if (tsModule.isTypeAssertionExpression?.(node)) {
         handleTypeAssertion(str, node, astOffset);
     }
 }
 
-function throwIfIs$$EventsDeclaration(node: ts.Node, str: MagicString, astOffset: number) {
-    if (is$$EventsDeclaration(node)) {
+function throwIfIs$$EventsDeclaration(tsModule: typeof ts, node: ts.Node, str: MagicString, astOffset: number) {
+    if (is$$EventsDeclaration(tsModule, node)) {
         throw$$Error(node, str, astOffset, '$$Events');
     }
 }
 
-function throwIfIs$$SlotsDeclaration(node: ts.Node, str: MagicString, astOffset: number) {
-    if (is$$SlotsDeclaration(node)) {
+function throwIfIs$$SlotsDeclaration(tsModule: typeof ts, node: ts.Node, str: MagicString, astOffset: number) {
+    if (is$$SlotsDeclaration(tsModule, node)) {
         throw$$Error(node, str, astOffset, '$$Slots');
     }
 }
 
-function throwIfIs$$PropsDeclaration(node: ts.Node, str: MagicString, astOffset: number) {
-    if (is$$PropsDeclaration(node)) {
+function throwIfIs$$PropsDeclaration(tsModule: typeof ts, node: ts.Node, str: MagicString, astOffset: number) {
+    if (is$$PropsDeclaration(tsModule, node)) {
         throw$$Error(node, str, astOffset, '$$Props');
     }
 }

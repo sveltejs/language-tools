@@ -1,4 +1,4 @@
-import ts from 'typescript';
+import type ts from 'typescript';
 import MagicString from 'magic-string';
 import {
     isParenthesizedObjectOrArrayLiteralExpression,
@@ -10,6 +10,7 @@ export class ImplicitTopLevelNames {
     private map = new Set<ts.LabeledStatement>();
 
     constructor(
+        private tsModule: typeof ts,
         private str: MagicString,
         private astOffset: number
     ) {}
@@ -43,10 +44,10 @@ export class ImplicitTopLevelNames {
 
         // $: a = { .. }..  /  $: a = .. as ..  =>   () => ( .. )
         if (
-            ts.isObjectLiteralExpression(expression) ||
+            this.tsModule.isObjectLiteralExpression(expression) ||
             (expression.getText().startsWith('{') &&
                 this.isNodeStartsWithObjectLiteral(expression)) ||
-            ts.isAsExpression(expression)
+            this.tsModule.isAsExpression(expression)
         ) {
             this.str.appendLeft(start, '(');
             this.str.appendRight(end, ')');
@@ -59,19 +60,19 @@ export class ImplicitTopLevelNames {
     }
 
     private isNodeStartsWithObjectLiteral(node: ts.Node) {
-        if (ts.isObjectLiteralExpression(node)) {
+        if (this.tsModule.isObjectLiteralExpression(node)) {
             return true;
         }
 
-        if (ts.isElementAccessExpression(node)) {
+        if (this.tsModule.isElementAccessExpression(node)) {
             return this.isNodeStartsWithObjectLiteral(node.expression);
         }
 
-        if (ts.isBinaryExpression(node)) {
+        if (this.tsModule.isBinaryExpression(node)) {
             return this.isNodeStartsWithObjectLiteral(node.left);
         }
 
-        if (ts.isConditionalExpression(node)) {
+        if (this.tsModule.isConditionalExpression(node)) {
             return this.isNodeStartsWithObjectLiteral(node.condition);
         }
 
@@ -83,7 +84,7 @@ export class ImplicitTopLevelNames {
 
     modifyCode(rootVariables: Set<string>) {
         for (const node of this.map.values()) {
-            const names = getNamesFromLabeledStatement(node);
+            const names = getNamesFromLabeledStatement(this.tsModule, node);
             if (names.length === 0) {
                 continue;
             }
@@ -114,8 +115,8 @@ export class ImplicitTopLevelNames {
         // remove the surrounding braces so that the transformation
         // to `let {a} = b;` produces valid code.
         if (
-            ts.isExpressionStatement(node.statement) &&
-            isParenthesizedObjectOrArrayLiteralExpression(node.statement.expression)
+            this.tsModule.isExpressionStatement(node.statement) &&
+            isParenthesizedObjectOrArrayLiteralExpression(this.tsModule, node.statement.expression)
         ) {
             const parenthesizedExpression = node.statement.expression;
 

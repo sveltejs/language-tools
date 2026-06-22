@@ -277,6 +277,9 @@ importers:
       '@rollup/plugin-node-resolve':
         specifier: ^15.0.0
         version: 15.0.2(rollup@3.7.5)
+      '@rollup/plugin-replace':
+        specifier: 5.0.2
+        version: 5.0.2(rollup@3.7.5)
       '@rollup/plugin-typescript':
         specifier: ^10.0.0
         version: 10.0.1(rollup@3.7.5)(tslib@2.5.2)(typescript@6.0.3)

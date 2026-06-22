@@ -381,7 +381,8 @@ export class SvelteSnapshotManager {
                         typingsNamespace: this.svelteOptions.namespace,
                         // Don't search for compiler from current path - could be a different one from which we have loaded the svelte2tsx globals
                         parse: this.svelteCompiler?.parse,
-                        version: this.svelteCompiler?.VERSION
+                        version: this.svelteCompiler?.VERSION,
+                        tsModule: this.typescript
                     });
                     code = result.code;
                     mapper = new SourceMapper(result.map.mappings);

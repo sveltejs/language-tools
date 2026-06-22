@@ -1,5 +1,5 @@
 import MagicString from 'magic-string';
-import ts from 'typescript';
+import type ts from 'typescript';
 import { Node } from 'estree-walker';
 import { surroundWithIgnoreComments } from '../../utils/ignore';
 import { throwError } from '../utils/error';
@@ -13,6 +13,7 @@ export class Generics {
     genericsAttr: Node | undefined;
 
     constructor(
+        private tsModule: typeof ts,
         private str: MagicString,
         private astOffset: number,
         script: Node
@@ -30,20 +31,20 @@ export class Generics {
     }
 
     private getGenericTypeParameters(rawGenericsAttr: string) {
-        const sourceFile = ts.createSourceFile(
+        const sourceFile = this.tsModule.createSourceFile(
             'index.ts',
             `<${rawGenericsAttr}>() => {}`,
-            ts.ScriptTarget.Latest,
+            this.tsModule.ScriptTarget.Latest,
             true
         );
         const firstStatement = sourceFile.statements[0];
 
-        if (!firstStatement || !ts.isExpressionStatement(firstStatement)) {
+        if (!firstStatement || !this.tsModule.isExpressionStatement(firstStatement)) {
             return;
         }
 
         const arrowFunction = firstStatement.expression;
-        if (!ts.isArrowFunction(arrowFunction)) {
+        if (!this.tsModule.isArrowFunction(arrowFunction)) {
             return;
         }
 
@@ -51,7 +52,7 @@ export class Generics {
     }
 
     addIfIsGeneric(node: ts.Node) {
-        if (ts.isTypeAliasDeclaration(node) && this.is$$GenericType(node.type)) {
+        if (this.tsModule.isTypeAliasDeclaration(node) && this.is$$GenericType(node.type)) {
             if (this.genericsAttr) {
                 throw new Error(
                     'Invalid $$Generic declaration: $$Generic definitions are not allowed when the generics attribute is present on the script tag'
@@ -73,7 +74,7 @@ export class Generics {
     }
 
     throwIfIsGeneric(node: ts.Node) {
-        if (ts.isTypeAliasDeclaration(node) && this.is$$GenericType(node.type)) {
+        if (this.tsModule.isTypeAliasDeclaration(node) && this.is$$GenericType(node.type)) {
             throwError(
                 this.astOffset + node.getStart(),
                 this.astOffset + node.getEnd(),
@@ -85,8 +86,8 @@ export class Generics {
 
     private is$$GenericType(node: ts.TypeNode): node is ts.TypeReferenceNode {
         return (
-            ts.isTypeReferenceNode(node) &&
-            ts.isIdentifier(node.typeName) &&
+            this.tsModule.isTypeReferenceNode(node) &&
+            this.tsModule.isIdentifier(node.typeName) &&
             node.typeName.text === '$$Generic'
         );
     }

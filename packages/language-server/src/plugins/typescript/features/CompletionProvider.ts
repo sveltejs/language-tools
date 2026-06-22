@@ -777,7 +777,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
 
         const isOptional = kindModifiers
             ?.split(/,|\s+/)
-            .includes(ts.ScriptElementKindModifier.optionalModifier);
+            .includes(this.tsModule.ScriptElementKindModifier.optionalModifier);
 
         return {
             label: isOptional ? `${name}?` : name,

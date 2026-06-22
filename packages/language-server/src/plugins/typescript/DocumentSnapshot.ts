@@ -109,6 +109,7 @@ export interface SvelteSnapshotOptions {
         workspacePath: string;
         generatedPath: string;
     };
+    tsModule?: typeof ts;
 }
 
 const ambientPathPattern = /node_modules[\/\\]svelte[\/\\]types[\/\\]ambient\.d\.ts$/;
@@ -250,6 +251,7 @@ function preprocessSvelteFile(document: Document, options: SvelteSnapshotOptions
 
     try {
         const tsx = svelte2tsx(text, {
+            tsModule: options.tsModule,
             parse: options.parse,
             version: options.version,
             filename: document.getFilePath() ?? undefined,

@@ -1,4 +1,4 @@
-import ts from 'typescript';
+import type ts from 'typescript';
 import MagicString from 'magic-string';
 
 /**
@@ -18,6 +18,8 @@ export class HoistableInterfaces {
         type_deps: new Set<string>(),
         value_deps: new Set<string>()
     };
+
+    constructor(private tsModule: typeof ts) {}
 
     analyzeSnippets(
         rootSnippets: [start: number, end: number, globals: Map<string, any>, string][]
@@ -44,12 +46,12 @@ export class HoistableInterfaces {
     /** should be called before analyzeInstanceScriptNode */
     analyzeModuleScriptNode(node: ts.Node) {
         // Handle Import Declarations
-        if (ts.isImportDeclaration(node) && node.importClause) {
+        if (this.tsModule.isImportDeclaration(node) && node.importClause) {
             const is_type_only = node.importClause.isTypeOnly;
 
             if (
                 node.importClause.namedBindings &&
-                ts.isNamedImports(node.importClause.namedBindings)
+                this.tsModule.isNamedImports(node.importClause.namedBindings)
             ) {
                 node.importClause.namedBindings.elements.forEach((element) => {
                     const import_name = element.name.text;
@@ -70,7 +72,7 @@ export class HoistableInterfaces {
             // Handle namespace imports
             if (
                 node.importClause.namedBindings &&
-                ts.isNamespaceImport(node.importClause.namedBindings)
+                this.tsModule.isNamespaceImport(node.importClause.namedBindings)
             ) {
                 const namespace_import = node.importClause.namedBindings.name.text;
                 if (is_type_only) {
@@ -79,31 +81,31 @@ export class HoistableInterfaces {
             }
         }
 
-        if (ts.isTypeAliasDeclaration(node)) {
+        if (this.tsModule.isTypeAliasDeclaration(node)) {
             this.module_types.add(node.name.text);
         }
 
-        if (ts.isInterfaceDeclaration(node)) {
+        if (this.tsModule.isInterfaceDeclaration(node)) {
             this.module_types.add(node.name.text);
         }
 
-        if (ts.isEnumDeclaration(node)) {
+        if (this.tsModule.isEnumDeclaration(node)) {
             this.module_types.add(node.name.text);
         }
 
-        if (ts.isModuleDeclaration(node) && ts.isIdentifier(node.name)) {
+        if (this.tsModule.isModuleDeclaration(node) && this.tsModule.isIdentifier(node.name)) {
             this.module_types.add(node.name.text);
         }
     }
 
     analyzeInstanceScriptNode(node: ts.Node) {
         // Handle Import Declarations
-        if (ts.isImportDeclaration(node) && node.importClause) {
+        if (this.tsModule.isImportDeclaration(node) && node.importClause) {
             const is_type_only = node.importClause.isTypeOnly;
 
             if (
                 node.importClause.namedBindings &&
-                ts.isNamedImports(node.importClause.namedBindings)
+                this.tsModule.isNamedImports(node.importClause.namedBindings)
             ) {
                 node.importClause.namedBindings.elements.forEach((element) => {
                     const import_name = element.name.text;
@@ -124,7 +126,7 @@ export class HoistableInterfaces {
             // Handle namespace imports
             if (
                 node.importClause.namedBindings &&
-                ts.isNamespaceImport(node.importClause.namedBindings)
+                this.tsModule.isNamespaceImport(node.importClause.namedBindings)
             ) {
                 const namespace_import = node.importClause.namedBindings.name.text;
                 if (is_type_only) {
@@ -134,14 +136,14 @@ export class HoistableInterfaces {
         }
 
         // Handle Interface Declarations
-        if (ts.isInterfaceDeclaration(node)) {
+        if (this.tsModule.isInterfaceDeclaration(node)) {
             const interface_name = node.name.text;
             const type_dependencies: Set<string> = new Set();
             const value_dependencies: Set<string> = new Set();
             const generics = node.typeParameters?.map((param) => param.name.text) ?? [];
 
             node.members.forEach((member) => {
-                if (ts.isPropertySignature(member) && member.type) {
+                if (this.tsModule.isPropertySignature(member) && member.type) {
                     this.collectTypeDependencies(
                         member.type,
                         type_dependencies,
@@ -149,7 +151,7 @@ export class HoistableInterfaces {
                         generics,
                         interface_name
                     );
-                } else if (ts.isIndexSignatureDeclaration(member)) {
+                } else if (this.tsModule.isIndexSignatureDeclaration(member)) {
                     this.collectTypeDependencies(
                         member.type,
                         type_dependencies,
@@ -171,7 +173,7 @@ export class HoistableInterfaces {
 
             node.heritageClauses?.forEach((clause) => {
                 clause.types.forEach((type) => {
-                    if (ts.isIdentifier(type.expression)) {
+                    if (this.tsModule.isIdentifier(type.expression)) {
                         const type_name = type.expression.text;
                         if (!generics.includes(type_name)) {
                             type_dependencies.add(type_name);
@@ -201,7 +203,7 @@ export class HoistableInterfaces {
         }
 
         // Handle Type Alias Declarations
-        if (ts.isTypeAliasDeclaration(node)) {
+        if (this.tsModule.isTypeAliasDeclaration(node)) {
             const alias_name = node.name.text;
             const type_dependencies: Set<string> = new Set();
             const value_dependencies: Set<string> = new Set();
@@ -228,20 +230,20 @@ export class HoistableInterfaces {
         }
 
         // Handle top-level declarations: They could shadow module declarations; delete them from the set of allowed import values
-        if (ts.isVariableStatement(node)) {
+        if (this.tsModule.isVariableStatement(node)) {
             node.declarationList.declarations.forEach((declaration) => {
-                if (ts.isIdentifier(declaration.name)) {
+                if (this.tsModule.isIdentifier(declaration.name)) {
                     this.disallowed_values.add(declaration.name.text);
                 } else {
                     const walk = (node: ts.Node) => {
                         if (
-                            ts.isIdentifier(node) &&
-                            ts.isBindingElement(node.parent) &&
+                            this.tsModule.isIdentifier(node) &&
+                            this.tsModule.isBindingElement(node.parent) &&
                             node.parent.name === node
                         ) {
                             this.disallowed_values.add(node.text);
                         }
-                        ts.forEachChild(node, walk);
+                        this.tsModule.forEachChild(node, walk);
                     };
 
                     walk(declaration.name);
@@ -249,22 +251,22 @@ export class HoistableInterfaces {
             });
         }
 
-        if (ts.isFunctionDeclaration(node) && node.name) {
+        if (this.tsModule.isFunctionDeclaration(node) && node.name) {
             this.disallowed_values.add(node.name.text);
         }
 
-        if (ts.isClassDeclaration(node) && node.name) {
+        if (this.tsModule.isClassDeclaration(node) && node.name) {
             this.disallowed_values.add(node.name.text);
         }
 
-        if (ts.isEnumDeclaration(node)) {
+        if (this.tsModule.isEnumDeclaration(node)) {
             this.disallowed_values.add(node.name.text);
         }
 
         // namespace declaration should not be in the instance script.
         // Only adding the top-level name to the disallowed list,
         // so that at least there won't a confusing error message of "can't find namespace Foo"
-        if (ts.isModuleDeclaration(node) && ts.isIdentifier(node.name)) {
+        if (this.tsModule.isModuleDeclaration(node) && this.tsModule.isIdentifier(node.name)) {
             this.disallowed_types.add(node.name.text);
             this.disallowed_values.add(node.name.text);
         }
@@ -277,7 +279,7 @@ export class HoistableInterfaces {
     ) {
         if (node.initializer.typeArguments?.length > 0 || node.type) {
             const generic_arg = node.initializer.typeArguments?.[0] || node.type;
-            if (ts.isTypeReferenceNode(generic_arg)) {
+            if (this.tsModule.isTypeReferenceNode(generic_arg)) {
                 const name = this.getEntityNameRoot(generic_arg.typeName);
                 const interface_node = this.interface_map.get(name);
                 if (interface_node) {
@@ -440,18 +442,18 @@ export class HoistableInterfaces {
         root_type_name: string | undefined
     ) {
         const walk = (node: ts.Node) => {
-            if (ts.isTypeReferenceNode(node)) {
+            if (this.tsModule.isTypeReferenceNode(node)) {
                 const type_name = this.getEntityNameRoot(node.typeName);
                 const self_reference = type_name === root_type_name;
                 if (!self_reference && !generics.includes(type_name)) {
                     type_dependencies.add(type_name);
                 }
-            } else if (ts.isTypeQueryNode(node)) {
+            } else if (this.tsModule.isTypeQueryNode(node)) {
                 // Handle 'typeof' expressions: e.g., foo: typeof bar
                 value_dependencies.add(this.getEntityNameRoot(node.exprName));
             }
 
-            ts.forEachChild(node, walk);
+            this.tsModule.forEachChild(node, walk);
         };
 
         walk(type_node);
@@ -464,7 +466,7 @@ export class HoistableInterfaces {
      * @returns The top-level name as a string.
      */
     private getEntityNameRoot(entity_name: ts.EntityName): string {
-        if (ts.isIdentifier(entity_name)) {
+        if (this.tsModule.isIdentifier(entity_name)) {
             return entity_name.text;
         } else {
             return this.getEntityNameRoot(entity_name.left);

@@ -1,6 +1,7 @@
 import * as path from 'path';
-import ts from 'typescript';
+import type ts from 'typescript';
 import { svelte2tsx } from './svelte2tsx';
+import { importTs } from './utils/importPackage';
 
 export interface EmitDtsConfig {
     declarationDir: string;
@@ -10,9 +11,10 @@ export interface EmitDtsConfig {
 }
 
 export async function emitDts(config: EmitDtsConfig) {
-    const svelteMap = await createSvelteMap(config);
-    const { options, filenames, absDeclarationDir } = loadTsconfig(config, svelteMap);
-    const host = await createTsCompilerHost(options, svelteMap, absDeclarationDir);
+    const ts = await importTs();
+    const svelteMap = await createSvelteMap(ts, config);
+    const { options, filenames, absDeclarationDir } = loadTsconfig(ts, config, svelteMap);
+    const host = await createTsCompilerHost(ts, options, svelteMap, absDeclarationDir);
     const program = ts.createProgram(filenames, options, host);
     const result = program.emit();
     const likely_failed_files = result.diagnostics.filter((diagnostic) => {
@@ -50,11 +52,15 @@ export async function emitDts(config: EmitDtsConfig) {
     }
 }
 
-function loadTsconfig(config: EmitDtsConfig, svelteMap: SvelteMap) {
+function loadTsconfig(
+    tsModule: typeof import('typescript'),
+    config: EmitDtsConfig,
+    svelteMap: SvelteMap
+) {
     const libRoot = config.libRoot || process.cwd();
 
-    const jsconfigFile = ts.findConfigFile(libRoot, ts.sys.fileExists, 'jsconfig.json');
-    let tsconfigFile = ts.findConfigFile(libRoot, ts.sys.fileExists, config.tsconfig);
+    const jsconfigFile = tsModule.findConfigFile(libRoot, tsModule.sys.fileExists, 'jsconfig.json');
+    let tsconfigFile = tsModule.findConfigFile(libRoot, tsModule.sys.fileExists, config.tsconfig);
 
     if (!tsconfigFile && !jsconfigFile) {
         throw new Error('Failed to locate tsconfig or jsconfig');
@@ -67,7 +73,10 @@ function loadTsconfig(config: EmitDtsConfig, svelteMap: SvelteMap) {
 
     tsconfigFile = path.isAbsolute(tsconfigFile) ? tsconfigFile : path.join(libRoot, tsconfigFile);
     const basepath = path.dirname(tsconfigFile);
-    const { error, config: tsConfig } = ts.readConfigFile(tsconfigFile, ts.sys.readFile);
+    const { error, config: tsConfig } = tsModule.readConfigFile(
+        tsconfigFile,
+        tsModule.sys.readFile
+    );
 
     if (error) {
         throw new Error('Malformed tsconfig\n' + JSON.stringify(error, null, 2));
@@ -82,14 +91,14 @@ function loadTsconfig(config: EmitDtsConfig, svelteMap: SvelteMap) {
         tsConfig.files = [];
     }
 
-    const { options, fileNames } = ts.parseJsonConfigFileContent(
+    const { options, fileNames } = tsModule.parseJsonConfigFileContent(
         tsConfig,
-        ts.sys,
+        tsModule.sys,
         basepath,
         { sourceMap: false, rootDir: config.libRoot },
         tsconfigFile,
         undefined,
-        [{ extension: 'svelte', isMixedContent: true, scriptKind: ts.ScriptKind.Deferred }]
+        [{ extension: 'svelte', isMixedContent: true, scriptKind: tsModule.ScriptKind.Deferred }]
     );
 
     const filenames = fileNames.map((name) => {
@@ -117,10 +126,11 @@ function loadTsconfig(config: EmitDtsConfig, svelteMap: SvelteMap) {
             noEmit: false, // Set to true in case of jsconfig, force false, else nothing is emitted
             moduleResolution:
                 options.moduleResolution &&
-                options.moduleResolution !== ts.ModuleResolutionKind.Classic
+                options.moduleResolution !== tsModule.ModuleResolutionKind.Classic
                     ? options.moduleResolution
                     : // NodeJS: up to 4.9, Node10: since 5.0
-                      ((ts.ModuleResolutionKind as any).NodeJs ?? ts.ModuleResolutionKind.Node10), // Classic if not set, which gives wrong results
+                      ((tsModule.ModuleResolutionKind as any).NodeJs ??
+                      tsModule.ModuleResolutionKind.Node10), // Classic if not set, which gives wrong results
             declaration: true, // Needed for d.ts file generation
             emitDeclarationOnly: true, // We only want d.ts file generation
             declarationDir: config.declarationDir, // Where to put the declarations
@@ -131,8 +141,13 @@ function loadTsconfig(config: EmitDtsConfig, svelteMap: SvelteMap) {
     };
 }
 
-async function createTsCompilerHost(options: any, svelteMap: SvelteMap, absDeclarationDir: string) {
-    const host = ts.createCompilerHost(options);
+async function createTsCompilerHost(
+    tsModule: typeof ts,
+    options: any,
+    svelteMap: SvelteMap,
+    absDeclarationDir: string
+) {
+    const host = tsModule.createCompilerHost(options);
     // TypeScript writes the files relative to the found tsconfig/jsconfig
     // which - at least in the case of the tests - is wrong. Therefore prefix
     // the output paths. See Typescript issue #25430 for more.
@@ -142,9 +157,9 @@ async function createTsCompilerHost(options: any, svelteMap: SvelteMap, absDecla
         .join('/');
 
     const svelteSys: ts.System = {
-        ...ts.sys,
+        ...tsModule.sys,
         fileExists(originalPath) {
-            let exists = ts.sys.fileExists(originalPath);
+            let exists = tsModule.sys.fileExists(originalPath);
             if (exists) {
                 return true;
             }
@@ -154,7 +169,7 @@ async function createTsCompilerHost(options: any, svelteMap: SvelteMap, absDecla
                 return false;
             }
 
-            exists = ts.sys.fileExists(path);
+            exists = tsModule.sys.fileExists(path);
             if (exists && isSvelteFilepath(path)) {
                 const isTsFile = svelteMap.add(path);
                 if (
@@ -171,17 +186,17 @@ async function createTsCompilerHost(options: any, svelteMap: SvelteMap, absDecla
             if (path !== sveltePath || isSvelteFilepath(path)) {
                 const result = svelteMap.get(sveltePath);
                 if (result === undefined) {
-                    return ts.sys.readFile(path, encoding);
+                    return tsModule.sys.readFile(path, encoding);
                 } else {
                     return result;
                 }
             } else {
-                return ts.sys.readFile(path, encoding);
+                return tsModule.sys.readFile(path, encoding);
             }
         },
         readDirectory(path, extensions, exclude, include, depth) {
             const extensionsWithSvelte = (extensions || []).concat('.svelte');
-            return ts.sys.readDirectory(path, extensionsWithSvelte, exclude, include, depth);
+            return tsModule.sys.readDirectory(path, extensionsWithSvelte, exclude, include, depth);
         },
         writeFile(fileName, data, writeByteOrderMark) {
             fileName =
@@ -230,7 +245,7 @@ async function createTsCompilerHost(options: any, svelteMap: SvelteMap, absDecla
                     return `"sources":["${sourcePath}"]`;
                 });
             }
-            return ts.sys.writeFile(fileName, data, writeByteOrderMark);
+            return tsModule.sys.writeFile(fileName, data, writeByteOrderMark);
         }
     };
 
@@ -271,17 +286,17 @@ async function createTsCompilerHost(options: any, svelteMap: SvelteMap, absDecla
         // Delegate to the TS resolver first.
         // If that does not bring up anything, try the Svelte Module loader
         // which is able to deal with .svelte files.
-        const tsResolvedModule = ts.resolveModuleName(
+        const tsResolvedModule = tsModule.resolveModuleName(
             name,
             containingFile,
             compilerOptions,
-            ts.sys
+            tsModule.sys
         ).resolvedModule;
         if (tsResolvedModule && !isVirtualSvelteFilepath(tsResolvedModule.resolvedFileName)) {
             return tsResolvedModule;
         }
 
-        return ts.resolveModuleName(name, containingFile, compilerOptions, svelteSys)
+        return tsModule.resolveModuleName(name, containingFile, compilerOptions, svelteSys)
             .resolvedModule;
     }
 
@@ -298,7 +313,7 @@ interface SvelteMap {
  * early on when we first need to look at the file contents and can read
  * those transformed source later on.
  */
-async function createSvelteMap(config: EmitDtsConfig): Promise<SvelteMap> {
+async function createSvelteMap(tsModule: typeof ts, config: EmitDtsConfig): Promise<SvelteMap> {
     const svelteFiles = new Map<string, { transformed: string; isTsFile: boolean }>();
 
     // TODO detect Svelte version in here and set shimsPath accordingly if not given from above
@@ -314,14 +329,15 @@ async function createSvelteMap(config: EmitDtsConfig): Promise<SvelteMap> {
             return svelteFiles.get(normalizedPath)!.isTsFile;
         }
 
-        const code = ts.sys.readFile(path, 'utf-8');
+        const code = tsModule.sys.readFile(path, 'utf-8');
         const isTsFile = /<script\s+[^>]*?lang=('|")(ts|typescript)('|")/.test(code);
         const transformed = svelte2tsx(code, {
             filename: path,
             isTsFile,
             mode: 'dts',
             version,
-            noSvelteComponentTyped: noSvelteComponentTyped
+            noSvelteComponentTyped: noSvelteComponentTyped,
+            tsModule
         }).code;
         svelteFiles.set(normalizedPath, { transformed, isTsFile });
         return isTsFile;

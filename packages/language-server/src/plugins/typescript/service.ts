@@ -434,6 +434,7 @@ async function createLanguageService(
     );
 
     const transformationConfig: SvelteSnapshotOptions = {
+        tsModule: ts,
         parse: svelteCompiler?.parse,
         version: svelteCompiler?.VERSION,
         transformOnTemplateError: docContext.transformOnTemplateError,

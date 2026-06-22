@@ -1,4 +1,4 @@
-import ts from 'typescript';
+import type ts from 'typescript';
 import { EventHandler } from './event-handler';
 import {
     getVariableAtTopLevel,
@@ -8,9 +8,10 @@ import {
 import MagicString from 'magic-string';
 
 export function is$$EventsDeclaration(
+    tsModule: typeof ts,
     node: ts.Node
 ): node is ts.TypeAliasDeclaration | ts.InterfaceDeclaration {
-    return isInterfaceOrTypeDeclaration(node) && node.name.text === '$$Events';
+    return isInterfaceOrTypeDeclaration(tsModule, node) && node.name.text === '$$Events';
 }
 
 /**
@@ -30,7 +31,7 @@ export function is$$EventsDeclaration(
  *   - If no, track all invocations of it to get the event names
  */
 export class ComponentEvents {
-    private componentEventsInterface = new ComponentEventsFromInterface();
+    private componentEventsInterface: ComponentEventsFromInterface;
     private componentEventsFromEventsMap: ComponentEventsFromEventsMap;
 
     private get eventsClass() {
@@ -40,11 +41,13 @@ export class ComponentEvents {
     }
 
     constructor(
+        tsModule: typeof ts,
         eventHandler: EventHandler,
         private strictEvents: boolean,
         private str: MagicString
     ) {
-        this.componentEventsFromEventsMap = new ComponentEventsFromEventsMap(eventHandler);
+        this.componentEventsInterface = new ComponentEventsFromInterface(tsModule);
+        this.componentEventsFromEventsMap = new ComponentEventsFromEventsMap(tsModule, eventHandler);
     }
 
     /**
@@ -110,6 +113,8 @@ class ComponentEventsFromInterface {
     private str?: MagicString;
     private astOffset?: number;
 
+    constructor(private tsModule: typeof ts) {}
+
     setComponentEventsInterface(
         node: ts.InterfaceDeclaration | ts.TypeAliasDeclaration,
         str: MagicString,
@@ -124,7 +129,7 @@ class ComponentEventsFromInterface {
         if (this.eventDispatcherImport) {
             return;
         }
-        this.eventDispatcherImport = checkIfImportIsEventDispatcher(node);
+        this.eventDispatcherImport = checkIfImportIsEventDispatcher(this.tsModule, node);
     }
 
     checkIfDeclarationInstantiatedEventDispatcher(node: ts.VariableDeclaration) {
@@ -132,6 +137,7 @@ class ComponentEventsFromInterface {
             return;
         }
         const result = checkIfDeclarationInstantiatedEventDispatcher(
+            this.tsModule,
             node,
             this.eventDispatcherImport
         );
@@ -160,14 +166,14 @@ class ComponentEventsFromInterface {
     private extractEvents(node: ts.InterfaceDeclaration | ts.TypeAliasDeclaration) {
         const map = new Map<string, { type: string; doc?: string }>();
 
-        if (ts.isInterfaceDeclaration(node)) {
+        if (this.tsModule.isInterfaceDeclaration(node)) {
             this.extractProperties(node.members, map);
         } else {
-            if (ts.isTypeLiteralNode(node.type)) {
+            if (this.tsModule.isTypeLiteralNode(node.type)) {
                 this.extractProperties(node.type.members, map);
-            } else if (ts.isIntersectionTypeNode(node.type)) {
+            } else if (this.tsModule.isIntersectionTypeNode(node.type)) {
                 node.type.types.forEach((type) => {
-                    if (ts.isTypeLiteralNode(type)) {
+                    if (this.tsModule.isTypeLiteralNode(type)) {
                         this.extractProperties(type.members, map);
                     }
                 });
@@ -180,10 +186,10 @@ class ComponentEventsFromInterface {
         members: ts.NodeArray<ts.TypeElement>,
         map: Map<string, { type: string; doc?: string }>
     ) {
-        members.filter(ts.isPropertySignature).forEach((member) => {
-            map.set(getName(member.name), {
+        members.filter(this.tsModule.isPropertySignature).forEach((member) => {
+            map.set(getName(this.tsModule, member.name), {
                 type: member.type?.getText() || 'Event',
-                doc: getDoc(member)
+                doc: getDoc(this.tsModule, member)
             });
         });
     }
@@ -196,7 +202,10 @@ class ComponentEventsFromEventsMap {
     private eventDispatcherImport = '';
     private eventDispatchers: Array<{ name: string; typing?: string }> = [];
 
-    constructor(private eventHandler: EventHandler) {
+    constructor(
+        private tsModule: typeof ts,
+        private eventHandler: EventHandler
+    ) {
         this.events = this.extractEvents(eventHandler);
     }
 
@@ -204,14 +213,14 @@ class ComponentEventsFromEventsMap {
         if (this.eventDispatcherImport) {
             return;
         }
-        this.eventDispatcherImport = checkIfImportIsEventDispatcher(node);
+        this.eventDispatcherImport = checkIfImportIsEventDispatcher(this.tsModule, node);
     }
 
     checkIfIsStringLiteralDeclaration(node: ts.VariableDeclaration) {
         if (
-            ts.isIdentifier(node.name) &&
+            this.tsModule.isIdentifier(node.name) &&
             node.initializer &&
-            ts.isStringLiteral(node.initializer)
+            this.tsModule.isStringLiteral(node.initializer)
         ) {
             this.stringVars.set(node.name.text, node.initializer.text);
         }
@@ -219,6 +228,7 @@ class ComponentEventsFromEventsMap {
 
     checkIfDeclarationInstantiatedEventDispatcher(node: ts.VariableDeclaration) {
         const result = checkIfDeclarationInstantiatedEventDispatcher(
+            this.tsModule,
             node,
             this.eventDispatcherImport
         );
@@ -234,13 +244,15 @@ class ComponentEventsFromEventsMap {
                 typing: dispatcherTyping.getText()
             });
 
-            if (ts.isTypeLiteralNode(dispatcherTyping)) {
-                dispatcherTyping.members.filter(ts.isPropertySignature).forEach((member) => {
-                    this.addToEvents(getName(member.name), {
-                        type: `CustomEvent<${member.type?.getText() || 'any'}>`,
-                        doc: getDoc(member)
+            if (this.tsModule.isTypeLiteralNode(dispatcherTyping)) {
+                dispatcherTyping.members
+                    .filter(this.tsModule.isPropertySignature)
+                    .forEach((member) => {
+                        this.addToEvents(getName(this.tsModule, member.name), {
+                            type: `CustomEvent<${member.type?.getText() || 'any'}>`,
+                            doc: getDoc(this.tsModule, member)
+                        });
                     });
-                });
             }
         } else {
             this.eventDispatchers.push({ name: dispatcherName });
@@ -258,15 +270,15 @@ class ComponentEventsFromEventsMap {
             this.eventDispatchers.some(
                 (dispatcher) =>
                     !dispatcher.typing &&
-                    ts.isIdentifier(node.expression) &&
+                    this.tsModule.isIdentifier(node.expression) &&
                     node.expression.text === dispatcher.name
             )
         ) {
             const firstArg = node.arguments[0];
-            if (ts.isStringLiteral(firstArg)) {
+            if (this.tsModule.isStringLiteral(firstArg)) {
                 this.addToEvents(firstArg.text);
                 this.dispatchedEvents.add(firstArg.text);
-            } else if (ts.isIdentifier(firstArg)) {
+            } else if (this.tsModule.isIdentifier(firstArg)) {
                 const str = this.stringVars.get(firstArg.text);
                 if (str) {
                     this.addToEvents(str);
@@ -316,15 +328,15 @@ class ComponentEventsFromEventsMap {
     }
 }
 
-function getName(prop: ts.PropertyName) {
-    if (ts.isIdentifier(prop) || ts.isStringLiteral(prop)) {
+function getName(tsModule: typeof ts, prop: ts.PropertyName) {
+    if (tsModule.isIdentifier(prop) || tsModule.isStringLiteral(prop)) {
         return prop.text;
     }
 
-    if (ts.isComputedPropertyName(prop)) {
-        if (ts.isIdentifier(prop.expression)) {
+    if (tsModule.isComputedPropertyName(prop)) {
+        if (tsModule.isIdentifier(prop.expression)) {
             const identifierName = prop.expression.text;
-            const identifierValue = getIdentifierValue(prop, identifierName);
+            const identifierValue = getIdentifierValue(tsModule, prop, identifierName);
             if (!identifierValue) {
                 throwError(prop);
             }
@@ -335,9 +347,13 @@ function getName(prop: ts.PropertyName) {
     throwError(prop);
 }
 
-function getIdentifierValue(prop: ts.ComputedPropertyName, identifierName: string) {
-    const variable = getVariableAtTopLevel(prop.getSourceFile(), identifierName);
-    if (variable && ts.isStringLiteral(variable.initializer)) {
+function getIdentifierValue(
+    tsModule: typeof ts,
+    prop: ts.ComputedPropertyName,
+    identifierName: string
+) {
+    const variable = getVariableAtTopLevel(tsModule, prop.getSourceFile(), identifierName);
+    if (variable && tsModule.isStringLiteral(variable.initializer)) {
         return variable.initializer.text;
     }
 }
@@ -362,9 +378,9 @@ function throwError(prop: ts.PropertyName) {
     }
 }
 
-function getDoc(member: ts.PropertySignature) {
+function getDoc(tsModule: typeof ts, member: ts.PropertySignature) {
     let doc = undefined;
-    const comment = getLastLeadingDoc(member);
+    const comment = getLastLeadingDoc(tsModule, member);
 
     if (comment) {
         doc = comment
@@ -383,13 +399,16 @@ function getDoc(member: ts.PropertySignature) {
     return doc;
 }
 
-function checkIfImportIsEventDispatcher(node: ts.ImportDeclaration): string | undefined {
-    if (ts.isStringLiteral(node.moduleSpecifier) && node.moduleSpecifier.text !== 'svelte') {
+function checkIfImportIsEventDispatcher(
+    tsModule: typeof ts,
+    node: ts.ImportDeclaration
+): string | undefined {
+    if (tsModule.isStringLiteral(node.moduleSpecifier) && node.moduleSpecifier.text !== 'svelte') {
         return;
     }
 
     const namedImports = node.importClause?.namedBindings;
-    if (namedImports && ts.isNamedImports(namedImports)) {
+    if (namedImports && tsModule.isNamedImports(namedImports)) {
         const eventDispatcherImport = namedImports.elements.find(
             // If it's an aliased import, propertyName is set
             (el) => (el.propertyName || el.name).text === 'createEventDispatcher'
@@ -401,6 +420,7 @@ function checkIfImportIsEventDispatcher(node: ts.ImportDeclaration): string | un
 }
 
 function checkIfDeclarationInstantiatedEventDispatcher(
+    tsModule: typeof ts,
     node: ts.VariableDeclaration,
     eventDispatcherImport: string | undefined
 ):
@@ -410,13 +430,13 @@ function checkIfDeclarationInstantiatedEventDispatcher(
           dispatcherCreationExpr: ts.CallExpression;
       }
     | undefined {
-    if (!ts.isIdentifier(node.name) || !node.initializer) {
+    if (!tsModule.isIdentifier(node.name) || !node.initializer) {
         return;
     }
 
     if (
-        ts.isCallExpression(node.initializer) &&
-        ts.isIdentifier(node.initializer.expression) &&
+        tsModule.isCallExpression(node.initializer) &&
+        tsModule.isIdentifier(node.initializer.expression) &&
         node.initializer.expression.text === eventDispatcherImport
     ) {
         const dispatcherName = node.name.text;
