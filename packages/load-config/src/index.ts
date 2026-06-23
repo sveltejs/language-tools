@@ -54,7 +54,9 @@ const dynamicImport = new Function('modulePath', 'return import(modulePath)') as
 /**
  * Loads the Svelte configuration by searching for `vite.config` and `svelte.config` files.
  *
- * If `traverse` is true, it starts from the provided directory and traverses up the directory tree until it finds a config or reaches the root.
+ * If `dirOrFile` is a file path, that config file is loaded directly.
+ *
+ * If `dirOrFile` is a directory and `traverse` is true, it starts from the provided directory and traverses up the directory tree until it finds a config or reaches the root.
  * Else it only checks the provided directory.
  *
  * `vite.config` with either vite-plugin-svelte or the SvelteKit plugin providing options is preferred over `svelte.config`.
@@ -62,20 +64,46 @@ const dynamicImport = new Function('modulePath', 'return import(modulePath)') as
  * The results are cached to optimize subsequent calls.
  */
 export function loadConfig(
-    dir: string,
+    dirOrFile: string,
     { traverse = true, clearCache = false }: { traverse?: boolean; clearCache?: boolean } = {}
 ): Promise<LoadConfigResult> {
     if (clearCache) cache.clear();
 
-    const startDir = path.resolve(dir);
-    const cached = cache.get(startDir);
+    const resolved = path.resolve(dirOrFile);
+    const cached = cache.get(resolved);
     if (cached) {
         return cached;
     }
 
-    const loading = loadConfigUncached(startDir, traverse);
-    cache.set(startDir, loading);
+    const loading = isFile(resolved)
+        ? loadConfigFromFile(resolved)
+        : loadConfigUncached(resolved, traverse);
+    cache.set(resolved, loading);
     return loading;
+}
+
+function isFile(filePath: string): boolean {
+    try {
+        return fs.statSync(filePath).isFile();
+    } catch {
+        return false;
+    }
+}
+
+async function loadConfigFromFile(configFilePath: string): Promise<LoadConfigResult> {
+    const basename = path.basename(configFilePath);
+    const root = path.dirname(configFilePath);
+
+    if (/^svelte\.config\./.test(basename)) {
+        return (await loadSvelteConfig(configFilePath)) ?? undefined;
+    }
+
+    const viteResult = await loadSvelteConfigFromVite(root, configFilePath);
+    if (viteResult !== undefined) {
+        return viteResult;
+    }
+
+    return loadSvelteConfig(configFilePath);
 }
 
 async function loadConfigUncached(dir: string, traverse: boolean): Promise<LoadConfigResult> {
@@ -221,8 +249,74 @@ async function loadSvelteConfig(configFilePath: string): Promise<LoadConfigResul
 
 async function tryImportVite(fromPath: string): Promise<ViteModule | undefined> {
     try {
+        const importPath = getViteImportPath(fromPath);
+        if (importPath) {
+            return await dynamicImport(pathToFileURL(importPath).href);
+        }
+    } catch {
+        // fall through to legacy import
+    }
+
+    return importViteLegacy(fromPath);
+}
+
+function getViteImportPath(fromPath: string): string | undefined {
+    const pkgPath = require.resolve('vite/package.json', { paths: [fromPath] });
+    const pkgDir = path.dirname(pkgPath);
+    const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8')) as {
+        exports?: Record<string, unknown>;
+        module?: string;
+        main?: string;
+    };
+
+    const entry = resolvePackageImportExport(pkg.exports?.['.']);
+    if (entry) {
+        return path.join(pkgDir, entry);
+    }
+
+    const fallback = pkg.module ?? pkg.main;
+    return fallback ? path.join(pkgDir, fallback) : undefined;
+}
+
+function resolvePackageImportExport(exportEntry: unknown): string | undefined {
+    if (typeof exportEntry === 'string') {
+        return exportEntry;
+    }
+
+    if (!exportEntry || typeof exportEntry !== 'object') {
+        return undefined;
+    }
+
+    const entry = exportEntry as Record<string, unknown>;
+    const importEntry = entry.import;
+
+    if (typeof importEntry === 'string') {
+        return importEntry;
+    }
+
+    if (importEntry && typeof importEntry === 'object') {
+        const defaultEntry = (importEntry as Record<string, unknown>).default;
+        if (typeof defaultEntry === 'string') {
+            return defaultEntry;
+        }
+    }
+
+    if (typeof entry.default === 'string') {
+        return entry.default;
+    }
+
+    return undefined;
+}
+
+async function importViteLegacy(fromPath: string): Promise<ViteModule | undefined> {
+    try {
         const main = require.resolve('vite', { paths: [fromPath] });
-        return await dynamicImport(pathToFileURL(main).href);
+        // require.resolve will use the cjs version
+        const prev = process.env.VITE_CJS_IGNORE_WARNING;
+        process.env.VITE_CJS_IGNORE_WARNING = 'true';
+        const result = await dynamicImport(pathToFileURL(main).href);
+        process.env.VITE_CJS_IGNORE_WARNING = prev;
+        return result;
     } catch {
         return undefined;
     }
