@@ -1,5 +1,22 @@
 # Changelog
 
+## 4.7.0
+
+### Minor Changes
+
+-   feat: add `--config` option ([#3066](https://github.com/sveltejs/language-tools/pull/3066))
+
+-   feat: svelte-check tsgo support with experimental api ([#3036](https://github.com/sveltejs/language-tools/pull/3036))
+
+### Patch Changes
+
+-   fix: load esm version of Vite ([#3065](https://github.com/sveltejs/language-tools/pull/3065))
+
+-   fix: stop excluding workspaces under dot-prefixed ancestors ([#3037](https://github.com/sveltejs/language-tools/pull/3037))
+
+-   Updated dependencies [[`7a3464b`](https://github.com/sveltejs/language-tools/commit/7a3464b54b997c703d5b60cc6ab1ed74c49efffc), [`a2561fc`](https://github.com/sveltejs/language-tools/commit/a2561fc2c52bdcd0bad746261222196fd94d5396)]:
+    -   @sveltejs/load-config@0.2.0
+
 ## 4.6.0
 
 ### Minor Changes

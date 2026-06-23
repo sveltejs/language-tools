@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.57
+
+### Patch Changes
+
+-   fix: don't crash on array binding holes in destructured exports (e.g. `export let { d: [a, , c] } = obj`) ([#3058](https://github.com/sveltejs/language-tools/pull/3058))
+
 ## 0.7.56
 
 ### Patch Changes
