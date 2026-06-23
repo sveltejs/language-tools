@@ -11,7 +11,7 @@ import {
     positionAt,
     getLineOffsets
 } from 'svelte-language-server';
-import { pathToFileURL } from 'url';
+import { loadConfig } from '@sveltejs/load-config';
 import { findFiles } from './utils';
 
 type ManifestEntry = {
@@ -92,61 +92,37 @@ const defaultKitFilesSettings: InternalHelpers.KitFilesSettings = {
     universalHooksPath: 'src/hooks'
 };
 
-/**
- * This function encapsulates the import call in a way
- * that TypeScript does not transpile `import()`.
- * https://github.com/microsoft/TypeScript/issues/43329
- */
-const dynamicImport = new Function('modulePath', 'return import(modulePath)') as (
-    modulePath: URL
-) => Promise<any>;
+function kitFilesSettingsFromConfig(config: any): InternalHelpers.KitFilesSettings {
+    if (!config?.files) {
+        return defaultKitFilesSettings;
+    }
+
+    const files = config.files;
+    return {
+        paramsPath: files.params ?? defaultKitFilesSettings.paramsPath,
+        serverHooksPath: files.hooks?.server ?? defaultKitFilesSettings.serverHooksPath,
+        clientHooksPath: files.hooks?.client ?? defaultKitFilesSettings.clientHooksPath,
+        universalHooksPath: files.hooks?.universal ?? defaultKitFilesSettings.universalHooksPath
+    };
+}
 
 /**
  * Loads the svelte.config.js file and extracts SvelteKit file path settings.
- * Falls back to default paths if config doesn't exist or doesn't specify custom paths.
+ * Falls back to default paths when no Svelte config can be loaded.
  *
  * @param workspacePath - Root directory of the project
  * @returns KitFilesSettings with paths for params, hooks files
  */
 async function loadKitFilesSettings(
-    workspacePath: string
+    workspacePath: string,
+    config?: string
 ): Promise<InternalHelpers.KitFilesSettings> {
-    const loadSvelteConfigTs =
-        process.features && 'typescript' in process.features && !!process.features.typescript;
-    const configExtensions = loadSvelteConfigTs
-        ? ['js', 'ts', 'cjs', 'mjs', 'mts']
-        : ['js', 'cjs', 'mjs'];
-
-    let configPath: string | undefined;
-
-    for (const ext of configExtensions) {
-        const tryPath = path.join(workspacePath, `svelte.config.${ext}`);
-        if (fs.existsSync(tryPath)) {
-            configPath = tryPath;
-            break;
-        }
-    }
-
-    if (!configPath) {
+    const result = await loadConfig(config ?? workspacePath, { traverse: false });
+    if (!result || !('config' in result)) {
         return defaultKitFilesSettings;
     }
 
-    try {
-        const config = (await dynamicImport(pathToFileURL(configPath)))?.default;
-        if (!config?.kit?.files) {
-            return defaultKitFilesSettings;
-        }
-
-        const files = config.kit.files;
-        return {
-            paramsPath: files.params ?? defaultKitFilesSettings.paramsPath,
-            serverHooksPath: files.hooks?.server ?? defaultKitFilesSettings.serverHooksPath,
-            clientHooksPath: files.hooks?.client ?? defaultKitFilesSettings.clientHooksPath,
-            universalHooksPath: files.hooks?.universal ?? defaultKitFilesSettings.universalHooksPath
-        };
-    } catch {
-        return defaultKitFilesSettings;
-    }
+    return kitFilesSettingsFromConfig(result.config.kit);
 }
 
 /**
@@ -161,7 +137,8 @@ async function loadKitFilesSettings(
 export async function emitSvelteFiles(
     workspacePath: string,
     filePathsToIgnore: string[],
-    incremental: boolean
+    incremental: boolean,
+    config?: string
 ): Promise<EmitResult> {
     const cacheDir = getCacheDir(workspacePath);
     const emitDir = path.join(cacheDir, EMIT_SUBDIR);
@@ -171,7 +148,7 @@ export async function emitSvelteFiles(
     const manifest = incremental
         ? loadManifest(manifestPath, workspacePath)
         : { version: MANIFEST_VERSION, entries: {} as Record<string, ManifestEntry> };
-    const kitFilesSettings = await loadKitFilesSettings(workspacePath);
+    const kitFilesSettings = await loadKitFilesSettings(workspacePath, config);
     const isJsOrTsFile = (filePath: string) => filePath.endsWith('.ts') || filePath.endsWith('.js');
     const allRelevantFiles = await findFiles(
         workspacePath,

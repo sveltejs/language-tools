@@ -1,6 +1,7 @@
 ---
+'@sveltejs/load-config': patch
 'svelte-language-server': patch
 'svelte-check': patch
 ---
 
-feat: add support for svelte config ts/mts files
+fix: load esm version of Vite

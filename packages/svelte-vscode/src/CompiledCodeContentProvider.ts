@@ -1,5 +1,5 @@
 import { LanguageClient } from 'vscode-languageclient/node';
-import { debounce } from 'lodash';
+import { debounce } from './utils';
 import {
     Uri,
     TextDocumentContentProvider,
@@ -48,7 +48,7 @@ export default class CompiledCodeContentProvider implements TextDocumentContentP
             // whenever the selected svelte file's content changes
             // (debounced to prevent too many recompilations)
             workspace.onDidChangeTextDocument(
-                debounce(async (event) => {
+                debounce((event) => {
                     if (event.document.languageId == 'svelte' && this.selectedSvelteFile) {
                         this.refresh();
                     }

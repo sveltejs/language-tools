@@ -1,8 +1,9 @@
-import { isAbsolute } from 'path';
+import { isAbsolute, dirname } from 'path';
 import ts from 'typescript';
 import { Diagnostic, Position, Range } from 'vscode-languageserver';
 import { WorkspaceFolder } from 'vscode-languageserver-protocol';
 import { Document, DocumentManager } from './lib/documents';
+import { configLoader } from './lib/documents/configLoader';
 import { Logger } from './logger';
 import { LSConfigManager } from './ls-config';
 import {
@@ -23,8 +24,7 @@ import {
 import { isInGeneratedCode } from './plugins/typescript/features/utils';
 import { mapAndFilterDiagnostics } from './plugins/typescript/features/DiagnosticsProvider';
 import { convertRange, getDiagnosticTag, mapSeverity } from './plugins/typescript/utils';
-import { normalizePath, pathToUrl, urlToPath } from './utils';
-import { groupBy } from 'lodash';
+import { groupBy, normalizePath, pathToUrl, urlToPath } from './utils';
 
 export function mapSvelteCheckDiagnostics(
     sourcePath: string,
@@ -60,6 +60,10 @@ export interface SvelteCheckOptions {
      * Path has to be absolute
      */
     tsconfig?: string;
+    /**
+     * Path to a svelte.config or vite.config file. Path has to be absolute.
+     */
+    configPath?: string;
     onProjectReload?: () => void;
     watch?: boolean;
     /**
@@ -93,6 +97,18 @@ export class SvelteCheck {
         if (options.tsconfig && !isAbsolute(options.tsconfig)) {
             throw new Error('tsconfigPath needs to be absolute, got ' + options.tsconfig);
         }
+        if (options.configPath && !isAbsolute(options.configPath)) {
+            throw new Error('configPath needs to be absolute, got ' + options.configPath);
+        }
+
+        configLoader.setExplicitConfigScope(
+            options.configPath
+                ? {
+                      configPath: options.configPath,
+                      rootDirectory: options.tsconfig ? dirname(options.tsconfig) : workspacePath
+                  }
+                : undefined
+        );
 
         this.configManager.update({
             svelte: {

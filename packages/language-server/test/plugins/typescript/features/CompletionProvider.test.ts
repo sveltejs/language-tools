@@ -20,7 +20,6 @@ import {
     CompletionResolveInfo
 } from '../../../../src/plugins/typescript/features/CompletionProvider';
 import { LSAndTSDocResolver } from '../../../../src/plugins/typescript/LSAndTSDocResolver';
-import { sortBy } from 'lodash';
 import { LSConfigManager } from '../../../../src/ls-config';
 import { __resetCache } from '../../../../src/plugins/typescript/service';
 import { getRandomVirtualDirPath, serviceWarmup, setupVirtualEnvironment } from '../test-utils';
@@ -686,11 +685,8 @@ describe('CompletionProviderImpl', function () {
         );
 
         assert.deepStrictEqual(
-            sortBy(
-                completions?.items.map((item) => item.label),
-                (x) => x
-            ),
-            sortBy(testfiles, (x) => x)
+            completions?.items.map((item) => item.label).sort(),
+            testfiles.sort()
         );
     });
 
@@ -1773,6 +1769,28 @@ describe('CompletionProviderImpl', function () {
             textEdit: undefined,
             labelDetails: undefined
         });
+    });
+
+    it('marks optional object literal members with a trailing ? in the label', async () => {
+        const { completionProvider, document } = setup('object-member.svelte');
+
+        const completions = await completionProvider.getCompletions(
+            document,
+            {
+                line: 14,
+                character: 30
+            },
+            {
+                triggerKind: CompletionTriggerKind.Invoked
+            }
+        );
+
+        const item = completions?.items.find((item) => item.label === 'baz?');
+
+        assert.ok(item, 'Expected optional property completion to be labelled "baz?"');
+        // The `?` is display-only — the inserted text must remain the bare name.
+        assert.strictEqual(item?.insertText ?? item?.label, 'baz');
+        assert.strictEqual(item?.data?.name, 'baz');
     });
 
     it('provides import completions store that isnt imported yet', async () => {

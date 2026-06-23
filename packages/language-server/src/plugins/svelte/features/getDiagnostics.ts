@@ -29,7 +29,7 @@ export async function getDiagnostics(
 ): Promise<Diagnostic[]> {
     const config = await svelteDoc.config;
     if (config?.loadConfigError) {
-        return getConfigLoadErrorDiagnostics(config.loadConfigError);
+        return getConfigLoadErrorDiagnostics(config.loadConfigError, config.configSource);
     }
 
     if (cancellationToken?.isCancellationRequested) {
@@ -158,7 +158,7 @@ function createParserErrorDiagnostic(error: any, document: Document) {
                     scssNodeRuntimeHint;
             }
             diagnostic.message +=
-                '\nDid you setup a `svelte.config.js`? ' +
+                '\nDid you setup a `svelte.config.js` or `vite.config.js`? ' +
                 '\nSee https://github.com/sveltejs/language-tools/tree/master/docs#using-with-preprocessors for more info.';
         }
     }
@@ -212,10 +212,11 @@ function getPreprocessErrorDiagnostics(document: Document, error: any): Diagnost
     return getOtherErrorDiagnostics(error);
 }
 
-function getConfigLoadErrorDiagnostics(error: any): Diagnostic[] {
+function getConfigLoadErrorDiagnostics(error: any, configSource?: 'svelte' | 'vite'): Diagnostic[] {
+    const configFile = configSource === 'vite' ? 'vite.config' : 'svelte.config.js';
     return [
         {
-            message: 'Error in svelte.config.js\n\n' + error,
+            message: `Error in ${configFile}\n\n` + error,
             range: Range.create(Position.create(0, 0), Position.create(0, 5)),
             severity: DiagnosticSeverity.Error,
             source: 'svelte'
@@ -335,7 +336,7 @@ function getErrorMessage(error: any, source: string, hint = '') {
         '\n\nThe file cannot be parsed because ' +
         source +
         " requires a preprocessor that doesn't seem to be setup or failed during setup. " +
-        'Did you setup a `svelte.config.js`? ' +
+        'Did you setup a `svelte.config.js` or `vite.config.js`? ' +
         hint +
         '\n\nSee https://github.com/sveltejs/language-tools/tree/master/docs#using-with-preprocessors for more info.'
     );
