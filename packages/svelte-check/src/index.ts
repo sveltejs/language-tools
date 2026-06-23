@@ -371,6 +371,7 @@ async function getSvelteDiagnosticsForIncremental(
         const svelteCheck = new SvelteCheck(opts.workspaceUri.fsPath, {
             compilerWarnings: opts.compilerWarnings,
             diagnosticSources: enabledSources,
+            configPath: opts.config,
             watch: false
         });
         await openDocuments(filesNeedingDiagnostics, svelteCheck);
@@ -445,7 +446,8 @@ async function runWithVirtualFiles(
     const emitResult = await emitSvelteFiles(
         opts.workspaceUri.fsPath,
         opts.filePathsToIgnore,
-        opts.incremental
+        opts.incremental,
+        opts.config
     );
     const overlayTsconfig = writeOverlayTsconfig(
         opts.tsconfig,
@@ -583,7 +585,9 @@ parseOptions(async (opts) => {
         const svelteCheckOptions: SvelteCheckOptions = {
             compilerWarnings: opts.compilerWarnings,
             diagnosticSources: opts.diagnosticSources,
+            // TODO svelte-check 5: a config file next to the tsconfig or at the root of the workspace should turn off nested config file discovery
             tsconfig: opts.tsconfig,
+            configPath: opts.config,
             watch: opts.watch
         };
 

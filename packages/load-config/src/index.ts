@@ -54,7 +54,9 @@ const dynamicImport = new Function('modulePath', 'return import(modulePath)') as
 /**
  * Loads the Svelte configuration by searching for `vite.config` and `svelte.config` files.
  *
- * If `traverse` is true, it starts from the provided directory and traverses up the directory tree until it finds a config or reaches the root.
+ * If `dirOrFile` is a file path, that config file is loaded directly.
+ *
+ * If `dirOrFile` is a directory and `traverse` is true, it starts from the provided directory and traverses up the directory tree until it finds a config or reaches the root.
  * Else it only checks the provided directory.
  *
  * `vite.config` with either vite-plugin-svelte or the SvelteKit plugin providing options is preferred over `svelte.config`.
@@ -62,20 +64,46 @@ const dynamicImport = new Function('modulePath', 'return import(modulePath)') as
  * The results are cached to optimize subsequent calls.
  */
 export function loadConfig(
-    dir: string,
+    dirOrFile: string,
     { traverse = true, clearCache = false }: { traverse?: boolean; clearCache?: boolean } = {}
 ): Promise<LoadConfigResult> {
     if (clearCache) cache.clear();
 
-    const startDir = path.resolve(dir);
-    const cached = cache.get(startDir);
+    const resolved = path.resolve(dirOrFile);
+    const cached = cache.get(resolved);
     if (cached) {
         return cached;
     }
 
-    const loading = loadConfigUncached(startDir, traverse);
-    cache.set(startDir, loading);
+    const loading = isFile(resolved)
+        ? loadConfigFromFile(resolved)
+        : loadConfigUncached(resolved, traverse);
+    cache.set(resolved, loading);
     return loading;
+}
+
+function isFile(filePath: string): boolean {
+    try {
+        return fs.statSync(filePath).isFile();
+    } catch {
+        return false;
+    }
+}
+
+async function loadConfigFromFile(configFilePath: string): Promise<LoadConfigResult> {
+    const basename = path.basename(configFilePath);
+    const root = path.dirname(configFilePath);
+
+    if (/^svelte\.config\./.test(basename)) {
+        return (await loadSvelteConfig(configFilePath)) ?? undefined;
+    }
+
+    const viteResult = await loadSvelteConfigFromVite(root, configFilePath);
+    if (viteResult !== undefined) {
+        return viteResult;
+    }
+
+    return loadSvelteConfig(configFilePath);
 }
 
 async function loadConfigUncached(dir: string, traverse: boolean): Promise<LoadConfigResult> {
