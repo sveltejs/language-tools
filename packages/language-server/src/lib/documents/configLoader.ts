@@ -65,6 +65,7 @@ export class ConfigLoader {
     private filePathToConfigPath = new FileMap<string>();
     private disabled = false;
     private loadSvelteConfigTs: boolean;
+    private excludeDirs: string[] = [];
 
     constructor(
         private globSync: typeof fdir,
@@ -87,6 +88,14 @@ export class ConfigLoader {
     }
 
     /**
+     * Set additional directories to exclude from config crawl.
+     * These are merged with the built-in exclusions (node_modules, dotfiles).
+     */
+    setExcludeDirs(dirs: string[] | undefined): void {
+        this.excludeDirs = dirs ?? [];
+    }
+
+    /**
      * Tries to load all `svelte.config.js` files below given directory
      * and the first one found inside/above that directory.
      *
@@ -97,16 +106,19 @@ export class ConfigLoader {
         Logger.log('Trying to load configs for', directory);
 
         try {
+            const excludeDirs = this.excludeDirs;
             const pathResults = new this.globSync({})
                 .withPathSeparator('/')
                 .exclude((_, path) => {
-                    // no / at the start for node_modules and vendor, path could start with them
-                    return (
-                        path.includes('node_modules/') ||
-                        path.includes('vendor/') ||
-                        path.includes('/.') ||
-                        path[0] === '.'
-                    );
+                    if (path.includes('node_modules/') || path.includes('/.') || path[0] === '.') {
+                        return true;
+                    }
+                    for (const dir of excludeDirs) {
+                        if (path.includes(dir + '/') || path.startsWith(dir + '/')) {
+                            return true;
+                        }
+                    }
+                    return false;
                 })
                 .filter((path, isDir) => {
                     return !isDir && targetRegex.test(path);

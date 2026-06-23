@@ -65,7 +65,8 @@ const defaultLSConfig: LSConfig = {
         codeActions: { enable: true },
         selectionRange: { enable: true },
         runesLegacyModeCodeLens: { enable: true },
-        defaultScriptLanguage: 'none'
+        defaultScriptLanguage: 'none',
+        excludeDirs: []
     }
 };
 
@@ -195,6 +196,7 @@ export interface LSSvelteConfig {
     };
     runesLegacyModeCodeLens: { enable: boolean };
     defaultScriptLanguage: 'none' | 'ts';
+    excludeDirs: string[];
 }
 
 /**

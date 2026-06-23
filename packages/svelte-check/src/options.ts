@@ -12,6 +12,7 @@ export interface SvelteCheckCliOptions {
     tsgo: boolean;
     tsconfig?: string;
     filePathsToIgnore: string[];
+    excludeDirs: string[];
     failOnWarnings: boolean;
     compilerWarnings: Record<string, 'error' | 'ignore'>;
     diagnosticSources: DiagnosticSource[];
@@ -59,6 +60,10 @@ export function parseOptions(cb: (opts: SvelteCheckCliOptions) => any) {
             'Only has an effect when using `--no-tsconfig` option. Files/folders to ignore - relative to workspace root, comma-separated, inside quotes. Example: `--ignore "dist,build"`'
         )
         .option(
+            '--exclude-dirs',
+            'Directories to exclude from config crawling (e.g. vendor, dist). Comma-separated, inside quotes. Example: `--exclude-dirs "vendor,dist"`'
+        )
+        .option(
             '--fail-on-warnings',
             'Will also exit with error code when there are warnings',
             false
@@ -96,6 +101,7 @@ export function parseOptions(cb: (opts: SvelteCheckCliOptions) => any) {
                 tsgo: !!opts.tsgo,
                 tsconfig,
                 filePathsToIgnore: opts.ignore?.split(',') || [],
+                excludeDirs: opts['exclude-dirs']?.split(',').map((s: string) => s.trim()) || [],
                 failOnWarnings: !!opts['fail-on-warnings'],
                 compilerWarnings: getCompilerWarnings(opts),
                 diagnosticSources: getDiagnosticSources(opts),

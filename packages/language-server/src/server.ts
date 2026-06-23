@@ -160,6 +160,7 @@ export function startServer(options?: LSOptions) {
                 evt.initializationOptions?.config ||
                 {}
         );
+        configLoader.setExcludeDirs(configManager.get<string[]>('svelte.excludeDirs'));
         configManager.updateTsJsUserPreferences(
             evt.initializationOptions?.configuration ||
                 evt.initializationOptions?.typescriptConfig ||
@@ -442,6 +443,7 @@ export function startServer(options?: LSOptions) {
 
     connection.onDidChangeConfiguration(({ settings }) => {
         configManager.update(settings.svelte?.plugin);
+        configLoader.setExcludeDirs(configManager.get<string[]>('svelte.excludeDirs'));
         configManager.updateTsJsUserPreferences(settings);
         configManager.updateTsJsFormateConfig(settings);
         configManager.updateEmmetConfig(settings.emmet);

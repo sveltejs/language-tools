@@ -5,7 +5,7 @@
 import { watch, FSWatcher } from 'chokidar';
 import * as fs from 'fs';
 import * as path from 'path';
-import { SvelteCheck, SvelteCheckOptions } from 'svelte-language-server';
+import { SvelteCheck, SvelteCheckOptions, configLoader } from 'svelte-language-server';
 import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver-protocol';
 import { URI } from 'vscode-uri';
 import { parseOptions, SvelteCheckCliOptions } from './options';
@@ -86,6 +86,7 @@ class DiagnosticsWatcher {
         private svelteCheck: SvelteCheck,
         private writer: Writer,
         filePathsToIgnore: string[],
+        excludeDirs: string[],
         private ignoreInitialAdd: boolean
     ) {
         this.userIgnored = createIgnored(filePathsToIgnore);
@@ -101,6 +102,12 @@ class DiagnosticsWatcher {
                         (!FILE_ENDING_REGEX.test(path) || VITE_CONFIG_REGEX.test(path)))
                 ) {
                     return true;
+                }
+
+                for (const dir of excludeDirs) {
+                    if (path.includes('/' + dir + '/') || path.endsWith('/' + dir)) {
+                        return true;
+                    }
                 }
 
                 if (this.userIgnored.length !== 0) {
@@ -543,6 +550,12 @@ async function watchWithVirtualFiles(opts: SvelteCheckCliOptions, writer: Writer
                 return true;
             }
 
+            for (const dir of opts.excludeDirs) {
+                if (path.includes('/' + dir + '/') || path.endsWith('/' + dir)) {
+                    return true;
+                }
+            }
+
             if (userIgnored.length !== 0) {
                 const workspaceRelative = path.startsWith(opts.workspaceUri.fsPath)
                     ? path.slice(opts.workspaceUri.fsPath.length + 1)
@@ -580,6 +593,8 @@ parseOptions(async (opts) => {
     try {
         const writer = instantiateWriter(opts);
 
+        configLoader.setExcludeDirs(opts.excludeDirs);
+
         const svelteCheckOptions: SvelteCheckOptions = {
             compilerWarnings: opts.compilerWarnings,
             diagnosticSources: opts.diagnosticSources,
@@ -615,6 +630,7 @@ parseOptions(async (opts) => {
                 new SvelteCheck(opts.workspaceUri.fsPath, svelteCheckOptions),
                 writer,
                 opts.filePathsToIgnore,
+                opts.excludeDirs,
                 !!opts.tsconfig
             );
         } else {

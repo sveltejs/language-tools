@@ -409,7 +409,7 @@ describe('ConfigLoader', () => {
         );
     });
 
-    it('should exclude vendor directory from config crawl', async () => {
+    it('should exclude vendor directory when configured via setExcludeDirs', async () => {
         const configLoader = createConfigLoader(
             mockFdirWithExclude(['vendor/laravel/svelte.config.js', 'src/svelte.config.js']),
             {
@@ -421,6 +421,7 @@ describe('ConfigLoader', () => {
             (module: URL) => Promise.resolve({ default: { preprocess: module.toString() } }),
             process.features
         );
+        configLoader.setExcludeDirs(['vendor']);
         await configLoader.loadConfigs(normalizePath('/some/path'));
 
         // vendor config should NOT be found

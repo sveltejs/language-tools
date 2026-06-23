@@ -3,4 +3,4 @@
 'svelte-check': patch
 ---
 
-fix: exclude vendor/ directory from config crawl
+feat: add `svelte.excludeDirs` option to exclude directories from config crawl
