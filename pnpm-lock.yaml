@@ -34,7 +34,7 @@ importers:
         specifier: ^0.3.25
         version: 0.3.25
       '@sveltejs/load-config':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../load-config
       '@vscode/emmet-helper':
         specifier: 2.8.4
@@ -137,7 +137,7 @@ importers:
         specifier: ^0.3.25
         version: 0.3.25
       '@sveltejs/load-config':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../load-config
       chokidar:
         specifier: ^4.0.1
