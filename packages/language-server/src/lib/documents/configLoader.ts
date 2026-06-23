@@ -114,7 +114,7 @@ export class ConfigLoader {
                         return true;
                     }
                     for (const dir of excludeDirs) {
-                        if (path.includes(dir + '/') || path.startsWith(dir + '/')) {
+                        if (path.includes('/' + dir + '/') || path.startsWith(dir + '/')) {
                             return true;
                         }
                     }
