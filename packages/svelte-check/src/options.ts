@@ -113,7 +113,7 @@ export function parseOptions(cb: (opts: SvelteCheckCliOptions) => any) {
                 compilerWarnings: getCompilerWarnings(opts),
                 diagnosticSources: getDiagnosticSources(opts),
                 threshold: getThreshold(opts),
-                tsgoExperimental: !!opts['tsgo-experimental']
+                tsgoExperimental: !!opts['tsgo-experimental-api']
             });
         });
 
