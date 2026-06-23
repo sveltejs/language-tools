@@ -221,8 +221,74 @@ async function loadSvelteConfig(configFilePath: string): Promise<LoadConfigResul
 
 async function tryImportVite(fromPath: string): Promise<ViteModule | undefined> {
     try {
+        const importPath = getViteImportPath(fromPath);
+        if (importPath) {
+            return await dynamicImport(pathToFileURL(importPath).href);
+        }
+    } catch {
+        // fall through to legacy import
+    }
+
+    return importViteLegacy(fromPath);
+}
+
+function getViteImportPath(fromPath: string): string | undefined {
+    const pkgPath = require.resolve('vite/package.json', { paths: [fromPath] });
+    const pkgDir = path.dirname(pkgPath);
+    const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8')) as {
+        exports?: Record<string, unknown>;
+        module?: string;
+        main?: string;
+    };
+
+    const entry = resolvePackageImportExport(pkg.exports?.['.']);
+    if (entry) {
+        return path.join(pkgDir, entry);
+    }
+
+    const fallback = pkg.module ?? pkg.main;
+    return fallback ? path.join(pkgDir, fallback) : undefined;
+}
+
+function resolvePackageImportExport(exportEntry: unknown): string | undefined {
+    if (typeof exportEntry === 'string') {
+        return exportEntry;
+    }
+
+    if (!exportEntry || typeof exportEntry !== 'object') {
+        return undefined;
+    }
+
+    const entry = exportEntry as Record<string, unknown>;
+    const importEntry = entry.import;
+
+    if (typeof importEntry === 'string') {
+        return importEntry;
+    }
+
+    if (importEntry && typeof importEntry === 'object') {
+        const defaultEntry = (importEntry as Record<string, unknown>).default;
+        if (typeof defaultEntry === 'string') {
+            return defaultEntry;
+        }
+    }
+
+    if (typeof entry.default === 'string') {
+        return entry.default;
+    }
+
+    return undefined;
+}
+
+async function importViteLegacy(fromPath: string): Promise<ViteModule | undefined> {
+    try {
         const main = require.resolve('vite', { paths: [fromPath] });
-        return await dynamicImport(pathToFileURL(main).href);
+        // require.resolve will use the cjs version
+        const prev = process.env.VITE_CJS_IGNORE_WARNING;
+        process.env.VITE_CJS_IGNORE_WARNING = 'true';
+        const result = await dynamicImport(pathToFileURL(main).href);
+        process.env.VITE_CJS_IGNORE_WARNING = prev;
+        return result;
     } catch {
         return undefined;
     }
