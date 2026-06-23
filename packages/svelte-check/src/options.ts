@@ -12,7 +12,6 @@ export interface SvelteCheckCliOptions {
     tsgo: boolean;
     tsconfig?: string;
     filePathsToIgnore: string[];
-    excludeDirs: string[];
     failOnWarnings: boolean;
     compilerWarnings: Record<string, 'error' | 'ignore'>;
     diagnosticSources: DiagnosticSource[];
@@ -57,11 +56,7 @@ export function parseOptions(cb: (opts: SvelteCheckCliOptions) => any) {
         )
         .option(
             '--ignore',
-            'Only has an effect when using `--no-tsconfig` option. Files/folders to ignore - relative to workspace root, comma-separated, inside quotes. Example: `--ignore "dist,build"`'
-        )
-        .option(
-            '--exclude-dirs',
-            'Directories to exclude from config crawling (e.g. vendor, dist). Comma-separated, inside quotes. Example: `--exclude-dirs "vendor,dist"`'
+            'Files/folders to ignore - relative to workspace root, comma-separated, inside quotes. Example: `--ignore "dist,build"`. Use this to exclude directories from config crawling. When used together with the `--no-tsconfig` option, this also has an effect on the Svelte files that are checked.'
         )
         .option(
             '--fail-on-warnings',
@@ -88,10 +83,6 @@ export function parseOptions(cb: (opts: SvelteCheckCliOptions) => any) {
             const workspaceUri = getWorkspaceUri(opts);
             const tsconfig = getTsconfig(opts, workspaceUri.fsPath);
 
-            if (opts.ignore && tsconfig) {
-                throwError('`--ignore` only has an effect when using `--no-tsconfig`');
-            }
-
             cb({
                 workspaceUri,
                 outputFormat: getOutputFormat(opts),
@@ -101,7 +92,6 @@ export function parseOptions(cb: (opts: SvelteCheckCliOptions) => any) {
                 tsgo: !!opts.tsgo,
                 tsconfig,
                 filePathsToIgnore: opts.ignore?.split(',') || [],
-                excludeDirs: opts['exclude-dirs']?.split(',').map((s: string) => s.trim()) || [],
                 failOnWarnings: !!opts['fail-on-warnings'],
                 compilerWarnings: getCompilerWarnings(opts),
                 diagnosticSources: getDiagnosticSources(opts),

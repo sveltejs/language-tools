@@ -3,6 +3,7 @@ import ts from 'typescript';
 import { Diagnostic, Position, Range } from 'vscode-languageserver';
 import { WorkspaceFolder } from 'vscode-languageserver-protocol';
 import { Document, DocumentManager } from './lib/documents';
+import { configLoader } from './lib/documents/configLoader';
 import { Logger } from './logger';
 import { LSConfigManager } from './ls-config';
 import {
@@ -67,6 +68,10 @@ export interface SvelteCheckOptions {
      * Provides the absolute file path of the snapshot.
      */
     onFileSnapshotCreated?: (filePath: string) => void;
+    /**
+     * Directories to exclude from config crawling.
+     */
+    excludeDirs?: string[];
 }
 
 /**
@@ -86,6 +91,9 @@ export class SvelteCheck {
         private options: SvelteCheckOptions = {}
     ) {
         Logger.setLogErrorsOnly(true);
+        if (options.excludeDirs) {
+            configLoader.setExcludeDirs(options.excludeDirs);
+        }
         this.initialize(workspacePath, options);
     }
 

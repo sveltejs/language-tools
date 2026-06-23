@@ -31,34 +31,29 @@ describe('ConfigLoader', () => {
         return path.join(...filePath.split('/'));
     }
 
-    function mockFdir(results: string[] | (() => string[])): any {
-        return class {
-            withPathSeparator() {
-                return this;
-            }
-            exclude() {
-                return this;
-            }
-            filter() {
-                return this;
-            }
-            withRelativePaths() {
-                return this;
-            }
-            crawl() {
-                return this;
-            }
-            sync() {
-                return typeof results === 'function' ? results() : results;
-            }
-        };
-    }
-
-    /**
-     * Like mockFdir, but actually applies the exclude callback so we can
-     * verify that node_modules, vendor, and dotfile exclusion works.
-     */
-    function mockFdirWithExclude(rawFiles: string[]): any {
+    function mockFdir(results: string[] | (() => string[]), applyExclude = false): any {
+        if (!applyExclude) {
+            return class {
+                withPathSeparator() {
+                    return this;
+                }
+                exclude() {
+                    return this;
+                }
+                filter() {
+                    return this;
+                }
+                withRelativePaths() {
+                    return this;
+                }
+                crawl() {
+                    return this;
+                }
+                sync() {
+                    return typeof results === 'function' ? results() : results;
+                }
+            };
+        }
         let excludeFn: (path: string) => boolean;
         return class {
             withPathSeparator() {
@@ -78,7 +73,8 @@ describe('ConfigLoader', () => {
                 return this;
             }
             sync() {
-                return rawFiles.filter((f) => !excludeFn(f));
+                const raw = typeof results === 'function' ? results() : results;
+                return raw.filter((f: string) => !excludeFn(f));
             }
         };
     }
@@ -411,7 +407,7 @@ describe('ConfigLoader', () => {
 
     it('should exclude vendor directory when configured via setExcludeDirs', async () => {
         const configLoader = createConfigLoader(
-            mockFdirWithExclude(['vendor/laravel/svelte.config.js', 'src/svelte.config.js']),
+            mockFdir(['vendor/laravel/svelte.config.js', 'src/svelte.config.js'], true),
             {
                 existsSync: (p) =>
                     typeof p === 'string' &&
@@ -439,7 +435,7 @@ describe('ConfigLoader', () => {
 
     it('should exclude node_modules directory from config crawl', async () => {
         const configLoader = createConfigLoader(
-            mockFdirWithExclude(['node_modules/some-pkg/svelte.config.js', 'src/svelte.config.js']),
+            mockFdir(['node_modules/some-pkg/svelte.config.js', 'src/svelte.config.js'], true),
             {
                 existsSync: (p) =>
                     typeof p === 'string' &&
@@ -466,11 +462,14 @@ describe('ConfigLoader', () => {
 
     it('should exclude dotfiles and dot-directories from config crawl', async () => {
         const configLoader = createConfigLoader(
-            mockFdirWithExclude([
-                '.hidden/svelte.config.js',
-                '.config/svelte.config.js',
-                'src/svelte.config.js'
-            ]),
+            mockFdir(
+                [
+                    '.hidden/svelte.config.js',
+                    '.config/svelte.config.js',
+                    'src/svelte.config.js'
+                ],
+                true
+            ),
             {
                 existsSync: (p) =>
                     typeof p === 'string' &&
