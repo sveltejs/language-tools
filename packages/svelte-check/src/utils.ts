@@ -62,8 +62,12 @@ export async function findFiles(
 
     return new fdir()
         .filter((filePath) => filter(filePath) && !isIgnored(filePath))
-        .exclude((_, filePath) => {
-            return filePath.includes('/node_modules/') || filePath.includes('/.');
+        .exclude((dirName) => {
+            // Match by directory name rather than full path so that ancestor
+            // directories of the workspace (e.g. a `.local/`, `.config/`,
+            // worktree directory) do not cause every descendant to be skipped.
+            // See https://github.com/sveltejs/language-tools/issues/3034.
+            return dirName === 'node_modules' || dirName.startsWith('.');
         })
         .withPathSeparator('/')
         .withFullPaths()
