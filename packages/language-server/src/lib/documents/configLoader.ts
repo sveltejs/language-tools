@@ -119,6 +119,8 @@ export class ConfigLoader {
      * @param directory Directory where to load the configs from
      */
     async loadConfigs(directory: string): Promise<void> {
+        // TODO at some point we gotta find a good way to not do this anymore. Nowadays most if not all projects have one svelte.config/vite.config file at the root of the project,
+        // no need to traverse each time when there's a tsconfig.json. Something like "if Svelte 5 && tsconfig.json found then don't?"
         const targetRegex = this.loadSvelteConfigTs ? configRegex : configRegexWithoutTs;
         Logger.log('Trying to load configs for', directory);
 
