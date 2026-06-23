@@ -114,9 +114,10 @@ function kitFilesSettingsFromConfig(config: any): InternalHelpers.KitFilesSettin
  * @returns KitFilesSettings with paths for params, hooks files
  */
 async function loadKitFilesSettings(
-    workspacePath: string
+    workspacePath: string,
+    config?: string
 ): Promise<InternalHelpers.KitFilesSettings> {
-    const result = await loadConfig(workspacePath, { traverse: false });
+    const result = await loadConfig(config ?? workspacePath, { traverse: false });
     if (!result || !('config' in result)) {
         return defaultKitFilesSettings;
     }
@@ -136,7 +137,8 @@ async function loadKitFilesSettings(
 export async function emitSvelteFiles(
     workspacePath: string,
     filePathsToIgnore: string[],
-    incremental: boolean
+    incremental: boolean,
+    config?: string
 ): Promise<EmitResult> {
     const cacheDir = getCacheDir(workspacePath);
     const emitDir = path.join(cacheDir, EMIT_SUBDIR);
@@ -146,7 +148,7 @@ export async function emitSvelteFiles(
     const manifest = incremental
         ? loadManifest(manifestPath, workspacePath)
         : { version: MANIFEST_VERSION, entries: {} as Record<string, ManifestEntry> };
-    const kitFilesSettings = await loadKitFilesSettings(workspacePath);
+    const kitFilesSettings = await loadKitFilesSettings(workspacePath, config);
     const isJsOrTsFile = (filePath: string) => filePath.endsWith('.ts') || filePath.endsWith('.js');
     const allRelevantFiles = await findFiles(
         workspacePath,

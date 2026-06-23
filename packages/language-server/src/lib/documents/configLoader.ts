@@ -1,5 +1,6 @@
 import { Logger } from '../../logger';
 import { loadConfig as loadConfigFromDirectory } from '@sveltejs/load-config';
+import { normalizePath } from '../../utils';
 // @ts-ignore
 import { CompileOptions } from 'svelte/types/compiler/interfaces';
 // @ts-ignore
@@ -30,6 +31,12 @@ export interface SvelteConfig {
     isFallbackConfig?: boolean;
     configSource?: 'svelte' | 'vite';
     kit?: any;
+}
+
+export interface ExplicitConfigScope {
+    configPath: string;
+    /** Directory of the initial tsconfig or svelte-check workspace */
+    rootDirectory: string;
 }
 
 type LoadConfigFromDirectoryFn = typeof loadConfigFromDirectory;
@@ -65,6 +72,7 @@ export class ConfigLoader {
     private filePathToConfigPath = new FileMap<string>();
     private disabled = false;
     private loadSvelteConfigTs: boolean;
+    private explicitConfigScope?: ExplicitConfigScope;
 
     constructor(
         private globSync: typeof fdir,
@@ -87,16 +95,41 @@ export class ConfigLoader {
     }
 
     /**
+     * Use a specific config file path instead of searching for standard config filenames.
+     * Only applies within `rootDirectory` (the initial tsconfig/workspace being checked).
+     */
+    setExplicitConfigScope(scope: ExplicitConfigScope | undefined): void {
+        this.explicitConfigScope = scope;
+    }
+
+    private isInExplicitConfigScope(fileOrDirPath: string): boolean {
+        if (!this.explicitConfigScope) {
+            return false;
+        }
+
+        const normalized = normalizePath(fileOrDirPath);
+        const root = normalizePath(this.explicitConfigScope.rootDirectory);
+        return normalized === root || normalized.startsWith(root + '/');
+    }
+
+    /**
      * Tries to load all `svelte.config.js` files below given directory
      * and the first one found inside/above that directory.
      *
      * @param directory Directory where to load the configs from
      */
     async loadConfigs(directory: string): Promise<void> {
+        // TODO at some point we gotta find a good way to not do this anymore. Nowadays most if not all projects have one svelte.config/vite.config file at the root of the project,
+        // no need to traverse each time when there's a tsconfig.json. Something like "if Svelte 5 && tsconfig.json found then don't?"
         const targetRegex = this.loadSvelteConfigTs ? configRegex : configRegexWithoutTs;
         Logger.log('Trying to load configs for', directory);
 
         try {
+            if (this.explicitConfigScope && this.isInExplicitConfigScope(directory)) {
+                await this.loadAndCacheConfig(this.explicitConfigScope.configPath, directory);
+                return;
+            }
+
             const pathResults = new this.globSync({})
                 .withPathSeparator('/')
                 .exclude((_, path) => {
@@ -162,26 +195,11 @@ export class ConfigLoader {
         this.configFiles.set(path, fallback);
     }
 
-    private searchSvelteConfigPathUpwards(path: string) {
-        let currentDir = path;
-        let nextDir = this.path.dirname(path);
-        while (currentDir !== nextDir) {
-            const configPath = findSvelteConfigInDirectory(
-                this.fs,
-                this.path,
-                currentDir,
-                this.loadSvelteConfigTs
-            );
-            if (configPath) {
-                return configPath;
-            }
-
-            currentDir = nextDir;
-            nextDir = this.path.dirname(currentDir);
-        }
-    }
-
     private searchConfigPathUpwards(path: string) {
+        if (this.explicitConfigScope && this.isInExplicitConfigScope(path)) {
+            return this.explicitConfigScope.configPath;
+        }
+
         let currentDir = path;
         let nextDir = this.path.dirname(path);
         while (currentDir !== nextDir) {
@@ -240,7 +258,14 @@ export class ConfigLoader {
             };
         }
 
-        const result = await this.loadFromDirectory(configDirectory, { traverse: false });
+        const result = await this.loadFromDirectory(
+            this.explicitConfigScope &&
+                configPath === this.explicitConfigScope.configPath &&
+                this.isInExplicitConfigScope(directory)
+                ? configPath
+                : configDirectory,
+            { traverse: false }
+        );
 
         if (result && 'config' in result) {
             const configSource = result.configSource;
@@ -333,6 +358,14 @@ export class ConfigLoader {
     }
 
     private tryGetConfigForDirectory(file: string, fromDirectory: string) {
+        if (this.explicitConfigScope && this.isInExplicitConfigScope(file)) {
+            const config = this.configFiles.get(this.explicitConfigScope.configPath);
+            if (config) {
+                this.filePathToConfigPath.set(file, this.explicitConfigScope.configPath);
+                return config;
+            }
+        }
+
         for (const ending of VITE_CONFIG_EXTENSIONS) {
             const configPath = this.path.join(fromDirectory, `vite.config.${ending}`);
             const config = this.configFiles.get(configPath);

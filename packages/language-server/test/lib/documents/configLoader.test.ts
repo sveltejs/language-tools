@@ -61,8 +61,21 @@ describe('ConfigLoader', () => {
         processFeatures: (typeof process)['features'] & { typescript?: false | 'transform' },
         loadFromVite?: (root: string) => Promise<any>
     ) {
-        return new ConfigLoader(globSync, fs, path, processFeatures, async (directory) => {
-            const viteConfigPath = findConfig(directory, 'vite.config', [
+        return new ConfigLoader(globSync, fs, path, processFeatures, async (dirOrFile) => {
+            if (isConfigFilePath(dirOrFile)) {
+                if (/[/\\]svelte\.config\./.test(dirOrFile)) {
+                    return loadConfigFile(dirOrFile);
+                }
+                if (loadFromVite) {
+                    const config = await loadFromVite(path.dirname(dirOrFile));
+                    if (config) {
+                        return { config, configFilePath: dirOrFile, configSource: 'vite' };
+                    }
+                }
+                return loadConfigFile(dirOrFile);
+            }
+
+            const viteConfigPath = findConfig(dirOrFile, 'vite.config', [
                 'js',
                 'mjs',
                 'ts',
@@ -71,14 +84,14 @@ describe('ConfigLoader', () => {
                 'cts'
             ]);
             if (viteConfigPath && loadFromVite) {
-                const config = await loadFromVite(directory);
+                const config = await loadFromVite(dirOrFile);
                 if (config) {
                     return { config, configFilePath: viteConfigPath, configSource: 'vite' };
                 }
             }
 
             const svelteConfigPath = findConfig(
-                directory,
+                dirOrFile,
                 'svelte.config',
                 processFeatures && 'typescript' in processFeatures && processFeatures.typescript
                     ? ['js', 'cjs', 'mjs', 'ts', 'mts']
@@ -88,14 +101,26 @@ describe('ConfigLoader', () => {
                 return undefined;
             }
 
-            try {
-                const config = (await moduleLoader(pathToFileURL(svelteConfigPath)))?.default;
-                if (!config) {
-                    throw new Error('Missing exports in the config.');
+            return loadConfigFile(svelteConfigPath);
+
+            function isConfigFilePath(filePath: string) {
+                return /\.(js|cjs|mjs|ts|mts|cts)$/.test(path.basename(filePath));
+            }
+
+            async function loadConfigFile(configFilePath: string) {
+                try {
+                    const config = (await moduleLoader(pathToFileURL(configFilePath)))?.default;
+                    if (!config) {
+                        throw new Error('Missing exports in the config.');
+                    }
+                    return { config, configFilePath, configSource: 'svelte' as const };
+                } catch (error) {
+                    return {
+                        error,
+                        configFilePath,
+                        configSource: 'svelte' as const
+                    };
                 }
-                return { config, configFilePath: svelteConfigPath, configSource: 'svelte' };
-            } catch (error) {
-                return { error, configFilePath: svelteConfigPath, configSource: 'svelte' };
             }
 
             function findConfig(
@@ -378,5 +403,45 @@ describe('ConfigLoader', () => {
             '/some/path/comp.svelte',
             '/some/path/svelte.config.cjs'
         );
+    });
+
+    it('uses explicit config only within the scoped root directory', async () => {
+        const appRoot = normalizePath('/monorepo/packages/app');
+        const libRoot = normalizePath('/monorepo/packages/lib');
+        const explicitConfigPath = path.join(appRoot, 'vite.custom.config.js');
+        const libConfigPath = path.join(libRoot, 'svelte.config.js');
+
+        const configLoader = createConfigLoader(
+            mockFdir(['svelte.config.js']),
+            {
+                existsSync: (p) =>
+                    typeof p === 'string' &&
+                    (p.endsWith(explicitConfigPath) ||
+                        p.endsWith(libConfigPath) ||
+                        p.endsWith(path.join(libRoot, 'vite.config.js')))
+            },
+            (module: URL) => Promise.resolve({ default: { preprocess: module.toString() } }),
+            process.features,
+            async (root) => {
+                if (root === appRoot) {
+                    return viteConfig();
+                }
+                return undefined;
+            }
+        );
+
+        configLoader.setExplicitConfigScope({
+            configPath: explicitConfigPath,
+            rootDirectory: appRoot
+        });
+
+        await configLoader.loadConfigs(appRoot);
+        await configLoader.loadConfigs(libRoot);
+
+        assert.deepStrictEqual(
+            configLoader.getConfig(normalizePath('/monorepo/packages/app/comp.svelte')),
+            viteConfig()
+        );
+        await assertFindsConfig(configLoader, '/monorepo/packages/lib/comp.svelte', libConfigPath);
     });
 });
