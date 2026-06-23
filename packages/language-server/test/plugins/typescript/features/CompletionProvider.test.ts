@@ -20,7 +20,6 @@ import {
     CompletionResolveInfo
 } from '../../../../src/plugins/typescript/features/CompletionProvider';
 import { LSAndTSDocResolver } from '../../../../src/plugins/typescript/LSAndTSDocResolver';
-import { sortBy } from 'lodash';
 import { LSConfigManager } from '../../../../src/ls-config';
 import { __resetCache } from '../../../../src/plugins/typescript/service';
 import { getRandomVirtualDirPath, serviceWarmup, setupVirtualEnvironment } from '../test-utils';
@@ -686,11 +685,8 @@ describe('CompletionProviderImpl', function () {
         );
 
         assert.deepStrictEqual(
-            sortBy(
-                completions?.items.map((item) => item.label),
-                (x) => x
-            ),
-            sortBy(testfiles, (x) => x)
+            completions?.items.map((item) => item.label).sort(),
+            testfiles.sort()
         );
     });
 

@@ -42,6 +42,9 @@ importers:
       chokidar:
         specifier: ^4.0.1
         version: 4.0.1
+      defu:
+        specifier: ^6.1.7
+        version: 6.1.7
       estree-walker:
         specifier: ^2.0.1
         version: 2.0.2
@@ -51,9 +54,6 @@ importers:
       globrex:
         specifier: ^0.1.2
         version: 0.1.2
-      lodash:
-        specifier: ^4.17.21
-        version: 4.17.21
       prettier:
         specifier: ~3.3.3
         version: 3.3.3
@@ -94,9 +94,6 @@ importers:
       '@types/globrex':
         specifier: ^0.1.4
         version: 0.1.4
-      '@types/lodash':
-        specifier: ^4.14.116
-        version: 4.14.194
       '@types/mocha':
         specifier: ^10.0.10
         version: 10.0.10
@@ -206,9 +203,6 @@ importers:
 
   packages/svelte-vscode:
     dependencies:
-      lodash:
-        specifier: ^4.17.21
-        version: 4.17.21
       svelte-language-server:
         specifier: workspace:*
         version: link:../language-server
@@ -225,9 +219,6 @@ importers:
         specifier: 3.17.5
         version: 3.17.5
     devDependencies:
-      '@types/lodash':
-        specifier: ^4.14.116
-        version: 4.14.194
       '@types/node':
         specifier: ^18.0.0
         version: 18.19.46
@@ -859,9 +850,6 @@ packages:
   '@types/globrex@0.1.4':
     resolution: {integrity: sha512-qm82zaOxfn8Us/GGjNrQQ1XfCBUDV86DxQgIQq/p1zGHlt0xnbUiabNjN9rZUhMNvvIE2gg8iTW+GMfw0TnnLg==}
 
-  '@types/lodash@4.14.194':
-    resolution: {integrity: sha512-r22s9tAS7imvBt2lyHC9B8AGwWnXaYb1tY09oyLkXDs4vArpYJzw09nj8MLx5VfciBPGIb+ZwG0ssYnEPJxn/g==}
-
   '@types/minimatch@5.1.2':
     resolution: {integrity: sha512-K0VQKziLUWkVKiRVrx4a40iPaxTUefQmjtkQofBkYRcoaaL/8rhwDWww9qWbrgicNOgnpIsMxyNIUM4+n6dUIA==}
 
@@ -1154,6 +1142,9 @@ packages:
   deepmerge@4.3.1:
     resolution: {integrity: sha512-3sUqbMEc77XqpdNO7FRyRog+eW3ph+GYCbj+rK+uYyRMuwsVy0rMiVtPn+QJlKFvWP/1PYpapqYn0Me2knFn+A==}
     engines: {node: '>=0.10.0'}
+
+  defu@6.1.7:
+    resolution: {integrity: sha512-7z22QmUWiQ/2d0KkdYmANbRUVABpZ9SNYyH5vx6PZ+nE5bcC0l7uFvEfHlyld/HcGBFTL536ClDt3DEcSlEJAQ==}
 
   del@5.1.0:
     resolution: {integrity: sha512-wH9xOVHnczo9jN2IW68BabcecVPxacIA3g/7z6vhSU/4stOKQzeCRK0yD0A24WiAAUJmmVpWqrERcTxnLo3AnA==}
@@ -1490,9 +1481,6 @@ packages:
 
   lodash.startcase@4.4.0:
     resolution: {integrity: sha512-+WKqsK294HMSc2jEbNgpHpd0JfIBhp7rEV4aqXWqFr6AlXov+SlcgB1Fv01y2kGe3Gc8nMW7VA0SrGuSkRfIEg==}
-
-  lodash@4.17.21:
-    resolution: {integrity: sha512-v2kDEe57lecTulaDIuNTPy3Ry4gLGJ6Z1O3vE1krgXZNrsQ+LFTGHVxVjcXPs17LhbZVGedAJv8XZ1tvj5FvSg==}
 
   log-symbols@4.1.0:
     resolution: {integrity: sha512-8XPvpAA8uyhfteu8pIvQxpJZ7SYYdpUivZpGy6sFsBuKRY/7rQGavedeB8aK+Zkyq6upMFVL/9AW6vOYzfRyLg==}
@@ -2679,8 +2667,6 @@ snapshots:
 
   '@types/globrex@0.1.4': {}
 
-  '@types/lodash@4.14.194': {}
-
   '@types/minimatch@5.1.2': {}
 
   '@types/mocha@10.0.10': {}
@@ -2945,6 +2931,8 @@ snapshots:
   deep-eql@5.0.2: {}
 
   deepmerge@4.3.1: {}
+
+  defu@6.1.7: {}
 
   del@5.1.0:
     dependencies:
@@ -3292,8 +3280,6 @@ snapshots:
   lodash.get@4.4.2: {}
 
   lodash.startcase@4.4.0: {}
-
-  lodash@4.17.21: {}
 
   log-symbols@4.1.0:
     dependencies:

@@ -24,8 +24,7 @@ import {
 import { isInGeneratedCode } from './plugins/typescript/features/utils';
 import { mapAndFilterDiagnostics } from './plugins/typescript/features/DiagnosticsProvider';
 import { convertRange, getDiagnosticTag, mapSeverity } from './plugins/typescript/utils';
-import { normalizePath, pathToUrl, urlToPath } from './utils';
-import { groupBy } from 'lodash';
+import { groupBy, normalizePath, pathToUrl, urlToPath } from './utils';
 
 export function mapSvelteCheckDiagnostics(
     sourcePath: string,
