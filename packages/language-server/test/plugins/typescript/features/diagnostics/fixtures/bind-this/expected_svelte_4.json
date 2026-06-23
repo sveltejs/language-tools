@@ -36,7 +36,7 @@
         },
         "severity": 1,
         "source": "ts",
-        "message": "Type 'Component' is not assignable to type 'OtherComponent'.\n  The types of '$$prop_def.prop' are incompatible between these types.\n    Type 'boolean' is not assignable to type 'string'.",
+        "message": "Type 'Component' is not assignable to type 'OtherComponent'.\n  Types of property '$set' are incompatible.\n    Type '(props: Partial<{ prop: boolean; }>) => void' is not assignable to type '(props: Partial<{ prop: string; }>) => void'.\n      Types of parameters 'props' and 'props' are incompatible.\n        Type 'Partial<{ prop: string; }>' is not assignable to type 'Partial<{ prop: boolean; }>'.\n          Types of property 'prop' are incompatible.\n            Type 'string | undefined' is not assignable to type 'boolean | undefined'.\n              Type 'string' is not assignable to type 'boolean | undefined'.",
         "code": 2322,
         "tags": []
     },
@@ -69,7 +69,7 @@
         },
         "severity": 1,
         "source": "ts",
-        "message": "Type 'Component' is not assignable to type 'OtherComponent'.\n  The types of '$$prop_def.prop' are incompatible between these types.\n    Type 'boolean' is not assignable to type 'string'.",
+        "message": "Type 'Component' is not assignable to type 'OtherComponent'.\n  Types of property '$set' are incompatible.\n    Type '(props: Partial<{ prop: boolean; }>) => void' is not assignable to type '(props: Partial<{ prop: string; }>) => void'.\n      Types of parameters 'props' and 'props' are incompatible.\n        Type 'Partial<{ prop: string; }>' is not assignable to type 'Partial<{ prop: boolean; }>'.\n          Types of property 'prop' are incompatible.\n            Type 'string | undefined' is not assignable to type 'boolean | undefined'.\n              Type 'string' is not assignable to type 'boolean | undefined'.",
         "code": 2322,
         "tags": []
     },
@@ -80,7 +80,7 @@
         },
         "severity": 1,
         "source": "ts",
-        "message": "Type 'ComponentWithGeneric<boolean>' is not assignable to type 'ComponentWithGeneric<string>'.\n  The types of '$$prop_def.prop' are incompatible between these types.\n    Type 'boolean' is not assignable to type 'string'.",
+        "message": "Type 'ComponentWithGeneric<boolean>' is not assignable to type 'ComponentWithGeneric<string>'.\n  Types of property '$set' are incompatible.\n    Type '(props: Partial<{ prop: boolean; }>) => void' is not assignable to type '(props: Partial<{ prop: string; }>) => void'.\n      Types of parameters 'props' and 'props' are incompatible.\n        Type 'Partial<{ prop: string; }>' is not assignable to type 'Partial<{ prop: boolean; }>'.\n          Types of property 'prop' are incompatible.\n            Type 'string | undefined' is not assignable to type 'boolean | undefined'.\n              Type 'string' is not assignable to type 'boolean | undefined'.",
         "code": 2322,
         "tags": []
     },

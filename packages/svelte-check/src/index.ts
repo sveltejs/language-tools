@@ -25,6 +25,11 @@ import {
     writeOverlayTsconfig
 } from './incremental';
 import { createIgnored, findFiles } from './utils';
+import {
+    tryLoadApi as tryLoadTsApi,
+    tryLoadAst as tryLoadTsAst,
+    tryParseTsGoVersion
+} from './tsgo';
 
 type Result = {
     fileCount: number;
@@ -590,6 +595,47 @@ parseOptions(async (opts) => {
             configPath: opts.config,
             watch: opts.watch
         };
+
+        if (opts.tsgoExperimental) {
+            if (!opts.tsconfig) {
+                throw new Error('--tsgo-experimental-api requires a tsconfig/jsconfig file');
+            }
+            if (opts.incremental) {
+                throw new Error('--tsgo-experimental-api cannot be used with --incremental');
+            }
+            const version = tryParseTsGoVersion(opts.tsconfig);
+            if (!version) {
+                throw new Error(
+                    '--tsgo-experimental-api requires @typescript/native-preview to be installed in the workspace'
+                );
+            }
+
+            const minPre7_0Nightly = 'dev.20260614.1';
+            if (
+                version.major === 7 &&
+                version.minor === 0 &&
+                version.patch === 0 &&
+                version.preRelease?.includes('dev')
+            ) {
+                // ex: 7.0.0-dev.20260518.1
+                if (version.preRelease.localeCompare(minPre7_0Nightly) < 0) {
+                    throw new Error(
+                        'Unsupported @typescript/native-preview version. Please upgrade to at least 7.0.0-' +
+                            minPre7_0Nightly
+                    );
+                }
+            }
+
+            const apiModule = await tryLoadTsApi(opts.tsconfig, version);
+            const astModule = await tryLoadTsAst(opts.tsconfig, version);
+            if (!apiModule || !astModule) {
+                throw new Error(
+                    `Unsupported ${version.name} version. Please ensure you have the latest version installed.` +
+                        'If the problem persists, please report an issue in https://github.com/sveltejs/language-tools/issues.'
+                );
+            }
+            svelteCheckOptions.experimental = { tsgo: { apiModule, astModule } };
+        }
 
         const useVirtualFiles = opts.incremental || opts.tsgo;
         if (useVirtualFiles && opts.watch) {
