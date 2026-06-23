@@ -442,10 +442,6 @@ describe('ConfigLoader', () => {
             configLoader.getConfig(normalizePath('/monorepo/packages/app/comp.svelte')),
             viteConfig()
         );
-        await assertFindsConfig(
-            configLoader,
-            '/monorepo/packages/lib/comp.svelte',
-            libConfigPath
-        );
+        await assertFindsConfig(configLoader, '/monorepo/packages/lib/comp.svelte', libConfigPath);
     });
 });

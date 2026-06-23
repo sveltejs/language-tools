@@ -106,9 +106,7 @@ export class SvelteCheck {
             options.configPath
                 ? {
                       configPath: options.configPath,
-                      rootDirectory: options.tsconfig
-                          ? dirname(options.tsconfig)
-                          : workspacePath
+                      rootDirectory: options.tsconfig ? dirname(options.tsconfig) : workspacePath
                   }
                 : undefined
         );
