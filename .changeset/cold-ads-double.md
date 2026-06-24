@@ -2,4 +2,4 @@
 'svelte-check': patch
 ---
 
-Fix command-liee option parsing of --tsgo-experimental-api flag
+fix: correctly parse --tsgo-experimental-api flag
