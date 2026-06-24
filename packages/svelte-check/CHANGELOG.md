@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.7.1
+
+### Patch Changes
+
+-   fix: correctly parse --tsgo-experimental-api flag ([#3067](https://github.com/sveltejs/language-tools/pull/3067))
+
 ## 4.7.0
 
 ### Minor Changes
