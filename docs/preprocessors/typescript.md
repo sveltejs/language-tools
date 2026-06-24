@@ -195,6 +195,22 @@ export function myAction(node: HTMLElement, parameter: Parameter): ActionReturn<
 }
 ```
 
+### I want to allow custom (namespaced) attributes on every Svelte component
+
+The typings above only add attributes to DOM elements. If you instead want to allow extra attributes on _any Svelte component_ — for example a framework that adds namespaced attributes such as `<MyComponent custom:defer />` — augment the `svelteHTML.ComponentAttributes` interface:
+
+```ts
+declare namespace svelteHTML {
+    interface ComponentAttributes {
+        // All members should be optional. Namespaced names (containing a `:`) are supported.
+        'custom:defer'?: boolean;
+        'custom:hydrate:visible'?: { rootMargin?: string };
+    }
+}
+```
+
+With this in place, `<MyComponent custom:defer custom:hydrate:visible={{ rootMargin: '200px' }} />` type-checks against the declared types on every component, while regular props (like `someOtherProps="foo"`) keep being checked against that component's own prop definition. Only attribute names containing a `:` are treated as custom component attributes; any namespaced attribute you don't declare here is reported as an error, so typos are caught. As with the DOM typings above, make sure the `d.ts` file is referenced by your `tsconfig.json`.
+
 ### I'm getting deprecation warnings for svelte.JSX / I want to migrate to the new typings
 
 Since `svelte-check` version 3 and VS Code extension version 106, a different transformation is used to get intellisense for Svelte files. This also leads to the old way of enhancing HTML typings being deprecated. You should migrate all usages of `svelte.JSX` away to either `svelte/elements` or the new `svelteHTML` namespace.
