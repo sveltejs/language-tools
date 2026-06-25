@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.18.3
+
+### Patch Changes
+
+-   fix: load esm version of Vite ([#3065](https://github.com/sveltejs/language-tools/pull/3065))
+
+-   perf: remove lodash ([#3038](https://github.com/sveltejs/language-tools/pull/3038))
+
+-   feat: provide utils for svelte-check tsgo integration ([#3036](https://github.com/sveltejs/language-tools/pull/3036))
+
+-   Updated dependencies [[`7a3464b`](https://github.com/sveltejs/language-tools/commit/7a3464b54b997c703d5b60cc6ab1ed74c49efffc), [`a2561fc`](https://github.com/sveltejs/language-tools/commit/a2561fc2c52bdcd0bad746261222196fd94d5396), [`459d031`](https://github.com/sveltejs/language-tools/commit/459d031b4fafd558fc015e1cb37826aa691f2fa3)]:
+    -   @sveltejs/load-config@0.2.0
+    -   svelte2tsx@0.7.57
+
 ## 0.18.2
 
 ### Patch Changes

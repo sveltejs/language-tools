@@ -1,8 +1,9 @@
-import { isAbsolute } from 'path';
+import { isAbsolute, dirname } from 'path';
 import type ts from 'typescript';
 import { Diagnostic, Position, Range } from 'vscode-languageserver';
 import { WorkspaceFolder } from 'vscode-languageserver-protocol';
 import { Document, DocumentManager } from './lib/documents';
+import { configLoader } from './lib/documents/configLoader';
 import { Logger } from './logger';
 import { LSConfigManager } from './ls-config';
 import {
@@ -23,9 +24,10 @@ import {
 import { isInGeneratedCode } from './plugins/typescript/features/utils';
 import { mapAndFilterDiagnostics } from './plugins/typescript/features/DiagnosticsProvider';
 import { convertRange, getDiagnosticTag, mapSeverity } from './plugins/typescript/utils';
-import { normalizePath, pathToUrl, urlToPath } from './utils';
-import { groupBy } from 'lodash';
+import { groupBy, normalizePath, pathToUrl, urlToPath } from './utils';
 import { importTypeScript } from './importPackage';
+import { tsApiSync, tsAst } from './plugins/typescript-go/types';
+import { SvelteCheckTSGoDiagnosticsProvider } from './plugins/typescript-go/features/DiagnosticsProvider';
 
 export function mapSvelteCheckDiagnostics(
     sourcePath: string,
@@ -68,6 +70,10 @@ export interface SvelteCheckOptions {
      * Path has to be absolute
      */
     tsconfig?: string;
+    /**
+     * Path to a svelte.config or vite.config file. Path has to be absolute.
+     */
+    configPath?: string;
     onProjectReload?: () => void;
     watch?: boolean;
     /**
@@ -75,6 +81,13 @@ export interface SvelteCheckOptions {
      * Provides the absolute file path of the snapshot.
      */
     onFileSnapshotCreated?: (filePath: string) => void;
+
+    experimental?: {
+        tsgo: {
+            apiModule: unknown;
+            astModule: unknown;
+        };
+    };
 }
 
 /**
@@ -89,6 +102,7 @@ export class SvelteCheck {
     private pluginHost = new PluginHost(this.docManager);
     private lsAndTSDocResolver?: LSAndTSDocResolver;
     private tsModule: typeof ts;
+    private tsGoDiagnosticsProvider?: SvelteCheckTSGoDiagnosticsProvider;
 
     constructor(
         workspacePath: string,
@@ -104,6 +118,18 @@ export class SvelteCheck {
         if (options.tsconfig && !isAbsolute(options.tsconfig)) {
             throw new Error('tsconfigPath needs to be absolute, got ' + options.tsconfig);
         }
+        if (options.configPath && !isAbsolute(options.configPath)) {
+            throw new Error('configPath needs to be absolute, got ' + options.configPath);
+        }
+
+        configLoader.setExplicitConfigScope(
+            options.configPath
+                ? {
+                      configPath: options.configPath,
+                      rootDirectory: options.tsconfig ? dirname(options.tsconfig) : workspacePath
+                  }
+                : undefined
+        );
 
         this.configManager.update({
             svelte: {
@@ -130,27 +156,51 @@ export class SvelteCheck {
         }
         if (shouldRegister('js') || options.tsconfig) {
             const workspaceUris = [pathToUrl(workspacePath)];
-            this.lsAndTSDocResolver = new LSAndTSDocResolver(
-                this.tsModule,
-                this.docManager,
-                workspaceUris,
-                this.configManager,
-                {
-                    tsconfigPath: options.tsconfig,
-                    isSvelteCheck: true,
-                    onProjectReloaded: options.onProjectReload,
-                    watch: options.watch,
-                    onFileSnapshotCreated: options.onFileSnapshotCreated
+            if (options.experimental?.tsgo && options.tsconfig) {
+                const { apiModule, astModule } = options.experimental.tsgo as {
+                    apiModule: typeof tsApiSync;
+                    astModule: typeof tsAst;
+                };
+                if (!apiModule.API || !('ScriptKind' in astModule)) {
+                    throw new Error('Unsupported typescript-go version');
                 }
-            );
-            this.pluginHost.register(
-                new TypeScriptPlugin(
-                    this.configManager,
-                    this.lsAndTSDocResolver,
+                this.tsGoDiagnosticsProvider = new SvelteCheckTSGoDiagnosticsProvider(
+                    apiModule,
+                    astModule,
+                    options.tsconfig,
+                    'svelte-check',
+                    (filePath: string, text: string) =>
+                        this.docManager.openDocument(
+                            {
+                                text: text,
+                                uri: pathToUrl(filePath)
+                            },
+                            /* openedByClient */ true
+                        )
+                );
+            } else {
+                this.lsAndTSDocResolver = new LSAndTSDocResolver(
+                    this.tsModule,
+                    this.docManager,
                     workspaceUris,
-                    this.docManager
-                )
-            );
+                    this.configManager,
+                    {
+                        tsconfigPath: options.tsconfig,
+                        isSvelteCheck: true,
+                        onProjectReloaded: options.onProjectReload,
+                        watch: options.watch,
+                        onFileSnapshotCreated: options.onFileSnapshotCreated
+                    }
+                );
+                this.pluginHost.register(
+                    new TypeScriptPlugin(
+                        this.configManager,
+                        this.lsAndTSDocResolver,
+                        workspaceUris,
+                        this.docManager
+                    )
+                );
+            }
         }
 
         function shouldRegister(source: SvelteCheckDiagnosticSource) {
@@ -166,6 +216,11 @@ export class SvelteCheck {
      */
     async upsertDocument(doc: { text: string; uri: string }, isNew: boolean): Promise<void> {
         const filePath = urlToPath(doc.uri) || '';
+        // in tsgo mode, let typescript check whether the file belongs to the project
+        if (this.tsGoDiagnosticsProvider) {
+            this.tsGoDiagnosticsProvider.watchUpdate(doc, isNew ? 'created' : 'changed');
+            return;
+        }
 
         if (this.options.tsconfig) {
             const lsContainer = await this.getLSContainer(this.options.tsconfig);
@@ -214,8 +269,12 @@ export class SvelteCheck {
         this.docManager.closeDocument(uri);
         this.docManager.releaseDocument(uri);
         if (this.options.tsconfig) {
-            const lsContainer = await this.getLSContainer(this.options.tsconfig);
-            lsContainer.deleteSnapshot(urlToPath(uri) || '');
+            if (this.tsGoDiagnosticsProvider) {
+                this.tsGoDiagnosticsProvider.watchUpdate({ text: '', uri }, 'deleted');
+            } else {
+                const lsContainer = await this.getLSContainer(this.options.tsconfig);
+                lsContainer.deleteSnapshot(urlToPath(uri) || '');
+            }
         }
     }
 
@@ -226,6 +285,9 @@ export class SvelteCheck {
         Array<{ filePath: string; text: string; diagnostics: Diagnostic[] }>
     > {
         if (this.options.tsconfig) {
+            if (this.tsGoDiagnosticsProvider) {
+                return this.getDiagnosticsForTsconfigTsGo();
+            }
             return this.getDiagnosticsForTsconfig(this.options.tsconfig);
         }
         return await Promise.all(
@@ -415,6 +477,62 @@ export class SvelteCheck {
         }
     }
 
+    private async getDiagnosticsForTsconfigTsGo() {
+        if (!this.tsGoDiagnosticsProvider) {
+            throw new Error(
+                'Cannot get diagnostics for tsconfig without TSGo diagnostics provider'
+            );
+        }
+
+        const project = await this.tsGoDiagnosticsProvider.getProject();
+        if (!project) {
+            throw new Error('Expected to have api project');
+        }
+        let allTsDiagnostics = Array.from(project.program.getConfigFileParsingDiagnostics());
+        const configFileParsingDiagnosticsLength = allTsDiagnostics?.length ?? 0;
+
+        allTsDiagnostics = allTsDiagnostics.concat(project.program.getSyntacticDiagnostics());
+        // doesn't exist in the API yet
+        // allDiagnostics = allDiagnostics.concat(project.program.getProgramDiagnostics());
+
+        if (allTsDiagnostics.length == configFileParsingDiagnosticsLength) {
+            allTsDiagnostics = allTsDiagnostics.concat(project.program.getSemanticDiagnostics());
+        }
+
+        const result = this.tsGoDiagnosticsProvider.mapAndFilterDiagnostics(
+            project,
+            allTsDiagnostics
+        );
+        const map = new Map<
+            string,
+            { filePath: string; text: string; diagnostics: Diagnostic[] }
+        >();
+        for (const diag of result) {
+            map.set(diag.filePath, diag);
+        }
+
+        for (const filePath of this.tsGoDiagnosticsProvider.getAllSvelteFiles()) {
+            const uri = pathToUrl(filePath);
+            if (!uri) {
+                continue;
+            }
+            const doc = this.docManager.get(uri);
+            if (!doc) {
+                continue;
+            }
+
+            const nonTsDiagnostics = await this.getDiagnosticsForFile(uri);
+            let existing = map.get(filePath);
+            if (existing) {
+                existing.diagnostics = existing.diagnostics.concat(nonTsDiagnostics.diagnostics);
+            } else {
+                map.set(filePath, nonTsDiagnostics);
+            }
+        }
+
+        return Array.from(map.values());
+    }
+
     private async getDiagnosticsForFile(uri: string) {
         const diagnostics = await this.pluginHost.getDiagnostics({ uri });
         return {
@@ -439,8 +557,14 @@ export class SvelteCheck {
         if (!this.options.tsconfig) {
             return null;
         }
-        const lsContainer = await this.getLSContainer(this.options.tsconfig);
-        const projectConfig = lsContainer.getProjectConfig();
+
+        let projectConfig: { wildcardDirectories?: Record<string, ts.WatchDirectoryFlags> };
+        if (this.tsGoDiagnosticsProvider) {
+            projectConfig = this.tsGoDiagnosticsProvider.getProjectConfig();
+        } else {
+            const lsContainer = await this.getLSContainer(this.options.tsconfig);
+            projectConfig = lsContainer.getProjectConfig();
+        }
 
         if (!projectConfig.wildcardDirectories) {
             return null;

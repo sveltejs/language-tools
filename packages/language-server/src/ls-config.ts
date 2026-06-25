@@ -1,4 +1,3 @@
-import { get, merge } from 'lodash';
 import type ts from 'typescript';
 import { VSCodeEmmetConfig } from '@vscode/emmet-helper';
 import { importPrettier } from './importPackage';
@@ -7,6 +6,7 @@ import { returnObjectIfHasKeys } from './utils';
 import path from 'path';
 import { FileMap } from './lib/documents/fileCollection';
 import { ClientCapabilities } from 'vscode-languageserver-protocol';
+import { defu } from 'defu';
 import { TsScriptKind } from './plugins/typescript/types';
 
 /**
@@ -368,9 +368,9 @@ export class LSConfigManager {
      */
     update(config: DeepPartial<LSConfig> | undefined): void {
         // Ideally we shouldn't need the merge here because all updates should be valid and complete configs.
-        // But since those configs come from the client they might be out of synch with the valid config:
-        // We might at some point in the future forget to synch config settings in all packages after updating the config.
-        this.config = merge({}, defaultLSConfig, this.config, config);
+        // But since those configs come from the client they might be out of sync with the valid config:
+        // We might at some point in the future forget to sync config settings in all packages after updating the config.
+        this.config = defu(config, this.config, defaultLSConfig);
         // Merge will keep arrays/objects if the new one is empty/has less entries,
         // therefore we need some extra checks if there are new settings
         if (config?.svelte?.compilerWarnings) {
@@ -393,7 +393,8 @@ export class LSConfigManager {
      * @param key a string which is a path. Example: 'svelte.diagnostics.enable'.
      */
     get<T>(key: string): T {
-        return get(this.config, key);
+        // @ts-expect-error we know it works within expectations
+        return key.split('.').reduce((acc, s) => (acc ? acc[s] : undefined), this.config);
     }
 
     /**
@@ -449,12 +450,11 @@ export class LSConfigManager {
     ): any {
         return (
             returnObjectIfHasKeys(prettierFromFileConfig) ||
-            merge(
-                {}, // merge into empty obj to not manipulate own config
-                this.get('svelte.format.config'),
+            defu(
                 returnObjectIfHasKeys(this.getPrettierConfig()) ||
                     overridesWhenNoPrettierConfig ||
-                    {}
+                    {},
+                this.get('svelte.format.config') as any
             )
         );
     }
