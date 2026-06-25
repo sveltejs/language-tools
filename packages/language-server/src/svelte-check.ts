@@ -456,9 +456,9 @@ export class SvelteCheck {
 
             return Object.entries(grouped).map(([filePath, errors]) => ({
                 filePath,
-                text: lspDiagnostics.some((diagnostic) => diagnostic.data?.positionUnknown)
-                    ? ''
-                    : (ts.sys?.readFile(filePath) ?? ''),
+                text: lspDiagnostics.some((diagnostic) => !diagnostic.data?.positionUnknown)
+                    ? (ts.sys?.readFile(filePath) ?? '')
+                    : '',
                 diagnostics: lspDiagnostics
             }));
         }
