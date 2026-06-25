@@ -481,12 +481,17 @@ export class SvelteCheck {
         allTsDiagnostics = allTsDiagnostics.concat(project.program.getSyntacticDiagnostics());
 
         if (allTsDiagnostics.length == configFileParsingDiagnosticsLength) {
-            const programOrGlobal = project.program
-                .getProgramDiagnostics()
-                .concat(project.program.getGlobalDiagnostics());
-            allTsDiagnostics = allTsDiagnostics.concat(
-                this.tsGoDiagnosticsProvider.deduplicateDiagnostics(programOrGlobal)
-            );
+            if (
+                'getProgramDiagnostics' in project.program &&
+                'getGlobalDiagnostics' in project.program
+            ) {
+                const programOrGlobal = project.program
+                    .getProgramDiagnostics()
+                    .concat(project.program.getGlobalDiagnostics());
+                allTsDiagnostics = allTsDiagnostics.concat(
+                    this.tsGoDiagnosticsProvider.deduplicateDiagnostics(programOrGlobal)
+                );
+            }
 
             if (allTsDiagnostics.length == configFileParsingDiagnosticsLength) {
                 allTsDiagnostics = allTsDiagnostics.concat(
