@@ -457,8 +457,8 @@ export class SvelteCheck {
             return Object.entries(grouped).map(([filePath, errors]) => ({
                 filePath,
                 text: lspDiagnostics.some((diagnostic) => diagnostic.data?.positionUnknown)
-                    ? (ts.sys?.readFile(filePath) ?? '')
-                    : '',
+                    ? ''
+                    : (ts.sys?.readFile(filePath) ?? ''),
                 diagnostics: lspDiagnostics
             }));
         }
@@ -479,11 +479,20 @@ export class SvelteCheck {
         const configFileParsingDiagnosticsLength = allTsDiagnostics?.length ?? 0;
 
         allTsDiagnostics = allTsDiagnostics.concat(project.program.getSyntacticDiagnostics());
-        // doesn't exist in the API yet
-        // allDiagnostics = allDiagnostics.concat(project.program.getProgramDiagnostics());
 
         if (allTsDiagnostics.length == configFileParsingDiagnosticsLength) {
-            allTsDiagnostics = allTsDiagnostics.concat(project.program.getSemanticDiagnostics());
+            const programOrGlobal = project.program
+                .getProgramDiagnostics()
+                .concat(project.program.getGlobalDiagnostics());
+            allTsDiagnostics = allTsDiagnostics.concat(
+                this.tsGoDiagnosticsProvider.deduplicateDiagnostics(programOrGlobal)
+            );
+
+            if (allTsDiagnostics.length == configFileParsingDiagnosticsLength) {
+                allTsDiagnostics = allTsDiagnostics.concat(
+                    project.program.getSemanticDiagnostics()
+                );
+            }
         }
 
         const result = this.tsGoDiagnosticsProvider.mapAndFilterDiagnostics(

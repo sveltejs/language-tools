@@ -99,7 +99,7 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
         this.tsconfigPath = tsconfigPath;
         this.virtualTsconfigPath = path.join(
             path.dirname(tsconfigPath),
-            `tsconfig${VIRTUAL_SUFFIX}.json`
+            `tsconfig_virtual_config.json`
         );
         this.createDocument = createDocument;
         this.ambientTypesSource = ambientTypesSource;
@@ -212,10 +212,16 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
         }
 
         const result: { filePath: string; diagnostics: Diagnostic[]; text: string }[] = [];
+        const virtualConfigPath = normalizePath(this.virtualTsconfigPath);
         for (const [fileName, diags] of byFile) {
             const tsDoc = this.files.get(normalizePath(fileName));
             if (!tsDoc) {
-                result.push(this.covertDiagnosticsForUnopenedFile(fileName, diags));
+                if (fileName === virtualConfigPath) {
+                    result.push(this.reportVirtualConfigError(diags));
+                } else {
+                    result.push(this.covertDiagnosticsForUnopenedFile(fileName, diags));
+                }
+
                 continue;
             }
 
@@ -258,6 +264,30 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
         }
 
         return result;
+    }
+
+    private reportVirtualConfigError(diags: tsApiSync.Diagnostic[]): {
+        filePath: string;
+        diagnostics: Diagnostic[];
+        text: string;
+    } {
+        return {
+            filePath: this.tsconfigPath,
+            diagnostics: diags.map(
+                (diag): Diagnostic => ({
+                    range: { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } },
+                    message: flattenDiagnosticMessage(diag),
+                    severity: mapSeverity(diag.category),
+                    source: 'ts',
+                    tags: getDiagnosticTag(diag),
+                    code: diag.code,
+                    data: {
+                        positionUnknown: true
+                    }
+                })
+            ),
+            text: ''
+        };
     }
 
     async getDiagnosticsForPullMode(document: Document): Promise<DocumentDiagnosticReport> {
@@ -488,7 +518,7 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
         }
         const virtualTsConfigContent = JSON.stringify({
             extends: './' + path.basename(tsconfigPath),
-            compilerOptions: { allowArbitraryExtensions: true },
+            compilerOptions: { allowArbitraryExtensions: true, noEmit: true },
             files: rebasedFiles.concat(svelteTsxFiles),
             // otherwise only "files" will be included and not the default "everything"
             include: commandLine.raw.include ? undefined : ['**/*']
@@ -543,6 +573,10 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
             });
         }
         return { filePath, diagnostics: result, text };
+    }
+
+    deduplicateDiagnostics(diagnostics: tsApiSync.Diagnostic[]): tsApiSync.Diagnostic[] {
+        return diagnostics.filter(dedupDiagnostics());
     }
 
     dispose() {
@@ -1224,8 +1258,9 @@ function expectedTransitionThirdArgument(
     const signature = callExpression && project.checker.getResolvedSignature(callExpression);
 
     return (
-        signature?.parameters.filter((parameter) => !(parameter.flags & ts.SymbolFlags.Optional))
-            .length === 3
+        signature
+            ?.getParameters()
+            .filter((parameter) => !(parameter.flags & ts.SymbolFlags.Optional)).length === 3
     );
 }
 function getDiagnosticTag(tsDiag: tsApiSync.Diagnostic): DiagnosticTag[] | undefined {

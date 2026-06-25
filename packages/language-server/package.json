@@ -44,7 +44,7 @@
         "@types/mocha": "^10.0.10",
         "@types/node": "^18.0.0",
         "@types/sinon": "^7.5.2",
-        "@typescript/native-preview": "~7.0.0-dev.20260614.1",
+        "@typescript/native-preview": "~7.0.0-dev.20260624.1",
         "cross-env": "^7.0.2",
         "mocha": "^11.7.6",
         "sinon": "^11.0.0",

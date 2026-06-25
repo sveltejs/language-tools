@@ -610,7 +610,7 @@ parseOptions(async (opts) => {
                 );
             }
 
-            const minPre7_0Nightly = 'dev.20260614.1';
+            const minPre7_0Nightly = 'dev.20260624.1';
             if (
                 version.major === 7 &&
                 version.minor === 0 &&
