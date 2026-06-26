@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import { dirname } from 'node:path';
 import path from 'path';
 import { internalHelpers } from 'svelte2tsx';
-import ts from 'typescript';
+import type ts from 'typescript';
 import {
     CancellationToken,
     Diagnostic,
@@ -48,7 +48,7 @@ import {
     isStoreVariableIn$storeDeclaration
 } from '../../typescript/features/utils';
 import { isAttributeName, isEventHandler } from '../../typescript/svelte-ast-utils';
-import { hasNonZeroRange, isSvelteFilePath, mapSeverity } from '../../typescript/utils';
+import { hasNonZeroRange, isSvelteFilePath } from '../../typescript/utils';
 import { tsApiSync, tsAst } from '../types';
 import {
     gatherIdentifiers,
@@ -56,6 +56,7 @@ import {
     isInReactiveStatement,
     isReactiveStatement
 } from './utils';
+import { TsScriptKind } from '../../typescript/types';
 
 const VIRTUAL_SUFFIX = '_virtual__';
 const SVELTE_EXT_LENGTH = '.svelte'.length;
@@ -64,6 +65,7 @@ const D_SVELTE_TS_LENGTH = D_SVELTE_TS_EXTENSION.length;
 const SVELTE_DTS_EXTENSION = '.svelte.d.ts';
 
 export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
+    private readonly ts6Module: typeof ts;
     private readonly api: tsApiSync.API;
     private readonly tsApiModule: typeof tsApiSync;
     private readonly files: FileMap<DocumentSnapshot> = new FileMap();
@@ -88,12 +90,14 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
     };
 
     constructor(
+        ts6Module: typeof ts,
         apiModule: typeof tsApiSync,
         tsAstModule: typeof tsAst,
         tsconfigPath: string,
         ambientTypesSource: string,
         createDocument: (filePath: string, content: string) => Document
     ) {
+        this.ts6Module = ts6Module;
         this.tsApiModule = apiModule;
         this.tsAstModule = tsAstModule;
         this.tsconfigPath = tsconfigPath;
@@ -241,7 +245,7 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
                             end: tsDoc.getOriginalPosition(tsDoc.positionAt(diag.end))
                         },
                         message: flattenDiagnosticMessage(diag),
-                        severity: mapSeverity(diag.category),
+                        severity: mapSeverity(this.tsApiModule, diag.category),
                         source: diag.fileName?.endsWith('js') ? 'js' : 'ts',
                         tags: getDiagnosticTag(diag),
                         code: diag.code
@@ -285,10 +289,11 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
             let changedPath = normalizedPath;
             if (this.files.has(normalizedPath)) {
                 const newSnapshot = DocumentSnapshot.fromFilePath(
+                    this.ts6Module,
                     filePath,
                     this.createDocument,
                     this.snapshotOptions,
-                    ts.sys
+                    this.ts6Module.sys
                 );
                 if (newSnapshot instanceof SvelteDocumentSnapshot) {
                     changedPath = toVirtualPath(newSnapshot);
@@ -365,10 +370,11 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
                     internalHelpers.isKitFile(normalizedPath, kitFiles)
                 ) {
                     const snapshot = DocumentSnapshot.fromFilePath(
+                        service.ts6Module,
                         normalizedPath,
                         service.createDocument,
                         service.snapshotOptions,
-                        ts.sys
+                        service.ts6Module.sys
                     );
                     service.files.set(normalizedPath, snapshot);
                     return snapshot.getFullText();
@@ -435,10 +441,13 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
     }
 
     private parseConfig() {
-        const commandLine = ts.parseJsonSourceFileConfigFileContent(
-            ts.parseJsonText(this.tsconfigPath, ts.sys.readFile(this.tsconfigPath) || ''),
+        const commandLine = this.ts6Module.parseJsonSourceFileConfigFileContent(
+            this.ts6Module.parseJsonText(
+                this.tsconfigPath,
+                this.ts6Module.sys.readFile(this.tsconfigPath) || ''
+            ),
             {
-                ...ts.sys,
+                ...this.ts6Module.sys,
                 readDirectory() {
                     // skip project file searching
                     return [];
@@ -464,7 +473,7 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
         }
 
         const svelteTsxFiles = internalHelpers.get_global_types(
-            ts.sys,
+            this.ts6Module.sys,
             sveltePackageInfo.version.major === 3,
             sveltePackageInfo.path,
             svelteTsPath,
@@ -507,10 +516,11 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
 
     private addVirtualSvelteFile(filePath: string) {
         const svelteFile = DocumentSnapshot.fromFilePath(
+            this.ts6Module,
             filePath,
             this.createDocument,
             this.snapshotOptions,
-            ts.sys
+            this.ts6Module.sys
         );
         const normalizedPath = normalizePath(filePath);
         this.files.set(normalizedPath, svelteFile);
@@ -526,7 +536,7 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
         filePath: string,
         diagnostics: tsApiSync.Diagnostic[]
     ): { filePath: string; diagnostics: Diagnostic[]; text: string } {
-        const text = ts.sys.readFile(filePath) ?? '';
+        const text = this.ts6Module.sys.readFile(filePath) ?? '';
         const result: Diagnostic[] = [];
         const lineOffsets = getLineOffsets(text);
         for (const diag of diagnostics) {
@@ -535,7 +545,7 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
                     start: positionAt(diag.pos, text, lineOffsets),
                     end: positionAt(diag.end, text, lineOffsets)
                 },
-                severity: mapSeverity(diag.category),
+                severity: mapSeverity(this.tsApiModule, diag.category),
                 message: flattenDiagnosticMessage(diag),
                 code: diag.code,
                 source: diag.fileName?.endsWith('js') ? 'js' : 'ts',
@@ -563,7 +573,7 @@ function getParserErrorDiagnostic(tsDoc: SvelteDocumentSnapshot): Diagnostic | u
         range: tsDoc.parserError.range,
         severity: DiagnosticSeverity.Error,
         source:
-            tsDoc.scriptKind === ts.ScriptKind.TSX || tsDoc.scriptKind === ts.ScriptKind.TS
+            tsDoc.scriptKind === TsScriptKind.TSX || tsDoc.scriptKind === TsScriptKind.TS
                 ? 'ts'
                 : 'js',
         message: tsDoc.parserError.message,
@@ -572,7 +582,7 @@ function getParserErrorDiagnostic(tsDoc: SvelteDocumentSnapshot): Diagnostic | u
 }
 
 function toVirtualPath(snapshot: DocumentSnapshot) {
-    const ext = snapshot.scriptKind === ts.ScriptKind.TS ? '.ts' : '.js';
+    const ext = snapshot.scriptKind === TsScriptKind.TS ? '.ts' : '.js';
     return normalizePath(snapshot.filePath.slice(0, -SVELTE_EXT_LENGTH) + VIRTUAL_SUFFIX + ext);
 }
 
@@ -654,15 +664,19 @@ function mapAndFilterDiagnostics(
         )
         .filter(
             (diagnostic) =>
-                !expectedTransitionThirdArgument(tsAstModule, diagnostic, tsDoc, tsApiProject)
+                !expectedTransitionThirdArgument(
+                    tsApiModule,
+                    tsAstModule,
+                    diagnostic,
+                    tsDoc,
+                    tsApiProject
+                )
         );
 
     diagnostics = resolveNoopsInReactiveStatements(tsAstModule, tsApiProject, diagnostics);
 
     const source =
-        tsDoc.scriptKind === ts.ScriptKind.TSX || tsDoc.scriptKind === ts.ScriptKind.TS
-            ? 'ts'
-            : 'js';
+        tsDoc.scriptKind === TsScriptKind.TSX || tsDoc.scriptKind === TsScriptKind.TS ? 'ts' : 'js';
     const mapRange = rangeMapper(tsAstModule, tsApiModule, tsApiProject, tsDoc, document);
     const noFalsePositive = isNoFalsePositive(document, tsDoc);
     const converted: Diagnostic[] = [];
@@ -670,7 +684,7 @@ function mapAndFilterDiagnostics(
     for (const tsDiag of diagnostics) {
         let diagnostic: Diagnostic = {
             range: { start: tsDoc.positionAt(tsDiag.pos), end: tsDoc.positionAt(tsDiag.end) },
-            severity: mapSeverity(tsDiag.category),
+            severity: mapSeverity(tsApiModule, tsDiag.category),
             source,
             message: flattenDiagnosticMessage(tsDiag),
             code: tsDiag.code,
@@ -1197,6 +1211,7 @@ function movePropsErrorRangeBackIfNecessary(
 }
 
 function expectedTransitionThirdArgument(
+    tsApiModule: typeof tsApiSync,
     tsAstModule: typeof tsAst,
     diagnostic: tsApiSync.Diagnostic,
     tsDoc: SvelteDocumentSnapshot,
@@ -1224,8 +1239,9 @@ function expectedTransitionThirdArgument(
     const signature = callExpression && project.checker.getResolvedSignature(callExpression);
 
     return (
-        signature?.parameters.filter((parameter) => !(parameter.flags & ts.SymbolFlags.Optional))
-            .length === 3
+        signature?.parameters.filter(
+            (parameter) => !(parameter.flags & tsApiModule.SymbolFlags.Optional)
+        ).length === 3
     );
 }
 function getDiagnosticTag(tsDiag: tsApiSync.Diagnostic): DiagnosticTag[] | undefined {
@@ -1237,4 +1253,22 @@ function getDiagnosticTag(tsDiag: tsApiSync.Diagnostic): DiagnosticTag[] | undef
         tags.push(DiagnosticTag.Deprecated);
     }
     return tags;
+}
+
+function mapSeverity(
+    tsApiModule: typeof tsApiSync,
+    category: tsApiSync.DiagnosticCategory
+): DiagnosticSeverity {
+    switch (category) {
+        case tsApiModule.DiagnosticCategory.Error:
+            return DiagnosticSeverity.Error;
+        case tsApiModule.DiagnosticCategory.Warning:
+            return DiagnosticSeverity.Warning;
+        case tsApiModule.DiagnosticCategory.Suggestion:
+            return DiagnosticSeverity.Hint;
+        case tsApiModule.DiagnosticCategory.Message:
+            return DiagnosticSeverity.Information;
+    }
+
+    return DiagnosticSeverity.Error;
 }

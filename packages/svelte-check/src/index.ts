@@ -30,14 +30,11 @@ import {
     getTypeScriptPackageInfo,
     importAliasedTs6,
     importTypeScript,
-    PkgInfo
+    PkgInfo,
+    tryLoadTs7Api,
+    tryLoadTs7Ast,
+    getTsGoPreviewPackageInfo
 } from './importPackages';
-import {
-    tryLoadApi as tryLoadTsApi,
-    tryLoadAst as tryLoadTsAst,
-    tryParseTsGoVersion
-} from './tsgo';
-
 type Result = {
     fileCount: number;
     errorCount: number;
@@ -642,10 +639,14 @@ parseOptions(async (opts) => {
             if (opts.incremental) {
                 throw new Error('--tsgo-experimental-api cannot be used with --incremental');
             }
-            const version = tryParseTsGoVersion(opts.tsconfig);
+            const version =
+                typeScriptPackageInfo && typeScriptPackageInfo.major >= 7
+                    ? typeScriptPackageInfo
+                    : getTsGoPreviewPackageInfo(pkgResolveTarget);
+
             if (!version) {
                 throw new Error(
-                    '--tsgo-experimental-api requires @typescript/native-preview to be installed in the workspace'
+                    '--tsgo-experimental-api requires TypeScript 7 or @typescript/native-preview to be installed in the workspace'
                 );
             }
 
@@ -665,8 +666,8 @@ parseOptions(async (opts) => {
                 }
             }
 
-            const apiModule = await tryLoadTsApi(opts.tsconfig, version);
-            const astModule = await tryLoadTsAst(opts.tsconfig, version);
+            const apiModule = await tryLoadTs7Api(opts.tsconfig, version);
+            const astModule = await tryLoadTs7Ast(opts.tsconfig, version);
             if (!apiModule || !astModule) {
                 throw new Error(
                     `Unsupported ${version.name} version. Please ensure you have the latest version installed.` +

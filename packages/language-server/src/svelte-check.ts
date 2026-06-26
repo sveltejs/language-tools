@@ -165,6 +165,7 @@ export class SvelteCheck {
                     throw new Error('Unsupported typescript-go version');
                 }
                 this.tsGoDiagnosticsProvider = new SvelteCheckTSGoDiagnosticsProvider(
+                    this.tsModule,
                     apiModule,
                     astModule,
                     options.tsconfig,

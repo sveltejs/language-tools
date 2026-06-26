@@ -124,6 +124,7 @@ function setupService(dir: string) {
         const syncApi = await import('@typescript/native-preview/unstable/sync');
         const tsAst = await import('@typescript/native-preview/unstable/ast');
         const service = new SvelteCheckTSGoDiagnosticsProvider(
+            ts,
             syncApi,
             tsAst,
             tsconfig,

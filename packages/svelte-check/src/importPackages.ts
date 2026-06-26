@@ -1,8 +1,14 @@
+import * as syncAst from '@typescript/native-preview/unstable/ast';
+import * as syncApi from '@typescript/native-preview/unstable/sync';
 import { pathToFileURL } from 'node:url';
 import type ts from 'typescript';
 
 export function getTypeScriptPackageInfo(root: string): PkgInfo | null {
     return tryParsePkg(root, 'typescript');
+}
+
+export function getTsGoPreviewPackageInfo(root: string): PkgInfo | null {
+    return tryParsePkg(root, '@typescript/native-preview');
 }
 
 export function importAliasedTs6(root: string): Promise<typeof ts | null> {
@@ -11,6 +17,26 @@ export function importAliasedTs6(root: string): Promise<typeof ts | null> {
 
 export function importTypeScript(root: string): Promise<typeof ts | null> {
     return tryImport('typescript', root);
+}
+
+export async function tryLoadTs7Ast(
+    tsconfigPath: string,
+    info: PkgInfo
+): Promise<typeof syncAst | null> {
+    return (
+        (await tryImport(info.name + '/unstable/ast', tsconfigPath)) ??
+        (await tryImport(info.name + '/ast', tsconfigPath))
+    );
+}
+
+export async function tryLoadTs7Api(
+    tsconfigPath: string,
+    info: PkgInfo
+): Promise<typeof syncApi | null> {
+    return (
+        (await tryImport(info.name + '/unstable/sync', tsconfigPath)) ??
+        (await tryImport(info.name + '/sync', tsconfigPath))
+    );
 }
 
 export interface PkgInfo {

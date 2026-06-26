@@ -141,7 +141,12 @@ export function startServer(options?: LSOptions) {
         const configurationTsSections: TsUserConfigLangMap | undefined =
             evt.initializationOptions.configuration;
         const tsdkPath = configurationTsSections?.['js/ts']?.tsdk?.path;
-        const tsdkPathOld = configurationTsSections?.typescript?.tsdk?.path;
+        let tsdkPathOld = configurationTsSections?.typescript?.tsdk?.path;
+        // we copied the config from js/ts to old config in the VS Code extension
+        // if they are the same, we don't need to try the old path
+        if (tsdkPathOld === tsdkPath) {
+            tsdkPathOld = undefined;
+        }
 
         const isTrusted: boolean = evt.initializationOptions?.isTrusted ?? true;
         setIsTrusted(isTrusted);

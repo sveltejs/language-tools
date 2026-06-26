@@ -97,10 +97,12 @@ export function importSveltePreprocess(fromPath: string): any {
 }
 
 export function importTypeScript(): typeof ts {
-    if (!Logger.isDebugEnabled()) {
-        return dynamicRequire('typescript');
-    }
     const pkg = getPackageInfo('typescript', __dirname);
+    if (pkg.version.major >= 7) {
+        // should only happen for people managing their own typescript version.
+        throw new Error(`TypeScript 7 is not supported yet. Please use TypeScript >=5.5 or 6.x.`);
+    }
+
     const main = resolve(pkg.path);
     Logger.debug('Using TypeScript v' + pkg.version.full, 'from', main);
     return dynamicRequire(main);
@@ -156,6 +158,8 @@ export function tryImportTypeScriptForTsdk(
         const data = fs.readFileSync(pkgJsonPath, 'utf-8');
 
         const pkg = JSON.parse(data);
+        // @typescript/typescript6 doesn't export tsserver, VS Code's TypeScript extension won't use it.
+        // So there isn't much point in supporting it here either.
         if (pkg.name !== 'typescript' || typeof pkg.version !== 'string') {
             Logger.error(
                 `The provided tsdk path ${tsdkPath} does not point to a valid TypeScript installation.`
@@ -170,6 +174,11 @@ export function tryImportTypeScriptForTsdk(
             Logger.error(
                 `The TypeScript version at ${tsdkPath} is unsupported. Please use at least TypeScript 5.5.`
             );
+            return;
+        }
+
+        if (majorVersion >= 7) {
+            Logger.error(`TypeScript 7 is not supported yet. Please use TypeScript >=5.5 or 6.0.`);
             return;
         }
 

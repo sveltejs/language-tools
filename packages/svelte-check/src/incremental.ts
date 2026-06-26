@@ -630,6 +630,7 @@ export function mapCliDiagnosticsToLsp(
                     sourceText,
                     tsDiagnostics,
                     {
+                        tsModule,
                         rewriteExternalImports: {
                             workspacePath: emitResult.workspacePath,
                             generatedPath: entry.outPath
