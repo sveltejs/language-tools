@@ -13,18 +13,16 @@ interface PkgInfo {
 }
 
 export function parseTsGoVersion(tsconfigPath: string): PkgInfo {
-    const preview = tryParsePkg(tsconfigPath, '@typescript/native-preview');
-    if (preview) {
-        return preview;
-    }
-    const ts7Alias = tryParsePkg(tsconfigPath, 'typescript-7');
+    const pkg =
+        tryParsePkg(tsconfigPath, 'typescript-7') ??
+        tryParsePkg(tsconfigPath, '@typescript/native-preview');
+
     if (
-        ts7Alias &&
-        (ts7Alias.pkgJsonName === 'typescript' ||
-            ts7Alias.pkgJsonName === '@typescript/native-preview') &&
-        ts7Alias.major >= 7
+        pkg &&
+        (pkg.pkgJsonName === 'typescript' || pkg.pkgJsonName === '@typescript/native-preview') &&
+        pkg.major >= 7
     ) {
-        return ts7Alias;
+        return pkg;
     }
 
     const message =
