@@ -25,11 +25,7 @@ import {
     writeOverlayTsconfig
 } from './incremental';
 import { createIgnored, findFiles } from './utils';
-import {
-    tryLoadApi as tryLoadTsApi,
-    tryLoadAst as tryLoadTsAst,
-    tryParseTsGoVersion
-} from './tsgo';
+import { tryLoadApi as tryLoadTsApi, tryLoadAst as tryLoadTsAst, parseTsGoVersion } from './tsgo';
 
 type Result = {
     fileCount: number;
@@ -603,12 +599,7 @@ parseOptions(async (opts) => {
             if (opts.incremental) {
                 throw new Error('--tsgo-experimental-api cannot be used with --incremental');
             }
-            const version = tryParseTsGoVersion(opts.tsconfig);
-            if (!version) {
-                throw new Error(
-                    '--tsgo-experimental-api requires @typescript/native-preview to be installed in the workspace'
-                );
-            }
+            const version = parseTsGoVersion(opts.tsconfig);
 
             const minPre7_0Nightly = 'dev.20260614.1';
             if (
@@ -630,7 +621,7 @@ parseOptions(async (opts) => {
             const astModule = await tryLoadTsAst(opts.tsconfig, version);
             if (!apiModule || !astModule) {
                 throw new Error(
-                    `Unsupported ${version.name} version. Please ensure you have the latest version installed.` +
+                    `Unsupported ${version.pkgJsonName} version. Please ensure you have the latest version installed.` +
                         'If the problem persists, please report an issue in https://github.com/sveltejs/language-tools/issues.'
                 );
             }
