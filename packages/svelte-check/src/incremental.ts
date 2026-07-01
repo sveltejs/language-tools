@@ -13,6 +13,7 @@ import {
 } from 'svelte-language-server';
 import { loadConfig } from '@sveltejs/load-config';
 import { findFiles } from './utils';
+import { parseTsGoVersion } from './tsgo';
 
 type ManifestEntry = {
     sourcePath: string;
@@ -461,19 +462,19 @@ export function runTypeScriptDiagnostics(
     incremental: boolean,
     cwd: string
 ): Promise<ParsedDiagnostic[]> {
-    const args = [
-        useTsgo
-            ? path.join(
-                  path.dirname(require.resolve('@typescript/native-preview/package.json')),
-                  'bin/tsgo.js'
-              )
-            : require.resolve('typescript/bin/tsc'),
-        '-p',
-        tsconfigPath,
-        '--pretty',
-        'true',
-        '--noErrorTruncation'
-    ];
+    let binPath: string;
+    if (useTsgo) {
+        const pkg = parseTsGoVersion(tsconfigPath);
+        binPath = path.join(
+            path.dirname(pkg.path),
+            'bin',
+            pkg.pkgJsonName === 'typescript' ? 'tsc' : 'tsgo.js'
+        );
+    } else {
+        binPath = require.resolve('typescript/bin/tsc');
+    }
+
+    const args = [binPath, '-p', tsconfigPath, '--pretty', 'true', '--noErrorTruncation'];
 
     if (incremental) {
         args.push('--incremental');

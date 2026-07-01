@@ -14,7 +14,9 @@ Requires Node 16 or later.
 
 Installation:
 
-`npm i svelte-check --save-dev`
+```sh
+npm i svelte-check --save-dev
+```
 
 Package.json:
 
@@ -41,12 +43,34 @@ Usage:
 
 Installation:
 
-`npm i svelte-check svelte -g`
+```sh
+npm i svelte-check svelte -g
+```
 
 Usage:
 
 1. Go to folder where to start checking
 2. `svelte-check`
+
+#### TypeScript 7 supports
+
+TypeScript 7 support currently requires `--tsgo` or `--tsgo-experimental-api` flag. You need to install both TypeScript 7 and TypeScript 6. Before TypeScript 7 stable is released. You can install `@typescript/native-preview`
+
+```sh
+npm install --save-dev @typescript/native-preview
+```
+
+Or you can install TypeScript 7 RC with
+
+```sh
+npm install --save-dev typescript@~6 typescript-7@npm:typescript@rc
+```
+
+Once TypeScript 7 stable is released, you can install TypeScript 7 with
+
+```sh
+npm install --save-dev typescript@~6 typescript-7@npm:typescript
+```
 
 ### Args:
 
