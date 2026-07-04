@@ -13,6 +13,7 @@ import {
 } from 'svelte-language-server';
 import { loadConfig } from '@sveltejs/load-config';
 import { findFiles } from './utils';
+import { tryParseTsGoVersion } from './tsgo';
 
 type ManifestEntry = {
     sourcePath: string;
@@ -461,19 +462,13 @@ export function runTypeScriptDiagnostics(
     incremental: boolean,
     cwd: string
 ): Promise<ParsedDiagnostic[]> {
-    const args = [
-        useTsgo
-            ? path.join(
-                  path.dirname(require.resolve('@typescript/native-preview/package.json')),
-                  'bin/tsgo.js'
-              )
-            : require.resolve('typescript/bin/tsc'),
-        '-p',
-        tsconfigPath,
-        '--pretty',
-        'true',
-        '--noErrorTruncation'
-    ];
+    const binPath = useTsgo ? getTsGoBinPath(tsconfigPath) : require.resolve('typescript/bin/tsc');
+
+    if (!binPath || !fs.existsSync(binPath) || !fs.statSync(binPath).isFile()) {
+        throw new Error('Failed to locate TypeScript command-line executable.');
+    }
+
+    const args = [binPath, '-p', tsconfigPath, '--pretty', 'true', '--noErrorTruncation'];
 
     if (incremental) {
         args.push('--incremental');
@@ -516,6 +511,20 @@ export function runTypeScriptDiagnostics(
             }
         });
     });
+}
+
+function getTsGoBinPath(tsconfigPath: string): string | undefined {
+    const pkg = tryParseTsGoVersion(tsconfigPath);
+    if (!pkg) {
+        throw new Error(
+            '--tsgo requires @typescript/native-preview to be installed in the workspace'
+        );
+    }
+
+    const binPathRelative =
+        pkg.bin[pkg.moduleName === '@typescript/native-preview' ? 'tsgo' : 'tsc'];
+
+    return binPathRelative ? path.join(path.dirname(pkg.path), binPathRelative) : undefined;
 }
 
 /**
