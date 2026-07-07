@@ -520,7 +520,7 @@ function getTsGoBinPath(tsconfigPath: string): string | undefined {
     }
 
     const binPathRelative =
-        pkg.bin[pkg.moduleName === '@typescript/native-preview' ? 'tsgo' : 'tsc'];
+        pkg.bin[pkg.pkgJsonName === '@typescript/native-preview' ? 'tsgo' : 'tsc'];
 
     return binPathRelative ? path.join(path.dirname(pkg.path), binPathRelative) : undefined;
 }
