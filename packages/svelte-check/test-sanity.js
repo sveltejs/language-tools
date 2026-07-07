@@ -30,6 +30,7 @@ let failed = 0;
  * @param {string} opts.tsconfig
  * @param {boolean} [opts.incremental]
  * @param {boolean} [opts.tsgoExp]
+ * @param {boolean} [opts.tsgo]
  * @param {ExpectedError[]} [opts.errors]
  */
 function test(name, opts) {
@@ -47,6 +48,9 @@ function test(name, opts) {
     }
     if (opts.tsgoExp) {
         args.push('--tsgo-experimental-api');
+    }
+    if (opts.tsgo) {
+        args.push('--tsgo');
     }
 
     let stdout;
@@ -146,6 +150,12 @@ test('clean project (incremental, warm cache)', {
     incremental: true
 });
 
+test('clean project --tsgo', {
+    workspace: './test-success',
+    tsconfig: './tsconfig.json',
+    tsgo: true
+});
+
 const errors = [
     {
         file: 'Index.svelte',
@@ -216,6 +226,13 @@ test('project with errors (incremental, warm cache)', {
     workspace: './test-error',
     tsconfig: './tsconfig.json',
     incremental: true,
+    errors
+});
+
+test('project with errors --tsgo', {
+    workspace: './test-error',
+    tsconfig: './tsconfig.json',
+    tsgo: true,
     errors
 });
 

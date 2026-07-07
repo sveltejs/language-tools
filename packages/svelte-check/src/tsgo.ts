@@ -3,11 +3,14 @@ import * as syncAst from '@typescript/native-preview/unstable/ast';
 import { pathToFileURL } from 'url';
 
 interface PkgInfo {
-    name: string;
+    pkgJsonName: string;
+    moduleName: string;
     major: number;
     minor: number;
     patch: number;
     preRelease: string | null;
+    path: string;
+    bin: Record<string, string>;
 }
 
 export function tryParseTsGoVersion(tsconfigPath: string): PkgInfo | null {
@@ -19,10 +22,10 @@ export function tryParseTsGoVersion(tsconfigPath: string): PkgInfo | null {
 
 function tryParsePkg(tsconfigPath: string, name: string): PkgInfo | null {
     try {
-        const apiPath = require.resolve(name + '/package.json', {
+        const pkgPath = require.resolve(name + '/package.json', {
             paths: [tsconfigPath, __dirname]
         });
-        const pkg = require(apiPath);
+        const pkg = require(pkgPath);
         const version: string = pkg.version || '';
 
         const parts = version.split('.');
@@ -32,7 +35,16 @@ function tryParsePkg(tsconfigPath: string, name: string): PkgInfo | null {
         const [major, minor] = parts.slice(0, 2).map((part) => parseInt(part, 10));
         const patch = parseInt(parts[2].split('-')[0], 10);
         const preRelease = version.includes('-') ? version.split('-')[1] : null;
-        return { major, minor, patch, preRelease, name: pkg.name };
+        return {
+            major,
+            minor,
+            patch,
+            preRelease,
+            pkgJsonName: pkg.name,
+            moduleName: name,
+            path: pkgPath,
+            bin: pkg.bin || {}
+        };
     } catch (e) {
         return null;
     }
@@ -43,8 +55,8 @@ export async function tryLoadApi(
     info: PkgInfo
 ): Promise<typeof syncApi | null> {
     return (
-        (await tryImport(info.name + '/unstable/sync', tsconfigPath)) ??
-        (await tryImport(info.name + '/sync', tsconfigPath))
+        (await tryImport(info.moduleName + '/unstable/sync', tsconfigPath)) ??
+        (await tryImport(info.moduleName + '/sync', tsconfigPath))
     );
 }
 
@@ -53,8 +65,8 @@ export async function tryLoadAst(
     info: PkgInfo
 ): Promise<typeof syncAst | null> {
     return (
-        (await tryImport(info.name + '/unstable/ast', tsconfigPath)) ??
-        (await tryImport(info.name + '/ast', tsconfigPath))
+        (await tryImport(info.moduleName + '/unstable/ast', tsconfigPath)) ??
+        (await tryImport(info.moduleName + '/ast', tsconfigPath))
     );
 }
 
