@@ -1,5 +1,13 @@
 # Changelog
 
+## 4.7.2
+
+### Patch Changes
+
+-   fix: resolve tsgo bin path with package.json ([#3074](https://github.com/sveltejs/language-tools/pull/3074))
+
+-   fix: report tsconfig errors in --tsgo-experimental-api ([#3070](https://github.com/sveltejs/language-tools/pull/3070))
+
 ## 4.7.1
 
 ### Patch Changes
