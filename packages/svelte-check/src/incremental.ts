@@ -462,16 +462,10 @@ export function runTypeScriptDiagnostics(
     incremental: boolean,
     cwd: string
 ): Promise<ParsedDiagnostic[]> {
-    let binPath: string;
-    if (useTsgo) {
-        const pkg = parseTsGoVersion(tsconfigPath);
-        binPath = path.join(
-            path.dirname(pkg.path),
-            'bin',
-            pkg.pkgJsonName === 'typescript' ? 'tsc' : 'tsgo.js'
-        );
-    } else {
-        binPath = require.resolve('typescript/bin/tsc');
+    const binPath = useTsgo ? getTsGoBinPath(tsconfigPath) : require.resolve('typescript/bin/tsc');
+
+    if (!binPath || !fs.existsSync(binPath) || !fs.statSync(binPath).isFile()) {
+        throw new Error('Failed to locate TypeScript command-line executable.');
     }
 
     const args = [binPath, '-p', tsconfigPath, '--pretty', 'true', '--noErrorTruncation'];
@@ -517,6 +511,15 @@ export function runTypeScriptDiagnostics(
             }
         });
     });
+}
+
+function getTsGoBinPath(tsconfigPath: string): string | undefined {
+    const pkg = parseTsGoVersion(tsconfigPath);
+
+    const binPathRelative =
+        pkg.bin[pkg.moduleName === '@typescript/native-preview' ? 'tsgo' : 'tsc'];
+
+    return binPathRelative ? path.join(path.dirname(pkg.path), binPathRelative) : undefined;
 }
 
 /**

@@ -10,6 +10,7 @@ interface PkgInfo {
     patch: number;
     preRelease: string | null;
     path: string;
+    bin: Record<string, string>;
 }
 
 export function parseTsGoVersion(tsconfigPath: string): PkgInfo {
@@ -54,7 +55,8 @@ function tryParsePkg(tsconfigPath: string, name: string): PkgInfo | null {
             preRelease,
             pkgJsonName: pkg.name,
             moduleName: name,
-            path: pkgPath
+            path: pkgPath,
+            bin: pkg.bin || {}
         };
     } catch (e) {
         return null;

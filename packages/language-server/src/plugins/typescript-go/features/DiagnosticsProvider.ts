@@ -1223,9 +1223,16 @@ function expectedTransitionThirdArgument(
     const callExpression = node.parent;
     const signature = callExpression && project.checker.getResolvedSignature(callExpression);
 
+    if (!signature) {
+        return false;
+    }
+
+    // TypeScript 7 rc and older nightly have parameters field instead of getParameters method
+    const parameters: tsApiSync.Symbol[] =
+        'getParameters' in signature ? signature.getParameters() : (signature as any).parameters;
+
     return (
-        signature?.parameters.filter((parameter) => !(parameter.flags & ts.SymbolFlags.Optional))
-            .length === 3
+        parameters.filter((parameter) => !(parameter.flags & ts.SymbolFlags.Optional)).length === 3
     );
 }
 function getDiagnosticTag(tsDiag: tsApiSync.Diagnostic): DiagnosticTag[] | undefined {
