@@ -630,7 +630,7 @@ parseOptions(async (opts) => {
             const astModule = await tryLoadTsAst(opts.tsconfig, version);
             if (!apiModule || !astModule) {
                 throw new Error(
-                    `Unsupported ${version.name} version. Please ensure you have the latest version installed.` +
+                    `Unsupported ${version.moduleName} version. Please ensure you have the latest version installed.` +
                         'If the problem persists, please report an issue in https://github.com/sveltejs/language-tools/issues.'
                 );
             }
