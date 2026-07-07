@@ -13,7 +13,7 @@ interface PkgInfo {
     bin: Record<string, string>;
 }
 
-export function parseTsGoVersion(tsconfigPath: string): PkgInfo {
+export function tryParseTsGoVersion(tsconfigPath: string): PkgInfo | null {
     const pkg =
         tryParsePkg(tsconfigPath, 'typescript-7') ??
         tryParsePkg(tsconfigPath, '@typescript/native-preview');
@@ -26,11 +26,14 @@ export function parseTsGoVersion(tsconfigPath: string): PkgInfo {
         return pkg;
     }
 
-    const message =
-        'TypeScript 7 not installed in the workspace.' +
-        'Please visit https://github.com/sveltejs/language-tools/tree/master/packages/svelte-check#typescript-7-supports for instructions';
+    return null;
+}
 
-    throw new Error(message);
+export function formatTsGoNotFoundError(flagName: string) {
+    return (
+        `svelte-check ${flagName} requires TypeScript 7 to be installed in the workspace.` +
+        `Please visit https://github.com/sveltejs/language-tools/tree/master/packages/svelte-check#typescript-7-supports for instructions`
+    );
 }
 
 function tryParsePkg(tsconfigPath: string, name: string): PkgInfo | null {
