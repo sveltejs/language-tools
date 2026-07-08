@@ -5,6 +5,7 @@ import { surroundWithIgnoreComments } from '../../utils/ignore';
 import { preprendStr, overwriteStr } from '../../utils/magic-string';
 import { findExportKeyword, getLastLeadingDoc, isInterfaceOrTypeDeclaration } from '../utils/tsAst';
 import { HoistableInterfaces } from './HoistableInterfaces';
+import { isKitErrorFile } from '../../helpers/sveltekit';
 
 export function is$$PropsDeclaration(
     node: ts.Node
@@ -323,6 +324,10 @@ export class ExportedNames {
                                     isKitLayoutFile ? 'LayoutProps' : 'PageProps'
                                 }['params']`
                             );
+                        }
+                    } else if (isKitErrorFile(this.basename)) {
+                        if (name === 'error') {
+                            props.push(`error: App.Error`);
                         }
                     } else if (element.initializer) {
                         const initializer =
