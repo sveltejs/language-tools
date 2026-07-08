@@ -54,6 +54,13 @@ export function isKitRouteFile(basename: string): boolean {
 }
 
 /**
+ * Determines whether or not a given file is a SvelteKit +error.svelte file
+ */
+export function isKitErrorFile(basename: string): boolean {
+    return basename.slice(0, -path.extname(basename).length) === '+error';
+}
+
+/**
  * Determines whether or not a given file is a SvelteKit-specific hooks file
  */
 export function isHooksFile(fileName: string, basename: string, hooksPath: string): boolean {
