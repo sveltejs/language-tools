@@ -32,7 +32,7 @@ export function tryParseTsGoVersion(tsconfigPath: string): PkgInfo | null {
 export function formatTsGoNotFoundError(flagName: string) {
     return (
         `svelte-check ${flagName} requires TypeScript 7 to be installed in the workspace.` +
-        `You can setup TypeScript 7 with npm alias with the following command.\n` +
+        `You can setup TypeScript 7 with an npm alias via the following command.\n` +
         `npm install --save-dev typescript@~6 typescript-7@npm:typescript@7\n`
     );
 }

@@ -20,19 +20,19 @@ function checkTypeScriptVersion(version) {
         const major = parseInt(version.split('.')[0], 10);
         if (major < 5) {
             message +=
-                requirement + `You are using unsupported TypeScript ${version}. \n\nNoted that `;
+                requirement + `You are using unsupported TypeScript ${version}. \n\nNote that `;
         } else if (major < 7) {
             return;
         }
     } else {
         message +=
-            'TypeScript is not installed in the workspace. ' + requirement + '\n\nNoted that ';
+            'TypeScript is not installed in the workspace. ' + requirement + '\n\nNote that ';
     }
 
     message +=
         'TypeScript 7 support currently requires both TypeScript 7 and TypeScript 6 installed in your project, ' +
-        'and requires using --tsgo or --tsgo-experimental-api flag ' +
-        'You can setup both version with npm alias with the following command.\n' +
+        'and requires using the --tsgo or --tsgo-experimental-api flag. ' +
+        'You can setup both version with an npm alias via the following command.\n' +
         'npm install --save-dev typescript@~6 typescript-7@npm:typescript@7\n';
 
     throw new Error(message);

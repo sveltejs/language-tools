@@ -56,7 +56,7 @@ function throwIfTypeScript7() {
     const major = parseInt(ts.version.split('.')[0], 10);
     if (major >= 7) {
         throw new Error(
-            `emitDts is not compatible with TypeScript ${ts.version}. Please use TypeScript 6.0.3 or lower.`
+            `emitDts is not compatible with TypeScript ${ts.version}. Please use a TypeScript version lower than 7.x.`
         );
     }
 }

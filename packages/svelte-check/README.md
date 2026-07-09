@@ -54,9 +54,9 @@ Usage:
 
 #### TypeScript 7 supports
 
-TypeScript 7 support currently requires `--tsgo` or `--tsgo-experimental-api` flag. You need to install both TypeScript 7 and TypeScript 6.
+TypeScript 7 support currently requires the `--tsgo` or `--tsgo-experimental-api` flag. You need to install both TypeScript 7 and TypeScript 6.
 
-You can setup both version with npm alias
+You can setup both version with an npm alias:
 
 ```sh
 npm install --save-dev typescript@~6 typescript-7@npm:typescript@7
