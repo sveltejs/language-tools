@@ -217,6 +217,10 @@ export function processInstanceScriptContent(
 
         if (parent === tsAst) {
             exportedNames.hoistableInterfaces.analyzeInstanceScriptNode(node);
+
+            if (ts.isTypeAliasDeclaration(node) || ts.isInterfaceDeclaration(node)) {
+                exportedNames.handleExportedTypeOrInterface(node);
+            }
         }
 
         generics.addIfIsGeneric(node);
@@ -380,6 +384,9 @@ export function processInstanceScriptContent(
         script.start + 1, // +1 because imports are also moved at that position, and we want to move interfaces after imports
         generics.getReferences()
     );
+
+    // `export` is not valid on type/interface declarations that stay inside the render function
+    exportedNames.removeExportsFromNonHoistedTypes(hoisted);
 
     if (mode === 'dts') {
         // Transform interface declarations to type declarations because indirectly

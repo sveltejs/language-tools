@@ -54,6 +54,8 @@ export class ExportedNames {
     >();
     private doneDeclarationTransformation = new Set<ts.VariableDeclarationList>();
     private getters = new Set<string>();
+    private exportedTypesAndInterfaces: Array<ts.TypeAliasDeclaration | ts.InterfaceDeclaration> =
+        [];
 
     constructor(
         private str: MagicString,
@@ -143,6 +145,34 @@ export class ExportedNames {
         // Can't export default here
         if (node.name) {
             this.addExport(node.name, false);
+        }
+    }
+
+    /**
+     * Collects top-level `export type`/`export interface` declarations of the instance script.
+     * Their `export` keyword is removed later for the ones that don't get hoisted to the module
+     * scope, because `export` is not valid inside the render function.
+     */
+    handleExportedTypeOrInterface(node: ts.TypeAliasDeclaration | ts.InterfaceDeclaration): void {
+        if (findExportKeyword(node)) {
+            this.exportedTypesAndInterfaces.push(node);
+        }
+    }
+
+    /**
+     * Removes the `export` keyword from top-level type/interface declarations that stay inside
+     * the render function (i.e. that weren't hoisted to the module scope), mirroring the handling
+     * of exported functions and classes.
+     */
+    removeExportsFromNonHoistedTypes(hoisted: Map<string, ts.Node> | undefined): void {
+        for (const node of this.exportedTypesAndInterfaces) {
+            if (hoisted?.has(node.name.text)) {
+                continue;
+            }
+            const exportModifier = findExportKeyword(node);
+            if (exportModifier) {
+                this.removeExport(exportModifier.getStart(), exportModifier.end);
+            }
         }
     }
 
