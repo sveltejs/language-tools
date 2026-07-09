@@ -59,7 +59,7 @@ TypeScript 7 support currently requires the `--tsgo` or `--tsgo-experimental-api
 You can setup both version with an npm alias:
 
 ```sh
-npm install --save-dev typescript@~6 typescript-7@npm:typescript@7
+npm install --save-dev typescript@~6 @typescript/native@npm:typescript@7
 ```
 
 ### Args:

@@ -33,7 +33,7 @@ function checkTypeScriptVersion(version) {
         'TypeScript 7 support currently requires both TypeScript 7 and TypeScript 6 installed in your project, ' +
         'and requires using the --tsgo or --tsgo-experimental-api flag. ' +
         'You can setup both version with an npm alias via the following command.\n' +
-        'npm install --save-dev typescript@~6 typescript-7@npm:typescript@7\n';
+        'npm install --save-dev typescript@~6 @typescript/native@npm:typescript@7\n';
 
     throw new Error(message);
 }
