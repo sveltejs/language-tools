@@ -81,9 +81,13 @@ function findVerbatimElements(htmlx: string) {
     const styleTags = extractTag(htmlx, 'style');
     const tags = extractTag(htmlx, 'script');
     for (const styleTag of styleTags) {
-        // Could happen if someone has a `<style>...</style>` string in their script tag
+        // Could happen if someone has a `<style>` string in their script tag (e.g. in a
+        // comment or string literal). The non-greedy style regex can then start matching
+        // inside the script and run past the real `</script>` up to a later `</style>`, so
+        // the match is not fully nested — check whether the style tag merely *starts* inside
+        // a script tag rather than requiring strict containment.
         const insideScript = tags.some(
-            (tag) => tag.start < styleTag.start && tag.end > styleTag.end
+            (tag) => tag.start < styleTag.start && styleTag.start < tag.end
         );
         if (!insideScript) {
             tags.push(styleTag);
