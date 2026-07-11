@@ -3,4 +3,4 @@
 'svelte-check': patch
 ---
 
-fix: don't treat `<style>`-like text inside a script comment as a real style tag when a separate `<style>` block exists
+fix: recognise the real `<style>` start tag when a `<style>`-like token also appears inside a script
