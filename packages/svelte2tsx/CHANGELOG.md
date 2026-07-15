@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.58
+
+### Patch Changes
+
+-   feat: zero-config `+error.svelte` props ([#3076](https://github.com/sveltejs/language-tools/pull/3076))
+
 ## 0.7.57
 
 ### Patch Changes
