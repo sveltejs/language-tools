@@ -26,6 +26,7 @@ import {
 } from './incremental';
 import { createIgnored, findFiles } from './utils';
 import {
+    formatTsGoNotFoundError,
     tryLoadApi as tryLoadTsApi,
     tryLoadAst as tryLoadTsAst,
     tryParseTsGoVersion
@@ -603,22 +604,20 @@ parseOptions(async (opts) => {
             if (opts.incremental) {
                 throw new Error('--tsgo-experimental-api cannot be used with --incremental');
             }
-            const version = tryParseTsGoVersion(opts.tsconfig);
-            if (!version) {
-                throw new Error(
-                    '--tsgo-experimental-api requires @typescript/native-preview to be installed in the workspace'
-                );
+            const pkg = tryParseTsGoVersion(opts.tsconfig);
+            if (!pkg) {
+                throw new Error(formatTsGoNotFoundError('--tsgo-experimental-api'));
             }
 
             const minPre7_0Nightly = 'dev.20260614.1';
             if (
-                version.major === 7 &&
-                version.minor === 0 &&
-                version.patch === 0 &&
-                version.preRelease?.includes('dev')
+                pkg.major === 7 &&
+                pkg.minor === 0 &&
+                pkg.patch === 0 &&
+                pkg.preRelease?.includes('dev')
             ) {
                 // ex: 7.0.0-dev.20260518.1
-                if (version.preRelease.localeCompare(minPre7_0Nightly) < 0) {
+                if (pkg.preRelease.localeCompare(minPre7_0Nightly) < 0) {
                     throw new Error(
                         'Unsupported @typescript/native-preview version. Please upgrade to at least 7.0.0-' +
                             minPre7_0Nightly
@@ -626,11 +625,11 @@ parseOptions(async (opts) => {
                 }
             }
 
-            const apiModule = await tryLoadTsApi(opts.tsconfig, version);
-            const astModule = await tryLoadTsAst(opts.tsconfig, version);
+            const apiModule = await tryLoadTsApi(opts.tsconfig, pkg);
+            const astModule = await tryLoadTsAst(opts.tsconfig, pkg);
             if (!apiModule || !astModule) {
                 throw new Error(
-                    `Unsupported ${version.moduleName} version. Please ensure you have the latest version installed.` +
+                    `Unsupported ${pkg.pkgJsonName} version. Please ensure you have the latest version installed.` +
                         'If the problem persists, please report an issue in https://github.com/sveltejs/language-tools/issues.'
                 );
             }

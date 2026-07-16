@@ -13,7 +13,7 @@ import {
 } from 'svelte-language-server';
 import { loadConfig } from '@sveltejs/load-config';
 import { findFiles } from './utils';
-import { tryParseTsGoVersion } from './tsgo';
+import { formatTsGoNotFoundError, tryParseTsGoVersion } from './tsgo';
 
 type ManifestEntry = {
     sourcePath: string;
@@ -516,13 +516,11 @@ export function runTypeScriptDiagnostics(
 function getTsGoBinPath(tsconfigPath: string): string | undefined {
     const pkg = tryParseTsGoVersion(tsconfigPath);
     if (!pkg) {
-        throw new Error(
-            '--tsgo requires @typescript/native-preview to be installed in the workspace'
-        );
+        throw new Error(formatTsGoNotFoundError('--tsgo'));
     }
 
     const binPathRelative =
-        pkg.bin[pkg.moduleName === '@typescript/native-preview' ? 'tsgo' : 'tsc'];
+        pkg.bin[pkg.pkgJsonName === '@typescript/native-preview' ? 'tsgo' : 'tsc'];
 
     return binPathRelative ? path.join(path.dirname(pkg.path), binPathRelative) : undefined;
 }
