@@ -55,6 +55,13 @@ export function svelte2tsx(
             workspacePath: string;
             generatedPath: string;
         };
+        shimPaths?: string[];
+
+        sourcemap?: {
+            format?: 'encoded' | 'decoded';
+
+            hires?: boolean | 'boundary';
+        };
     } = { parse }
 ) {
     options.mode = options.mode || 'ts';
@@ -290,10 +297,23 @@ export function svelte2tsx(
             code
         };
     } else {
-        str.prepend('///<reference types="svelte" />\n');
+        str.prepend('///<reference types="svelte" />\n');        
+        if (options.shimPaths) {
+            for (const shimPath of options.shimPaths) {
+                const normalizedPath = shimPath.replace(/\\/g, '/');
+                str.prepend(`///<reference path="${normalizedPath}" />\n`);
+            }
+        }
+
+        let hires = options.sourcemap?.hires ?? true;
+        if (hires !== 'boundary' && typeof hires !== 'boolean') {
+            hires = true;
+        }
         return {
             code: str.toString(),
-            map: str.generateMap({ hires: true, source: options?.filename }),
+            map: options.sourcemap?.format === 'decoded'
+                ? str.generateDecodedMap({ hires, source: options?.filename })
+                : str.generateMap({ hires, source: options?.filename }),
             exportedNames: exportedNames.getExportsMap(),
             events: events.createAPI(),
             // not part of the public API so people don't start using it
