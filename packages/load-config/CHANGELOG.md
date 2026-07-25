@@ -1,5 +1,11 @@
 # @sveltejs/load-config
 
+## 0.2.1
+
+### Patch Changes
+
+-   fix: ensure config loading happens sequentially ([#3084](https://github.com/sveltejs/language-tools/pull/3084))
+
 ## 0.2.0
 
 ### Minor Changes
