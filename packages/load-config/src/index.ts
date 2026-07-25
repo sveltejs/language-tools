@@ -176,10 +176,11 @@ async function loadSvelteConfigFromVite(
 
     // Make sure that only one Vite config is resolved at a time, to prevent race conditions with multiple
     // calls to `loadConfig` ending up with changing the process' current working directory mid-resolution.
-    await resolving;
-
+    const previous = resolving;
     let resolve;
     resolving = new Promise((r) => (resolve = r));
+    await previous;
+
     const cwd = process.cwd();
 
     try {
