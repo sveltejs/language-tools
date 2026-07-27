@@ -2,4 +2,4 @@
 'svelte-check': patch
 ---
 
-fix: support TypeScript 7 rc under npm alias
+fix: support TypeScript 7 Stable under npm alias
