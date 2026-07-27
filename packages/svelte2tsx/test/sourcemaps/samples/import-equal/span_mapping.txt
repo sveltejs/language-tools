@@ -1,0 +1,36 @@
+>///<reference types="svelte" />
+>;function $$render() {
+#^ [Atom]: => < 0-1
+# ^ [Atom]: => s 1-2
+>
+#^ [Verbatim]: => ↲ 8-9
+>    import A;
+#^ [Verbatim]: => • 9-10
+# ^ [Verbatim]: => • 10-11
+#  ^ [Verbatim]: => • 11-12
+#   ^^^^^^^ [Verbatim]: => •import 12-19
+#          ^ [Verbatim]: => • 19-20
+#           ^ [Verbatim]: => A 20-21
+#            ^ [Atom]: => ↲ 21-22
+>    import C = require('');
+#^ [Verbatim]: => • 22-23
+# ^ [Verbatim]: => • 23-24
+#  ^ [Verbatim]: => • 24-25
+#   ^^^^^^^ [Verbatim]: => •import 25-32
+#          ^ [Verbatim]: => • 32-33
+#           ^ [Verbatim]: => C 33-34
+#            ^ [Verbatim]: => • 34-35
+#             ^ [Verbatim]: => = 35-36
+#              ^^^^^^^^ [Verbatim]: => •require 36-44
+#                      ^ [Verbatim]: => ( 44-45
+#                       ^^ [Verbatim]: => '' 45-47
+#                         ^ [Verbatim]: => ) 47-48
+#                          ^ [Verbatim]: => ; 48-49
+#                           ^ [Verbatim]: => ↲ 49-50
+>;
+>async () => {};
+#^ [Atom]: => < 50-51
+>return { props: /** @type {Record<string, never>} */ ({}), slots: {}, events: {} }}
+>
+>export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial(__sveltets_2_with_any_event($$render()))) {
+>}

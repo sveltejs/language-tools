@@ -1,0 +1,1553 @@
+>///<reference types="svelte" />
+>;
+#^ [Atom]: => < 0-1
+# ^ [Verbatim]: => ↲ 25-26
+>    export async function preload({ params }) {
+#^^^^^^^ [Verbatim]: => ╚export 26-33
+#       ^^^^^^ [Verbatim]: => •async 33-39
+#             ^^^^^^^^^ [Verbatim]: => •function 39-48
+#                      ^^^^^^^^ [Verbatim]: => •preload 48-56
+#                              ^ [Verbatim]: => ( 56-57
+#                               ^ [Verbatim]: => { 57-58
+#                                ^^^^^^^ [Verbatim]: => •params 58-65
+#                                       ^ [Verbatim]: => • 65-66
+#                                        ^ [Verbatim]: => } 66-67
+#                                         ^ [Verbatim]: => ) 67-68
+#                                          ^ [Verbatim]: => • 68-69
+#                                           ^ [Verbatim]: => { 69-70
+#                                            ^ [Verbatim]: => ↲ 70-71
+>        const res = await this.fetch(`tutorial/${params.slug}.json`);
+#^ [Verbatim]: => ╚ 71-72
+# ^^^^^^ [Verbatim]: => ╚const 72-78
+#       ^^^^ [Verbatim]: => •res 78-82
+#           ^ [Verbatim]: => • 82-83
+#            ^ [Verbatim]: => = 83-84
+#             ^^^^^^ [Verbatim]: => •await 84-90
+#                   ^^^^^ [Verbatim]: => •this 90-95
+#                        ^^^^^^ [Verbatim]: => .fetch 95-101
+#                              ^ [Verbatim]: => ( 101-102
+#                               ^^^^^^^^^ [Verbatim]: => `tutorial 102-111
+#                                        ^^ [Verbatim]: => /$ 111-113
+#                                          ^^^^^^^ [Verbatim]: => {params 113-120
+#                                                 ^^^^^ [Verbatim]: => .slug 120-125
+#                                                      ^ [Verbatim]: => } 125-126
+#                                                       ^^^^^ [Verbatim]: => .json 126-131
+#                                                            ^ [Verbatim]: => ` 131-132
+#                                                             ^ [Verbatim]: => ) 132-133
+#                                                              ^ [Verbatim]: => ; 133-134
+#                                                               ^ [Verbatim]: => ↲ 134-135
+>
+#^ [Verbatim]: => ↲ 135-136
+>        if (!res.ok) {
+#^ [Verbatim]: => ╚ 136-137
+# ^^^ [Verbatim]: => ╚if 137-140
+#    ^ [Verbatim]: => • 140-141
+#     ^ [Verbatim]: => ( 141-142
+#      ^^^^ [Verbatim]: => !res 142-146
+#          ^^^ [Verbatim]: => .ok 146-149
+#             ^ [Verbatim]: => ) 149-150
+#              ^ [Verbatim]: => • 150-151
+#               ^ [Verbatim]: => { 151-152
+#                ^ [Verbatim]: => ↲ 152-153
+>            return this.redirect(301, `tutorial/basics`);
+#^ [Verbatim]: => ╚ 153-154
+# ^ [Verbatim]: => ╚ 154-155
+#  ^^^^^^^ [Verbatim]: => ╚return 155-162
+#         ^^^^^ [Verbatim]: => •this 162-167
+#              ^^^^^^^^^ [Verbatim]: => .redirect 167-176
+#                       ^^^^ [Verbatim]: => (301 176-180
+#                           ^ [Verbatim]: => , 180-181
+#                            ^ [Verbatim]: => • 181-182
+#                             ^^^^^^^^^ [Verbatim]: => `tutorial 182-191
+#                                      ^^^^^^^ [Verbatim]: => /basics 191-198
+#                                             ^ [Verbatim]: => ` 198-199
+#                                              ^ [Verbatim]: => ) 199-200
+#                                               ^ [Verbatim]: => ; 200-201
+#                                                ^ [Verbatim]: => ↲ 201-202
+>        }
+#^ [Verbatim]: => ╚ 202-203
+# ^ [Verbatim]: => ╚ 203-204
+#  ^ [Verbatim]: => } 204-205
+#   ^ [Verbatim]: => ↲ 205-206
+>
+#^ [Verbatim]: => ↲ 206-207
+>        return {
+#^ [Verbatim]: => ╚ 207-208
+# ^^^^^^^ [Verbatim]: => ╚return 208-215
+#        ^ [Verbatim]: => • 215-216
+#         ^ [Verbatim]: => { 216-217
+#          ^ [Verbatim]: => ↲ 217-218
+>            slug: params.slug,
+#^ [Verbatim]: => ╚ 218-219
+# ^ [Verbatim]: => ╚ 219-220
+#  ^^^^^ [Verbatim]: => ╚slug 220-225
+#       ^ [Verbatim]: => : 225-226
+#        ^^^^^^^ [Verbatim]: => •params 226-233
+#               ^^^^^ [Verbatim]: => .slug 233-238
+#                    ^ [Verbatim]: => , 238-239
+#                     ^ [Verbatim]: => ↲ 239-240
+>            chapter: await res.json()
+#^ [Verbatim]: => ╚ 240-241
+# ^ [Verbatim]: => ╚ 241-242
+#  ^^^^^^^^ [Verbatim]: => ╚chapter 242-250
+#          ^ [Verbatim]: => : 250-251
+#           ^^^^^^ [Verbatim]: => •await 251-257
+#                 ^^^^ [Verbatim]: => •res 257-261
+#                     ^^^^^ [Verbatim]: => .json 261-266
+#                          ^ [Verbatim]: => ( 266-267
+#                           ^ [Verbatim]: => ) 267-268
+#                            ^ [Verbatim]: => ↲ 268-269
+>        };
+#^ [Verbatim]: => ╚ 269-270
+# ^ [Verbatim]: => ╚ 270-271
+#  ^ [Verbatim]: => } 271-272
+#   ^ [Verbatim]: => ; 272-273
+#    ^ [Verbatim]: => ↲ 273-274
+>    }
+#^ [Verbatim]: => ╚ 274-275
+# ^ [Verbatim]: => } 275-276
+#  ^ [Verbatim]: => ↲ 276-277
+>;;
+#^ [Atom]: => < 277-278
+# ^ [Atom]: => < 288-289
+>
+>import Repl from '@sveltejs/svelte-repl';
+#^^^^^^ [Verbatim]: => import 298-304
+#      ^ [Verbatim]: => • 304-305
+#       ^^^^ [Verbatim]: => Repl 305-309
+#           ^^^^^ [Verbatim]: => •from 309-314
+#                ^ [Verbatim]: => • 314-315
+#                 ^^^^^^^^^^^^^^^^^^^^^^^ [Verbatim]: => '@sveltejs/svelte-repl' 315-338
+#                                        ^ [Verbatim]: => ; 338-339
+>import { getContext } from 'svelte';
+#^^^^^^ [Verbatim]: => import 341-347
+#      ^ [Verbatim]: => • 347-348
+#       ^ [Verbatim]: => { 348-349
+#        ^ [Verbatim]: => • 349-350
+#         ^^^^^^^^^^ [Verbatim]: => getContext 350-360
+#                   ^ [Verbatim]: => • 360-361
+#                    ^ [Verbatim]: => } 361-362
+#                     ^^^^^ [Verbatim]: => •from 362-367
+#                          ^ [Verbatim]: => • 367-368
+#                           ^^^^^^^^ [Verbatim]: => 'svelte' 368-376
+#                                   ^ [Verbatim]: => ; 376-377
+>
+>import ScreenToggle from '../../../components/ScreenToggle.svelte';
+#^^^^^^ [Verbatim]: => import 380-386
+#      ^ [Verbatim]: => • 386-387
+#       ^^^^^^^^^^^^ [Verbatim]: => ScreenToggle 387-399
+#                   ^^^^^ [Verbatim]: => •from 399-404
+#                        ^ [Verbatim]: => • 404-405
+#                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ [Verbatim]: => '../../../components/ScreenToggle.svelte' 405-446
+#                                                                  ^ [Verbatim]: => ; 446-447
+>import TableOfContents from './_TableOfContents.svelte';
+#^^^^^^ [Verbatim]: => import 449-455
+#      ^ [Verbatim]: => • 455-456
+#       ^^^^^^^^^^^^^^^ [Verbatim]: => TableOfContents 456-471
+#                      ^^^^^ [Verbatim]: => •from 471-476
+#                           ^ [Verbatim]: => • 476-477
+#                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^ [Verbatim]: => './_TableOfContents.svelte' 477-504
+#                                                       ^ [Verbatim]: => ; 504-505
+>
+>import {
+#^^^^^^ [Verbatim]: => import 508-514
+#      ^ [Verbatim]: => • 514-515
+#       ^ [Verbatim]: => { 515-516
+#        ^ [Verbatim]: => ↲ 516-517
+>        mapbox_setup, // needed for context API tutorial
+#^ [Verbatim]: => ╚ 517-518
+# ^ [Verbatim]: => ╚ 518-519
+#  ^^^^^^^^^^^^ [Verbatim]: => mapbox_setup 519-531
+#              ^ [Verbatim]: => , 531-532
+#               ^ [Verbatim]: => • 532-533
+#                ^ [Verbatim]: => / 533-534
+#                 ^ [Verbatim]: => / 534-535
+#                  ^^^^^^^ [Verbatim]: => •needed 535-542
+#                         ^^^^ [Verbatim]: => •for 542-546
+#                             ^^^^^^^^ [Verbatim]: => •context 546-554
+#                                     ^^^^ [Verbatim]: => •API 554-558
+#                                         ^^^^^^^^^ [Verbatim]: => •tutorial 558-567
+#                                                  ^ [Verbatim]: => ↲ 567-568
+>        rollupUrl,
+#^ [Verbatim]: => ╚ 568-569
+# ^ [Verbatim]: => ╚ 569-570
+#  ^^^^^^^^^ [Verbatim]: => rollupUrl 570-579
+#           ^ [Verbatim]: => , 579-580
+#            ^ [Verbatim]: => ↲ 580-581
+>        svelteUrl
+#^ [Verbatim]: => ╚ 581-582
+# ^ [Verbatim]: => ╚ 582-583
+#  ^^^^^^^^^ [Verbatim]: => svelteUrl 583-592
+#           ^ [Verbatim]: => ↲ 592-593
+>    } from '../../../config';
+#^ [Verbatim]: => ╚ 593-594
+# ^ [Verbatim]: => } 594-595
+#  ^^^^^ [Verbatim]: => •from 595-600
+#       ^ [Verbatim]: => • 600-601
+#        ^^^^^^^^^^^^^^^^^ [Verbatim]: => '../../../config' 601-618
+#                         ^ [Verbatim]: => ; 618-619
+>function $$render() {
+#^ [Atom]: => s 289-290
+>
+#^ [Verbatim]: => ↲ 296-297
+>
+#^ [Verbatim]: => ╚ 297-298
+# ^ [Verbatim]: => ↲ 339-340
+>
+#^ [Verbatim]: => ╚ 340-341
+# ^ [Verbatim]: => ↲ 377-378
+>
+#^ [Verbatim]: => ↲ 378-379
+>
+#^ [Verbatim]: => ╚ 379-380
+# ^ [Verbatim]: => ↲ 447-448
+>
+#^ [Verbatim]: => ╚ 448-449
+# ^ [Verbatim]: => ↲ 505-506
+>
+#^ [Verbatim]: => ↲ 506-507
+>
+#^ [Verbatim]: => ╚ 507-508
+# ^ [Verbatim]: => ↲ 619-620
+>
+#^ [Verbatim]: => ↲ 620-621
+>     let slug/*Ωignore_startΩ*/;slug = __sveltets_2_any(slug);/*Ωignore_endΩ*/;
+#^ [Verbatim]: => ╚ 621-622
+# ^^^^ [Verbatim]: => •let 628-632
+#     ^ [Verbatim]: => • 632-633
+#      ^^^^ [Verbatim]: => slug 633-637
+#          ^ [Atom]: => ; 637-638
+#                                                                            ^ [Verbatim]: => ↲ 638-639
+>     let chapter/*Ωignore_startΩ*/;chapter = __sveltets_2_any(chapter);/*Ωignore_endΩ*/;
+#^ [Verbatim]: => ╚ 639-640
+# ^^^^ [Verbatim]: => •let 646-650
+#     ^ [Verbatim]: => • 650-651
+#      ^^^^^^^ [Verbatim]: => chapter 651-658
+#             ^ [Atom]: => ; 658-659
+#                                                                                     ^ [Verbatim]: => ↲ 659-660
+>
+#^ [Verbatim]: => ↲ 660-661
+>    const { sections } = getContext('tutorial');
+#^^^^^^ [Verbatim]: => ╚const 661-667
+#      ^ [Verbatim]: => • 667-668
+#       ^ [Verbatim]: => { 668-669
+#        ^ [Verbatim]: => • 669-670
+#         ^^^^^^^^ [Verbatim]: => sections 670-678
+#                 ^ [Verbatim]: => • 678-679
+#                  ^ [Verbatim]: => } 679-680
+#                   ^ [Verbatim]: => • 680-681
+#                    ^ [Verbatim]: => = 681-682
+#                     ^ [Verbatim]: => • 682-683
+#                      ^^^^^^^^^^ [Verbatim]: => getContext 683-693
+#                                ^ [Verbatim]: => ( 693-694
+#                                 ^^^^^^^^^^ [Verbatim]: => 'tutorial' 694-704
+#                                           ^ [Verbatim]: => ) 704-705
+#                                            ^ [Verbatim]: => ; 705-706
+#                                             ^ [Verbatim]: => ↲ 706-707
+>
+#^ [Verbatim]: => ↲ 707-708
+>    let repl;
+#^^^^ [Verbatim]: => ╚let 708-712
+#    ^ [Verbatim]: => • 712-713
+#     ^^^^ [Verbatim]: => repl 713-717
+#         ^ [Verbatim]: => ; 717-718
+#          ^ [Verbatim]: => ↲ 718-719
+>    let prev;
+#^^^^ [Verbatim]: => ╚let 719-723
+#    ^ [Verbatim]: => • 723-724
+#     ^^^^ [Verbatim]: => prev 724-728
+#         ^ [Verbatim]: => ; 728-729
+#          ^ [Verbatim]: => ↲ 729-730
+>    let scrollable;
+#^^^^ [Verbatim]: => ╚let 730-734
+#    ^ [Verbatim]: => • 734-735
+#     ^^^^^^^^^^ [Verbatim]: => scrollable 735-745
+#               ^ [Verbatim]: => ; 745-746
+#                ^ [Verbatim]: => ↲ 746-747
+>    const lookup = new Map();
+#^^^^^^ [Verbatim]: => ╚const 747-753
+#      ^ [Verbatim]: => • 753-754
+#       ^^^^^^ [Verbatim]: => lookup 754-760
+#             ^ [Verbatim]: => • 760-761
+#              ^ [Verbatim]: => = 761-762
+#               ^^^^ [Verbatim]: => •new 762-766
+#                   ^ [Verbatim]: => • 766-767
+#                    ^^^ [Verbatim]: => Map 767-770
+#                       ^ [Verbatim]: => ( 770-771
+#                        ^ [Verbatim]: => ) 771-772
+#                         ^ [Verbatim]: => ; 772-773
+#                          ^ [Verbatim]: => ↲ 773-774
+>
+#^ [Verbatim]: => ↲ 774-775
+>    let width = process.browser ? window.innerWidth : 1000;
+#^^^^ [Verbatim]: => ╚let 775-779
+#    ^ [Verbatim]: => • 779-780
+#     ^^^^^ [Verbatim]: => width 780-785
+#          ^ [Verbatim]: => • 785-786
+#           ^ [Verbatim]: => = 786-787
+#            ^ [Verbatim]: => • 787-788
+#             ^^^^^^^ [Verbatim]: => process 788-795
+#                    ^ [Verbatim]: => . 795-796
+#                     ^^^^^^^ [Verbatim]: => browser 796-803
+#                            ^ [Verbatim]: => • 803-804
+#                             ^ [Verbatim]: => ? 804-805
+#                              ^ [Verbatim]: => • 805-806
+#                               ^^^^^^ [Verbatim]: => window 806-812
+#                                     ^ [Verbatim]: => . 812-813
+#                                      ^^^^^^^^^^ [Verbatim]: => innerWidth 813-823
+#                                                ^ [Verbatim]: => • 823-824
+#                                                 ^ [Verbatim]: => : 824-825
+#                                                  ^^^^^ [Verbatim]: => •1000 825-830
+#                                                       ^ [Verbatim]: => ; 830-831
+#                                                        ^ [Verbatim]: => ↲ 831-832
+>    let offset = 0;
+#^^^^ [Verbatim]: => ╚let 832-836
+#    ^ [Verbatim]: => • 836-837
+#     ^^^^^^ [Verbatim]: => offset 837-843
+#           ^ [Verbatim]: => • 843-844
+#            ^ [Verbatim]: => = 844-845
+#             ^^ [Verbatim]: => •0 845-847
+#               ^ [Verbatim]: => ; 847-848
+#                ^ [Verbatim]: => ↲ 848-849
+>
+#^ [Verbatim]: => ↲ 849-850
+>    sections.forEach(section => {
+#^ [Verbatim]: => ╚ 850-851
+# ^^^^^^^^ [Verbatim]: => sections 851-859
+#         ^ [Verbatim]: => . 859-860
+#          ^^^^^^^ [Verbatim]: => forEach 860-867
+#                 ^ [Verbatim]: => ( 867-868
+#                  ^^^^^^^ [Verbatim]: => section 868-875
+#                         ^ [Verbatim]: => • 875-876
+#                          ^ [Verbatim]: => = 876-877
+#                           ^ [Verbatim]: => > 877-878
+#                            ^ [Verbatim]: => • 878-879
+#                             ^ [Verbatim]: => { 879-880
+#                              ^ [Verbatim]: => ↲ 880-881
+>        section.chapters.forEach(chapter => {
+#^ [Verbatim]: => ╚ 881-882
+# ^ [Verbatim]: => ╚ 882-883
+#  ^^^^^^^ [Verbatim]: => section 883-890
+#         ^ [Verbatim]: => . 890-891
+#          ^^^^^^^^ [Verbatim]: => chapters 891-899
+#                  ^ [Verbatim]: => . 899-900
+#                   ^^^^^^^ [Verbatim]: => forEach 900-907
+#                          ^ [Verbatim]: => ( 907-908
+#                           ^^^^^^^ [Verbatim]: => chapter 908-915
+#                                  ^ [Verbatim]: => • 915-916
+#                                   ^ [Verbatim]: => = 916-917
+#                                    ^ [Verbatim]: => > 917-918
+#                                     ^ [Verbatim]: => • 918-919
+#                                      ^ [Verbatim]: => { 919-920
+#                                       ^ [Verbatim]: => ↲ 920-921
+>            const obj = {
+#^ [Verbatim]: => ╚ 921-922
+# ^ [Verbatim]: => ╚ 922-923
+#  ^^^^^^ [Verbatim]: => ╚const 923-929
+#        ^ [Verbatim]: => • 929-930
+#         ^^^ [Verbatim]: => obj 930-933
+#            ^ [Verbatim]: => • 933-934
+#             ^ [Verbatim]: => = 934-935
+#              ^ [Verbatim]: => • 935-936
+#               ^ [Verbatim]: => { 936-937
+#                ^ [Verbatim]: => ↲ 937-938
+>                slug: chapter.slug,
+#^ [Verbatim]: => ╚ 938-939
+# ^ [Verbatim]: => ╚ 939-940
+#  ^ [Verbatim]: => ╚ 940-941
+#   ^ [Verbatim]: => ╚ 941-942
+#    ^^^^ [Verbatim]: => slug 942-946
+#        ^ [Verbatim]: => : 946-947
+#         ^ [Verbatim]: => • 947-948
+#          ^^^^^^^ [Verbatim]: => chapter 948-955
+#                 ^ [Verbatim]: => . 955-956
+#                  ^^^^ [Verbatim]: => slug 956-960
+#                      ^ [Verbatim]: => , 960-961
+#                       ^ [Verbatim]: => ↲ 961-962
+>                section,
+#^ [Verbatim]: => ╚ 962-963
+# ^ [Verbatim]: => ╚ 963-964
+#  ^ [Verbatim]: => ╚ 964-965
+#   ^ [Verbatim]: => ╚ 965-966
+#    ^^^^^^^ [Verbatim]: => section 966-973
+#           ^ [Verbatim]: => , 973-974
+#            ^ [Verbatim]: => ↲ 974-975
+>                chapter,
+#^ [Verbatim]: => ╚ 975-976
+# ^ [Verbatim]: => ╚ 976-977
+#  ^ [Verbatim]: => ╚ 977-978
+#   ^ [Verbatim]: => ╚ 978-979
+#    ^^^^^^^ [Verbatim]: => chapter 979-986
+#           ^ [Verbatim]: => , 986-987
+#            ^ [Verbatim]: => ↲ 987-988
+>                prev
+#^ [Verbatim]: => ╚ 988-989
+# ^ [Verbatim]: => ╚ 989-990
+#  ^ [Verbatim]: => ╚ 990-991
+#   ^ [Verbatim]: => ╚ 991-992
+#    ^^^^ [Verbatim]: => prev 992-996
+#        ^ [Verbatim]: => ↲ 996-997
+>            };
+#^ [Verbatim]: => ╚ 997-998
+# ^ [Verbatim]: => ╚ 998-999
+#  ^ [Verbatim]: => ╚ 999-1000
+#   ^ [Verbatim]: => } 1000-1001
+#    ^ [Verbatim]: => ; 1001-1002
+#     ^ [Verbatim]: => ↲ 1002-1003
+>
+#^ [Verbatim]: => ↲ 1003-1004
+>            lookup.set(chapter.slug, obj);
+#^ [Verbatim]: => ╚ 1004-1005
+# ^ [Verbatim]: => ╚ 1005-1006
+#  ^ [Verbatim]: => ╚ 1006-1007
+#   ^^^^^^ [Verbatim]: => lookup 1007-1013
+#         ^ [Verbatim]: => . 1013-1014
+#          ^^^ [Verbatim]: => set 1014-1017
+#             ^ [Verbatim]: => ( 1017-1018
+#              ^^^^^^^ [Verbatim]: => chapter 1018-1025
+#                     ^ [Verbatim]: => . 1025-1026
+#                      ^^^^ [Verbatim]: => slug 1026-1030
+#                          ^ [Verbatim]: => , 1030-1031
+#                           ^ [Verbatim]: => • 1031-1032
+#                            ^^^ [Verbatim]: => obj 1032-1035
+#                               ^ [Verbatim]: => ) 1035-1036
+#                                ^ [Verbatim]: => ; 1036-1037
+#                                 ^ [Verbatim]: => ↲ 1037-1038
+>
+#^ [Verbatim]: => ↲ 1038-1039
+>            if (process.browser) { // pending https://github.com/sveltejs/svelte/issues/2135
+#^ [Verbatim]: => ╚ 1039-1040
+# ^ [Verbatim]: => ╚ 1040-1041
+#  ^^^ [Verbatim]: => ╚if 1041-1044
+#     ^ [Verbatim]: => • 1044-1045
+#      ^ [Verbatim]: => ( 1045-1046
+#       ^^^^^^^ [Verbatim]: => process 1046-1053
+#              ^ [Verbatim]: => . 1053-1054
+#               ^^^^^^^ [Verbatim]: => browser 1054-1061
+#                      ^ [Verbatim]: => ) 1061-1062
+#                       ^ [Verbatim]: => • 1062-1063
+#                        ^ [Verbatim]: => { 1063-1064
+#                         ^ [Verbatim]: => • 1064-1065
+#                          ^ [Verbatim]: => / 1065-1066
+#                           ^ [Verbatim]: => / 1066-1067
+#                            ^^^^^^^^ [Verbatim]: => •pending 1067-1075
+#                                    ^^^^^^ [Verbatim]: => •https 1075-1081
+#                                          ^ [Verbatim]: => : 1081-1082
+#                                           ^ [Verbatim]: => / 1082-1083
+#                                            ^^^^^^^ [Verbatim]: => /github 1083-1090
+#                                                   ^^^^ [Verbatim]: => .com 1090-1094
+#                                                       ^^^^^^^^^ [Verbatim]: => /sveltejs 1094-1103
+#                                                                ^^^^^^^ [Verbatim]: => /svelte 1103-1110
+#                                                                       ^^^^^^^ [Verbatim]: => /issues 1110-1117
+#                                                                              ^^^^^ [Verbatim]: => /2135 1117-1122
+#                                                                                   ^ [Verbatim]: => ↲ 1122-1123
+>                if (prev) prev.next = obj;
+#^ [Verbatim]: => ╚ 1123-1124
+# ^ [Verbatim]: => ╚ 1124-1125
+#  ^ [Verbatim]: => ╚ 1125-1126
+#   ^^^ [Verbatim]: => ╚if 1126-1129
+#      ^ [Verbatim]: => • 1129-1130
+#       ^ [Verbatim]: => ( 1130-1131
+#        ^^^^ [Verbatim]: => prev 1131-1135
+#            ^ [Verbatim]: => ) 1135-1136
+#             ^ [Verbatim]: => • 1136-1137
+#              ^^^^ [Verbatim]: => prev 1137-1141
+#                  ^ [Verbatim]: => . 1141-1142
+#                   ^^^^ [Verbatim]: => next 1142-1146
+#                       ^ [Verbatim]: => • 1146-1147
+#                        ^ [Verbatim]: => = 1147-1148
+#                         ^ [Verbatim]: => • 1148-1149
+#                          ^^^ [Verbatim]: => obj 1149-1152
+#                             ^ [Verbatim]: => ; 1152-1153
+#                              ^ [Verbatim]: => ↲ 1153-1154
+>                prev = obj;
+#^ [Verbatim]: => ╚ 1154-1155
+# ^ [Verbatim]: => ╚ 1155-1156
+#  ^ [Verbatim]: => ╚ 1156-1157
+#   ^ [Verbatim]: => ╚ 1157-1158
+#    ^^^^ [Verbatim]: => prev 1158-1162
+#        ^ [Verbatim]: => • 1162-1163
+#         ^ [Verbatim]: => = 1163-1164
+#          ^ [Verbatim]: => • 1164-1165
+#           ^^^ [Verbatim]: => obj 1165-1168
+#              ^ [Verbatim]: => ; 1168-1169
+#               ^ [Verbatim]: => ↲ 1169-1170
+>            }
+#^ [Verbatim]: => ╚ 1170-1171
+# ^ [Verbatim]: => ╚ 1171-1172
+#  ^ [Verbatim]: => ╚ 1172-1173
+#   ^ [Verbatim]: => } 1173-1174
+#    ^ [Verbatim]: => ↲ 1174-1175
+>        });
+#^ [Verbatim]: => ╚ 1175-1176
+# ^ [Verbatim]: => ╚ 1176-1177
+#  ^ [Verbatim]: => } 1177-1178
+#   ^ [Verbatim]: => ) 1178-1179
+#    ^ [Verbatim]: => ; 1179-1180
+#     ^ [Verbatim]: => ↲ 1180-1181
+>    });
+#^ [Verbatim]: => ╚ 1181-1182
+# ^ [Verbatim]: => } 1182-1183
+#  ^ [Verbatim]: => ) 1183-1184
+#   ^ [Verbatim]: => ; 1184-1185
+#    ^ [Verbatim]: => ↲ 1185-1186
+>
+#^ [Verbatim]: => ↲ 1186-1187
+>    // TODO is there a non-hacky way to trigger scroll when chapter changes?
+#^ [Verbatim]: => ╚ 1187-1188
+# ^ [Verbatim]: => / 1188-1189
+#  ^ [Verbatim]: => / 1189-1190
+#   ^^^^^ [Verbatim]: => •TODO 1190-1195
+#        ^^^ [Verbatim]: => •is 1195-1198
+#           ^^^^^^ [Verbatim]: => •there 1198-1204
+#                 ^^ [Verbatim]: => •a 1204-1206
+#                   ^^^^ [Verbatim]: => •non 1206-1210
+#                       ^^^^^^ [Verbatim]: => -hacky 1210-1216
+#                             ^^^^ [Verbatim]: => •way 1216-1220
+#                                 ^^^ [Verbatim]: => •to 1220-1223
+#                                    ^^^^^^^^ [Verbatim]: => •trigger 1223-1231
+#                                            ^^^^^^^ [Verbatim]: => •scroll 1231-1238
+#                                                   ^^^^^ [Verbatim]: => •when 1238-1243
+#                                                        ^^^^^^^^ [Verbatim]: => •chapter 1243-1251
+#                                                                ^^^^^^^^ [Verbatim]: => •changes 1251-1259
+#                                                                        ^ [Verbatim]: => ? 1259-1260
+#                                                                         ^ [Verbatim]: => ↲ 1260-1261
+>    ;() => {$: if (scrollable) chapter, scrollable.scrollTo(0, 0);}
+#^ [Verbatim]: => ╚ 1261-1262
+#         ^ [Verbatim]: => $ 1262-1263
+#          ^ [Verbatim]: => : 1263-1264
+#           ^^^ [Verbatim]: => •if 1264-1267
+#              ^ [Verbatim]: => • 1267-1268
+#               ^ [Verbatim]: => ( 1268-1269
+#                ^^^^^^^^^^ [Verbatim]: => scrollable 1269-1279
+#                          ^ [Verbatim]: => ) 1279-1280
+#                           ^ [Verbatim]: => • 1280-1281
+#                            ^^^^^^^ [Verbatim]: => chapter 1281-1288
+#                                   ^ [Verbatim]: => , 1288-1289
+#                                    ^ [Verbatim]: => • 1289-1290
+#                                     ^^^^^^^^^^ [Verbatim]: => scrollable 1290-1300
+#                                               ^ [Verbatim]: => . 1300-1301
+#                                                ^^^^^^^^ [Verbatim]: => scrollTo 1301-1309
+#                                                        ^^ [Verbatim]: => (0 1309-1311
+#                                                          ^ [Verbatim]: => , 1311-1312
+#                                                           ^^ [Verbatim]: => •0 1312-1314
+#                                                             ^ [Verbatim]: => ) 1314-1315
+#                                                              ^ [Verbatim]: => ; 1315-1316
+#                                                               ^ [Atom]: => ↲ 1316-1317
+>
+#^ [Verbatim]: => ↲ 1317-1318
+>    // TODO: this will need to be changed to the master branch, and probably should be dynamic instead of included
+#^ [Verbatim]: => ╚ 1318-1319
+# ^ [Verbatim]: => / 1319-1320
+#  ^ [Verbatim]: => / 1320-1321
+#   ^^^^^ [Verbatim]: => •TODO 1321-1326
+#        ^ [Verbatim]: => : 1326-1327
+#         ^^^^^ [Verbatim]: => •this 1327-1332
+#              ^^^^^ [Verbatim]: => •will 1332-1337
+#                   ^^^^^ [Verbatim]: => •need 1337-1342
+#                        ^^^ [Verbatim]: => •to 1342-1345
+#                           ^^^ [Verbatim]: => •be 1345-1348
+#                              ^^^^^^^^ [Verbatim]: => •changed 1348-1356
+#                                      ^^^ [Verbatim]: => •to 1356-1359
+#                                         ^^^^ [Verbatim]: => •the 1359-1363
+#                                             ^^^^^^^ [Verbatim]: => •master 1363-1370
+#                                                    ^^^^^^^ [Verbatim]: => •branch 1370-1377
+#                                                           ^ [Verbatim]: => , 1377-1378
+#                                                            ^^^^ [Verbatim]: => •and 1378-1382
+#                                                                ^^^^^^^^^ [Verbatim]: => •probably 1382-1391
+#                                                                         ^^^^^^^ [Verbatim]: => •should 1391-1398
+#                                                                                ^^^ [Verbatim]: => •be 1398-1401
+#                                                                                   ^^^^^^^^ [Verbatim]: => •dynamic 1401-1409
+#                                                                                           ^^^^^^^^ [Verbatim]: => •instead 1409-1417
+#                                                                                                   ^^^ [Verbatim]: => •of 1417-1420
+#                                                                                                      ^^^^^^^^^ [Verbatim]: => •included 1420-1429
+#                                                                                                               ^ [Verbatim]: => ↲ 1429-1430
+>    //   here statically
+#^ [Verbatim]: => ╚ 1430-1431
+# ^ [Verbatim]: => / 1431-1432
+#  ^ [Verbatim]: => / 1432-1433
+#   ^ [Verbatim]: => • 1433-1434
+#    ^ [Verbatim]: => • 1434-1435
+#     ^^^^^ [Verbatim]: => •here 1435-1440
+#          ^^^^^^^^^^^ [Verbatim]: => •statically 1440-1451
+#                     ^ [Verbatim]: => ↲ 1451-1452
+>    const tutorial_repo_link = 'https://github.com/sveltejs/svelte/tree/master/site/content/tutorial';
+#^^^^^^ [Verbatim]: => ╚const 1452-1458
+#      ^ [Verbatim]: => • 1458-1459
+#       ^^^^^^^^^^^^^^^^^^ [Verbatim]: => tutorial_repo_link 1459-1477
+#                         ^ [Verbatim]: => • 1477-1478
+#                          ^ [Verbatim]: => = 1478-1479
+#                           ^ [Verbatim]: => • 1479-1480
+#                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ [Verbatim]: => 'https://github.com/sveltejs/svelte/tree/master/site/content/tutorial' 1480-1550
+#                                                                                                  ^ [Verbatim]: => ; 1550-1551
+#                                                                                                   ^ [Verbatim]: => ↲ 1551-1552
+>
+#^ [Verbatim]: => ↲ 1552-1553
+>    let  selected = __sveltets_2_invalidate(() => lookup.get(slug));
+#^ [Verbatim]: => ╚ 1553-1554
+#     ^ [Verbatim]: => • 1556-1557
+#      ^^^^^^^^ [Verbatim]: => selected 1557-1565
+#              ^ [Verbatim]: => • 1565-1566
+#               ^ [Verbatim]: => = 1566-1567
+#                ^ [Verbatim]: => • 1567-1568
+#                                               ^^^^^^ [Verbatim]: => lookup 1568-1574
+#                                                     ^ [Verbatim]: => . 1574-1575
+#                                                      ^^^ [Verbatim]: => get 1575-1578
+#                                                         ^ [Verbatim]: => ( 1578-1579
+#                                                          ^^^^ [Verbatim]: => slug 1579-1583
+#                                                              ^ [Verbatim]: => ) 1583-1584
+#                                                               ^ [Atom]: => ; 1584-1585
+#                                                                 ^ [Verbatim]: => ↲ 1585-1586
+>    let  improve_link = __sveltets_2_invalidate(() => `${tutorial_repo_link}/${selected.chapter.section_dir}/${selected.chapter.chapter_dir}`);
+#^ [Verbatim]: => ╚ 1586-1587
+#     ^ [Verbatim]: => • 1589-1590
+#      ^^^^^^^^^^^^ [Verbatim]: => improve_link 1590-1602
+#                  ^ [Verbatim]: => • 1602-1603
+#                   ^ [Verbatim]: => = 1603-1604
+#                    ^ [Verbatim]: => • 1604-1605
+#                                                   ^^ [Verbatim]: => `$ 1605-1607
+#                                                     ^ [Verbatim]: => { 1607-1608
+#                                                      ^^^^^^^^^^^^^^^^^^ [Verbatim]: => tutorial_repo_link 1608-1626
+#                                                                        ^ [Verbatim]: => } 1626-1627
+#                                                                         ^^ [Verbatim]: => /$ 1627-1629
+#                                                                           ^ [Verbatim]: => { 1629-1630
+#                                                                            ^^^^^^^^ [Verbatim]: => selected 1630-1638
+#                                                                                    ^ [Verbatim]: => . 1638-1639
+#                                                                                     ^^^^^^^ [Verbatim]: => chapter 1639-1646
+#                                                                                            ^ [Verbatim]: => . 1646-1647
+#                                                                                             ^^^^^^^^^^^ [Verbatim]: => section_dir 1647-1658
+#                                                                                                        ^ [Verbatim]: => } 1658-1659
+#                                                                                                         ^^ [Verbatim]: => /$ 1659-1661
+#                                                                                                           ^ [Verbatim]: => { 1661-1662
+#                                                                                                            ^^^^^^^^ [Verbatim]: => selected 1662-1670
+#                                                                                                                    ^ [Verbatim]: => . 1670-1671
+#                                                                                                                     ^^^^^^^ [Verbatim]: => chapter 1671-1678
+#                                                                                                                            ^ [Verbatim]: => . 1678-1679
+#                                                                                                                             ^^^^^^^^^^^ [Verbatim]: => chapter_dir 1679-1690
+#                                                                                                                                        ^ [Verbatim]: => } 1690-1691
+#                                                                                                                                         ^ [Verbatim]: => ` 1691-1692
+#                                                                                                                                          ^ [Atom]: => ; 1692-1693
+#                                                                                                                                            ^ [Verbatim]: => ↲ 1693-1694
+>
+#^ [Verbatim]: => ↲ 1694-1695
+>    const clone = file => ({
+#^^^^^^ [Verbatim]: => ╚const 1695-1701
+#      ^ [Verbatim]: => • 1701-1702
+#       ^^^^^ [Verbatim]: => clone 1702-1707
+#            ^ [Verbatim]: => • 1707-1708
+#             ^ [Verbatim]: => = 1708-1709
+#              ^ [Verbatim]: => • 1709-1710
+#               ^^^^ [Verbatim]: => file 1710-1714
+#                   ^ [Verbatim]: => • 1714-1715
+#                    ^ [Verbatim]: => = 1715-1716
+#                     ^ [Verbatim]: => > 1716-1717
+#                      ^ [Verbatim]: => • 1717-1718
+#                       ^ [Verbatim]: => ( 1718-1719
+#                        ^ [Verbatim]: => { 1719-1720
+#                         ^ [Verbatim]: => ↲ 1720-1721
+>        name: file.name,
+#^ [Verbatim]: => ╚ 1721-1722
+# ^ [Verbatim]: => ╚ 1722-1723
+#  ^^^^ [Verbatim]: => name 1723-1727
+#      ^ [Verbatim]: => : 1727-1728
+#       ^ [Verbatim]: => • 1728-1729
+#        ^^^^ [Verbatim]: => file 1729-1733
+#            ^ [Verbatim]: => . 1733-1734
+#             ^^^^ [Verbatim]: => name 1734-1738
+#                 ^ [Verbatim]: => , 1738-1739
+#                  ^ [Verbatim]: => ↲ 1739-1740
+>        type: file.type,
+#^ [Verbatim]: => ╚ 1740-1741
+# ^ [Verbatim]: => ╚ 1741-1742
+#  ^^^^ [Verbatim]: => type 1742-1746
+#      ^ [Verbatim]: => : 1746-1747
+#       ^ [Verbatim]: => • 1747-1748
+#        ^^^^ [Verbatim]: => file 1748-1752
+#            ^ [Verbatim]: => . 1752-1753
+#             ^^^^ [Verbatim]: => type 1753-1757
+#                 ^ [Verbatim]: => , 1757-1758
+#                  ^ [Verbatim]: => ↲ 1758-1759
+>        source: file.source
+#^ [Verbatim]: => ╚ 1759-1760
+# ^ [Verbatim]: => ╚ 1760-1761
+#  ^^^^^^ [Verbatim]: => source 1761-1767
+#        ^ [Verbatim]: => : 1767-1768
+#         ^ [Verbatim]: => • 1768-1769
+#          ^^^^ [Verbatim]: => file 1769-1773
+#              ^ [Verbatim]: => . 1773-1774
+#               ^^^^^^ [Verbatim]: => source 1774-1780
+#                     ^ [Verbatim]: => ↲ 1780-1781
+>    });
+#^ [Verbatim]: => ╚ 1781-1782
+# ^ [Verbatim]: => } 1782-1783
+#  ^ [Verbatim]: => ) 1783-1784
+#   ^ [Verbatim]: => ; 1784-1785
+#    ^ [Verbatim]: => ↲ 1785-1786
+>
+#^ [Verbatim]: => ↲ 1786-1787
+>    ;() => {$: if (repl) {
+#^ [Verbatim]: => ╚ 1787-1788
+#         ^ [Verbatim]: => $ 1788-1789
+#          ^ [Verbatim]: => : 1789-1790
+#           ^^^ [Verbatim]: => •if 1790-1793
+#              ^ [Verbatim]: => • 1793-1794
+#               ^ [Verbatim]: => ( 1794-1795
+#                ^^^^ [Verbatim]: => repl 1795-1799
+#                    ^ [Verbatim]: => ) 1799-1800
+#                     ^ [Verbatim]: => • 1800-1801
+#                      ^ [Verbatim]: => { 1801-1802
+#                       ^ [Verbatim]: => ↲ 1802-1803
+>        completed = false;
+#^ [Verbatim]: => ╚ 1803-1804
+# ^ [Verbatim]: => ╚ 1804-1805
+#  ^^^^^^^^^ [Verbatim]: => completed 1805-1814
+#           ^ [Verbatim]: => • 1814-1815
+#            ^ [Verbatim]: => = 1815-1816
+#             ^^^^^^ [Verbatim]: => •false 1816-1822
+#                   ^ [Verbatim]: => ; 1822-1823
+#                    ^ [Verbatim]: => ↲ 1823-1824
+>        repl.set({
+#^ [Verbatim]: => ╚ 1824-1825
+# ^ [Verbatim]: => ╚ 1825-1826
+#  ^^^^ [Verbatim]: => repl 1826-1830
+#      ^ [Verbatim]: => . 1830-1831
+#       ^^^ [Verbatim]: => set 1831-1834
+#          ^ [Verbatim]: => ( 1834-1835
+#           ^ [Verbatim]: => { 1835-1836
+#            ^ [Verbatim]: => ↲ 1836-1837
+>            components: chapter.app_a.map(clone)
+#^ [Verbatim]: => ╚ 1837-1838
+# ^ [Verbatim]: => ╚ 1838-1839
+#  ^ [Verbatim]: => ╚ 1839-1840
+#   ^^^^^^^^^^ [Verbatim]: => components 1840-1850
+#             ^ [Verbatim]: => : 1850-1851
+#              ^ [Verbatim]: => • 1851-1852
+#               ^^^^^^^ [Verbatim]: => chapter 1852-1859
+#                      ^ [Verbatim]: => . 1859-1860
+#                       ^^^^^ [Verbatim]: => app_a 1860-1865
+#                            ^ [Verbatim]: => . 1865-1866
+#                             ^^^ [Verbatim]: => map 1866-1869
+#                                ^ [Verbatim]: => ( 1869-1870
+#                                 ^^^^^ [Verbatim]: => clone 1870-1875
+#                                      ^ [Verbatim]: => ) 1875-1876
+#                                       ^ [Verbatim]: => ↲ 1876-1877
+>        });
+#^ [Verbatim]: => ╚ 1877-1878
+# ^ [Verbatim]: => ╚ 1878-1879
+#  ^ [Verbatim]: => } 1879-1880
+#   ^ [Verbatim]: => ) 1880-1881
+#    ^ [Verbatim]: => ; 1881-1882
+#     ^ [Verbatim]: => ↲ 1882-1883
+>    }}
+#^ [Verbatim]: => ╚ 1883-1884
+# ^ [Verbatim]: => } 1884-1885
+#  ^ [Atom]: => ↲ 1885-1886
+>
+#^ [Verbatim]: => ↲ 1886-1887
+>    let  mobile = __sveltets_2_invalidate(() => width < 768);
+#^ [Verbatim]: => ╚ 1887-1888
+#     ^ [Verbatim]: => • 1890-1891
+#      ^^^^^^ [Verbatim]: => mobile 1891-1897
+#            ^ [Verbatim]: => • 1897-1898
+#             ^ [Verbatim]: => = 1898-1899
+#              ^ [Verbatim]: => • 1899-1900
+#                                             ^^^^^ [Verbatim]: => width 1900-1905
+#                                                  ^ [Verbatim]: => • 1905-1906
+#                                                   ^ [Verbatim]: => < 1906-1907
+#                                                    ^^^^ [Verbatim]: => •768 1907-1911
+#                                                        ^ [Atom]: => ; 1911-1912
+#                                                          ^ [Verbatim]: => ↲ 1912-1913
+>
+#^ [Verbatim]: => ↲ 1913-1914
+>    function reset() {
+#^^^^^^^^^ [Verbatim]: => ╚function 1914-1923
+#         ^ [Verbatim]: => • 1923-1924
+#          ^^^^^ [Verbatim]: => reset 1924-1929
+#               ^ [Verbatim]: => ( 1929-1930
+#                ^ [Verbatim]: => ) 1930-1931
+#                 ^ [Verbatim]: => • 1931-1932
+#                  ^ [Verbatim]: => { 1932-1933
+#                   ^ [Verbatim]: => ↲ 1933-1934
+>        repl.update({
+#^ [Verbatim]: => ╚ 1934-1935
+# ^ [Verbatim]: => ╚ 1935-1936
+#  ^^^^ [Verbatim]: => repl 1936-1940
+#      ^ [Verbatim]: => . 1940-1941
+#       ^^^^^^ [Verbatim]: => update 1941-1947
+#             ^ [Verbatim]: => ( 1947-1948
+#              ^ [Verbatim]: => { 1948-1949
+#               ^ [Verbatim]: => ↲ 1949-1950
+>            components: chapter.app_a.map(clone)
+#^ [Verbatim]: => ╚ 1950-1951
+# ^ [Verbatim]: => ╚ 1951-1952
+#  ^ [Verbatim]: => ╚ 1952-1953
+#   ^^^^^^^^^^ [Verbatim]: => components 1953-1963
+#             ^ [Verbatim]: => : 1963-1964
+#              ^ [Verbatim]: => • 1964-1965
+#               ^^^^^^^ [Verbatim]: => chapter 1965-1972
+#                      ^ [Verbatim]: => . 1972-1973
+#                       ^^^^^ [Verbatim]: => app_a 1973-1978
+#                            ^ [Verbatim]: => . 1978-1979
+#                             ^^^ [Verbatim]: => map 1979-1982
+#                                ^ [Verbatim]: => ( 1982-1983
+#                                 ^^^^^ [Verbatim]: => clone 1983-1988
+#                                      ^ [Verbatim]: => ) 1988-1989
+#                                       ^ [Verbatim]: => ↲ 1989-1990
+>        });
+#^ [Verbatim]: => ╚ 1990-1991
+# ^ [Verbatim]: => ╚ 1991-1992
+#  ^ [Verbatim]: => } 1992-1993
+#   ^ [Verbatim]: => ) 1993-1994
+#    ^ [Verbatim]: => ; 1994-1995
+#     ^ [Verbatim]: => ↲ 1995-1996
+>    }
+#^ [Verbatim]: => ╚ 1996-1997
+# ^ [Verbatim]: => } 1997-1998
+#  ^ [Verbatim]: => ↲ 1998-1999
+>
+#^ [Verbatim]: => ↲ 1999-2000
+>    function complete() {
+#^^^^^^^^^ [Verbatim]: => ╚function 2000-2009
+#         ^ [Verbatim]: => • 2009-2010
+#          ^^^^^^^^ [Verbatim]: => complete 2010-2018
+#                  ^ [Verbatim]: => ( 2018-2019
+#                   ^ [Verbatim]: => ) 2019-2020
+#                    ^ [Verbatim]: => • 2020-2021
+#                     ^ [Verbatim]: => { 2021-2022
+#                      ^ [Verbatim]: => ↲ 2022-2023
+>        repl.update({
+#^ [Verbatim]: => ╚ 2023-2024
+# ^ [Verbatim]: => ╚ 2024-2025
+#  ^^^^ [Verbatim]: => repl 2025-2029
+#      ^ [Verbatim]: => . 2029-2030
+#       ^^^^^^ [Verbatim]: => update 2030-2036
+#             ^ [Verbatim]: => ( 2036-2037
+#              ^ [Verbatim]: => { 2037-2038
+#               ^ [Verbatim]: => ↲ 2038-2039
+>            components: chapter.app_b.map(clone)
+#^ [Verbatim]: => ╚ 2039-2040
+# ^ [Verbatim]: => ╚ 2040-2041
+#  ^ [Verbatim]: => ╚ 2041-2042
+#   ^^^^^^^^^^ [Verbatim]: => components 2042-2052
+#             ^ [Verbatim]: => : 2052-2053
+#              ^ [Verbatim]: => • 2053-2054
+#               ^^^^^^^ [Verbatim]: => chapter 2054-2061
+#                      ^ [Verbatim]: => . 2061-2062
+#                       ^^^^^ [Verbatim]: => app_b 2062-2067
+#                            ^ [Verbatim]: => . 2067-2068
+#                             ^^^ [Verbatim]: => map 2068-2071
+#                                ^ [Verbatim]: => ( 2071-2072
+#                                 ^^^^^ [Verbatim]: => clone 2072-2077
+#                                      ^ [Verbatim]: => ) 2077-2078
+#                                       ^ [Verbatim]: => ↲ 2078-2079
+>        });
+#^ [Verbatim]: => ╚ 2079-2080
+# ^ [Verbatim]: => ╚ 2080-2081
+#  ^ [Verbatim]: => } 2081-2082
+#   ^ [Verbatim]: => ) 2082-2083
+#    ^ [Verbatim]: => ; 2083-2084
+#     ^ [Verbatim]: => ↲ 2084-2085
+>    }
+#^ [Verbatim]: => ╚ 2085-2086
+# ^ [Verbatim]: => } 2086-2087
+#  ^ [Verbatim]: => ↲ 2087-2088
+>
+#^ [Verbatim]: => ↲ 2088-2089
+>    let completed = false;
+#^^^^ [Verbatim]: => ╚let 2089-2093
+#    ^ [Verbatim]: => • 2093-2094
+#     ^^^^^^^^^ [Verbatim]: => completed 2094-2103
+#              ^ [Verbatim]: => • 2103-2104
+#               ^ [Verbatim]: => = 2104-2105
+#                ^^^^^^ [Verbatim]: => •false 2105-2111
+#                      ^ [Verbatim]: => ; 2111-2112
+#                       ^ [Verbatim]: => ↲ 2112-2113
+>
+#^ [Verbatim]: => ↲ 2113-2114
+>    function handle_change(event) {
+#^^^^^^^^^ [Verbatim]: => ╚function 2114-2123
+#         ^ [Verbatim]: => • 2123-2124
+#          ^^^^^^^^^^^^^ [Verbatim]: => handle_change 2124-2137
+#                       ^ [Verbatim]: => ( 2137-2138
+#                        ^^^^^ [Verbatim]: => event 2138-2143
+#                             ^ [Verbatim]: => ) 2143-2144
+#                              ^ [Verbatim]: => • 2144-2145
+#                               ^ [Verbatim]: => { 2145-2146
+#                                ^ [Verbatim]: => ↲ 2146-2147
+>        completed = event.detail.components.every((file, i) => {
+#^ [Verbatim]: => ╚ 2147-2148
+# ^ [Verbatim]: => ╚ 2148-2149
+#  ^^^^^^^^^ [Verbatim]: => completed 2149-2158
+#           ^ [Verbatim]: => • 2158-2159
+#            ^ [Verbatim]: => = 2159-2160
+#             ^ [Verbatim]: => • 2160-2161
+#              ^^^^^ [Verbatim]: => event 2161-2166
+#                   ^ [Verbatim]: => . 2166-2167
+#                    ^^^^^^ [Verbatim]: => detail 2167-2173
+#                          ^ [Verbatim]: => . 2173-2174
+#                           ^^^^^^^^^^ [Verbatim]: => components 2174-2184
+#                                     ^ [Verbatim]: => . 2184-2185
+#                                      ^^^^^ [Verbatim]: => every 2185-2190
+#                                           ^ [Verbatim]: => ( 2190-2191
+#                                            ^ [Verbatim]: => ( 2191-2192
+#                                             ^^^^ [Verbatim]: => file 2192-2196
+#                                                 ^ [Verbatim]: => , 2196-2197
+#                                                  ^ [Verbatim]: => • 2197-2198
+#                                                   ^ [Verbatim]: => i 2198-2199
+#                                                    ^ [Verbatim]: => ) 2199-2200
+#                                                     ^ [Verbatim]: => • 2200-2201
+#                                                      ^ [Verbatim]: => = 2201-2202
+#                                                       ^ [Verbatim]: => > 2202-2203
+#                                                        ^ [Verbatim]: => • 2203-2204
+#                                                         ^ [Verbatim]: => { 2204-2205
+#                                                          ^ [Verbatim]: => ↲ 2205-2206
+>            const expected = chapter.app_b[i];
+#^ [Verbatim]: => ╚ 2206-2207
+# ^ [Verbatim]: => ╚ 2207-2208
+#  ^^^^^^ [Verbatim]: => ╚const 2208-2214
+#        ^ [Verbatim]: => • 2214-2215
+#         ^^^^^^^^ [Verbatim]: => expected 2215-2223
+#                 ^ [Verbatim]: => • 2223-2224
+#                  ^ [Verbatim]: => = 2224-2225
+#                   ^ [Verbatim]: => • 2225-2226
+#                    ^^^^^^^ [Verbatim]: => chapter 2226-2233
+#                           ^ [Verbatim]: => . 2233-2234
+#                            ^^^^^ [Verbatim]: => app_b 2234-2239
+#                                 ^ [Verbatim]: => [ 2239-2240
+#                                  ^ [Verbatim]: => i 2240-2241
+#                                   ^ [Verbatim]: => ] 2241-2242
+#                                    ^ [Verbatim]: => ; 2242-2243
+#                                     ^ [Verbatim]: => ↲ 2243-2244
+>            return expected && (
+#^ [Verbatim]: => ╚ 2244-2245
+# ^ [Verbatim]: => ╚ 2245-2246
+#  ^^^^^^^ [Verbatim]: => ╚return 2246-2253
+#         ^ [Verbatim]: => • 2253-2254
+#          ^^^^^^^^ [Verbatim]: => expected 2254-2262
+#                  ^ [Verbatim]: => • 2262-2263
+#                   ^ [Verbatim]: => & 2263-2264
+#                    ^ [Verbatim]: => & 2264-2265
+#                     ^ [Verbatim]: => • 2265-2266
+#                      ^ [Verbatim]: => ( 2266-2267
+#                       ^ [Verbatim]: => ↲ 2267-2268
+>                file.name === expected.name &&
+#^ [Verbatim]: => ╚ 2268-2269
+# ^ [Verbatim]: => ╚ 2269-2270
+#  ^ [Verbatim]: => ╚ 2270-2271
+#   ^ [Verbatim]: => ╚ 2271-2272
+#    ^^^^ [Verbatim]: => file 2272-2276
+#        ^ [Verbatim]: => . 2276-2277
+#         ^^^^ [Verbatim]: => name 2277-2281
+#             ^ [Verbatim]: => • 2281-2282
+#              ^ [Verbatim]: => = 2282-2283
+#               ^ [Verbatim]: => = 2283-2284
+#                ^ [Verbatim]: => = 2284-2285
+#                 ^ [Verbatim]: => • 2285-2286
+#                  ^^^^^^^^ [Verbatim]: => expected 2286-2294
+#                          ^ [Verbatim]: => . 2294-2295
+#                           ^^^^ [Verbatim]: => name 2295-2299
+#                               ^ [Verbatim]: => • 2299-2300
+#                                ^ [Verbatim]: => & 2300-2301
+#                                 ^ [Verbatim]: => & 2301-2302
+#                                  ^ [Verbatim]: => ↲ 2302-2303
+>                file.type === expected.type &&
+#^ [Verbatim]: => ╚ 2303-2304
+# ^ [Verbatim]: => ╚ 2304-2305
+#  ^ [Verbatim]: => ╚ 2305-2306
+#   ^ [Verbatim]: => ╚ 2306-2307
+#    ^^^^ [Verbatim]: => file 2307-2311
+#        ^ [Verbatim]: => . 2311-2312
+#         ^^^^ [Verbatim]: => type 2312-2316
+#             ^ [Verbatim]: => • 2316-2317
+#              ^ [Verbatim]: => = 2317-2318
+#               ^ [Verbatim]: => = 2318-2319
+#                ^ [Verbatim]: => = 2319-2320
+#                 ^ [Verbatim]: => • 2320-2321
+#                  ^^^^^^^^ [Verbatim]: => expected 2321-2329
+#                          ^ [Verbatim]: => . 2329-2330
+#                           ^^^^ [Verbatim]: => type 2330-2334
+#                               ^ [Verbatim]: => • 2334-2335
+#                                ^ [Verbatim]: => & 2335-2336
+#                                 ^ [Verbatim]: => & 2336-2337
+#                                  ^ [Verbatim]: => ↲ 2337-2338
+>                file.source.trim().replace(/\s+$/gm, '') === expected.source.trim().replace(/\s+$/gm, '')
+#^ [Verbatim]: => ╚ 2338-2339
+# ^ [Verbatim]: => ╚ 2339-2340
+#  ^ [Verbatim]: => ╚ 2340-2341
+#   ^ [Verbatim]: => ╚ 2341-2342
+#    ^^^^ [Verbatim]: => file 2342-2346
+#        ^ [Verbatim]: => . 2346-2347
+#         ^^^^^^ [Verbatim]: => source 2347-2353
+#               ^ [Verbatim]: => . 2353-2354
+#                ^^^^ [Verbatim]: => trim 2354-2358
+#                    ^ [Verbatim]: => ( 2358-2359
+#                     ^ [Verbatim]: => ) 2359-2360
+#                      ^ [Verbatim]: => . 2360-2361
+#                       ^^^^^^^ [Verbatim]: => replace 2361-2368
+#                              ^ [Verbatim]: => ( 2368-2369
+#                               ^ [Verbatim]: => / 2369-2370
+#                                ^^ [Verbatim]: => \s 2370-2372
+#                                  ^^ [Verbatim]: => +$ 2372-2374
+#                                    ^^^ [Verbatim]: => /gm 2374-2377
+#                                       ^ [Verbatim]: => , 2377-2378
+#                                        ^ [Verbatim]: => • 2378-2379
+#                                         ^^ [Verbatim]: => '' 2379-2381
+#                                           ^ [Verbatim]: => ) 2381-2382
+#                                            ^ [Verbatim]: => • 2382-2383
+#                                             ^ [Verbatim]: => = 2383-2384
+#                                              ^ [Verbatim]: => = 2384-2385
+#                                               ^ [Verbatim]: => = 2385-2386
+#                                                ^ [Verbatim]: => • 2386-2387
+#                                                 ^^^^^^^^ [Verbatim]: => expected 2387-2395
+#                                                         ^ [Verbatim]: => . 2395-2396
+#                                                          ^^^^^^ [Verbatim]: => source 2396-2402
+#                                                                ^ [Verbatim]: => . 2402-2403
+#                                                                 ^^^^ [Verbatim]: => trim 2403-2407
+#                                                                     ^ [Verbatim]: => ( 2407-2408
+#                                                                      ^ [Verbatim]: => ) 2408-2409
+#                                                                       ^ [Verbatim]: => . 2409-2410
+#                                                                        ^^^^^^^ [Verbatim]: => replace 2410-2417
+#                                                                               ^ [Verbatim]: => ( 2417-2418
+#                                                                                ^ [Verbatim]: => / 2418-2419
+#                                                                                 ^^ [Verbatim]: => \s 2419-2421
+#                                                                                   ^^ [Verbatim]: => +$ 2421-2423
+#                                                                                     ^^^ [Verbatim]: => /gm 2423-2426
+#                                                                                        ^ [Verbatim]: => , 2426-2427
+#                                                                                         ^ [Verbatim]: => • 2427-2428
+#                                                                                          ^^ [Verbatim]: => '' 2428-2430
+#                                                                                            ^ [Verbatim]: => ) 2430-2431
+#                                                                                             ^ [Verbatim]: => ↲ 2431-2432
+>            );
+#^ [Verbatim]: => ╚ 2432-2433
+# ^ [Verbatim]: => ╚ 2433-2434
+#  ^ [Verbatim]: => ╚ 2434-2435
+#   ^ [Verbatim]: => ) 2435-2436
+#    ^ [Verbatim]: => ; 2436-2437
+#     ^ [Verbatim]: => ↲ 2437-2438
+>        });
+#^ [Verbatim]: => ╚ 2438-2439
+# ^ [Verbatim]: => ╚ 2439-2440
+#  ^ [Verbatim]: => } 2440-2441
+#   ^ [Verbatim]: => ) 2441-2442
+#    ^ [Verbatim]: => ; 2442-2443
+#     ^ [Verbatim]: => ↲ 2443-2444
+>    }
+#^ [Verbatim]: => ╚ 2444-2445
+# ^ [Verbatim]: => } 2445-2446
+#  ^ [Verbatim]: => ↲ 2446-2447
+>;
+>async () => {
+#^ [Atom]: => < 2447-2448
+>
+#^ [Verbatim]: => ↲ 286-287
+>
+>
+#^ [Verbatim]: => ↲ 2456-2457
+>
+>
+#^ [Verbatim]: => ↲ 5227-5228
+> { svelteHTML.createElement("svelte:head", {});
+#^ [Atom]: => s 5230-5231
+>     { svelteHTML.createElement("title", {});selected.section.title;  selected.chapter.title;    }
+#^ [Atom]: => ↲ 5242-5243
+# ^ [Atom]: => < 5244-5245
+#                              ^^^^^ [Verbatim]: => title 5245-5250
+#                                          ^^^^^^^^ [Verbatim]: => selected 5252-5260
+#                                                  ^ [Verbatim]: => . 5260-5261
+#                                                   ^^^^^^^ [Verbatim]: => section 5261-5268
+#                                                          ^ [Verbatim]: => . 5268-5269
+#                                                           ^^^^^ [Verbatim]: => title 5269-5274
+#                                                                ^ [Atom]: => } 5274-5275
+#                                                                 ^ [Verbatim]: => • 5275-5276
+#                                                                   ^^^^^^^^ [Verbatim]: => selected 5279-5287
+#                                                                           ^ [Verbatim]: => . 5287-5288
+#                                                                            ^^^^^^^ [Verbatim]: => chapter 5288-5295
+#                                                                                   ^ [Verbatim]: => . 5295-5296
+#                                                                                    ^^^^^ [Verbatim]: => title 5296-5301
+#                                                                                         ^ [Atom]: => } 5301-5302
+#                                                                                          ^ [Verbatim]: => • 5302-5303
+#                                                                                             ^ [Atom]: => / 5321-5322
+>
+>     { svelteHTML.createElement("meta", {   "name":`twitter:title`,"content":`Svelte tutorial`,});}
+#^ [Atom]: => ↲ 5328-5329
+# ^ [Atom]: => < 5331-5332
+#                              ^^^^ [Verbatim]: => meta 5332-5336
+#                                      ^ [Atom]: => " 5342-5343
+#                                       ^ [Verbatim]: => • 5357-5358
+#                                        ^ [Atom]: => " 5366-5367
+#                                         ^ [Atom]: => n 5337-5338
+#                                           ^^^ [Verbatim]: => ame 5338-5341
+#                                              ^ [Atom]: => = 5341-5342
+#                                                 ^^^^^^^^^^^^^ [Verbatim]: => twitter:title 5343-5356
+#                                                              ^ [Atom]: => " 5356-5357
+#                                                                ^ [Atom]: => c 5358-5359
+#                                                                  ^^^^^^ [Verbatim]: => ontent 5359-5365
+#                                                                        ^ [Atom]: => = 5365-5366
+#                                                                           ^^^^^^^^^^^^^^^ [Verbatim]: => Svelte•tutorial 5367-5382
+#                                                                                          ^ [Atom]: => " 5382-5383
+>     { svelteHTML.createElement("meta", {   "name":`twitter:description`,"content":`${selected.section.title} / ${selected.chapter.title}`,});}
+#^ [Atom]: => ↲ 5384-5385
+# ^ [Atom]: => < 5386-5387
+#                              ^^^^ [Verbatim]: => meta 5387-5391
+#                                      ^ [Atom]: => " 5397-5398
+#                                       ^ [Verbatim]: => • 5418-5419
+#                                        ^ [Atom]: => " 5427-5428
+#                                         ^ [Atom]: => n 5392-5393
+#                                           ^^^ [Verbatim]: => ame 5393-5396
+#                                              ^ [Atom]: => = 5396-5397
+#                                                 ^^^^^^^^^^^^^^^^^^^ [Verbatim]: => twitter:description 5398-5417
+#                                                                    ^ [Atom]: => " 5417-5418
+#                                                                      ^ [Atom]: => c 5419-5420
+#                                                                        ^^^^^^ [Verbatim]: => ontent 5420-5426
+#                                                                              ^ [Atom]: => = 5426-5427
+#                                                                                  ^ [Verbatim]: => { 5428-5429
+#                                                                                   ^^^^^^^^ [Verbatim]: => selected 5429-5437
+#                                                                                           ^ [Verbatim]: => . 5437-5438
+#                                                                                            ^^^^^^^ [Verbatim]: => section 5438-5445
+#                                                                                                   ^ [Verbatim]: => . 5445-5446
+#                                                                                                    ^^^^^ [Verbatim]: => title 5446-5451
+#                                                                                                         ^ [Verbatim]: => } 5451-5452
+#                                                                                                          ^ [Verbatim]: => • 5452-5453
+#                                                                                                           ^ [Verbatim]: => / 5453-5454
+#                                                                                                            ^ [Verbatim]: => • 5454-5455
+#                                                                                                              ^ [Verbatim]: => { 5455-5456
+#                                                                                                               ^^^^^^^^ [Verbatim]: => selected 5456-5464
+#                                                                                                                       ^ [Verbatim]: => . 5464-5465
+#                                                                                                                        ^^^^^^^ [Verbatim]: => chapter 5465-5472
+#                                                                                                                               ^ [Verbatim]: => . 5472-5473
+#                                                                                                                                ^^^^^ [Verbatim]: => title 5473-5478
+#                                                                                                                                     ^ [Verbatim]: => } 5478-5479
+#                                                                                                                                      ^ [Atom]: => " 5479-5480
+>     { svelteHTML.createElement("meta", {   "name":`Description`,"content":`${selected.section.title} / ${selected.chapter.title}`,});}
+#^ [Atom]: => ↲ 5481-5482
+# ^ [Atom]: => < 5483-5484
+#                              ^^^^ [Verbatim]: => meta 5484-5488
+#                                      ^ [Atom]: => " 5494-5495
+#                                       ^ [Verbatim]: => • 5507-5508
+#                                        ^ [Atom]: => " 5516-5517
+#                                         ^ [Atom]: => n 5489-5490
+#                                           ^^^ [Verbatim]: => ame 5490-5493
+#                                              ^ [Atom]: => = 5493-5494
+#                                                 ^^^^^^^^^^^ [Verbatim]: => Description 5495-5506
+#                                                            ^ [Atom]: => " 5506-5507
+#                                                              ^ [Atom]: => c 5508-5509
+#                                                                ^^^^^^ [Verbatim]: => ontent 5509-5515
+#                                                                      ^ [Atom]: => = 5515-5516
+#                                                                          ^ [Verbatim]: => { 5517-5518
+#                                                                           ^^^^^^^^ [Verbatim]: => selected 5518-5526
+#                                                                                   ^ [Verbatim]: => . 5526-5527
+#                                                                                    ^^^^^^^ [Verbatim]: => section 5527-5534
+#                                                                                           ^ [Verbatim]: => . 5534-5535
+#                                                                                            ^^^^^ [Verbatim]: => title 5535-5540
+#                                                                                                 ^ [Verbatim]: => } 5540-5541
+#                                                                                                  ^ [Verbatim]: => • 5541-5542
+#                                                                                                   ^ [Verbatim]: => / 5542-5543
+#                                                                                                    ^ [Verbatim]: => • 5543-5544
+#                                                                                                      ^ [Verbatim]: => { 5544-5545
+#                                                                                                       ^^^^^^^^ [Verbatim]: => selected 5545-5553
+#                                                                                                               ^ [Verbatim]: => . 5553-5554
+#                                                                                                                ^^^^^^^ [Verbatim]: => chapter 5554-5561
+#                                                                                                                       ^ [Verbatim]: => . 5561-5562
+#                                                                                                                        ^^^^^ [Verbatim]: => title 5562-5567
+#                                                                                                                             ^ [Verbatim]: => } 5567-5568
+#                                                                                                                              ^ [Atom]: => " 5568-5569
+#                                                                                                                                    ^ [Verbatim]: => ↲ 5570-5571
+> }
+#^ [Atom]: => / 5572-5573
+>
+#^ [Verbatim]: => ↲ 5585-5586
+>  { svelteHTML.createElement("svelte:window", { "bind:innerWidth":width,});/*Ωignore_startΩ*/() => width = __sveltets_2_any(null);/*Ωignore_endΩ*/}
+#^ [Atom]: => < 5587-5588
+# ^ [Atom]: => > 5626-5627
+#                                               ^ [Atom]: => { 5618-5619
+#                                                 ^^^^ [Verbatim]: => bind 5602-5606
+#                                                     ^^^^^^^^^^^ [Verbatim]: => :innerWidth 5606-5617
+#                                                                ^ [Atom]: => = 5617-5618
+#                                                                  ^^^^^ [Verbatim]: => width 5619-5624
+#                                                                       ^ [Atom]: => } 5624-5625
+>
+#^ [Verbatim]: => ↲ 5627-5628
+> { svelteHTML.createElement("div", { "class":`tutorial-outer`,});
+#^ [Atom]: => < 5629-5630
+#                             ^^^ [Verbatim]: => div 5630-5633
+#                                    ^ [Atom]: => " 5640-5641
+#                                     ^ [Atom]: => c 5634-5635
+#                                       ^^^^ [Verbatim]: => lass 5635-5639
+#                                           ^ [Atom]: => = 5639-5640
+#                                              ^^^^^^^^^^^^^^ [Verbatim]: => tutorial-outer 5641-5655
+#                                                            ^ [Atom]: => " 5655-5656
+>     { svelteHTML.createElement("div", { "class":`viewport offset-${offset}`,});
+#^ [Atom]: => ↲ 5657-5658
+# ^ [Atom]: => < 5659-5660
+#                              ^^^ [Verbatim]: => div 5660-5663
+#                                     ^ [Atom]: => " 5670-5671
+#                                      ^ [Atom]: => c 5664-5665
+#                                        ^^^^ [Verbatim]: => lass 5665-5669
+#                                            ^ [Atom]: => = 5669-5670
+#                                               ^^^^^^^^ [Verbatim]: => viewport 5671-5679
+#                                                       ^^^^^^^ [Verbatim]: => •offset 5679-5686
+#                                                              ^ [Verbatim]: => - 5686-5687
+#                                                                ^ [Verbatim]: => { 5687-5688
+#                                                                 ^^^^^^ [Verbatim]: => offset 5688-5694
+#                                                                       ^ [Verbatim]: => } 5694-5695
+#                                                                        ^ [Atom]: => " 5695-5696
+>         { svelteHTML.createElement("div", { "class":`tutorial-text`,});
+#^ [Atom]: => ↲ 5697-5698
+#  ^ [Atom]: => < 5700-5701
+#                               ^^^ [Verbatim]: => div 5701-5704
+#                                      ^ [Atom]: => " 5711-5712
+#                                       ^ [Atom]: => c 5705-5706
+#                                         ^^^^ [Verbatim]: => lass 5706-5710
+#                                             ^ [Atom]: => = 5710-5711
+#                                                ^^^^^^^^^^^^^ [Verbatim]: => tutorial-text 5712-5725
+#                                                             ^ [Atom]: => " 5725-5726
+>             { svelteHTML.createElement("div", { "class":`table-of-contents`,});
+#^ [Atom]: => ↲ 5727-5728
+#   ^ [Atom]: => < 5731-5732
+#                                ^^^ [Verbatim]: => div 5732-5735
+#                                       ^ [Atom]: => " 5742-5743
+#                                        ^ [Atom]: => c 5736-5737
+#                                          ^^^^ [Verbatim]: => lass 5737-5741
+#                                              ^ [Atom]: => = 5741-5742
+#                                                 ^^^^^^^^^^^^^^^^^ [Verbatim]: => table-of-contents 5743-5760
+#                                                                  ^ [Atom]: => " 5760-5761
+>                  { const $$_stnetnoCfOelbaT4C = __sveltets_2_ensureComponent(TableOfContents); new $$_stnetnoCfOelbaT4C({ target: __sveltets_2_any(), props: {  sections,slug,selected,}});}
+#^ [Atom]: => ↲ 5762-5763
+#    ^ [Atom]: => < 5767-5768
+#     ^ [Atom]: => > 5813-5814
+#                                                                  ^^^^^^^^^^^^^^^ [Verbatim]: => TableOfContents 5768-5783
+#                                                                                                                                                   ^ [Verbatim]: => • 5794-5795
+#                                                                                                                                                    ^ [Verbatim]: => • 5801-5802
+#                                                                                                                                                     ^^^^^^^^ [Verbatim]: => sections 5785-5793
+#                                                                                                                                                             ^ [Atom]: => } 5793-5794
+#                                                                                                                                                              ^^^^ [Verbatim]: => slug 5796-5800
+#                                                                                                                                                                  ^ [Atom]: => } 5800-5801
+#                                                                                                                                                                   ^^^^^^^^ [Verbatim]: => selected 5803-5811
+#                                                                                                                                                                           ^ [Atom]: => } 5811-5812
+>             }
+#^ [Atom]: => ↲ 5814-5815
+#   ^ [Atom]: => / 5819-5820
+>
+>             { const $$_div3 = svelteHTML.createElement("div", {  "class":`chapter-markup`,});scrollable = $$_div3;
+#^ [Atom]: => ↲ 5824-5825
+#   ^ [Atom]: => < 5829-5830
+#                                                ^^^ [Verbatim]: => div 5830-5833
+#                                                       ^ [Atom]: => " 5840-5841
+#                                                        ^ [Verbatim]: => • 5856-5857
+#                                                         ^ [Atom]: => c 5834-5835
+#                                                           ^^^^ [Verbatim]: => lass 5835-5839
+#                                                               ^ [Atom]: => = 5839-5840
+#                                                                  ^^^^^^^^^^^^^^ [Verbatim]: => chapter-markup 5841-5855
+#                                                                                ^ [Atom]: => " 5855-5856
+#                                                                                     ^^^^^^^^^^ [Verbatim]: => scrollable 5868-5878
+#                                                                                               ^ [Atom]: => } 5878-5879
+>                 chapter.html;
+#^ [Atom]: => ↲ 5880-5881
+#    ^ [Atom]: => { 5885-5886
+#     ^^^^^^^ [Verbatim]: => chapter 5892-5899
+#            ^ [Verbatim]: => . 5899-5900
+#             ^^^^ [Verbatim]: => html 5900-5904
+#                 ^ [Atom]: => } 5904-5905
+>
+>                 { svelteHTML.createElement("div", { "class":`controls`,});
+#^ [Atom]: => ↲ 5905-5906
+#    ^ [Atom]: => < 5911-5912
+#                                 ^^^ [Verbatim]: => div 5912-5915
+#                                        ^ [Atom]: => " 5922-5923
+#                                         ^ [Atom]: => c 5916-5917
+#                                           ^^^^ [Verbatim]: => lass 5917-5921
+#                                               ^ [Atom]: => = 5921-5922
+#                                                  ^^^^^^^^ [Verbatim]: => controls 5923-5931
+#                                                          ^ [Atom]: => " 5931-5932
+>                    if(chapter.app_b){
+#^ [Atom]: => ↲ 5933-5934
+#     ^ [Atom]: => { 5939-5940
+#        ^^^^^^^ [Verbatim]: => chapter 5944-5951
+#               ^ [Verbatim]: => . 5951-5952
+#                ^^^^^ [Verbatim]: => app_b 5952-5957
+#                     ^ [Atom]: => } 5957-5958
+#                       ^ [Verbatim]: => ↲ 5958-5959
+>
+#^ [Verbatim]: => ╚ 5959-5960
+# ^ [Verbatim]: => ╚ 5960-5961
+#  ^ [Verbatim]: => ╚ 5961-5962
+#   ^ [Verbatim]: => ╚ 5962-5963
+#    ^ [Verbatim]: => ╚ 5963-5964
+#     ^ [Verbatim]: => ╚ 5964-5965
+>                          { svelteHTML.createElement("button", {   "class":`show`,"on:click":() => completed ? reset() : complete(),});
+#^ [Atom]: => ↲ 6067-6068
+#      ^ [Atom]: => < 6074-6075
+#       ^ [Atom]: => > 6146-6147
+#                                    ^^^^^^ [Verbatim]: => button 6075-6081
+#                                              ^ [Atom]: => " 6088-6089
+#                                               ^ [Verbatim]: => • 6094-6095
+#                                                ^ [Atom]: => " 6104-6105
+#                                                 ^ [Atom]: => c 6082-6083
+#                                                   ^^^^ [Verbatim]: => lass 6083-6087
+#                                                       ^ [Atom]: => = 6087-6088
+#                                                          ^^^^ [Verbatim]: => show 6089-6093
+#                                                              ^ [Atom]: => " 6093-6094
+#                                                                ^ [Atom]: => c 6098-6099
+#                                                                     ^^^^ [Verbatim]: => lick 6099-6103
+#                                                                          ^ [Atom]: => = 6103-6104
+#                                                                           ^ [Verbatim]: => ( 6106-6107
+#                                                                            ^ [Verbatim]: => ) 6107-6108
+#                                                                             ^ [Verbatim]: => • 6108-6109
+#                                                                              ^ [Verbatim]: => = 6109-6110
+#                                                                               ^ [Verbatim]: => > 6110-6111
+#                                                                                ^ [Verbatim]: => • 6111-6112
+#                                                                                 ^^^^^^^^^ [Verbatim]: => completed 6112-6121
+#                                                                                          ^ [Verbatim]: => • 6121-6122
+#                                                                                           ^ [Verbatim]: => ? 6122-6123
+#                                                                                            ^ [Verbatim]: => • 6123-6124
+#                                                                                             ^^^^^ [Verbatim]: => reset 6124-6129
+#                                                                                                  ^ [Verbatim]: => ( 6129-6130
+#                                                                                                   ^ [Verbatim]: => ) 6130-6131
+#                                                                                                    ^ [Verbatim]: => • 6131-6132
+#                                                                                                     ^ [Verbatim]: => : 6132-6133
+#                                                                                                      ^ [Verbatim]: => • 6133-6134
+#                                                                                                       ^^^^^^^^ [Verbatim]: => complete 6134-6142
+#                                                                                                               ^ [Verbatim]: => ( 6142-6143
+#                                                                                                                ^ [Verbatim]: => ) 6143-6144
+#                                                                                                                 ^ [Atom]: => } 6144-6145
+>                            completed ? 'Reset' : 'Show me';
+#^ [Atom]: => ↲ 6147-6148
+#       ^^^^^^^^^ [Verbatim]: => completed 6156-6165
+#                ^ [Verbatim]: => • 6165-6166
+#                 ^ [Verbatim]: => ? 6166-6167
+#                  ^ [Verbatim]: => • 6167-6168
+#                   ^^^^^^ [Verbatim]: => 'Reset 6168-6174
+#                         ^ [Verbatim]: => ' 6174-6175
+#                          ^ [Verbatim]: => • 6175-6176
+#                           ^ [Verbatim]: => : 6176-6177
+#                            ^ [Verbatim]: => • 6177-6178
+#                             ^^^^^ [Verbatim]: => 'Show 6178-6183
+#                                  ^^^ [Verbatim]: => •me 6183-6186
+#                                     ^ [Verbatim]: => ' 6186-6187
+#                                      ^ [Atom]: => } 6187-6188
+>                         }
+#^ [Atom]: => ↲ 6188-6189
+#      ^ [Atom]: => / 6196-6197
+#        ^ [Verbatim]: => ↲ 6204-6205
+>                    }
+#^ [Verbatim]: => ╚ 6205-6206
+# ^ [Verbatim]: => ╚ 6206-6207
+#  ^ [Verbatim]: => ╚ 6207-6208
+#   ^ [Verbatim]: => ╚ 6208-6209
+#    ^ [Verbatim]: => ╚ 6209-6210
+#     ^ [Atom]: => { 6210-6211
+>
+>                    if(selected.next){
+#^ [Atom]: => ↲ 6215-6216
+#     ^ [Atom]: => { 6222-6223
+#        ^^^^^^^^ [Verbatim]: => selected 6227-6235
+#                ^ [Verbatim]: => . 6235-6236
+#                 ^^^^ [Verbatim]: => next 6236-6240
+#                     ^ [Atom]: => } 6240-6241
+#                       ^ [Verbatim]: => ↲ 6241-6242
+>                         { svelteHTML.createElement("a", {   "class":`next`,"href":`tutorial/${selected.next.slug}`,});  }
+#^ [Verbatim]: => ╚ 6242-6243
+# ^ [Verbatim]: => ╚ 6243-6244
+#  ^ [Verbatim]: => ╚ 6244-6245
+#   ^ [Verbatim]: => ╚ 6245-6246
+#    ^ [Verbatim]: => ╚ 6246-6247
+#     ^ [Verbatim]: => ╚ 6247-6248
+#      ^ [Atom]: => < 6248-6249
+#                                   ^ [Verbatim]: => a 6249-6250
+#                                        ^ [Atom]: => " 6257-6258
+#                                         ^ [Verbatim]: => • 6263-6264
+#                                          ^ [Atom]: => " 6269-6270
+#                                           ^ [Atom]: => c 6251-6252
+#                                             ^^^^ [Verbatim]: => lass 6252-6256
+#                                                 ^ [Atom]: => = 6256-6257
+#                                                    ^^^^ [Verbatim]: => next 6258-6262
+#                                                        ^ [Atom]: => " 6262-6263
+#                                                          ^ [Atom]: => h 6264-6265
+#                                                            ^^^ [Verbatim]: => ref 6265-6268
+#                                                               ^ [Atom]: => = 6268-6269
+#                                                                  ^^^^^^^^ [Verbatim]: => tutorial 6270-6278
+#                                                                          ^ [Verbatim]: => / 6278-6279
+#                                                                            ^ [Verbatim]: => { 6279-6280
+#                                                                             ^^^^^^^^ [Verbatim]: => selected 6280-6288
+#                                                                                     ^ [Verbatim]: => . 6288-6289
+#                                                                                      ^^^^ [Verbatim]: => next 6289-6293
+#                                                                                          ^ [Verbatim]: => . 6293-6294
+#                                                                                           ^^^^ [Verbatim]: => slug 6294-6298
+#                                                                                               ^ [Verbatim]: => } 6298-6299
+#                                                                                                ^ [Atom]: => " 6299-6300
+#                                                                                                     ^ [Atom]: => N 6301-6302
+#                                                                                                      ^ [Atom]: => / 6306-6307
+#                                                                                                        ^ [Verbatim]: => ↲ 6309-6310
+>                    }
+#^ [Verbatim]: => ╚ 6310-6311
+# ^ [Verbatim]: => ╚ 6311-6312
+#  ^ [Verbatim]: => ╚ 6312-6313
+#   ^ [Verbatim]: => ╚ 6313-6314
+#    ^ [Verbatim]: => ╚ 6314-6315
+#     ^ [Atom]: => { 6315-6316
+>                 }
+#^ [Atom]: => ↲ 6320-6321
+#    ^ [Atom]: => / 6326-6327
+>
+>                 { svelteHTML.createElement("div", { "class":`improve-chapter`,});
+#^ [Atom]: => ↲ 6331-6332
+#    ^ [Atom]: => < 6337-6338
+#                                 ^^^ [Verbatim]: => div 6338-6341
+#                                        ^ [Atom]: => " 6348-6349
+#                                         ^ [Atom]: => c 6342-6343
+#                                           ^^^^ [Verbatim]: => lass 6343-6347
+#                                               ^ [Atom]: => = 6347-6348
+#                                                  ^^^^^^^^^^^^^^^ [Verbatim]: => improve-chapter 6349-6364
+#                                                                 ^ [Atom]: => " 6364-6365
+>                     { svelteHTML.createElement("a", {   "class":`no-underline`,"href":improve_link,});   }
+#^ [Atom]: => ↲ 6366-6367
+#     ^ [Atom]: => < 6372-6373
+#                                  ^ [Verbatim]: => a 6373-6374
+#                                       ^ [Atom]: => " 6381-6382
+#                                        ^ [Verbatim]: => • 6395-6396
+#                                         ^ [Atom]: => { 6401-6402
+#                                          ^ [Atom]: => c 6375-6376
+#                                            ^^^^ [Verbatim]: => lass 6376-6380
+#                                                ^ [Atom]: => = 6380-6381
+#                                                   ^^^^^^^^^^^^ [Verbatim]: => no-underline 6382-6394
+#                                                               ^ [Atom]: => " 6394-6395
+#                                                                 ^ [Atom]: => h 6396-6397
+#                                                                   ^^^ [Verbatim]: => ref 6397-6400
+#                                                                      ^ [Atom]: => = 6400-6401
+#                                                                        ^^^^^^^^^^^^ [Verbatim]: => improve_link 6402-6414
+#                                                                                    ^ [Atom]: => } 6414-6415
+#                                                                                        ^ [Atom]: => E 6416-6417
+#                                                                                          ^ [Atom]: => / 6434-6435
+>                 }
+#^ [Atom]: => ↲ 6437-6438
+#    ^ [Atom]: => / 6443-6444
+>             }
+#^ [Atom]: => ↲ 6448-6449
+#   ^ [Atom]: => / 6453-6454
+>         }
+#^ [Atom]: => ↲ 6458-6459
+#  ^ [Atom]: => / 6462-6463
+>
+>         { svelteHTML.createElement("div", { "class":`tutorial-repl`,});
+#^ [Atom]: => ↲ 6467-6468
+#  ^ [Atom]: => < 6471-6472
+#                               ^^^ [Verbatim]: => div 6472-6475
+#                                      ^ [Atom]: => " 6482-6483
+#                                       ^ [Atom]: => c 6476-6477
+#                                         ^^^^ [Verbatim]: => lass 6477-6481
+#                                             ^ [Atom]: => = 6481-6482
+#                                                ^^^^^^^^^^^^^ [Verbatim]: => tutorial-repl 6483-6496
+#                                                             ^ [Atom]: => " 6496-6497
+>             { const $$_lpeR3C = __sveltets_2_ensureComponent(Repl); const $$_lpeR3 = new $$_lpeR3C({ target: __sveltets_2_any(), props: {               "workersUrl":`workers`,svelteUrl,rollupUrl,"orientation":mobile ? 'columns' : 'rows',"fixed":mobile,"injectedJS":mapbox_setup,"relaxed":true,}});repl = $$_lpeR3;$$_lpeR3.$on("change", handle_change);}
+#^ [Atom]: => ↲ 6498-6499
+#   ^ [Atom]: => < 6502-6503
+#                                                     ^^^^ [Verbatim]: => Repl 6503-6507
+#                                                                                                                                 ^ [Atom]: => ╚ 6509-6510
+#                                                                                                                                  ^ [Atom]: => ↲ 6528-6529
+#                                                                                                                                   ^ [Atom]: => " 6544-6545
+#                                                                                                                                    ^ [Atom]: => ↲ 6553-6554
+#                                                                                                                                     ^ [Atom]: => ↲ 6569-6570
+#                                                                                                                                      ^ [Atom]: => ↲ 6585-6586
+#                                                                                                                                       ^ [Atom]: => { 6602-6603
+#                                                                                                                                        ^ [Atom]: => ↲ 6631-6632
+#                                                                                                                                         ^ [Atom]: => { 6642-6643
+#                                                                                                                                          ^ [Atom]: => ↲ 6650-6651
+#                                                                                                                                           ^ [Atom]: => { 6665-6666
+#                                                                                                                                            ^ [Atom]: => ↲ 6680-6681
+#                                                                                                                                             ^ [Atom]: => { 6696-6697
+#                                                                                                                                              ^ [Atom]: => ↲ 6710-6711
+#                                                                                                                                               ^ [Atom]: => ╚ 6724-6725
+#                                                                                                                                                ^ [Atom]: => w 6533-6534
+#                                                                                                                                                  ^^^^^^^^^ [Verbatim]: => orkersUrl 6534-6543
+#                                                                                                                                                           ^ [Atom]: => = 6543-6544
+#                                                                                                                                                              ^^^^^^^ [Verbatim]: => workers 6545-6552
+#                                                                                                                                                                     ^ [Atom]: => " 6552-6553
+#                                                                                                                                                                       ^^^^^^^^^ [Verbatim]: => svelteUrl 6559-6568
+#                                                                                                                                                                                ^ [Atom]: => } 6568-6569
+#                                                                                                                                                                                 ^^^^^^^^^ [Verbatim]: => rollupUrl 6575-6584
+#                                                                                                                                                                                          ^ [Atom]: => } 6584-6585
+#                                                                                                                                                                                           ^ [Atom]: => o 6590-6591
+#                                                                                                                                                                                             ^^^^^^^^^^ [Verbatim]: => rientation 6591-6601
+#                                                                                                                                                                                                       ^ [Atom]: => = 6601-6602
+#                                                                                                                                                                                                         ^^^^^^ [Verbatim]: => mobile 6603-6609
+#                                                                                                                                                                                                               ^ [Verbatim]: => • 6609-6610
+#                                                                                                                                                                                                                ^ [Verbatim]: => ? 6610-6611
+#                                                                                                                                                                                                                 ^ [Verbatim]: => • 6611-6612
+#                                                                                                                                                                                                                  ^^^^^^^^ [Verbatim]: => 'columns 6612-6620
+#                                                                                                                                                                                                                          ^ [Verbatim]: => ' 6620-6621
+#                                                                                                                                                                                                                           ^ [Verbatim]: => • 6621-6622
+#                                                                                                                                                                                                                            ^ [Verbatim]: => : 6622-6623
+#                                                                                                                                                                                                                             ^ [Verbatim]: => • 6623-6624
+#                                                                                                                                                                                                                              ^^^^^ [Verbatim]: => 'rows 6624-6629
+#                                                                                                                                                                                                                                   ^ [Verbatim]: => ' 6629-6630
+#                                                                                                                                                                                                                                    ^ [Atom]: => } 6630-6631
+#                                                                                                                                                                                                                                     ^ [Atom]: => f 6636-6637
+#                                                                                                                                                                                                                                       ^^^^ [Verbatim]: => ixed 6637-6641
+#                                                                                                                                                                                                                                           ^ [Atom]: => = 6641-6642
+#                                                                                                                                                                                                                                             ^^^^^^ [Verbatim]: => mobile 6643-6649
+#                                                                                                                                                                                                                                                   ^ [Atom]: => } 6649-6650
+#                                                                                                                                                                                                                                                    ^ [Atom]: => i 6685-6686
+#                                                                                                                                                                                                                                                      ^^^^^^^^^ [Verbatim]: => njectedJS 6686-6695
+#                                                                                                                                                                                                                                                               ^ [Atom]: => = 6695-6696
+#                                                                                                                                                                                                                                                                 ^^^^^^^^^^^^ [Verbatim]: => mapbox_setup 6697-6709
+#                                                                                                                                                                                                                                                                             ^ [Atom]: => } 6709-6710
+#                                                                                                                                                                                                                                                                              ^ [Atom]: => r 6715-6716
+#                                                                                                                                                                                                                                                                                ^^^^^^ [Verbatim]: => elaxed 6716-6722
+#                                                                                                                                                                                                                                                                                      ^ [Atom]: => ↲ 6722-6723
+#                                                                                                                                                                                                                                                                                                 ^^^^ [Verbatim]: => repl 6523-6527
+#                                                                                                                                                                                                                                                                                                     ^ [Atom]: => } 6527-6528
+#                                                                                                                                                                                                                                                                                                                              ^ [Atom]: => c 6658-6659
+#                                                                                                                                                                                                                                                                                                                                ^^^^^ [Verbatim]: => hange 6659-6664
+#                                                                                                                                                                                                                                                                                                                                      ^ [Atom]: => = 6664-6665
+#                                                                                                                                                                                                                                                                                                                                        ^^^^^^^^^^^^^ [Verbatim]: => handle_change 6666-6679
+#                                                                                                                                                                                                                                                                                                                                                     ^ [Atom]: => } 6679-6680
+>         }
+#^ [Atom]: => ↲ 6728-6729
+#  ^ [Atom]: => / 6732-6733
+>     }
+#^ [Atom]: => ↲ 6737-6738
+# ^ [Atom]: => / 6740-6741
+>
+>    if(mobile){
+#^ [Atom]: => ↲ 6745-6746
+# ^ [Atom]: => { 6748-6749
+#    ^^^^^^ [Verbatim]: => mobile 6753-6759
+#          ^ [Atom]: => } 6759-6760
+#            ^ [Verbatim]: => ↲ 6760-6761
+>          { const $$_elggoTneercS1C = __sveltets_2_ensureComponent(ScreenToggle); new $$_elggoTneercS1C({ target: __sveltets_2_any(), props: {  offset,"labels":['tutorial', 'input', 'output'],}});/*Ωignore_startΩ*/() => offset = __sveltets_2_any(null);/*Ωignore_endΩ*/}
+#^ [Verbatim]: => ╚ 6761-6762
+# ^ [Verbatim]: => ╚ 6762-6763
+#  ^ [Atom]: => < 6763-6764
+#   ^ [Atom]: => > 6830-6831
+#                                                             ^^^^^^^^^^^^ [Verbatim]: => ScreenToggle 6764-6776
+#                                                                                                                                        ^ [Atom]: => i 6778-6779
+#                                                                                                                                         ^ [Atom]: => { 6796-6797
+#                                                                                                                                          ^^^^^^ [Verbatim]: => offset 6782-6788
+#                                                                                                                                                ^ [Atom]: => • 6788-6789
+#                                                                                                                                                 ^ [Atom]: => l 6789-6790
+#                                                                                                                                                   ^^^^^ [Verbatim]: => abels 6790-6795
+#                                                                                                                                                        ^ [Atom]: => = 6795-6796
+#                                                                                                                                                          ^ [Verbatim]: => [ 6797-6798
+#                                                                                                                                                           ^^^^^^^^^ [Verbatim]: => 'tutorial 6798-6807
+#                                                                                                                                                                    ^ [Verbatim]: => ' 6807-6808
+#                                                                                                                                                                     ^ [Verbatim]: => , 6808-6809
+#                                                                                                                                                                      ^ [Verbatim]: => • 6809-6810
+#                                                                                                                                                                       ^^^^^^ [Verbatim]: => 'input 6810-6816
+#                                                                                                                                                                             ^ [Verbatim]: => ' 6816-6817
+#                                                                                                                                                                              ^ [Verbatim]: => , 6817-6818
+#                                                                                                                                                                               ^ [Verbatim]: => • 6818-6819
+#                                                                                                                                                                                ^^^^^^^ [Verbatim]: => 'output 6819-6826
+#                                                                                                                                                                                       ^ [Verbatim]: => ' 6826-6827
+#                                                                                                                                                                                        ^ [Verbatim]: => ] 6827-6828
+#                                                                                                                                                                                         ^ [Atom]: => } 6828-6829
+#                                                                                                                                                                                                                                                                       ^ [Verbatim]: => ↲ 6831-6832
+>    }
+#^ [Verbatim]: => ╚ 6832-6833
+# ^ [Atom]: => { 6833-6834
+#  ^ [Verbatim]: => ↲ 6838-6839
+> }};
+#^ [Atom]: => / 6840-6841
+>return { props: {slug: slug , chapter: chapter}, slots: {}, events: {} }}
+>
+>export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial(__sveltets_2_with_any_event($$render()))) {
+>}

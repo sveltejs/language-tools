@@ -1,0 +1,33 @@
+>///<reference types="svelte" />
+>;function $$render() {
+>async () => { { const $$_tnenopmoC0C = __sveltets_2_ensureComponent(Component); const $$_tnenopmoC0 = new $$_tnenopmoC0C({ target: __sveltets_2_any(), props: {    }});{const {/*Ωignore_startΩ*/$$_$$/*Ωignore_endΩ*/,hi,hi2:hi_2,hi3,} = $$_tnenopmoC0.$$slot_def.default;$$_$$;
+#             ^ [Atom]: => < 0-1
+#                                                                    ^^^^^^^^^ [Verbatim]: => Component 1-10
+#                                                                                                                                                               ^ [Atom]: => e 12-13
+#                                                                                                                                                                ^ [Atom]: => l 18-19
+#                                                                                                                                                                 ^ [Atom]: => { 26-27
+#                                                                                                                                                                  ^ [Verbatim]: => • 32-33
+#                                                                                                                                                                   ^ [Atom]: => l 11-12
+#                                                                                                                                                                                                                       ^^ [Verbatim]: => hi 15-17
+#                                                                                                                                                                                                                         ^ [Atom]: => • 17-18
+#                                                                                                                                                                                                                          ^^^ [Verbatim]: => hi2 22-25
+#                                                                                                                                                                                                                             ^ [Atom]: => = 25-26
+#                                                                                                                                                                                                                              ^^^^ [Verbatim]: => hi_2 27-31
+#                                                                                                                                                                                                                                  ^ [Atom]: => } 31-32
+#                                                                                                                                                                                                                                   ^^^ [Verbatim]: => hi3 37-40
+>    hi;hi_2;hi3;
+#^ [Atom]: => ↲ 41-42
+#    ^^ [Verbatim]: => hi 47-49
+#      ^ [Atom]: => } 49-50
+#       ^^^^ [Verbatim]: => hi_2 51-55
+#           ^ [Atom]: => } 55-56
+#            ^^^ [Verbatim]: => hi3 57-60
+#               ^ [Atom]: => } 60-61
+#                ^ [Verbatim]: => ↲ 61-62
+> }Component}};
+#^ [Atom]: => < 62-63
+#  ^^^^^^^^^ [Verbatim]: => Component 64-73
+>return { props: /** @type {Record<string, never>} */ ({}), slots: {}, events: {} }}
+>
+>export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial(__sveltets_2_with_any_event($$render()))) {
+>}

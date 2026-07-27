@@ -1,0 +1,84 @@
+>///<reference types="svelte" />
+>;function $$render() { let $$props = __sveltets_2_allPropsType(); let $$restProps = __sveltets_2_restPropsType(); let $$slots = __sveltets_2_slotsType({});
+#^ [Atom]: => < 0-1
+# ^ [Atom]: => s 1-2
+>
+#^ [Verbatim]: => ↲ 8-9
+>    $$slots;
+#^ [Verbatim]: => ╚ 9-10
+# ^^^^^^^ [Verbatim]: => $$slots 10-17
+#        ^ [Verbatim]: => ; 17-18
+#         ^ [Verbatim]: => ↲ 18-19
+>    $$restProps;
+#^ [Verbatim]: => ╚ 19-20
+# ^^^^^^^^^^^ [Verbatim]: => $$restProps 20-31
+#            ^ [Verbatim]: => ; 31-32
+#             ^ [Verbatim]: => ↲ 32-33
+>    $$props;
+#^ [Verbatim]: => ╚ 33-34
+# ^^^^^^^ [Verbatim]: => $$props 34-41
+#        ^ [Verbatim]: => ; 41-42
+#         ^ [Verbatim]: => ↲ 42-43
+>    let  foo = __sveltets_2_invalidate(() => ({...$$slots, ...$$restProps, ...$$props}));
+#^ [Verbatim]: => ╚ 43-44
+#     ^ [Verbatim]: => • 46-47
+#      ^^^ [Verbatim]: => foo 47-50
+#         ^ [Verbatim]: => • 50-51
+#          ^ [Verbatim]: => = 51-52
+#           ^ [Verbatim]: => • 52-53
+#                                           ^ [Verbatim]: => { 53-54
+#                                            ^ [Verbatim]: => . 54-55
+#                                             ^ [Verbatim]: => . 55-56
+#                                              ^ [Verbatim]: => . 56-57
+#                                               ^^^^^^^ [Verbatim]: => $$slots 57-64
+#                                                      ^ [Verbatim]: => , 64-65
+#                                                       ^ [Verbatim]: => • 65-66
+#                                                        ^ [Verbatim]: => . 66-67
+#                                                         ^ [Verbatim]: => . 67-68
+#                                                          ^ [Verbatim]: => . 68-69
+#                                                           ^^^^^^^^^^^ [Verbatim]: => $$restProps 69-80
+#                                                                      ^ [Verbatim]: => , 80-81
+#                                                                       ^ [Verbatim]: => • 81-82
+#                                                                        ^ [Verbatim]: => . 82-83
+#                                                                         ^ [Verbatim]: => . 83-84
+#                                                                          ^ [Verbatim]: => . 84-85
+#                                                                           ^^^^^^^ [Verbatim]: => $$props 85-92
+#                                                                                  ^ [Verbatim]: => } 92-93
+#                                                                                    ^ [Atom]: => ; 93-94
+#                                                                                      ^ [Verbatim]: => ↲ 94-95
+>;
+>async () => {
+#^ [Atom]: => < 95-96
+>
+#^ [Verbatim]: => ↲ 104-105
+>if($$slots.foo){
+#^ [Atom]: => { 106-107
+#   ^^^^^^^ [Verbatim]: => $$slots 111-118
+#          ^ [Verbatim]: => . 118-119
+#           ^^^ [Verbatim]: => foo 119-122
+#              ^ [Atom]: => } 122-123
+#                ^ [Verbatim]: => ↲ 123-124
+>    $$restProps.bar;
+#^ [Verbatim]: => ╚ 124-125
+# ^^^^^^^^^^^ [Verbatim]: => $$restProps 126-137
+#            ^ [Verbatim]: => . 137-138
+#             ^^^ [Verbatim]: => bar 138-141
+#                ^ [Atom]: => } 141-142
+>     { const $$_tnenopmoC0C = __sveltets_2_ensureComponent(Component); new $$_tnenopmoC0C({ target: __sveltets_2_any(), props: {  ...$$props,}});}
+#^ [Atom]: => ↲ 142-143
+# ^ [Atom]: => < 144-145
+#                                                        ^^^^^^^^^ [Verbatim]: => Component 145-154
+#                                                                                                                             ^ [Atom]: => ╚ 156-157
+#                                                                                                                              ^ [Atom]: => ╚ 171-172
+#                                                                                                                               ^ [Verbatim]: => . 159-160
+#                                                                                                                                ^ [Verbatim]: => . 160-161
+#                                                                                                                                 ^ [Verbatim]: => . 161-162
+#                                                                                                                                  ^^^^^^^ [Verbatim]: => $$props 162-169
+#                                                                                                                                         ^ [Atom]: => } 169-170
+#                                                                                                                                               ^ [Verbatim]: => ↲ 174-175
+>}};
+#^ [Atom]: => { 175-176
+>return { props: {}, slots: {}, events: {} }}
+>
+>export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial_with_any(__sveltets_2_with_any_event($$render()))) {
+>}

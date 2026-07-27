@@ -25,6 +25,7 @@ import {
     ParsedSource,
     SourceText
 } from './parser';
+import { SpanMapKind } from '../../src/utils/spanMap';
 
 /**
  *
@@ -163,6 +164,47 @@ namespace print {
 				].filter(Boolean).map(([map,comment])=>[" ".repeat(offset)+map,comment]) as [string, string][];
             }
         }
+    }
+
+    export function span_mapping(
+        { generated, original }: ParsedSource,
+        spanMappings: Array<[number, number, number, number, number]>
+    ): string {
+        const sorted_by_generated = spanMappings.sort((a, b) => a[0] - b[0]);
+        const groups_by_line = new Map<number, Array<[number, number, number, number, number]>>();
+        for (const mapping of sorted_by_generated) {
+            const line = generated.toLineChar(mapping[0]).line.index;
+            let bucket = groups_by_line.get(line);
+            if (!bucket) {
+                bucket = [];
+                groups_by_line.set(line, bucket);
+            }
+            bucket.push(mapping);
+        }
+        return compose_file(function* (composer) {
+            const lines = generated.lines;
+            for (const line of lines) {
+                yield '>' + line.toString();
+                const mappings = groups_by_line.get(line.index);
+                if (!mappings) {
+                    continue;
+                }
+
+                for (const mapping of mappings) {
+                    const [generatedStart, generatedLength, originalStart, originalLength, kind] =
+                        mapping;
+                    const originalEnd = originalStart + originalLength;
+
+                    const original_text = original.print_slice(originalStart, originalEnd);
+                    const log =
+                        '#' +
+                        ' '.repeat(generatedStart - line.start) +
+                        '^'.repeat(generatedLength) +
+                        ` [${SpanMapKind[kind]}]: => ${original_text} ${originalStart}-${originalEnd}`;
+                    yield log;
+                }
+            }
+        });
     }
 
     /**
@@ -382,11 +424,14 @@ export function is_edit_empty(test_edit: string) {
 export function process_transformed_text(
     original_text: string,
     generated_text: string,
-    mappings: Mappings
+    mappings: Mappings,
+    span_mappings: Array<[number, number, number, number, number]> = []
 ) {
     const source = parse(original_text, generated_text, mappings);
     return {
         print_mappings: () => print.mappings(source),
+
+        print_span_mappings: () => print.span_mapping(source, span_mappings),
 
         generate_test_edit(test_file: string = '') {
             return print.test_edit(parse_test_file(test_file, source), source);

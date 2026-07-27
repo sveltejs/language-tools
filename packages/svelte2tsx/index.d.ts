@@ -1,13 +1,15 @@
 import ts from 'typescript';
 
-export interface SvelteCompiledToTsx<SourceMapFormat extends 'encoded' | 'decoded' = 'encoded'> {
+export interface SvelteCompiledToTsx {
     code: string;
-    map: SourceMapFormat extends 'decoded' ? import("magic-string").DecodedSourceMap : import("magic-string").SourceMap;
+    map: import("magic-string").SourceMap;
     exportedNames: IExportedNames;
     /**
      * @deprecated Use TypeScript's `TypeChecker` to get the type information instead. This only covers literal typings.
      */
     events: ComponentEvents;
+
+    spanMappings: [number, number, number, number, number][] | undefined;
 }
 
 export interface IExportedNames {
@@ -21,7 +23,7 @@ export interface ComponentEvents {
     getAll(): { name: string; type: string; doc?: string }[];
 }
 
-export function svelte2tsx<SourceMapFormat extends 'encoded' | 'decoded' = 'encoded'>(
+export function svelte2tsx(
     svelte: string,
     options?: {
         /**
@@ -98,13 +100,9 @@ export function svelte2tsx<SourceMapFormat extends 'encoded' | 'decoded' = 'enco
 
         shimPaths?: string[];
 
-        sourcemap?: {
-            format?: SourceMapFormat;
-
-            hires?: boolean | 'boundary';
-        };
+        generateSpanMapping?: boolean;
     }
-): SvelteCompiledToTsx<SourceMapFormat>;
+): SvelteCompiledToTsx;
 
 export interface EmitDtsConfig {
     /**

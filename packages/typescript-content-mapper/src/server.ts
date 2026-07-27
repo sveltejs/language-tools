@@ -4,7 +4,6 @@ import { svelte2tsx, internalHelpers, SvelteCompiledToTsx } from 'svelte2tsx';
 import ts from 'typescript';
 import { createMessageConnection } from 'vscode-jsonrpc';
 import { StreamMessageReader, StreamMessageWriter } from 'vscode-jsonrpc/node';
-import { writeFile, writeFileSync } from 'node:fs';
 
 function startServer() {
     const connection = createMessageConnection(
@@ -50,18 +49,13 @@ function startServer() {
                 parse: compiler.parse,
                 version: compiler.VERSION,
                 shimPaths: globalTypes,
-                sourcemap: {
-                    format: 'decoded',
-                    hires: 'boundary'
-                }
+                generateSpanMapping: true
             });
-
-            const mappings: SpanMapping[] = convertMapping(res, content);
 
             return {
                 text: res.code,
                 scriptKind: isTsFile ? ScriptKind.TS : ScriptKind.JS,
-                mappings: mappings.filter((m) => m[ORIGINAL_LENGTH] > 0),
+                mappings: res.spanMappings ?? [],
                 diagnostics: []
             };
         } catch (error) {
@@ -177,110 +171,4 @@ interface MapperDiagnostic {
     length: number;
     code?: number;
     source?: string;
-}
-
-const GENERATE_START = 0;
-const GENERATE_LENGTH = 1;
-const ORIGINAL_START = 2;
-const ORIGINAL_LENGTH = 3;
-const KIND = 4;
-const PURPOSE = 5;
-
-function convertMapping(res: SvelteCompiledToTsx<'decoded'>, content: string) {
-    const map = res.map.mappings;
-    const lineOffsets = getLineOffsets(res.code);
-    const orgLineOffsets = getLineOffsets(content);
-    const mappings: SpanMapping[] = [];
-
-    // writeFileSync(
-    //     fileName.replace('.svelte', 'rawMapping.json'),
-    //     JSON.stringify(map, null, 2)
-    // );
-    // writeFileSync(fileName.replace('.svelte', '._____.ts'), res.code);
-    let debugOutput = '';
-    let lastOffset = 0;
-    for (let generatedLine = 0; generatedLine < map.length; generatedLine++) {
-        const line = map[generatedLine];
-
-        let current: SpanMapping | undefined;
-        for (const segment of line) {
-            const [generatedCharacter, , originalLine, originalCharacter] = segment;
-            if (originalLine === undefined || originalCharacter === undefined) {
-                continue;
-            }
-
-            const generatedStart = lineOffsets[generatedLine] + generatedCharacter;
-            const originalStart = orgLineOffsets[originalLine] + originalCharacter;
-            if (current) {
-                const newSourceEnd = originalStart;
-                if (newSourceEnd > current[ORIGINAL_START] + current[3]) {
-                    // debugOutput += res.code.slice(lastOffset, generatedStart) + `/*e:${originalStart}*/`;
-                    lastOffset = generatedStart;
-                    const generatedLength = generatedStart - current[GENERATE_START];
-                    const originLength = newSourceEnd - current[ORIGINAL_START];
-                    current[GENERATE_LENGTH] = generatedLength;
-                    current[3] = originLength;
-                }
-            }
-            current = [generatedStart, 1, originalStart, 1, SpanMapKind.Atom];
-            mappings.push(current);
-            // debugOutput += res.code.slice(lastOffset, generatedStart) + `/*s:${originalStart}*/`;
-            lastOffset = generatedStart;
-        }
-    }
-    // writeFileSync(fileName.replace('.svelte', 'debugMapping.ts'), debugOutput);
-    mappings.sort((a, b) => a[ORIGINAL_START] - b[ORIGINAL_START]);
-    for (let i = 0; i < mappings.length - 1; i++) {
-        const current = mappings[i];
-        const next = mappings[i + 1];
-        const currentEnd = current[ORIGINAL_START] + current[3];
-        if (currentEnd > next[ORIGINAL_START]) {
-            current[ORIGINAL_LENGTH] = next[ORIGINAL_START] - current[ORIGINAL_START];
-        }
-
-        if (exact(current)) {
-            current[KIND] = SpanMapKind.Verbatim;
-        }
-    }
-    return mappings;
-
-    function exact(mapping: SpanMapping) {
-        const generatedLength = mapping[GENERATE_LENGTH];
-        const originLength = mapping[ORIGINAL_LENGTH];
-        if (generatedLength !== originLength) {
-            return false;
-        }
-        for (let i = 0; i < generatedLength; i++) {
-            const generatedChar = res.code[mapping[GENERATE_START] + i];
-            const originalChar = content[mapping[ORIGINAL_START] + i];
-            if (generatedChar !== originalChar) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-}
-
-function getLineOffsets(text: string) {
-    const lineOffsets = [];
-    let isLineStart = true;
-
-    for (let i = 0; i < text.length; i++) {
-        if (isLineStart) {
-            lineOffsets.push(i);
-            isLineStart = false;
-        }
-        const ch = text.charAt(i);
-        isLineStart = ch === '\r' || ch === '\n';
-        if (ch === '\r' && i + 1 < text.length && text.charAt(i + 1) === '\n') {
-            i++;
-        }
-    }
-
-    if (isLineStart && text.length > 0) {
-        lineOffsets.push(text.length);
-    }
-
-    return lineOffsets;
 }
