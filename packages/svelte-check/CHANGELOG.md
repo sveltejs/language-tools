@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.7.4
+
+### Patch Changes
+
+-   fix: support TypeScript 7 Stable under npm alias ([#3073](https://github.com/sveltejs/language-tools/pull/3073))
+
 ## 4.7.3
 
 ### Patch Changes

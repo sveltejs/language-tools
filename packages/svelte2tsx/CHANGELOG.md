@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.59
+
+### Patch Changes
+
+-   fix: throw a friendly error for TypeScript 7 stable ([#3073](https://github.com/sveltejs/language-tools/pull/3073))
+
 ## 0.7.58
 
 ### Patch Changes
