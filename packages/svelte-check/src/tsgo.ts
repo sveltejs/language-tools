@@ -14,10 +14,27 @@ interface PkgInfo {
 }
 
 export function tryParseTsGoVersion(tsconfigPath: string): PkgInfo | null {
-    // TODO: Most likely it'll eventually be released under the 'typescript' package.
-    // When it happened, check where the nightly versions are released and decide which package to prioritize.
+    const pkg =
+        tryParsePkg(tsconfigPath, '@typescript/native') ??
+        tryParsePkg(tsconfigPath, '@typescript/native-preview');
 
-    return tryParsePkg(tsconfigPath, '@typescript/native-preview');
+    if (
+        pkg &&
+        (pkg.pkgJsonName === 'typescript' || pkg.pkgJsonName === '@typescript/native-preview') &&
+        pkg.major >= 7
+    ) {
+        return pkg;
+    }
+
+    return null;
+}
+
+export function formatTsGoNotFoundError(flagName: string) {
+    return (
+        `svelte-check ${flagName} requires TypeScript 7 to be installed in the workspace.` +
+        `You can setup TypeScript 7 with an npm alias via the following command.\n` +
+        `npm install --save-dev typescript@~6 @typescript/native@npm:typescript@7\n`
+    );
 }
 
 function tryParsePkg(tsconfigPath: string, name: string): PkgInfo | null {

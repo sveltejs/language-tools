@@ -10,6 +10,8 @@ export interface EmitDtsConfig {
 }
 
 export async function emitDts(config: EmitDtsConfig) {
+    throwIfTypeScript7();
+
     const svelteMap = await createSvelteMap(config);
     const { options, filenames, absDeclarationDir } = loadTsconfig(config, svelteMap);
     const host = await createTsCompilerHost(options, svelteMap, absDeclarationDir);
@@ -46,6 +48,15 @@ export async function emitDts(config: EmitDtsConfig) {
                     return `${file}\n${errors.map((error) => `  - ${error}`).join('\n')}`;
                 })
                 .join('\n')
+        );
+    }
+}
+
+function throwIfTypeScript7() {
+    const major = parseInt(ts.version.split('.')[0], 10);
+    if (major >= 7) {
+        throw new Error(
+            `emitDts is not compatible with TypeScript ${ts.version}. Please use a TypeScript version lower than 7.x.`
         );
     }
 }
