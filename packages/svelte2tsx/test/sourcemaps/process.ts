@@ -25,7 +25,7 @@ import {
     ParsedSource,
     SourceText
 } from './parser';
-import { SpanMapKind } from '../../src/utils/spanMap';
+import { SpanMapKind, SpanMapping } from '../../src/utils/spanMap';
 
 /**
  *
@@ -168,10 +168,10 @@ namespace print {
 
     export function span_mapping(
         { generated, original }: ParsedSource,
-        spanMappings: Array<[number, number, number, number, number]>
+        spanMappings: SpanMapping[]
     ): string {
         const sorted_by_generated = spanMappings.sort((a, b) => a[0] - b[0]);
-        const groups_by_line = new Map<number, Array<[number, number, number, number, number]>>();
+        const groups_by_line = new Map<number, SpanMapping[]>();
         for (const mapping of sorted_by_generated) {
             const line = generated.toLineChar(mapping[0]).line.index;
             let bucket = groups_by_line.get(line);
@@ -433,7 +433,7 @@ export function process_transformed_text(
     original_text: string,
     generated_text: string,
     mappings: Mappings,
-    span_mappings: Array<[number, number, number, number, number]> = []
+    span_mappings: SpanMapping[] = []
 ) {
     const source = parse(original_text, generated_text, mappings);
     return {

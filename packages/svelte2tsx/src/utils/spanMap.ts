@@ -12,7 +12,7 @@ export class SpanMapGenerator {
     private spans: Span[] = [];
 
     /**
-     * Add an identifier or literal span to the list of spans to be mapped. 
+     * Add an identifier or literal span to the list of spans to be mapped.
      * The span is defined by its start and end positions in the original source code.
      */
     addSourceSpan(start: number, end: number) {
@@ -37,13 +37,14 @@ export class SpanMapGenerator {
             for (let segmentIndex = 0; segmentIndex < line.length; segmentIndex++) {
                 const segment = line[segmentIndex];
                 const currentLineOffset = lineOffsets[generatedLine];
-                const [generatedCharacter, , originalLine, originalCharacter] = segment;
-                if (originalLine === undefined || originalCharacter === undefined) {
+                const originalStart = getSourceOffset(segment, orgLineOffsets);
+                if (originalStart === undefined) {
+                    current = undefined;
+                    currentSourceSpan = undefined;
                     continue;
                 }
 
-                const generatedStart = currentLineOffset + generatedCharacter;
-                const originalStart = orgLineOffsets[originalLine] + originalCharacter;
+                const generatedStart = currentLineOffset + segment[0];
                 const sourceSpan = sourceSpanMap.get(originalStart);
 
                 // end is exclusive, so if it is equal to the current originalStart, it means we are outside of the span
@@ -52,27 +53,47 @@ export class SpanMapGenerator {
                     currentSourceSpan = sourceSpan;
                 }
 
-                const sameChar =
-                    generatedCode.charCodeAt(generatedStart) ===
-                    str.original.charCodeAt(originalStart);
+                const sourceChar = str.original.charCodeAt(originalStart);
+                const sameChar = generatedCode.charCodeAt(generatedStart) === sourceChar;
 
-                if (current) {
-                    const previousSegment = line[segmentIndex - 1];
-                    if (
-                        previousSegment &&
-                        nextTo(segment, previousSegment) &&
-                        (currentSourceSpan ||
-                            ts.isIdentifierPart(
-                                generatedCode.charCodeAt(generatedStart),
-                                ts.ScriptTarget.Latest
-                            )) &&
-                        sameChar
-                    ) {
-                        current[GENERATE_LENGTH]++;
-                        current[ORIGINAL_LENGTH]++;
-                        continue;
+                if (sourceSpan && !sameChar) {
+                    const nextSegment = line[segmentIndex + 1];
+                    if (nextSegment) {
+                        const nextOriginalStart = getSourceOffset(nextSegment, orgLineOffsets);
+                        const nextGeneratedStart = currentLineOffset + nextSegment[0];
+                        if (
+                            nextOriginalStart === originalStart + 1 &&
+                            generatedCode.charCodeAt(nextGeneratedStart - 1) === sourceChar
+                        ) {
+                            current = [
+                                nextGeneratedStart - 1,
+                                2,
+                                originalStart,
+                                2,
+                                SpanMapKind.Alias
+                            ];
+                            segmentIndex++;
+                            mappings.push(current);
+                            continue;
+                        }
                     }
                 }
+
+                if (current) {
+                    let previousSegment = line[segmentIndex - 1];
+                    if (previousSegment && sameChar) {
+                        if (
+                            nextTo(segment, previousSegment) &&
+                            (currentSourceSpan ||
+                                isIdentifierPart(generatedCode.charCodeAt(generatedStart)))
+                        ) {
+                            current[GENERATE_LENGTH]++;
+                            current[ORIGINAL_LENGTH]++;
+                            continue;
+                        }
+                    }
+                }
+
                 current = [
                     generatedStart,
                     1,
@@ -97,8 +118,21 @@ export class SpanMapGenerator {
                 current[KIND] = SpanMapKind.Verbatim;
             }
         }
-        return mappings.filter((m) => m[ORIGINAL_LENGTH] > 0)
+        return mappings.filter((m) => m[ORIGINAL_LENGTH] > 0);
     }
+}
+
+function getSourceOffset(segment: SourceMapSegment, sourceLineOffsets: number[]) {
+    const [, , originalLine, originalCharacter] = segment;
+    if (originalLine === undefined || originalCharacter === undefined) {
+        return undefined;
+    }
+
+    return sourceLineOffsets[originalLine] + originalCharacter;
+}
+
+function isIdentifierPart(charCode: number) {
+    return ts.isIdentifierPart(charCode, ts.ScriptTarget.Latest);
 }
 
 function nextTo(segment: SourceMapSegment, previous: SourceMapSegment) {

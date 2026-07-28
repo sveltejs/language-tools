@@ -20,11 +20,19 @@ const isSvelte5Plus = Number(VERSION[0]) >= 5;
 (isSvelte5Plus ? describe.skip : describe)('sourcemaps', function () {
     for (const sample of each_sample(__dirname)) {
         if (process.env.CI) {
-            sample.checkDirectory({ required: ['*.svelte', 'mappings.jsx', 'test.jsx', 'span_mapping.txt'] });
+            sample.checkDirectory({
+                required: ['*.svelte', 'mappings.jsx', 'test.jsx', 'span_mapping.txt']
+            });
         } else {
             sample.checkDirectory({
                 required: ['*.svelte'],
-                allowed: ['mappings.jsx', 'test.jsx', 'test.edit.jsx', 'output.tsx', 'span_mapping.txt']
+                allowed: [
+                    'mappings.jsx',
+                    'test.jsx',
+                    'test.edit.jsx',
+                    'output.tsx',
+                    'span_mapping.txt'
+                ]
             });
             maybe_generate(sample, regenerate);
             sample.onError(function (generate, err) {
@@ -179,7 +187,13 @@ function parse(sample: Sample): Parsed {
         const original = sample.get(filename);
         const { code, map, spanMappings } = svelte2tsx(
             original,
-            get_svelte2tsx_config({ filename, generateSpanMapping: true }, sample.name)
+            get_svelte2tsx_config(
+                {
+                    filename,
+                    generateSpanMapping: true
+                },
+                sample.name
+            )
         );
 
         map.file = 'output.tsx';

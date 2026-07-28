@@ -3,8 +3,7 @@
 >async () => { { svelteHTML.createElement("element", {"foo":true,});}
 #             ^ [Atom]: => < 0-1
 #                                          ^^^^^^^ [Verbatim]: => element 1-8
-#                                                     ^ [Atom]: => f 9-10
-#                                                       ^^ [Verbatim]: => oo 10-12
+#                                                      ^^^ [Verbatim]: => foo 9-12
 #                                                         ^ [Atom]: => / 12-13
 >
 #^ [Verbatim]: => ↲ 14-15
@@ -13,8 +12,7 @@
 # ^ [Atom]: => > 35-36
 #                              ^^^^^^^ [Verbatim]: => element 17-24
 #                                         ^ [Verbatim]: => • 26-27
-#                                          ^ [Atom]: => f 30-31
-#                                            ^^ [Verbatim]: => oo 31-33
+#                                           ^^^ [Verbatim]: => foo 30-33
 #                                              ^ [Atom]: => ↲ 33-34
 >
 #^ [Verbatim]: => ↲ 36-37
@@ -24,8 +22,7 @@
 #                                        ^ [Verbatim]: => • 48-49
 #                                         ^ [Atom]: => " 56-57
 #                                          ^ [Atom]: => ↲ 63-64
-#                                           ^ [Atom]: => f 52-53
-#                                             ^^ [Verbatim]: => oo 53-55
+#                                            ^^^ [Verbatim]: => foo 52-55
 #                                               ^ [Atom]: => = 55-56
 #                                                  ^^^^ [Verbatim]: => leet 57-61
 #                                                      ^ [Atom]: => " 61-62
@@ -38,8 +35,7 @@
 #                                         ^ [Atom]: => ╚ 78-79
 #                                          ^^^ [Verbatim]: => foo 80-83
 #                                             ^ [Atom]: => } 83-84
-#                                              ^ [Atom]: => b 84-85
-#                                                ^^ [Verbatim]: => ar 85-87
+#                                               ^^^ [Verbatim]: => bar 84-87
 #                                                  ^ [Atom]: => ↲ 87-88
 >
 #^ [Verbatim]: => ↲ 90-91

@@ -5,7 +5,8 @@
         "module": "nodenext",
         "moduleResolution": "nodenext",
         "esModuleInterop": true,
-        "rootDir": "."
+        "rootDir": ".",
+        "strict": false
     },
     "exclude": ["samples/**"],
     "include": ["**/*.ts"]

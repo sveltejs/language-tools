@@ -14,8 +14,7 @@
 #     ^ [Atom]: => > 57-58
 #                                  ^^^^^^^ [Verbatim]: => element 33-40
 #                                             ^ [Atom]: => { 45-46
-#                                              ^ [Atom]: => f 41-42
-#                                                ^^ [Verbatim]: => oo 42-44
+#                                               ^^^ [Verbatim]: => foo 41-44
 #                                                  ^ [Atom]: => = 44-45
 #                                                    ^^^^^ [Verbatim]: => value 46-51
 #                                                         ^ [Verbatim]: => . 51-52

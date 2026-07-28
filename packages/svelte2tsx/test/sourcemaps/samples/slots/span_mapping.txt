@@ -26,15 +26,13 @@
 #                                  ^ [Verbatim]: => • 59-60
 #                                   ^ [Verbatim]: => • 70-71
 #                                    ^ [Verbatim]: => • 76-77
-#                                     ^ [Atom]: => f 50-51
-#                                       ^^ [Verbatim]: => oo 51-53
+#                                      ^^^ [Verbatim]: => foo 50-53
 #                                         ^ [Atom]: => = 53-54
 #                                           ^^^ [Verbatim]: => foo 55-58
 #                                              ^ [Atom]: => } 58-59
 #                                               ^^^ [Verbatim]: => baz 72-75
 #                                                  ^ [Atom]: => } 75-76
-#                                                   ^ [Atom]: => l 77-78
-#                                                     ^^^ [Verbatim]: => eet 78-81
+#                                                    ^^^^ [Verbatim]: => leet 77-81
 #                                                                  ^ [Atom]: => f 82-83
 #                                                                   ^ [Atom]: => / 91-92
 >
@@ -49,15 +47,13 @@
 #                                   ^ [Verbatim]: => • 116-117
 #                                    ^ [Atom]: => ↲ 127-128
 #                                     ^ [Verbatim]: => • 134-135
-#                                      ^ [Atom]: => f 107-108
-#                                        ^^ [Verbatim]: => oo 108-110
+#                                       ^^^ [Verbatim]: => foo 107-110
 #                                          ^ [Atom]: => = 110-111
 #                                            ^^^ [Verbatim]: => foo 112-115
 #                                               ^ [Atom]: => } 115-116
 #                                                ^^^ [Verbatim]: => baz 130-133
 #                                                   ^ [Atom]: => } 133-134
-#                                                    ^ [Atom]: => l 137-138
-#                                                      ^^^ [Verbatim]: => eet 138-141
+#                                                     ^^^^ [Verbatim]: => leet 137-141
 #                                                                   ^ [Atom]: => f 142-143
 > }};
 #^ [Atom]: => / 152-153
