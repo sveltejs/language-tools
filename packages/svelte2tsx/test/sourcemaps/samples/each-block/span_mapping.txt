@@ -9,19 +9,19 @@
 #                                                                ^ [Verbatim]: => ↲ 21-22
 >     { svelteHTML.createElement("li", {});item.name;  item.qty; }
 #^ [Verbatim]: => ╚ 22-23
-# ^ [Atom]: => < 23-24
-#                              ^^ [Verbatim]: => li 24-26
-#                                       ^^^^ [Verbatim]: => item 28-32
-#                                           ^ [Verbatim]: => . 32-33
-#                                            ^^^^ [Verbatim]: => name 33-37
-#                                                ^ [Atom]: => } 37-38
-#                                                 ^ [Verbatim]: => • 38-39
-#                                                   ^^^^ [Verbatim]: => item 42-46
-#                                                       ^ [Verbatim]: => . 46-47
-#                                                        ^^^ [Verbatim]: => qty 47-50
-#                                                           ^ [Atom]: => } 50-51
-#                                                            ^ [Atom]: => / 52-53
-#                                                              ^ [Verbatim]: => ↲ 56-57
+#    ^ [Atom]: => < 23-24
+#                                 ^^ [Verbatim]: => li 24-26
+#                                          ^^^^ [Verbatim]: => item 28-32
+#                                              ^ [Verbatim]: => . 32-33
+#                                               ^^^^ [Verbatim]: => name 33-37
+#                                                   ^ [Atom]: => } 37-38
+#                                                    ^ [Verbatim]: => • 38-39
+#                                                      ^^^^ [Verbatim]: => item 42-46
+#                                                          ^ [Verbatim]: => . 46-47
+#                                                           ^^^ [Verbatim]: => qty 47-50
+#                                                              ^ [Atom]: => } 50-51
+#                                                               ^ [Atom]: => / 52-53
+#                                                                 ^ [Verbatim]: => ↲ 56-57
 >}
 #^ [Atom]: => { 57-58
 >
@@ -38,25 +38,25 @@
 #                                                              ^ [Verbatim]: => ↲ 90-91
 >     { svelteHTML.createElement("li", {});i + 1; item.name;  item.qty; }
 #^ [Verbatim]: => ╚ 91-92
-# ^ [Atom]: => < 92-93
-#                              ^^ [Verbatim]: => li 93-95
-#                                       ^ [Verbatim]: => i 97-98
-#                                        ^ [Verbatim]: => • 98-99
-#                                         ^ [Verbatim]: => + 99-100
-#                                          ^^ [Verbatim]: => •1 100-102
-#                                            ^ [Atom]: => } 102-103
-#                                             ^ [Atom]: => : 103-104
-#                                              ^^^^ [Verbatim]: => item 106-110
-#                                                  ^ [Verbatim]: => . 110-111
-#                                                   ^^^^ [Verbatim]: => name 111-115
-#                                                       ^ [Atom]: => } 115-116
-#                                                        ^ [Verbatim]: => • 116-117
-#                                                          ^^^^ [Verbatim]: => item 120-124
-#                                                              ^ [Verbatim]: => . 124-125
-#                                                               ^^^ [Verbatim]: => qty 125-128
-#                                                                  ^ [Atom]: => } 128-129
-#                                                                   ^ [Atom]: => / 130-131
-#                                                                     ^ [Verbatim]: => ↲ 134-135
+#    ^ [Atom]: => < 92-93
+#                                 ^^ [Verbatim]: => li 93-95
+#                                          ^ [Verbatim]: => i 97-98
+#                                           ^ [Verbatim]: => • 98-99
+#                                            ^ [Verbatim]: => + 99-100
+#                                             ^^ [Verbatim]: => •1 100-102
+#                                               ^ [Atom]: => } 102-103
+#                                                ^ [Atom]: => : 103-104
+#                                                 ^^^^ [Verbatim]: => item 106-110
+#                                                     ^ [Verbatim]: => . 110-111
+#                                                      ^^^^ [Verbatim]: => name 111-115
+#                                                          ^ [Atom]: => } 115-116
+#                                                           ^ [Verbatim]: => • 116-117
+#                                                             ^^^^ [Verbatim]: => item 120-124
+#                                                                 ^ [Verbatim]: => . 124-125
+#                                                                  ^^^ [Verbatim]: => qty 125-128
+#                                                                     ^ [Atom]: => } 128-129
+#                                                                      ^ [Atom]: => / 130-131
+#                                                                        ^ [Verbatim]: => ↲ 134-135
 >}
 #^ [Atom]: => { 135-136
 >
@@ -87,21 +87,21 @@
 #                                                                               ^ [Verbatim]: => ↲ 186-187
 >     { svelteHTML.createElement("li", {});i + 1; name;  qty; }
 #^ [Verbatim]: => ╚ 187-188
-# ^ [Atom]: => < 188-189
-#                              ^^ [Verbatim]: => li 189-191
-#                                       ^ [Verbatim]: => i 193-194
-#                                        ^ [Verbatim]: => • 194-195
-#                                         ^ [Verbatim]: => + 195-196
-#                                          ^^ [Verbatim]: => •1 196-198
-#                                            ^ [Atom]: => } 198-199
-#                                             ^ [Atom]: => : 199-200
-#                                              ^^^^ [Verbatim]: => name 202-206
-#                                                  ^ [Atom]: => } 206-207
-#                                                   ^ [Verbatim]: => • 207-208
-#                                                     ^^^ [Verbatim]: => qty 211-214
-#                                                        ^ [Atom]: => } 214-215
-#                                                         ^ [Atom]: => / 216-217
-#                                                           ^ [Verbatim]: => ↲ 220-221
+#    ^ [Atom]: => < 188-189
+#                                 ^^ [Verbatim]: => li 189-191
+#                                          ^ [Verbatim]: => i 193-194
+#                                           ^ [Verbatim]: => • 194-195
+#                                            ^ [Verbatim]: => + 195-196
+#                                             ^^ [Verbatim]: => •1 196-198
+#                                               ^ [Atom]: => } 198-199
+#                                                ^ [Atom]: => : 199-200
+#                                                 ^^^^ [Verbatim]: => name 202-206
+#                                                     ^ [Atom]: => } 206-207
+#                                                      ^ [Verbatim]: => • 207-208
+#                                                        ^^^ [Verbatim]: => qty 211-214
+#                                                           ^ [Atom]: => } 214-215
+#                                                            ^ [Atom]: => / 216-217
+#                                                              ^ [Verbatim]: => ↲ 220-221
 >}
 #^ [Atom]: => { 221-222
 >
@@ -125,23 +125,23 @@
 #                                                                ^ [Verbatim]: => ↲ 264-265
 >     { svelteHTML.createElement("li", {}); { svelteHTML.createElement("span", {});id; }  { const $$_tnenopmoCyM1C = __sveltets_2_ensureComponent(MyComponent); new $$_tnenopmoCyM1C({ target: __sveltets_2_any(), props: {...rest,}});} }
 #^ [Verbatim]: => ╚ 265-266
-# ^ [Atom]: => < 266-267
-#                              ^^ [Verbatim]: => li 267-269
-#                                       ^ [Atom]: => < 270-271
-#                                                                    ^^^^ [Verbatim]: => span 271-275
-#                                                                               ^^ [Verbatim]: => id 277-279
-#                                                                                 ^ [Atom]: => } 279-280
-#                                                                                  ^ [Atom]: => / 281-282
-#                                                                                    ^ [Atom]: => < 287-288
-#                                                                                     ^ [Atom]: => > 310-311
-#                                                                                                                                              ^^^^^^^^^^^ [Verbatim]: => MyComponent 288-299
-#                                                                                                                                                                                                                       ^ [Verbatim]: => . 301-302
-#                                                                                                                                                                                                                        ^ [Verbatim]: => . 302-303
-#                                                                                                                                                                                                                         ^ [Verbatim]: => . 303-304
-#                                                                                                                                                                                                                          ^^^^ [Verbatim]: => rest 304-308
-#                                                                                                                                                                                                                              ^ [Atom]: => } 308-309
-#                                                                                                                                                                                                                                    ^ [Atom]: => / 312-313
-#                                                                                                                                                                                                                                      ^ [Verbatim]: => ↲ 316-317
+#    ^ [Atom]: => < 266-267
+#                                 ^^ [Verbatim]: => li 267-269
+#                                          ^ [Atom]: => < 270-271
+#                                                                       ^^^^ [Verbatim]: => span 271-275
+#                                                                                  ^^ [Verbatim]: => id 277-279
+#                                                                                    ^ [Atom]: => } 279-280
+#                                                                                     ^ [Atom]: => / 281-282
+#                                                                                       ^ [Atom]: => < 287-288
+#                                                                                        ^ [Atom]: => > 310-311
+#                                                                                                                                                 ^^^^^^^^^^^ [Verbatim]: => MyComponent 288-299
+#                                                                                                                                                                                                                          ^ [Verbatim]: => . 301-302
+#                                                                                                                                                                                                                           ^ [Verbatim]: => . 302-303
+#                                                                                                                                                                                                                            ^ [Verbatim]: => . 303-304
+#                                                                                                                                                                                                                             ^^^^ [Verbatim]: => rest 304-308
+#                                                                                                                                                                                                                                 ^ [Atom]: => } 308-309
+#                                                                                                                                                                                                                                       ^ [Atom]: => / 312-313
+#                                                                                                                                                                                                                                         ^ [Verbatim]: => ↲ 316-317
 >}
 #^ [Atom]: => { 317-318
 >
@@ -163,24 +163,24 @@
 #                                                            ^ [Verbatim]: => ↲ 356-357
 >     { svelteHTML.createElement("li", {}); { svelteHTML.createElement("span", {});id; }  { const $$_tnenopmoCyM1C = __sveltets_2_ensureComponent(MyComponent); new $$_tnenopmoCyM1C({ target: __sveltets_2_any(), props: { "values":rest,}});} }
 #^ [Verbatim]: => ╚ 357-358
-# ^ [Atom]: => < 358-359
-#                              ^^ [Verbatim]: => li 359-361
-#                                       ^ [Atom]: => < 362-363
-#                                                                    ^^^^ [Verbatim]: => span 363-367
-#                                                                               ^^ [Verbatim]: => id 369-371
-#                                                                                 ^ [Atom]: => } 371-372
-#                                                                                  ^ [Atom]: => / 373-374
-#                                                                                    ^ [Atom]: => < 379-380
-#                                                                                     ^ [Atom]: => > 406-407
-#                                                                                                                                              ^^^^^^^^^^^ [Verbatim]: => MyComponent 380-391
-#                                                                                                                                                                                                                       ^ [Atom]: => { 399-400
-#                                                                                                                                                                                                                        ^ [Atom]: => v 392-393
-#                                                                                                                                                                                                                          ^^^^^ [Verbatim]: => alues 393-398
-#                                                                                                                                                                                                                               ^ [Atom]: => = 398-399
-#                                                                                                                                                                                                                                 ^^^^ [Verbatim]: => rest 400-404
-#                                                                                                                                                                                                                                     ^ [Atom]: => } 404-405
-#                                                                                                                                                                                                                                           ^ [Atom]: => / 408-409
-#                                                                                                                                                                                                                                             ^ [Verbatim]: => ↲ 412-413
+#    ^ [Atom]: => < 358-359
+#                                 ^^ [Verbatim]: => li 359-361
+#                                          ^ [Atom]: => < 362-363
+#                                                                       ^^^^ [Verbatim]: => span 363-367
+#                                                                                  ^^ [Verbatim]: => id 369-371
+#                                                                                    ^ [Atom]: => } 371-372
+#                                                                                     ^ [Atom]: => / 373-374
+#                                                                                       ^ [Atom]: => < 379-380
+#                                                                                        ^ [Atom]: => > 406-407
+#                                                                                                                                                 ^^^^^^^^^^^ [Verbatim]: => MyComponent 380-391
+#                                                                                                                                                                                                                          ^ [Atom]: => { 399-400
+#                                                                                                                                                                                                                           ^ [Atom]: => v 392-393
+#                                                                                                                                                                                                                             ^^^^^ [Verbatim]: => alues 393-398
+#                                                                                                                                                                                                                                  ^ [Atom]: => = 398-399
+#                                                                                                                                                                                                                                    ^^^^ [Verbatim]: => rest 400-404
+#                                                                                                                                                                                                                                        ^ [Atom]: => } 404-405
+#                                                                                                                                                                                                                                              ^ [Atom]: => / 408-409
+#                                                                                                                                                                                                                                                ^ [Verbatim]: => ↲ 412-413
 >}
 #^ [Atom]: => { 413-414
 >
@@ -194,24 +194,24 @@
 #                                                   ^ [Verbatim]: => ↲ 443-444
 >     { svelteHTML.createElement("p", {});todo.text; }
 #^ [Verbatim]: => ╚ 444-445
-# ^ [Atom]: => < 445-446
-#                              ^ [Verbatim]: => p 446-447
-#                                      ^^^^ [Verbatim]: => todo 449-453
-#                                          ^ [Verbatim]: => . 453-454
-#                                           ^^^^ [Verbatim]: => text 454-458
-#                                               ^ [Atom]: => } 458-459
-#                                                ^ [Atom]: => / 460-461
-#                                                  ^ [Verbatim]: => ↲ 463-464
+#    ^ [Atom]: => < 445-446
+#                                 ^ [Verbatim]: => p 446-447
+#                                         ^^^^ [Verbatim]: => todo 449-453
+#                                             ^ [Verbatim]: => . 453-454
+#                                              ^^^^ [Verbatim]: => text 454-458
+#                                                  ^ [Atom]: => } 458-459
+#                                                   ^ [Atom]: => / 460-461
+#                                                     ^ [Verbatim]: => ↲ 463-464
 >}
 #^ [Atom]: => { 464-465
 # ^ [Verbatim]: => ↲ 471-472
 >     { svelteHTML.createElement("p", {});   }
 #^ [Verbatim]: => ╚ 472-473
-# ^ [Atom]: => < 473-474
-#                              ^ [Verbatim]: => p 474-475
-#                                      ^ [Atom]: => N 476-477
-#                                        ^ [Atom]: => / 492-493
-#                                          ^ [Verbatim]: => ↲ 495-496
+#    ^ [Atom]: => < 473-474
+#                                 ^ [Verbatim]: => p 474-475
+#                                         ^ [Atom]: => N 476-477
+#                                           ^ [Atom]: => / 492-493
+#                                             ^ [Verbatim]: => ↲ 495-496
 >};
 >return { props: /** @type {Record<string, never>} */ ({}), slots: {}, events: {} }}
 >

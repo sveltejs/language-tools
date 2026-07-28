@@ -181,24 +181,32 @@ namespace print {
             }
             bucket.push(mapping);
         }
-        return compose_file(function* (composer) {
+        return compose_file(function* () {
             const lines = generated.lines;
             for (const line of lines) {
-                yield '>' + line.toString();
+                const renderedLine = line.toString();
+                yield '>' + renderedLine;
                 const mappings = groups_by_line.get(line.index);
                 if (!mappings) {
                     continue;
                 }
 
+                const tabIndexes: number[] = [];
+                for (let i = 0; i < renderedLine.length; i++) {
+                    if (renderedLine[i] === '\t') {
+                        tabIndexes.push(i + line.start);
+                    }
+                }
                 for (const mapping of mappings) {
                     const [generatedStart, generatedLength, originalStart, originalLength, kind] =
                         mapping;
                     const originalEnd = originalStart + originalLength;
 
                     const original_text = original.print_slice(originalStart, originalEnd);
+                    const tabCount = tabIndexes.filter((i) => i < generatedStart).length;
                     const log =
                         '#' +
-                        ' '.repeat(generatedStart - line.start) +
+                        ' '.repeat(generatedStart - line.start + tabCount * 3) +
                         '^'.repeat(generatedLength) +
                         ` [${SpanMapKind[kind]}]: => ${original_text} ${originalStart}-${originalEnd}`;
                     yield log;

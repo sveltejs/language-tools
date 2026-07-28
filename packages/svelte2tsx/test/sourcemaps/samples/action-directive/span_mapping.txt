@@ -73,30 +73,30 @@
 #                                                                                             ^ [Verbatim]: => ↲ 184-185
 >        ...leet,
 #^ [Verbatim]: => ╚ 185-186
-# ^ [Verbatim]: => ╚ 186-187
-#  ^ [Verbatim]: => . 187-188
-#   ^ [Verbatim]: => . 188-189
-#    ^ [Verbatim]: => . 189-190
-#     ^^^^ [Verbatim]: => leet 190-194
-#         ^ [Verbatim]: => , 194-195
-#          ^ [Verbatim]: => ↲ 195-196
+#    ^ [Verbatim]: => ╚ 186-187
+#        ^ [Verbatim]: => . 187-188
+#         ^ [Verbatim]: => . 188-189
+#          ^ [Verbatim]: => . 189-190
+#           ^^^^ [Verbatim]: => leet 190-194
+#               ^ [Verbatim]: => , 194-195
+#                ^ [Verbatim]: => ↲ 195-196
 >        foo: $bar
 #^ [Verbatim]: => ╚ 196-197
-# ^ [Verbatim]: => ╚ 197-198
-#  ^^^ [Verbatim]: => foo 198-201
-#     ^ [Verbatim]: => : 201-202
-#      ^ [Verbatim]: => • 202-203
-#       ^^^^ [Verbatim]: => $bar 203-207
-#           ^ [Verbatim]: => ↲ 207-208
+#    ^ [Verbatim]: => ╚ 197-198
+#        ^^^ [Verbatim]: => foo 198-201
+#           ^ [Verbatim]: => : 201-202
+#            ^ [Verbatim]: => • 202-203
+#             ^^^^ [Verbatim]: => $bar 203-207
+#                 ^ [Verbatim]: => ↲ 207-208
 >    })));{ svelteHTML.createElement("element", __sveltets_2_union($$action_0), {   });}}};
 #^ [Verbatim]: => ╚ 208-209
-# ^ [Verbatim]: => } 209-210
-#  ^ [Atom]: => } 210-211
-#                                  ^^^^^^^ [Verbatim]: => element 161-168
-#                                                                             ^ [Atom]: => u 170-171
-#                                                                              ^ [Atom]: => { 181-182
-#                                                                               ^ [Atom]: => / 212-213
-#                                                                                ^ [Atom]: => ╚ 169-170
+#    ^ [Verbatim]: => } 209-210
+#     ^ [Atom]: => } 210-211
+#                                     ^^^^^^^ [Verbatim]: => element 161-168
+#                                                                                ^ [Atom]: => u 170-171
+#                                                                                 ^ [Atom]: => { 181-182
+#                                                                                  ^ [Atom]: => / 212-213
+#                                                                                   ^ [Atom]: => ╚ 169-170
 >return { props: /** @type {Record<string, never>} */ ({}), slots: {}, events: {} }}
 >
 >export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial(__sveltets_2_with_any_event($$render()))) {

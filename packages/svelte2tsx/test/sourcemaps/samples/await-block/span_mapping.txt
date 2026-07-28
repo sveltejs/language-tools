@@ -32,20 +32,20 @@
 #  ^ [Atom]: => a 122-123
 >     { svelteHTML.createElement("element", {});}
 #^ [Atom]: => ↲ 85-86
-# ^ [Atom]: => < 87-88
-#                              ^^^^^^^ [Verbatim]: => element 88-95
-#                                         ^ [Atom]: => / 96-97
-#                                             ^ [Verbatim]: => ↲ 98-99
+#    ^ [Atom]: => < 87-88
+#                                 ^^^^^^^ [Verbatim]: => element 88-95
+#                                            ^ [Atom]: => / 96-97
+#                                                ^ [Verbatim]: => ↲ 98-99
 >await (promise);
 #^ [Atom]: => { 99-100
 #       ^^^^^^^ [Verbatim]: => promise 77-84
 #              ^ [Atom]: => } 84-85
 >     { svelteHTML.createElement("element", {});}
 #^ [Atom]: => ↲ 106-107
-# ^ [Atom]: => < 108-109
-#                              ^^^^^^^ [Verbatim]: => element 109-116
-#                                         ^ [Atom]: => / 117-118
-#                                             ^ [Verbatim]: => ↲ 119-120
+#    ^ [Atom]: => < 108-109
+#                                 ^^^^^^^ [Verbatim]: => element 109-116
+#                                            ^ [Atom]: => / 117-118
+#                                                ^ [Verbatim]: => ↲ 119-120
 >}
 #^ [Atom]: => { 120-121
 >
@@ -55,10 +55,10 @@
 # ^ [Atom]: => a 163-164
 >     { svelteHTML.createElement("element", {});}
 #^ [Atom]: => ↲ 147-148
-# ^ [Atom]: => < 149-150
-#                              ^^^^^^^ [Verbatim]: => element 150-157
-#                                         ^ [Atom]: => / 158-159
-#                                             ^ [Verbatim]: => ↲ 160-161
+#    ^ [Atom]: => < 149-150
+#                                 ^^^^^^^ [Verbatim]: => element 150-157
+#                                            ^ [Atom]: => / 158-159
+#                                                ^ [Verbatim]: => ↲ 160-161
 >await ($promise);}};
 #^ [Atom]: => { 161-162
 #       ^^^^^^^^ [Verbatim]: => $promise 138-146

@@ -7,10 +7,10 @@
 #                     ^ [Verbatim]: => ↲ 9-10
 >     { svelteHTML.createElement("element", {});}
 #^ [Verbatim]: => ╚ 10-11
-# ^ [Atom]: => < 11-12
-#                              ^^^^^^^ [Verbatim]: => element 12-19
-#                                         ^ [Atom]: => / 20-21
-#                                             ^ [Verbatim]: => ↲ 22-23
+#    ^ [Atom]: => < 11-12
+#                                 ^^^^^^^ [Verbatim]: => element 12-19
+#                                            ^ [Atom]: => / 20-21
+#                                                ^ [Verbatim]: => ↲ 22-23
 >}
 #^ [Atom]: => { 23-24
 >
@@ -32,10 +32,10 @@
 #        ^ [Verbatim]: => ↲ 67-68
 >     { svelteHTML.createElement("element", {});}
 #^ [Verbatim]: => ╚ 68-69
-# ^ [Atom]: => < 69-70
-#                              ^^^^^^^ [Verbatim]: => element 70-77
-#                                     ^ [Atom]: => / 77-78
-#                                             ^ [Verbatim]: => ↲ 79-80
+#    ^ [Atom]: => < 69-70
+#                                 ^^^^^^^ [Verbatim]: => element 70-77
+#                                        ^ [Atom]: => / 77-78
+#                                                ^ [Verbatim]: => ↲ 79-80
 >} else if (bar){
 #^ [Atom]: => { 80-81
 #           ^^^ [Verbatim]: => bar 90-93
@@ -43,10 +43,10 @@
 #                ^ [Verbatim]: => ↲ 94-95
 >     { svelteHTML.createElement("element", {});}
 #^ [Verbatim]: => ╚ 95-96
-# ^ [Atom]: => < 96-97
-#                              ^^^^^^^ [Verbatim]: => element 97-104
-#                                     ^ [Atom]: => / 104-105
-#                                             ^ [Verbatim]: => ↲ 106-107
+#    ^ [Atom]: => < 96-97
+#                                 ^^^^^^^ [Verbatim]: => element 97-104
+#                                        ^ [Atom]: => / 104-105
+#                                                ^ [Verbatim]: => ↲ 106-107
 >}else{
 #^ [Atom]: => { 107-108
 # ^^^^ [Verbatim]: => else 109-113
@@ -54,10 +54,10 @@
 #      ^ [Verbatim]: => ↲ 114-115
 >     { svelteHTML.createElement("element", {});}
 #^ [Verbatim]: => ╚ 115-116
-# ^ [Atom]: => < 116-117
-#                              ^^^^^^^ [Verbatim]: => element 117-124
-#                                     ^ [Atom]: => / 124-125
-#                                             ^ [Verbatim]: => ↲ 126-127
+#    ^ [Atom]: => < 116-117
+#                                 ^^^^^^^ [Verbatim]: => element 117-124
+#                                        ^ [Atom]: => / 124-125
+#                                                ^ [Verbatim]: => ↲ 126-127
 >}};
 #^ [Atom]: => { 127-128
 >return { props: /** @type {Record<string, never>} */ ({}), slots: {}, events: {} }}
