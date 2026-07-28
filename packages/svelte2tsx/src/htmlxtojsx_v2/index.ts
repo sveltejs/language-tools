@@ -165,7 +165,11 @@ export function convertHtmlxToJsx(
     };
 
     const handleIdentifier = (node: BaseNode) => {
-        options.spanMapGenerator?.addSourceSpan(node.start, node.end);
+        // Can happen in loose parsing mode, e.g. code is currently `{a.}`
+        if (options.spanMapGenerator && node.name) {
+            options.spanMapGenerator.addSourceSpan(node.start, node.end);
+        }
+
         if (node.name === '$$props') {
             uses$$props = true;
             return;
