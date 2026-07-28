@@ -36,63 +36,78 @@ const scriptRegex =
 const styleRegex =
     /(<!--[^]*?-->)|(<style((?:\s+[^=>'"\/\s]+=(?:"[^"]*"|'[^']*'|[^>\s]+)|\s+[^=>'"\/\s]+)*\s*)>)([\S\s]*?)<\/style>/g;
 
-function extractTag(htmlx: string, tag: 'script' | 'style') {
-    const exp = tag === 'script' ? scriptRegex : styleRegex;
-    const matches: Node[] = [];
-
-    let match: RegExpExecArray | null = null;
-    while ((match = exp.exec(htmlx)) != null) {
-        if (match[0].startsWith('<!--')) {
-            // Tag is inside comment
-            continue;
-        }
-
-        let content = match[4];
-        if (!content) {
-            // Keep tag and transform it like a regular element
-            content = '';
-        }
-
-        const start = match.index + match[2].length;
-        const end = start + content.length;
-        const containerStart = match.index;
-        const containerEnd = match.index + match[0].length;
-
-        matches.push({
-            start: containerStart,
-            end: containerEnd,
-            name: tag,
-            type: tag === 'style' ? 'Style' : 'Script',
-            attributes: parseAttributes(match[3], containerStart + `<${tag}`.length),
-            content: {
-                type: 'Text',
-                start,
-                end,
-                value: content,
-                raw: content
-            }
-        });
+function toVerbatimNode(match: RegExpExecArray, tag: 'script' | 'style'): Node {
+    let content = match[4];
+    if (!content) {
+        // Keep tag and transform it like a regular element
+        content = '';
     }
 
-    return matches;
+    const start = match.index + match[2].length;
+    const end = start + content.length;
+    const containerStart = match.index;
+    const containerEnd = match.index + match[0].length;
+
+    return {
+        start: containerStart,
+        end: containerEnd,
+        name: tag,
+        type: tag === 'style' ? 'Style' : 'Script',
+        attributes: parseAttributes(match[3], containerStart + `<${tag}`.length),
+        content: {
+            type: 'Text',
+            start,
+            end,
+            value: content,
+            raw: content
+        }
+    };
+}
+
+/**
+ * Find the next real script or style element at or after `from`.
+ *
+ * Both tags are searched in the same pass and the earlier match wins, so a
+ * literal `<script>` or `<style>` substring inside the *other* kind of tag
+ * (for example in a comment or a string) can never be mistaken for a real
+ * start tag: whichever element actually opens first is matched first, and the
+ * search then resumes past its end.
+ */
+function findNextVerbatimElement(htmlx: string, from: number) {
+    let best: { node: Node; nextIndex: number } | null = null;
+
+    for (const [tag, exp] of [
+        ['script', scriptRegex],
+        ['style', styleRegex]
+    ] as const) {
+        exp.lastIndex = from;
+
+        let match: RegExpExecArray | null = null;
+        while ((match = exp.exec(htmlx)) != null) {
+            if (match[0].startsWith('<!--')) {
+                // Tag is inside comment
+                continue;
+            }
+
+            if (!best || match.index < best.node.start) {
+                best = { node: toVerbatimNode(match, tag), nextIndex: exp.lastIndex };
+            }
+            break;
+        }
+    }
+
+    return best;
 }
 
 function findVerbatimElements(htmlx: string) {
-    const tags = extractTag(htmlx, 'script');
+    const tags: Node[] = [];
 
-    // A literal `<style>` substring inside a script (for example in a comment or
-    // string) must not be mistaken for a real style start tag. Blank out the
-    // already-found script containers before searching for style tags so the
-    // style regex only ever sees text outside of scripts and matches the actual
-    // start tag. Whitespace replacement keeps every character offset intact.
-    let maskedForStyle = htmlx;
-    for (const tag of tags) {
-        maskedForStyle =
-            maskedForStyle.substring(0, tag.start) +
-            maskedForStyle.substring(tag.start, tag.end).replace(/[^\n]/g, ' ') +
-            maskedForStyle.substring(tag.end);
+    let from = 0;
+    let next: ReturnType<typeof findNextVerbatimElement>;
+    while ((next = findNextVerbatimElement(htmlx, from)) != null) {
+        tags.push(next.node);
+        from = next.nextIndex;
     }
-    tags.push(...extractTag(maskedForStyle, 'style'));
 
     return tags;
 }

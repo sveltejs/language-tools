@@ -3,4 +3,4 @@
 'svelte-check': patch
 ---
 
-fix: recognise the real `<style>` start tag when a `<style>`-like token also appears inside a script
+fix: recognise the real `<script>` and `<style>` start tags when a matching token also appears inside the other tag
