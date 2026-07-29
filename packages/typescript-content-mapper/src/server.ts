@@ -1,6 +1,7 @@
+import { createRequire } from 'node:module';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { svelte2tsx, internalHelpers, SvelteCompiledToTsx } from 'svelte2tsx';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import { svelte2tsx, internalHelpers } from 'svelte2tsx';
 import ts from 'typescript';
 import { createMessageConnection } from 'vscode-jsonrpc';
 import { StreamMessageReader, StreamMessageWriter } from 'vscode-jsonrpc/node';
@@ -19,27 +20,33 @@ function startServer() {
         };
         return result;
     });
-    
+
     const globalTypesCache = new Map<string, string[]>();
+    const require = createRequire(import.meta.url);
 
     connection.onRequest('transform', async (v: TransformParams): Promise<TransformResult> => {
-        const { fileName, content, configFileName, compilerOptions } = v;
+        const { fileName, content, configFileName } = v;
 
-        const compilerPath = import.meta.resolve('svelte/compiler', configFileName);
-        const compiler = await import(compilerPath);
         const isTsFile = /<script\s+[^>]*?lang=('|")(ts|typescript)('|")/.test(content);
-        let globalTypes = globalTypesCache.get(configFileName);
-        if (!globalTypes) {
-            globalTypes = internalHelpers.get_global_types(
-                ts.sys,
-                compiler.VERSION.split('.')[0] === '3',
-                path.dirname(fileURLToPath(import.meta.resolve('svelte/package.json'))),
-                path.dirname(fileURLToPath(import.meta.resolve('svelte2tsx'))),
-                configFileName
-            );
-            globalTypesCache.set(configFileName, globalTypes);
-        }
         try {
+            const resolveTarget = configFileName ?? fileName;
+            const resolveConfig = {
+                paths: [path.dirname(resolveTarget), path.dirname(fileURLToPath(import.meta.url))]
+            };
+            const compilerPath = require.resolve('svelte/compiler', resolveConfig);
+            const { default: compiler } = await import(pathToFileURL(compilerPath).toString());
+
+            let globalTypes = globalTypesCache.get(resolveTarget);
+            if (!globalTypes) {
+                globalTypes = internalHelpers.get_global_types(
+                    ts.sys,
+                    compiler.VERSION.split('.')[0] === '3',
+                    path.dirname(require.resolve('svelte/package.json', resolveConfig)),
+                    path.dirname(require.resolve('svelte2tsx')),
+                    resolveTarget
+                );
+                globalTypesCache.set(resolveTarget, globalTypes);
+            }
             const res = svelte2tsx(content, {
                 filename: fileName,
                 isTsFile: isTsFile,
