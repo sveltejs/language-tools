@@ -38,6 +38,7 @@ import {
     sendNotificationMiddleware
 } from './typescript/configurationMiddleware';
 import { versions } from 'node:process';
+import { discoverTsContentMapper } from './typescript-go/contentMapper';
 
 const [node_major, node_minor] = (versions?.node ?? '0.0.0-unknown').split('.', 3).map(Number);
 
@@ -58,11 +59,17 @@ let lsApi:
       }
     | undefined;
 
-export function activate(context: ExtensionContext) {
-    // The extension is activated on TS/JS/Svelte files because else it might be too late to configure the TS plugin:
-    // If we only activate on Svelte file and the user opens a TS file first, the configuration command is issued too late.
-    // We wait until there's a Svelte file open and only then start the actual language client.
-    const tsPlugin = new TsPlugin(context);
+export async function activate(context: ExtensionContext) {
+    let useTs7ContentMapper = await discoverTsContentMapper();
+
+    let tsPlugin: TsPlugin | undefined;
+    if (!useTs7ContentMapper) {
+        // The extension is activated on TS/JS/Svelte files because else it might be too late to configure the TS plugin:
+        // If we only activate on Svelte file and the user opens a TS file first, the configuration command is issued too late.
+        // We wait until there's a Svelte file open and only then start the actual language client.
+        tsPlugin = new TsPlugin(context);
+        toggleFileReferencesMenu(true);
+    }
 
     context.subscriptions.push(
         commands.registerCommand('svelte.restartLanguageServer', async () => {
@@ -71,13 +78,13 @@ export function activate(context: ExtensionContext) {
     );
 
     if (workspace.textDocuments.some((doc) => doc.languageId === 'svelte')) {
-        lsApi = activateSvelteLanguageServer(context);
-        tsPlugin.askToEnable();
+        lsApi = activateSvelteLanguageServer(context, { useTs7ContentMapper });
+        tsPlugin?.askToEnable();
     } else {
         const onTextDocumentListener = workspace.onDidOpenTextDocument((doc) => {
             if (doc.languageId === 'svelte') {
-                lsApi = activateSvelteLanguageServer(context);
-                tsPlugin.askToEnable();
+                lsApi = activateSvelteLanguageServer(context, { useTs7ContentMapper });
+                tsPlugin?.askToEnable();
                 onTextDocumentListener.dispose();
             }
         });
@@ -86,6 +93,22 @@ export function activate(context: ExtensionContext) {
     }
 
     setupSvelteKit(context);
+
+    context.subscriptions.push(
+        workspace.onDidChangeConfiguration(async (event) => {
+            if (
+                event.affectsConfiguration('typescript.experimental.useTsgo') ||
+                event.affectsConfiguration('js/ts.experimental.useTsgo')
+            ) {
+                const newUseTs7ContentMapper = await discoverTsContentMapper();
+                if (newUseTs7ContentMapper !== useTs7ContentMapper) {
+                    useTs7ContentMapper = newUseTs7ContentMapper;
+                    toggleFileReferencesMenu(!useTs7ContentMapper);
+                    await lsApi?.restartLS(false);
+                }
+            }
+        })
+    );
 
     // This API is considered private and only exposed for experimenting.
     // Interface may change at any time. Use at your own risk!
@@ -96,7 +119,7 @@ export function activate(context: ExtensionContext) {
          */
         getLanguageServer() {
             if (!lsApi) {
-                lsApi = activateSvelteLanguageServer(context);
+                lsApi = activateSvelteLanguageServer(context, { useTs7ContentMapper });
             }
 
             return lsApi.getLS();
@@ -110,7 +133,16 @@ export function deactivate() {
     return stop;
 }
 
-export function activateSvelteLanguageServer(context: ExtensionContext) {
+function toggleFileReferencesMenu(enable: boolean) {
+    commands.executeCommand('setContext', 'svelte.uiContext.fileReference.enable', enable);
+}
+
+export function activateSvelteLanguageServer(
+    context: ExtensionContext,
+    options?: {
+        useTs7ContentMapper: boolean;
+    }
+) {
     warnIfOldExtensionInstalled();
 
     const runtimeConfig = workspace.getConfiguration('svelte.language-server');
@@ -207,7 +239,8 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
                 html: workspace.getConfiguration('html')
             },
             dontFilterIncompleteCompletions: true, // VSCode filters client side and is smarter at it than us
-            isTrusted: workspace.isTrusted
+            isTrusted: workspace.isTrusted,
+            useTs7ContentMapper: options?.useTs7ContentMapper ?? false
         },
         middleware: {
             resolveCodeLens: resolveCodeLensMiddleware,
@@ -276,7 +309,9 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
     addFindFileReferencesListener(getLS, context);
     addFindComponentReferencesListener(getLS, context);
 
-    addRenameFileListener(getLS);
+    if (!options?.useTs7ContentMapper) {
+        addRenameFileListener(getLS);
+    }
 
     addCompilePreviewCommands(getLS, context);
 
