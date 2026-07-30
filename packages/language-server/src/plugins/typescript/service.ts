@@ -18,11 +18,7 @@ import {
     pathToUrl,
     urlToPath
 } from '../../utils';
-import {
-    DocumentSnapshot,
-    sanitizeLooseAttributePrefixes,
-    SvelteSnapshotOptions
-} from './DocumentSnapshot';
+import { DocumentSnapshot, SvelteSnapshotOptions } from './DocumentSnapshot';
 import { createSvelteModuleLoader } from './module-loader';
 import { GlobalSnapshotsManager, SnapshotManager } from './SnapshotManager';
 import {
@@ -434,7 +430,7 @@ async function createLanguageService(
         version: svelteCompiler?.VERSION,
         transformOnTemplateError: docContext.transformOnTemplateError,
         typingsNamespace: raw?.svelteOptions?.namespace || 'svelteHTML',
-        looseAttributePrefixes: sanitizeLooseAttributePrefixes(
+        looseAttributePrefixes: internalHelpers.sanitizeLooseAttributePrefixes(
             raw?.svelteOptions?.looseAttributePrefixes
         )
     };

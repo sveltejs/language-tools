@@ -104,6 +104,8 @@ If a preprocessor consumes attributes with a common prefix (for example custom t
 
 Matching attributes are then treated like `data-*` attributes: accepted on any element or component, but untyped. This also applies to the language server / VS Code extension.
 
+Note that `svelteOptions` must be defined in the project's own `tsconfig.json`/`jsconfig.json` — it is not picked up from a config referenced via `extends`.
+
 ### More docs, preprocessor setup and troubleshooting
 
 [See here](/docs/README.md).

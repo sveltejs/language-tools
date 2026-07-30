@@ -1,4 +1,4 @@
-import { svelte2tsx } from 'svelte2tsx';
+import { internalHelpers, svelte2tsx } from 'svelte2tsx';
 import type ts from 'typescript/lib/tsserverlibrary';
 import { ConfigManager } from './config-manager';
 import { Logger } from './logger';
@@ -382,11 +382,9 @@ export class SvelteSnapshotManager {
                         // Don't search for compiler from current path - could be a different one from which we have loaded the svelte2tsx globals
                         parse: this.svelteCompiler?.parse,
                         version: this.svelteCompiler?.VERSION,
-                        looseAttributePrefixes: Array.isArray(
+                        looseAttributePrefixes: internalHelpers.sanitizeLooseAttributePrefixes(
                             this.svelteOptions.looseAttributePrefixes
                         )
-                            ? this.svelteOptions.looseAttributePrefixes
-                            : undefined
                     });
                     code = result.code;
                     mapper = new SourceMapper(result.map.mappings);

@@ -103,15 +103,10 @@ function getLooseAttributePrefixes(tsconfigPath: string | undefined): string[] |
     if (!tsconfigPath) {
         return undefined;
     }
-    const prefixes = ts.readConfigFile(tsconfigPath, ts.sys.readFile).config?.svelteOptions
-        ?.looseAttributePrefixes;
-    if (!Array.isArray(prefixes)) {
-        return undefined;
-    }
-    const sanitized = prefixes.filter(
-        (prefix): prefix is string => typeof prefix === 'string' && prefix.length > 0
+    return internalHelpers.sanitizeLooseAttributePrefixes(
+        ts.readConfigFile(tsconfigPath, ts.sys.readFile).config?.svelteOptions
+            ?.looseAttributePrefixes
     );
-    return sanitized.length > 0 ? sanitized : undefined;
 }
 
 function kitFilesSettingsFromConfig(config: any): InternalHelpers.KitFilesSettings {
