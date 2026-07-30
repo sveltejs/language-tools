@@ -37,6 +37,7 @@ import { DiagnosticsProvider } from '../../interfaces';
 import {
     DocumentSnapshot,
     JSOrTSDocumentSnapshot,
+    sanitizeLooseAttributePrefixes,
     SvelteDocumentSnapshot,
     SvelteSnapshotOptions
 } from '../../typescript/DocumentSnapshot';
@@ -119,6 +120,9 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
         if (this.projectConfig?.raw.svelteOptions?.namespace) {
             this.snapshotOptions.typingsNamespace = this.projectConfig.raw.svelteOptions.namespace;
         }
+        this.snapshotOptions.looseAttributePrefixes = sanitizeLooseAttributePrefixes(
+            this.projectConfig?.raw.svelteOptions?.looseAttributePrefixes
+        );
         this.pendingConfigLoading = configLoader.loadConfigs(path.dirname(tsconfigPath));
         this.writeVirtualTsconfig();
     }

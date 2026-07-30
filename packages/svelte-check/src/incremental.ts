@@ -33,6 +33,8 @@ type ManifestEntry = {
 type Manifest = {
     version: number;
     entries: Record<string, ManifestEntry>;
+    /** The emitted files depend on this option, so a change to it needs to invalidate the cache */
+    looseAttributePrefixes?: string[];
 };
 
 export type EmitResult = {
@@ -93,6 +95,25 @@ const defaultKitFilesSettings: InternalHelpers.KitFilesSettings = {
     universalHooksPath: 'src/hooks'
 };
 
+/**
+ * Reads and validates `svelteOptions.looseAttributePrefixes` from the tsconfig/jsconfig,
+ * which is unchecked user input.
+ */
+function getLooseAttributePrefixes(tsconfigPath: string | undefined): string[] | undefined {
+    if (!tsconfigPath) {
+        return undefined;
+    }
+    const prefixes = ts.readConfigFile(tsconfigPath, ts.sys.readFile).config?.svelteOptions
+        ?.looseAttributePrefixes;
+    if (!Array.isArray(prefixes)) {
+        return undefined;
+    }
+    const sanitized = prefixes.filter(
+        (prefix): prefix is string => typeof prefix === 'string' && prefix.length > 0
+    );
+    return sanitized.length > 0 ? sanitized : undefined;
+}
+
 function kitFilesSettingsFromConfig(config: any): InternalHelpers.KitFilesSettings {
     if (!config?.files) {
         return defaultKitFilesSettings;
@@ -139,16 +160,26 @@ export async function emitSvelteFiles(
     workspacePath: string,
     filePathsToIgnore: string[],
     incremental: boolean,
-    config?: string
+    config?: string,
+    tsconfigPath?: string
 ): Promise<EmitResult> {
     const cacheDir = getCacheDir(workspacePath);
     const emitDir = path.join(cacheDir, EMIT_SUBDIR);
     const manifestPath = path.join(cacheDir, 'manifest.json');
     fs.mkdirSync(emitDir, { recursive: true });
 
-    const manifest = incremental
+    const manifest: Manifest = incremental
         ? loadManifest(manifestPath, workspacePath)
         : { version: MANIFEST_VERSION, entries: {} as Record<string, ManifestEntry> };
+    const looseAttributePrefixes = getLooseAttributePrefixes(tsconfigPath);
+    if (
+        JSON.stringify(manifest.looseAttributePrefixes ?? null) !==
+        JSON.stringify(looseAttributePrefixes ?? null)
+    ) {
+        // The emitted files were generated with different options, redo them all
+        manifest.entries = {};
+    }
+    manifest.looseAttributePrefixes = looseAttributePrefixes;
     const kitFilesSettings = await loadKitFilesSettings(workspacePath, config);
     const isJsOrTsFile = (filePath: string) => filePath.endsWith('.ts') || filePath.endsWith('.js');
     const allRelevantFiles = await findFiles(
@@ -235,7 +266,8 @@ export async function emitSvelteFiles(
                 rewriteExternalImports: {
                     workspacePath,
                     generatedPath: outPath
-                }
+                },
+                looseAttributePrefixes
             });
 
             fs.writeFileSync(outPath, tsx.code, 'utf-8');
@@ -1026,7 +1058,11 @@ function loadManifest(manifestPath: string, workspacePath: string): Manifest {
                     : undefined
             };
         }
-        return { version: data.version, entries: resolvedEntries };
+        return {
+            version: data.version,
+            entries: resolvedEntries,
+            looseAttributePrefixes: data.looseAttributePrefixes
+        };
     } catch {
         return { version: MANIFEST_VERSION, entries: {} };
     }
@@ -1055,7 +1091,8 @@ function writeManifest(manifestPath: string, manifest: Manifest, workspacePath: 
     }
     const data: Manifest = {
         version: MANIFEST_VERSION,
-        entries: relativeEntries
+        entries: relativeEntries,
+        looseAttributePrefixes: manifest.looseAttributePrefixes
     };
     fs.writeFileSync(manifestPath, JSON.stringify(data, null, 2), 'utf-8');
 }

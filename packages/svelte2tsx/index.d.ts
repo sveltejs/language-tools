@@ -95,6 +95,13 @@ export function svelte2tsx(
          * from the generated file location.
          */
         rewriteExternalImports?: InternalHelpers.RewriteExternalImportsConfig;
+        /**
+         * Attribute name prefixes (e.g. `['mochi:']`) whose attributes should not be
+         * type-checked against element attribute / component prop types. Useful when
+         * a preprocessor removes such attributes before the Svelte compiler sees them.
+         * Matching attributes are treated like `data-*` attributes: accepted, but untyped.
+         */
+        looseAttributePrefixes?: string[];
     }
 ): SvelteCompiledToTsx
 

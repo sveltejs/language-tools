@@ -103,6 +103,7 @@ export function convertHtmlxToJsx(
         emitJsDoc?: boolean;
         isTsFile?: boolean;
         rewriteExternalImports?: RewriteExternalImportsOptions;
+        looseAttributePrefixes?: string[];
     } = { svelte5Plus: false }
 ): TemplateProcessResult {
     options.typingsNamespace = options.typingsNamespace || 'svelteHTML';
@@ -498,6 +499,7 @@ export function convertHtmlxToJsx(
                             parent,
                             preserveAttributeCase,
                             options.svelte5Plus,
+                            options.looseAttributePrefixes,
                             element
                         );
                         break;
@@ -675,6 +677,7 @@ export function htmlx2jsx(
         preserveAttributeCase: boolean;
         typingsNamespace: string;
         svelte5Plus: boolean;
+        looseAttributePrefixes?: string[];
     }
 ) {
     const { htmlxAst, tags } = parseHtmlx(htmlx, parse, { ...options });

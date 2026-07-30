@@ -18,7 +18,11 @@ import {
     pathToUrl,
     urlToPath
 } from '../../utils';
-import { DocumentSnapshot, SvelteSnapshotOptions } from './DocumentSnapshot';
+import {
+    DocumentSnapshot,
+    sanitizeLooseAttributePrefixes,
+    SvelteSnapshotOptions
+} from './DocumentSnapshot';
 import { createSvelteModuleLoader } from './module-loader';
 import { GlobalSnapshotsManager, SnapshotManager } from './SnapshotManager';
 import {
@@ -429,7 +433,10 @@ async function createLanguageService(
         parse: svelteCompiler?.parse,
         version: svelteCompiler?.VERSION,
         transformOnTemplateError: docContext.transformOnTemplateError,
-        typingsNamespace: raw?.svelteOptions?.namespace || 'svelteHTML'
+        typingsNamespace: raw?.svelteOptions?.namespace || 'svelteHTML',
+        looseAttributePrefixes: sanitizeLooseAttributePrefixes(
+            raw?.svelteOptions?.looseAttributePrefixes
+        )
     };
 
     const project = initLsCacheProject();

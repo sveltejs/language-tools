@@ -274,7 +274,7 @@ export class SvelteSnapshotManager {
     constructor(
         private typescript: typeof ts,
         private projectService: ts.server.ProjectService,
-        private svelteOptions: { namespace: string },
+        private svelteOptions: { namespace: string; looseAttributePrefixes?: string[] },
         private logger: Logger,
         private configManager: ConfigManager,
         /** undefined if no node_modules with Svelte next to tsconfig.json */
@@ -381,7 +381,12 @@ export class SvelteSnapshotManager {
                         typingsNamespace: this.svelteOptions.namespace,
                         // Don't search for compiler from current path - could be a different one from which we have loaded the svelte2tsx globals
                         parse: this.svelteCompiler?.parse,
-                        version: this.svelteCompiler?.VERSION
+                        version: this.svelteCompiler?.VERSION,
+                        looseAttributePrefixes: Array.isArray(
+                            this.svelteOptions.looseAttributePrefixes
+                        )
+                            ? this.svelteOptions.looseAttributePrefixes
+                            : undefined
                     });
                     code = result.code;
                     mapper = new SourceMapper(result.map.mappings);
