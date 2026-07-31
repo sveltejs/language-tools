@@ -63,14 +63,26 @@ export class SpanMapGenerator {
                         const nextGeneratedStart = currentLineOffset + nextSegment[0];
                         if (
                             nextOriginalStart === originalStart + 1 &&
-                            generatedCode.charCodeAt(nextGeneratedStart - 1) === sourceChar
+                            generatedCode.charCodeAt(nextGeneratedStart - 1) === sourceChar &&
+                            generatedCode.charCodeAt(nextGeneratedStart) ===
+                                str.original.charCodeAt(nextOriginalStart)
                         ) {
+                            const prependLength = nextGeneratedStart - generatedStart - 1;
+                            if (prependLength > 0) {
+                                mappings.push([
+                                    generatedStart,
+                                    prependLength,
+                                    originalStart,
+                                    0,
+                                    SpanMapKind.Atom
+                                ]);
+                            }
                             current = [
                                 nextGeneratedStart - 1,
                                 2,
                                 originalStart,
                                 2,
-                                SpanMapKind.Alias
+                                SpanMapKind.Atom
                             ];
                             segmentIndex++;
                             mappings.push(current);
@@ -106,19 +118,26 @@ export class SpanMapGenerator {
         }
 
         mappings.sort((a, b) => a[ORIGINAL_START] - b[ORIGINAL_START]);
+        const result: SpanMapping[] = [];
         for (let i = 0; i < mappings.length - 1; i++) {
             const current = mappings[i];
             const next = mappings[i + 1];
             const currentEnd = current[ORIGINAL_START] + current[ORIGINAL_LENGTH];
             if (currentEnd > next[ORIGINAL_START]) {
-                current[ORIGINAL_LENGTH] = next[ORIGINAL_START] - current[ORIGINAL_START];
+                const newLength = next[ORIGINAL_START] - current[ORIGINAL_START];
+                if (newLength > 0) {
+                    current[ORIGINAL_LENGTH] = newLength;
+                    result.push(current);
+                }
+                continue;
             }
 
             if (exact(str.original, generatedCode, current)) {
                 current[KIND] = SpanMapKind.Verbatim;
             }
+            result.push(current);
         }
-        return mappings.filter((m) => m[ORIGINAL_LENGTH] > 0);
+        return result;
     }
 }
 

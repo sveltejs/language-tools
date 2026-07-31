@@ -3,6 +3,7 @@
 >async () => { { svelteHTML.createElement("element", {"foo":true,});}
 #             ^ [Atom]: => < 0-1
 #                                          ^^^^^^^ [Verbatim]: => element 1-8
+#                                                     ^ [Atom]: =>  9-9
 #                                                      ^^^ [Verbatim]: => foo 9-12
 #                                                         ^ [Atom]: => / 12-13
 >
@@ -12,6 +13,7 @@
 # ^ [Atom]: => > 35-36
 #                              ^^^^^^^ [Verbatim]: => element 17-24
 #                                         ^ [Verbatim]: => • 26-27
+#                                          ^ [Atom]: =>  30-30
 #                                           ^^^ [Verbatim]: => foo 30-33
 #                                              ^ [Atom]: => ↲ 33-34
 >
@@ -22,6 +24,7 @@
 #                                        ^ [Verbatim]: => • 48-49
 #                                         ^ [Atom]: => " 56-57
 #                                          ^ [Atom]: => ↲ 63-64
+#                                           ^ [Atom]: =>  52-52
 #                                            ^^^ [Verbatim]: => foo 52-55
 #                                               ^ [Atom]: => = 55-56
 #                                                  ^^^^ [Verbatim]: => leet 57-61
@@ -35,6 +38,7 @@
 #                                         ^ [Atom]: => ╚ 78-79
 #                                          ^^^ [Verbatim]: => foo 80-83
 #                                             ^ [Atom]: => } 83-84
+#                                              ^ [Atom]: =>  84-84
 #                                               ^^^ [Verbatim]: => bar 84-87
 #                                                  ^ [Atom]: => ↲ 87-88
 >
@@ -63,7 +67,6 @@
 #                             ^^^^^^^ [Verbatim]: => element 146-153
 #                                        ^ [Verbatim]: => • 155-156
 #                                         ^ [Atom]: => { 168-169
-#                                          ^ [Atom]: => / 174-175
 #                                           ^ [Atom]: => ↲ 154-155
 #                                            ^^^^ [Verbatim]: => bind 159-163
 #                                                ^^^^ [Verbatim]: => :foo 163-167

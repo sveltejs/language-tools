@@ -174,6 +174,7 @@
 #                                                                                        ^ [Atom]: => > 406-407
 #                                                                                                                                                 ^^^^^^^^^^^ [Verbatim]: => MyComponent 380-391
 #                                                                                                                                                                                                                          ^ [Atom]: => { 399-400
+#                                                                                                                                                                                                                           ^ [Atom]: =>  392-392
 #                                                                                                                                                                                                                            ^^^^^^ [Verbatim]: => values 392-398
 #                                                                                                                                                                                                                                  ^ [Atom]: => = 398-399
 #                                                                                                                                                                                                                                    ^^^^ [Verbatim]: => rest 400-404
@@ -210,7 +211,6 @@
 #                                 ^ [Verbatim]: => p 474-475
 #                                         ^ [Atom]: => N 476-477
 #                                           ^ [Atom]: => / 492-493
-#                                             ^ [Verbatim]: => ↲ 495-496
 >};
 >return { props: /** @type {Record<string, never>} */ ({}), slots: {}, events: {} }}
 >

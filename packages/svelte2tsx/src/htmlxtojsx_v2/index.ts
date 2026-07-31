@@ -525,7 +525,7 @@ export function convertHtmlxToJsx(
                         handleLeadingStartComment(str, node as BaseNode, ast);
                         handleTrailingEndComment(str, node as BaseNode, parent, ast);
                         eventHandler.handleEventHandler(node, parent);
-                        handleEventHandler(str, node as BaseDirective, element);
+                        handleEventHandler(str, node as BaseDirective, element, options.spanMapGenerator);
                         break;
                     case 'Let':
                         handleLeadingStartComment(str, node as BaseNode, ast);

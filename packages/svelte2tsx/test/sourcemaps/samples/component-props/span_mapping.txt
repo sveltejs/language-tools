@@ -4,6 +4,7 @@
 #             ^ [Atom]: => < 0-1
 #              ^ [Atom]: => > 16-17
 #                                                                     ^^^^^^^^^ [Verbatim]: => Component 1-10
+#                                                                                                                                          ^ [Atom]: =>  11-11
 #                                                                                                                                           ^^^ [Verbatim]: => foo 11-14
 #                                                                                                                                              ^ [Atom]: => • 14-15
 >
@@ -12,10 +13,12 @@
 #^ [Atom]: => < 19-20
 #                                                       ^^^^^^^^^ [Verbatim]: => Component 20-29
 #                                                                                                                            ^ [Atom]: => " 34-35
+#                                                                                                                             ^ [Atom]: =>  30-30
 #                                                                                                                              ^^^ [Verbatim]: => foo 30-33
 #                                                                                                                                 ^ [Atom]: => = 33-34
 #                                                                                                                                    ^^^^ [Verbatim]: => leet 35-39
 #                                                                                                                                        ^ [Atom]: => " 39-40
+#                                                                                                                                          ^ [Atom]: =>  40-40
 #                                                                                                                                           ^^^ [Verbatim]: => bar 40-43
 #                                                                                                                                              ^ [Atom]: => / 43-44
 >
@@ -59,7 +62,6 @@
 #^ [Atom]: => < 128-129
 #                                                       ^^^^^^^^^ [Verbatim]: => Component 129-138
 #                                                                                                                                                  ^ [Atom]: => b 140-141
-#                                                                                                                                                   ^ [Atom]: => / 156-157
 #                                                                                                                                                    ^ [Atom]: => ╚ 139-140
 #                                                                                                                                                        ^^^ [Verbatim]: => bar 151-154
 #                                                                                                                                                           ^ [Atom]: => } 154-155

@@ -26,12 +26,14 @@
 #                                  ^ [Verbatim]: => • 59-60
 #                                   ^ [Verbatim]: => • 70-71
 #                                    ^ [Verbatim]: => • 76-77
+#                                     ^ [Atom]: =>  50-50
 #                                      ^^^ [Verbatim]: => foo 50-53
 #                                         ^ [Atom]: => = 53-54
 #                                           ^^^ [Verbatim]: => foo 55-58
 #                                              ^ [Atom]: => } 58-59
 #                                               ^^^ [Verbatim]: => baz 72-75
 #                                                  ^ [Atom]: => } 75-76
+#                                                   ^ [Atom]: =>  77-77
 #                                                    ^^^^ [Verbatim]: => leet 77-81
 #                                                                  ^ [Atom]: => f 82-83
 #                                                                   ^ [Atom]: => / 91-92
@@ -47,16 +49,17 @@
 #                                   ^ [Verbatim]: => • 116-117
 #                                    ^ [Atom]: => ↲ 127-128
 #                                     ^ [Verbatim]: => • 134-135
+#                                      ^ [Atom]: =>  107-107
 #                                       ^^^ [Verbatim]: => foo 107-110
 #                                          ^ [Atom]: => = 110-111
 #                                            ^^^ [Verbatim]: => foo 112-115
 #                                               ^ [Atom]: => } 115-116
 #                                                ^^^ [Verbatim]: => baz 130-133
 #                                                   ^ [Atom]: => } 133-134
+#                                                    ^ [Atom]: =>  137-137
 #                                                     ^^^^ [Verbatim]: => leet 137-141
 #                                                                   ^ [Atom]: => f 142-143
 > }};
-#^ [Atom]: => / 152-153
 >return { props: /** @type {Record<string, never>} */ ({}), slots: {'default': {}, 'foo': {}, 'bar': {foo:foo, baz:baz}}, events: {} }}
 >
 >export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial(__sveltets_2_with_any_event($$render()))) {

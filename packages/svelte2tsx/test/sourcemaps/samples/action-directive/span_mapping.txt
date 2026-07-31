@@ -95,7 +95,6 @@
 #                                     ^^^^^^^ [Verbatim]: => element 161-168
 #                                                                                ^ [Atom]: => u 170-171
 #                                                                                 ^ [Atom]: => { 181-182
-#                                                                                  ^ [Atom]: => / 212-213
 #                                                                                   ^ [Atom]: => ╚ 169-170
 >return { props: /** @type {Record<string, never>} */ ({}), slots: {}, events: {} }}
 >

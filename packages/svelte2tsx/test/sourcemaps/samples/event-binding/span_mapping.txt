@@ -7,8 +7,8 @@
 #                                                                                                                                                                ^ [Atom]: => { 20-21
 #                                                                                                                                                                 ^ [Atom]: => / 49-50
 #                                                                                                                                                                  ^ [Atom]: => o 11-12
-#                                                                                                                                                                                        ^ [Atom]: => c 14-15
-#                                                                                                                                                                                          ^^^^ [Verbatim]: => lick 15-19
+#                                                                                                                                                                                        ^ [Atom]: =>  14-14
+#                                                                                                                                                                                         ^^^^^ [Verbatim]: => click 14-19
 #                                                                                                                                                                                               ^ [Atom]: => = 19-20
 #                                                                                                                                                                                                 ^^^^^^ [Verbatim]: => $check 21-27
 #                                                                                                                                                                                                       ^ [Verbatim]: => • 27-28
@@ -27,8 +27,8 @@
 #                              ^^^^^^ [Verbatim]: => button 53-59
 #                                        ^ [Atom]: => n 61-62
 #                                         ^ [Atom]: => { 69-70
-#                                          ^ [Atom]: => c 63-64
-#                                               ^^^^ [Verbatim]: => lick 64-68
+#                                          ^^^^ [Atom]: =>  63-63
+#                                              ^^^^^ [Verbatim]: => click 63-68
 #                                                    ^ [Atom]: => = 68-69
 #                                                     ^^^^^^ [Verbatim]: => $check 70-76
 #                                                           ^ [Verbatim]: => • 76-77
@@ -41,7 +41,6 @@
 #                                                                        ^^^^^^^ [Verbatim]: => method2 89-96
 #                                                                               ^ [Atom]: => } 96-97
 #                                                                                   ^ [Atom]: => B 99-100
-#                                                                                    ^ [Atom]: => / 103-104
 >return { props: /** @type {Record<string, never>} */ ({}), slots: {}, events: {} }}
 >
 >export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial(__sveltets_2_with_any_event($$render()))) {

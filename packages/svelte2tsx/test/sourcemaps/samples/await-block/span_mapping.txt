@@ -14,6 +14,7 @@
 #     ^ [Atom]: => > 57-58
 #                                  ^^^^^^^ [Verbatim]: => element 33-40
 #                                             ^ [Atom]: => { 45-46
+#                                              ^ [Atom]: =>  41-41
 #                                               ^^^ [Verbatim]: => foo 41-44
 #                                                  ^ [Atom]: => = 44-45
 #                                                    ^^^^^ [Verbatim]: => value 46-51
@@ -51,7 +52,6 @@
 #^ [Verbatim]: => ↲ 128-129
 >  {
 #^ [Atom]: => { 130-131
-# ^ [Atom]: => a 163-164
 >     { svelteHTML.createElement("element", {});}
 #^ [Atom]: => ↲ 147-148
 #    ^ [Atom]: => < 149-150
