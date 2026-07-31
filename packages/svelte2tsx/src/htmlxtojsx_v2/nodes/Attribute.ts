@@ -81,9 +81,7 @@ export function handleAttribute(
         return;
     }
 
-    const isLooseAttribute = looseAttributePrefixes?.some((prefix) =>
-        attr.name.startsWith(prefix)
-    );
+    const isLooseAttribute = looseAttributePrefixes?.some((prefix) => attr.name.startsWith(prefix));
     const addAttribute =
         element instanceof Element
             ? (name: TransformationArray, value?: TransformationArray) => {
