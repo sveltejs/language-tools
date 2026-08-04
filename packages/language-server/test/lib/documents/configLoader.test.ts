@@ -1,4 +1,5 @@
 import { ConfigLoader } from '../../../src/lib/documents/configLoader';
+import { Logger } from '../../../src/logger';
 import path from 'path';
 import { pathToFileURL, URL } from 'url';
 import assert from 'assert';
@@ -362,6 +363,55 @@ describe('ConfigLoader', () => {
             ).sort(),
             ['name', 'script'].sort()
         );
+    });
+
+    it('does not log an error when vite config has no svelte plugin', async () => {
+        const errorSpy = spy(Logger, 'error');
+        try {
+            const viteConfigPath = normalizePath('/some/path/vite.config.ts');
+            const configLoader = createConfigLoader(
+                mockFdir([]),
+                {
+                    existsSync: (p) => typeof p === 'string' && p.endsWith(viteConfigPath)
+                },
+                () => Promise.resolve({ default: {} }),
+                process.features,
+                async () => undefined
+            );
+            await configLoader.loadConfigs(normalizePath('/some/path'));
+
+            assert.deepStrictEqual(errorSpy.called, false);
+        } finally {
+            errorSpy.restore();
+        }
+    });
+
+    it('logs an error when the vite config itself fails to load', async () => {
+        const errorSpy = spy(Logger, 'error');
+        try {
+            const viteConfigPath = normalizePath('/some/path/vite.config.ts');
+            // Built directly instead of through createConfigLoader, which always wraps the
+            // result in `{ config }` and so cannot express a failed load.
+            const configLoader = new ConfigLoader(
+                mockFdir([]),
+                {
+                    existsSync: (p: any) => typeof p === 'string' && p.endsWith(viteConfigPath)
+                } as any,
+                path,
+                process.features,
+                async () =>
+                    ({
+                        error: new Error('kaboom'),
+                        configFilePath: viteConfigPath,
+                        configSource: 'vite'
+                    }) as any
+            );
+            await configLoader.loadConfigs(normalizePath('/some/path'));
+
+            assert.deepStrictEqual(errorSpy.called, true);
+        } finally {
+            errorSpy.restore();
+        }
     });
 
     it('can scan svelte.config.ts', async () => {
