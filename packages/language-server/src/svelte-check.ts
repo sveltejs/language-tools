@@ -103,7 +103,7 @@ export class SvelteCheck {
         this.initialize(workspacePath, options);
     }
 
-    private async initialize(workspacePath: string, options: SvelteCheckOptions) {
+    private initialize(workspacePath: string, options: SvelteCheckOptions) {
         if (options.tsconfig && !isAbsolute(options.tsconfig)) {
             throw new Error('tsconfigPath needs to be absolute, got ' + options.tsconfig);
         }
