@@ -192,11 +192,11 @@ async function loadSvelteConfigFromVite(
         const kitPlugin = resolved.plugins.find(
             (plugin) => plugin.name === 'vite-plugin-sveltekit-setup'
         );
+        // `api.options` is already the split config shape with kit options under `kit`
         const kitOptions = kitPlugin?.api?.options;
         if (kitOptions) {
-            const { preprocess, compilerOptions, extensions, vitePlugin, ...kit } = kitOptions;
             return {
-                config: { preprocess, compilerOptions, extensions, vitePlugin, kit },
+                config: kitOptions,
                 configFilePath,
                 configSource: 'vite'
             };
