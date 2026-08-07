@@ -1,5 +1,14 @@
 # Changelog
 
+## 4.7.5
+
+### Patch Changes
+
+-   fix: prevent silent error during start-up caused by unhandled promise ([#3096](https://github.com/sveltejs/language-tools/pull/3096))
+
+-   Updated dependencies [[`1df53d8`](https://github.com/sveltejs/language-tools/commit/1df53d83049135e5789daf68416334a6f1b6b2c8)]:
+    -   @sveltejs/load-config@0.2.2
+
 ## 4.7.4
 
 ### Patch Changes
