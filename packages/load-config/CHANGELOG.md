@@ -1,5 +1,11 @@
 # @sveltejs/load-config
 
+## 0.2.2
+
+### Patch Changes
+
+-   fix: don't double-nest kit options when loading from a vite config ([#3097](https://github.com/sveltejs/language-tools/pull/3097))
+
 ## 0.2.1
 
 ### Patch Changes
