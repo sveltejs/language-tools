@@ -87,6 +87,25 @@ npm install --save-dev typescript@~6 @typescript/native@npm:typescript@7
 
 `svelte-check` needs to know the whole project to do valid checks. Imagine you alter a component property `export let foo` to `export let bar`, but you don't update any of the component usages. They all have errors now but you would not catch them if you only run checks on changed files.
 
+#### My preprocessor removes certain attributes before the Svelte compiler runs — how do I stop errors about them?
+
+If a preprocessor consumes attributes with a common prefix (for example custom template directives like `mystuff:foo`), the type checker would flag them as unknown attributes/props because it operates on the unpreprocessed source. You can exempt such prefixes via `svelteOptions.looseAttributePrefixes` in your `tsconfig.json`/`jsconfig.json`:
+
+```jsonc
+{
+    "compilerOptions": {
+        // ...
+    },
+    "svelteOptions": {
+        "looseAttributePrefixes": ["mystuff:"]
+    }
+}
+```
+
+Matching attributes are then treated like `data-*` attributes: accepted on any element or component, but untyped. This also applies to the language server / VS Code extension.
+
+Note that `svelteOptions` must be defined in the project's own `tsconfig.json`/`jsconfig.json` — it is not picked up from a config referenced via `extends`.
+
 ### More docs, preprocessor setup and troubleshooting
 
 [See here](/docs/README.md).

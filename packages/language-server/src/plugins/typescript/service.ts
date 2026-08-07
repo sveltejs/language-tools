@@ -429,7 +429,10 @@ async function createLanguageService(
         parse: svelteCompiler?.parse,
         version: svelteCompiler?.VERSION,
         transformOnTemplateError: docContext.transformOnTemplateError,
-        typingsNamespace: raw?.svelteOptions?.namespace || 'svelteHTML'
+        typingsNamespace: raw?.svelteOptions?.namespace || 'svelteHTML',
+        looseAttributePrefixes: internalHelpers.sanitizeLooseAttributePrefixes(
+            raw?.svelteOptions?.looseAttributePrefixes
+        )
     };
 
     const project = initLsCacheProject();

@@ -95,6 +95,13 @@ export function svelte2tsx(
          * from the generated file location.
          */
         rewriteExternalImports?: InternalHelpers.RewriteExternalImportsConfig;
+        /**
+         * Attribute name prefixes (e.g. `['mochi:']`) whose attributes should not be
+         * type-checked against element attribute / component prop types. Useful when
+         * a preprocessor removes such attributes before the Svelte compiler sees them.
+         * Matching attributes are treated like `data-*` attributes: accepted, but untyped.
+         */
+        looseAttributePrefixes?: string[];
     }
 ): SvelteCompiledToTsx
 
@@ -173,6 +180,7 @@ export const internalHelpers: {
     ) => { text: string; addedCode: InternalHelpers.AddedCode[] } | undefined,
     toVirtualPos: (pos: number, addedCode: InternalHelpers.AddedCode[]) => number,
     toOriginalPos: (pos: number, addedCode: InternalHelpers.AddedCode[]) => {pos: number; inGenerated: boolean},
+    sanitizeLooseAttributePrefixes: (prefixes: unknown) => string[] | undefined,
     findExports: (_ts: typeof ts, source: ts.SourceFile, isTsFile: boolean) => Map<
         string,
         | {
