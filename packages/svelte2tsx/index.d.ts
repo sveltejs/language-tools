@@ -2,7 +2,15 @@ import ts from 'typescript';
 
 export interface SvelteCompiledToTsx {
     code: string;
-    map: import("magic-string").SourceMap;
+    map: {
+        version: number;
+        file: string;
+        sources: string[];
+        sourcesContent?: string[];
+        names: string[];
+        mappings: string;
+        x_google_ignoreList?: number[];
+    };
     exportedNames: IExportedNames;
     /**
      * @deprecated Use TypeScript's `TypeChecker` to get the type information instead. This only covers literal typings.
