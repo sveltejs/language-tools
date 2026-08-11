@@ -71,3 +71,6 @@ dist
 
 # Ignore AI artifacts
 .crush/
+
+# MacOS
+.DS_Store
