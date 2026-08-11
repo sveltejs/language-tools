@@ -1,5 +1,11 @@
 # @sveltejs/load-config
 
+## 0.2.3
+
+### Patch Changes
+
+-   fix: handle chdir throwing ([#3103](https://github.com/sveltejs/language-tools/pull/3103))
+
 ## 0.2.2
 
 ### Patch Changes
