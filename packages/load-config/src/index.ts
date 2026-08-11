@@ -181,10 +181,10 @@ async function loadSvelteConfigFromVite(
     resolving = new Promise((r) => (resolve = r));
     await previous;
 
-    const cwd = process.cwd();
+    // Setting the cwd is only necessary for SvelteKit < 3, where the cwd was used to look up the svelte.config.js file.
+    const changeBack = changeCwd(root);
 
     try {
-        process.chdir(root);
         const resolved = await vite.resolveConfig(
             { root, configFile: configFilePath, logLevel: 'error' },
             'serve'
@@ -220,8 +220,19 @@ async function loadSvelteConfigFromVite(
             configSource: 'vite'
         };
     } finally {
-        process.chdir(cwd);
+        changeBack();
         resolve!();
+    }
+}
+
+function changeCwd(dir: string): () => void {
+    const cwd = process.cwd();
+    try {
+        // May throw in e.g. workers, where changing the cwd is not allowed
+        process.chdir(dir);
+        return () => process.chdir(cwd);
+    } catch {
+        return () => {};
     }
 }
 
