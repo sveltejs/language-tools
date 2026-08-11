@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.60
+
+### Patch Changes
+
+-   fix: remove type dependency on `magic-string` ([#3101](https://github.com/sveltejs/language-tools/pull/3101))
+
 ## 0.7.59
 
 ### Patch Changes
