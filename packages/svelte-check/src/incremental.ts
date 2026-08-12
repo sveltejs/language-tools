@@ -123,7 +123,10 @@ async function loadKitFilesSettings(
         return defaultKitFilesSettings;
     }
 
-    return kitFilesSettingsFromConfig(result.config.kit);
+    return kitFilesSettingsFromConfig(
+        // SvelteKit 3 puts its options at the top level
+        'files' in result.config ? result.config : result.config.kit
+    );
 }
 
 /**

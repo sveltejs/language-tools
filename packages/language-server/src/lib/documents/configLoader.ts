@@ -30,7 +30,7 @@ export interface SvelteConfig {
     loadConfigError?: any;
     isFallbackConfig?: boolean;
     configSource?: 'svelte' | 'vite';
-    kit?: any;
+    files?: any;
 }
 
 export interface ExplicitConfigScope {
@@ -269,6 +269,18 @@ export class ConfigLoader {
 
         if (result && 'config' in result) {
             const configSource = result.configSource;
+            if ('kit' in result.config && !('prerender' in result.config)) {
+                // SvelteKit 3 puts its options at the top level, SvelteKit < 3 inside `kit`,
+                // so we need to normalize it.
+                result.config = {
+                    ...result.config,
+                    ...(result.config.kit as any)
+                };
+            } else {
+                // Accessing `kit` emits a warning in 3 so we delete it.
+                delete result.config.kit;
+            }
+
             const config: SvelteConfig = {
                 ...(result.config as SvelteConfig),
                 configSource,

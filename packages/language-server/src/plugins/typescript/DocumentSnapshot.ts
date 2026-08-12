@@ -650,7 +650,7 @@ export class JSOrTSDocumentSnapshot extends IdentityMapper implements DocumentSn
         }
 
         if (!this.kitFile) {
-            const files = configLoader.getConfig(this.filePath)?.kit?.files;
+            const files = configLoader.getConfig(this.filePath)?.files;
             if (files) {
                 this.paramsPath ||= files.params;
                 this.serverHooksPath ||= files.hooks?.server;
