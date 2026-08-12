@@ -298,6 +298,10 @@ export class ConfigLoader {
         }
 
         const configSource = result?.configSource ?? getConfigSource(configPath);
+        // A vite config that loads fine but has no Svelte plugin is not an error: in a monorepo
+        // the crawler also visits packages that don't use Svelte at all. Only report loading
+        // failures, which are the cases where `loadConfig` hands back an `error`.
+        const loadFailed = result?.error !== undefined;
         const error =
             result?.error ??
             new Error(
@@ -306,8 +310,12 @@ export class ConfigLoader {
                     : 'No Svelte configuration found'
             );
         const errorConfigPath = result?.configFilePath ?? configPath;
-        Logger.error('Error while loading config at ', errorConfigPath);
-        Logger.error(error);
+        if (loadFailed) {
+            Logger.error('Error while loading config at ', errorConfigPath);
+            Logger.error(error);
+        } else {
+            Logger.log('No Svelte config found at ', errorConfigPath);
+        }
 
         return {
             config: {
