@@ -12,6 +12,7 @@ interface SvelteConfig {
     compilerOptions?: Record<string, unknown>;
     preprocess?: unknown;
     extensions?: string[];
+    /** NOTE: SvelteKit 3 has all at its config merged into the top level and this entry is deprecated so this may not exist anymore at some point */
     kit?: unknown;
     vitePlugin?: unknown;
     [key: string]: unknown;
