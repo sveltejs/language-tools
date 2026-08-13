@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.18.4
+
+### Patch Changes
+
+-   fix: don't log an error for vite configs without a Svelte plugin ([#3091](https://github.com/sveltejs/language-tools/pull/3091))
+
+-   fix: handle SvelteKit 3 having its config merged at the top level ([#3104](https://github.com/sveltejs/language-tools/pull/3104))
+
+-   Updated dependencies [[`820daab`](https://github.com/sveltejs/language-tools/commit/820daab7b7a460fdbe78ef08e458104ad1e3a2c3)]:
+    -   svelte2tsx@0.7.61
+
 ## 0.18.3
 
 ### Patch Changes
