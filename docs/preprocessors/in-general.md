@@ -2,7 +2,7 @@
 
 ## Generic setup
 
-If a svelte file contains some language other than `html`, `css` or `javascript`, `svelte-vscode` needs to know how to [preprocess](https://svelte.dev/docs#svelte_preprocess) it. This can be achieved by creating a `svelte.config.js` file at the root of your project which exports a svelte options object (similar to `svelte-loader` and `rollup-plugin-svelte`). It's recommended to use the official [vitePreprocess](https://github.com/sveltejs/vite-plugin-svelte/blob/main/docs/preprocess.md) or [svelte-preprocess](https://github.com/sveltejs/svelte-preprocess) packages which can handle many languages. Visit the SvelteKit docs, to see [a comparison between these two preprocessors](https://kit.svelte.dev/docs/integrations).
+If a svelte file contains some language other than `html`, `css` or `javascript`, `svelte-vscode` needs to know how to [preprocess](https://svelte.dev/docs#svelte_preprocess) it. This can be achieved by creating a `svelte.config.js` file at the root of your project which exports a svelte options object (similar to `svelte-loader` and `rollup-plugin-svelte`). It's recommended to use the official [vitePreprocess](https://github.com/sveltejs/vite-plugin-svelte/blob/main/docs/preprocess.md) or [svelte-preprocess](https://github.com/sveltejs/svelte-preprocess) packages which can handle many languages. Visit the SvelteKit docs, to see [a comparison between these two preprocessors](https://svelte.dev/docs/kit/integrations).
 
 > NOTE: Prior to `svelte-check 1.4.0` / `svelte-language-server 0.13.0` / `Svelte for VS Code 104.9.0` you **cannot** use the new `import x from y` and `export const` / `export default` syntax in `svelte.config.js`.
 

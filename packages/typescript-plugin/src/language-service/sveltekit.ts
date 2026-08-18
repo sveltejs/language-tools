@@ -113,7 +113,7 @@ function createApiExport(name: string) {
         ],
         documentation: [
             {
-                text: `Handles ${name} requests. More info: https://kit.svelte.dev/docs/routing#server`,
+                text: `Handles ${name} requests. More info: https://svelte.dev/docs/kit/routing#server`,
                 kind: 'text'
             }
         ]
@@ -162,7 +162,7 @@ export const kitExports: Record<
         ],
         documentation: [
             {
-                text: 'Control whether or not this page is prerendered. More info: https://kit.svelte.dev/docs/page-options#prerender',
+                text: 'Control whether or not this page is prerendered. More info: https://svelte.dev/docs/kit/page-options#prerender',
                 kind: 'text'
             }
         ]
@@ -193,7 +193,7 @@ export const kitExports: Record<
         ],
         documentation: [
             {
-                text: 'Control whether or not this page is server-side rendered. More info: https://kit.svelte.dev/docs/page-options#ssr',
+                text: 'Control whether or not this page is server-side rendered. More info: https://svelte.dev/docs/kit/page-options#ssr',
                 kind: 'text'
             }
         ]
@@ -224,7 +224,7 @@ export const kitExports: Record<
         ],
         documentation: [
             {
-                text: 'Control whether or not this page is hydrated (i.e. if JS is delivered to the client). More info: https://kit.svelte.dev/docs/page-options#csr',
+                text: 'Control whether or not this page is hydrated (i.e. if JS is delivered to the client). More info: https://svelte.dev/docs/kit/page-options#csr',
                 kind: 'text'
             }
         ]
@@ -255,7 +255,7 @@ export const kitExports: Record<
         ],
         documentation: [
             {
-                text: 'Control how SvelteKit should handle trailing slashes in the URL. More info: https://kit.svelte.dev/docs/page-options#trailingslash',
+                text: 'Control how SvelteKit should handle trailing slashes in the URL. More info: https://svelte.dev/docs/kit/page-options#trailingslash',
                 kind: 'text'
             }
         ]
@@ -289,7 +289,7 @@ export const kitExports: Record<
                 text:
                     `With the concept of adapters, SvelteKit is able to run on a variety of platforms. ` +
                     `Each of these might have specific configuration to further tweak the deployment, which you can configure here. ` +
-                    `More info: https://kit.svelte.dev/docs/page-options#config`,
+                    `More info: https://svelte.dev/docs/kit/page-options#config`,
                 kind: 'text'
             }
         ]
@@ -322,7 +322,7 @@ export const kitExports: Record<
             {
                 text:
                     `An object of methods which handle form POST requests. ` +
-                    `More info: https://kit.svelte.dev/docs/form-actions`,
+                    `More info: https://svelte.dev/docs/kit/form-actions`,
                 kind: 'text'
             }
         ]
@@ -393,7 +393,7 @@ export const kitExports: Record<
         ],
         documentation: [
             {
-                text: 'Loads data for the given page or layout. More info: https://kit.svelte.dev/docs/load',
+                text: 'Loads data for the given page or layout. More info: https://svelte.dev/docs/kit/load',
                 kind: 'text'
             }
         ]
@@ -430,7 +430,7 @@ export const kitExports: Record<
             {
                 text:
                     'Generate values for dynamic parameters in prerendered pages.\n' +
-                    'More info: https://kit.svelte.dev/docs/page-options#entries',
+                    'More info: https://svelte.dev/docs/kit/page-options#entries',
                 kind: 'text'
             }
         ]
@@ -451,7 +451,7 @@ export const kitExports: Record<
             {
                 text:
                     `A parameter matcher. ` +
-                    `More info: https://kit.svelte.dev/docs/advanced-routing#matching`,
+                    `More info: https://svelte.dev/docs/kit/advanced-routing#matching`,
                 kind: 'text'
             }
         ]
@@ -466,7 +466,7 @@ export const kitExports: Record<
                     `The  handle hook runs every time the SvelteKit server receives a request and determines the response. ` +
                     `It receives an 'event' object representing the request and a function called 'resolve', which renders the route and generates a Response. ` +
                     `This allows you to modify response headers or bodies, or bypass SvelteKit entirely (for implementing routes programmatically, for example). ` +
-                    `More info: https://kit.svelte.dev/docs/hooks#server-hooks-handle`,
+                    `More info: https://svelte.dev/docs/kit/hooks#server-hooks-handle`,
                 kind: 'text'
             }
         ]
@@ -478,7 +478,7 @@ export const kitExports: Record<
             {
                 text:
                     `The handleFetch hook allows you to modify (or replace) a 'fetch' request that happens inside a 'load' function that runs on the server (or during pre-rendering). ` +
-                    `More info: https://kit.svelte.dev/docs/hooks#server-hooks-handlefetch`,
+                    `More info: https://svelte.dev/docs/kit/hooks#server-hooks-handlefetch`,
                 kind: 'text'
             }
         ]
@@ -492,7 +492,7 @@ export const kitExports: Record<
                     `The handleError hook runs when an unexpected error is thrown while responding to a request. ` +
                     `If an unexpected error is thrown during loading or rendering, this function will be called with the error and the event. ` +
                     `Make sure that this function _never_ throws an error. ` +
-                    `More info: https://kit.svelte.dev/docs/hooks#shared-hooks-handleerror`,
+                    `More info: https://svelte.dev/docs/kit/hooks#shared-hooks-handleerror`,
                 kind: 'text'
             }
         ]
@@ -505,7 +505,7 @@ export const kitExports: Record<
                 text:
                     `This function allows you to change how URLs are translated into routes. ` +
                     `The returned pathname (which defaults to url.pathname) is used to select the route and its parameters. ` +
-                    `More info: https://kit.svelte.dev/docs/hooks#universal-hooks-reroute`,
+                    `More info: https://svelte.dev/docs/kit/hooks#universal-hooks-reroute`,
                 kind: 'text'
             }
         ]

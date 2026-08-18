@@ -1,5 +1,34 @@
 # Changelog
 
+## 4.7.6
+
+### Patch Changes
+
+-   fix: don't log an error for vite configs without a Svelte plugin ([#3091](https://github.com/sveltejs/language-tools/pull/3091))
+
+-   fix: handle SvelteKit 3 having its config merged at the top level ([#3104](https://github.com/sveltejs/language-tools/pull/3104))
+
+## 4.7.5
+
+### Patch Changes
+
+-   fix: prevent silent error during start-up caused by unhandled promise ([#3096](https://github.com/sveltejs/language-tools/pull/3096))
+
+-   Updated dependencies [[`1df53d8`](https://github.com/sveltejs/language-tools/commit/1df53d83049135e5789daf68416334a6f1b6b2c8)]:
+    -   @sveltejs/load-config@0.2.2
+
+## 4.7.4
+
+### Patch Changes
+
+-   fix: support TypeScript 7 Stable under npm alias ([#3073](https://github.com/sveltejs/language-tools/pull/3073))
+
+## 4.7.3
+
+### Patch Changes
+
+-   feat: zero-config `+error.svelte` props ([#3076](https://github.com/sveltejs/language-tools/pull/3076))
+
 ## 4.7.2
 
 ### Patch Changes

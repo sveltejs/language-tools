@@ -1,7 +1,7 @@
 {
     "name": "svelte-check",
     "description": "Svelte Code Checker Terminal Interface",
-    "version": "4.7.2",
+    "version": "4.7.6",
     "main": "./dist/src/index.js",
     "bin": "./bin/svelte-check",
     "author": "The Svelte Community",
@@ -35,7 +35,7 @@
     },
     "peerDependencies": {
         "svelte": "^4.0.0 || ^5.0.0-next.0",
-        "typescript": ">=5.0.0"
+        "typescript": "^5.0.0 || ^6.0.0"
     },
     "scripts": {
         "build": "cd ../load-config && pnpm build && cd ../svelte2tsx && pnpm build && cd ../language-server && pnpm build && cd ../svelte-check && rollup -c && pnpm test:sanity",

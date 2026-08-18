@@ -12,6 +12,7 @@ interface SvelteConfig {
     compilerOptions?: Record<string, unknown>;
     preprocess?: unknown;
     extensions?: string[];
+    /** NOTE: SvelteKit 3 has all at its config merged into the top level and this entry is deprecated so this may not exist anymore at some point */
     kit?: unknown;
     vitePlugin?: unknown;
     [key: string]: unknown;
@@ -176,14 +177,15 @@ async function loadSvelteConfigFromVite(
 
     // Make sure that only one Vite config is resolved at a time, to prevent race conditions with multiple
     // calls to `loadConfig` ending up with changing the process' current working directory mid-resolution.
-    await resolving;
-
+    const previous = resolving;
     let resolve;
     resolving = new Promise((r) => (resolve = r));
-    const cwd = process.cwd();
+    await previous;
+
+    // Setting the cwd is only necessary for SvelteKit < 3, where the cwd was used to look up the svelte.config.js file.
+    const changeBack = changeCwd(root);
 
     try {
-        process.chdir(root);
         const resolved = await vite.resolveConfig(
             { root, configFile: configFilePath, logLevel: 'error' },
             'serve'
@@ -191,11 +193,11 @@ async function loadSvelteConfigFromVite(
         const kitPlugin = resolved.plugins.find(
             (plugin) => plugin.name === 'vite-plugin-sveltekit-setup'
         );
+        // `api.options` is already the split config shape with kit options under `kit`
         const kitOptions = kitPlugin?.api?.options;
         if (kitOptions) {
-            const { preprocess, compilerOptions, extensions, vitePlugin, ...kit } = kitOptions;
             return {
-                config: { preprocess, compilerOptions, extensions, vitePlugin, kit },
+                config: kitOptions,
                 configFilePath,
                 configSource: 'vite'
             };
@@ -219,8 +221,19 @@ async function loadSvelteConfigFromVite(
             configSource: 'vite'
         };
     } finally {
-        process.chdir(cwd);
+        changeBack();
         resolve!();
+    }
+}
+
+function changeCwd(dir: string): () => void {
+    const cwd = process.cwd();
+    try {
+        // May throw in e.g. workers, where changing the cwd is not allowed
+        process.chdir(dir);
+        return () => process.chdir(cwd);
+    } catch {
+        return () => {};
     }
 }
 

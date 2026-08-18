@@ -1,5 +1,23 @@
 # @sveltejs/load-config
 
+## 0.2.3
+
+### Patch Changes
+
+-   fix: handle chdir throwing ([#3103](https://github.com/sveltejs/language-tools/pull/3103))
+
+## 0.2.2
+
+### Patch Changes
+
+-   fix: don't double-nest kit options when loading from a vite config ([#3097](https://github.com/sveltejs/language-tools/pull/3097))
+
+## 0.2.1
+
+### Patch Changes
+
+-   fix: ensure config loading happens sequentially ([#3084](https://github.com/sveltejs/language-tools/pull/3084))
+
 ## 0.2.0
 
 ### Minor Changes
