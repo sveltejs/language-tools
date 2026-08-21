@@ -12,7 +12,7 @@
         "resolveJsonModule": true
     },
     "include": [
-        "**/*", 
+        "**/*",
         // This is needed because "**" doesn't include dot folders
         "./.svelte-kit/**/*"
     ],
