@@ -53,17 +53,20 @@ export function processInstanceScriptContent(
     isSvelte5Plus: boolean,
     isRunes: boolean,
     emitJsDoc: boolean,
-    rewriteExternalImports?: RewriteExternalImportsOptions
+    rewriteExternalImports?: RewriteExternalImportsOptions,
+    tsAst?: ts.SourceFile
 ): InstanceScriptProcessResult {
     const htmlx = str.original;
     const scriptContent = htmlx.substring(script.content.start, script.content.end);
-    const tsAst = ts.createSourceFile(
-        'component.ts.svelte',
-        scriptContent,
-        ts.ScriptTarget.Latest,
-        true,
-        ts.ScriptKind.TS
-    );
+    if (!tsAst) {
+        tsAst = ts.createSourceFile(
+            'component.ts.svelte',
+            scriptContent,
+            ts.ScriptTarget.Latest,
+            true,
+            ts.ScriptKind.TS
+        );
+    }
     const astOffset = script.content.start;
     const exportedNames = new ExportedNames(
         str,
