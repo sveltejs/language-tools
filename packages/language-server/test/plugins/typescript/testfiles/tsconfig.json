@@ -11,6 +11,7 @@
         /**For testing import json file*/
         "resolveJsonModule": true
     },
+    "include": ["**/*", "./.svelte-kit/**/*"],
     "exclude": [
         /**For testing exclude */
         "./dist"

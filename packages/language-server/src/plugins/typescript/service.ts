@@ -96,6 +96,16 @@ declare module 'typescript' {
          */
         alternateResult?: string;
     }
+
+    interface TsConfigSourceFile {
+        /** @internal */ configFileSpecs?: ConfigFileSpecs;
+    }
+
+    interface ConfigFileSpecs {
+        validatedFilesSpec: readonly string[] | undefined;
+        validatedIncludeSpecs: readonly string[] | undefined;
+        validatedExcludeSpecs: readonly string[] | undefined;
+    }
 }
 
 export interface TsConfigInfo {
@@ -344,7 +354,7 @@ async function createLanguageService(
     const getCanonicalFileName = createGetCanonicalFileName(tsSystem.useCaseSensitiveFileNames);
     watchWildCardDirectories(projectConfig);
 
-    const snapshotManager = createSnapshotManager(projectConfig, tsconfigPath);
+    const snapshotManager = projectConfig.snapshotManager;
 
     // Load all configs within the tsconfig scope and the one above so that they are all loaded
     // by the time they need to be accessed synchronously by DocumentSnapshots.
@@ -471,17 +481,16 @@ async function createLanguageService(
 
     function createSnapshotManager(
         parsedCommandLine: ts.ParsedCommandLine,
-        configFileName: string
+        configFileName: string,
+        spec?: ts.ConfigFileSpecs
     ) {
-        const cached = configFileName ? parsedTsConfigInfo.get(configFileName) : undefined;
-        if (cached?.snapshotManager) {
-            return cached.snapshotManager;
-        }
-        // raw is the tsconfig merged with extending config
-        // see: https://github.com/microsoft/TypeScript/blob/08e4f369fbb2a5f0c30dee973618d65e6f7f09f8/src/compiler/commandLineParser.ts#L2537
         return new SnapshotManager(
             docContext.globalSnapshotsManager,
-            parsedCommandLine.raw,
+            spec ?? {
+                validatedIncludeSpecs: [],
+                validatedExcludeSpecs: undefined,
+                validatedFilesSpec: undefined
+            },
             configFileName ? dirname(configFileName) : workspacePath,
             tsSystem,
             parsedCommandLine.fileNames.map(normalizePath),
@@ -683,37 +692,59 @@ async function createLanguageService(
         if (!info.pendingProjectFileUpdate) {
             return;
         }
-        const projectFileCountBefore = snapshotManager.getProjectFileNames().length;
+        const projectFileCountBefore = snapshotManager.getProjectFileToOriginalCasingMap().size;
         ensureFilesForConfigUpdates(info);
-        const projectFileCountAfter = snapshotManager.getProjectFileNames().length;
+        const projectFileCountAfter = snapshotManager.getProjectFileToOriginalCasingMap().size;
 
-        if (projectFileCountAfter > projectFileCountBefore) {
+        if (
+            projectFileCountAfter > projectFileCountBefore ||
+            (languageServiceReducedMode && projectFileCountAfter < projectFileCountBefore)
+        ) {
             reduceLanguageServiceCapabilityIfFileSizeTooBig();
         }
     }
 
     function getScriptFileNames() {
-        const projectFiles = languageServiceReducedMode
-            ? []
-            : snapshotManager.getProjectFileNames();
-        const canonicalProjectFileNames = new Set(projectFiles.map(getCanonicalFileName));
+        if (!tsconfigPath) {
+            return Array.from(
+                new Set([
+                    ...snapshotManager.getClientFileNames(),
+                    ...svelteTsxFilesToOriginalCasing.values()
+                ])
+            );
+        }
+
+        const projectFiles = snapshotManager.getProjectFileToOriginalCasingMap();
+        const resultFiles = new Set<string>();
 
         // We only assign project files (i.e. those found through includes config) and virtual files to getScriptFileNames.
-        // We don't to include other client files otherwise they stay in the program and are never removed
-        const clientFiles = tsconfigPath
-            ? Array.from(virtualDocuments.values())
-                  .map((v) => v.getFilePath())
-                  .filter(isNotNullOrUndefined)
-            : snapshotManager.getClientFileNames();
+        // We don't want to include other client files otherwise they stay in the program and are never removed
+
+        for (const [_, doc] of virtualDocuments) {
+            const pathOriginalCasing = doc.getFilePath();
+            if (pathOriginalCasing) {
+                resultFiles.add(pathOriginalCasing);
+            }
+        }
+
+        if (languageServiceReducedMode) {
+            const canonicalProjectFileNames = new Set(
+                snapshotManager.getProjectFileToOriginalCasingMap().keys()
+            );
+            for (const client of snapshotManager.getClientFileNames()) {
+                if (canonicalProjectFileNames.has(getCanonicalFileName(client))) {
+                    resultFiles.add(client);
+                }
+            }
+        } else {
+            for (const doc of projectFiles.values()) {
+                resultFiles.add(doc);
+            }
+        }
 
         return Array.from(
             new Set([
-                ...projectFiles,
-                // project file is read from the file system so it's more likely to have
-                // the correct casing
-                ...clientFiles.filter(
-                    (file) => !canonicalProjectFileNames.has(getCanonicalFileName(file))
-                ),
+                ...resultFiles,
                 // Use original casing here, too: people could have their VS Code extensions in a case insensitive
                 // folder but their project in a case sensitive one; and if we copy the shims into the case sensitive
                 // part it would break when canonicalizing it.
@@ -749,6 +780,7 @@ async function createLanguageService(
         let compilerOptions: ts.CompilerOptions;
         let parsedConfig: ts.ParsedCommandLine;
         let extendedConfigPaths: Set<string> | undefined;
+        let snapshotManager: SnapshotManager;
 
         if (tsconfigPath) {
             const info = ensureTsConfigInfoUpToDate(tsconfigPath);
@@ -760,10 +792,12 @@ async function createLanguageService(
             compilerOptions = info.parsedCommandLine.options;
             parsedConfig = info.parsedCommandLine;
             extendedConfigPaths = info.extendedConfigPaths;
+            snapshotManager = info.snapshotManager;
         } else {
             const config = parseDefaultCompilerOptions();
             compilerOptions = config.compilerOptions;
             parsedConfig = config.parsedConfig;
+            snapshotManager = createSnapshotManager(parsedConfig, tsconfigPath);
         }
 
         if (
@@ -818,7 +852,8 @@ async function createLanguageService(
             ...parsedConfig,
             fileNames: parsedConfig.fileNames.map(normalizePath),
             options: compilerOptions,
-            extendedConfigPaths
+            extendedConfigPaths,
+            snapshotManager
         };
     }
 
@@ -890,22 +925,30 @@ async function createLanguageService(
     }
 
     /**
-     * Disable usage of project files.
+     * Toggle usage of project files.
      * running language service in a reduced mode for
      * large projects with improperly excluded tsconfig.
      */
     function reduceLanguageServiceCapabilityIfFileSizeTooBig() {
-        if (
-            exceedsTotalSizeLimitForNonTsFiles(
-                compilerOptions,
-                tsconfigPath,
-                snapshotManager,
-                tsSystem
-            )
-        ) {
+        const shouldDisabled = exceedsTotalSizeLimitForNonTsFiles(
+            compilerOptions,
+            tsconfigPath,
+            snapshotManager,
+            tsSystem
+        );
+        if (!shouldDisabled) {
+            languageServiceReducedMode = false;
+            return;
+        }
+
+        if (!languageServiceReducedMode) {
             languageService.cleanupSemanticCache();
             languageServiceReducedMode = true;
             if (project) {
+                if (project.autoImportProviderHost) {
+                    project.autoImportProviderHost.close();
+                }
+                project.autoImportProviderHost = undefined;
                 project.languageServiceEnabled = false;
             }
             docContext.notifyExceedSizeLimit?.();
@@ -1154,7 +1197,7 @@ async function createLanguageService(
             return null;
         }
 
-        const json = ts.parseJsonText(configFilePath, content);
+        const json = ts.parseJsonText(configFilePath, content) as ts.TsConfigSourceFile;
 
         const extendedConfigPaths = new Set<string>();
         const { extendedConfigCache } = docContext;
@@ -1198,7 +1241,11 @@ async function createLanguageService(
 
         parsedCommandLine.options.allowNonTsExtensions = true;
 
-        const snapshotManager = createSnapshotManager(parsedCommandLine, configFilePath);
+        const snapshotManager = createSnapshotManager(
+            parsedCommandLine,
+            configFilePath,
+            json.configFileSpecs
+        );
 
         const tsconfigInfo: TsConfigInfo = {
             parsedCommandLine,
@@ -1282,7 +1329,7 @@ function exceedsTotalSizeLimitForNonTsFiles(
     snapshotManager: SnapshotManager,
     tsSystem: ts.System
 ): boolean {
-    if (compilerOptions.disableSizeLimit) {
+    if (compilerOptions.disableSizeLimit || tsSystem.getFileSize === undefined) {
         return false;
     }
 
@@ -1296,17 +1343,18 @@ function exceedsTotalSizeLimitForNonTsFiles(
     let totalNonTsFileSize = 0;
 
     const fileNames = snapshotManager.getProjectFileNames();
+    const getFileSize = tsSystem.getFileSize;
     for (const fileName of fileNames) {
         if (hasTsExtensions(fileName)) {
             continue;
         }
 
-        totalNonTsFileSize += tsSystem.getFileSize?.(fileName) ?? 0;
+        totalNonTsFileSize += getFileSize(fileName);
 
         if (totalNonTsFileSize > availableSpace) {
             const top5LargestFiles = fileNames
                 .filter((name) => !hasTsExtensions(name))
-                .map((name) => ({ name, size: tsSystem.getFileSize?.(name) ?? 0 }))
+                .map((name) => ({ name, size: getFileSize(name) }))
                 .sort((a, b) => b.size - a.size)
                 .slice(0, 5);
 
