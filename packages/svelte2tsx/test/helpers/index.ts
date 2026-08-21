@@ -1,4 +1,5 @@
 import * as assert from 'assert';
+import * as path from 'path';
 import ts from 'typescript';
 import { internalHelpers } from '../../src';
 
@@ -64,6 +65,26 @@ describe('Internal Helpers - upsertKitFile', () => {
             'hooks.server.js',
             `export const handle = async ({ event, resolve }) => {};`,
             `export const handle = /** @type {import('@sveltejs/kit').Handle} */ async ({ event, resolve }) => {};`
+        );
+    });
+
+    it('uses SvelteKit 3 hook imports', () => {
+        const kit3Path = (file: string) => path.join(__dirname, 'fixtures', 'kit-3', 'src', file);
+
+        upsert(
+            kit3Path('hooks.server.ts'),
+            `export function handleError(e) {} export const handle = async (e) => {}; export function handleFetch(e) {}`,
+            `export function handleError(e: Parameters<import('@sveltejs/kit/hooks').HandleServerError>[0]) : ReturnType<import('@sveltejs/kit/hooks').HandleServerError> {} export const handle = async (e: Parameters<import('@sveltejs/kit/hooks').Handle>[0]) : ReturnType<import('@sveltejs/kit/hooks').Handle> => {}; export function handleFetch(e: Parameters<import('@sveltejs/kit/hooks').HandleFetch>[0]) : ReturnType<import('@sveltejs/kit/hooks').HandleFetch> {}`
+        );
+        upsert(
+            kit3Path('hooks.client.ts'),
+            `export function handleError(e) {}`,
+            `export function handleError(e: Parameters<import('@sveltejs/kit/hooks').HandleClientError>[0]) : ReturnType<import('@sveltejs/kit/hooks').HandleClientError> {}`
+        );
+        upsert(
+            kit3Path('hooks.ts'),
+            `export function reroute(e) {}`,
+            `export function reroute(e: Parameters<import('@sveltejs/kit/hooks').Reroute>[0]) : ReturnType<import('@sveltejs/kit/hooks').Reroute> {}`
         );
     });
 

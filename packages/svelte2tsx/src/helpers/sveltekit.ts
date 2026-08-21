@@ -24,6 +24,7 @@ export interface KitFilesSettings {
 }
 
 const kitPageFiles = new Set(['+page', '+layout', '+page.server', '+layout.server', '+server']);
+const kitTypeImportPathCache = new Map<string, string>();
 
 /**
  * Determines whether or not a given file is a SvelteKit-specific file (route file, hooks file, or params file)
@@ -51,6 +52,13 @@ export function isKitRouteFile(basename: string): boolean {
     }
 
     return kitPageFiles.has(basename);
+}
+
+/**
+ * Determines whether or not a given file is a SvelteKit +error.svelte file
+ */
+export function isKitErrorFile(basename: string): boolean {
+    return basename.slice(0, -path.extname(basename).length) === '+error';
 }
 
 /**
@@ -156,6 +164,34 @@ export function upsertKitFile(
     }
 
     return { text, addedCode };
+}
+
+function getKitTypeImportPath(ts: _ts, fileName: string) {
+    const cachedPath = kitTypeImportPathCache.get(fileName);
+    if (cachedPath) {
+        return cachedPath;
+    }
+
+    let importPath = '@sveltejs/kit';
+    try {
+        const packageJsonPath = ts.resolveModuleName(
+            '@sveltejs/kit/package.json',
+            fileName,
+            { moduleResolution: ts.ModuleResolutionKind.NodeJs, resolveJsonModule: true },
+            ts.sys
+        ).resolvedModule?.resolvedFileName;
+        const packageJson = packageJsonPath && ts.sys.readFile(packageJsonPath);
+        const version = packageJson && JSON.parse(packageJson).version;
+
+        if (Number.parseInt(version, 10) >= 3) {
+            importPath = '@sveltejs/kit/hooks';
+        }
+    } catch {
+        // Fall back to the pre-v3 import if Kit cannot be resolved or its package.json is invalid.
+    }
+
+    kitTypeImportPathCache.set(fileName, importPath);
+    return importPath;
 }
 
 function applyExternalImportRewritesToAddedCode(
@@ -339,6 +375,8 @@ function upsertKitClientHooksFile(
         return;
     }
 
+    const kitTypeImportPath = getKitTypeImportPath(ts, fileName);
+
     const source = getSource();
     if (!source) return;
 
@@ -357,7 +395,7 @@ function upsertKitClientHooksFile(
         insert,
         isTsFile,
         'handleError',
-        `import('@sveltejs/kit').HandleClientError`
+        `import('${kitTypeImportPath}').HandleClientError`
     );
 
     return { addedCode, originalText: source.getFullText() };
@@ -375,6 +413,8 @@ function upsertKitServerHooksFile(
         return;
     }
 
+    const kitTypeImportPath = getKitTypeImportPath(ts, fileName);
+
     const source = getSource();
     if (!source) return;
 
@@ -390,9 +430,9 @@ function upsertKitServerHooksFile(
         addTypeToFunction(ts, exports, surround, insert, isTsFile, name, type);
     };
 
-    addType('handleError', `import('@sveltejs/kit').HandleServerError`);
-    addType('handle', `import('@sveltejs/kit').Handle`);
-    addType('handleFetch', `import('@sveltejs/kit').HandleFetch`);
+    addType('handleError', `import('${kitTypeImportPath}').HandleServerError`);
+    addType('handle', `import('${kitTypeImportPath}').Handle`);
+    addType('handleFetch', `import('${kitTypeImportPath}').HandleFetch`);
 
     return { addedCode, originalText: source.getFullText() };
 }
@@ -408,6 +448,8 @@ function upsertKitUniversalHooksFile(
     if (!isHooksFile(fileName, basename, universalHooksPath)) {
         return;
     }
+
+    const kitTypeImportPath = getKitTypeImportPath(ts, fileName);
 
     const source = getSource();
     if (!source) return;
@@ -427,7 +469,7 @@ function upsertKitUniversalHooksFile(
         insert,
         isTsFile,
         'reroute',
-        `import('@sveltejs/kit').Reroute`
+        `import('${kitTypeImportPath}').Reroute`
     );
 
     return { addedCode, originalText: source.getFullText() };

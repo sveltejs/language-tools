@@ -422,7 +422,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionRe
             for (const $typeImport of $typeImports.values()) {
                 // resolve path from filePath to svelte-kit/types
                 // src/routes/foo/+page.svelte -> .svelte-kit/types/foo/$types.d.ts
-                const routesFolder = document.config?.kit?.files?.routes || 'src/routes';
+                const routesFolder = document.config?.files?.routes || 'src/routes';
                 const relativeFileName = filePath.split(routesFolder)[1]?.slice(1);
                 if (relativeFileName) {
                     const relativePath =

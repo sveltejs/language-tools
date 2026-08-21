@@ -10,6 +10,8 @@ export interface EmitDtsConfig {
 }
 
 export async function emitDts(config: EmitDtsConfig) {
+    throwIfTypeScript7();
+
     const svelteMap = await createSvelteMap(config);
     const { options, filenames, absDeclarationDir } = loadTsconfig(config, svelteMap);
     const host = await createTsCompilerHost(options, svelteMap, absDeclarationDir);
@@ -46,6 +48,15 @@ export async function emitDts(config: EmitDtsConfig) {
                     return `${file}\n${errors.map((error) => `  - ${error}`).join('\n')}`;
                 })
                 .join('\n')
+        );
+    }
+}
+
+function throwIfTypeScript7() {
+    const major = parseInt(ts.version.split('.')[0], 10);
+    if (major >= 7) {
+        throw new Error(
+            `emitDts is not compatible with TypeScript ${ts.version}. Please use a TypeScript version lower than 7.x.`
         );
     }
 }
@@ -267,6 +278,20 @@ async function createTsCompilerHost(options: any, svelteMap: SvelteMap, absDecla
         });
     };
 
+    const getCanonicalFileName = createGetCanonicalFileName(ts.sys.useCaseSensitiveFileNames);
+    // Each resolution host gets its own cache: the two hosts disagree about
+    // whether virtual .svelte.ts/.svelte.js paths exist.
+    const tsModuleResolutionCache = ts.createModuleResolutionCache(
+        ts.sys.getCurrentDirectory(),
+        getCanonicalFileName,
+        options
+    );
+    const svelteModuleResolutionCache = ts.createModuleResolutionCache(
+        ts.sys.getCurrentDirectory(),
+        getCanonicalFileName,
+        options
+    );
+
     function resolveModuleName(name: string, containingFile: string, compilerOptions: any) {
         // Delegate to the TS resolver first.
         // If that does not bring up anything, try the Svelte Module loader
@@ -275,14 +300,20 @@ async function createTsCompilerHost(options: any, svelteMap: SvelteMap, absDecla
             name,
             containingFile,
             compilerOptions,
-            ts.sys
+            ts.sys,
+            tsModuleResolutionCache
         ).resolvedModule;
         if (tsResolvedModule && !isVirtualSvelteFilepath(tsResolvedModule.resolvedFileName)) {
             return tsResolvedModule;
         }
 
-        return ts.resolveModuleName(name, containingFile, compilerOptions, svelteSys)
-            .resolvedModule;
+        return ts.resolveModuleName(
+            name,
+            containingFile,
+            compilerOptions,
+            svelteSys,
+            svelteModuleResolutionCache
+        ).resolvedModule;
     }
 
     return host;
@@ -351,6 +382,31 @@ function toRealSvelteFilepath(filePath: string) {
 
 function ensureRealSvelteFilepath(filePath: string) {
     return isVirtualSvelteFilepath(filePath) ? toRealSvelteFilepath(filePath) : filePath;
+}
+
+const fileNameLowerCaseRegExp = /[^\u0130\u0131\u00DFa-z0-9\\/:\-_\. ]+/g;
+
+/**
+ * adopted from https://github.com/microsoft/TypeScript/blob/8192d550496d884263e292488e325ae96893dc78/src/compiler/core.ts#L1769-L1807
+ * see the comment there about why we can't just use String.prototype.toLowerCase() here
+ */
+function toFileNameLowerCase(x: string) {
+    return fileNameLowerCaseRegExp.test(x) ? x.replace(fileNameLowerCaseRegExp, toLowerCase) : x;
+}
+
+function toLowerCase(x: string) {
+    return x.toLowerCase();
+}
+
+/**
+ * adopted from https://github.com/microsoft/TypeScript/blob/8192d550496d884263e292488e325ae96893dc78/src/compiler/core.ts#L2312
+ */
+function createGetCanonicalFileName(useCaseSensitiveFileNames: boolean) {
+    return useCaseSensitiveFileNames ? identity : toFileNameLowerCase;
+}
+
+function identity<T>(x: T) {
+    return x;
 }
 
 function isSubpath(maybeParent: string, maybeChild: string) {
