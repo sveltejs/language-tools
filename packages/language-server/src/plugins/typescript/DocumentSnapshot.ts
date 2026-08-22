@@ -108,6 +108,7 @@ export interface SvelteSnapshotOptions {
         workspacePath: string;
         generatedPath: string;
     };
+    looseAttributePrefixes?: string[];
 }
 
 const ambientPathPattern = /node_modules[\/\\]svelte[\/\\]types[\/\\]ambient\.d\.ts$/;
@@ -255,7 +256,8 @@ function preprocessSvelteFile(document: Document, options: SvelteSnapshotOptions
                       })
                     : document.config?.compilerOptions?.customElement),
             emitJsDoc: options.emitJsDoc,
-            rewriteExternalImports: options.rewriteExternalImports
+            rewriteExternalImports: options.rewriteExternalImports,
+            looseAttributePrefixes: options.looseAttributePrefixes
         });
         text = tsx.code;
         tsxMap = tsx.map as EncodedSourceMap;
