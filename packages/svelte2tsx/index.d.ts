@@ -16,6 +16,8 @@ export interface SvelteCompiledToTsx {
      * @deprecated Use TypeScript's `TypeChecker` to get the type information instead. This only covers literal typings.
      */
     events: ComponentEvents;
+
+    spanMappings: [number, number, number, number, number][] | undefined;
 }
 
 export interface IExportedNames {
@@ -103,8 +105,12 @@ export function svelte2tsx(
          * from the generated file location.
          */
         rewriteExternalImports?: InternalHelpers.RewriteExternalImportsConfig;
+
+        shimPaths?: string[];
+
+        generateSpanMapping?: boolean;
     }
-): SvelteCompiledToTsx
+): SvelteCompiledToTsx;
 
 export interface EmitDtsConfig {
     /**

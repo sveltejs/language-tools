@@ -1,0 +1,31 @@
+{
+    "name": "typescript-content-mapper",
+    "version": "1.0.0",
+    "description": "",
+    "scripts": {},
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "type": "module",
+    "files": [
+        "dist"
+    ],
+    "typescript": {
+        "contentMapper": {
+            "exec": [
+                "node",
+                "dist/server.js"
+            ],
+            "compilerOptions": []
+        }
+    },
+    "dependencies": {
+        "@jridgewell/sourcemap-codec": "^1.5.0",
+        "svelte2tsx": "workspace:~",
+        "typescript": "6",
+        "vscode-jsonrpc": "^9.0.1"
+    },
+    "devDependencies": {
+        "@types/node": "^22.20.1"
+    }
+}

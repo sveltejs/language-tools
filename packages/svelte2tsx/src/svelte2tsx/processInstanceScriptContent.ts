@@ -21,6 +21,7 @@ import {
     rewriteExternalImportsInNode,
     RewriteExternalImportsOptions
 } from '../helpers/rewriteExternalImports';
+import { SpanMapGenerator } from '../utils/spanMap';
 
 export interface InstanceScriptProcessResult {
     exportedNames: ExportedNames;
@@ -53,7 +54,8 @@ export function processInstanceScriptContent(
     isSvelte5Plus: boolean,
     isRunes: boolean,
     emitJsDoc: boolean,
-    rewriteExternalImports?: RewriteExternalImportsOptions
+    rewriteExternalImports?: RewriteExternalImportsOptions,
+    spanMapGenerator: SpanMapGenerator | undefined = undefined
 ): InstanceScriptProcessResult {
     const htmlx = str.original;
     const scriptContent = htmlx.substring(script.content.start, script.content.end);
@@ -124,6 +126,8 @@ export function processInstanceScriptContent(
     };
 
     const handleIdentifier = (ident: ts.Identifier, parent: ts.Node) => {
+        spanMapGenerator?.addSourceSpan(astOffset + ident.getStart(), astOffset + ident.end);
+
         if (ident.text === '$$props') {
             uses$$props = true;
             return;
@@ -314,6 +318,10 @@ export function processInstanceScriptContent(
         //handle stores etc
         if (ts.isIdentifier(node)) {
             handleIdentifier(node, parent);
+        }
+
+        if (ts.isStringLiteral(node)) {
+            spanMapGenerator?.addSourceSpan(astOffset + node.getStart(), astOffset + node.end);
         }
 
         //track implicit declarations in reactive blocks at the top level

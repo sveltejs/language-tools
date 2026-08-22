@@ -209,23 +209,25 @@ export function startServer(options?: LSOptions) {
             new CSSPlugin(docManager, configManager, workspaceFolders, cssLanguageServices)
         );
         const normalizedWorkspaceUris = workspaceUris.map(normalizeUri);
-        pluginHost.register(
-            new TypeScriptPlugin(
-                configManager,
-                new LSAndTSDocResolver(docManager, normalizedWorkspaceUris, configManager, {
-                    notifyExceedSizeLimit: notifyTsServiceExceedSizeLimit,
-                    onProjectReloaded: refreshCrossFilesSemanticFeatures,
-                    watch: true,
-                    nonRecursiveWatchPattern,
-                    watchDirectory: (patterns) => watchDirectory(patterns),
-                    reportConfigError(diagnostic) {
-                        connection?.sendDiagnostics(diagnostic);
-                    }
-                }),
-                normalizedWorkspaceUris,
-                docManager
-            )
-        );
+        if (!evt.initializationOptions.ts7ContentMapperOptions?.enable) {
+            pluginHost.register(
+                new TypeScriptPlugin(
+                    configManager,
+                    new LSAndTSDocResolver(docManager, normalizedWorkspaceUris, configManager, {
+                        notifyExceedSizeLimit: notifyTsServiceExceedSizeLimit,
+                        onProjectReloaded: refreshCrossFilesSemanticFeatures,
+                        watch: true,
+                        nonRecursiveWatchPattern,
+                        watchDirectory: (patterns) => watchDirectory(patterns),
+                        reportConfigError(diagnostic) {
+                            connection?.sendDiagnostics(diagnostic);
+                        }
+                    }),
+                    normalizedWorkspaceUris,
+                    docManager
+                )
+            );
+        }
 
         const clientSupportApplyEditCommand = !!evt.capabilities.workspace?.applyEdit;
         const clientCodeActionCapabilities = evt.capabilities.textDocument?.codeAction;

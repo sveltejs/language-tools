@@ -4,6 +4,7 @@ import { rangeWithTrailingPropertyAccess, surroundWith } from '../utils/node-uti
 import { Element } from './Element';
 import { InlineComponent } from './InlineComponent';
 import { getLeadingCommentTransformation, getTrailingCommentTransformation } from './Comment';
+import { SpanMapGenerator } from '../../utils/spanMap';
 
 /**
  * Transform on:xxx={yyy}
@@ -13,13 +14,15 @@ import { getLeadingCommentTransformation, getTrailingCommentTransformation } fro
 export function handleEventHandler(
     str: MagicString,
     attr: BaseDirective,
-    element: Element | InlineComponent
+    element: Element | InlineComponent,
+    spanMapGenerator: SpanMapGenerator | undefined
 ): void {
     const nameStart = str.original.indexOf(':', attr.start) + 1;
     // If there's no expression, it's event bubbling (on:click)
     const nameEnd = nameStart + attr.name.length;
     const leadingComments = getLeadingCommentTransformation(attr);
     const trailingComments = getTrailingCommentTransformation(attr);
+    spanMapGenerator?.addSourceSpan(nameStart, nameEnd);
 
     if (element instanceof Element) {
         // Prefix with "on:" for better mapping.

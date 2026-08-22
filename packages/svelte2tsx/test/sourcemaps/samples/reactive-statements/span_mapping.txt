@@ -1,0 +1,72 @@
+>///<reference types="svelte" />
+>;function $$render() {
+#^ [Atom]: => < 0-1
+# ^ [Atom]: => s 1-2
+>
+#^ [Verbatim]: => ↲ 8-9
+>     let prop/*Ωignore_startΩ*/;prop = __sveltets_2_any(prop);/*Ωignore_endΩ*//*Ωignore_startΩ*/;let $prop = __sveltets_2_store_get(prop);/*Ωignore_endΩ*/
+#^ [Verbatim]: => ╚ 9-10
+#    ^^^^ [Verbatim]: => •let 16-20
+#        ^ [Verbatim]: => • 20-21
+#         ^^^^ [Verbatim]: => prop 21-25
+#             ^ [Atom]: => ↲ 25-26
+>    let  foo = __sveltets_2_invalidate(() => prop);
+#^ [Verbatim]: => ╚ 26-27
+#        ^ [Verbatim]: => • 29-30
+#         ^^^ [Verbatim]: => foo 30-33
+#            ^ [Verbatim]: => • 33-34
+#             ^ [Verbatim]: => = 34-35
+#              ^ [Verbatim]: => • 35-36
+#                                             ^^^^ [Verbatim]: => prop 36-40
+#                                                 ^ [Atom]: => ; 40-41
+#                                                   ^ [Verbatim]: => ↲ 41-42
+>    let  bar = __sveltets_2_invalidate(() => $prop);
+#^ [Verbatim]: => ╚ 42-43
+#        ^ [Verbatim]: => • 45-46
+#         ^^^ [Verbatim]: => bar 46-49
+#            ^ [Verbatim]: => • 49-50
+#             ^ [Verbatim]: => = 50-51
+#              ^ [Verbatim]: => • 51-52
+#                                             ^^^^^ [Verbatim]: => $prop 52-57
+#                                                  ^ [Atom]: => ; 57-58
+#                                                    ^ [Verbatim]: => ↲ 58-59
+>    ;() => {$: if (bar) ++foo}
+#^ [Verbatim]: => ╚ 59-60
+#            ^ [Verbatim]: => $ 60-61
+#             ^ [Verbatim]: => : 61-62
+#              ^^^ [Verbatim]: => •if 62-65
+#                 ^ [Verbatim]: => • 65-66
+#                  ^ [Verbatim]: => ( 66-67
+#                   ^^^ [Verbatim]: => bar 67-70
+#                      ^ [Verbatim]: => ) 70-71
+#                       ^ [Verbatim]: => • 71-72
+#                        ^ [Verbatim]: => + 72-73
+#                         ^ [Verbatim]: => + 73-74
+#                          ^^^ [Verbatim]: => foo 74-77
+#                             ^ [Atom]: => ↲ 77-78
+>    ;() => {$: { if (foo) bar(); }}
+#^ [Verbatim]: => ╚ 78-79
+#            ^ [Verbatim]: => $ 79-80
+#             ^ [Verbatim]: => : 80-81
+#              ^ [Verbatim]: => • 81-82
+#               ^ [Verbatim]: => { 82-83
+#                ^^^ [Verbatim]: => •if 83-86
+#                   ^ [Verbatim]: => • 86-87
+#                    ^ [Verbatim]: => ( 87-88
+#                     ^^^ [Verbatim]: => foo 88-91
+#                        ^ [Verbatim]: => ) 91-92
+#                         ^ [Verbatim]: => • 92-93
+#                          ^^^ [Verbatim]: => bar 93-96
+#                             ^ [Verbatim]: => ( 96-97
+#                              ^ [Verbatim]: => ) 97-98
+#                               ^ [Verbatim]: => ; 98-99
+#                                ^ [Verbatim]: => • 99-100
+#                                 ^ [Verbatim]: => } 100-101
+#                                  ^ [Atom]: => ↲ 101-102
+>;
+>async () => {};
+>return { props: {prop: prop}, slots: {}, events: {} }}
+>
+>export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial(__sveltets_2_with_any_event($$render()))) {
+#                     ^^^^^^^^^^^^^^^^^^^^^^^ [Atom],[Definition]: =>  0-0
+>}

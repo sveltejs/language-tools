@@ -1,6 +1,7 @@
 import MagicString from 'magic-string';
 import { convertHtmlxToJsx, TemplateProcessResult } from '../htmlxtojsx_v2';
 import { parseHtmlx } from '../utils/htmlxparser';
+import { SpanMapGenerator } from '../utils/spanMap';
 import { addComponentExport } from './addComponentExport';
 import { createRenderFunction } from './createRenderFunction';
 import { ExportedNames } from './nodes/ExportedNames';
@@ -26,6 +27,7 @@ function processSvelteTemplate(
         emitJsDoc?: boolean;
         isTsFile?: boolean;
         rewriteExternalImports?: RewriteExternalImportsOptions;
+        spanMapGenerator?: SpanMapGenerator | undefined;
     }
 ): TemplateProcessResult {
     const { htmlxAst, tags } = parseHtmlx(str.original, parse, options);
@@ -55,12 +57,15 @@ export function svelte2tsx(
             workspacePath: string;
             generatedPath: string;
         };
+        shimPaths?: string[];
+        generateSpanMapping?: boolean;
     } = { parse }
 ) {
     options.mode = options.mode || 'ts';
     options.version = options.version || VERSION;
 
     const str = new MagicString(svelte);
+    const spanMapGenerator = options.generateSpanMapping ? new SpanMapGenerator() : undefined;
 
     const rewriteExternalImportsOptions: RewriteExternalImportsOptions | undefined =
         options.rewriteExternalImports && options.filename
@@ -93,7 +98,8 @@ export function svelte2tsx(
     } = processSvelteTemplate(str, options.parse || parse, {
         ...options,
         svelte5Plus,
-        rewriteExternalImports: rewriteExternalImportsOptions
+        rewriteExternalImports: rewriteExternalImportsOptions,
+        spanMapGenerator
     });
 
     /* Rearrange the script tags so that module is first, and instance second followed finally by the template
@@ -155,7 +161,8 @@ export function svelte2tsx(
             svelte5Plus,
             isRunes,
             emitJsDoc,
-            rewriteExternalImportsOptions
+            rewriteExternalImportsOptions,
+            spanMapGenerator
         );
         uses$$props = uses$$props || res.uses$$props;
         uses$$restProps = uses$$restProps || res.uses$$restProps;
@@ -291,11 +298,25 @@ export function svelte2tsx(
         };
     } else {
         str.prepend('///<reference types="svelte" />\n');
+        if (options.shimPaths) {
+            for (const shimPath of options.shimPaths) {
+                const normalizedPath = shimPath.replace(/\\/g, '/');
+                str.prepend(`///<reference path="${normalizedPath}" />\n`);
+            }
+        }
+
+        const code = str.toString();
+        const spanMappings = spanMapGenerator?.generateSpanMapping(str, code, {
+            svelte5Plus
+        });
         return {
             code: str.toString(),
-            map: str.generateMap({ hires: true, source: options?.filename }),
+            get map() {
+                return str.generateMap({ hires: true, source: options?.filename });
+            },
             exportedNames: exportedNames.getExportsMap(),
             events: events.createAPI(),
+            spanMappings: spanMappings,
             // not part of the public API so people don't start using it
             htmlAst
         };

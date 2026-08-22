@@ -63,6 +63,7 @@ import {
     getExternalImportRewrite,
     RewriteExternalImportsOptions
 } from '../helpers/rewriteExternalImports';
+import { SpanMapGenerator } from '../utils/spanMap';
 
 export interface TemplateProcessResult {
     /**
@@ -103,6 +104,7 @@ export function convertHtmlxToJsx(
         emitJsDoc?: boolean;
         isTsFile?: boolean;
         rewriteExternalImports?: RewriteExternalImportsOptions;
+        spanMapGenerator?: SpanMapGenerator | undefined;
     } = { svelte5Plus: false }
 ): TemplateProcessResult {
     options.typingsNamespace = options.typingsNamespace || 'svelteHTML';
@@ -163,6 +165,11 @@ export function convertHtmlxToJsx(
     };
 
     const handleIdentifier = (node: BaseNode) => {
+        // Can happen in loose parsing mode, e.g. code is currently `{a.}`
+        if (options.spanMapGenerator && node.name) {
+            options.spanMapGenerator.addSourceSpan(node.start, node.end);
+        }
+
         if (node.name === '$$props') {
             uses$$props = true;
             return;
@@ -300,12 +307,19 @@ export function convertHtmlxToJsx(
                             source?.type === 'Literal' &&
                             typeof source.value === 'string'
                         ) {
-                            const rewrite = getExternalImportRewrite(
-                                source.value,
-                                options.rewriteExternalImports
-                            );
-                            if (rewrite) {
-                                str.overwrite(source.start + 1, source.end - 1, rewrite.rewritten);
+                            options.spanMapGenerator?.addSourceSpan(source.start, source.end);
+                            if (options.rewriteExternalImports) {
+                                const rewrite = getExternalImportRewrite(
+                                    source.value,
+                                    options.rewriteExternalImports
+                                );
+                                if (rewrite) {
+                                    str.overwrite(
+                                        source.start + 1,
+                                        source.end - 1,
+                                        rewrite.rewritten
+                                    );
+                                }
                             }
                         }
                         break;
@@ -498,7 +512,8 @@ export function convertHtmlxToJsx(
                             parent,
                             preserveAttributeCase,
                             options.svelte5Plus,
-                            element
+                            element,
+                            options.spanMapGenerator
                         );
                         break;
                     case 'Spread':
@@ -510,7 +525,12 @@ export function convertHtmlxToJsx(
                         handleLeadingStartComment(str, node as BaseNode, ast);
                         handleTrailingEndComment(str, node as BaseNode, parent, ast);
                         eventHandler.handleEventHandler(node, parent);
-                        handleEventHandler(str, node as BaseDirective, element);
+                        handleEventHandler(
+                            str,
+                            node as BaseDirective,
+                            element,
+                            options.spanMapGenerator
+                        );
                         break;
                     case 'Let':
                         handleLeadingStartComment(str, node as BaseNode, ast);
