@@ -168,7 +168,7 @@ export class SpanMapGenerator {
             result.push([index, name.length, 0, 0, SpanMapKind.Atom, SpanMapFeature.Definition]);
             return;
         }
-        
+
         const constIndex = generatedCode.lastIndexOf(constStart + name, startOfName);
         if (constIndex !== -1) {
             result.push([

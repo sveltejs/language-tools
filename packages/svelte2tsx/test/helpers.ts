@@ -372,7 +372,7 @@ type BaseConfig = {
     emitOnTemplateError?: boolean;
     filename?: string;
     rewriteExternalImports?: Svelte2TsxConfig['rewriteExternalImports'];
-    generateSpanMapping?: boolean
+    generateSpanMapping?: boolean;
 };
 type Svelte2TsxConfig = Required<Parameters<typeof svelte2tsx>[1]>;
 

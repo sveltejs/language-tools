@@ -91,7 +91,7 @@ function startServer() {
                         messageText: (error as Error).message,
                         // TODO
                         start: 0,
-                        length: 0,
+                        length: 0
                     }
                 ]
             };
@@ -102,7 +102,7 @@ function startServer() {
 
 startServer();
 
-type PositionEncoding = "utf-8" | "utf-16";
+type PositionEncoding = 'utf-8' | 'utf-16';
 
 interface InitializeParams {
     protocolVersion: 1;
@@ -118,7 +118,7 @@ interface InitializeResult {
     /**
      * The source identifier displayed for mapper-produced diagnostics.
      * Must not be "ts", "tsc", "typescript", or any file extension TypeScript understands.
-    */
+     */
     diagnosticSource: string;
 }
 
@@ -171,7 +171,7 @@ interface MappedOutput {
     /** Valid JS, JSX, TS, TSX, or JSON text that TypeScript can parse. */
     text: string;
     /** The virtual file extension that determines how TypeScript parses this output. */
-    extension: ".js" | ".jsx" | ".mjs" | ".cjs" | ".ts" | ".tsx" | ".mts" | ".cts" | ".json";
+    extension: '.js' | '.jsx' | '.mjs' | '.cjs' | '.ts' | '.tsx' | '.mts' | '.cts' | '.json';
     /** Mappings between the original and transformed content. */
     mappings?: SpanMapping[];
     /** Framework-specific directives that suppress TypeScript diagnostics in virtual ranges. */
@@ -180,7 +180,7 @@ interface MappedOutput {
 
 enum DiagnosticDirectivePolicy {
     Ignore = 0,
-    Expect = 1,
+    Expect = 1
 }
 
 interface UnusedExpectDirectiveDiagnostic {
@@ -209,7 +209,7 @@ type MappedDiagnosticDirective = [
      * Index into `unusedExpectDirectiveDiagnostics`. Required for `Expect` directives
      * when the array contains more than one entry.
      */
-    unusedExpectDirectiveIndex?: number,
+    unusedExpectDirectiveIndex?: number
 ];
 
 interface TransformResult extends MappedOutput {
@@ -231,7 +231,7 @@ type SpanMapping = [
     originalStart: number,
     originalLength: number,
     kind: SpanMapKind,
-    features?: SpanMapFeature,
+    features?: SpanMapFeature
 ];
 
 enum SpanMapKind {
@@ -240,7 +240,7 @@ enum SpanMapKind {
     /** Atom spans in virtual text may have different length and content than their counterparts in the original text. */
     Atom = 1,
     /** Alias spans in virtual text may have different length and content than their counterparts in the original text, but diagnostics display their original text. */
-    Alias = 2,
+    Alias = 2
 }
 
 /** Controls which TypeScript language service features may use a span. */
@@ -267,7 +267,7 @@ enum SpanMapFeature {
     DocumentSymbols = 1 << 18,
     CodeLens = 1 << 19,
     /** Enables every language service feature. This is the default when `features` is omitted. */
-    All = (CodeLens << 1) - 1,
+    All = (CodeLens << 1) - 1
 }
 
 /** Start and length are in the specified `positionEncoding`. */

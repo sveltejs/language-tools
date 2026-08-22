@@ -297,7 +297,7 @@ export function svelte2tsx(
             code
         };
     } else {
-        str.prepend('///<reference types="svelte" />\n');        
+        str.prepend('///<reference types="svelte" />\n');
         if (options.shimPaths) {
             for (const shimPath of options.shimPaths) {
                 const normalizedPath = shimPath.replace(/\\/g, '/');
@@ -307,7 +307,7 @@ export function svelte2tsx(
 
         const code = str.toString();
         const spanMappings = spanMapGenerator?.generateSpanMapping(str, code, {
-            svelte5Plus,
+            svelte5Plus
         });
         return {
             code: str.toString(),

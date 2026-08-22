@@ -3,7 +3,10 @@ import * as vscode from 'vscode';
 interface TsExtensionAPI {
     onLanguageServerInitialized: vscode.Event<void>;
     initializeAPIConnection(pipe?: string): Promise<string>;
-    registerContentMappers(contributorId: string, contributions: readonly ContentMapperContribution[]): vscode.Disposable;
+    registerContentMappers(
+        contributorId: string,
+        contributions: readonly ContentMapperContribution[]
+    ): vscode.Disposable;
 }
 
 interface ContentMapperContribution {
@@ -23,29 +26,29 @@ interface ContentMapperManifest {
     readonly dynamicConfig?: boolean;
 }
 
-
 export async function discoverTsContentMapper(svelteExtensionId: string): Promise<boolean> {
     if (!getUseTsgo()) {
         return false;
     }
 
-    const extension = vscode.extensions.getExtension('TypeScriptTeam.vscode-typescript')
-        ?? vscode.extensions.getExtension('TypeScriptTeam.native-preview');
+    const extension =
+        vscode.extensions.getExtension('TypeScriptTeam.vscode-typescript') ??
+        vscode.extensions.getExtension('TypeScriptTeam.native-preview');
 
     if (!extension) {
         return false;
     }
 
-    const api = await extension.activate() as TsExtensionAPI;
+    const api = (await extension.activate()) as TsExtensionAPI;
 
     if (!(api && 'registerContentMappers' in api)) {
-        // TODO: might want to build a hybrid solution in this case, since we don't know when the extension with be update to support the new API. 
+        // TODO: might want to build a hybrid solution in this case, since we don't know when the extension with be update to support the new API.
         return false;
     }
 
     api.registerContentMappers(svelteExtensionId, [
         {
-            extensions: ['.svelte'],
+            extensions: ['.svelte']
             // inferredProjectContribution: {
             //     manifest: {
             //         name: 'svelte',

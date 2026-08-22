@@ -25,7 +25,7 @@ describe('sourcemaps', function () {
         if (!svelte5PlusOnly && isSvelte5Plus) {
             continue;
         }
-        
+
         if (process.env.CI) {
             sample.checkDirectory({
                 required: ['*.svelte', 'mappings.jsx', 'test.jsx', 'span_mapping.txt']

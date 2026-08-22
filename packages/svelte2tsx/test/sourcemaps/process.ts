@@ -110,7 +110,8 @@ namespace raw {
 }
 
 namespace print {
-    const spanMapFeatureEntries = Object.entries(SpanMapFeature).filter(([key, value]) => typeof value === 'number')
+    const spanMapFeatureEntries = Object.entries(SpanMapFeature)
+        .filter(([key, value]) => typeof value === 'number')
         .map(([key, value]) => [value as number, key] as const);
 
     /**
@@ -224,20 +225,20 @@ namespace print {
         if (features === undefined) {
             return '';
         }
-            const result: string[] = [];
-            let remainingFlags = features;
-            for (const [enumValue, enumName] of spanMapFeatureEntries) {
-                if (enumValue > features) {
-                    break;
-                }
-                if (enumValue !== 0 && enumValue & features) {
-                    result.push(enumName);
-                    remainingFlags &= ~enumValue;
-                }
+        const result: string[] = [];
+        let remainingFlags = features;
+        for (const [enumValue, enumName] of spanMapFeatureEntries) {
+            if (enumValue > features) {
+                break;
             }
-            if (remainingFlags === 0) {
-                return result.join("|");
+            if (enumValue !== 0 && enumValue & features) {
+                result.push(enumName);
+                remainingFlags &= ~enumValue;
             }
+        }
+        if (remainingFlags === 0) {
+            return result.join('|');
+        }
         return result.length > 0 ? result.join('|') : '';
     }
 

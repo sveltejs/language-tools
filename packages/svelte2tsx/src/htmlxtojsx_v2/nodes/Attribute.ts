@@ -138,7 +138,7 @@ export function handleAttribute(
             // For proper intellisense we need to make this a non-empty expression.
             start--;
             str.overwrite(start, end, ' ', { contentOnly: true });
-        }        
+        }
         spanMapGenerator?.addSourceSpan(attr.start, attr.end);
         addAttribute([[start, end], ...trailingComments]);
         return;
@@ -213,7 +213,7 @@ export function handleAttribute(
             );
             if (escapedValue !== null) {
                 str.overwrite(attrVal.start, attrVal.end, escapedValue, { contentOnly: true });
-            }            
+            }
             spanMapGenerator?.addSourceSpan(attrVal.start, attrVal.end);
             attributeValue.push([attrVal.start, attrVal.end]);
             if (!needsNumberConversion) {
