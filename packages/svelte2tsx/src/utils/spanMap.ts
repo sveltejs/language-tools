@@ -1,12 +1,14 @@
 import MagicString, { SourceMapSegment } from 'magic-string';
 import ts from 'typescript';
+import { COMPONENT_SUFFIX } from '../svelte2tsx/addComponentExport';
 
 const GENERATE_START = 0;
 const GENERATE_LENGTH = 1;
 const ORIGINAL_START = 2;
 const ORIGINAL_LENGTH = 3;
 const KIND = 4;
-// const PURPOSE = 5;
+
+const constStart = 'const ';
 
 export class SpanMapGenerator {
     private spans: Span[] = [];
@@ -19,7 +21,13 @@ export class SpanMapGenerator {
         this.spans.push({ start, end });
     }
 
-    generateSpanMapping(str: MagicString, generatedCode: string): SpanMapping[] {
+    generateSpanMapping(
+        str: MagicString,
+        generatedCode: string,
+        options: {
+            svelte5Plus: boolean;
+        }
+    ): SpanMapping[] {
         const lineOffsets = getLineOffsets(generatedCode);
         const orgLineOffsets = getLineOffsets(str.original);
         const mappings: SpanMapping[] = [];
@@ -137,7 +145,41 @@ export class SpanMapGenerator {
             }
             result.push(current);
         }
+
+        this.addDefaultExportMapping(generatedCode, result, options.svelte5Plus);
+
         return result;
+    }
+
+    private addDefaultExportMapping(
+        generatedCode: string,
+        result: SpanMapping[],
+        svelte5Plus: boolean
+    ) {
+        const componentSuffixIndex = generatedCode.lastIndexOf(COMPONENT_SUFFIX);
+        const startOfName = generatedCode.lastIndexOf(' ', componentSuffixIndex) + 1;
+        const name = generatedCode.substring(
+            startOfName,
+            componentSuffixIndex + COMPONENT_SUFFIX.length
+        );
+
+        let index = startOfName;
+        if (!svelte5Plus) {
+            result.push([index, name.length, 0, 0, SpanMapKind.Atom, SpanMapFeature.Definition]);
+            return;
+        }
+        
+        const constIndex = generatedCode.lastIndexOf(constStart + name, startOfName);
+        if (constIndex !== -1) {
+            result.push([
+                constIndex,
+                name.length + constStart.length,
+                0,
+                0,
+                SpanMapKind.Atom,
+                SpanMapFeature.Definition
+            ]);
+        }
     }
 }
 
@@ -211,35 +253,47 @@ function getLineOffsets(text: string) {
 }
 
 export enum SpanMapKind {
-    /** Verbatim spans in generated output have the same length and content as their counterparts in original text. */
+    /** Verbatim spans in virtual text have the same length and content as their counterparts in original text. */
     Verbatim = 0,
-    /** Atom spans in generated output may have different length and content than their counterparts in the original text. */
+    /** Atom spans in virtual text may have different length and content than their counterparts in the original text. */
     Atom = 1,
-    /** Alias spans in generated output may have different length and content than their counterparts in the original text, but diagnostics display their original text. */
+    /** Alias spans in virtual text may have different length and content than their counterparts in the original text, but diagnostics display their original text. */
     Alias = 2
 }
 
-/**
- * SpanMapPurpose controls which TypeScript language service features will activate using a span
- * in the transformed content given a request position in the original content.
- */
-enum SpanMapPurpose {
-    /** Disables all language service features for the span. */
+/** Controls which TypeScript language service features may use a span. */
+export enum SpanMapFeature {
     None = 0,
-    /** Used by features that inspect semantic information, such as hover, signature help, and completions. */
-    Semantic = 1 << 0,
-    /** Used by features that locate symbols, such as definitions, references, rename, and call hierarchy. */
-    Navigation = 1 << 1,
-    /** Enables both semantic and navigation features. This is the default when `purpose` is omitted. */
-    All = Semantic | Navigation
+    Hover = 1 << 0,
+    SignatureHelp = 1 << 1,
+    Completion = 1 << 2,
+    Definition = 1 << 3,
+    TypeDefinition = 1 << 4,
+    Implementation = 1 << 5,
+    References = 1 << 6,
+    DocumentHighlights = 1 << 7,
+    Rename = 1 << 8,
+    CallHierarchy = 1 << 9,
+    CodeActions = 1 << 10,
+    Formatting = 1 << 11,
+    InlayHints = 1 << 12,
+    SemanticTokens = 1 << 13,
+    FoldingRanges = 1 << 14,
+    SelectionRanges = 1 << 15,
+    LinkedEditing = 1 << 16,
+    AutoInsert = 1 << 17,
+    DocumentSymbols = 1 << 18,
+    CodeLens = 1 << 19,
+    /** Enables every language service feature. This is the default when `features` is omitted. */
+    All = (CodeLens << 1) - 1
 }
 
 /** Positions and lengths are in the specified `positionEncoding`. */
 export type SpanMapping = [
-    generatedStart: number,
-    generatedLength: number,
+    virtualStart: number,
+    virtualLength: number,
     originalStart: number,
     originalLength: number,
     kind: SpanMapKind,
-    purpose?: SpanMapPurpose
+    features?: SpanMapFeature
 ];

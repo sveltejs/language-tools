@@ -1,0 +1,39 @@
+>///<reference types="svelte" />
+>;function $$render() {
+#^ [Atom]: => < 0-1
+# ^ [Atom]: => s 1-2
+>
+#^ [Verbatim]: => ↲ 18-19
+>    let {} = $props();
+#^ [Verbatim]: => • 19-20
+# ^ [Verbatim]: => • 20-21
+#  ^ [Verbatim]: => • 21-22
+#   ^^^^ [Verbatim]: => •let 22-26
+#       ^ [Verbatim]: => • 26-27
+#        ^ [Verbatim]: => { 27-28
+#         ^ [Verbatim]: => } 28-29
+#          ^ [Verbatim]: => • 29-30
+#           ^ [Verbatim]: => = 30-31
+#            ^ [Verbatim]: => • 31-32
+#             ^^^^^^ [Verbatim]: => $props 32-38
+#                   ^ [Verbatim]: => ( 38-39
+#                    ^ [Verbatim]: => ) 39-40
+#                     ^ [Verbatim]: => ; 40-41
+#                      ^ [Verbatim]: => ↲ 41-42
+>;
+>async () => {
+#^ [Atom]: => < 42-43
+>
+#^ [Verbatim]: => ↲ 51-52
+>let a = 1;};
+#^^^ [Verbatim]: => let 54-57
+#   ^ [Verbatim]: => • 57-58
+#    ^ [Verbatim]: => a 58-59
+#     ^ [Verbatim]: => • 59-60
+#      ^ [Verbatim]: => = 60-61
+#       ^^ [Verbatim]: => •1 61-63
+>return { props: /** @type {$$ComponentProps} */({}), exports: {}, bindings: __sveltets_$$bindings(''), slots: {}, events: {} }}
+>const Input__SvelteComponent_ = __sveltets_2_fn_component($$render());
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ [Atom],[Definition]: =>  0-0
+>/*Ωignore_startΩ*/type Input__SvelteComponent_ = ReturnType<typeof Input__SvelteComponent_>;
+>/*Ωignore_endΩ*/export default Input__SvelteComponent_;

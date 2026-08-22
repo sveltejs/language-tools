@@ -25,7 +25,7 @@ import {
     ParsedSource,
     SourceText
 } from './parser';
-import { SpanMapKind, SpanMapping } from '../../src/utils/spanMap';
+import { SpanMapFeature, SpanMapKind, SpanMapping } from '../../src/utils/spanMap';
 
 /**
  *
@@ -110,6 +110,9 @@ namespace raw {
 }
 
 namespace print {
+    const spanMapFeatureEntries = Object.entries(SpanMapFeature).filter(([key, value]) => typeof value === 'number')
+        .map(([key, value]) => [value as number, key] as const);
+
     /**
      * Return string for mappings.jsx
      */
@@ -204,15 +207,38 @@ namespace print {
 
                     const original_text = original.print_slice(originalStart, originalEnd);
                     const tabCount = tabIndexes.filter((i) => i < generatedStart).length;
+                    const features = format_features_flags(mapping[5]);
+                    const featureForLog = features ? `,[${features}]` : '';
                     const log =
                         '#' +
                         ' '.repeat(generatedStart - line.start + tabCount * 3) +
                         '^'.repeat(generatedLength) +
-                        ` [${SpanMapKind[kind]}]: => ${original_text} ${originalStart}-${originalEnd}`;
+                        ` [${SpanMapKind[kind]}]${featureForLog}: => ${original_text} ${originalStart}-${originalEnd}`;
                     yield log;
                 }
             }
         });
+    }
+
+    function format_features_flags(features: SpanMapFeature | undefined) {
+        if (features === undefined) {
+            return '';
+        }
+            const result: string[] = [];
+            let remainingFlags = features;
+            for (const [enumValue, enumName] of spanMapFeatureEntries) {
+                if (enumValue > features) {
+                    break;
+                }
+                if (enumValue !== 0 && enumValue & features) {
+                    result.push(enumName);
+                    remainingFlags &= ~enumValue;
+                }
+            }
+            if (remainingFlags === 0) {
+                return result.join("|");
+            }
+        return result.length > 0 ? result.join('|') : '';
     }
 
     /**

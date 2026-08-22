@@ -1,24 +1,59 @@
 import * as vscode from 'vscode';
 
-export async function discoverTsContentMapper(): Promise<boolean> {
+interface TsExtensionAPI {
+    onLanguageServerInitialized: vscode.Event<void>;
+    initializeAPIConnection(pipe?: string): Promise<string>;
+    registerContentMappers(contributorId: string, contributions: readonly ContentMapperContribution[]): vscode.Disposable;
+}
+
+interface ContentMapperContribution {
+    readonly extensions: readonly string[];
+    readonly inferredProjectContribution?: {
+        readonly options?: Readonly<Record<string, unknown>>;
+        readonly manifest: ContentMapperManifest;
+    };
+}
+
+interface ContentMapperManifest {
+    readonly name: string;
+    readonly version?: string;
+    readonly exec: readonly string[];
+    readonly cwd?: vscode.Uri;
+    readonly compilerOptions?: readonly string[];
+    readonly dynamicConfig?: boolean;
+}
+
+
+export async function discoverTsContentMapper(svelteExtensionId: string): Promise<boolean> {
     if (!getUseTsgo()) {
         return false;
     }
 
-    const extension = vscode.extensions.getExtension('TypeScriptTeam.native-preview');
+    const extension = vscode.extensions.getExtension('TypeScriptTeam.vscode-typescript')
+        ?? vscode.extensions.getExtension('TypeScriptTeam.native-preview');
 
     if (!extension) {
         return false;
     }
 
-    await extension.activate();
+    const api = await extension.activate() as TsExtensionAPI;
 
-    await vscode.commands.executeCommand('typescript.native-preview.discoverContentMappers', {
-        uris: vscode.workspace.textDocuments
-            .filter((document) => document.languageId === 'svelte')
-            .map((document) => document.uri),
-        extensions: ['.svelte']
-    });
+    if (!(api && 'registerContentMappers' in api)) {
+        // TODO: might want to build a hybrid solution in this case, since we don't know when the extension with be update to support the new API. 
+        return false;
+    }
+
+    api.registerContentMappers(svelteExtensionId, [
+        {
+            extensions: ['.svelte'],
+            // inferredProjectContribution: {
+            //     manifest: {
+            //         name: 'svelte',
+            //         exec: ['node', 'path/to/mapper.js']
+            //     }
+            // }
+        }
+    ]);
 
     return true;
 }

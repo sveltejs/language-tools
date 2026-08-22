@@ -306,7 +306,9 @@ export function svelte2tsx(
         }
 
         const code = str.toString();
-        const spanMappings = spanMapGenerator?.generateSpanMapping(str, code);
+        const spanMappings = spanMapGenerator?.generateSpanMapping(str, code, {
+            svelte5Plus,
+        });
         return {
             code: str.toString(),
             get map() {

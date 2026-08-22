@@ -15,10 +15,17 @@ import {
 } from './process';
 import { VERSION } from 'svelte/compiler';
 
-// TODO figure out what to do with those now that we have the new transformation
 const isSvelte5Plus = Number(VERSION[0]) >= 5;
-(isSvelte5Plus ? describe.skip : describe)('sourcemaps', function () {
+describe('sourcemaps', function () {
     for (const sample of each_sample(__dirname)) {
+        const svelte5PlusOnly = sample.name.includes('.v5');
+        if (svelte5PlusOnly && !isSvelte5Plus) {
+            continue;
+        }
+        if (!svelte5PlusOnly && isSvelte5Plus) {
+            continue;
+        }
+        
         if (process.env.CI) {
             sample.checkDirectory({
                 required: ['*.svelte', 'mappings.jsx', 'test.jsx', 'span_mapping.txt']
