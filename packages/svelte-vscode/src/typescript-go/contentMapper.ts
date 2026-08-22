@@ -49,7 +49,7 @@ export async function discoverTsContentMapper(
     const api = (await extension.activate()) as TsExtensionAPI;
 
     if (!(api && 'registerContentMappers' in api)) {
-        // TODO: might want to build a hybrid solution in this case, since we don't know when the extension with be update to support the new API.
+        // TODO: might want to build a hybrid solution in this case, since we don't know when the extension will be updated to support the new API.
         return { enable: false };
     }
 
