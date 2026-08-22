@@ -209,7 +209,7 @@ export function startServer(options?: LSOptions) {
             new CSSPlugin(docManager, configManager, workspaceFolders, cssLanguageServices)
         );
         const normalizedWorkspaceUris = workspaceUris.map(normalizeUri);
-        if (!evt.initializationOptions.useTs7ContentMapper) {
+        if (!evt.initializationOptions.ts7ContentMapperOptions?.enable) {
             pluginHost.register(
                 new TypeScriptPlugin(
                     configManager,

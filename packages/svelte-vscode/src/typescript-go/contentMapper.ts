@@ -26,24 +26,31 @@ interface ContentMapperManifest {
     readonly dynamicConfig?: boolean;
 }
 
-export async function discoverTsContentMapper(svelteExtensionId: string): Promise<boolean> {
+export interface ContentMapperOptions {
+    readonly enable: boolean;
+}
+
+export async function discoverTsContentMapper(
+    svelteExtensionId: string
+): Promise<ContentMapperOptions> {
     if (!getUseTsgo()) {
-        return false;
+        return { enable: false };
     }
 
     const extension =
+        // dev version is currently this extension id, maybe the published version might change in the future?
         vscode.extensions.getExtension('TypeScriptTeam.vscode-typescript') ??
         vscode.extensions.getExtension('TypeScriptTeam.native-preview');
 
     if (!extension) {
-        return false;
+        return { enable: false };
     }
 
     const api = (await extension.activate()) as TsExtensionAPI;
 
     if (!(api && 'registerContentMappers' in api)) {
         // TODO: might want to build a hybrid solution in this case, since we don't know when the extension with be update to support the new API.
-        return false;
+        return { enable: false };
     }
 
     api.registerContentMappers(svelteExtensionId, [
@@ -58,7 +65,7 @@ export async function discoverTsContentMapper(svelteExtensionId: string): Promis
         }
     ]);
 
-    return true;
+    return { enable: true };
 }
 
 function getUseTsgo(): boolean | undefined {
