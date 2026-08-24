@@ -60,6 +60,7 @@ import {
 } from './plugins/typescript/features/CodeActionsProvider';
 import { createLanguageServices } from './plugins/css/service';
 import { FileSystemProvider } from './lib/FileSystemProvider';
+import { TemplateASTParseLoader } from './plugins/svelte/TemplateASTLoader';
 
 namespace TagCloseRequest {
     export const type: RequestType<TextDocumentPositionParams, string | null, any> =
@@ -197,8 +198,16 @@ export function startServer(options?: LSOptions) {
 
         const fileSystemProvider = new FileSystemProvider();
         const workspaceFolders = evt.workspaceFolders ?? [{ name: '', uri: evt.rootUri ?? '' }];
+
+        enableTsFeatures = !evt.initializationOptions.ts7ContentMapperOptions?.enable;
+
         // Order of plugin registration matters for FirstNonNull, which affects for example hover info
-        pluginHost.register((sveltePlugin = new SveltePlugin(configManager)));
+        pluginHost.register(
+            (sveltePlugin = new SveltePlugin(
+                configManager,
+                enableTsFeatures ? undefined : new TemplateASTParseLoader(docManager)
+            ))
+        );
         pluginHost.register(
             new HTMLPlugin(docManager, configManager, fileSystemProvider, workspaceFolders)
         );
@@ -211,7 +220,6 @@ export function startServer(options?: LSOptions) {
             new CSSPlugin(docManager, configManager, workspaceFolders, cssLanguageServices)
         );
         const normalizedWorkspaceUris = workspaceUris.map(normalizeUri);
-        enableTsFeatures = !evt.initializationOptions.ts7ContentMapperOptions?.enable;
         if (enableTsFeatures) {
             pluginHost.register(
                 new TypeScriptPlugin(

@@ -18,7 +18,7 @@ import {
 } from '../../lib/documents';
 import { pathToUrl, urlToPath } from '../../utils';
 import { ConsumerDocumentMapper } from './DocumentMapper';
-import { SvelteNode, SvelteNodeWalker, walkSvelteAst } from './svelte-ast-utils';
+import { SvelteNode, SvelteNodeWalker, walkSvelteAst } from '../svelte/features/svelte-ast-utils';
 import {
     getScriptKindFromAttributes,
     getScriptKindFromFileName,

@@ -200,6 +200,11 @@ export const internalHelpers: {
             hasTypeDefinition: boolean;
         }
     >,
+    parseTemplateOnly(svelte: string, options: {
+        parse: typeof import('svelte/compiler').parse;
+        emitOnTemplateError?: boolean;
+        svelte5Plus: boolean;
+    }): unknown
 	renderName: string
 };
 
