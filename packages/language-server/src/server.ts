@@ -123,6 +123,8 @@ export function startServer(options?: LSOptions) {
         '*.{' + watchExtensions.map((ext) => ext.slice(1)).join(',') + '}';
     const recursiveWatchPattern = '**/' + nonRecursiveWatchPattern;
 
+    let enableTsFeatures = true;
+
     connection.onInitialize((evt) => {
         const workspaceUris = evt.workspaceFolders?.map((folder) => folder.uri.toString()) ?? [
             evt.rootUri ?? ''
@@ -209,7 +211,8 @@ export function startServer(options?: LSOptions) {
             new CSSPlugin(docManager, configManager, workspaceFolders, cssLanguageServices)
         );
         const normalizedWorkspaceUris = workspaceUris.map(normalizeUri);
-        if (!evt.initializationOptions.ts7ContentMapperOptions?.enable) {
+        enableTsFeatures = !evt.initializationOptions.ts7ContentMapperOptions?.enable;
+        if (enableTsFeatures) {
             pluginHost.register(
                 new TypeScriptPlugin(
                     configManager,
@@ -261,7 +264,7 @@ export function startServer(options?: LSOptions) {
                     return diagnostics;
                 }
             );
-        } else {
+        } else if (enableTsFeatures) {
             connection.onDidSaveTextDocument(
                 diagnosticsManager.scheduleUpdateAll.bind(diagnosticsManager)
             );
@@ -355,30 +358,35 @@ export function startServer(options?: LSOptions) {
                     : true,
                 referencesProvider: true,
                 selectionRangeProvider: true,
-                signatureHelpProvider: {
-                    triggerCharacters: ['(', ',', '<'],
-                    retriggerCharacters: [')']
-                },
-                semanticTokensProvider: {
-                    legend: getSemanticTokenLegends(),
-                    range: true,
-                    full: true
-                },
-                linkedEditingRangeProvider: true,
-                implementationProvider: true,
-                typeDefinitionProvider: true,
-                inlayHintProvider: true,
-                callHierarchyProvider: true,
                 foldingRangeProvider: true,
-                codeLensProvider: {
-                    resolveProvider: true
-                },
                 documentHighlightProvider:
                     evt.initializationOptions?.configuration?.svelte?.plugin?.svelte
                         ?.documentHighlight?.enable ?? true,
-                workspaceSymbolProvider: true,
+
+                signatureHelpProvider: enableTsFeatures
+                    ? {
+                          triggerCharacters: ['(', ',', '<'],
+                          retriggerCharacters: [')']
+                      }
+                    : undefined,
+                semanticTokensProvider: enableTsFeatures
+                    ? {
+                          legend: getSemanticTokenLegends(),
+                          range: true,
+                          full: true
+                      }
+                    : undefined,
+                linkedEditingRangeProvider: enableTsFeatures,
+                implementationProvider: enableTsFeatures,
+                typeDefinitionProvider: enableTsFeatures,
+                inlayHintProvider: enableTsFeatures,
+                callHierarchyProvider: enableTsFeatures,
+                codeLensProvider: {
+                    resolveProvider: enableTsFeatures
+                },
+                workspaceSymbolProvider: enableTsFeatures,
                 diagnosticProvider: {
-                    interFileDependencies: true,
+                    interFileDependencies: enableTsFeatures,
                     workspaceDiagnostics: false
                 }
             }
@@ -386,7 +394,7 @@ export function startServer(options?: LSOptions) {
     });
 
     connection.onInitialized(() => {
-        if (watcher) {
+        if (watcher || !enableTsFeatures) {
             return;
         }
 

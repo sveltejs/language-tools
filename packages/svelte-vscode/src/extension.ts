@@ -304,13 +304,12 @@ export function activateSvelteLanguageServer(
         return ls;
     }
 
-    addDidChangeTextDocumentListener(getLS);
-
-    addFindFileReferencesListener(getLS, context);
-    addFindComponentReferencesListener(getLS, context);
-
     if (!options?.ts7ContentMapperOptions.enable) {
+        addFindFileReferencesListener(getLS, context);
+        addFindComponentReferencesListener(getLS, context);
+
         addRenameFileListener(getLS);
+        addDidChangeTextDocumentListener(getLS);
     }
 
     addCompilePreviewCommands(getLS, context);
