@@ -22,15 +22,12 @@
 #                                                                                                                                           ^^^ [Verbatim]: => bar 40-43
 #                                                                                                                                              ^ [Atom]: => / 43-44
 >
-#^ [Atom]: => ↲ 45-46
+#^^^^ [Atom]: => ↲ 45-46
 > { const $$_tnenopmoC0C = __sveltets_2_ensureComponent(Component); new $$_tnenopmoC0C({ target: __sveltets_2_any(), props: { ...bar,}});}
 #^ [Atom]: => < 48-49
 #                                                       ^^^^^^^^^ [Verbatim]: => Component 49-58
 #                                                                                                                            ^ [Atom]: => / 68-69
-#                                                                                                                             ^ [Verbatim]: => . 60-61
-#                                                                                                                              ^ [Verbatim]: => . 61-62
-#                                                                                                                               ^ [Verbatim]: => . 62-63
-#                                                                                                                                ^^^ [Verbatim]: => bar 63-66
+#                                                                                                                             ^^^^^^ [Verbatim]: => ...bar 60-66
 #                                                                                                                                   ^ [Atom]: => } 66-67
 >
 #^ [Verbatim]: => ↲ 70-71
@@ -39,10 +36,7 @@
 #                                                       ^^^^^^^^^ [Verbatim]: => Component 73-82
 #                                                                                                                            ^ [Atom]: => { 84-85
 #                                                                                                                             ^ [Atom]: => / 93-94
-#                                                                                                                              ^ [Verbatim]: => . 85-86
-#                                                                                                                               ^ [Verbatim]: => . 86-87
-#                                                                                                                                ^ [Verbatim]: => . 87-88
-#                                                                                                                                 ^^^ [Verbatim]: => bar 88-91
+#                                                                                                                              ^^^^^^ [Verbatim]: => ...bar 85-91
 #                                                                                                                                    ^ [Atom]: => } 91-92
 >
 #^ [Verbatim]: => ↲ 95-96

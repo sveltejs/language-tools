@@ -22,8 +22,7 @@
 #       ^^^^ [Verbatim]: => hi_2 51-55
 #           ^ [Atom]: => } 55-56
 #            ^^^ [Verbatim]: => hi3 57-60
-#               ^ [Atom]: => } 60-61
-#                ^ [Verbatim]: => ↲ 61-62
+#               ^^ [Atom]: => }↲ 60-62
 > }Component}};
 #^ [Atom]: => < 62-63
 >return { props: /** @type {Record<string, never>} */ ({}), slots: {}, events: {} }}

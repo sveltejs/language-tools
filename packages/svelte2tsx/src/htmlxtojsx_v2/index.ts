@@ -307,19 +307,12 @@ export function convertHtmlxToJsx(
                             source?.type === 'Literal' &&
                             typeof source.value === 'string'
                         ) {
-                            options.spanMapGenerator?.addSourceSpan(source.start, source.end);
-                            if (options.rewriteExternalImports) {
-                                const rewrite = getExternalImportRewrite(
-                                    source.value,
-                                    options.rewriteExternalImports
-                                );
-                                if (rewrite) {
-                                    str.overwrite(
-                                        source.start + 1,
-                                        source.end - 1,
-                                        rewrite.rewritten
-                                    );
-                                }
+                            const rewrite = getExternalImportRewrite(
+                                source.value,
+                                options.rewriteExternalImports
+                            );
+                            if (rewrite) {
+                                str.overwrite(source.start + 1, source.end - 1, rewrite.rewritten);
                             }
                         }
                         break;

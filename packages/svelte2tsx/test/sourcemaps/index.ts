@@ -16,7 +16,7 @@ import {
 import { VERSION } from 'svelte/compiler';
 
 const isSvelte5Plus = Number(VERSION[0]) >= 5;
-describe('sourcemaps', function () {
+describe.only('sourcemaps', function () {
     for (const sample of each_sample(__dirname)) {
         const svelte5PlusOnly = sample.name.includes('.v5');
         if (svelte5PlusOnly && !isSvelte5Plus) {

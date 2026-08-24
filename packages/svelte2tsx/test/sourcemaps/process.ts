@@ -207,13 +207,17 @@ namespace print {
                     const originalEnd = originalStart + originalLength;
 
                     const original_text = original.print_slice(originalStart, originalEnd);
-                    const tabCount = tabIndexes.filter((i) => i < generatedStart).length;
+                    const tabCountBefore = tabIndexes.filter((i) => i < generatedStart).length;
+                    const generatedEnd = generatedStart + generatedLength;
                     const features = format_features_flags(mapping[5]);
                     const featureForLog = features ? `,[${features}]` : '';
+                    const tabCountCurrent = tabIndexes.filter(
+                        (i) => i >= generatedStart && i < generatedEnd
+                    ).length;
                     const log =
                         '#' +
-                        ' '.repeat(generatedStart - line.start + tabCount * 3) +
-                        '^'.repeat(generatedLength) +
+                        ' '.repeat(generatedStart - line.start + tabCountBefore * 3) +
+                        '^'.repeat(generatedLength + tabCountCurrent * 3) +
                         ` [${SpanMapKind[kind]}]${featureForLog}: => ${original_text} ${originalStart}-${originalEnd}`;
                     yield log;
                 }

@@ -6,7 +6,7 @@
 #                   ^ [Atom]: => } 8-9
 #                     ^ [Verbatim]: => ↲ 9-10
 >     { svelteHTML.createElement("element", {});}
-#^ [Verbatim]: => ╚ 10-11
+#^^^^ [Verbatim]: => ╚ 10-11
 #    ^ [Atom]: => < 11-12
 #                                 ^^^^^^^ [Verbatim]: => element 12-19
 #                                            ^ [Atom]: => / 20-21
@@ -31,7 +31,7 @@
 #      ^ [Atom]: => } 66-67
 #        ^ [Verbatim]: => ↲ 67-68
 >     { svelteHTML.createElement("element", {});}
-#^ [Verbatim]: => ╚ 68-69
+#^^^^ [Verbatim]: => ╚ 68-69
 #    ^ [Atom]: => < 69-70
 #                                 ^^^^^^^ [Verbatim]: => element 70-77
 #                                        ^ [Atom]: => / 77-78
@@ -42,7 +42,7 @@
 #              ^ [Atom]: => } 93-94
 #                ^ [Verbatim]: => ↲ 94-95
 >     { svelteHTML.createElement("element", {});}
-#^ [Verbatim]: => ╚ 95-96
+#^^^^ [Verbatim]: => ╚ 95-96
 #    ^ [Atom]: => < 96-97
 #                                 ^^^^^^^ [Verbatim]: => element 97-104
 #                                        ^ [Atom]: => / 104-105
@@ -50,10 +50,9 @@
 >}else{
 #^ [Atom]: => { 107-108
 # ^^^^ [Verbatim]: => else 109-113
-#     ^ [Atom]: => } 113-114
-#      ^ [Verbatim]: => ↲ 114-115
+#     ^^ [Atom]: => }↲ 113-115
 >     { svelteHTML.createElement("element", {});}
-#^ [Verbatim]: => ╚ 115-116
+#^^^^ [Verbatim]: => ╚ 115-116
 #    ^ [Atom]: => < 116-117
 #                                 ^^^^^^^ [Verbatim]: => element 117-124
 #                                        ^ [Atom]: => / 124-125

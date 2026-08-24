@@ -68,8 +68,7 @@
 #                                        ^ [Verbatim]: => • 155-156
 #                                         ^ [Atom]: => { 168-169
 #                                           ^ [Atom]: => ↲ 154-155
-#                                            ^^^^ [Verbatim]: => bind 159-163
-#                                                ^^^^ [Verbatim]: => :foo 163-167
+#                                            ^^^^^^^^ [Verbatim]: => bind:foo 159-167
 #                                                    ^ [Atom]: => = 167-168
 #                                                      ^^^ [Verbatim]: => bar 169-172
 #                                                         ^ [Atom]: => } 172-173

@@ -22,9 +22,7 @@
 >  {const $$action_0 = __sveltets_2_ensureAction(action.nested.method(svelteHTML.mapElementTag('element'),(foo)));{ svelteHTML.createElement("element", __sveltets_2_union($$action_0), {  });}}
 #^ [Atom]: => < 49-50
 # ^ [Atom]: => > 89-90
-#                                                ^^^^^^ [Verbatim]: => action 62-68
-#                                                      ^^^^^^^ [Verbatim]: => .nested 68-75
-#                                                             ^^^^^^^ [Verbatim]: => .method 75-82
+#                                                ^^^^^^^^^^^^^^^^^^^^ [Verbatim]: => action.nested.method 62-82
 #                                                                    ^ [Atom]: => = 82-83
 #                                                                                                          ^^^ [Verbatim]: => foo 84-87
 #                                                                                                             ^ [Atom]: => } 87-88
@@ -51,11 +49,7 @@
 #^ [Atom]: => < 125-126
 #                                               ^^^^^^ [Verbatim]: => action 139-145
 #                                                     ^ [Atom]: => = 145-146
-#                                                                                           ^ [Verbatim]: => { 147-148
-#                                                                                            ^ [Verbatim]: => • 148-149
-#                                                                                             ^^^ [Verbatim]: => foo 149-152
-#                                                                                                ^ [Verbatim]: => • 152-153
-#                                                                                                 ^ [Verbatim]: => } 153-154
+#                                                                                           ^^^^^^^ [Verbatim]: => {•foo•} 147-154
 #                                                                                                  ^ [Atom]: => } 154-155
 #                                                                                                                                  ^^^^^^^ [Verbatim]: => element 126-133
 #                                                                                                                                                                             ^ [Atom]: => u 135-136
@@ -68,29 +62,13 @@
 #^ [Atom]: => < 160-161
 #                                               ^^^^^^ [Verbatim]: => action 174-180
 #                                                     ^ [Atom]: => = 180-181
-#                                                                                           ^ [Verbatim]: => { 182-183
-#                                                                                            ^ [Verbatim]: => • 183-184
-#                                                                                             ^ [Verbatim]: => ↲ 184-185
+#                                                                                           ^^^ [Verbatim]: => {•↲ 182-185
 >        ...leet,
-#^ [Verbatim]: => ╚ 185-186
-#    ^ [Verbatim]: => ╚ 186-187
-#        ^ [Verbatim]: => . 187-188
-#         ^ [Verbatim]: => . 188-189
-#          ^ [Verbatim]: => . 189-190
-#           ^^^^ [Verbatim]: => leet 190-194
-#               ^ [Verbatim]: => , 194-195
-#                ^ [Verbatim]: => ↲ 195-196
+#^^^^^^^^^^^^^^^^^ [Verbatim]: => ╚╚...leet,↲ 185-196
 >        foo: $bar
-#^ [Verbatim]: => ╚ 196-197
-#    ^ [Verbatim]: => ╚ 197-198
-#        ^^^ [Verbatim]: => foo 198-201
-#           ^ [Verbatim]: => : 201-202
-#            ^ [Verbatim]: => • 202-203
-#             ^^^^ [Verbatim]: => $bar 203-207
-#                 ^ [Verbatim]: => ↲ 207-208
+#^^^^^^^^^^^^^^^^^^ [Verbatim]: => ╚╚foo:•$bar↲ 196-208
 >    })));{ svelteHTML.createElement("element", __sveltets_2_union($$action_0), {   });}}};
-#^ [Verbatim]: => ╚ 208-209
-#    ^ [Verbatim]: => } 209-210
+#^^^^^ [Verbatim]: => ╚} 208-210
 #     ^ [Atom]: => } 210-211
 #                                     ^^^^^^^ [Verbatim]: => element 161-168
 #                                                                                ^ [Atom]: => u 170-171

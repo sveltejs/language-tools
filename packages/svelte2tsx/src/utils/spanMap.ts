@@ -1,12 +1,9 @@
 import MagicString, { SourceMapSegment } from 'magic-string';
-import ts from 'typescript';
 import { COMPONENT_SUFFIX } from '../svelte2tsx/addComponentExport';
 
-const GENERATE_START = 0;
 const GENERATE_LENGTH = 1;
 const ORIGINAL_START = 2;
 const ORIGINAL_LENGTH = 3;
-const KIND = 4;
 
 const constStart = 'const ';
 
@@ -41,6 +38,7 @@ export class SpanMapGenerator {
             const line = map[generatedLine];
 
             let current: SpanMapping | undefined;
+            // TODO: keeping currentSourceSpan for now. Might use it to check generated suffixes later.
             let currentSourceSpan: Span | undefined;
             for (let segmentIndex = 0; segmentIndex < line.length; segmentIndex++) {
                 const segment = line[segmentIndex];
@@ -55,9 +53,7 @@ export class SpanMapGenerator {
                 const generatedStart = currentLineOffset + segment[0];
                 const sourceSpan = sourceSpanMap.get(originalStart);
 
-                // end is exclusive, so if it is equal to the current originalStart, it means we are outside of the span
                 if (sourceSpan || (currentSourceSpan && originalStart >= currentSourceSpan.end)) {
-                    current = undefined;
                     currentSourceSpan = sourceSpan;
                 }
 
@@ -90,7 +86,7 @@ export class SpanMapGenerator {
                                 2,
                                 originalStart,
                                 2,
-                                SpanMapKind.Atom
+                                SpanMapKind.Verbatim
                             ];
                             segmentIndex++;
                             mappings.push(current);
@@ -102,11 +98,7 @@ export class SpanMapGenerator {
                 if (current) {
                     let previousSegment = line[segmentIndex - 1];
                     if (previousSegment && sameChar) {
-                        if (
-                            nextTo(segment, previousSegment) &&
-                            (currentSourceSpan ||
-                                isIdentifierPart(generatedCode.charCodeAt(generatedStart)))
-                        ) {
+                        if (nextTo(segment, previousSegment)) {
                             current[GENERATE_LENGTH]++;
                             current[ORIGINAL_LENGTH]++;
                             continue;
@@ -134,15 +126,11 @@ export class SpanMapGenerator {
             if (currentEnd > next[ORIGINAL_START]) {
                 const newLength = next[ORIGINAL_START] - current[ORIGINAL_START];
                 if (newLength > 0) {
-                    current[ORIGINAL_LENGTH] = newLength;
                     result.push(current);
                 }
                 continue;
             }
 
-            if (exact(str.original, generatedCode, current)) {
-                current[KIND] = SpanMapKind.Verbatim;
-            }
             result.push(current);
         }
 
@@ -192,10 +180,6 @@ function getSourceOffset(segment: SourceMapSegment, sourceLineOffsets: number[])
     return sourceLineOffsets[originalLine] + originalCharacter;
 }
 
-function isIdentifierPart(charCode: number) {
-    return ts.isIdentifierPart(charCode, ts.ScriptTarget.Latest);
-}
-
 function nextTo(segment: SourceMapSegment, previous: SourceMapSegment) {
     const [generatedCharacter, , originalLine, originalCharacter] = segment;
     const [prevGeneratedCharacter, , prevOriginalLine, prevOriginalCharacter] = previous;
@@ -205,23 +189,6 @@ function nextTo(segment: SourceMapSegment, previous: SourceMapSegment) {
         originalCharacter === prevOriginalCharacter + 1 &&
         generatedCharacter === prevGeneratedCharacter + 1
     );
-}
-
-function exact(original: string, generatedCode: string, mapping: SpanMapping) {
-    const generatedLength = mapping[GENERATE_LENGTH];
-    const originLength = mapping[ORIGINAL_LENGTH];
-    if (generatedLength !== originLength) {
-        return false;
-    }
-    for (let i = 0; i < generatedLength; i++) {
-        const generatedChar = generatedCode.charCodeAt(mapping[GENERATE_START] + i);
-        const originalChar = original.charCodeAt(mapping[ORIGINAL_START] + i);
-        if (generatedChar !== originalChar) {
-            return false;
-        }
-    }
-
-    return true;
 }
 
 interface Span {

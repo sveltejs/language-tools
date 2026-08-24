@@ -17,9 +17,7 @@
 #                                              ^ [Atom]: =>  41-41
 #                                               ^^^ [Verbatim]: => foo 41-44
 #                                                  ^ [Atom]: => = 44-45
-#                                                    ^^^^^ [Verbatim]: => value 46-51
-#                                                         ^ [Verbatim]: => . 51-52
-#                                                          ^^^ [Verbatim]: => bar 52-55
+#                                                    ^^^^^^^^^ [Verbatim]: => value.bar 46-55
 #                                                             ^ [Atom]: => } 55-56
 #                                                                  ^ [Verbatim]: => ↲ 58-59
 >}}
@@ -31,7 +29,7 @@
 # ^ [Atom]: => : 100-101
 #  ^ [Atom]: => a 122-123
 >     { svelteHTML.createElement("element", {});}
-#^ [Atom]: => ↲ 85-86
+#^^^^ [Atom]: => ↲ 85-86
 #    ^ [Atom]: => < 87-88
 #                                 ^^^^^^^ [Verbatim]: => element 88-95
 #                                            ^ [Atom]: => / 96-97
@@ -41,7 +39,7 @@
 #       ^^^^^^^ [Verbatim]: => promise 77-84
 #              ^ [Atom]: => } 84-85
 >     { svelteHTML.createElement("element", {});}
-#^ [Atom]: => ↲ 106-107
+#^^^^ [Atom]: => ↲ 106-107
 #    ^ [Atom]: => < 108-109
 #                                 ^^^^^^^ [Verbatim]: => element 109-116
 #                                            ^ [Atom]: => / 117-118
@@ -53,7 +51,7 @@
 >  {
 #^ [Atom]: => { 130-131
 >     { svelteHTML.createElement("element", {});}
-#^ [Atom]: => ↲ 147-148
+#^^^^ [Atom]: => ↲ 147-148
 #    ^ [Atom]: => < 149-150
 #                                 ^^^^^^^ [Verbatim]: => element 150-157
 #                                            ^ [Atom]: => / 158-159

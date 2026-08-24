@@ -10,15 +10,7 @@
 #                                                                                                                                                                                        ^ [Atom]: =>  14-14
 #                                                                                                                                                                                         ^^^^^ [Verbatim]: => click 14-19
 #                                                                                                                                                                                               ^ [Atom]: => = 19-20
-#                                                                                                                                                                                                 ^^^^^^ [Verbatim]: => $check 21-27
-#                                                                                                                                                                                                       ^ [Verbatim]: => • 27-28
-#                                                                                                                                                                                                        ^ [Verbatim]: => ? 28-29
-#                                                                                                                                                                                                         ^ [Verbatim]: => • 29-30
-#                                                                                                                                                                                                          ^^^^^^^ [Verbatim]: => method1 30-37
-#                                                                                                                                                                                                                 ^ [Verbatim]: => • 37-38
-#                                                                                                                                                                                                                  ^ [Verbatim]: => : 38-39
-#                                                                                                                                                                                                                   ^ [Verbatim]: => • 39-40
-#                                                                                                                                                                                                                    ^^^^^^^ [Verbatim]: => method2 40-47
+#                                                                                                                                                                                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^ [Verbatim]: => $check•?•method1•:•method2 21-47
 #                                                                                                                                                                                                                           ^ [Atom]: => } 47-48
 #                                                                                                                                                                                                                              ^ [Verbatim]: => ↲ 51-52
 >  { svelteHTML.createElement("button", {  "on:click":$check ? method1 : method2,});  }};
@@ -30,15 +22,7 @@
 #                                          ^^^^ [Atom]: =>  63-63
 #                                              ^^^^^ [Verbatim]: => click 63-68
 #                                                    ^ [Atom]: => = 68-69
-#                                                     ^^^^^^ [Verbatim]: => $check 70-76
-#                                                           ^ [Verbatim]: => • 76-77
-#                                                            ^ [Verbatim]: => ? 77-78
-#                                                             ^ [Verbatim]: => • 78-79
-#                                                              ^^^^^^^ [Verbatim]: => method1 79-86
-#                                                                     ^ [Verbatim]: => • 86-87
-#                                                                      ^ [Verbatim]: => : 87-88
-#                                                                       ^ [Verbatim]: => • 88-89
-#                                                                        ^^^^^^^ [Verbatim]: => method2 89-96
+#                                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^ [Verbatim]: => $check•?•method1•:•method2 70-96
 #                                                                               ^ [Atom]: => } 96-97
 #                                                                                   ^ [Atom]: => B 99-100
 >return { props: /** @type {Record<string, never>} */ ({}), slots: {}, events: {} }}
