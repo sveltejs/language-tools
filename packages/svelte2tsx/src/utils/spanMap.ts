@@ -151,9 +151,9 @@ export class SpanMapGenerator {
             componentSuffixIndex + COMPONENT_SUFFIX.length
         );
 
-        let index = startOfName;
+        const flags = SpanMapFeature.Definition;
         if (!svelte5Plus) {
-            result.push([index, name.length, 0, 0, SpanMapKind.Atom, SpanMapFeature.Definition]);
+            result.push([startOfName, name.length, 0, 0, SpanMapKind.Atom, flags]);
             return;
         }
 
@@ -165,7 +165,7 @@ export class SpanMapGenerator {
                 0,
                 0,
                 SpanMapKind.Atom,
-                SpanMapFeature.Definition
+                flags
             ]);
         }
     }
