@@ -7,6 +7,21 @@ import {
     transform,
     TransformationArray
 } from '../utils/node-utils';
+import { SpanMapFeature, SpanMapGenerator } from '../../utils/spanMap';
+
+// mainly excluding semantic tokens and type definition
+const componentNameFlags =
+    SpanMapFeature.Hover |
+    SpanMapFeature.Completion |
+    SpanMapFeature.Definition |
+    SpanMapFeature.Implementation |
+    SpanMapFeature.References |
+    SpanMapFeature.DocumentHighlights |
+    SpanMapFeature.Rename |
+    SpanMapFeature.CallHierarchy |
+    SpanMapFeature.CodeActions |
+    SpanMapFeature.SelectionRanges |
+    SpanMapFeature.DocumentSymbols;
 
 /**
  * Handles Svelte components as well as svelte:self and svelte:component
@@ -56,6 +71,7 @@ export class InlineComponent {
     constructor(
         private str: MagicString,
         private node: BaseNode,
+        spanMapGenerator: SpanMapGenerator | undefined,
         public parent?: any
     ) {
         if (parent) {
@@ -104,6 +120,8 @@ export class InlineComponent {
             const nodeNameEnd = isSvelteComponentTag
                 ? this.node.expression.end
                 : nodeNameStart + this.node.name.length;
+
+            spanMapGenerator?.addSourceSpan(nodeNameStart, nodeNameEnd, componentNameFlags);
             this.startTransformation.push(
                 `{ const ${constructorName} = __sveltets_2_ensureComponent(`,
                 [nodeNameStart, nodeNameEnd],

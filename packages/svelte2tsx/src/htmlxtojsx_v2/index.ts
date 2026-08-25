@@ -410,10 +410,15 @@ export function convertHtmlxToJsx(
                         break;
                     case 'InlineComponent':
                         if (element) {
-                            element.child = new InlineComponent(str, node, element);
+                            element.child = new InlineComponent(
+                                str,
+                                node,
+                                options.spanMapGenerator,
+                                element
+                            );
                             element = element.child;
                         } else {
-                            element = new InlineComponent(str, node);
+                            element = new InlineComponent(str, node, options.spanMapGenerator);
                         }
                         if (options.svelte5Plus) {
                             handleImplicitChildren(node, element as InlineComponent);

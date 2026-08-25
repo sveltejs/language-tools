@@ -96,7 +96,7 @@
 #                                                                                     ^ [Atom]: => / 281-282
 #                                                                                       ^ [Atom]: => < 287-288
 #                                                                                        ^ [Atom]: => > 310-311
-#                                                                                                                                                 ^^^^^^^^^^^ [Verbatim]: => MyComponent 288-299
+#                                                                                                                                                 ^^^^^^^^^^^ [Verbatim],[Hover|Completion|Definition|Implementation|References|DocumentHighlights|Rename|CallHierarchy|CodeActions|SelectionRanges|DocumentSymbols]: => MyComponent 288-299
 #                                                                                                                                                                                                                          ^^^^^^^ [Verbatim]: => ...rest 301-308
 #                                                                                                                                                                                                                                 ^ [Atom]: => } 308-309
 #                                                                                                                                                                                                                                       ^ [Atom]: => / 312-313
@@ -123,7 +123,7 @@
 #                                                                                     ^ [Atom]: => / 373-374
 #                                                                                       ^ [Atom]: => < 379-380
 #                                                                                        ^ [Atom]: => > 406-407
-#                                                                                                                                                 ^^^^^^^^^^^ [Verbatim]: => MyComponent 380-391
+#                                                                                                                                                 ^^^^^^^^^^^ [Verbatim],[Hover|Completion|Definition|Implementation|References|DocumentHighlights|Rename|CallHierarchy|CodeActions|SelectionRanges|DocumentSymbols]: => MyComponent 380-391
 #                                                                                                                                                                                                                          ^ [Atom]: => { 399-400
 #                                                                                                                                                                                                                           ^ [Atom]: =>  392-392
 #                                                                                                                                                                                                                            ^^^^^^ [Verbatim]: => values 392-398

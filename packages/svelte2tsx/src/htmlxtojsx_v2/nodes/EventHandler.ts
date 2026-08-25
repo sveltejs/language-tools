@@ -4,7 +4,15 @@ import { rangeWithTrailingPropertyAccess, surroundWith } from '../utils/node-uti
 import { Element } from './Element';
 import { InlineComponent } from './InlineComponent';
 import { getLeadingCommentTransformation, getTrailingCommentTransformation } from './Comment';
-import { SpanMapGenerator } from '../../utils/spanMap';
+import { SpanMapFeature, SpanMapGenerator } from '../../utils/spanMap';
+
+const eventNameFeatures =
+    SpanMapFeature.Definition |
+    SpanMapFeature.Hover |
+    SpanMapFeature.References |
+    SpanMapFeature.Completion;
+
+const componentNameFeatures = eventNameFeatures | SpanMapFeature.Rename;
 
 /**
  * Transform on:xxx={yyy}
@@ -23,6 +31,12 @@ export function handleEventHandler(
     const leadingComments = getLeadingCommentTransformation(attr);
     const trailingComments = getTrailingCommentTransformation(attr);
     spanMapGenerator?.addSourceSpan(nameStart, nameEnd);
+
+    if (spanMapGenerator) {
+        const flags =
+            element instanceof InlineComponent ? componentNameFeatures : eventNameFeatures;
+        spanMapGenerator.addFlagForPrepend(nameStart, flags);
+    }
 
     if (element instanceof Element) {
         // Prefix with "on:" for better mapping.

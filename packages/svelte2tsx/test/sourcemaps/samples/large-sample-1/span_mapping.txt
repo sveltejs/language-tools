@@ -392,7 +392,7 @@
 #^^^^ [Atom]: => ↲ 5762-5763
 #                ^ [Atom]: => < 5767-5768
 #                 ^ [Atom]: => > 5813-5814
-#                                                                              ^^^^^^^^^^^^^^^ [Verbatim]: => TableOfContents 5768-5783
+#                                                                              ^^^^^^^^^^^^^^^ [Verbatim],[Hover|Completion|Definition|Implementation|References|DocumentHighlights|Rename|CallHierarchy|CodeActions|SelectionRanges|DocumentSymbols]: => TableOfContents 5768-5783
 #                                                                                                                                                               ^ [Verbatim]: => • 5794-5795
 #                                                                                                                                                                ^ [Verbatim]: => • 5801-5802
 #                                                                                                                                                                 ^^^^^^^^ [Verbatim]: => sections 5785-5793
@@ -455,7 +455,7 @@
 #                                                                         ^ [Atom]: => = 6087-6088
 #                                                                            ^^^^ [Verbatim]: => show 6089-6093
 #                                                                                ^ [Atom]: => " 6093-6094
-#                                                                                  ^^^^ [Atom]: =>  6098-6098
+#                                                                                  ^^^^ [Atom],[Hover|Completion|Definition|References]: =>  6098-6098
 #                                                                                      ^^^^^ [Verbatim]: => click 6098-6103
 #                                                                                            ^ [Atom]: => = 6103-6104
 #                                                                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ [Verbatim]: => ()•=>•completed•?•reset()•:•complete() 6106-6144
@@ -558,7 +558,7 @@
 >             { const $$_lpeR3C = __sveltets_2_ensureComponent(Repl); const $$_lpeR3 = new $$_lpeR3C({ target: __sveltets_2_any(), props: {               "workersUrl":`workers`,svelteUrl,rollupUrl,"orientation":mobile ? 'columns' : 'rows',"fixed":mobile,"injectedJS":mapbox_setup,"relaxed":true,}});repl = $$_lpeR3;$$_lpeR3.$on("change", handle_change);}
 #^^^^ [Atom]: => ↲ 6498-6499
 #            ^ [Atom]: => < 6502-6503
-#                                                              ^^^^ [Verbatim]: => Repl 6503-6507
+#                                                              ^^^^ [Verbatim],[Hover|Completion|Definition|Implementation|References|DocumentHighlights|Rename|CallHierarchy|CodeActions|SelectionRanges|DocumentSymbols]: => Repl 6503-6507
 #                                                                                                                                          ^ [Atom]: => ╚ 6509-6510
 #                                                                                                                                           ^ [Atom]: => ↲ 6528-6529
 #                                                                                                                                            ^ [Atom]: => " 6544-6545
@@ -603,7 +603,7 @@
 #                                                                                                                                                                                                                                                                                               ^ [Atom]: => ↲ 6722-6723
 #                                                                                                                                                                                                                                                                                                          ^^^^ [Verbatim]: => repl 6523-6527
 #                                                                                                                                                                                                                                                                                                              ^ [Atom]: => } 6527-6528
-#                                                                                                                                                                                                                                                                                                                                       ^ [Atom]: =>  6658-6658
+#                                                                                                                                                                                                                                                                                                                                       ^ [Atom],[Hover|Completion|Definition|References|Rename]: =>  6658-6658
 #                                                                                                                                                                                                                                                                                                                                        ^^^^^^ [Verbatim]: => change 6658-6664
 #                                                                                                                                                                                                                                                                                                                                               ^ [Atom]: => = 6664-6665
 #                                                                                                                                                                                                                                                                                                                                                 ^^^^^^^^^^^^^ [Verbatim]: => handle_change 6666-6679
@@ -625,7 +625,7 @@
 #^^^^^^^^ [Verbatim]: => ╚╚ 6761-6763
 #        ^ [Atom]: => < 6763-6764
 #         ^ [Atom]: => > 6830-6831
-#                                                                   ^^^^^^^^^^^^ [Verbatim]: => ScreenToggle 6764-6776
+#                                                                   ^^^^^^^^^^^^ [Verbatim],[Hover|Completion|Definition|Implementation|References|DocumentHighlights|Rename|CallHierarchy|CodeActions|SelectionRanges|DocumentSymbols]: => ScreenToggle 6764-6776
 #                                                                                                                                              ^ [Atom]: => i 6778-6779
 #                                                                                                                                               ^ [Atom]: => { 6796-6797
 #                                                                                                                                                ^^^^^^ [Verbatim]: => offset 6782-6788

@@ -2,12 +2,12 @@
 >;function $$render() {
 >async () => { { const $$_tnenopmoC0C = __sveltets_2_ensureComponent(Component); const $$_tnenopmoC0 = new $$_tnenopmoC0C({ target: __sveltets_2_any(), props: {   }});$$_tnenopmoC0.$on("click", $check ? method1 : method2);}
 #             ^ [Atom]: => < 0-1
-#                                                                    ^^^^^^^^^ [Verbatim]: => Component 1-10
+#                                                                    ^^^^^^^^^ [Verbatim],[Hover|Completion|Definition|Implementation|References|DocumentHighlights|Rename|CallHierarchy|CodeActions|SelectionRanges|DocumentSymbols]: => Component 1-10
 #                                                                                                                                                               ^ [Atom]: => n 12-13
 #                                                                                                                                                                ^ [Atom]: => { 20-21
 #                                                                                                                                                                 ^ [Atom]: => / 49-50
 #                                                                                                                                                                  ^ [Atom]: => o 11-12
-#                                                                                                                                                                                        ^ [Atom]: =>  14-14
+#                                                                                                                                                                                        ^ [Atom],[Hover|Completion|Definition|References|Rename]: =>  14-14
 #                                                                                                                                                                                         ^^^^^ [Verbatim]: => click 14-19
 #                                                                                                                                                                                               ^ [Atom]: => = 19-20
 #                                                                                                                                                                                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^ [Verbatim]: => $check•?•method1•:•method2 21-47
@@ -19,7 +19,7 @@
 #                              ^^^^^^ [Verbatim]: => button 53-59
 #                                        ^ [Atom]: => n 61-62
 #                                         ^ [Atom]: => { 69-70
-#                                          ^^^^ [Atom]: =>  63-63
+#                                          ^^^^ [Atom],[Hover|Completion|Definition|References]: =>  63-63
 #                                              ^^^^^ [Verbatim]: => click 63-68
 #                                                    ^ [Atom]: => = 68-69
 #                                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^ [Verbatim]: => $check•?•method1•:•method2 70-96

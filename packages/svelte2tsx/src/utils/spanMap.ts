@@ -4,18 +4,25 @@ import { COMPONENT_SUFFIX } from '../svelte2tsx/addComponentExport';
 const GENERATE_LENGTH = 1;
 const ORIGINAL_START = 2;
 const ORIGINAL_LENGTH = 3;
+const FEATURES_FLAGS = 5;
 
 const constStart = 'const ';
 
 export class SpanMapGenerator {
     private spans: Span[] = [];
+    private prependFlags = new Map<number, SpanMapFeature>();
 
     /**
      * Add an identifier or literal span to the list of spans to be mapped.
      * The span is defined by its start and end positions in the original source code.
      */
-    addSourceSpan(start: number, end: number) {
-        this.spans.push({ start, end });
+    addSourceSpan(start: number, end: number, features?: SpanMapFeature) {
+        this.spans.push({ start, end, features: features });
+    }
+
+    addFlagForPrepend(start: number, features: SpanMapFeature) {
+        const existingFlags = this.prependFlags.get(start) ?? SpanMapFeature.None;
+        this.prependFlags.set(start, existingFlags | features);
     }
 
     generateSpanMapping(
@@ -73,13 +80,15 @@ export class SpanMapGenerator {
                         ) {
                             const prependLength = nextGeneratedStart - generatedStart - 1;
                             if (prependLength > 0) {
-                                mappings.push([
+                                const map: SpanMapping = [
                                     generatedStart,
                                     prependLength,
                                     originalStart,
                                     0,
                                     SpanMapKind.Atom
-                                ]);
+                                ];
+                                addFlag(map, this.prependFlags.get(originalStart));
+                                mappings.push(map);
                             }
                             current = [
                                 nextGeneratedStart - 1,
@@ -88,6 +97,7 @@ export class SpanMapGenerator {
                                 2,
                                 SpanMapKind.Verbatim
                             ];
+                            addFlag(current, sourceSpan.features);
                             segmentIndex++;
                             mappings.push(current);
                             continue;
@@ -113,6 +123,7 @@ export class SpanMapGenerator {
                     1,
                     sameChar ? SpanMapKind.Verbatim : SpanMapKind.Atom
                 ];
+                addFlag(current, sourceSpan?.features);
                 mappings.push(current);
             }
         }
@@ -180,6 +191,18 @@ function getSourceOffset(segment: SourceMapSegment, sourceLineOffsets: number[])
     return sourceLineOffsets[originalLine] + originalCharacter;
 }
 
+function addFlag(span: SpanMapping, features: SpanMapFeature | undefined) {
+    if (!features) {
+        return;
+    }
+    const existingFlags = span[5];
+    if (existingFlags === undefined) {
+        span[FEATURES_FLAGS] = features;
+    } else {
+        span[FEATURES_FLAGS] = existingFlags | features;
+    }
+}
+
 function nextTo(segment: SourceMapSegment, previous: SourceMapSegment) {
     const [generatedCharacter, , originalLine, originalCharacter] = segment;
     const [prevGeneratedCharacter, , prevOriginalLine, prevOriginalCharacter] = previous;
@@ -194,6 +217,7 @@ function nextTo(segment: SourceMapSegment, previous: SourceMapSegment) {
 interface Span {
     start: number;
     end: number;
+    features: SpanMapFeature | undefined;
 }
 
 function getLineOffsets(text: string) {

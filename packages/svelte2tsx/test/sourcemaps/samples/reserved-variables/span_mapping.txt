@@ -33,7 +33,7 @@
 >     { const $$_tnenopmoC0C = __sveltets_2_ensureComponent(Component); new $$_tnenopmoC0C({ target: __sveltets_2_any(), props: {  ...$$props,}});}
 #^^^^ [Atom]: => ↲ 142-143
 #    ^ [Atom]: => < 144-145
-#                                                           ^^^^^^^^^ [Verbatim]: => Component 145-154
+#                                                           ^^^^^^^^^ [Verbatim],[Hover|Completion|Definition|Implementation|References|DocumentHighlights|Rename|CallHierarchy|CodeActions|SelectionRanges|DocumentSymbols]: => Component 145-154
 #                                                                                                                                ^ [Atom]: => ╚ 156-157
 #                                                                                                                                 ^ [Atom]: => ╚ 171-172
 #                                                                                                                                  ^^^^^^^^^^ [Verbatim]: => ...$$props 159-169
