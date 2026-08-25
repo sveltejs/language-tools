@@ -37,10 +37,7 @@ export async function discoverTsContentMapper(
         return { enable: false };
     }
 
-    const extension =
-        // dev version is currently this extension id, maybe the published version might change in the future?
-        vscode.extensions.getExtension('TypeScriptTeam.vscode-typescript') ??
-        vscode.extensions.getExtension('TypeScriptTeam.native-preview');
+    const extension = vscode.extensions.getExtension('TypeScriptTeam.native-preview');
 
     if (!extension) {
         return { enable: false };
