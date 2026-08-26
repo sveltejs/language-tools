@@ -1,67 +1,131 @@
 >///<reference types="svelte" />
 >;function $$render() {
 >async () => {   { const $$_value = await (promise);{ const value = $$_value;
-#             ^ [Atom]: => { 0-1
-#              ^ [Atom]: => t 16-17
-#               ^ [Atom]: => a 61-62
-#                                          ^^^^^^^ [Verbatim]: => promise 8-15
-#                                                 ^ [Atom]: => • 15-16
-#                                                           ^^^^^ [Verbatim]: => value 21-26
-#                                                                ^ [Atom]: => } 26-27
+#             ^ [Atom] => 0-1
+-             {
+#              ^ [Atom] => 16-17
+-              t
+#               ^ [Atom] => 61-62
+-               a
+#                                          ^^^^^^^ [Verbatim] => 8-15
+-                                          promise
+#                                                 ^ [Atom] => 15-16
+-                                                 •
+#                                                           ^^^^^ [Verbatim] => 21-26
+-                                                           value
+#                                                                ^ [Atom] => 26-27
+-                                                                }
 >      { svelteHTML.createElement("element", { "foo":value.bar,});}
-#^ [Atom]: => ↲ 27-28
-#    ^ [Atom]: => < 32-33
-#     ^ [Atom]: => > 57-58
-#                                  ^^^^^^^ [Verbatim]: => element 33-40
-#                                             ^ [Atom]: => { 45-46
-#                                              ^ [Atom]: =>  41-41
-#                                               ^^^ [Verbatim]: => foo 41-44
-#                                                  ^ [Atom]: => = 44-45
-#                                                    ^^^^^^^^^ [Verbatim]: => value.bar 46-55
-#                                                             ^ [Atom]: => } 55-56
-#                                                                  ^ [Verbatim]: => ↲ 58-59
+#^ [Atom] => 27-28
+-
+-
+#    ^ [Atom] => 32-33
+-    <
+#     ^ [Atom] => 57-58
+-     >
+#                                  ^^^^^^^ [Verbatim] => 33-40
+-                                  element
+#                                             ^ [Atom] => 45-46
+-                                             {
+#                                              ^ [Atom] => 41-41
+-
+#                                               ^^^ [Verbatim] => 41-44
+-                                               foo
+#                                                  ^ [Atom] => 44-45
+-                                                  =
+#                                                    ^^^^^^^^^ [Verbatim] => 46-55
+-                                                    value.bar
+#                                                             ^ [Atom] => 55-56
+-                                                             }
+#
 >}}
-#^ [Atom]: => { 59-60
+# [Verbatim] => 58-59
+-
+-
+#^ [Atom] => 59-60
+-{
 >
-#^ [Verbatim]: => ↲ 67-68
+#
 >   {
-#^ [Atom]: => { 69-70
-# ^ [Atom]: => : 100-101
-#  ^ [Atom]: => a 122-123
+# [Verbatim] => 67-68
+-
+-
+#^ [Atom] => 69-70
+-{
+# ^ [Atom] => 100-101
+- :
+#  ^ [Atom] => 122-123
+-  a
 >     { svelteHTML.createElement("element", {});}
-#^^^^ [Atom]: => ↲ 85-86
-#    ^ [Atom]: => < 87-88
-#                                 ^^^^^^^ [Verbatim]: => element 88-95
-#                                            ^ [Atom]: => / 96-97
-#                                                ^ [Verbatim]: => ↲ 98-99
+#^^^^ [Atom] => 85-86
+-
+-
+#    ^ [Atom] => 87-88
+-    <
+#                                 ^^^^^^^ [Verbatim] => 88-95
+-                                 element
+#                                            ^ [Atom] => 96-97
+-                                            /
+#
 >await (promise);
-#^ [Atom]: => { 99-100
-#       ^^^^^^^ [Verbatim]: => promise 77-84
-#              ^ [Atom]: => } 84-85
+# [Verbatim] => 98-99
+-
+-
+#^ [Atom] => 99-100
+-{
+#       ^^^^^^^ [Verbatim] => 77-84
+-       promise
+#              ^ [Atom] => 84-85
+-              }
 >     { svelteHTML.createElement("element", {});}
-#^^^^ [Atom]: => ↲ 106-107
-#    ^ [Atom]: => < 108-109
-#                                 ^^^^^^^ [Verbatim]: => element 109-116
-#                                            ^ [Atom]: => / 117-118
-#                                                ^ [Verbatim]: => ↲ 119-120
+#^^^^ [Atom] => 106-107
+-
+-
+#    ^ [Atom] => 108-109
+-    <
+#                                 ^^^^^^^ [Verbatim] => 109-116
+-                                 element
+#                                            ^ [Atom] => 117-118
+-                                            /
+#
 >}
-#^ [Atom]: => { 120-121
+# [Verbatim] => 119-120
+-
+-
+#^ [Atom] => 120-121
+-{
 >
-#^ [Verbatim]: => ↲ 128-129
+#
 >  {
-#^ [Atom]: => { 130-131
+# [Verbatim] => 128-129
+-
+-
+#^ [Atom] => 130-131
+-{
 >     { svelteHTML.createElement("element", {});}
-#^^^^ [Atom]: => ↲ 147-148
-#    ^ [Atom]: => < 149-150
-#                                 ^^^^^^^ [Verbatim]: => element 150-157
-#                                            ^ [Atom]: => / 158-159
-#                                                ^ [Verbatim]: => ↲ 160-161
+#^^^^ [Atom] => 147-148
+-
+-
+#    ^ [Atom] => 149-150
+-    <
+#                                 ^^^^^^^ [Verbatim] => 150-157
+-                                 element
+#                                            ^ [Atom] => 158-159
+-                                            /
+#
 >await ($promise);}};
-#^ [Atom]: => { 161-162
-#       ^^^^^^^^ [Verbatim]: => $promise 138-146
-#               ^ [Atom]: => } 146-147
+# [Verbatim] => 160-161
+-
+-
+#^ [Atom] => 161-162
+-{
+#       ^^^^^^^^ [Verbatim] => 138-146
+-       $promise
+#               ^ [Atom] => 146-147
+-               }
 >return { props: /** @type {Record<string, never>} */ ({}), slots: {}, events: {} }}
 >
 >export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial(__sveltets_2_with_any_event($$render()))) {
-#                     ^^^^^^^^^^^^^^^^^^^^^^^ [Atom],[Definition]: =>  0-0
+#                     ^^^^^^^^^^^^^^^^^^^^^^^ [Atom],[Definition] => 0-0
+-
 >}

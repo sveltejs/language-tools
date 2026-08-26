@@ -1,81 +1,153 @@
 >///<reference types="svelte" />
 >;function $$render() {
 >async () => { {const $$action_0 = __sveltets_2_ensureAction(action(svelteHTML.mapElementTag('element')));{ svelteHTML.createElement("element", __sveltets_2_union($$action_0), { });}}
-#             ^ [Atom]: => < 0-1
-#                                                            ^^^^^^ [Verbatim]: => action 13-19
-#                                                                  ^ [Atom]: => / 19-20
-#                                                                                                                                     ^^^^^^^ [Verbatim]: => element 1-8
-#                                                                                                                                                                                ^ [Atom]: => s 10-11
-#                                                                                                                                                                                 ^ [Atom]: => u 9-10
+#             ^ [Atom] => 0-1
+-             <
+#                                                            ^^^^^^ [Verbatim] => 13-19
+-                                                            action
+#                                                                  ^ [Atom] => 19-20
+-                                                                  /
+#                                                                                                                                     ^^^^^^^ [Verbatim] => 1-8
+-                                                                                                                                     element
+#                                                                                                                                                                                ^ [Atom] => 10-11
+-                                                                                                                                                                                s
+#                                                                                                                                                                                 ^ [Atom] => 9-10
+-                                                                                                                                                                                 u
 >
-#^ [Verbatim]: => ↲ 21-22
+#
 > {const $$action_0 = __sveltets_2_ensureAction(action(svelteHTML.mapElementTag('element')));{ svelteHTML.createElement("element", __sveltets_2_union($$action_0), {  });}}
-#^ [Atom]: => < 23-24
-#                                               ^^^^^^ [Verbatim]: => action 37-43
-#                                                     ^ [Atom]: => • 43-44
-#                                                                                                                        ^^^^^^^ [Verbatim]: => element 24-31
-#                                                                                                                                                                   ^ [Atom]: => u 33-34
-#                                                                                                                                                                    ^ [Atom]: => / 45-46
-#                                                                                                                                                                     ^ [Atom]: => ╚ 32-33
+# [Verbatim] => 21-22
+-
+-
+#^ [Atom] => 23-24
+-<
+#                                               ^^^^^^ [Verbatim] => 37-43
+-                                               action
+#                                                     ^ [Atom] => 43-44
+-                                                     •
+#                                                                                                                        ^^^^^^^ [Verbatim] => 24-31
+-                                                                                                                        element
+#                                                                                                                                                                   ^ [Atom] => 33-34
+-                                                                                                                                                                   u
+#                                                                                                                                                                    ^ [Atom] => 45-46
+-                                                                                                                                                                    /
+#                                                                                                                                                                     ^ [Atom] => 32-33
+-                                                                                                                                                                     ╚
 >
-#^ [Verbatim]: => ↲ 47-48
+#
 >  {const $$action_0 = __sveltets_2_ensureAction(action.nested.method(svelteHTML.mapElementTag('element'),(foo)));{ svelteHTML.createElement("element", __sveltets_2_union($$action_0), {  });}}
-#^ [Atom]: => < 49-50
-# ^ [Atom]: => > 89-90
-#                                                ^^^^^^^^^^^^^^^^^^^^ [Verbatim]: => action.nested.method 62-82
-#                                                                    ^ [Atom]: => = 82-83
-#                                                                                                          ^^^ [Verbatim]: => foo 84-87
-#                                                                                                             ^ [Atom]: => } 87-88
-#                                                                                                                                             ^^^^^^^ [Verbatim]: => element 50-57
-#                                                                                                                                                                                        ^ [Atom]: => s 59-60
-#                                                                                                                                                                                         ^ [Atom]: => { 83-84
-#                                                                                                                                                                                          ^ [Atom]: => u 58-59
+# [Verbatim] => 47-48
+-
+-
+#^ [Atom] => 49-50
+-<
+# ^ [Atom] => 89-90
+- >
+#                                                ^^^^^^^^^^^^^^^^^^^^ [Verbatim] => 62-82
+-                                                action.nested.method
+#                                                                    ^ [Atom] => 82-83
+-                                                                    =
+#                                                                                                          ^^^ [Verbatim] => 84-87
+-                                                                                                          foo
+#                                                                                                             ^ [Atom] => 87-88
+-                                                                                                             }
+#                                                                                                                                             ^^^^^^^ [Verbatim] => 50-57
+-                                                                                                                                             element
+#                                                                                                                                                                                        ^ [Atom] => 59-60
+-                                                                                                                                                                                        s
+#                                                                                                                                                                                         ^ [Atom] => 83-84
+-                                                                                                                                                                                         {
+#                                                                                                                                                                                          ^ [Atom] => 58-59
+-                                                                                                                                                                                          u
 >
-#^ [Verbatim]: => ↲ 90-91
+#
 > {const $$action_0 = __sveltets_2_ensureAction(action(svelteHTML.mapElementTag('element'),($foo)));{ svelteHTML.createElement("element", __sveltets_2_union($$action_0), {   });}}
-#^ [Atom]: => < 92-93
-#                                               ^^^^^^ [Verbatim]: => action 107-113
-#                                                     ^ [Atom]: => = 113-114
-#                                                                                           ^^^^ [Verbatim]: => $foo 115-119
-#                                                                                               ^ [Atom]: => } 119-120
-#                                                                                                                               ^^^^^^^ [Verbatim]: => element 93-100
-#                                                                                                                                                                          ^ [Atom]: => ╚ 102-103
-#                                                                                                                                                                           ^ [Atom]: => { 114-115
-#                                                                                                                                                                            ^ [Atom]: => / 121-122
-#                                                                                                                                                                             ^ [Atom]: => ↲ 101-102
+# [Verbatim] => 90-91
+-
+-
+#^ [Atom] => 92-93
+-<
+#                                               ^^^^^^ [Verbatim] => 107-113
+-                                               action
+#                                                     ^ [Atom] => 113-114
+-                                                     =
+#                                                                                           ^^^^ [Verbatim] => 115-119
+-                                                                                           $foo
+#                                                                                               ^ [Atom] => 119-120
+-                                                                                               }
+#                                                                                                                               ^^^^^^^ [Verbatim] => 93-100
+-                                                                                                                               element
+#                                                                                                                                                                          ^ [Atom] => 102-103
+-                                                                                                                                                                          ╚
+#                                                                                                                                                                           ^ [Atom] => 114-115
+-                                                                                                                                                                           {
+#                                                                                                                                                                            ^ [Atom] => 121-122
+-                                                                                                                                                                            /
+#                                                                                                                                                                             ^ [Atom] => 101-102
+-
+-
 >
-#^ [Verbatim]: => ↲ 123-124
+#
 > {const $$action_0 = __sveltets_2_ensureAction(action(svelteHTML.mapElementTag('element'),({ foo })));{ svelteHTML.createElement("element", __sveltets_2_union($$action_0), {   });}}
-#^ [Atom]: => < 125-126
-#                                               ^^^^^^ [Verbatim]: => action 139-145
-#                                                     ^ [Atom]: => = 145-146
-#                                                                                           ^^^^^^^ [Verbatim]: => {•foo•} 147-154
-#                                                                                                  ^ [Atom]: => } 154-155
-#                                                                                                                                  ^^^^^^^ [Verbatim]: => element 126-133
-#                                                                                                                                                                             ^ [Atom]: => u 135-136
-#                                                                                                                                                                              ^ [Atom]: => { 146-147
-#                                                                                                                                                                               ^ [Atom]: => / 156-157
-#                                                                                                                                                                                ^ [Atom]: => ╚ 134-135
+# [Verbatim] => 123-124
+-
+-
+#^ [Atom] => 125-126
+-<
+#                                               ^^^^^^ [Verbatim] => 139-145
+-                                               action
+#                                                     ^ [Atom] => 145-146
+-                                                     =
+#                                                                                           ^^^^^^^ [Verbatim] => 147-154
+-                                                                                           {•foo•}
+#                                                                                                  ^ [Atom] => 154-155
+-                                                                                                  }
+#                                                                                                                                  ^^^^^^^ [Verbatim] => 126-133
+-                                                                                                                                  element
+#                                                                                                                                                                             ^ [Atom] => 135-136
+-                                                                                                                                                                             u
+#                                                                                                                                                                              ^ [Atom] => 146-147
+-                                                                                                                                                                              {
+#                                                                                                                                                                               ^ [Atom] => 156-157
+-                                                                                                                                                                               /
+#                                                                                                                                                                                ^ [Atom] => 134-135
+-                                                                                                                                                                                ╚
 >
-#^ [Verbatim]: => ↲ 158-159
+#
 > {const $$action_0 = __sveltets_2_ensureAction(action(svelteHTML.mapElementTag('element'),({
-#^ [Atom]: => < 160-161
-#                                               ^^^^^^ [Verbatim]: => action 174-180
-#                                                     ^ [Atom]: => = 180-181
-#                                                                                           ^^^ [Verbatim]: => {•↲ 182-185
+# [Verbatim] => 158-159
+-
+-
+#^ [Atom] => 160-161
+-<
+#                                               ^^^^^^ [Verbatim] => 174-180
+-                                               action
+#                                                     ^ [Atom] => 180-181
+-                                                     =
+#                                                                                           ^^
 >        ...leet,
-#^^^^^^^^^^^^^^^^^ [Verbatim]: => ╚╚...leet,↲ 185-196
+#^^^^^^^^^^^^^^^^
 >        foo: $bar
-#^^^^^^^^^^^^^^^^^^ [Verbatim]: => ╚╚foo:•$bar↲ 196-208
+#^^^^^^^^^^^^^^^^^
 >    })));{ svelteHTML.createElement("element", __sveltets_2_union($$action_0), {   });}}};
-#^^^^^ [Verbatim]: => ╚} 208-210
-#     ^ [Atom]: => } 210-211
-#                                     ^^^^^^^ [Verbatim]: => element 161-168
-#                                                                                ^ [Atom]: => u 170-171
-#                                                                                 ^ [Atom]: => { 181-182
-#                                                                                   ^ [Atom]: => ╚ 169-170
+#^^^^^ [Verbatim] => 182-210
+-{•
+-╚╚...leet,
+-╚╚foo:•$bar
+-╚}
+#     ^ [Atom] => 210-211
+-     }
+#                                     ^^^^^^^ [Verbatim] => 161-168
+-                                     element
+#                                                                                ^ [Atom] => 170-171
+-                                                                                u
+#                                                                                 ^ [Atom] => 181-182
+-                                                                                 {
+#                                                                                   ^ [Atom] => 169-170
+-                                                                                   ╚
 >return { props: /** @type {Record<string, never>} */ ({}), slots: {}, events: {} }}
 >
 >export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial(__sveltets_2_with_any_event($$render()))) {
-#                     ^^^^^^^^^^^^^^^^^^^^^^^ [Atom],[Definition]: =>  0-0
+#                     ^^^^^^^^^^^^^^^^^^^^^^^ [Atom],[Definition] => 0-0
+-
 >}

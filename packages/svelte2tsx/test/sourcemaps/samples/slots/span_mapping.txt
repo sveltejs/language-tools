@@ -2,66 +2,126 @@
 >;function $$render() {
 >/*Ωignore_startΩ*/;const __sveltets_createSlot = __sveltets_2_createCreateSlot();/*Ωignore_endΩ*/
 >async () => { { __sveltets_createSlot("default", {});}
-#             ^ [Atom]: => < 0-1
-#                                                  ^ [Atom]: => / 6-7
+#             ^ [Atom] => 0-1
+-             <
+#                                                  ^ [Atom] => 6-7
+-                                                  /
 >
-#^ [Verbatim]: => ↲ 8-9
+#
 > { __sveltets_createSlot("foo", { });  }
-#^ [Atom]: => < 10-11
-#                         ^ [Atom]: => f 22-23
-#                           ^^ [Verbatim]: => oo 23-25
-#                              ^ [Atom]: => " 25-26
-#                                 ^ [Atom]: => a 17-18
-#                                  ^ [Atom]: => n 16-17
-#                                     ^ [Atom]: => f 27-28
-#                                      ^ [Atom]: => / 36-37
+# [Verbatim] => 8-9
+-
+-
+#^ [Atom] => 10-11
+-<
+#                         ^ [Atom] => 22-23
+-                         f
+#                           ^^ [Verbatim] => 23-25
+-                           oo
+#                              ^ [Atom] => 25-26
+-                              "
+#                                 ^ [Atom] => 17-18
+-                                 a
+#                                  ^ [Atom] => 16-17
+-                                  n
+#                                     ^ [Atom] => 27-28
+-                                     f
+#                                      ^ [Atom] => 36-37
+-                                      /
 >
-#^ [Verbatim]: => ↲ 42-43
+#
 > { __sveltets_createSlot("bar", {    "foo":foo,baz,"leet":true,});  }
-#^ [Atom]: => < 44-45
-#                         ^ [Atom]: => b 66-67
-#                           ^^ [Verbatim]: => ar 67-69
-#                              ^ [Atom]: => " 69-70
-#                                 ^ [Atom]: => { 54-55
-#                                  ^ [Verbatim]: => • 59-60
-#                                   ^ [Verbatim]: => • 70-71
-#                                    ^ [Verbatim]: => • 76-77
-#                                     ^ [Atom]: =>  50-50
-#                                      ^^^ [Verbatim]: => foo 50-53
-#                                         ^ [Atom]: => = 53-54
-#                                           ^^^ [Verbatim]: => foo 55-58
-#                                              ^ [Atom]: => } 58-59
-#                                               ^^^ [Verbatim]: => baz 72-75
-#                                                  ^ [Atom]: => } 75-76
-#                                                   ^ [Atom]: =>  77-77
-#                                                    ^^^^ [Verbatim]: => leet 77-81
-#                                                                  ^ [Atom]: => f 82-83
-#                                                                   ^ [Atom]: => / 91-92
+# [Verbatim] => 42-43
+-
+-
+#^ [Atom] => 44-45
+-<
+#                         ^ [Atom] => 66-67
+-                         b
+#                           ^^ [Verbatim] => 67-69
+-                           ar
+#                              ^ [Atom] => 69-70
+-                              "
+#                                 ^ [Atom] => 54-55
+-                                 {
+#                                  ^ [Verbatim] => 59-60
+-                                  •
+#                                   ^ [Verbatim] => 70-71
+-                                   •
+#                                    ^ [Verbatim] => 76-77
+-                                    •
+#                                     ^ [Atom] => 50-50
+-
+#                                      ^^^ [Verbatim] => 50-53
+-                                      foo
+#                                         ^ [Atom] => 53-54
+-                                         =
+#                                           ^^^ [Verbatim] => 55-58
+-                                           foo
+#                                              ^ [Atom] => 58-59
+-                                              }
+#                                               ^^^ [Verbatim] => 72-75
+-                                               baz
+#                                                  ^ [Atom] => 75-76
+-                                                  }
+#                                                   ^ [Atom] => 77-77
+-
+#                                                    ^^^^ [Verbatim] => 77-81
+-                                                    leet
+#                                                                  ^ [Atom] => 82-83
+-                                                                  f
+#                                                                   ^ [Atom] => 91-92
+-                                                                   /
 >
-#^ [Verbatim]: => ↲ 97-98
+#
 > { __sveltets_createSlot("bar", {     "foo":foo,baz,"leet":true,});
-#^ [Atom]: => < 99-100
-#                         ^ [Atom]: => b 123-124
-#                           ^^ [Verbatim]: => ar 124-126
-#                              ^ [Atom]: => " 126-127
-#                                 ^ [Atom]: => ╚ 106-107
-#                                  ^ [Atom]: => { 111-112
-#                                   ^ [Verbatim]: => • 116-117
-#                                    ^ [Atom]: => ↲ 127-128
-#                                     ^ [Verbatim]: => • 134-135
-#                                      ^ [Atom]: =>  107-107
-#                                       ^^^ [Verbatim]: => foo 107-110
-#                                          ^ [Atom]: => = 110-111
-#                                            ^^^ [Verbatim]: => foo 112-115
-#                                               ^ [Atom]: => } 115-116
-#                                                ^^^ [Verbatim]: => baz 130-133
-#                                                   ^ [Atom]: => } 133-134
-#                                                    ^ [Atom]: =>  137-137
-#                                                     ^^^^ [Verbatim]: => leet 137-141
-#                                                                   ^ [Atom]: => f 142-143
+# [Verbatim] => 97-98
+-
+-
+#^ [Atom] => 99-100
+-<
+#                         ^ [Atom] => 123-124
+-                         b
+#                           ^^ [Verbatim] => 124-126
+-                           ar
+#                              ^ [Atom] => 126-127
+-                              "
+#                                 ^ [Atom] => 106-107
+-                                 ╚
+#                                  ^ [Atom] => 111-112
+-                                  {
+#                                   ^ [Verbatim] => 116-117
+-                                   •
+#                                    ^ [Atom] => 127-128
+-
+-
+#                                     ^ [Verbatim] => 134-135
+-                                     •
+#                                      ^ [Atom] => 107-107
+-
+#                                       ^^^ [Verbatim] => 107-110
+-                                       foo
+#                                          ^ [Atom] => 110-111
+-                                          =
+#                                            ^^^ [Verbatim] => 112-115
+-                                            foo
+#                                               ^ [Atom] => 115-116
+-                                               }
+#                                                ^^^ [Verbatim] => 130-133
+-                                                baz
+#                                                   ^ [Atom] => 133-134
+-                                                   }
+#                                                    ^ [Atom] => 137-137
+-
+#                                                     ^^^^ [Verbatim] => 137-141
+-                                                     leet
+#
 > }};
+# [Atom] => 142-143
+-f
 >return { props: /** @type {Record<string, never>} */ ({}), slots: {'default': {}, 'foo': {}, 'bar': {foo:foo, baz:baz}}, events: {} }}
 >
 >export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial(__sveltets_2_with_any_event($$render()))) {
-#                     ^^^^^^^^^^^^^^^^^^^^^^^ [Atom],[Definition]: =>  0-0
+#                     ^^^^^^^^^^^^^^^^^^^^^^^ [Atom],[Definition] => 0-0
+-
 >}

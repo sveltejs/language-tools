@@ -11,6 +11,7 @@ import {
     MappedRange,
     Mappings,
     Position,
+    print_string,
     Range,
     range_for,
     reduce_segments,
@@ -176,50 +177,72 @@ namespace print {
     ): string {
         const sorted_by_generated = spanMappings.sort((a, b) => a[0] - b[0]);
         const groups_by_line = new Map<number, SpanMapping[]>();
+        const line_break = print_string('\n');
         for (const mapping of sorted_by_generated) {
             const line = generated.toLineChar(mapping[0]).line.index;
-            let bucket = groups_by_line.get(line);
-            if (!bucket) {
-                bucket = [];
-                groups_by_line.set(line, bucket);
+            const end_line = generated.toLineChar(mapping[0] + mapping[1]).line.index;
+            for (let i = line; i <= end_line; i++) {
+                let bucket = groups_by_line.get(i);
+                if (!bucket) {
+                    bucket = [];
+                    groups_by_line.set(i, bucket);
+                }
+                bucket.push(mapping);
             }
-            bucket.push(mapping);
         }
         return compose_file(function* () {
             const lines = generated.lines;
             for (const line of lines) {
-                const renderedLine = line.toString();
-                yield '>' + renderedLine;
+                const rendered_line = line.toString();
+                yield '>' + rendered_line;
                 const mappings = groups_by_line.get(line.index);
                 if (!mappings) {
                     continue;
                 }
 
-                const tabIndexes: number[] = [];
-                for (let i = 0; i < renderedLine.length; i++) {
-                    if (renderedLine[i] === '\t') {
-                        tabIndexes.push(i + line.start);
+                const tab_indexes: number[] = [];
+                for (let i = 0; i < rendered_line.length; i++) {
+                    if (rendered_line[i] === '\t') {
+                        tab_indexes.push(i + line.start);
                     }
                 }
                 for (const mapping of mappings) {
-                    const [generatedStart, generatedLength, originalStart, originalLength, kind] =
-                        mapping;
-                    const originalEnd = originalStart + originalLength;
+                    const [
+                        generated_start,
+                        generated_length,
+                        original_start,
+                        original_length,
+                        kind
+                    ] = mapping;
+                    const originalEnd = original_start + original_length;
 
-                    const original_text = original.print_slice(originalStart, originalEnd);
-                    const tabCountBefore = tabIndexes.filter((i) => i < generatedStart).length;
-                    const generatedEnd = generatedStart + generatedLength;
-                    const features = format_features_flags(mapping[5]);
-                    const featureForLog = features ? `,[${features}]` : '';
-                    const tabCountCurrent = tabIndexes.filter(
-                        (i) => i >= generatedStart && i < generatedEnd
+                    const tab_count_before = tab_indexes.filter((i) => i < generated_start).length;
+                    const range_start = Math.max(generated_start, line.start);
+                    const generated_end = generated_start + generated_length;
+                    const range_end = Math.min(generated_end, line.end);
+
+                    const tab_count_current = tab_indexes.filter(
+                        (i) => i >= generated_start && i < range_end
                     ).length;
-                    const log =
-                        '#' +
-                        ' '.repeat(generatedStart - line.start + tabCountBefore * 3) +
-                        '^'.repeat(generatedLength + tabCountCurrent * 3) +
-                        ` [${SpanMapKind[kind]}]${featureForLog}: => ${original_text} ${originalStart}-${originalEnd}`;
+
+                    const indent = ' '.repeat(range_start - line.start + tab_count_before * 3);
+                    let log =
+                        '#' + indent + '^'.repeat(range_end - range_start + tab_count_current * 3);
+
+                    if (generated_end > line.end) {
+                        yield log;
+                        continue;
+                    }
+
+                    const features = format_features_flags(mapping[5]);
+                    const feature_for_log = features ? `,[${features}]` : '';
+                    log += ` [${SpanMapKind[kind]}]${feature_for_log} => ${original_start}-${originalEnd}`;
                     yield log;
+                    const original_text_print =
+                        indent + original.print_slice(original_start, originalEnd);
+                    for (const line of original_text_print.split(line_break)) {
+                        yield '-' + line;
+                    }
                 }
             }
         });

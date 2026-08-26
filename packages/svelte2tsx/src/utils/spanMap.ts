@@ -41,91 +41,115 @@ export class SpanMapGenerator {
             sourceSpanMap.set(span.start, span);
         }
 
+        const flattenSegment: Array<{
+            lineOffset: number;
+            segment: SourceMapSegment;
+        }> = [];
+
         for (let generatedLine = 0; generatedLine < map.length; generatedLine++) {
             const line = map[generatedLine];
-
-            let current: SpanMapping | undefined;
-            // TODO: keeping currentSourceSpan for now. Might use it to check generated suffixes later.
-            let currentSourceSpan: Span | undefined;
+            const currentLineOffset = lineOffsets[generatedLine];
             for (let segmentIndex = 0; segmentIndex < line.length; segmentIndex++) {
                 const segment = line[segmentIndex];
-                const currentLineOffset = lineOffsets[generatedLine];
-                const originalStart = getSourceOffset(segment, orgLineOffsets);
-                if (originalStart === undefined) {
-                    current = undefined;
-                    currentSourceSpan = undefined;
-                    continue;
-                }
 
-                const generatedStart = currentLineOffset + segment[0];
-                const sourceSpan = sourceSpanMap.get(originalStart);
-
-                if (sourceSpan || (currentSourceSpan && originalStart >= currentSourceSpan.end)) {
-                    currentSourceSpan = sourceSpan;
-                }
-
-                const sourceChar = str.original.charCodeAt(originalStart);
-                const sameChar = generatedCode.charCodeAt(generatedStart) === sourceChar;
-
-                if (sourceSpan && !sameChar) {
-                    const nextSegment = line[segmentIndex + 1];
-                    if (nextSegment) {
-                        const nextOriginalStart = getSourceOffset(nextSegment, orgLineOffsets);
-                        const nextGeneratedStart = currentLineOffset + nextSegment[0];
-                        if (
-                            nextOriginalStart === originalStart + 1 &&
-                            generatedCode.charCodeAt(nextGeneratedStart - 1) === sourceChar &&
-                            generatedCode.charCodeAt(nextGeneratedStart) ===
-                                str.original.charCodeAt(nextOriginalStart)
-                        ) {
-                            const prependLength = nextGeneratedStart - generatedStart - 1;
-                            if (prependLength > 0) {
-                                const map: SpanMapping = [
-                                    generatedStart,
-                                    prependLength,
-                                    originalStart,
-                                    0,
-                                    SpanMapKind.Atom
-                                ];
-                                addFlag(map, this.prependFlags.get(originalStart));
-                                mappings.push(map);
-                            }
-                            current = [
-                                nextGeneratedStart - 1,
-                                2,
-                                originalStart,
-                                2,
-                                SpanMapKind.Verbatim
-                            ];
-                            addFlag(current, sourceSpan.features);
-                            segmentIndex++;
-                            mappings.push(current);
-                            continue;
-                        }
-                    }
-                }
-
-                if (current) {
-                    let previousSegment = line[segmentIndex - 1];
-                    if (previousSegment && sameChar) {
-                        if (nextTo(segment, previousSegment)) {
-                            current[GENERATE_LENGTH]++;
-                            current[ORIGINAL_LENGTH]++;
-                            continue;
-                        }
-                    }
-                }
-
-                current = [
-                    generatedStart,
-                    1,
-                    originalStart,
-                    1,
-                    sameChar ? SpanMapKind.Verbatim : SpanMapKind.Atom
-                ];
-                addFlag(current, sourceSpan?.features);
-                mappings.push(current);
+                flattenSegment.push({
+                    lineOffset: currentLineOffset,
+                    segment
+                });
             }
+        }
+
+        let current: SpanMapping | undefined;
+        let currentSourceSpan: Span | undefined;
+        for (let segmentIndex = 0; segmentIndex < flattenSegment.length; segmentIndex++) {
+            const { lineOffset, segment } = flattenSegment[segmentIndex];
+            const originalStart = getSourceOffset(segment, orgLineOffsets);
+            if (originalStart === undefined) {
+                current = undefined;
+                currentSourceSpan = undefined;
+                continue;
+            }
+
+            const generatedStart = lineOffset + segment[0];
+            const sourceSpan = sourceSpanMap.get(originalStart);
+
+            if (sourceSpan || (currentSourceSpan && originalStart >= currentSourceSpan.end)) {
+                currentSourceSpan = sourceSpan;
+            }
+
+            const sourceChar = str.original.charCodeAt(originalStart);
+            const sameChar = generatedCode.charCodeAt(generatedStart) === sourceChar;
+
+            if (sourceSpan && !sameChar) {
+                const nextSegment = flattenSegment[segmentIndex + 1]?.segment;
+                if (nextSegment) {
+                    const nextOriginalStart = getSourceOffset(nextSegment, orgLineOffsets);
+                    const nextGeneratedStart = lineOffset + nextSegment[0];
+                    if (
+                        nextOriginalStart === originalStart + 1 &&
+                        generatedCode.charCodeAt(nextGeneratedStart - 1) === sourceChar &&
+                        generatedCode.charCodeAt(nextGeneratedStart) ===
+                            str.original.charCodeAt(nextOriginalStart)
+                    ) {
+                        const prependLength = nextGeneratedStart - generatedStart - 1;
+                        if (prependLength > 0) {
+                            const map: SpanMapping = [
+                                generatedStart,
+                                prependLength,
+                                originalStart,
+                                0,
+                                SpanMapKind.Atom
+                            ];
+                            addFlag(map, this.prependFlags.get(originalStart));
+                            mappings.push(map);
+                        }
+                        current = [
+                            nextGeneratedStart - 1,
+                            2,
+                            originalStart,
+                            2,
+                            SpanMapKind.Verbatim
+                        ];
+                        addFlag(current, sourceSpan.features);
+                        segmentIndex++;
+                        mappings.push(current);
+                        continue;
+                    }
+                }
+            }
+
+            if (current) {
+                let previousSegment =
+                    segmentIndex > 0 ? flattenSegment[segmentIndex - 1] : undefined;
+                if (previousSegment && sameChar) {
+                    const previousOriginalIndex = getSourceOffset(
+                        previousSegment.segment,
+                        orgLineOffsets
+                    );
+                    const previousGeneratedStart =
+                        previousSegment.lineOffset + previousSegment.segment[0];
+
+                    if (
+                        previousOriginalIndex !== undefined &&
+                        originalStart === previousOriginalIndex + 1 &&
+                        generatedStart === previousGeneratedStart + 1
+                    ) {
+                        current[GENERATE_LENGTH]++;
+                        current[ORIGINAL_LENGTH]++;
+                        continue;
+                    }
+                }
+            }
+
+            current = [
+                generatedStart,
+                1,
+                originalStart,
+                1,
+                sameChar ? SpanMapKind.Verbatim : SpanMapKind.Atom
+            ];
+            addFlag(current, sourceSpan?.features);
+            mappings.push(current);
         }
 
         mappings.sort((a, b) => a[ORIGINAL_START] - b[ORIGINAL_START]);
@@ -201,17 +225,6 @@ function addFlag(span: SpanMapping, features: SpanMapFeature | undefined) {
     } else {
         span[FEATURES_FLAGS] = existingFlags | features;
     }
-}
-
-function nextTo(segment: SourceMapSegment, previous: SourceMapSegment) {
-    const [generatedCharacter, , originalLine, originalCharacter] = segment;
-    const [prevGeneratedCharacter, , prevOriginalLine, prevOriginalCharacter] = previous;
-
-    return (
-        originalLine === prevOriginalLine &&
-        originalCharacter === prevOriginalCharacter + 1 &&
-        generatedCharacter === prevGeneratedCharacter + 1
-    );
 }
 
 interface Span {
