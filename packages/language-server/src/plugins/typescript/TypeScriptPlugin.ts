@@ -107,6 +107,7 @@ import {
 import { CallHierarchyProviderImpl } from './features/CallHierarchyProvider';
 import { CodeLensProviderImpl } from './features/CodeLensProvider';
 import { WorkspaceSymbolsProviderImpl } from './features/WorkspaceSymbolProvider';
+import type { SvelteDocumentSnapshot } from './DocumentSnapshot';
 
 export class TypeScriptPlugin
     implements
@@ -326,6 +327,23 @@ export class TypeScriptPlugin
             }
 
             if (symbol.name === '<function>') {
+                // Generated functions in the template can cover arbitrary template text, which
+                // results in malformed entries. Keep functions that map to an expression the user
+                // actually wrote.
+                const symbolStartOffset = document.offsetAt(symbol.location.range.start);
+                // svelte2tsx replaces the instance script's end tag with the generated template
+                // callback. Its start therefore maps to scriptInfo.end, which is also considered
+                // inside the script by isInScript. Treat this boundary as template code here so the
+                // generated callback is filtered out.
+                const startsAtScriptEnd = symbolStartOffset === document.scriptInfo?.end;
+                if (
+                    startsAtScriptEnd ||
+                    (!isInScript(symbol.location.range.start, document) &&
+                        !this.isInUserWrittenTemplateFunction(tsDoc, symbolStartOffset))
+                ) {
+                    continue;
+                }
+
                 let name = getTextInRange(symbol.location.range, document.getText()).trimLeft();
                 if (name.length > 50) {
                     name = name.substring(0, 50) + '...';
@@ -373,6 +391,29 @@ export class TypeScriptPlugin
                 }
             }
         }
+    }
+
+    private isInUserWrittenTemplateFunction(
+        tsDoc: SvelteDocumentSnapshot,
+        offset: number
+    ): boolean {
+        let result = false;
+
+        tsDoc.walkSvelteAst({
+            enter(node) {
+                if (offset < node.start || offset > node.end) {
+                    this.skip();
+                    return;
+                }
+
+                if (node.type === 'ArrowFunctionExpression' || node.type === 'FunctionExpression') {
+                    result = true;
+                    this.skip();
+                }
+            }
+        });
+
+        return result;
     }
 
     async getCompletions(
