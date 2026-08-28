@@ -6,10 +6,9 @@ import ts from 'typescript';
 import { createMessageConnection } from 'vscode-jsonrpc';
 import { StreamMessageReader, StreamMessageWriter } from 'vscode-jsonrpc/node';
 
-// Override console.log and console.error to prevent logging to stdout/stderr
-// This is important because the client/server communicates with the client via stdout/stderr, and logging to stdout/stderr would interfere with this communication
-console.log = () => {};
-console.error = () => {};
+// Override console.log to prevent logging to stdout
+// This is important because the client/server communicates with the client via stdout, and logging to stdout would interfere with this communication
+console.log = (...args) => console.warn('[log]', ...args);
 
 function startServer() {
     const connection = createMessageConnection(
