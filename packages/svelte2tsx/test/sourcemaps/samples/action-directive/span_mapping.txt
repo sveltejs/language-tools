@@ -3,7 +3,7 @@
 >async () => { {const $$action_0 = __sveltets_2_ensureAction(action(svelteHTML.mapElementTag('element')));{ svelteHTML.createElement("element", __sveltets_2_union($$action_0), { });}}
 #             ^ [Atom] => 0-1
 -             <
-#                                                            ^^^^^^ [Verbatim] => 13-19
+#                                                            ^^^^^^ [Verbatim],[Hover|Completion|Definition|References|DocumentHighlights|Rename|CodeActions|SemanticTokens|SelectionRanges] => 13-19
 -                                                            action
 #                                                                  ^ [Atom] => 19-20
 -                                                                  /
@@ -21,7 +21,7 @@
 -
 #^ [Atom] => 23-24
 -<
-#                                               ^^^^^^ [Verbatim] => 37-43
+#                                               ^^^^^^ [Verbatim],[Hover|Completion|Definition|References|DocumentHighlights|Rename|CodeActions|SemanticTokens|SelectionRanges] => 37-43
 -                                               action
 #                                                     ^ [Atom] => 43-44
 -                                                     •
@@ -43,7 +43,7 @@
 -<
 # ^ [Atom] => 89-90
 - >
-#                                                ^^^^^^^^^^^^^^^^^^^^ [Verbatim] => 62-82
+#                                                ^^^^^^^^^^^^^^^^^^^^ [Verbatim],[Hover|Completion|Definition|References|DocumentHighlights|Rename|CodeActions|SemanticTokens|SelectionRanges] => 62-82
 -                                                action.nested.method
 #                                                                    ^ [Atom] => 82-83
 -                                                                    =
@@ -67,7 +67,7 @@
 -
 #^ [Atom] => 92-93
 -<
-#                                               ^^^^^^ [Verbatim] => 107-113
+#                                               ^^^^^^ [Verbatim],[Hover|Completion|Definition|References|DocumentHighlights|Rename|CodeActions|SemanticTokens|SelectionRanges] => 107-113
 -                                               action
 #                                                     ^ [Atom] => 113-114
 -                                                     =
@@ -94,7 +94,7 @@
 -
 #^ [Atom] => 125-126
 -<
-#                                               ^^^^^^ [Verbatim] => 139-145
+#                                               ^^^^^^ [Verbatim],[Hover|Completion|Definition|References|DocumentHighlights|Rename|CodeActions|SemanticTokens|SelectionRanges] => 139-145
 -                                               action
 #                                                     ^ [Atom] => 145-146
 -                                                     =
@@ -120,7 +120,7 @@
 -
 #^ [Atom] => 160-161
 -<
-#                                               ^^^^^^ [Verbatim] => 174-180
+#                                               ^^^^^^ [Verbatim],[Hover|Completion|Definition|References|DocumentHighlights|Rename|CodeActions|SemanticTokens|SelectionRanges] => 174-180
 -                                               action
 #                                                     ^ [Atom] => 180-181
 -                                                     =

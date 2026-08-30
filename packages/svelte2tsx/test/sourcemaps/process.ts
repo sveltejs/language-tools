@@ -254,6 +254,9 @@ namespace print {
         }
         const result: string[] = [];
         let remainingFlags = features;
+        if (remainingFlags === 0) {
+            return 'None';
+        }
         for (const [enumValue, enumName] of spanMapFeatureEntries) {
             if (enumValue > features) {
                 break;

@@ -166,10 +166,6 @@ export function convertHtmlxToJsx(
 
     const handleIdentifier = (node: BaseNode) => {
         // Can happen in loose parsing mode, e.g. code is currently `{a.}`
-        if (options.spanMapGenerator && node.name) {
-            options.spanMapGenerator.addSourceSpan(node.start, node.end);
-        }
-
         if (node.name === '$$props') {
             uses$$props = true;
             return;
@@ -487,19 +483,33 @@ export function convertHtmlxToJsx(
                         handleLeadingStartComment(str, node as BaseNode, ast);
                         handleTrailingEndComment(str, node as BaseNode, parent, ast);
                         stores.handleDirective(node, str);
-                        handleActionDirective(node as BaseDirective, element as Element);
+                        handleActionDirective(
+                            node as BaseDirective,
+                            element as Element,
+                            options.spanMapGenerator
+                        );
                         break;
                     case 'Transition':
                         handleLeadingStartComment(str, node as BaseNode, ast);
                         handleTrailingEndComment(str, node as BaseNode, parent, ast);
                         stores.handleDirective(node, str);
-                        handleTransitionDirective(str, node as BaseDirective, element as Element);
+                        handleTransitionDirective(
+                            str,
+                            node as BaseDirective,
+                            element as Element,
+                            options.spanMapGenerator
+                        );
                         break;
                     case 'Animation':
                         handleLeadingStartComment(str, node as BaseNode, ast);
                         handleTrailingEndComment(str, node as BaseNode, parent, ast);
                         stores.handleDirective(node, str);
-                        handleAnimateDirective(str, node as BaseDirective, element as Element);
+                        handleAnimateDirective(
+                            str,
+                            node as BaseDirective,
+                            element as Element,
+                            options.spanMapGenerator
+                        );
                         break;
                     case 'Attribute':
                         handleLeadingStartComment(str, node, ast);

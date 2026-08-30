@@ -1,5 +1,6 @@
 import MagicString, { SourceMapSegment } from 'magic-string';
 import { COMPONENT_SUFFIX } from '../svelte2tsx/addComponentExport';
+import { IGNORE_POSITION_COMMENT } from './ignore';
 
 const GENERATE_LENGTH = 1;
 const ORIGINAL_START = 2;
@@ -36,6 +37,7 @@ export class SpanMapGenerator {
         const orgLineOffsets = getLineOffsets(str.original);
         const mappings: SpanMapping[] = [];
         const map = str.generateDecodedMap({ hires: true }).mappings;
+        const ignorePositionCommentPos = findAllIgnorePositionComment(generatedCode);
         const sourceSpanMap = new Map<number, Span>();
         for (const span of this.spans) {
             sourceSpanMap.set(span.start, span);
@@ -71,6 +73,9 @@ export class SpanMapGenerator {
             }
 
             const generatedStart = lineOffset + segment[0];
+            if (ignorePositionCommentPos.has(generatedStart)) {
+                continue;
+            }
             const sourceSpan = sourceSpanMap.get(originalStart);
 
             if (sourceSpan || (currentSourceSpan && originalStart >= currentSourceSpan.end)) {
@@ -216,7 +221,7 @@ function getSourceOffset(segment: SourceMapSegment, sourceLineOffsets: number[])
 }
 
 function addFlag(span: SpanMapping, features: SpanMapFeature | undefined) {
-    if (!features) {
+    if (features === undefined) {
         return;
     }
     const existingFlags = span[5];
@@ -227,6 +232,15 @@ function addFlag(span: SpanMapping, features: SpanMapFeature | undefined) {
     }
 }
 
+function findAllIgnorePositionComment(generatedCode: string): Set<number> {
+    const positions = new Set<number>();
+    let index = generatedCode.indexOf(IGNORE_POSITION_COMMENT);
+    while (index !== -1) {
+        positions.add(index);
+        index = generatedCode.indexOf(IGNORE_POSITION_COMMENT, index + 1);
+    }
+    return positions;
+}
 interface Span {
     start: number;
     end: number;

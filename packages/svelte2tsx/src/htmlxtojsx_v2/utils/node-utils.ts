@@ -1,6 +1,7 @@
 import { Node } from 'estree-walker';
 import MagicString from 'magic-string';
 import { BaseDirective } from '../../interfaces';
+import { SpanMapFeature, SpanMapGenerator } from '../../utils/spanMap';
 
 /**
  * A transformation array consists of three types:
@@ -173,6 +174,25 @@ export function getDirectiveNameStartEndIdx(
 ): [number, number] {
     const colonIdx = str.original.indexOf(':', node.start);
     return [colonIdx + 1, colonIdx + 1 + `${node.name}`.length];
+}
+
+const directiveMappingFeatures =
+    SpanMapFeature.Definition |
+    SpanMapFeature.References |
+    SpanMapFeature.Rename |
+    SpanMapFeature.Completion |
+    SpanMapFeature.Hover |
+    SpanMapFeature.DocumentHighlights |
+    SpanMapFeature.CodeActions |
+    SpanMapFeature.SemanticTokens |
+    SpanMapFeature.SelectionRanges;
+
+export function addDirectiveNameMapping(
+    spanMapGenerator: SpanMapGenerator | undefined,
+    nameRange: [number, number]
+): void {
+    const [start, end] = nameRange;
+    spanMapGenerator?.addSourceSpan(start, end, directiveMappingFeatures);
 }
 
 /**

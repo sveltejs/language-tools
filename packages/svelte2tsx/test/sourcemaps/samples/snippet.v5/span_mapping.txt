@@ -1,0 +1,248 @@
+>///<reference types="svelte" />
+>;function $$render() {
+>async () => { const foo/*Ωignore_positionΩ*/ = (x)/*Ωignore_startΩ*/: ReturnType<import('svelte').Snippet>/*Ωignore_endΩ*/ => { async ()/*Ωignore_positionΩ*/ => {
+#             ^ [Atom] => 0-1
+-             {
+#                    ^^^ [Verbatim] => 10-13
+-                    foo
+#                                                ^^ [Verbatim] => 14-16
+-                                                x)
+#
+>     { svelteHTML.createElement("div", {}); x; }
+#^^^^ [Verbatim] => 17-19
+-
+-╚
+#    ^ [Atom] => 19-20
+-    <
+#                                 ^^^ [Verbatim] => 20-23
+-                                 div
+#                                           ^ [Atom] => 24-25
+-                                           a
+#                                            ^ [Verbatim] => 28-29
+-                                            x
+#                                             ^ [Atom] => 29-30
+-                                             }
+#                                              ^ [Atom] => 31-32
+-                                              /
+#
+>};return __sveltets_2_any(0)};
+# [Verbatim] => 36-37
+-
+-
+#^ [Atom] => 37-38
+-{
+>
+#
+>  const bar/*Ωignore_positionΩ*/ = ()/*Ωignore_startΩ*/: ReturnType<import('svelte').Snippet>/*Ωignore_endΩ*/ => { async ()/*Ωignore_positionΩ*/ => {
+# [Verbatim] => 47-48
+-
+-
+#^ [Atom] => 49-50
+-{
+# ^ [Atom] => 64-65
+- }
+#        ^^^ [Verbatim] => 59-62
+-        bar
+#
+>     { svelteHTML.createElement("div", {});  }
+#^^^^ [Verbatim] => 65-67
+-
+-╚
+#    ^ [Atom] => 67-68
+-    <
+#                                 ^^^ [Verbatim] => 68-71
+-                                 div
+#                                           ^ [Atom] => 72-73
+-                                           a
+#                                            ^ [Atom] => 76-77
+-                                            /
+#
+>};return __sveltets_2_any(0)};
+# [Verbatim] => 81-82
+-
+-
+#^ [Atom] => 82-83
+-{
+>
+#
+>  const await_inside/*Ωignore_positionΩ*/ = ()/*Ωignore_startΩ*/: ReturnType<import('svelte').Snippet>/*Ωignore_endΩ*/ => { async ()/*Ωignore_positionΩ*/ => {
+# [Verbatim] => 92-93
+-
+-
+#^ [Atom] => 94-95
+-{
+# ^ [Atom] => 118-119
+- }
+#        ^^^^^^^^^^^^ [Verbatim] => 104-116
+-        await_inside
+#
+>       { const $$_value = await (foo);{ const bar = $$_value; bar;}}
+#^^^^ [Verbatim] => 119-121
+-
+-╚
+#    ^ [Atom] => 121-122
+-    {
+#     ^ [Atom] => 133-134
+-     t
+#      ^ [Atom] => 149-150
+-      a
+#                                 ^^^ [Verbatim] => 129-132
+-                                 foo
+#                                    ^ [Atom] => 132-133
+-                                    •
+#                                              ^^^ [Verbatim] => 138-141
+-                                              bar
+#                                                 ^ [Atom] => 141-142
+-                                                 }
+#                                                              ^^^ [Verbatim] => 143-146
+-                                                              bar
+#                                                                 ^ [Atom] => 146-147
+-                                                                 }
+#                                                                  ^ [Atom] => 147-148
+-                                                                  {
+#
+>};return __sveltets_2_any(0)};
+# [Verbatim] => 155-156
+-
+-
+#^ [Atom] => 156-157
+-{
+>
+#
+> const defaultValue/*Ωignore_positionΩ*/ = (x = '')/*Ωignore_startΩ*/: ReturnType<import('svelte').Snippet>/*Ωignore_endΩ*/ => { async ()/*Ωignore_positionΩ*/ => {
+# [Verbatim] => 166-167
+-
+-
+#^ [Atom] => 168-169
+-{
+#       ^^^^^^^^^^^^ [Verbatim] => 178-190
+-       defaultValue
+#                                            ^^^^^^^ [Verbatim] => 191-198
+-                                            x•=•'')
+#
+>     { svelteHTML.createElement("div", {}); x; }
+#^^^^ [Verbatim] => 199-201
+-
+-╚
+#    ^ [Atom] => 201-202
+-    <
+#                                 ^^^ [Verbatim] => 202-205
+-                                 div
+#                                           ^ [Atom] => 206-207
+-                                           a
+#                                            ^ [Verbatim] => 210-211
+-                                            x
+#                                             ^ [Atom] => 211-212
+-                                             }
+#                                              ^ [Atom] => 213-214
+-                                              /
+#
+>};return __sveltets_2_any(0)};
+# [Verbatim] => 218-219
+-
+-
+#^ [Atom] => 219-220
+-{
+>
+#
+>;__sveltets_2_ensureSnippet(foo(1));
+# [Verbatim] => 229-230
+-
+-
+#^ [Atom] => 231-232
+-{
+#                            ^^^^^^ [Verbatim] => 240-246
+-                            foo(1)
+#                                  ^ [Atom] => 246-247
+-                                  }
+#
+>;__sveltets_2_ensureSnippet(bar());
+# [Verbatim] => 247-248
+-
+-
+#^ [Atom] => 248-249
+-{
+#                            ^^^^^ [Verbatim] => 257-262
+-                            bar()
+#                                 ^ [Atom] => 262-263
+-                                 }
+#
+>;__sveltets_2_ensureSnippet(await_inside());
+# [Verbatim] => 263-264
+-
+-
+#^ [Atom] => 264-265
+-{
+#                            ^^^^^^^^^^^^^^ [Verbatim] => 273-287
+-                            await_inside()
+#                                          ^ [Atom] => 287-288
+-                                          }
+>
+#
+> { const $$_tnenopmoC0C = __sveltets_2_ensureComponent(Component); const $$_tnenopmoC0 = new $$_tnenopmoC0C({ target: __sveltets_2_any(), props: {children:() => { return __sveltets_2_any(0); },bar:(x) => { async ()/*Ωignore_positionΩ*/ => {
+# [Verbatim] => 288-289
+-
+-
+#^ [Atom] => 290-291
+-<
+#                                                       ^^^^^^^^^ [Verbatim],[Hover|Completion|Definition|Implementation|References|DocumentHighlights|Rename|CallHierarchy|CodeActions|SelectionRanges|DocumentSymbols] => 291-300
+-                                                       Component
+#                                                                                                                                                                                                 ^^^ [Verbatim] => 331-334
+-                                                                                                                                                                                                 bar
+#                                                                                                                                                                                                      ^ [Verbatim] => 335-336
+-                                                                                                                                                                                                      x
+#
+>         { svelteHTML.createElement("div", {}); x; }
+#^^^^^^^^ [Verbatim] => 338-341
+-
+-╚╚
+#        ^ [Atom] => 341-342
+-        <
+#                                     ^^^ [Verbatim] => 342-345
+-                                     div
+#                                               ^ [Atom] => 346-347
+-                                               a
+#                                                ^ [Verbatim] => 350-351
+-                                                x
+#                                                 ^ [Atom] => 351-352
+-                                                 }
+#                                                  ^ [Atom] => 353-354
+-                                                  /
+#
+>    };return __sveltets_2_any(0)},}});/*Ωignore_startΩ*/const {bar} = $$_tnenopmoC0.$$prop_def;/*Ωignore_endΩ*/
+#^^^^ [Verbatim] => 358-360
+-
+-╚
+#    ^ [Atom] => 360-361
+-    {
+>     { svelteHTML.createElement("div", {});asd; }
+#^^^^ [Atom] => 301-302
+-
+-
+#    ^ [Atom] => 303-304
+-    <
+#                                 ^^^ [Verbatim] => 304-307
+-                                 div
+#                                           ^^^ [Verbatim] => 309-312
+-                                           asd
+#                                              ^ [Atom] => 312-313
+-                                              }
+#                                               ^ [Atom] => 314-315
+-                                               /
+>
+#^^^^ [Atom] => 319-320
+-
+-
+#
+> Component}};
+# [Verbatim] => 370-371
+-
+-
+#^ [Atom] => 371-372
+-<
+>return { props: /** @type {Record<string, never>} */ ({}), exports: {}, bindings: "", slots: {}, events: {} }}
+>const Input__SvelteComponent_ = __sveltets_2_isomorphic_component(__sveltets_2_partial(__sveltets_2_with_any_event($$render())));
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ [Atom],[Definition] => 0-0
+-
+>/*Ωignore_startΩ*/type Input__SvelteComponent_ = InstanceType<typeof Input__SvelteComponent_>;
+>/*Ωignore_endΩ*/export default Input__SvelteComponent_;

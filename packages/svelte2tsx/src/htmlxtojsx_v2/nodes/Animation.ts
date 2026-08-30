@@ -1,6 +1,7 @@
 import MagicString from 'magic-string';
 import { BaseDirective } from '../../interfaces';
 import {
+    addDirectiveNameMapping,
     getDirectiveNameStartEndIdx,
     rangeWithTrailingPropertyAccess,
     TransformationArray
@@ -8,6 +9,7 @@ import {
 import { Element } from './Element';
 import { getLeadingCommentTransformation } from './Comment';
 import { getTrailingCommentTransformation } from './Comment';
+import { SpanMapGenerator } from '../../utils/spanMap';
 
 /**
  * animate:xxx(yyy)   --->   __sveltets_2_ensureAnimation(xxx(svelte.mapElementTag('..'),__sveltets_2_AnimationMove,(yyy)));
@@ -15,13 +17,16 @@ import { getTrailingCommentTransformation } from './Comment';
 export function handleAnimateDirective(
     str: MagicString,
     attr: BaseDirective,
-    element: Element
+    element: Element,
+    spanMapGenerator: SpanMapGenerator | undefined
 ): void {
     const trailingComments = getTrailingCommentTransformation(attr);
+    const nameRange = getDirectiveNameStartEndIdx(str, attr);
+    addDirectiveNameMapping(spanMapGenerator, nameRange);
     const transformations: TransformationArray = [
         ...getLeadingCommentTransformation(attr),
         '__sveltets_2_ensureAnimation(',
-        getDirectiveNameStartEndIdx(str, attr),
+        nameRange,
         `(${element.typingsNamespace}.mapElementTag('${element.tagName}'),__sveltets_2_AnimationMove`
     ];
     if (attr.expression) {

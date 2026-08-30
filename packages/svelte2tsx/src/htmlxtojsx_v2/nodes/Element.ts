@@ -7,8 +7,10 @@ import {
     sanitizePropName,
     surroundWith,
     getDirectiveNameStartEndIdx,
-    rangeWithTrailingPropertyAccess
+    rangeWithTrailingPropertyAccess,
+    addDirectiveNameMapping
 } from '../utils/node-utils';
+import { SpanMapGenerator } from '../../utils/spanMap';
 
 const voidTags = 'area,base,br,col,embed,hr,img,input,link,meta,param,source,track,wbr'.split(',');
 
@@ -149,18 +151,21 @@ export class Element {
     addAction(
         attr: BaseDirective,
         leadingComments: TransformationArray = [],
-        trailingComments: TransformationArray = []
+        trailingComments: TransformationArray = [],
+        spanMapGenerator: SpanMapGenerator
     ) {
         const id = `$$action_${this.actionIdentifiers.length}`;
         this.actionIdentifiers.push(id);
         if (!this.actionsTransformation.length) {
             this.actionsTransformation.push('{');
         }
+        const nameRange = getDirectiveNameStartEndIdx(this.str, attr);
+        addDirectiveNameMapping(spanMapGenerator, nameRange);
 
         this.actionsTransformation.push(
             ...leadingComments,
             `const ${id} = __sveltets_2_ensureAction(`,
-            getDirectiveNameStartEndIdx(this.str, attr),
+            nameRange,
             `(${this.typingsNamespace}.mapElementTag('${this.tagName}')`
         );
         if (attr.expression) {
