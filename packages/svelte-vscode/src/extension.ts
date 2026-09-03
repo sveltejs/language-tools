@@ -38,7 +38,7 @@ import {
     sendNotificationMiddleware
 } from './typescript/configurationMiddleware';
 import { versions } from 'node:process';
-import { discoverTsContentMapper } from './typescript-go/contentMapper';
+import { setupTsContentMapper } from './typescript-go/contentMapper';
 
 const [node_major, node_minor] = (versions?.node ?? '0.0.0-unknown').split('.', 3).map(Number);
 
@@ -60,7 +60,7 @@ let lsApi:
     | undefined;
 
 export async function activate(context: ExtensionContext) {
-    let ts7ContentMapperOptions = await discoverTsContentMapper(context.extension.id);
+    let ts7ContentMapperOptions = await setupTsContentMapper(context.extension.id);
 
     let tsPlugin: TsPlugin | undefined;
     if (!ts7ContentMapperOptions.enable) {
@@ -100,7 +100,7 @@ export async function activate(context: ExtensionContext) {
                 event.affectsConfiguration('typescript.experimental.useTsgo') ||
                 event.affectsConfiguration('js/ts.experimental.useTsgo')
             ) {
-                const newUseTs7ContentMapper = await discoverTsContentMapper(context.extension.id);
+                const newUseTs7ContentMapper = await setupTsContentMapper(context.extension.id);
                 if (newUseTs7ContentMapper !== ts7ContentMapperOptions) {
                     ts7ContentMapperOptions = newUseTs7ContentMapper;
                     toggleFileReferencesMenu(!ts7ContentMapperOptions.enable);

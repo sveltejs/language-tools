@@ -30,10 +30,10 @@ export interface ContentMapperOptions {
     readonly enable: boolean;
 }
 
-export async function discoverTsContentMapper(
+export async function setupTsContentMapper(
     svelteExtensionId: string
 ): Promise<ContentMapperOptions> {
-    if (!getUseTsgo()) {
+    if (!getUseTsgo() || !contentMapperEnable()) {
         return { enable: false };
     }
 
@@ -86,6 +86,10 @@ function getUseTsgo(): boolean | undefined {
     }
 
     return undefined;
+}
+
+function contentMapperEnable() {
+    return vscode.workspace.getConfiguration('js/ts').get<boolean>('contentMappers.enabled', true);
 }
 
 function getExplicitConfigTarget(
