@@ -2,6 +2,7 @@ import { ChildProcess, spawn } from 'child_process';
 import {
     CancellationToken,
     DidChangeConfigurationNotification,
+    DidOpenTextDocumentNotification,
     InitializeParams,
     InitializeRequest,
     InitializeResult,
@@ -46,6 +47,17 @@ export class TsApiService {
 
         options.lsConfigManager.onChange(() => {
             this.syncConfiguration();
+        });
+
+        options.docManager.on('documentOpen', (document) => {
+            this.sendNotification(DidOpenTextDocumentNotification.type, {
+                textDocument: {
+                    languageId: 'svelte',
+                    text: document.getText(),
+                    uri: document.getURL(),
+                    version: document.version
+                }
+            });
         });
     }
 
@@ -117,6 +129,10 @@ export class TsApiService {
                 Logger.error(
                     `TypeScript Go server process exited with code ${code} and signal ${signal}`
                 );
+                const stderr = this.serverProcess?.stderr?.read()?.toString();
+                if (stderr) {
+                    Logger.error(`TypeScript Go server process stderr: ${stderr}`);
+                }
             }
         });
         const connection = createProtocolConnection(

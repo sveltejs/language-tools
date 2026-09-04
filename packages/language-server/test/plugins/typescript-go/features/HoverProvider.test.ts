@@ -1,11 +1,7 @@
 import path from 'path';
 import ts from 'typescript';
 import { HoverRequest } from 'vscode-languageserver';
-import {
-    Hover,
-    MarkupKind,
-    Position
-} from 'vscode-languageserver-types';
+import { Hover, MarkupKind, Position } from 'vscode-languageserver-types';
 import { Document } from '../../../../src/lib/documents';
 import { HoverProvider } from '../../../../src/plugins';
 import { pathToUrl } from '../../../../src/utils';
@@ -14,6 +10,10 @@ import assert from 'assert';
 
 const testDir = path.join(__dirname, '../../typescript');
 const hoverTestDir = path.join(testDir, 'testfiles', 'hover');
+
+// Differences with the original test
+// 1. Result contents format. Our ts plugin returns markdown string and not clearly marked as markdown like the new ts lsp
+// 2. The information has slightly different markdown formatting compared to the new ts lsp.
 
 describe('HoverProvider (TS GO)', function () {
     const getServices = setupSharedServices(hoverTestDir, {

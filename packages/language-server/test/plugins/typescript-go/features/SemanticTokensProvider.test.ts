@@ -18,6 +18,9 @@ import { semanticTokensTest } from '../../typescript/features/SemanticTokensProv
 const testDir = path.join(__dirname, '../../typescript');
 const semanticTokenTestDir = path.join(testDir, 'testfiles', 'semantic-tokens');
 
+// Differences with the original test
+// The TokenType and TokenModifier indices differ between our ts plugin and the new ts lsp.
+
 describe('SemanticTokensProvider (TS GO)', function () {
     const tokenLegends = getSemanticTokenLegends();
     const getServices = setupSharedServices(semanticTokenTestDir, {
