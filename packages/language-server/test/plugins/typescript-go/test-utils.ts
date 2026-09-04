@@ -1,5 +1,5 @@
 import path from 'path';
-import { TsApiService } from './lspService';
+import { TsLSPService } from './lspService';
 import { pathToUrl } from '../../../src/utils';
 import { existsSync, readdirSync, statSync } from 'fs';
 import { VERSION } from 'svelte/compiler';
@@ -11,7 +11,7 @@ let tsserverPath: string | undefined;
 const isSvelte5Plus = Number(VERSION.split('.')[0]) >= 5;
 
 export interface TsGoServiceSetupResult {
-    service: TsApiService;
+    service: TsLSPService;
     docManager: DocumentManager;
     lsConfigManager: LSConfigManager;
 }
@@ -37,7 +37,7 @@ export async function createTsGoServiceForTest(
         lsConfigManager.updateClientCapabilities(capabilities);
     }
 
-    const service = new TsApiService({
+    const service = new TsLSPService({
         docManager: docManager,
         lsConfigManager: lsConfigManager,
         tsserverPath: tsserverPath,

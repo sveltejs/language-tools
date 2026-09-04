@@ -10,5 +10,11 @@
         */
         "types": ["svelte"]
     },
-    "exclude": ["./svelte-native/**/*", "./node16/**/*", "project-reference/**/*"]
+    "exclude": ["./svelte-native/**/*", "./node16/**/*", "project-reference/**/*"],
+    "contentMappers": [
+        {
+            "package": "svelte-typescript-content-mapper",
+            "extensions": [".svelte"]
+        }
+    ]
 }

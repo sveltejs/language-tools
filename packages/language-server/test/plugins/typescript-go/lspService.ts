@@ -23,7 +23,7 @@ import { Logger } from '../../../src/logger';
 import { LSConfigManager } from '../../../src/ls-config';
 import { Resolvable } from '../../../src/plugins/interfaces';
 
-export interface TsApiServiceOptions {
+export interface TsLSPServiceOptions {
     tsserverPath: string;
     lsConfigManager: LSConfigManager;
     docManager: DocumentManager;
@@ -35,14 +35,14 @@ export interface TsApiServiceOptions {
 /**
  * Currently only used in testing. But if we need to spawn a TypeScript LSP server for LSP clients other than VSCode. We can move this class to src.
  */
-export class TsApiService {
-    private readonly options: TsApiServiceOptions;
+export class TsLSPService {
+    private readonly options: TsLSPServiceOptions;
     private serverProcess: ChildProcess | null = null;
     private connection: ProtocolConnection | null = null;
     private initializePending: Promise<void> | null = null;
     private serverCapability: ServerCapabilities | null = null;
 
-    constructor(options: TsApiServiceOptions) {
+    constructor(options: TsLSPServiceOptions) {
         this.options = options;
 
         options.lsConfigManager.onChange(() => {
