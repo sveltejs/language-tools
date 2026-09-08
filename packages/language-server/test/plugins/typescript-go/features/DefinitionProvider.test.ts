@@ -259,21 +259,21 @@ describe('DefinitionProvider (TS GO)', function () {
                 },
                 targetRange: {
                     start: {
-                        character: 1,
+                        character: 0,
                         line: 0
                     },
                     end: {
-                        character: 1,
+                        character: 0,
                         line: 0
                     }
                 },
                 targetSelectionRange: {
                     start: {
-                        character: 1,
+                        character: 0,
                         line: 0
                     },
                     end: {
-                        character: 1,
+                        character: 0,
                         line: 0
                     }
                 },

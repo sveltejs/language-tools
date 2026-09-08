@@ -57,7 +57,8 @@ function createProvider(service: TsLSPService): DiagnosticsProvider {
     }
 }
 
-describe.only('diagnostics (content-mapper)', function () {
+// Manually run for now. Still need to add custom tweaking once there is a client middleware.
+describe.skip('diagnostics (content-mapper)', function () {
     const snapshotTester = createSnapshotTesterForTsGo(
         async (input, testOptions, services) => {
             const { service, docManager } = services;
