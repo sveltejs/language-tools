@@ -3,7 +3,6 @@ import { COMPONENT_SUFFIX } from '../svelte2tsx/addComponentExport';
 import { IGNORE_POSITION_COMMENT } from './ignore';
 
 const GENERATE_LENGTH = 1;
-const ORIGINAL_START = 2;
 const ORIGINAL_LENGTH = 3;
 const FEATURES_FLAGS = 5;
 
@@ -12,18 +11,32 @@ const constStart = 'const ';
 export class SpanMapGenerator {
     private spans: Span[] = [];
     private prependFlags = new Map<number, SpanMapFeature>();
+    private ignoreMappings = new Set<number>();
 
     /**
      * Add an identifier or literal span to the list of spans to be mapped.
      * The span is defined by its start and end positions in the original source code.
      */
-    addSourceSpan(start: number, end: number, features?: SpanMapFeature) {
-        this.spans.push({ start, end, features: features });
+    addSourceSpan(
+        start: number,
+        end: number,
+        options?: { features?: SpanMapFeature; extraMapping?: ExtraGeneratedMapping }
+    ) {
+        this.spans.push({
+            start,
+            end,
+            features: options?.features,
+            extraMapping: options?.extraMapping
+        });
     }
 
     addFlagForPrepend(start: number, features: SpanMapFeature) {
         const existingFlags = this.prependFlags.get(start) ?? SpanMapFeature.None;
         this.prependFlags.set(start, existingFlags | features);
+    }
+
+    ignoreMappingForPosition(start: number) {
+        this.ignoreMappings.add(start);
     }
 
     generateSpanMapping(
@@ -73,7 +86,10 @@ export class SpanMapGenerator {
             }
 
             const generatedStart = lineOffset + segment[0];
-            if (ignorePositionCommentPos.has(generatedStart)) {
+            if (
+                ignorePositionCommentPos.has(generatedStart) ||
+                this.ignoreMappings.has(originalStart)
+            ) {
                 continue;
             }
             const sourceSpan = sourceSpanMap.get(originalStart);
@@ -146,6 +162,22 @@ export class SpanMapGenerator {
                 }
             }
 
+            if (sourceSpan?.extraMapping) {
+                const start =
+                    generatedStart +
+                    sourceSpan.end -
+                    sourceSpan.start +
+                    sourceSpan.extraMapping.offsetFromEnd;
+                mappings.push([
+                    start,
+                    sourceSpan.extraMapping.length,
+                    originalStart,
+                    sourceSpan.end - sourceSpan.start,
+                    SpanMapKind.Atom
+                ]);
+                addFlag(mappings[mappings.length - 1], sourceSpan.extraMapping.features);
+            }
+
             current = [
                 generatedStart,
                 1,
@@ -157,26 +189,9 @@ export class SpanMapGenerator {
             mappings.push(current);
         }
 
-        mappings.sort((a, b) => a[ORIGINAL_START] - b[ORIGINAL_START]);
-        const result: SpanMapping[] = [];
-        for (let i = 0; i < mappings.length - 1; i++) {
-            const current = mappings[i];
-            const next = mappings[i + 1];
-            const currentEnd = current[ORIGINAL_START] + current[ORIGINAL_LENGTH];
-            if (currentEnd > next[ORIGINAL_START]) {
-                const newLength = next[ORIGINAL_START] - current[ORIGINAL_START];
-                if (newLength > 0) {
-                    result.push(current);
-                }
-                continue;
-            }
+        this.addDefaultExportMapping(generatedCode, mappings, options.svelte5Plus);
 
-            result.push(current);
-        }
-
-        this.addDefaultExportMapping(generatedCode, result, options.svelte5Plus);
-
-        return result;
+        return mappings;
     }
 
     private addDefaultExportMapping(
@@ -245,6 +260,13 @@ interface Span {
     start: number;
     end: number;
     features: SpanMapFeature | undefined;
+    extraMapping?: ExtraGeneratedMapping;
+}
+
+export interface ExtraGeneratedMapping {
+    offsetFromEnd: number;
+    features: SpanMapFeature | undefined;
+    length: number;
 }
 
 function getLineOffsets(text: string) {

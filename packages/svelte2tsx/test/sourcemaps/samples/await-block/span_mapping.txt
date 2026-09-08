@@ -9,13 +9,13 @@
 -               a
 #                                          ^^^^^^^ [Verbatim] => 8-15
 -                                          promise
-#                                                 ^ [Atom] => 15-16
--                                                 •
 #                                                           ^^^^^ [Verbatim] => 21-26
 -                                                           value
-#                                                                ^ [Atom] => 26-27
--                                                                }
+#
 >      { svelteHTML.createElement("element", { "foo":value.bar,});}
+# [Verbatim] => 27-28
+-
+-
 #^ [Atom] => 27-28
 -
 -
@@ -31,20 +31,18 @@
 -
 #                                               ^^^ [Verbatim] => 41-44
 -                                               foo
-#                                                  ^ [Atom] => 44-45
--                                                  =
 #                                                    ^^^^^^^^^ [Verbatim] => 46-55
 -                                                    value.bar
-#                                                             ^ [Atom] => 55-56
--                                                             }
 #
 >}}
 # [Verbatim] => 58-59
 -
 -
-#^ [Atom] => 59-60
--{
+#
 >
+# [Verbatim] => 67-68
+-
+-
 #
 >   {
 # [Verbatim] => 67-68
@@ -56,7 +54,11 @@
 - :
 #  ^ [Atom] => 122-123
 -  a
+#
 >     { svelteHTML.createElement("element", {});}
+# [Verbatim] => 85-86
+-
+-
 #^^^^ [Atom] => 85-86
 -
 -
@@ -64,20 +66,18 @@
 -    <
 #                                 ^^^^^^^ [Verbatim] => 88-95
 -                                 element
-#                                            ^ [Atom] => 96-97
--                                            /
 #
 >await (promise);
 # [Verbatim] => 98-99
 -
 -
-#^ [Atom] => 99-100
--{
 #       ^^^^^^^ [Verbatim] => 77-84
 -       promise
-#              ^ [Atom] => 84-85
--              }
+#
 >     { svelteHTML.createElement("element", {});}
+# [Verbatim] => 106-107
+-
+-
 #^^^^ [Atom] => 106-107
 -
 -
@@ -85,16 +85,16 @@
 -    <
 #                                 ^^^^^^^ [Verbatim] => 109-116
 -                                 element
-#                                            ^ [Atom] => 117-118
--                                            /
 #
 >}
 # [Verbatim] => 119-120
 -
 -
-#^ [Atom] => 120-121
--{
+#
 >
+# [Verbatim] => 128-129
+-
+-
 #
 >  {
 # [Verbatim] => 128-129
@@ -102,7 +102,13 @@
 -
 #^ [Atom] => 130-131
 -{
+# ^ [Atom] => 163-164
+- a
+#
 >     { svelteHTML.createElement("element", {});}
+# [Verbatim] => 147-148
+-
+-
 #^^^^ [Atom] => 147-148
 -
 -
@@ -110,19 +116,13 @@
 -    <
 #                                 ^^^^^^^ [Verbatim] => 150-157
 -                                 element
-#                                            ^ [Atom] => 158-159
--                                            /
 #
 >await ($promise);}};
 # [Verbatim] => 160-161
 -
 -
-#^ [Atom] => 161-162
--{
 #       ^^^^^^^^ [Verbatim] => 138-146
 -       $promise
-#               ^ [Atom] => 146-147
--               }
 >return { props: /** @type {Record<string, never>} */ ({}), slots: {}, events: {} }}
 >
 >export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial(__sveltets_2_with_any_event($$render()))) {

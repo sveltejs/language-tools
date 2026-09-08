@@ -4,9 +4,11 @@
 >async () => { { __sveltets_createSlot("default", {});}
 #             ^ [Atom] => 0-1
 -             <
-#                                                  ^ [Atom] => 6-7
--                                                  /
+#
 >
+# [Verbatim] => 8-9
+-
+-
 #
 > { __sveltets_createSlot("foo", { });  }
 # [Verbatim] => 8-9
@@ -18,17 +20,17 @@
 -                         f
 #                           ^^ [Verbatim] => 23-25
 -                           oo
-#                              ^ [Atom] => 25-26
--                              "
 #                                 ^ [Atom] => 17-18
 -                                 a
-#                                  ^ [Atom] => 16-17
--                                  n
 #                                     ^ [Atom] => 27-28
 -                                     f
 #                                      ^ [Atom] => 36-37
 -                                      /
+#
 >
+# [Verbatim] => 42-43
+-
+-
 #
 > { __sveltets_createSlot("bar", {    "foo":foo,baz,"leet":true,});  }
 # [Verbatim] => 42-43
@@ -40,8 +42,6 @@
 -                         b
 #                           ^^ [Verbatim] => 67-69
 -                           ar
-#                              ^ [Atom] => 69-70
--                              "
 #                                 ^ [Atom] => 54-55
 -                                 {
 #                                  ^ [Verbatim] => 59-60
@@ -54,16 +54,10 @@
 -
 #                                      ^^^ [Verbatim] => 50-53
 -                                      foo
-#                                         ^ [Atom] => 53-54
--                                         =
 #                                           ^^^ [Verbatim] => 55-58
 -                                           foo
-#                                              ^ [Atom] => 58-59
--                                              }
 #                                               ^^^ [Verbatim] => 72-75
 -                                               baz
-#                                                  ^ [Atom] => 75-76
--                                                  }
 #                                                   ^ [Atom] => 77-77
 -
 #                                                    ^^^^ [Verbatim] => 77-81
@@ -72,7 +66,11 @@
 -                                                                  f
 #                                                                   ^ [Atom] => 91-92
 -                                                                   /
+#
 >
+# [Verbatim] => 97-98
+-
+-
 #
 > { __sveltets_createSlot("bar", {     "foo":foo,baz,"leet":true,});
 # [Verbatim] => 97-98
@@ -84,8 +82,6 @@
 -                         b
 #                           ^^ [Verbatim] => 124-126
 -                           ar
-#                              ^ [Atom] => 126-127
--                              "
 #                                 ^ [Atom] => 106-107
 -                                 ╚
 #                                  ^ [Atom] => 111-112
@@ -101,16 +97,10 @@
 -
 #                                       ^^^ [Verbatim] => 107-110
 -                                       foo
-#                                          ^ [Atom] => 110-111
--                                          =
 #                                            ^^^ [Verbatim] => 112-115
 -                                            foo
-#                                               ^ [Atom] => 115-116
--                                               }
 #                                                ^^^ [Verbatim] => 130-133
 -                                                baz
-#                                                   ^ [Atom] => 133-134
--                                                   }
 #                                                    ^ [Atom] => 137-137
 -
 #                                                     ^^^^ [Verbatim] => 137-141
@@ -119,6 +109,8 @@
 > }};
 # [Atom] => 142-143
 -f
+#^ [Atom] => 152-153
+-/
 >return { props: /** @type {Record<string, never>} */ ({}), slots: {'default': {}, 'foo': {}, 'bar': {foo:foo, baz:baz}}, events: {} }}
 >
 >export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial(__sveltets_2_with_any_event($$render()))) {

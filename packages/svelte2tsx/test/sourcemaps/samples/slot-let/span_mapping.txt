@@ -5,6 +5,8 @@
 -             <
 #                                                                    ^^^^^^^^^ [Verbatim],[Hover|Completion|Definition|Implementation|References|DocumentHighlights|Rename|CallHierarchy|CodeActions|SelectionRanges|DocumentSymbols] => 1-10
 -                                                                    Component
+#                                                                                                                                                       ^^^^^ [Atom],[None] => 1-10
+-                                                                                                                                                       Component
 #                                                                                                                                                               ^ [Atom] => 12-13
 -                                                                                                                                                               e
 #                                                                                                                                                                ^ [Atom] => 18-19
@@ -13,23 +15,19 @@
 -                                                                                                                                                                 {
 #                                                                                                                                                                  ^ [Verbatim] => 32-33
 -                                                                                                                                                                  •
-#                                                                                                                                                                   ^ [Atom] => 11-12
--                                                                                                                                                                   l
 #                                                                                                                                                                                                                       ^^ [Verbatim] => 15-17
 -                                                                                                                                                                                                                       hi
-#                                                                                                                                                                                                                         ^ [Atom] => 17-18
--                                                                                                                                                                                                                         •
 #                                                                                                                                                                                                                          ^^^ [Verbatim] => 22-25
 -                                                                                                                                                                                                                          hi2
-#                                                                                                                                                                                                                             ^ [Atom] => 25-26
--                                                                                                                                                                                                                             =
 #                                                                                                                                                                                                                              ^^^^ [Verbatim] => 27-31
 -                                                                                                                                                                                                                              hi_2
-#                                                                                                                                                                                                                                  ^ [Atom] => 31-32
--                                                                                                                                                                                                                                  }
 #                                                                                                                                                                                                                                   ^^^ [Verbatim] => 37-40
 -                                                                                                                                                                                                                                   hi3
+#
 >    hi;hi_2;hi3;
+# [Verbatim] => 41-42
+-
+-
 #^ [Atom] => 41-42
 -
 -
@@ -50,6 +48,8 @@
 -
 #^ [Atom] => 62-63
 -<
+#  ^^^^^^^^^ [Verbatim] => 64-73
+-  Component
 >return { props: /** @type {Record<string, never>} */ ({}), slots: {}, events: {} }}
 >
 >export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial(__sveltets_2_with_any_event($$render()))) {

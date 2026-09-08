@@ -6,6 +6,7 @@ import {
     transform,
     TransformationArray
 } from '../utils/node-utils';
+import { SpanMapGenerator } from '../../utils/spanMap';
 
 /**
  * Transform #each into a for-of loop
@@ -25,7 +26,11 @@ import {
  * - `{#each true, items as item}` is valid, we need to add braces around that expression, else
  *   `ensureArray` will error that there are more args than expected
  */
-export function handleEach(str: MagicString, eachBlock: BaseNode): void {
+export function handleEach(
+    str: MagicString,
+    eachBlock: BaseNode,
+    spanMapGenerator: SpanMapGenerator | undefined
+): void {
     const startEnd =
         str.original.indexOf(
             '}',
@@ -70,7 +75,7 @@ export function handleEach(str: MagicString, eachBlock: BaseNode): void {
     if (eachBlock.key) {
         transforms.push([eachBlock.key.start, eachBlock.key.end], ';');
     }
-    transform(str, eachBlock.start, startEnd, transforms);
+    transform(str, eachBlock.start, startEnd, transforms, spanMapGenerator);
 
     const endEach = str.original.lastIndexOf('{', eachBlock.end - 1);
     // {/each} -> } or {:else} -> }

@@ -5,24 +5,20 @@
 -             <
 #                                                                    ^^^^^^^^^ [Verbatim],[Hover|Completion|Definition|Implementation|References|DocumentHighlights|Rename|CallHierarchy|CodeActions|SelectionRanges|DocumentSymbols] => 1-10
 -                                                                    Component
+#                                                                                                                                                       ^^^^^ [Atom],[None] => 1-10
+-                                                                                                                                                       Component
 #                                                                                                                                                               ^ [Atom] => 12-13
 -                                                                                                                                                               n
 #                                                                                                                                                                ^ [Atom] => 20-21
 -                                                                                                                                                                {
 #                                                                                                                                                                 ^ [Atom] => 49-50
 -                                                                                                                                                                 /
-#                                                                                                                                                                  ^ [Atom] => 11-12
--                                                                                                                                                                  o
 #                                                                                                                                                                                        ^ [Atom],[Hover|Completion|Definition|References|Rename] => 14-14
 -
 #                                                                                                                                                                                         ^^^^^ [Verbatim] => 14-19
 -                                                                                                                                                                                         click
-#                                                                                                                                                                                               ^ [Atom] => 19-20
--                                                                                                                                                                                               =
 #                                                                                                                                                                                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^ [Verbatim] => 21-47
 -                                                                                                                                                                                                 $check•?•method1•:•method2
-#                                                                                                                                                                                                                           ^ [Atom] => 47-48
--                                                                                                                                                                                                                           }
 #
 >  { svelteHTML.createElement("button", {  "on:click":$check ? method1 : method2,});  }};
 # [Verbatim] => 51-52
@@ -42,14 +38,12 @@
 -
 #                                              ^^^^^ [Verbatim] => 63-68
 -                                              click
-#                                                    ^ [Atom] => 68-69
--                                                    =
 #                                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^ [Verbatim] => 70-96
 -                                                     $check•?•method1•:•method2
-#                                                                               ^ [Atom] => 96-97
--                                                                               }
 #                                                                                   ^ [Atom] => 99-100
 -                                                                                   B
+#                                                                                    ^ [Atom] => 103-104
+-                                                                                    /
 >return { props: /** @type {Record<string, never>} */ ({}), slots: {}, events: {} }}
 >
 >export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial(__sveltets_2_with_any_event($$render()))) {

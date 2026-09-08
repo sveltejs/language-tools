@@ -7,5 +7,11 @@
           because TS does not look up other types.
         */
         "types": ["svelte"]
-    }
+    },
+    "contentMappers": [
+        {
+            "package": "svelte-typescript-content-mapper",
+            "extensions": [".svelte"]
+        }
+    ]
 }

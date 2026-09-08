@@ -11,19 +11,11 @@ import assert from 'node:assert';
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { getPackageInfo } from '../../../../../src/importPackage';
-import { VERSION } from 'svelte/compiler';
-import {
-    Diagnostic,
-    DiagnosticTag,
-    DocumentDiagnosticRequest,
-    PublishDiagnosticsClientCapabilities
-} from 'vscode-languageserver';
+import { Diagnostic, DiagnosticTag, DocumentDiagnosticRequest } from 'vscode-languageserver';
 import { TsLSPService } from '../../lspService';
-
-const isSvelte5Plus = Number(VERSION.split('.')[0]) >= 5;
+import { getScriptKindFromAttributes } from '../../../../../src/plugins/typescript/utils';
 
 const root = path.join(__dirname, '../../../typescript/features/diagnostics');
-console.log(root);
 
 const {
     version: { major }
@@ -31,12 +23,6 @@ const {
 const newSvelteMajorExpected = `expected_svelte_${major}.json`;
 const expectedTsGo = 'expected_tsgo.json';
 const newSvelteMajorExpectedTsGo = `expected_tsgo_svelte_${major}.json`;
-
-const capabilities: PublishDiagnosticsClientCapabilities = {
-    tagSupport: {
-        valueSet: [1]
-    }
-};
 
 function createProvider(service: TsLSPService): DiagnosticsProvider {
     return {
@@ -123,6 +109,18 @@ async function executeTest({
     expected: string;
 }) {
     const diagnostics = await service.getDiagnostics(document);
+    for (const diagnostic of diagnostics) {
+        assert.ok(diagnostic.source === 'svelte' || diagnostic.source === 'ts');
+        const scriptKind = [
+            getScriptKindFromAttributes(document.scriptInfo?.attributes ?? {}),
+            getScriptKindFromAttributes(document.moduleScriptInfo?.attributes ?? {})
+        ].includes(ts.ScriptKind.TSX)
+            ? ts.ScriptKind.TS
+            : ts.ScriptKind.JS;
+
+        // update to match old snapshot format
+        diagnostic.source = scriptKind === ts.ScriptKind.TS ? 'ts' : 'js';
+    }
 
     const defaultExpectedFile = path.join(dir, expected);
     const expectedFileVariants = [

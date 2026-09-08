@@ -30,10 +30,16 @@
 # [Verbatim] => 94-95
 -
 -
+#^ [Atom] => 95-96
+-<
 >async () => {
 #^ [Atom] => 95-96
 -<
+#
 >
+# [Verbatim] => 104-105
+-
+-
 #
 >if($$slots.foo){
 # [Verbatim] => 104-105
@@ -64,19 +70,21 @@
 -    <
 #                                                           ^^^^^^^^^ [Verbatim],[Hover|Completion|Definition|Implementation|References|DocumentHighlights|Rename|CallHierarchy|CodeActions|SelectionRanges|DocumentSymbols] => 145-154
 -                                                           Component
+#                                                                                                                        ^^^^^ [Atom],[None] => 145-154
+-                                                                                                                        Component
 #                                                                                                                                ^ [Atom] => 156-157
 -                                                                                                                                ╚
 #                                                                                                                                 ^ [Atom] => 171-172
 -                                                                                                                                 ╚
 #                                                                                                                                  ^^^^^^^^^^ [Verbatim] => 159-169
 -                                                                                                                                  ...$$props
-#                                                                                                                                            ^ [Atom] => 169-170
--                                                                                                                                            }
 #
 >}};
 # [Verbatim] => 174-175
 -
 -
+#^ [Atom] => 175-176
+-{
 >return { props: {}, slots: {}, events: {} }}
 >
 >export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial_with_any(__sveltets_2_with_any_event($$render()))) {

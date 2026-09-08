@@ -2,6 +2,7 @@
     "compilerOptions": {
         "module": "nodenext",
         "moduleResolution": "nodenext",
+        "sourceMap": true,
         "rootDir": "src",
         "outDir": "dist",
         "types": ["node"]

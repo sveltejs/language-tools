@@ -122,7 +122,7 @@ export function processInstanceScriptContent(
             scope = scope.parent;
         }
         const storename = node.getText().slice(1);
-        implicitStoreValues.addStoreAcess(storename);
+        implicitStoreValues.addStoreAccess(storename);
     };
 
     const handleIdentifier = (ident: ts.Identifier, parent: ts.Node) => {
@@ -318,10 +318,6 @@ export function processInstanceScriptContent(
         //handle stores etc
         if (ts.isIdentifier(node)) {
             handleIdentifier(node, parent);
-        }
-
-        if (ts.isStringLiteral(node)) {
-            spanMapGenerator?.addSourceSpan(astOffset + node.getStart(), astOffset + node.end);
         }
 
         //track implicit declarations in reactive blocks at the top level

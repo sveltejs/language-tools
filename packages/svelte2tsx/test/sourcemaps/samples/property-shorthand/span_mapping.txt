@@ -7,10 +7,10 @@
 -                                          button
 #                                                    ^^^^^ [Verbatim] => 9-14
 -                                                    count
-#                                                         ^ [Atom] => 14-15
--                                                         }
 #                                                             ^ [Atom] => 16-17
 -                                                             b
+#                                                              ^ [Atom] => 23-24
+-                                                              /
 >return { props: /** @type {Record<string, never>} */ ({}), slots: {}, events: {} }}
 >
 >export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial(__sveltets_2_with_any_event($$render()))) {

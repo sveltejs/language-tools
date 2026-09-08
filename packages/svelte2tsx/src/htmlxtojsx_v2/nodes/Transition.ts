@@ -9,7 +9,7 @@ import {
 import { Element } from './Element';
 import { getLeadingCommentTransformation } from './Comment';
 import { getTrailingCommentTransformation } from './Comment';
-import { SpanMapGenerator } from '../../utils/spanMap';
+import { SpanMapFeature, SpanMapGenerator } from '../../utils/spanMap';
 
 /**
  * transition|modifier:xxx(yyy)   --->   __sveltets_2_ensureTransition(xxx(svelte.mapElementTag('..'),(yyy)));
@@ -22,13 +22,20 @@ export function handleTransitionDirective(
 ): void {
     const trailingComments = getTrailingCommentTransformation(attr);
     const nameRange = getDirectiveNameStartEndIdx(str, attr);
+    const mapElement = `${element.typingsNamespace}.mapElementTag('${element.tagName}')`;
     const transformations: TransformationArray = [
         ...getLeadingCommentTransformation(attr),
         '__sveltets_2_ensureTransition(',
         nameRange,
-        `(${element.typingsNamespace}.mapElementTag('${element.tagName}')`
+        `(${mapElement}`
     ];
-    addDirectiveNameMapping(spanMapGenerator, nameRange);
+    if (spanMapGenerator) {
+        addDirectiveNameMapping(spanMapGenerator, nameRange, {
+            features: SpanMapFeature.None,
+            length: mapElement.length,
+            offsetFromEnd: 1
+        });
+    }
     if (attr.expression) {
         transformations.push(
             ',(',

@@ -10,7 +10,7 @@ import {
     rangeWithTrailingPropertyAccess,
     addDirectiveNameMapping
 } from '../utils/node-utils';
-import { SpanMapGenerator } from '../../utils/spanMap';
+import { SpanMapFeature, SpanMapGenerator } from '../../utils/spanMap';
 
 const voidTags = 'area,base,br,col,embed,hr,img,input,link,meta,param,source,track,wbr'.split(',');
 
@@ -66,6 +66,7 @@ export class Element {
         private str: MagicString,
         private node: BaseNode,
         public typingsNamespace: string,
+        private spanMapGenerator: SpanMapGenerator | undefined,
         public parent?: any
     ) {
         if (parent) {
@@ -160,14 +161,22 @@ export class Element {
             this.actionsTransformation.push('{');
         }
         const nameRange = getDirectiveNameStartEndIdx(this.str, attr);
-        addDirectiveNameMapping(spanMapGenerator, nameRange);
-
+        const mapElement = `${this.typingsNamespace}.mapElementTag('${this.tagName}')`;
         this.actionsTransformation.push(
             ...leadingComments,
             `const ${id} = __sveltets_2_ensureAction(`,
             nameRange,
-            `(${this.typingsNamespace}.mapElementTag('${this.tagName}')`
+            `(${mapElement}`
         );
+
+        if (spanMapGenerator) {
+            addDirectiveNameMapping(spanMapGenerator, nameRange, {
+                features: SpanMapFeature.None,
+                length: mapElement.length,
+                offsetFromEnd: 1
+            });
+        }
+
         if (attr.expression) {
             this.actionsTransformation.push(
                 ',(',
@@ -228,25 +237,37 @@ export class Element {
                 this.str.remove(this.startTagStart, this.startTagStart + 1);
             }
 
-            transform(this.str, this.startTagStart, transformEnd, [
-                // Named slot transformations go first inside a outer block scope because
-                // <div let:xx {x} /> means "use the x of let:x", and without a separate
-                // block scope this would give a "used before defined" error
-                ...slotLetTransformation,
-                ...this.actionsTransformation,
-                ...this.getStartTransformation(),
-                ...this.attrsTransformation,
-                ...this.startEndTransformation,
-                ...this.endTransformation
-            ]);
+            transform(
+                this.str,
+                this.startTagStart,
+                transformEnd,
+                [
+                    // Named slot transformations go first inside a outer block scope because
+                    // <div let:xx {x} /> means "use the x of let:x", and without a separate
+                    // block scope this would give a "used before defined" error
+                    ...slotLetTransformation,
+                    ...this.actionsTransformation,
+                    ...this.getStartTransformation(),
+                    ...this.attrsTransformation,
+                    ...this.startEndTransformation,
+                    ...this.endTransformation
+                ],
+                this.spanMapGenerator
+            );
         } else {
-            transform(this.str, this.startTagStart, this.startTagEnd, [
-                ...slotLetTransformation,
-                ...this.actionsTransformation,
-                ...this.getStartTransformation(),
-                ...this.attrsTransformation,
-                ...this.startEndTransformation
-            ]);
+            transform(
+                this.str,
+                this.startTagStart,
+                this.startTagEnd,
+                [
+                    ...slotLetTransformation,
+                    ...this.actionsTransformation,
+                    ...this.getStartTransformation(),
+                    ...this.attrsTransformation,
+                    ...this.startEndTransformation
+                ],
+                this.spanMapGenerator
+            );
 
             const closingTag = this.str.original.substring(
                 this.str.original.lastIndexOf('</', this.node.end - 1) + 2,
@@ -261,7 +282,13 @@ export class Element {
                 tagEndIdx === -1 || closingTag.trim() !== this.node.name
                     ? this.node.end
                     : tagEndIdx + this.node.start;
-            transform(this.str, endStart, this.node.end, this.endTransformation);
+            transform(
+                this.str,
+                endStart,
+                this.node.end,
+                this.endTransformation,
+                this.spanMapGenerator
+            );
         }
     }
 

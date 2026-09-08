@@ -99,6 +99,7 @@ export function createSnapshotTesterForTsGo<
         const { dir } = testOptions;
 
         const inputFile = path.join(dir, 'input.svelte');
+        const testRootDir = path.join(testOptions.workspaceDir, '..');
 
         if (existsSync(inputFile)) {
             const _it =
@@ -107,13 +108,13 @@ export function createSnapshotTesterForTsGo<
                     : dir.endsWith('.only')
                       ? it.only
                       : it;
-            _it(dir.substring(__dirname.length), async () => {
+            _it(dir.substring(testRootDir.length), async () => {
                 const services = getServices();
                 await executeTest(inputFile, testOptions, services);
             });
         } else {
             const _describe = dir.endsWith('.only') ? describe.only : describe;
-            _describe(dir.substring(__dirname.length), function () {
+            _describe(dir.substring(testRootDir.length), function () {
                 const subDirs = readdirSync(dir);
 
                 for (const subDir of subDirs) {

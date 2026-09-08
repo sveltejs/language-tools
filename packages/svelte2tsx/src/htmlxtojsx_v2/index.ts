@@ -322,7 +322,7 @@ export function convertHtmlxToJsx(
                         if (node.context) {
                             handleScopeAndResolveForSlotInner(node.context, node.expression, node);
                         }
-                        handleEach(str, node);
+                        handleEach(str, node, options.spanMapGenerator);
                         break;
                     case 'ElseBlock':
                         handleElse(str, node, parent);
@@ -347,7 +347,14 @@ export function convertHtmlxToJsx(
                         elementBeforeSnippet.push(element);
                         element = undefined;
 
-                        handleSnippet(str, node, parentComponent, emitJsDoc, isTsFile);
+                        handleSnippet(
+                            str,
+                            node,
+                            options.spanMapGenerator,
+                            parentComponent,
+                            emitJsDoc,
+                            isTsFile
+                        );
                         if (parent === ast) {
                             // root snippet -> move to instance script or possibly even module script
                             const result = analyze({
@@ -447,11 +454,17 @@ export function convertHtmlxToJsx(
                                     str,
                                     node,
                                     options.typingsNamespace,
+                                    options.spanMapGenerator,
                                     element
                                 );
                                 element = element.child;
                             } else {
-                                element = new Element(str, node, options.typingsNamespace);
+                                element = new Element(
+                                    str,
+                                    node,
+                                    options.typingsNamespace,
+                                    options.spanMapGenerator
+                                );
                             }
                         }
                         break;
@@ -628,7 +641,7 @@ export function convertHtmlxToJsx(
                         break;
                     case 'AwaitBlock':
                         onTemplateScopeLeave();
-                        handleAwait(str, node);
+                        handleAwait(str, node, options.spanMapGenerator);
                         break;
                     case 'InlineComponent':
                     case 'Element':
