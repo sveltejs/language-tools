@@ -205,6 +205,7 @@ export const internalHelpers: {
         emitOnTemplateError?: boolean;
         svelte5Plus: boolean;
     }): unknown
+    extractFallbackScriptTag(svelte: string): { start: number; end: number } | undefined;
 	renderName: string
 };
 

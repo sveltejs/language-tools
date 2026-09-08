@@ -331,14 +331,11 @@ importers:
 
   packages/typescript-content-mapper:
     dependencies:
-      '@jridgewell/sourcemap-codec':
-        specifier: ^1.5.0
-        version: 1.5.0
       svelte2tsx:
         specifier: workspace:~
         version: link:../svelte2tsx
       typescript:
-        specifier: '6'
+        specifier: ~6.0.2
         version: 6.0.3
       vscode-jsonrpc:
         specifier: ^9.0.1

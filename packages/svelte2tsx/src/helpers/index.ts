@@ -10,6 +10,7 @@ import {
 } from './sveltekit';
 import { findExports } from './typescript';
 import { parseTemplateOnly } from './svelteAst';
+import { extractFallbackScriptTag } from '../utils/htmlxparser'
 
 /**
  * ## Internal, do not use! This is subject to change at any time.
@@ -28,5 +29,6 @@ export const internalHelpers = {
     findExports,
     get_global_types,
     parseTemplateOnly,
+    extractFallbackScriptTag,
     renderName: '$$render'
 };

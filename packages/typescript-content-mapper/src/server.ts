@@ -80,19 +80,54 @@ function startServer() {
                 mappings: res.spanMappings ?? [],
                 diagnostics: []
             };
-        } catch (error) {
-            return {
-                text: '',
-                extension: isTsFile ? '.ts' : '.js',
-                mappings: [],
-                diagnostics: [
+        } catch (error: any) {
+            const lineOffsets = getLineOffsets(content);
+            const diagnostics: MapperDiagnostic = {
+                messageText: (error as Error).message,
+                start: 0,
+                length: 0,
+                code: -1
+            };
+            if (error.start != null) {
+                diagnostics.start = offsetAt(
                     {
-                        messageText: (error as Error).message,
-                        // TODO
-                        start: 0,
-                        length: 0
-                    }
-                ]
+                        line: (error.start?.line ?? 1) - 1,
+                        character: error.start?.column ?? 0
+                    },
+                    content,
+                    lineOffsets
+                );
+            }
+            if (error.end != null) {
+                const length =
+                    offsetAt(
+                        {
+                            line: (error.end?.line ?? 1) - 1,
+                            character: error.end?.column ?? 0
+                        },
+                        content,
+                        lineOffsets
+                    ) - diagnostics.start;
+                diagnostics.length = Math.max(0, length);
+            }
+
+            const fallbackScriptTag = internalHelpers.extractFallbackScriptTag(content);
+            const extension = isTsFile ? '.ts' : '.js';
+            if (!fallbackScriptTag) {
+                return {
+                    text: '',
+                    extension,
+                    mappings: [],
+                    diagnostics: [diagnostics]
+                };
+            }
+
+            const length = fallbackScriptTag.end - fallbackScriptTag.start;
+            return {
+                text: content.slice(fallbackScriptTag.start, fallbackScriptTag.end),
+                extension,
+                mappings: [[0, length, fallbackScriptTag.start, length, SpanMapKind.Verbatim]],
+                diagnostics: [diagnostics]
             };
         }
     });
@@ -100,6 +135,49 @@ function startServer() {
 }
 
 startServer();
+
+function offsetAt(position: Position, text: string, lineOffsets = getLineOffsets(text)): number {
+    if (position.line >= lineOffsets.length) {
+        return text.length;
+    } else if (position.line < 0) {
+        return 0;
+    }
+
+    const lineOffset = lineOffsets[position.line];
+    const nextLineOffset =
+        position.line + 1 < lineOffsets.length ? lineOffsets[position.line + 1] : text.length;
+
+    return clamp(nextLineOffset, lineOffset, lineOffset + position.character);
+}
+
+function clamp(num: number, min: number, max: number): number {
+    return Math.max(min, Math.min(max, num));
+}
+
+function getLineOffsets(text: string) {
+    const lineOffsets = [];
+    let isLineStart = true;
+
+    for (let i = 0; i < text.length; i++) {
+        if (isLineStart) {
+            lineOffsets.push(i);
+            isLineStart = false;
+        }
+        const ch = text.charAt(i);
+        isLineStart = ch === '\r' || ch === '\n';
+        if (ch === '\r' && i + 1 < text.length && text.charAt(i + 1) === '\n') {
+            i++;
+        }
+    }
+
+    if (isLineStart && text.length > 0) {
+        lineOffsets.push(text.length);
+    }
+
+    return lineOffsets;
+}
+
+type Position = { line: number; character: number };
 
 type PositionEncoding = 'utf-8' | 'utf-16';
 

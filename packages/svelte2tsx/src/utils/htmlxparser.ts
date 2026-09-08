@@ -131,6 +131,31 @@ function blankVerbatimContent(htmlx: string, verbatimElements: Node[]) {
     return output;
 }
 
+export function extractFallbackScriptTag(htmlx: string) {
+    const verbatimElements = findVerbatimElements(htmlx);
+    const scripts = verbatimElements.filter((node) => node.name === 'script');
+    if (!scripts) {
+        return undefined;
+    }
+
+    let tag: Node;
+    if (scripts.length === 1) {
+        tag = scripts[0];
+    } else {
+        const instance = scripts.find(
+            (v) =>
+                v.attributes.length === 0 ||
+                v.attributes.every((v) => v.name !== 'context' && v.name !== 'module')
+        );
+        if (!instance) {
+            return undefined;
+        }
+        tag = instance;
+    }
+
+    return { start: tag.content.start, end: tag.content.end };
+}
+
 export function parseHtmlx(
     htmlx: string,
     parse: typeof import('svelte/compiler').parse,
