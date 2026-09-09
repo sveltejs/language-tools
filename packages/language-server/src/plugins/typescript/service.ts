@@ -400,7 +400,7 @@ async function createLanguageService(
         readFile: svelteModuleLoader.readFile,
         resolveModuleNames: svelteModuleLoader.resolveModuleNames,
         readDirectory: svelteModuleLoader.readDirectory,
-        realpath: tsSystem.realpath,
+        realpath: svelteModuleLoader.realpath,
         getDirectories: tsSystem.getDirectories,
         getProjectReferences: () => projectConfig.projectReferences,
         getParsedCommandLine,

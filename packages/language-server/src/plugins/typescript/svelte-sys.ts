@@ -1,5 +1,10 @@
 import ts from 'typescript';
-import { ensureRealSvelteFilePath, isVirtualSvelteFilePath, toRealSvelteFilePath } from './utils';
+import {
+    ensureRealSvelteFilePath,
+    isVirtualSvelteFilePath,
+    toRealSvelteFilePath,
+    toVirtualSvelteFilePath
+} from './utils';
 import { FileMap } from '../../lib/documents/fileCollection';
 
 /**
@@ -82,7 +87,7 @@ export function createSvelteSys(tsSystem: ts.System) {
         const realpath = tsSystem.realpath;
         svelteSys.realpath = function (path) {
             if (svelteFileExists(path)) {
-                return realpath(toRealSvelteFilePath(path));
+                return toVirtualSvelteFilePath(realpath(toRealSvelteFilePath(path)));
             }
             return realpath(path);
         };
