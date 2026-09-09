@@ -13,10 +13,16 @@
 -
 -••••let•{}•=•$props();
 -
+#^ [Atom] => 42-43
+-<
 >async () => {
 #^ [Atom] => 42-43
 -<
+#
 >
+# [Verbatim] => 51-52
+-
+-
 #
 >let a = 1;};
 # [Verbatim] => 51-52
@@ -24,6 +30,8 @@
 -
 #^^^^^^^^^ [Verbatim] => 54-63
 -let•a•=•1
+#         ^ [Atom] => 63-64
+-         }
 >return { props: /** @type {$$ComponentProps} */({}), exports: {}, bindings: __sveltets_$$bindings(''), slots: {}, events: {} }}
 >const Input__SvelteComponent_ = __sveltets_2_fn_component($$render());
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ [Atom],[Definition] => 0-0
