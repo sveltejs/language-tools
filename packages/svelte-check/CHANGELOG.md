@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.7.7
+
+### Patch Changes
+
+-   fix: recognise the real `<script>` and `<style>` start tags when a matching token also appears inside the other tag ([#3079](https://github.com/sveltejs/language-tools/pull/3079))
+
 ## 4.7.6
 
 ### Patch Changes
