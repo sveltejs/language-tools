@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.7.62
+
+### Patch Changes
+
+-   perf: use a module resolution cache in emitDts, avoiding a full module resolution walk for every import of every file in the program ([#3093](https://github.com/sveltejs/language-tools/pull/3093))
+
+-   fix: recognise the real `<script>` and `<style>` start tags when a matching token also appears inside the other tag ([#3079](https://github.com/sveltejs/language-tools/pull/3079))
+
 ## 0.7.61
 
 ### Patch Changes

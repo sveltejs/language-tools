@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.18.5
+
+### Patch Changes
+
+-   Hide generated snippet functions from document symbols so they do not appear in the editor outline. ([#3114](https://github.com/sveltejs/language-tools/pull/3114))
+
+-   Updated dependencies [[`092af38`](https://github.com/sveltejs/language-tools/commit/092af3826bada5cd591b0efccc39eed970169465), [`b9f3faa`](https://github.com/sveltejs/language-tools/commit/b9f3faa27fec897291d67308112b0491a1e49221)]:
+    -   svelte2tsx@0.7.62
+
 ## 0.18.4
 
 ### Patch Changes
