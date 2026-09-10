@@ -48,22 +48,20 @@
 # ^ [Atom] => 288-289
 - <
 >
->import Repl from '@sveltejs/svelte-repl';
-#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ [Verbatim] => 298-339
--import•Repl•from•'@sveltejs/svelte-repl';
->import { getContext } from 'svelte';
-#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ [Verbatim] => 341-377
--import•{•getContext•}•from•'svelte';
+>    import Repl from '@sveltejs/svelte-repl';
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>    import { getContext } from 'svelte';
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 >
->import ScreenToggle from '../../../components/ScreenToggle.svelte';
-#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ [Verbatim] => 380-447
--import•ScreenToggle•from•'../../../components/ScreenToggle.svelte';
->import TableOfContents from './_TableOfContents.svelte';
-#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ [Verbatim] => 449-505
--import•TableOfContents•from•'./_TableOfContents.svelte';
+#
+>    import ScreenToggle from '../../../components/ScreenToggle.svelte';
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>    import TableOfContents from './_TableOfContents.svelte';
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 >
->import {
-#^^^^^^^^
+#
+>    import {
+#^^^^^^^^^^^^
 >        mapbox_setup, // needed for context API tutorial
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 >        rollupUrl,
@@ -71,53 +69,32 @@
 >        svelteUrl
 #^^^^^^^^^^^^^^^^^
 >    } from '../../../config';
-#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ [Verbatim] => 508-619
--import•{
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>function $$render() {
+# [Verbatim] => 297-620
+-╚import•Repl•from•'@sveltejs/svelte-repl';
+-╚import•{•getContext•}•from•'svelte';
+-
+-╚import•ScreenToggle•from•'../../../components/ScreenToggle.svelte';
+-╚import•TableOfContents•from•'./_TableOfContents.svelte';
+-
+-╚import•{
 -╚╚mapbox_setup,•//•needed•for•context•API•tutorial
 -╚╚rollupUrl,
 -╚╚svelteUrl
 -╚}•from•'../../../config';
->function $$render() {
+-
 #^ [Atom] => 289-290
 -s
 >
 #
 >
-#^^^^ [Verbatim] => 296-298
--
--╚
-#
->
-#^^^^ [Verbatim] => 339-341
--
--╚
-#
->
-#
->
-#^^^^ [Verbatim] => 377-380
+# [Verbatim] => 296-297
 -
 -
--╚
-#
->
-#^^^^ [Verbatim] => 447-449
--
--╚
-#
->
-#
->
-#^^^^ [Verbatim] => 505-508
--
--
--╚
-#
->
 #
 >     let slug/*Ωignore_startΩ*/;slug = __sveltets_2_any(slug);/*Ωignore_endΩ*/;
-#^^^^ [Verbatim] => 619-622
--
+#^^^^ [Verbatim] => 620-622
 -
 -╚
 #    ^^^^^^^^^ [Verbatim] => 628-637

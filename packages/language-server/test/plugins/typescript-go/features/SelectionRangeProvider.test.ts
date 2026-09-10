@@ -70,29 +70,28 @@ describe('SelectionRangeProvider (TS GO)', function () {
         });
     });
 
-    // TODO: mostly likely because our import hoisting logic
-    it.skip('provides selection range for import without semicolon', async () => {
+    it('provides selection range for import without semicolon', async () => {
         const { provider, document } = setup('selection-range-import.svelte');
 
         const selectionRange = await provider.getSelectionRange(document, Position.create(2, 28));
 
         assert.deepStrictEqual(selectionRange, <SelectionRange>{
             parent: {
-                // this part is missing,
                 parent: {
-                    parent: {
-                        parent: undefined,
-                        range: {
-                            end: {
-                                character: 34,
-                                line: 2
-                            },
-                            start: {
-                                character: 4,
-                                line: 1
-                            }
-                        }
-                    },
+                    // ts 7 doesn't have a full selection range for all the import statements
+                    // parent: {
+                    //     parent: undefined,
+                    //     range: {
+                    //         end: {
+                    //             character: 34,
+                    //             line: 2
+                    //         },
+                    //         start: {
+                    //             character: 4,
+                    //             line: 1
+                    //         }
+                    //     }
+                    // },
                     // import {onMount} from 'svelte';
                     range: {
                         end: {
