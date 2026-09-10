@@ -1,9 +1,8 @@
 ///<reference types="svelte" />
 ;
-import { derived } from 'svelte/store';
+    import { derived } from 'svelte/store';
 function $$render() {
 /*Ωignore_startΩ*/;let $derived = __sveltets_2_store_get(derived);/*Ωignore_endΩ*/
-    
 
     let a = $derived(1);
 ;

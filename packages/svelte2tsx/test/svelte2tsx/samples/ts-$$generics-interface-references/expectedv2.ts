@@ -1,13 +1,12 @@
 ///<reference types="svelte" />
 ;
-import type Foo from 'somewhere';
+    import type Foo from 'somewhere';
 interface ReferencedByGeneric {
         b: true;
         f: Foo;
     }
 function $$render/*Ωignore_startΩ*/<A,B extends ReferencedByGeneric>/*Ωignore_endΩ*/() {
 
-    
     interface ReferencesGeneric {
         a: A;
     }

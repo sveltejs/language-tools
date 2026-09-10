@@ -11,11 +11,7 @@ import { ImplicitStoreValues } from './nodes/ImplicitStoreValues';
 import { Generics } from './nodes/Generics';
 import { is$$SlotsDeclaration } from './nodes/slot';
 import { preprendStr } from '../utils/magic-string';
-import {
-    handleFirstInstanceImport,
-    handleImportDeclaration,
-    moveAllInstanceImports,
-} from './nodes/handleImportDeclaration';
+import { moveAllInstanceImports } from './nodes/handleImportDeclaration';
 import { InterfacesAndTypes } from './nodes/InterfacesAndTypes';
 import { ModuleAst } from './processModuleScriptTag';
 import {
@@ -108,8 +104,6 @@ export function processInstanceScriptContent(
 
     //track is the variable declared as `props` comes from `$props()`
     let isPropsDeclarationRune = false;
-    
-    const moveImportByGroup = !!spanMapGenerator;
 
     const pushScope = () => (scope = new Scope(scope));
     const popScope = () => (scope = scope.parent);
@@ -208,9 +202,7 @@ export function processInstanceScriptContent(
         }
     };
 
-    if (moveImportByGroup) {
-        moveAllInstanceImports(tsAst, astOffset, !!moduleAst, script.start, str);
-    }
+    moveAllInstanceImports(tsAst, astOffset, !!moduleAst, script.start, str);
 
     const walk = (node: ts.Node, parent: ts.Node) => {
         type onLeaveCallback = () => void;
@@ -264,10 +256,6 @@ export function processInstanceScriptContent(
         }
 
         if (ts.isImportDeclaration(node)) {
-            if (!moveImportByGroup) {
-                handleImportDeclaration(node, str, astOffset, script.start, tsAst);
-            }
-
             // Check if import is the event dispatcher
             events.checkIfImportIsEventDispatcher(node);
         }
@@ -361,10 +349,6 @@ export function processInstanceScriptContent(
         //fire off the on leave callbacks
         onLeaveCallbacks.map((c) => c());
     };
-
-    if (!moveImportByGroup) {
-        handleFirstInstanceImport(tsAst, astOffset, !!moduleAst, str);
-    }
 
     //walk the ast and convert to tsx as we go
     tsAst.forEachChild((n) => walk(n, tsAst));

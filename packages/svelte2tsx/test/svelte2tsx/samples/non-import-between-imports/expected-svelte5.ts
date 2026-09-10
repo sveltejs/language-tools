@@ -1,10 +1,11 @@
 ///<reference types="svelte" />
 ;
-    import { derived } from 'svelte/store';
+    import {} from 'svelte'
+
+    import {} from 'svelte'
 function $$render() {
 
-
-    let a = $derived(1);
+    console.error('hi')
 ;
 async () => {};
 return { props: /** @type {Record<string, never>} */ ({}), exports: {}, bindings: "", slots: {}, events: {} }}

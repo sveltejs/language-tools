@@ -1,10 +1,9 @@
 import { SvelteComponentTyped } from "svelte"
 
 ;
-import type { Foo } from './foo';
+    import type { Foo } from './foo';
 function $$render() {
 
-    
      let foo: Foo/*Ωignore_startΩ*/;foo = __sveltets_2_any(foo);/*Ωignore_endΩ*/;
     type Bar1 ={
         a: true;

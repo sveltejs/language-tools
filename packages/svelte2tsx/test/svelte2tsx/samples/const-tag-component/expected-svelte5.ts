@@ -1,9 +1,8 @@
 ///<reference types="svelte" />
 ;
-import Component from './Component.svelte';
+	import Component from './Component.svelte';
 function $$render() {
 
-	
 	 let box = {width: 3, height: 4};
 	 let constant = 10;
 
