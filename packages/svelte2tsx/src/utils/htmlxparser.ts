@@ -131,29 +131,53 @@ function blankVerbatimContent(htmlx: string, verbatimElements: Node[]) {
     return output;
 }
 
-export function extractFallbackScriptTag(htmlx: string) {
+interface ScriptTagsInfo {
+    start: number;
+    end: number;
+    content: {
+        start: number;
+        end: number;
+    };
+    attributes: Record<string, string | boolean>;
+}
+
+export function extractScriptTags(htmlx: string) {
     const verbatimElements = findVerbatimElements(htmlx);
     const scripts = verbatimElements.filter((node) => node.name === 'script');
     if (!scripts) {
         return undefined;
     }
-
-    let tag: Node;
-    if (scripts.length === 1) {
-        tag = scripts[0];
-    } else {
-        const instance = scripts.find(
-            (v) =>
-                v.attributes.length === 0 ||
-                v.attributes.every((v) => v.name !== 'context' && v.name !== 'module')
-        );
-        if (!instance) {
-            return undefined;
+    let module: ScriptTagsInfo;
+    let instance: ScriptTagsInfo;
+    for (const tag of scripts) {
+        const attributeMap: Record<string, string | boolean> = {};
+        for (const attr of tag.attributes) {
+            attributeMap[attr.name] = attr === true || (attr.value?.[0]?.raw ?? '');
         }
-        tag = instance;
+
+        if (!module && (attributeMap.context === 'module' || attributeMap.module === true)) {
+            module = toScriptTagInfo(tag, attributeMap);
+        } else if (!instance) {
+            instance = toScriptTagInfo(tag, attributeMap);
+        }
     }
 
-    return { start: tag.content.start, end: tag.content.end };
+    return {
+        module,
+        instance
+    };
+}
+
+function toScriptTagInfo(node: Node, attributeMap: Record<string, string | boolean>) {
+    return {
+        start: node.start,
+        end: node.end,
+        content: {
+            start: node.content.start,
+            end: node.content.end
+        },
+        attributes: attributeMap
+    };
 }
 
 export function parseHtmlx(

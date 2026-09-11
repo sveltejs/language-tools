@@ -216,7 +216,10 @@ export const internalHelpers: {
         emitOnTemplateError?: boolean;
         svelte5Plus: boolean;
     }): unknown
-    extractFallbackScriptTag(svelte: string): { start: number; end: number } | undefined;
+    extractScriptTags(svelte: string): {
+        module?: InternalHelpers.ScriptTagInfo;
+        instance?: InternalHelpers.ScriptTagInfo;
+    };
 	renderName: string
 };
 
@@ -242,5 +245,15 @@ export namespace InternalHelpers {
     export interface RewriteExternalImportsConfig {
         workspacePath: string;
         generatedPath: string;
+    }
+
+    export interface ScriptTagInfo {
+        start: number;
+        end: number;
+        content: {
+            start: number;
+            end: number;
+        };
+        attributes: Record<string, string | boolean>;
     }
 }

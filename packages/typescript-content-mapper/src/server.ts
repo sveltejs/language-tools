@@ -41,7 +41,11 @@ function startServer() {
     connection.onRequest('transform', async (v: TransformParams): Promise<TransformResult> => {
         const { fileName, content } = v;
 
-        const isTsFile = /<script\s+[^>]*?lang=('|")(ts|typescript)('|")/.test(content);
+        const scriptTags = internalHelpers.extractScriptTags(content);
+        const isTsFile =
+            isTs(scriptTags.instance?.attributes) || isTs(scriptTags.module?.attributes);
+        const extension = isTsFile ? '.ts' : '.js';
+
         try {
             const projectInfo = projectMap.get(v.projectHandle);
             const resolveTarget = projectInfo?.configFileName ?? fileName;
@@ -77,7 +81,7 @@ function startServer() {
 
             return {
                 text: res.code,
-                extension: isTsFile ? '.ts' : '.js',
+                extension,
                 mappings: res.spanMappings ?? [],
                 diagnostics: []
             };
@@ -112,9 +116,8 @@ function startServer() {
                 diagnostics.length = Math.max(0, length);
             }
 
-            const fallbackScriptTag = internalHelpers.extractFallbackScriptTag(content);
-            const extension = isTsFile ? '.ts' : '.js';
-            if (!fallbackScriptTag) {
+            const script = scriptTags.instance ?? scriptTags.module;
+            if (!script) {
                 return {
                     text: '',
                     extension,
@@ -123,11 +126,11 @@ function startServer() {
                 };
             }
 
-            const length = fallbackScriptTag.end - fallbackScriptTag.start;
+            const length = script.content.end - script.content.start;
             return {
-                text: content.slice(fallbackScriptTag.start, fallbackScriptTag.end),
+                text: content.slice(script.content.start, script.content.end),
                 extension,
-                mappings: [[0, length, fallbackScriptTag.start, length, SpanMapKind.Verbatim]],
+                mappings: [[0, length, script.content.start, length, SpanMapKind.Verbatim]],
                 diagnostics: [diagnostics]
             };
         }
@@ -136,6 +139,14 @@ function startServer() {
 }
 
 startServer();
+
+function isTs(attributes: Record<string, string | boolean> | undefined): boolean {
+    if (!attributes) {
+        return false;
+    }
+    const lang = attributes.lang;
+    return lang === 'ts' || lang === 'typescript';
+}
 
 function offsetAt(position: Position, text: string, lineOffsets = getLineOffsets(text)): number {
     if (position.line >= lineOffsets.length) {
