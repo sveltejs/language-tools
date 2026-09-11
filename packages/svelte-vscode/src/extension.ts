@@ -263,6 +263,14 @@ export function activateSvelteLanguageServer(
             'html.autoClosingTags'
         );
         context.subscriptions.push(disposable);
+
+        if (
+            options?.ts7ContentMapperOptions.enable &&
+            !ls.initializeResult?.customServerStatus?.experimental?.contentMapperModeEnabled
+        ) {
+            toggleFileReferencesMenu(true);
+            enableCustomTsFeatures();
+        }
     });
 
     workspace.onDidSaveTextDocument(async (doc) => {
@@ -304,12 +312,16 @@ export function activateSvelteLanguageServer(
         return ls;
     }
 
-    if (!options?.ts7ContentMapperOptions.enable) {
+    function enableCustomTsFeatures() {
         addFindFileReferencesListener(getLS, context);
         addFindComponentReferencesListener(getLS, context);
 
         addRenameFileListener(getLS);
         addDidChangeTextDocumentListener(getLS);
+    }
+
+    if (!options?.ts7ContentMapperOptions.enable) {
+        enableCustomTsFeatures();
     }
 
     addCompilePreviewCommands(getLS, context);

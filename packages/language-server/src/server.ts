@@ -61,6 +61,7 @@ import {
 import { createLanguageServices } from './plugins/css/service';
 import { FileSystemProvider } from './lib/FileSystemProvider';
 import { TemplateASTParseLoader } from './plugins/svelte/TemplateASTLoader';
+import { contentMapperEnableCheck } from './plugins/typescript-go/content-mapper';
 
 namespace TagCloseRequest {
     export const type: RequestType<TextDocumentPositionParams, string | null, any> =
@@ -199,7 +200,9 @@ export function startServer(options?: LSOptions) {
         const fileSystemProvider = new FileSystemProvider();
         const workspaceFolders = evt.workspaceFolders ?? [{ name: '', uri: evt.rootUri ?? '' }];
 
-        enableTsFeatures = !evt.initializationOptions.ts7ContentMapperOptions?.enable;
+        enableTsFeatures =
+            !evt.initializationOptions.ts7ContentMapperOptions?.enable ||
+            !contentMapperEnableCheck(workspaceFolders);
 
         // Order of plugin registration matters for FirstNonNull, which affects for example hover info
         pluginHost.register(
@@ -396,6 +399,11 @@ export function startServer(options?: LSOptions) {
                 diagnosticProvider: {
                     interFileDependencies: enableTsFeatures,
                     workspaceDiagnostics: false
+                }
+            },
+            customServerStatus: {
+                experimental: {
+                    contentMapperModeEnabled: !enableTsFeatures
                 }
             }
         };

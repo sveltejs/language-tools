@@ -28,6 +28,7 @@ interface ContentMapperManifest {
 
 export interface ContentMapperOptions {
     readonly enable: boolean;
+    readonly extensionApi?: TsExtensionAPI;
 }
 
 export async function setupTsContentMapper(
@@ -53,6 +54,8 @@ export async function setupTsContentMapper(
     api.registerContentMappers(svelteExtensionId, [
         {
             extensions: ['.svelte']
+            // TODO: implement and enable this once content mapper mode is the default.
+
             // inferredProjectContribution: {
             //     manifest: {
             //         name: 'svelte',
@@ -62,7 +65,7 @@ export async function setupTsContentMapper(
         }
     ]);
 
-    return { enable: true };
+    return { enable: true, extensionApi: api };
 }
 
 function getUseTsgo(): boolean | undefined {
