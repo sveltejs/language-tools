@@ -103,7 +103,7 @@ type SvelteTransitionConfig = {
 }
 
 /** @internal PRIVATE API, DO NOT USE */
-type SvelteTransitionReturnType = SvelteTransitionConfig | (() => SvelteTransitionConfig)
+type SvelteTransitionReturnType = SvelteTransitionConfig | ((options: { direction: 'in' | 'out' }) => SvelteTransitionConfig)
 
 /** @internal PRIVATE API, DO NOT USE */
 type SvelteAnimationReturnType = {
@@ -253,7 +253,7 @@ type __sveltets_2_SvelteTransitionConfig = {
     tick?: (t: number, u: number) => void
 }
 /** @internal PRIVATE API, DO NOT USE */
-type __sveltets_2_SvelteTransitionReturnType = __sveltets_2_SvelteTransitionConfig | (() => __sveltets_2_SvelteTransitionConfig)
+type __sveltets_2_SvelteTransitionReturnType = __sveltets_2_SvelteTransitionConfig | ((options: { direction: 'in' | 'out' }) => __sveltets_2_SvelteTransitionConfig)
 declare function __sveltets_2_ensureTransition(transitionCall: __sveltets_2_SvelteTransitionReturnType): {};
 
 // Includes undefined and null for all types as all usages also allow these
