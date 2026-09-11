@@ -5,12 +5,13 @@ import { test_samples } from '../helpers';
 describe('htmlx2jsx', () => {
     test_samples(
         __dirname,
-        (input, { emitOnTemplateError, preserveAttributeCase }) => {
+        (input, { emitOnTemplateError, preserveAttributeCase, looseAttributePrefixes }) => {
             return htmlx2jsx(input, parse, {
                 emitOnTemplateError,
                 preserveAttributeCase,
                 typingsNamespace: 'svelteHTML',
-                svelte5Plus: Number(VERSION[0]) >= 5
+                svelte5Plus: Number(VERSION[0]) >= 5,
+                looseAttributePrefixes
             });
         },
         'js'

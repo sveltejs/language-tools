@@ -26,6 +26,7 @@ function processSvelteTemplate(
         emitJsDoc?: boolean;
         isTsFile?: boolean;
         rewriteExternalImports?: RewriteExternalImportsOptions;
+        looseAttributePrefixes?: string[];
     }
 ): TemplateProcessResult {
     const { htmlxAst, tags } = parseHtmlx(str.original, parse, options);
@@ -55,6 +56,13 @@ export function svelte2tsx(
             workspacePath: string;
             generatedPath: string;
         };
+        /**
+         * Attribute name prefixes (e.g. `['mochi:']`) whose attributes should not be
+         * type-checked against element attribute / component prop types. Useful when
+         * a preprocessor removes such attributes before the Svelte compiler sees them.
+         * Matching attributes are treated like `data-*` attributes: accepted, but untyped.
+         */
+        looseAttributePrefixes?: string[];
     } = { parse }
 ) {
     options.mode = options.mode || 'ts';

@@ -52,6 +52,7 @@ export function handleLet(
                 parent,
                 preserveCase,
                 svelte5Plus,
+                undefined,
                 element
             );
         }
