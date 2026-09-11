@@ -619,7 +619,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                     continue;
                 }
             }
-        
+
             groups.push(current);
             current = { range: cloneRange(edit.range), newText: edit.newText };
         }

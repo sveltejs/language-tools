@@ -71,7 +71,8 @@ function startServer() {
                 parse: compiler.parse,
                 version: compiler.VERSION,
                 shimPaths: globalTypes,
-                generateSpanMapping: true
+                generateSpanMapping: true,
+                moveTsCheckDirective: true
             });
 
             return {

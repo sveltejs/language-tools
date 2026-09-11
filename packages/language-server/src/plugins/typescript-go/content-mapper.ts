@@ -26,7 +26,6 @@ export function contentMapperEnableCheck(workspaceFolders: WorkspaceFolder[]) {
             ['node_modules'],
             ['**/tsconfig.json', '**/jsconfig.json']
         );
-        console.log(files)
 
         for (const file of files) {
             const res = ts.parseJsonSourceFileConfigFileContent(
@@ -39,7 +38,6 @@ export function contentMapperEnableCheck(workspaceFolders: WorkspaceFolder[]) {
                 [],
                 extendedConfigCache
             );
-            console.log(res.raw)
 
             if (
                 typeof res.raw.contentMappers === 'object' &&

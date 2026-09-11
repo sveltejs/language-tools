@@ -246,6 +246,7 @@ function preprocessSvelteFile(document: Document, options: SvelteSnapshotOptions
             typingsNamespace: options.typingsNamespace,
             emitOnTemplateError: options.transformOnTemplateError,
             namespace: document.config?.compilerOptions?.namespace,
+            moveTsCheckDirective: true,
             accessors:
                 document.config?.compilerOptions?.accessors ??
                 (typeof document.config?.compilerOptions?.customElement === 'function'
@@ -265,13 +266,6 @@ function preprocessSvelteFile(document: Document, options: SvelteSnapshotOptions
 
         if (tsxMap) {
             tsxMap.sources = [document.uri];
-
-            const scriptInfo = document.scriptInfo || document.moduleScriptInfo;
-            const tsCheck = getTsCheckComment(scriptInfo?.content);
-            if (tsCheck) {
-                text = tsCheck + text;
-                nrPrependedLines = 1;
-            }
         }
     } catch (e: any) {
         // Error start/end logic is different and has different offsets for line, so we need to convert that

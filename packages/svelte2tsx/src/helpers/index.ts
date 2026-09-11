@@ -10,7 +10,7 @@ import {
 } from './sveltekit';
 import { findExports } from './typescript';
 import { parseTemplateOnly } from './svelteAst';
-import { extractFallbackScriptTag } from '../utils/htmlxparser'
+import { extractFallbackScriptTag } from '../utils/htmlxparser';
 
 /**
  * ## Internal, do not use! This is subject to change at any time.

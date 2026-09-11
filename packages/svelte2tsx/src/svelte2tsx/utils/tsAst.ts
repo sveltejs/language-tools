@@ -277,3 +277,19 @@ function isNewGroup(sourceFile: ts.SourceFile, topLevelImportDecl: ts.Node, scan
 export function getTopLevelImports(sourceFile: ts.SourceFile): ts.ImportDeclaration[] {
     return sourceFile.statements.filter(ts.isImportDeclaration).sort((a, b) => a.end - b.end);
 }
+
+export function nextLineOrNonWhitespace(text: string, pos: number) {
+    let nextCharCode = text.charCodeAt(pos);
+    while (ts.isWhiteSpaceSingleLine(nextCharCode)) {
+        pos++;
+        nextCharCode = text.charCodeAt(pos);
+    }
+    if (nextCharCode === /*\r*/ 13) {
+        pos++;
+        nextCharCode = text.charCodeAt(pos);
+    }
+    if (nextCharCode === /*\n*/ 10) {
+        pos++;
+    }
+    return pos;
+}

@@ -13,6 +13,7 @@ import path from 'path';
 import { parse, VERSION } from 'svelte/compiler';
 import { getTopLevelImports } from './utils/tsAst';
 import { RewriteExternalImportsOptions } from '../helpers/rewriteExternalImports';
+import { extractTsCheckComment } from './nodes/directiveComment';
 
 function processSvelteTemplate(
     str: MagicString,
@@ -59,6 +60,7 @@ export function svelte2tsx(
         };
         shimPaths?: string[];
         generateSpanMapping?: boolean;
+        moveTsCheckDirective?: boolean;
     } = { parse }
 ) {
     options.mode = options.mode || 'ts';
@@ -297,11 +299,21 @@ export function svelte2tsx(
             code
         };
     } else {
-        str.prepend('///<reference types="svelte" />\n');
         if (options.shimPaths) {
-            for (const shimPath of options.shimPaths) {
+            for (const shimPath of options.shimPaths.reverse()) {
                 const normalizedPath = shimPath.replace(/\\/g, '/');
                 str.prepend(`///<reference path="${normalizedPath}" />\n`);
+            }
+        }
+        str.prepend('///<reference types="svelte" />\n');
+
+        if (options.moveTsCheckDirective) {
+            const scriptOrModule = scriptTag || moduleScriptTag;
+            if (scriptOrModule) {
+                const tsCheckComments = extractTsCheckComment(scriptOrModule.content.raw);
+                if (tsCheckComments.length > 0) {
+                    str.prepend(tsCheckComments.join('\n') + '\n');
+                }
             }
         }
 

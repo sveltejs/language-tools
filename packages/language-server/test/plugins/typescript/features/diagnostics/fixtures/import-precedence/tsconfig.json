@@ -15,5 +15,5 @@
             "package": "svelte-typescript-content-mapper",
             "extensions": [".svelte"]
         }
-    ]    
+    ]
 }

@@ -1,5 +1,6 @@
 import MagicString from 'magic-string';
 import ts from 'typescript';
+import { nextLineOrNonWhitespace } from '../utils/tsAst';
 
 export function moveAllInstanceImports(
     tsAst: ts.SourceFile,
@@ -44,33 +45,14 @@ function moveImportGroup(
 ) {
     // Starting from the start line of the import or its leading comment
     // Avoid moving the astOffset so that the $store declaration and snippet won't move with it.
-    const start = moveToNewLineOrNonWhitespace(str.original, imports[0].pos + astOffset);
+    const start = nextLineOrNonWhitespace(str.original, imports[0].pos + astOffset);
 
     if (prependStr) {
         str.appendRight(start, prependStr);
     }
 
     // Next auto-import is inserted here. Remove import also ends with here.
-    const end = moveToNewLineOrNonWhitespace(
-        str.original,
-        imports[imports.length - 1].end + astOffset
-    );
+    const end = nextLineOrNonWhitespace(str.original, imports[imports.length - 1].end + astOffset);
     str.move(start, end, scriptStart + 1);
     return end;
-}
-
-function moveToNewLineOrNonWhitespace(text: string, pos: number) {
-    let nextCharCode = text.charCodeAt(pos);
-    while (ts.isWhiteSpaceSingleLine(nextCharCode)) {
-        pos++;
-        nextCharCode = text.charCodeAt(pos);
-    }
-    if (nextCharCode === /*\r*/ 13) {
-        pos++;
-        nextCharCode = text.charCodeAt(pos);
-    }
-    if (nextCharCode === /*\n*/ 10) {
-        pos++;
-    }
-    return pos;
 }
