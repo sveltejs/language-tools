@@ -132,9 +132,8 @@ export class ConfigLoader {
 
             const pathResults = new this.globSync({})
                 .withPathSeparator('/')
-                .exclude((_, path) => {
-                    // no / at the start, path could start with node_modules
-                    return path.includes('node_modules/') || path.includes('/.') || path[0] === '.';
+                .exclude((dirName) => {
+                    return dirName === 'node_modules' || dirName.startsWith('.');
                 })
                 .filter((path, isDir) => {
                     return !isDir && targetRegex.test(path);
