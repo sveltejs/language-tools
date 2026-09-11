@@ -4,7 +4,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { svelte2tsx, internalHelpers } from 'svelte2tsx';
 import ts from 'typescript';
 import { createMessageConnection } from 'vscode-jsonrpc';
-import { StreamMessageReader, StreamMessageWriter } from 'vscode-jsonrpc/node';
+import { StreamMessageReader, StreamMessageWriter } from 'vscode-jsonrpc/node.js';
 
 // Override console.log to prevent logging to stdout
 // This is important because the client/server communicates with the client via stdout, and logging to stdout would interfere with this communication

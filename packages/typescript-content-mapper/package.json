@@ -1,6 +1,6 @@
 {
     "name": "svelte-typescript-content-mapper",
-    "version": "1.0.0",
+    "version": "0.1.0",
     "description": "",
     "scripts": {},
     "keywords": [],
@@ -22,9 +22,9 @@
     "dependencies": {
         "svelte2tsx": "workspace:~",
         "typescript": "~6.0.2",
-        "vscode-jsonrpc": "^9.0.1"
+        "vscode-jsonrpc": "^8.2.0"
     },
     "devDependencies": {
-        "@types/node": "^22.20.1"
+        "@types/node": "^18.0.0"
     }
 }
