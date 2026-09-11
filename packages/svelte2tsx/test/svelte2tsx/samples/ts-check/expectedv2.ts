@@ -13,7 +13,7 @@
     //    @ts-check
 ;
 async () => {};
-return { props: {} as Record<string, never>, exports: {}, bindings: "", slots: {}, events: {} }}
-const Input__SvelteComponent_ = __sveltets_2_isomorphic_component(__sveltets_2_with_any_event($$render()));
-/*Ωignore_startΩ*/type Input__SvelteComponent_ = InstanceType<typeof Input__SvelteComponent_>;
-/*Ωignore_endΩ*/export default Input__SvelteComponent_;
+return { props: {} as Record<string, never>, slots: {}, events: {} }}
+
+export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_with_any_event($$render())) {
+}
