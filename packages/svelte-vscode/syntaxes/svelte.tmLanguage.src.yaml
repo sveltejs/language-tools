@@ -35,6 +35,11 @@ injections:
     patterns: [{begin: '(?<=>)(?!</)', end: '(?=</)', name: meta.embedded.block.svelte,
     contentName: source.coffee, patterns: [{ include: source.coffee }]}]
 
+  # Civet | 'civet' | 'source.civet'
+  'L:(meta.script.svelte | meta.style.svelte) meta.lang.civet - (meta source)':
+    patterns: [{begin: '(?<=>)(?!</)', end: '(?=</)', name: meta.embedded.block.svelte,
+    contentName: source.civet, patterns: [{ include: source.civet }]}]
+
   # Script Languages
   # Default (JavaScript)
   'L:meta.script.svelte - meta.lang - (meta source)':
@@ -95,7 +100,7 @@ injections:
 
   # - TS / JS / CS -
 
-  'L:(source.ts, source.js, source.coffee)':
+  'L:(source.ts, source.js, source.coffee, source.civet)':
     patterns:
     # Matches the store accessor symbol.
     # i.e. the `$` in `$myStore`.
