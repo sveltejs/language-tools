@@ -312,6 +312,14 @@ describe('TypescriptPlugin', function () {
         ]);
     });
 
+    it('does not provide document symbols for imports', async () => {
+        const { plugin, document } = setup('documentsymbols-imports.svelte');
+        const symbols = await plugin.getDocumentSymbols(document);
+        const names = symbols.map((symbol) => symbol.name).sort();
+
+        assert.deepStrictEqual(names, ['answer', 'local', 'run']);
+    });
+
     it('can cancel document symbols before promise resolved', async () => {
         const { plugin, document } = setup('documentsymbols.svelte');
         const cancellationTokenSource = new CancellationTokenSource();
