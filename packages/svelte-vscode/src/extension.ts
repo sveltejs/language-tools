@@ -60,7 +60,7 @@ let lsApi:
     | undefined;
 
 export async function activate(context: ExtensionContext) {
-    let tsGoContentMapperOptions = await setupTsContentMapper(context.extension.id);
+    let tsGoContentMapperOptions = await setupTsContentMapper(context.extension);
 
     let tsPlugin: TsPlugin | undefined;
     if (!tsGoContentMapperOptions.enable) {
@@ -100,7 +100,7 @@ export async function activate(context: ExtensionContext) {
                 event.affectsConfiguration('typescript.experimental.useTsgo') ||
                 event.affectsConfiguration('js/ts.experimental.useTsgo')
             ) {
-                const newUseTsGoContentMapper = await setupTsContentMapper(context.extension.id);
+                const newUseTsGoContentMapper = await setupTsContentMapper(context.extension);
                 if (newUseTsGoContentMapper !== tsGoContentMapperOptions) {
                     tsGoContentMapperOptions = newUseTsGoContentMapper;
                     toggleFileReferencesMenu(!tsGoContentMapperOptions.enable);

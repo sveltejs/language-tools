@@ -48,7 +48,8 @@ function startServer() {
 
         try {
             const projectInfo = projectMap.get(v.projectHandle);
-            const resolveTarget = projectInfo?.configFileName ?? fileName;
+            // In the inferred project, projectInfo isn't undefined and configFileName is empty string
+            const resolveTarget = projectInfo?.configFileName || fileName;
             const resolveConfig = {
                 paths: [path.dirname(resolveTarget), path.dirname(fileURLToPath(import.meta.url))]
             };

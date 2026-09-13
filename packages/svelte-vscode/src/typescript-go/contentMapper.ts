@@ -32,34 +32,40 @@ export interface ContentMapperOptions {
 }
 
 export async function setupTsContentMapper(
-    svelteExtensionId: string
+    svelteExtension: vscode.Extension<any>
 ): Promise<ContentMapperOptions> {
     if (!getUseTsgo() || !contentMapperEnable()) {
         return { enable: false };
     }
 
-    const extension = vscode.extensions.getExtension('TypeScriptTeam.native-preview');
+    const tsGoExtension = vscode.extensions.getExtension('TypeScriptTeam.native-preview');
 
-    if (!extension) {
+    if (!tsGoExtension) {
         return { enable: false };
     }
 
-    const api = (await extension.activate()) as TsExtensionAPI;
+    const api = (await tsGoExtension.activate()) as TsExtensionAPI;
 
     if (!(api && 'registerContentMappers' in api)) {
         // TODO: might want to build a hybrid solution in this case, since we don't know when the extension will be updated to support the new API.
         return { enable: false };
     }
 
-    api.registerContentMappers(svelteExtensionId, [
+    api.registerContentMappers(svelteExtension.id, [
         {
             extensions: ['.svelte']
-            // TODO: implement and enable this once content mapper mode is the default.
+            // TODO: Enable this once content mapper mode is the default.
+            // The reason is that once inferredProjectContribution is enabled, typescript lsp will always enable the content mapper mode.
+            // Which means the content mapper won't be an opt-in experimental feature anymore.
 
             // inferredProjectContribution: {
             //     manifest: {
-            //         name: 'svelte',
-            //         exec: ['node', 'path/to/mapper.js']
+            //         name: 'svelte-typescript-content-mapper',
+            //         exec: [
+            //             process.execPath,
+            //             './node_modules/svelte-typescript-content-mapper/dist/server.js'
+            //         ],
+            //         cwd: svelteExtension.extensionUri
             //     }
             // }
         }
