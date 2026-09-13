@@ -1,6 +1,7 @@
 import { Node } from 'estree-walker';
 import MagicString from 'magic-string';
 import { BaseDirective } from '../../interfaces';
+import { ExtraGeneratedMapping, SpanMapFeature, SpanMapGenerator } from '../../utils/spanMap';
 
 /**
  * A transformation array consists of three types:
@@ -27,7 +28,8 @@ export function transform(
     str: MagicString,
     start: number,
     end: number,
-    transformations: TransformationArray
+    transformations: TransformationArray,
+    spanMapGenerator: SpanMapGenerator | undefined
 ) {
     const moves: Array<[number, number]> = [];
     let appendPosition = end;
@@ -68,6 +70,7 @@ export function transform(
                 // so that autocompletion triggered on the last character works correctly.
                 const overwrite = typeof next === 'string' ? next : '';
                 str.overwrite(tEnd - 1, tEnd, overwrite, { contentOnly: true });
+                spanMapGenerator?.ignoreMappingForPosition(tEnd - 1);
             }
 
             appendPosition = tEnd;
@@ -173,6 +176,29 @@ export function getDirectiveNameStartEndIdx(
 ): [number, number] {
     const colonIdx = str.original.indexOf(':', node.start);
     return [colonIdx + 1, colonIdx + 1 + `${node.name}`.length];
+}
+
+const directiveMappingFeatures =
+    SpanMapFeature.Definition |
+    SpanMapFeature.References |
+    SpanMapFeature.Rename |
+    SpanMapFeature.Completion |
+    SpanMapFeature.Hover |
+    SpanMapFeature.DocumentHighlights |
+    SpanMapFeature.CodeActions |
+    SpanMapFeature.SemanticTokens |
+    SpanMapFeature.SelectionRanges;
+
+export function addDirectiveNameMapping(
+    spanMapGenerator: SpanMapGenerator | undefined,
+    nameRange: [number, number],
+    extraMapping?: ExtraGeneratedMapping
+): void {
+    const [start, end] = nameRange;
+    spanMapGenerator?.addSourceSpan(start, end, {
+        features: directiveMappingFeatures,
+        extraMapping
+    });
 }
 
 /**

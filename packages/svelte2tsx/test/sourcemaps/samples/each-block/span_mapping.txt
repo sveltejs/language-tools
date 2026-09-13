@@ -1,0 +1,331 @@
+>///<reference types="svelte" />
+>;function $$render() {
+>async () => {  for(let item of __sveltets_2_ensureArray(items)){
+#             ^ [Atom] => 0-1
+-             {
+#              ^ [Atom] => 13-14
+-              a
+#                       ^^^^ [Verbatim] => 16-20
+-                       item
+#                                                        ^^^^^ [Verbatim] => 7-12
+-                                                        items
+#
+>     { svelteHTML.createElement("li", {});item.name;  item.qty; }
+#^^^^ [Verbatim] => 21-23
+-
+-╚
+#    ^ [Atom] => 23-24
+-    <
+#                                 ^^ [Verbatim] => 24-26
+-                                 li
+#                                          ^^^^^^^^^ [Verbatim] => 28-37
+-                                          item.name
+#                                                   ^^ [Atom] => 37-39
+-                                                   }•
+#                                                      ^^^^^^^^ [Verbatim] => 42-50
+-                                                      item.qty
+#                                                              ^ [Atom] => 50-51
+-                                                              }
+#                                                               ^ [Atom] => 52-53
+-                                                               /
+#
+>}
+# [Verbatim] => 56-57
+-
+-
+#^ [Atom] => 57-58
+-{
+#
+>
+# [Verbatim] => 64-65
+-
+-
+#
+>   for(let item of __sveltets_2_ensureArray(items)){let i = 1;
+# [Verbatim] => 64-65
+-
+-
+#^ [Atom] => 66-67
+-{
+# ^ [Atom] => 79-80
+- a
+#  ^ [Verbatim] => 87-88
+-  •
+#           ^^^^ [Verbatim] => 82-86
+-           item
+#                                            ^^^^^ [Verbatim] => 73-78
+-                                            items
+#                                                        ^ [Verbatim] => 88-89
+-                                                        i
+#
+>     { svelteHTML.createElement("li", {});i + 1; item.name;  item.qty; }
+#^^^^ [Verbatim] => 90-92
+-
+-╚
+#    ^ [Atom] => 92-93
+-    <
+#                                 ^^ [Verbatim] => 93-95
+-                                 li
+#                                          ^^^^^ [Verbatim] => 97-102
+-                                          i•+•1
+#                                               ^ [Atom] => 102-103
+-                                               }
+#                                                ^ [Atom] => 103-104
+-                                                :
+#                                                 ^^^^^^^^^ [Verbatim] => 106-115
+-                                                 item.name
+#                                                          ^^ [Atom] => 115-117
+-                                                          }•
+#                                                             ^^^^^^^^ [Verbatim] => 120-128
+-                                                             item.qty
+#                                                                     ^ [Atom] => 128-129
+-                                                                     }
+#                                                                      ^ [Atom] => 130-131
+-                                                                      /
+#
+>}
+# [Verbatim] => 134-135
+-
+-
+#^ [Atom] => 135-136
+-{
+#
+>
+# [Verbatim] => 142-143
+-
+-
+#
+>    for(let { id, name, qty } of __sveltets_2_ensureArray(items)){let i = 1;id;
+# [Verbatim] => 142-143
+-
+-
+#^ [Atom] => 144-145
+-{
+# ^ [Atom] => 157-158
+- a
+#  ^ [Verbatim] => 178-179
+-  •
+#   ^ [Atom] => 181-182
+-   (
+#            ^^^^^^^^^^^^^^^^^ [Verbatim] => 160-177
+-            {•id,•name,•qty•}
+#                                                          ^^^^^ [Verbatim] => 151-156
+-                                                          items
+#                                                                      ^ [Verbatim] => 179-180
+-                                                                      i
+#                                                                            ^^ [Verbatim] => 182-184
+-                                                                            id
+#
+>     { svelteHTML.createElement("li", {});i + 1; name;  qty; }
+#^^^^ [Verbatim] => 186-188
+-
+-╚
+#    ^ [Atom] => 188-189
+-    <
+#                                 ^^ [Verbatim] => 189-191
+-                                 li
+#                                          ^^^^^ [Verbatim] => 193-198
+-                                          i•+•1
+#                                               ^ [Atom] => 198-199
+-                                               }
+#                                                ^ [Atom] => 199-200
+-                                                :
+#                                                 ^^^^ [Verbatim] => 202-206
+-                                                 name
+#                                                     ^^ [Atom] => 206-208
+-                                                     }•
+#                                                        ^^^ [Verbatim] => 211-214
+-                                                        qty
+#                                                           ^ [Atom] => 214-215
+-                                                           }
+#                                                            ^ [Atom] => 216-217
+-                                                            /
+#
+>}
+# [Verbatim] => 220-221
+-
+-
+#^ [Atom] => 221-222
+-{
+#
+>
+# [Verbatim] => 228-229
+-
+-
+#
+>  for(let { id, ...rest } of __sveltets_2_ensureArray(objects)){
+# [Verbatim] => 228-229
+-
+-
+#^ [Atom] => 230-231
+-{
+# ^ [Atom] => 245-246
+- a
+#          ^^^^^^^^^^^^^^^ [Verbatim] => 248-263
+-          {•id,•...rest•}
+#                                                      ^^^^^^^ [Verbatim] => 237-244
+-                                                      objects
+#
+>     { svelteHTML.createElement("li", {}); { svelteHTML.createElement("span", {});id; }  { const $$_tnenopmoCyM1C = __sveltets_2_ensureComponent(MyComponent); new $$_tnenopmoCyM1C({ target: __sveltets_2_any(), props: {...rest,}});} }
+#^^^^ [Verbatim] => 264-266
+-
+-╚
+#    ^ [Atom] => 266-267
+-    <
+#                                 ^^ [Verbatim] => 267-269
+-                                 li
+#                                          ^ [Atom] => 270-271
+-                                          <
+#                                                                       ^^^^ [Verbatim] => 271-275
+-                                                                       span
+#                                                                                  ^^ [Verbatim] => 277-279
+-                                                                                  id
+#                                                                                    ^ [Atom] => 279-280
+-                                                                                    }
+#                                                                                     ^ [Atom] => 281-282
+-                                                                                     /
+#                                                                                       ^ [Atom] => 287-288
+-                                                                                       <
+#                                                                                        ^ [Atom] => 310-311
+-                                                                                        >
+#                                                                                                                                                 ^^^^^^^^^^^ [Verbatim],[Hover|Completion|Definition|Implementation|References|DocumentHighlights|Rename|CallHierarchy|CodeActions|SelectionRanges|DocumentSymbols] => 288-299
+-                                                                                                                                                 MyComponent
+#                                                                                                                                                                                                                  ^^^^^ [Atom],[None] => 288-299
+-                                                                                                                                                                                                                  MyComponent
+#                                                                                                                                                                                                                          ^^^^^^^ [Verbatim] => 301-308
+-                                                                                                                                                                                                                          ...rest
+#                                                                                                                                                                                                                                       ^ [Atom] => 312-313
+-                                                                                                                                                                                                                                       /
+#
+>}
+# [Verbatim] => 316-317
+-
+-
+#^ [Atom] => 317-318
+-{
+#
+>
+# [Verbatim] => 324-325
+-
+-
+#
+>  for(let [id, ...rest] of __sveltets_2_ensureArray(items)){
+# [Verbatim] => 324-325
+-
+-
+#^ [Atom] => 326-327
+-{
+# ^ [Atom] => 339-340
+- a
+#          ^^^^^^^^^^^^^ [Verbatim] => 342-355
+-          [id,•...rest]
+#                                                    ^^^^^ [Verbatim] => 333-338
+-                                                    items
+#
+>     { svelteHTML.createElement("li", {}); { svelteHTML.createElement("span", {});id; }  { const $$_tnenopmoCyM1C = __sveltets_2_ensureComponent(MyComponent); new $$_tnenopmoCyM1C({ target: __sveltets_2_any(), props: { "values":rest,}});} }
+#^^^^ [Verbatim] => 356-358
+-
+-╚
+#    ^ [Atom] => 358-359
+-    <
+#                                 ^^ [Verbatim] => 359-361
+-                                 li
+#                                          ^ [Atom] => 362-363
+-                                          <
+#                                                                       ^^^^ [Verbatim] => 363-367
+-                                                                       span
+#                                                                                  ^^ [Verbatim] => 369-371
+-                                                                                  id
+#                                                                                    ^ [Atom] => 371-372
+-                                                                                    }
+#                                                                                     ^ [Atom] => 373-374
+-                                                                                     /
+#                                                                                       ^ [Atom] => 379-380
+-                                                                                       <
+#                                                                                        ^ [Atom] => 406-407
+-                                                                                        >
+#                                                                                                                                                 ^^^^^^^^^^^ [Verbatim],[Hover|Completion|Definition|Implementation|References|DocumentHighlights|Rename|CallHierarchy|CodeActions|SelectionRanges|DocumentSymbols] => 380-391
+-                                                                                                                                                 MyComponent
+#                                                                                                                                                                                                                  ^^^^^ [Atom],[None] => 380-391
+-                                                                                                                                                                                                                  MyComponent
+#                                                                                                                                                                                                                          ^ [Atom] => 399-400
+-                                                                                                                                                                                                                          {
+#                                                                                                                                                                                                                           ^ [Atom] => 392-392
+-
+#                                                                                                                                                                                                                            ^^^^^^ [Verbatim] => 392-398
+-                                                                                                                                                                                                                            values
+#                                                                                                                                                                                                                                    ^^^^ [Verbatim] => 400-404
+-                                                                                                                                                                                                                                    rest
+#                                                                                                                                                                                                                                              ^ [Atom] => 408-409
+-                                                                                                                                                                                                                                              /
+#
+>}
+# [Verbatim] => 412-413
+-
+-
+#^ [Atom] => 413-414
+-{
+#
+>
+# [Verbatim] => 420-421
+-
+-
+#
+>  for(let todo of __sveltets_2_ensureArray(todos)){
+# [Verbatim] => 420-421
+-
+-
+#^ [Atom] => 422-423
+-{
+# ^ [Atom] => 435-436
+- a
+#          ^^^^ [Verbatim] => 438-442
+-          todo
+#                                           ^^^^^ [Verbatim] => 429-434
+-                                           todos
+#
+>     { svelteHTML.createElement("p", {});todo.text; }
+#^^^^ [Verbatim] => 443-445
+-
+-╚
+#    ^ [Atom] => 445-446
+-    <
+#                                 ^ [Verbatim] => 446-447
+-                                 p
+#                                         ^^^^^^^^^ [Verbatim] => 449-458
+-                                         todo.text
+#                                                  ^ [Atom] => 458-459
+-                                                  }
+#                                                   ^ [Atom] => 460-461
+-                                                   /
+#
+>}
+# [Verbatim] => 463-464
+-
+-
+#^ [Atom] => 464-465
+-{
+#
+>     { svelteHTML.createElement("p", {});   }
+#^^^^ [Verbatim] => 471-473
+-
+-╚
+#    ^ [Atom] => 473-474
+-    <
+#                                 ^ [Verbatim] => 474-475
+-                                 p
+#                                         ^ [Atom] => 476-477
+-                                         N
+#                                           ^ [Atom] => 492-493
+-                                           /
+#
+>};
+# [Verbatim] => 495-496
+-
+-
+>return { props: /** @type {Record<string, never>} */ ({}), slots: {}, events: {} }}
+>
+>export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial(__sveltets_2_with_any_event($$render()))) {
+#                     ^^^^^^^^^^^^^^^^^^^^^^^ [Atom],[Definition] => 0-0
+-
+>}

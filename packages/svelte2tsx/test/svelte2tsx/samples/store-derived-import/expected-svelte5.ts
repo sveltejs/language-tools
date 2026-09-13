@@ -1,9 +1,8 @@
 ///<reference types="svelte" />
 ;
-import { derived } from 'svelte/store';
+    import { derived } from 'svelte/store';
 function $$render() {
 
-    
 
     let a = $derived(1);
 ;

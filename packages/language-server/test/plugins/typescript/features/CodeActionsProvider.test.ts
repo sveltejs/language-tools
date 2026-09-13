@@ -1684,7 +1684,7 @@ describe('CodeActionsProvider', function () {
                                         },
                                         end: {
                                             line: 7,
-                                            character: 2
+                                            character: 0
                                         }
                                     }
                                 },
@@ -1693,7 +1693,7 @@ describe('CodeActionsProvider', function () {
                                     range: {
                                         start: {
                                             line: 7,
-                                            character: 2
+                                            character: 0
                                         },
                                         end: {
                                             line: 8,
@@ -1741,7 +1741,7 @@ describe('CodeActionsProvider', function () {
                                         "import { _d } from 'svelte-i18n';\n  import { _e } from 'svelte-i18n1';\n",
                                     range: {
                                         end: {
-                                            character: 2,
+                                            character: 0,
                                             line: 6
                                         },
                                         start: {
@@ -1754,11 +1754,11 @@ describe('CodeActionsProvider', function () {
                                     newText: '',
                                     range: {
                                         end: {
-                                            character: 2,
+                                            character: 0,
                                             line: 7
                                         },
                                         start: {
-                                            character: 2,
+                                            character: 0,
                                             line: 6
                                         }
                                     }
@@ -1767,7 +1767,7 @@ describe('CodeActionsProvider', function () {
                                     newText: '',
                                     range: {
                                         start: {
-                                            character: 2,
+                                            character: 0,
                                             line: 7
                                         },
                                         end: {
@@ -1933,9 +1933,20 @@ describe('CodeActionsProvider', function () {
                                             line: 1
                                         }
                                     }
+                                },
+                                {
+                                    newText: "import { } from './somepng.png';\n",
+                                    range: {
+                                        end: {
+                                            character: 0,
+                                            line: 4
+                                        },
+                                        start: {
+                                            character: 4,
+                                            line: 3
+                                        }
+                                    }
                                 }
-                                // Because the generated code adds a ; after the last import, the
-                                // second import is not appearing in the edits here
                             ],
                             textDocument: {
                                 uri: getUri('organize-imports-leading-comment.svelte'),
@@ -1993,7 +2004,7 @@ describe('CodeActionsProvider', function () {
                                         `${indent}import { } from './codeaction-checkJs.svelte';\n`,
                                     range: {
                                         end: {
-                                            character: 4,
+                                            character: 0,
                                             line: 4
                                         },
                                         start: {
@@ -2010,7 +2021,7 @@ describe('CodeActionsProvider', function () {
                                             line: 5
                                         },
                                         start: {
-                                            character: 4,
+                                            character: 0,
                                             line: 4
                                         }
                                     }
@@ -2058,8 +2069,8 @@ describe('CodeActionsProvider', function () {
                         },
                         // is from generated code
                         textRange: {
-                            pos: 181,
-                            end: 215
+                            pos: 177,
+                            end: 211
                         }
                     }
                 ],
@@ -2150,7 +2161,7 @@ describe('CodeActionsProvider', function () {
                                         },
                                         end: {
                                             line: 2,
-                                            character: 2
+                                            character: 0
                                         }
                                     },
                                     newText: "import A from './A';\n"
@@ -2159,7 +2170,7 @@ describe('CodeActionsProvider', function () {
                                     range: {
                                         start: {
                                             line: 2,
-                                            character: 2
+                                            character: 0
                                         },
                                         end: {
                                             line: 3,
@@ -2208,7 +2219,7 @@ describe('CodeActionsProvider', function () {
                                         },
                                         end: {
                                             line: 2,
-                                            character: 4
+                                            character: 0
                                         }
                                     },
                                     newText: ''
@@ -2217,7 +2228,7 @@ describe('CodeActionsProvider', function () {
                                     range: {
                                         start: {
                                             line: 2,
-                                            character: 4
+                                            character: 0
                                         },
                                         end: {
                                             line: 3,
@@ -2234,7 +2245,7 @@ describe('CodeActionsProvider', function () {
                                         },
                                         end: {
                                             line: 5,
-                                            character: 4
+                                            character: 0
                                         }
                                     },
                                     newText: ''
@@ -2243,7 +2254,7 @@ describe('CodeActionsProvider', function () {
                                     range: {
                                         start: {
                                             line: 5,
-                                            character: 4
+                                            character: 0
                                         },
                                         end: {
                                             line: 6,
@@ -2316,8 +2327,8 @@ describe('CodeActionsProvider', function () {
                         },
                         // is from generated code
                         textRange: {
-                            pos: 181,
-                            end: 215
+                            pos: 177,
+                            end: 211
                         }
                     }
                 ],

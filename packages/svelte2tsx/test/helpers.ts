@@ -332,9 +332,8 @@ export function test_samples(dir: string, transform: TransformSampleFn, js: 'js'
                         assert.strictEqual(actual, expected, TestError.WrongExpected);
                     } catch (e) {
                         // html2jsx tests don't have the default export
-                        const expectDefaultExportPosition = expected.lastIndexOf(
-                            '\n\nexport default class'
-                        );
+                        const expectDefaultExportPosition =
+                            expected?.lastIndexOf('\n\nexport default class') ?? -1;
                         if (expectDefaultExportPosition === -1) {
                             throw e;
                         }
@@ -372,8 +371,10 @@ type BaseConfig = {
     emitOnTemplateError?: boolean;
     filename?: string;
     rewriteExternalImports?: Svelte2TsxConfig['rewriteExternalImports'];
+    generateSpanMapping?: boolean;
+    moveTsCheckDirective?: boolean;
 };
-type Svelte2TsxConfig = Required<Parameters<typeof svelte2tsx>[1]>;
+type Svelte2TsxConfig = Parameters<typeof svelte2tsx>[1];
 
 export function get_svelte2tsx_config(base: BaseConfig, sampleName: string): Svelte2TsxConfig {
     return {
@@ -386,7 +387,9 @@ export function get_svelte2tsx_config(base: BaseConfig, sampleName: string): Sve
         accessors: sampleName.startsWith('accessors-config'),
         emitJsDoc: sampleName.startsWith('jsdoc-'),
         version: VERSION,
-        rewriteExternalImports: base.rewriteExternalImports
+        rewriteExternalImports: base.rewriteExternalImports,
+        generateSpanMapping: base.generateSpanMapping,
+        moveTsCheckDirective: base.moveTsCheckDirective ?? true
     };
 }
 

@@ -11,16 +11,14 @@ import { ImplicitStoreValues } from './nodes/ImplicitStoreValues';
 import { Generics } from './nodes/Generics';
 import { is$$SlotsDeclaration } from './nodes/slot';
 import { preprendStr } from '../utils/magic-string';
-import {
-    handleFirstInstanceImport,
-    handleImportDeclaration
-} from './nodes/handleImportDeclaration';
+import { moveAllInstanceImports } from './nodes/handleImportDeclaration';
 import { InterfacesAndTypes } from './nodes/InterfacesAndTypes';
 import { ModuleAst } from './processModuleScriptTag';
 import {
     rewriteExternalImportsInNode,
     RewriteExternalImportsOptions
 } from '../helpers/rewriteExternalImports';
+import { SpanMapGenerator } from '../utils/spanMap';
 
 export interface InstanceScriptProcessResult {
     exportedNames: ExportedNames;
@@ -53,7 +51,8 @@ export function processInstanceScriptContent(
     isSvelte5Plus: boolean,
     isRunes: boolean,
     emitJsDoc: boolean,
-    rewriteExternalImports?: RewriteExternalImportsOptions
+    rewriteExternalImports?: RewriteExternalImportsOptions,
+    spanMapGenerator: SpanMapGenerator | undefined = undefined
 ): InstanceScriptProcessResult {
     const htmlx = str.original;
     const scriptContent = htmlx.substring(script.content.start, script.content.end);
@@ -120,10 +119,12 @@ export function processInstanceScriptContent(
             scope = scope.parent;
         }
         const storename = node.getText().slice(1);
-        implicitStoreValues.addStoreAcess(storename);
+        implicitStoreValues.addStoreAccess(storename);
     };
 
     const handleIdentifier = (ident: ts.Identifier, parent: ts.Node) => {
+        spanMapGenerator?.addSourceSpan(astOffset + ident.getStart(), astOffset + ident.end);
+
         if (ident.text === '$$props') {
             uses$$props = true;
             return;
@@ -201,6 +202,8 @@ export function processInstanceScriptContent(
         }
     };
 
+    moveAllInstanceImports(tsAst, astOffset, !!moduleAst, script.start, str);
+
     const walk = (node: ts.Node, parent: ts.Node) => {
         type onLeaveCallback = () => void;
         const onLeaveCallbacks: onLeaveCallback[] = [];
@@ -253,8 +256,6 @@ export function processInstanceScriptContent(
         }
 
         if (ts.isImportDeclaration(node)) {
-            handleImportDeclaration(node, str, astOffset, script.start, tsAst);
-
             // Check if import is the event dispatcher
             events.checkIfImportIsEventDispatcher(node);
         }
@@ -362,8 +363,6 @@ export function processInstanceScriptContent(
     // declare implicit reactive variables we found in the script
     implicitTopLevelNames.modifyCode(rootScope.declared);
     implicitStoreValues.modifyCode(astOffset, str);
-
-    handleFirstInstanceImport(tsAst, astOffset, !!moduleAst, str);
 
     // move interfaces and types out of the render function if they are referenced
     // by a $$Generic, otherwise it will be used before being defined after the transformation

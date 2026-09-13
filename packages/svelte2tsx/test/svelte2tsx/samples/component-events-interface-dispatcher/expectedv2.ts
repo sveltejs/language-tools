@@ -1,9 +1,8 @@
 ///<reference types="svelte" />
 ;
-import { createEventDispatcher } from 'svelte';
+    import { createEventDispatcher } from 'svelte';
 function $$render() {
 
-    
 
     interface $$Events {
         /**

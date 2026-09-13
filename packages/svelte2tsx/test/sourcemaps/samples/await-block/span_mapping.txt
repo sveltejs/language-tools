@@ -1,0 +1,131 @@
+>///<reference types="svelte" />
+>;function $$render() {
+>async () => {   { const $$_value = await (promise);{ const value = $$_value;
+#             ^ [Atom] => 0-1
+-             {
+#              ^ [Atom] => 16-17
+-              t
+#               ^ [Atom] => 61-62
+-               a
+#                                          ^^^^^^^ [Verbatim] => 8-15
+-                                          promise
+#                                                           ^^^^^ [Verbatim] => 21-26
+-                                                           value
+#
+>      { svelteHTML.createElement("element", { "foo":value.bar,});}
+# [Verbatim] => 27-28
+-
+-
+#^ [Atom] => 27-28
+-
+-
+#    ^ [Atom] => 32-33
+-    <
+#     ^ [Atom] => 57-58
+-     >
+#                                  ^^^^^^^ [Verbatim] => 33-40
+-                                  element
+#                                             ^ [Atom] => 45-46
+-                                             {
+#                                              ^ [Atom] => 41-41
+-
+#                                               ^^^ [Verbatim] => 41-44
+-                                               foo
+#                                                    ^^^^^^^^^ [Verbatim] => 46-55
+-                                                    value.bar
+#
+>}}
+# [Verbatim] => 58-59
+-
+-
+#
+>
+# [Verbatim] => 67-68
+-
+-
+#
+>   {
+# [Verbatim] => 67-68
+-
+-
+#^ [Atom] => 69-70
+-{
+# ^ [Atom] => 100-101
+- :
+#  ^ [Atom] => 122-123
+-  a
+#
+>     { svelteHTML.createElement("element", {});}
+# [Verbatim] => 85-86
+-
+-
+#^^^^ [Atom] => 85-86
+-
+-
+#    ^ [Atom] => 87-88
+-    <
+#                                 ^^^^^^^ [Verbatim] => 88-95
+-                                 element
+#
+>await (promise);
+# [Verbatim] => 98-99
+-
+-
+#       ^^^^^^^ [Verbatim] => 77-84
+-       promise
+#
+>     { svelteHTML.createElement("element", {});}
+# [Verbatim] => 106-107
+-
+-
+#^^^^ [Atom] => 106-107
+-
+-
+#    ^ [Atom] => 108-109
+-    <
+#                                 ^^^^^^^ [Verbatim] => 109-116
+-                                 element
+#
+>}
+# [Verbatim] => 119-120
+-
+-
+#
+>
+# [Verbatim] => 128-129
+-
+-
+#
+>  {
+# [Verbatim] => 128-129
+-
+-
+#^ [Atom] => 130-131
+-{
+# ^ [Atom] => 163-164
+- a
+#
+>     { svelteHTML.createElement("element", {});}
+# [Verbatim] => 147-148
+-
+-
+#^^^^ [Atom] => 147-148
+-
+-
+#    ^ [Atom] => 149-150
+-    <
+#                                 ^^^^^^^ [Verbatim] => 150-157
+-                                 element
+#
+>await ($promise);}};
+# [Verbatim] => 160-161
+-
+-
+#       ^^^^^^^^ [Verbatim] => 138-146
+-       $promise
+>return { props: /** @type {Record<string, never>} */ ({}), slots: {}, events: {} }}
+>
+>export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial(__sveltets_2_with_any_event($$render()))) {
+#                     ^^^^^^^^^^^^^^^^^^^^^^^ [Atom],[Definition] => 0-0
+-
+>}

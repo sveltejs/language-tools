@@ -1,0 +1,1193 @@
+>///<reference types="svelte" />
+>;
+#^ [Atom] => 0-1
+-<
+#
+>    export async function preload({ params }) {
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>        const res = await this.fetch(`tutorial/${params.slug}.json`);
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>
+#
+>        if (!res.ok) {
+#^^^^^^^^^^^^^^^^^^^^^^
+>            return this.redirect(301, `tutorial/basics`);
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>        }
+#^^^^^^^^^
+>
+#
+>        return {
+#^^^^^^^^^^^^^^^^
+>            slug: params.slug,
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>            chapter: await res.json()
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>        };
+#^^^^^^^^^^
+>    }
+#^^^^^
+>;;
+# [Verbatim] => 25-277
+-
+-╚export•async•function•preload({•params•})•{
+-╚╚const•res•=•await•this.fetch(`tutorial/${params.slug}.json`);
+-
+-╚╚if•(!res.ok)•{
+-╚╚╚return•this.redirect(301,•`tutorial/basics`);
+-╚╚}
+-
+-╚╚return•{
+-╚╚╚slug:•params.slug,
+-╚╚╚chapter:•await•res.json()
+-╚╚};
+-╚}
+-
+#^ [Atom] => 277-278
+-<
+# ^ [Atom] => 288-289
+- <
+>
+>    import Repl from '@sveltejs/svelte-repl';
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>    import { getContext } from 'svelte';
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>
+#
+>    import ScreenToggle from '../../../components/ScreenToggle.svelte';
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>    import TableOfContents from './_TableOfContents.svelte';
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>
+#
+>    import {
+#^^^^^^^^^^^^
+>        mapbox_setup, // needed for context API tutorial
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>        rollupUrl,
+#^^^^^^^^^^^^^^^^^^
+>        svelteUrl
+#^^^^^^^^^^^^^^^^^
+>    } from '../../../config';
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>function $$render() {
+# [Verbatim] => 297-620
+-╚import•Repl•from•'@sveltejs/svelte-repl';
+-╚import•{•getContext•}•from•'svelte';
+-
+-╚import•ScreenToggle•from•'../../../components/ScreenToggle.svelte';
+-╚import•TableOfContents•from•'./_TableOfContents.svelte';
+-
+-╚import•{
+-╚╚mapbox_setup,•//•needed•for•context•API•tutorial
+-╚╚rollupUrl,
+-╚╚svelteUrl
+-╚}•from•'../../../config';
+-
+#^ [Atom] => 289-290
+-s
+>
+#
+>
+# [Verbatim] => 296-297
+-
+-
+#
+>     let slug/*Ωignore_startΩ*/;slug = __sveltets_2_any(slug);/*Ωignore_endΩ*/;
+#^^^^ [Verbatim] => 620-622
+-
+-╚
+#    ^^^^^^^^^ [Verbatim] => 628-637
+-    •let•slug
+#             ^ [Atom] => 637-638
+-             ;
+#
+>     let chapter/*Ωignore_startΩ*/;chapter = __sveltets_2_any(chapter);/*Ωignore_endΩ*/;
+#^^^^ [Verbatim] => 638-640
+-
+-╚
+#    ^^^^^^^^^^^^ [Verbatim] => 646-658
+-    •let•chapter
+#                ^ [Atom] => 658-659
+-                ;
+#
+>
+#
+>    const { sections } = getContext('tutorial');
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>
+#
+>    let repl;
+#^^^^^^^^^^^^^
+>    let prev;
+#^^^^^^^^^^^^^
+>    let scrollable;
+#^^^^^^^^^^^^^^^^^^^
+>    const lookup = new Map();
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>
+#
+>    let width = process.browser ? window.innerWidth : 1000;
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>    let offset = 0;
+#^^^^^^^^^^^^^^^^^^^
+>
+#
+>    sections.forEach(section => {
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>        section.chapters.forEach(chapter => {
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>            const obj = {
+#^^^^^^^^^^^^^^^^^^^^^^^^^
+>                slug: chapter.slug,
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>                section,
+#^^^^^^^^^^^^^^^^^^^^^^^^
+>                chapter,
+#^^^^^^^^^^^^^^^^^^^^^^^^
+>                prev
+#^^^^^^^^^^^^^^^^^^^^
+>            };
+#^^^^^^^^^^^^^^
+>
+#
+>            lookup.set(chapter.slug, obj);
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>
+#
+>            if (process.browser) { // pending https://github.com/sveltejs/svelte/issues/2135
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>                if (prev) prev.next = obj;
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>                prev = obj;
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>            }
+#^^^^^^^^^^^^^
+>        });
+#^^^^^^^^^^^
+>    });
+#^^^^^^^
+>
+#
+>    // TODO is there a non-hacky way to trigger scroll when chapter changes?
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>    ;() => {$: if (scrollable) chapter, scrollable.scrollTo(0, 0);}
+#^^^^ [Verbatim] => 659-1262
+-
+-
+-╚const•{•sections•}•=•getContext('tutorial');
+-
+-╚let•repl;
+-╚let•prev;
+-╚let•scrollable;
+-╚const•lookup•=•new•Map();
+-
+-╚let•width•=•process.browser•?•window.innerWidth•:•1000;
+-╚let•offset•=•0;
+-
+-╚sections.forEach(section•=>•{
+-╚╚section.chapters.forEach(chapter•=>•{
+-╚╚╚const•obj•=•{
+-╚╚╚╚slug:•chapter.slug,
+-╚╚╚╚section,
+-╚╚╚╚chapter,
+-╚╚╚╚prev
+-╚╚╚};
+-
+-╚╚╚lookup.set(chapter.slug,•obj);
+-
+-╚╚╚if•(process.browser)•{•//•pending•https://github.com/sveltejs/svelte/issues/2135
+-╚╚╚╚if•(prev)•prev.next•=•obj;
+-╚╚╚╚prev•=•obj;
+-╚╚╚}
+-╚╚});
+-╚});
+-
+-╚//•TODO•is•there•a•non-hacky•way•to•trigger•scroll•when•chapter•changes?
+-╚
+#            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ [Verbatim] => 1262-1316
+-            $:•if•(scrollable)•chapter,•scrollable.scrollTo(0,•0);
+#                                                                  ^ [Atom] => 1316-1317
+-
+-
+>
+#
+>    // TODO: this will need to be changed to the master branch, and probably should be dynamic instead of included
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>    //   here statically
+#^^^^^^^^^^^^^^^^^^^^^^^^
+>    const tutorial_repo_link = 'https://github.com/sveltejs/svelte/tree/master/site/content/tutorial';
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>
+#
+>    let  selected = __sveltets_2_invalidate(() => lookup.get(slug));
+#^^^^ [Verbatim] => 1317-1554
+-
+-╚//•TODO:•this•will•need•to•be•changed•to•the•master•branch,•and•probably•should•be•dynamic•instead•of•included
+-╚//•••here•statically
+-╚const•tutorial_repo_link•=•'https://github.com/sveltejs/svelte/tree/master/site/content/tutorial';
+-
+-╚
+#        ^^^^^^^^^^^^ [Verbatim] => 1556-1568
+-        •selected•=•
+#                                                  ^^^^^^^^^^^^^^^^ [Verbatim] => 1568-1584
+-                                                  lookup.get(slug)
+#                                                                  ^ [Atom] => 1584-1585
+-                                                                  ;
+#
+>    let  improve_link = __sveltets_2_invalidate(() => `${tutorial_repo_link}/${selected.chapter.section_dir}/${selected.chapter.chapter_dir}`);
+#^^^^ [Verbatim] => 1585-1587
+-
+-╚
+#        ^^^^^^^^^^^^^^^^ [Verbatim] => 1589-1605
+-        •improve_link•=•
+#                                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ [Verbatim] => 1605-1692
+-                                                      `${tutorial_repo_link}/${selected.chapter.section_dir}/${selected.chapter.chapter_dir}`
+#                                                                                                                                             ^ [Atom] => 1692-1693
+-                                                                                                                                             ;
+#
+>
+#
+>    const clone = file => ({
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>        name: file.name,
+#^^^^^^^^^^^^^^^^^^^^^^^^
+>        type: file.type,
+#^^^^^^^^^^^^^^^^^^^^^^^^
+>        source: file.source
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>    });
+#^^^^^^^
+>
+#
+>    ;() => {$: if (repl) {
+#^^^^ [Verbatim] => 1693-1788
+-
+-
+-╚const•clone•=•file•=>•({
+-╚╚name:•file.name,
+-╚╚type:•file.type,
+-╚╚source:•file.source
+-╚});
+-
+-╚
+#            ^^^^^^^^^^^^^^
+>        completed = false;
+#^^^^^^^^^^^^^^^^^^^^^^^^^^
+>        repl.set({
+#^^^^^^^^^^^^^^^^^^
+>            components: chapter.app_a.map(clone)
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>        });
+#^^^^^^^^^^^
+>    }}
+#^^^^^ [Verbatim] => 1788-1885
+-$:•if•(repl)•{
+-╚╚completed•=•false;
+-╚╚repl.set({
+-╚╚╚components:•chapter.app_a.map(clone)
+-╚╚});
+-╚}
+#     ^ [Atom] => 1885-1886
+-
+-
+>
+#
+>    let  mobile = __sveltets_2_invalidate(() => width < 768);
+#^^^^ [Verbatim] => 1886-1888
+-
+-╚
+#        ^^^^^^^^^^ [Verbatim] => 1890-1900
+-        •mobile•=•
+#                                                ^^^^^^^^^^^ [Verbatim] => 1900-1911
+-                                                width•<•768
+#                                                           ^ [Atom] => 1911-1912
+-                                                           ;
+#
+>
+#
+>    function reset() {
+#^^^^^^^^^^^^^^^^^^^^^^
+>        repl.update({
+#^^^^^^^^^^^^^^^^^^^^^
+>            components: chapter.app_a.map(clone)
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>        });
+#^^^^^^^^^^^
+>    }
+#^^^^^
+>
+#
+>    function complete() {
+#^^^^^^^^^^^^^^^^^^^^^^^^^
+>        repl.update({
+#^^^^^^^^^^^^^^^^^^^^^
+>            components: chapter.app_b.map(clone)
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>        });
+#^^^^^^^^^^^
+>    }
+#^^^^^
+>
+#
+>    let completed = false;
+#^^^^^^^^^^^^^^^^^^^^^^^^^^
+>
+#
+>    function handle_change(event) {
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>        completed = event.detail.components.every((file, i) => {
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>            const expected = chapter.app_b[i];
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>            return expected && (
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>                file.name === expected.name &&
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>                file.type === expected.type &&
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>                file.source.trim().replace(/\s+$/gm, '') === expected.source.trim().replace(/\s+$/gm, '')
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>            );
+#^^^^^^^^^^^^^^
+>        });
+#^^^^^^^^^^^
+>    }
+#^^^^^
+>;
+# [Verbatim] => 1912-2447
+-
+-
+-╚function•reset()•{
+-╚╚repl.update({
+-╚╚╚components:•chapter.app_a.map(clone)
+-╚╚});
+-╚}
+-
+-╚function•complete()•{
+-╚╚repl.update({
+-╚╚╚components:•chapter.app_b.map(clone)
+-╚╚});
+-╚}
+-
+-╚let•completed•=•false;
+-
+-╚function•handle_change(event)•{
+-╚╚completed•=•event.detail.components.every((file,•i)•=>•{
+-╚╚╚const•expected•=•chapter.app_b[i];
+-╚╚╚return•expected•&&•(
+-╚╚╚╚file.name•===•expected.name•&&
+-╚╚╚╚file.type•===•expected.type•&&
+-╚╚╚╚file.source.trim().replace(/\s+$/gm,•'')•===•expected.source.trim().replace(/\s+$/gm,•'')
+-╚╚╚);
+-╚╚});
+-╚}
+-
+#^ [Atom] => 2447-2448
+-<
+>async () => {
+#^ [Atom] => 2447-2448
+-<
+#
+>
+# [Verbatim] => 286-287
+-
+-
+#
+>
+# [Verbatim] => 286-287
+-
+-
+#
+>
+# [Verbatim] => 2456-2457
+-
+-
+#
+>
+# [Verbatim] => 2456-2457
+-
+-
+#
+>
+# [Verbatim] => 5227-5228
+-
+-
+#
+> { svelteHTML.createElement("svelte:head", {});
+# [Verbatim] => 5227-5228
+-
+-
+#^ [Atom] => 5230-5231
+-s
+#
+>     { svelteHTML.createElement("title", {});selected.section.title;  selected.chapter.title;    }
+# [Verbatim] => 5242-5243
+-
+-
+#^^^^ [Atom] => 5242-5243
+-
+-
+#    ^ [Atom] => 5244-5245
+-    <
+#                                 ^^^^^ [Verbatim] => 5245-5250
+-                                 title
+#                                             ^^^^^^^^^^^^^^^^^^^^^^ [Verbatim] => 5252-5274
+-                                             selected.section.title
+#                                                                   ^^ [Atom] => 5274-5276
+-                                                                   }•
+#                                                                      ^^^^^^^^^^^^^^^^^^^^^^ [Verbatim] => 5279-5301
+-                                                                      selected.chapter.title
+#                                                                                            ^^ [Atom] => 5301-5303
+-                                                                                            }•
+#                                                                                                ^ [Atom] => 5321-5322
+-                                                                                                /
+#
+>
+# [Verbatim] => 5328-5329
+-
+-
+#
+>     { svelteHTML.createElement("meta", {   "name":`twitter:title`,"content":`Svelte tutorial`,});}
+# [Verbatim] => 5328-5329
+-
+-
+#^^^^ [Atom] => 5328-5329
+-
+-
+#    ^ [Atom] => 5331-5332
+-    <
+#                                 ^^^^ [Verbatim] => 5332-5336
+-                                 meta
+#                                         ^ [Atom] => 5342-5343
+-                                         "
+#                                          ^ [Verbatim] => 5357-5358
+-                                          •
+#                                           ^ [Atom] => 5366-5367
+-                                           "
+#                                            ^ [Atom] => 5337-5337
+-
+#                                             ^^^^ [Verbatim] => 5337-5341
+-                                             name
+#                                                    ^^^^^^^^^^^^^ [Verbatim] => 5343-5356
+-                                                    twitter:title
+#                                                                   ^ [Atom] => 5358-5358
+-
+#                                                                    ^^^^^^^ [Verbatim] => 5358-5365
+-                                                                    content
+#                                                                              ^^^^^^^^^^^^^^^ [Verbatim] => 5367-5382
+-                                                                              Svelte•tutorial
+#
+>     { svelteHTML.createElement("meta", {   "name":`twitter:description`,"content":`${selected.section.title} / ${selected.chapter.title}`,});}
+# [Verbatim] => 5384-5385
+-
+-
+#^^^^ [Atom] => 5384-5385
+-
+-
+#    ^ [Atom] => 5386-5387
+-    <
+#                                 ^^^^ [Verbatim] => 5387-5391
+-                                 meta
+#                                         ^ [Atom] => 5397-5398
+-                                         "
+#                                          ^ [Verbatim] => 5418-5419
+-                                          •
+#                                           ^ [Atom] => 5427-5428
+-                                           "
+#                                            ^ [Atom] => 5392-5392
+-
+#                                             ^^^^ [Verbatim] => 5392-5396
+-                                             name
+#                                                    ^^^^^^^^^^^^^^^^^^^ [Verbatim] => 5398-5417
+-                                                    twitter:description
+#                                                                         ^ [Atom] => 5419-5419
+-
+#                                                                          ^^^^^^^ [Verbatim] => 5419-5426
+-                                                                          content
+#                                                                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^ [Verbatim] => 5428-5455
+-                                                                                     {selected.section.title}•/•
+#                                                                                                                 ^^^^^^^^^^^^^^^^^^^^^^^^ [Verbatim] => 5455-5479
+-                                                                                                                 {selected.chapter.title}
+#
+>     { svelteHTML.createElement("meta", {   "name":`Description`,"content":`${selected.section.title} / ${selected.chapter.title}`,});}
+# [Verbatim] => 5481-5482
+-
+-
+#^^^^ [Atom] => 5481-5482
+-
+-
+#    ^ [Atom] => 5483-5484
+-    <
+#                                 ^^^^ [Verbatim] => 5484-5488
+-                                 meta
+#                                         ^ [Atom] => 5494-5495
+-                                         "
+#                                          ^ [Verbatim] => 5507-5508
+-                                          •
+#                                           ^ [Atom] => 5516-5517
+-                                           "
+#                                            ^ [Atom] => 5489-5489
+-
+#                                             ^^^^ [Verbatim] => 5489-5493
+-                                             name
+#                                                    ^^^^^^^^^^^ [Verbatim] => 5495-5506
+-                                                    Description
+#                                                                 ^ [Atom] => 5508-5508
+-
+#                                                                  ^^^^^^^ [Verbatim] => 5508-5515
+-                                                                  content
+#                                                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^ [Verbatim] => 5517-5544
+-                                                                             {selected.section.title}•/•
+#                                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^ [Verbatim] => 5544-5568
+-                                                                                                         {selected.chapter.title}
+#
+> }
+# [Verbatim] => 5570-5571
+-
+-
+#^ [Atom] => 5572-5573
+-/
+#
+>
+# [Verbatim] => 5585-5586
+-
+-
+#
+>  { svelteHTML.createElement("svelte:window", { "bind:innerWidth":width,});/*Ωignore_startΩ*/() => width = __sveltets_2_any(null);/*Ωignore_endΩ*/}
+# [Verbatim] => 5585-5586
+-
+-
+#^ [Atom] => 5587-5588
+-<
+# ^ [Atom] => 5626-5627
+- >
+#                                               ^ [Atom] => 5618-5619
+-                                               {
+#                                                 ^^^^^^^^^^^^^^^ [Verbatim] => 5602-5617
+-                                                 bind:innerWidth
+#                                                                  ^^^^^ [Verbatim] => 5619-5624
+-                                                                  width
+#
+>
+# [Verbatim] => 5627-5628
+-
+-
+#
+> { svelteHTML.createElement("div", { "class":`tutorial-outer`,});
+# [Verbatim] => 5627-5628
+-
+-
+#^ [Atom] => 5629-5630
+-<
+#                             ^^^ [Verbatim] => 5630-5633
+-                             div
+#                                    ^ [Atom] => 5640-5641
+-                                    "
+#                                     ^ [Atom] => 5634-5634
+-
+#                                      ^^^^^ [Verbatim] => 5634-5639
+-                                      class
+#                                              ^^^^^^^^^^^^^^ [Verbatim] => 5641-5655
+-                                              tutorial-outer
+#
+>     { svelteHTML.createElement("div", { "class":`viewport offset-${offset}`,});
+# [Verbatim] => 5657-5658
+-
+-
+#^^^^ [Atom] => 5657-5658
+-
+-
+#    ^ [Atom] => 5659-5660
+-    <
+#                                 ^^^ [Verbatim] => 5660-5663
+-                                 div
+#                                        ^ [Atom] => 5670-5671
+-                                        "
+#                                         ^ [Atom] => 5664-5664
+-
+#                                          ^^^^^ [Verbatim] => 5664-5669
+-                                          class
+#                                                  ^^^^^^^^^^^^^^^^ [Verbatim] => 5671-5687
+-                                                  viewport•offset-
+#                                                                   ^^^^^^^^ [Verbatim] => 5687-5695
+-                                                                   {offset}
+#
+>         { svelteHTML.createElement("div", { "class":`tutorial-text`,});
+# [Verbatim] => 5697-5698
+-
+-
+#^^^^ [Atom] => 5697-5698
+-
+-
+#        ^ [Atom] => 5700-5701
+-        <
+#                                     ^^^ [Verbatim] => 5701-5704
+-                                     div
+#                                            ^ [Atom] => 5711-5712
+-                                            "
+#                                             ^ [Atom] => 5705-5705
+-
+#                                              ^^^^^ [Verbatim] => 5705-5710
+-                                              class
+#                                                      ^^^^^^^^^^^^^ [Verbatim] => 5712-5725
+-                                                      tutorial-text
+#
+>             { svelteHTML.createElement("div", { "class":`table-of-contents`,});
+# [Verbatim] => 5727-5728
+-
+-
+#^^^^ [Atom] => 5727-5728
+-
+-
+#            ^ [Atom] => 5731-5732
+-            <
+#                                         ^^^ [Verbatim] => 5732-5735
+-                                         div
+#                                                ^ [Atom] => 5742-5743
+-                                                "
+#                                                 ^ [Atom] => 5736-5736
+-
+#                                                  ^^^^^ [Verbatim] => 5736-5741
+-                                                  class
+#                                                          ^^^^^^^^^^^^^^^^^ [Verbatim] => 5743-5760
+-                                                          table-of-contents
+#
+>                  { const $$_stnetnoCfOelbaT4C = __sveltets_2_ensureComponent(TableOfContents); new $$_stnetnoCfOelbaT4C({ target: __sveltets_2_any(), props: {  sections,slug,selected,}});}
+# [Verbatim] => 5762-5763
+-
+-
+#^^^^ [Atom] => 5762-5763
+-
+-
+#                ^ [Atom] => 5767-5768
+-                <
+#                 ^ [Atom] => 5813-5814
+-                 >
+#                                                                              ^^^^^^^^^^^^^^^ [Verbatim],[Hover|Completion|Definition|Implementation|References|DocumentHighlights|Rename|CallHierarchy|CodeActions|SelectionRanges|DocumentSymbols] => 5768-5783
+-                                                                              TableOfContents
+#                                                                                                                                                       ^^^^^ [Atom],[None] => 5768-5783
+-                                                                                                                                                       TableOfContents
+#                                                                                                                                                               ^ [Verbatim] => 5794-5795
+-                                                                                                                                                               •
+#                                                                                                                                                                ^ [Verbatim] => 5801-5802
+-                                                                                                                                                                •
+#                                                                                                                                                                 ^^^^^^^^ [Verbatim] => 5785-5793
+-                                                                                                                                                                 sections
+#                                                                                                                                                                          ^^^^ [Verbatim] => 5796-5800
+-                                                                                                                                                                          slug
+#                                                                                                                                                                               ^^^^^^^^ [Verbatim] => 5803-5811
+-                                                                                                                                                                               selected
+#
+>             }
+# [Verbatim] => 5814-5815
+-
+-
+#^^^^ [Atom] => 5814-5815
+-
+-
+#            ^ [Atom] => 5819-5820
+-            /
+#
+>
+# [Verbatim] => 5824-5825
+-
+-
+#
+>             { const $$_div3 = svelteHTML.createElement("div", {  "class":`chapter-markup`,});scrollable = $$_div3;
+# [Verbatim] => 5824-5825
+-
+-
+#^^^^ [Atom] => 5824-5825
+-
+-
+#            ^ [Atom] => 5829-5830
+-            <
+#                                                         ^^^ [Verbatim] => 5830-5833
+-                                                         div
+#                                                                ^ [Atom] => 5840-5841
+-                                                                "
+#                                                                 ^ [Verbatim] => 5856-5857
+-                                                                 •
+#                                                                  ^ [Atom] => 5834-5834
+-
+#                                                                   ^^^^^ [Verbatim] => 5834-5839
+-                                                                   class
+#                                                                           ^^^^^^^^^^^^^^ [Verbatim] => 5841-5855
+-                                                                           chapter-markup
+#                                                                                              ^^^^^^^^^^ [Verbatim] => 5868-5878
+-                                                                                              scrollable
+#
+>                 chapter.html;
+# [Verbatim] => 5880-5881
+-
+-
+#^^^^ [Atom] => 5880-5881
+-
+-
+#                ^ [Atom] => 5885-5886
+-                {
+#                 ^^^^^^^^^^^^ [Verbatim] => 5892-5904
+-                 chapter.html
+#                             ^
+>
+# [Atom] => 5904-5906
+-}
+-
+#
+>                 { svelteHTML.createElement("div", { "class":`controls`,});
+# [Verbatim] => 5905-5906
+-
+-
+#^^^^ [Atom] => 5905-5906
+-
+-
+#                ^ [Atom] => 5911-5912
+-                <
+#                                             ^^^ [Verbatim] => 5912-5915
+-                                             div
+#                                                    ^ [Atom] => 5922-5923
+-                                                    "
+#                                                     ^ [Atom] => 5916-5916
+-
+#                                                      ^^^^^ [Verbatim] => 5916-5921
+-                                                      class
+#                                                              ^^^^^^^^ [Verbatim] => 5923-5931
+-                                                              controls
+#
+>                    if(chapter.app_b){
+# [Verbatim] => 5933-5934
+-
+-
+#^^^^ [Atom] => 5933-5934
+-
+-
+#                    ^ [Atom] => 5939-5940
+-                    {
+#                       ^^^^^^^^^^^^^ [Verbatim] => 5944-5957
+-                       chapter.app_b
+#                                    ^ [Atom] => 5957-5958
+-                                    }
+#
+>
+#^^^^^^^^^^^^^^^^^^^^^^^^ [Verbatim] => 5958-5965
+-
+-╚╚╚╚╚╚
+#
+>                          { svelteHTML.createElement("button", {   "class":`show`,"on:click":() => completed ? reset() : complete(),});
+# [Verbatim] => 6067-6068
+-
+-
+#^^^^ [Atom] => 6067-6068
+-
+-
+#                        ^ [Atom] => 6074-6075
+-                        <
+#                         ^ [Atom] => 6146-6147
+-                         >
+#                                                      ^^^^^^ [Verbatim] => 6075-6081
+-                                                      button
+#                                                                ^ [Atom] => 6088-6089
+-                                                                "
+#                                                                 ^ [Verbatim] => 6094-6095
+-                                                                 •
+#                                                                  ^ [Atom] => 6104-6105
+-                                                                  "
+#                                                                   ^ [Atom] => 6082-6082
+-
+#                                                                    ^^^^^ [Verbatim] => 6082-6087
+-                                                                    class
+#                                                                            ^^^^ [Verbatim] => 6089-6093
+-                                                                            show
+#                                                                                  ^^^^ [Atom],[Hover|Completion|Definition|References] => 6098-6098
+-
+#                                                                                      ^^^^^ [Verbatim] => 6098-6103
+-                                                                                      click
+#                                                                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ [Verbatim] => 6106-6144
+-                                                                                             ()•=>•completed•?•reset()•:•complete()
+#
+>                            completed ? 'Reset' : 'Show me';
+# [Verbatim] => 6147-6148
+-
+-
+#^^^^ [Atom] => 6147-6148
+-
+-
+#                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ [Verbatim] => 6156-6187
+-                            completed•?•'Reset'•:•'Show•me'
+#                                                           ^
+>                         }
+# [Atom] => 6187-6189
+-}
+-
+#^^^^ [Atom] => 6188-6189
+-
+-
+#                        ^ [Atom] => 6196-6197
+-                        /
+#
+>                    }
+#^^^^^^^^^^^^^^^^^^^^ [Verbatim] => 6204-6210
+-
+-╚╚╚╚╚
+#                    ^ [Atom] => 6210-6211
+-                    {
+#
+>
+# [Verbatim] => 6215-6216
+-
+-
+#
+>                    if(selected.next){
+# [Verbatim] => 6215-6216
+-
+-
+#^^^^ [Atom] => 6215-6216
+-
+-
+#                    ^ [Atom] => 6222-6223
+-                    {
+#                       ^^^^^^^^^^^^^ [Verbatim] => 6227-6240
+-                       selected.next
+#                                    ^ [Atom] => 6240-6241
+-                                    }
+#
+>                         { svelteHTML.createElement("a", {   "class":`next`,"href":`tutorial/${selected.next.slug}`,});  }
+#^^^^^^^^^^^^^^^^^^^^^^^^ [Verbatim] => 6241-6248
+-
+-╚╚╚╚╚╚
+#                        ^ [Atom] => 6248-6249
+-                        <
+#                                                     ^ [Verbatim] => 6249-6250
+-                                                     a
+#                                                          ^ [Atom] => 6257-6258
+-                                                          "
+#                                                           ^ [Verbatim] => 6263-6264
+-                                                           •
+#                                                            ^ [Atom] => 6269-6270
+-                                                            "
+#                                                             ^ [Atom] => 6251-6251
+-
+#                                                              ^^^^^ [Verbatim] => 6251-6256
+-                                                              class
+#                                                                      ^^^^ [Verbatim] => 6258-6262
+-                                                                      next
+#                                                                            ^ [Atom] => 6264-6264
+-
+#                                                                             ^^^^ [Verbatim] => 6264-6268
+-                                                                             href
+#                                                                                    ^^^^^^^^^ [Verbatim] => 6270-6279
+-                                                                                    tutorial/
+#                                                                                              ^^^^^^^^^^^^^^^^^^^^ [Verbatim] => 6279-6299
+-                                                                                              {selected.next.slug}
+#                                                                                                                       ^ [Atom] => 6301-6302
+-                                                                                                                       N
+#                                                                                                                        ^ [Atom] => 6306-6307
+-                                                                                                                        /
+#
+>                    }
+#^^^^^^^^^^^^^^^^^^^^ [Verbatim] => 6309-6315
+-
+-╚╚╚╚╚
+#                    ^ [Atom] => 6315-6316
+-                    {
+#
+>                 }
+# [Verbatim] => 6320-6321
+-
+-
+#^^^^ [Atom] => 6320-6321
+-
+-
+#                ^ [Atom] => 6326-6327
+-                /
+#
+>
+# [Verbatim] => 6331-6332
+-
+-
+#
+>                 { svelteHTML.createElement("div", { "class":`improve-chapter`,});
+# [Verbatim] => 6331-6332
+-
+-
+#^^^^ [Atom] => 6331-6332
+-
+-
+#                ^ [Atom] => 6337-6338
+-                <
+#                                             ^^^ [Verbatim] => 6338-6341
+-                                             div
+#                                                    ^ [Atom] => 6348-6349
+-                                                    "
+#                                                     ^ [Atom] => 6342-6342
+-
+#                                                      ^^^^^ [Verbatim] => 6342-6347
+-                                                      class
+#                                                              ^^^^^^^^^^^^^^^ [Verbatim] => 6349-6364
+-                                                              improve-chapter
+#
+>                     { svelteHTML.createElement("a", {   "class":`no-underline`,"href":improve_link,});   }
+# [Verbatim] => 6366-6367
+-
+-
+#^^^^ [Atom] => 6366-6367
+-
+-
+#                    ^ [Atom] => 6372-6373
+-                    <
+#                                                 ^ [Verbatim] => 6373-6374
+-                                                 a
+#                                                      ^ [Atom] => 6381-6382
+-                                                      "
+#                                                       ^ [Verbatim] => 6395-6396
+-                                                       •
+#                                                        ^ [Atom] => 6401-6402
+-                                                        {
+#                                                         ^ [Atom] => 6375-6375
+-
+#                                                          ^^^^^ [Verbatim] => 6375-6380
+-                                                          class
+#                                                                  ^^^^^^^^^^^^ [Verbatim] => 6382-6394
+-                                                                  no-underline
+#                                                                                ^ [Atom] => 6396-6396
+-
+#                                                                                 ^^^^ [Verbatim] => 6396-6400
+-                                                                                 href
+#                                                                                       ^^^^^^^^^^^^ [Verbatim] => 6402-6414
+-                                                                                       improve_link
+#                                                                                                       ^ [Atom] => 6416-6417
+-                                                                                                       E
+#                                                                                                         ^ [Atom] => 6434-6435
+-                                                                                                         /
+#
+>                 }
+# [Verbatim] => 6437-6438
+-
+-
+#^^^^ [Atom] => 6437-6438
+-
+-
+#                ^ [Atom] => 6443-6444
+-                /
+#
+>             }
+# [Verbatim] => 6448-6449
+-
+-
+#^^^^ [Atom] => 6448-6449
+-
+-
+#            ^ [Atom] => 6453-6454
+-            /
+#
+>         }
+# [Verbatim] => 6458-6459
+-
+-
+#^^^^ [Atom] => 6458-6459
+-
+-
+#        ^ [Atom] => 6462-6463
+-        /
+#
+>
+# [Verbatim] => 6467-6468
+-
+-
+#
+>         { svelteHTML.createElement("div", { "class":`tutorial-repl`,});
+# [Verbatim] => 6467-6468
+-
+-
+#^^^^ [Atom] => 6467-6468
+-
+-
+#        ^ [Atom] => 6471-6472
+-        <
+#                                     ^^^ [Verbatim] => 6472-6475
+-                                     div
+#                                            ^ [Atom] => 6482-6483
+-                                            "
+#                                             ^ [Atom] => 6476-6476
+-
+#                                              ^^^^^ [Verbatim] => 6476-6481
+-                                              class
+#                                                      ^^^^^^^^^^^^^ [Verbatim] => 6483-6496
+-                                                      tutorial-repl
+#
+>             { const $$_lpeR3C = __sveltets_2_ensureComponent(Repl); const $$_lpeR3 = new $$_lpeR3C({ target: __sveltets_2_any(), props: {               "workersUrl":`workers`,svelteUrl,rollupUrl,"orientation":mobile ? 'columns' : 'rows',"fixed":mobile,"injectedJS":mapbox_setup,"relaxed":true,}});repl = $$_lpeR3;$$_lpeR3.$on("change", handle_change);}
+# [Verbatim] => 6498-6499
+-
+-
+#^^^^ [Atom] => 6498-6499
+-
+-
+#            ^ [Atom] => 6502-6503
+-            <
+#                                                              ^^^^ [Verbatim],[Hover|Completion|Definition|Implementation|References|DocumentHighlights|Rename|CallHierarchy|CodeActions|SelectionRanges|DocumentSymbols] => 6503-6507
+-                                                              Repl
+#                                                                                                                                  ^^^^^ [Atom],[None] => 6503-6507
+-                                                                                                                                  Repl
+#                                                                                                                                          ^ [Atom] => 6509-6510
+-                                                                                                                                          ╚
+#                                                                                                                                           ^ [Atom] => 6528-6529
+-
+-
+#                                                                                                                                            ^ [Atom] => 6544-6545
+-                                                                                                                                            "
+#                                                                                                                                             ^ [Atom] => 6553-6554
+-
+-
+#                                                                                                                                              ^ [Atom] => 6569-6570
+-
+-
+#                                                                                                                                               ^ [Atom] => 6585-6586
+-
+-
+#                                                                                                                                                ^ [Atom] => 6602-6603
+-                                                                                                                                                {
+#                                                                                                                                                 ^ [Atom] => 6631-6632
+-
+-
+#                                                                                                                                                  ^ [Atom] => 6642-6643
+-                                                                                                                                                  {
+#                                                                                                                                                   ^ [Atom] => 6650-6651
+-
+-
+#                                                                                                                                                    ^ [Atom] => 6665-6666
+-                                                                                                                                                    {
+#                                                                                                                                                     ^ [Atom] => 6680-6681
+-
+-
+#                                                                                                                                                      ^ [Atom] => 6696-6697
+-                                                                                                                                                      {
+#                                                                                                                                                       ^ [Atom] => 6710-6711
+-
+-
+#                                                                                                                                                        ^ [Atom] => 6724-6725
+-                                                                                                                                                        ╚
+#                                                                                                                                                         ^ [Atom] => 6533-6533
+-
+#                                                                                                                                                          ^^^^^^^^^^ [Verbatim] => 6533-6543
+-                                                                                                                                                          workersUrl
+#                                                                                                                                                                       ^^^^^^^ [Verbatim] => 6545-6552
+-                                                                                                                                                                       workers
+#                                                                                                                                                                                ^^^^^^^^^ [Verbatim] => 6559-6568
+-                                                                                                                                                                                svelteUrl
+#                                                                                                                                                                                          ^^^^^^^^^ [Verbatim] => 6575-6584
+-                                                                                                                                                                                          rollupUrl
+#                                                                                                                                                                                                    ^ [Atom] => 6590-6590
+-
+#                                                                                                                                                                                                     ^^^^^^^^^^^ [Verbatim] => 6590-6601
+-                                                                                                                                                                                                     orientation
+#                                                                                                                                                                                                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^ [Verbatim] => 6603-6630
+-                                                                                                                                                                                                                  mobile•?•'columns'•:•'rows'
+#                                                                                                                                                                                                                                              ^ [Atom] => 6636-6636
+-
+#                                                                                                                                                                                                                                               ^^^^^ [Verbatim] => 6636-6641
+-                                                                                                                                                                                                                                               fixed
+#                                                                                                                                                                                                                                                      ^^^^^^ [Verbatim] => 6643-6649
+-                                                                                                                                                                                                                                                      mobile
+#                                                                                                                                                                                                                                                             ^ [Atom] => 6685-6685
+-
+#                                                                                                                                                                                                                                                              ^^^^^^^^^^ [Verbatim] => 6685-6695
+-                                                                                                                                                                                                                                                              injectedJS
+#                                                                                                                                                                                                                                                                          ^^^^^^^^^^^^ [Verbatim] => 6697-6709
+-                                                                                                                                                                                                                                                                          mapbox_setup
+#                                                                                                                                                                                                                                                                                       ^ [Atom] => 6715-6715
+-
+#                                                                                                                                                                                                                                                                                        ^^^^^^^ [Verbatim] => 6715-6722
+-                                                                                                                                                                                                                                                                                        relaxed
+#                                                                                                                                                                                                                                                                                                          ^^^^ [Verbatim] => 6523-6527
+-                                                                                                                                                                                                                                                                                                          repl
+#                                                                                                                                                                                                                                                                                                                                       ^ [Atom],[Hover|Completion|Definition|References|Rename] => 6658-6658
+-
+#                                                                                                                                                                                                                                                                                                                                        ^^^^^^ [Verbatim] => 6658-6664
+-                                                                                                                                                                                                                                                                                                                                        change
+#                                                                                                                                                                                                                                                                                                                                                 ^^^^^^^^^^^^^ [Verbatim] => 6666-6679
+-                                                                                                                                                                                                                                                                                                                                                 handle_change
+#
+>         }
+# [Verbatim] => 6728-6729
+-
+-
+#^^^^ [Atom] => 6728-6729
+-
+-
+#        ^ [Atom] => 6732-6733
+-        /
+#
+>     }
+# [Verbatim] => 6737-6738
+-
+-
+#^^^^ [Atom] => 6737-6738
+-
+-
+#    ^ [Atom] => 6740-6741
+-    /
+#
+>
+# [Verbatim] => 6745-6746
+-
+-
+#
+>    if(mobile){
+# [Verbatim] => 6745-6746
+-
+-
+#^^^^ [Atom] => 6745-6746
+-
+-
+#    ^ [Atom] => 6748-6749
+-    {
+#       ^^^^^^ [Verbatim] => 6753-6759
+-       mobile
+#             ^ [Atom] => 6759-6760
+-             }
+#
+>          { const $$_elggoTneercS1C = __sveltets_2_ensureComponent(ScreenToggle); new $$_elggoTneercS1C({ target: __sveltets_2_any(), props: {  offset,"labels":['tutorial', 'input', 'output'],}});/*Ωignore_startΩ*/() => offset = __sveltets_2_any(null);/*Ωignore_endΩ*/}
+#^^^^^^^^ [Verbatim] => 6760-6763
+-
+-╚╚
+#        ^ [Atom] => 6763-6764
+-        <
+#         ^ [Atom] => 6830-6831
+-         >
+#                                                                   ^^^^^^^^^^^^ [Verbatim],[Hover|Completion|Definition|Implementation|References|DocumentHighlights|Rename|CallHierarchy|CodeActions|SelectionRanges|DocumentSymbols] => 6764-6776
+-                                                                   ScreenToggle
+#                                                                                                                                      ^^^^^ [Atom],[None] => 6764-6776
+-                                                                                                                                      ScreenToggle
+#                                                                                                                                              ^ [Atom] => 6778-6779
+-                                                                                                                                              i
+#                                                                                                                                               ^ [Atom] => 6796-6797
+-                                                                                                                                               {
+#                                                                                                                                                ^^^^^^ [Verbatim] => 6782-6788
+-                                                                                                                                                offset
+#                                                                                                                                                       ^ [Atom] => 6789-6789
+-
+#                                                                                                                                                        ^^^^^^ [Verbatim] => 6789-6795
+-                                                                                                                                                        labels
+#                                                                                                                                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ [Verbatim] => 6797-6828
+-                                                                                                                                                                ['tutorial',•'input',•'output']
+#
+>    }
+#^^^^ [Verbatim] => 6831-6833
+-
+-╚
+#    ^ [Atom] => 6833-6834
+-    {
+#
+> }};
+# [Verbatim] => 6838-6839
+-
+-
+#^ [Atom] => 6840-6841
+-/
+>return { props: {slug: slug , chapter: chapter}, slots: {}, events: {} }}
+>
+>export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial(__sveltets_2_with_any_event($$render()))) {
+#                     ^^^^^^^^^^^^^^^^^^^^^^^ [Atom],[Definition] => 0-0
+-
+>}

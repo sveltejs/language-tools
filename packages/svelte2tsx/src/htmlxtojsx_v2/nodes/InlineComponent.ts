@@ -7,6 +7,24 @@ import {
     transform,
     TransformationArray
 } from '../utils/node-utils';
+import { ExtraGeneratedMapping, SpanMapFeature, SpanMapGenerator } from '../../utils/spanMap';
+
+// mainly excluding semantic tokens and type definition
+const componentNameFlags =
+    SpanMapFeature.Hover |
+    SpanMapFeature.Completion |
+    SpanMapFeature.Definition |
+    SpanMapFeature.Implementation |
+    SpanMapFeature.References |
+    SpanMapFeature.DocumentHighlights |
+    SpanMapFeature.Rename |
+    SpanMapFeature.CallHierarchy |
+    SpanMapFeature.CodeActions |
+    SpanMapFeature.SelectionRanges |
+    SpanMapFeature.DocumentSymbols;
+
+const PROPS = 'props';
+const PROPS_LENGTH = PROPS.length;
 
 /**
  * Handles Svelte components as well as svelte:self and svelte:component
@@ -56,6 +74,7 @@ export class InlineComponent {
     constructor(
         private str: MagicString,
         private node: BaseNode,
+        private spanMapGenerator: SpanMapGenerator | undefined,
         public parent?: any
     ) {
         if (parent) {
@@ -104,13 +123,34 @@ export class InlineComponent {
             const nodeNameEnd = isSvelteComponentTag
                 ? this.node.expression.end
                 : nodeNameStart + this.node.name.length;
+
+            const instantiate = `); new ${constructorName}({ target: __sveltets_2_any(), props: {`;
             this.startTransformation.push(
                 `{ const ${constructorName} = __sveltets_2_ensureComponent(`,
                 [nodeNameStart, nodeNameEnd],
-                `); new ${constructorName}({ target: __sveltets_2_any(), props: {`
+                instantiate
             );
-            this.addNameConstDeclaration = () =>
-                (this.startTransformation[2] = `); const ${this._name} = new ${constructorName}({ target: __sveltets_2_any(), props: {`);
+
+            let spanMapExtraMapping: ExtraGeneratedMapping | undefined;
+            if (spanMapGenerator) {
+                spanMapExtraMapping = {
+                    length: PROPS_LENGTH,
+                    offsetFromEnd: instantiate.lastIndexOf(PROPS),
+                    features: SpanMapFeature.None
+                };
+                spanMapGenerator?.addSourceSpan(nodeNameStart, nodeNameEnd, {
+                    features: componentNameFlags,
+                    extraMapping: spanMapExtraMapping
+                });
+            }
+
+            this.addNameConstDeclaration = () => {
+                const newInstantiate = `); const ${this._name} = new ${constructorName}({ target: __sveltets_2_any(), props: {`;
+                this.startTransformation[2] = newInstantiate;
+                if (spanMapExtraMapping) {
+                    spanMapExtraMapping.offsetFromEnd = newInstantiate.lastIndexOf(PROPS);
+                }
+            };
             this.startEndTransformation.push('}});');
         }
     }
@@ -215,19 +255,25 @@ export class InlineComponent {
 
         if (this.isSelfclosing) {
             this.endTransformation.push('}');
-            transform(this.str, this.startTagStart, this.startTagEnd, [
-                // Named slot transformations go first inside a outer block scope because
-                // <Comp let:xx {x} /> means "use the x of let:x", and without a separate
-                // block scope this would give a "used before defined" error
-                ...namedSlotLetTransformation,
-                ...this.startTransformation,
-                ...this.propsTransformation,
-                ...this.startEndTransformation,
-                ...this.eventsTransformation,
-                ...defaultSlotLetTransformation,
-                snippetPropVariablesDeclaration,
-                ...this.endTransformation
-            ]);
+            transform(
+                this.str,
+                this.startTagStart,
+                this.startTagEnd,
+                [
+                    // Named slot transformations go first inside a outer block scope because
+                    // <Comp let:xx {x} /> means "use the x of let:x", and without a separate
+                    // block scope this would give a "used before defined" error
+                    ...namedSlotLetTransformation,
+                    ...this.startTransformation,
+                    ...this.propsTransformation,
+                    ...this.startEndTransformation,
+                    ...this.eventsTransformation,
+                    ...defaultSlotLetTransformation,
+                    snippetPropVariablesDeclaration,
+                    ...this.endTransformation
+                ],
+                this.spanMapGenerator
+            );
         } else {
             let endStart = this.str.original
                 .substring(this.node.start, this.node.end)
@@ -256,17 +302,29 @@ export class InlineComponent {
                 this.str.remove(this.startTagStart, this.startTagStart + 1);
             }
 
-            transform(this.str, this.startTagStart, transformationEnd, [
-                // See comment above why this goes first
-                ...namedSlotLetTransformation,
-                ...this.startTransformation,
-                ...this.propsTransformation,
-                ...this.startEndTransformation,
-                ...this.eventsTransformation,
-                snippetPropVariablesDeclaration,
-                ...defaultSlotLetTransformation
-            ]);
-            transform(this.str, endStart, this.node.end, this.endTransformation);
+            transform(
+                this.str,
+                this.startTagStart,
+                transformationEnd,
+                [
+                    // See comment above why this goes first
+                    ...namedSlotLetTransformation,
+                    ...this.startTransformation,
+                    ...this.propsTransformation,
+                    ...this.startEndTransformation,
+                    ...this.eventsTransformation,
+                    snippetPropVariablesDeclaration,
+                    ...defaultSlotLetTransformation
+                ],
+                this.spanMapGenerator
+            );
+            transform(
+                this.str,
+                endStart,
+                this.node.end,
+                this.endTransformation,
+                this.spanMapGenerator
+            );
         }
     }
 

@@ -1,0 +1,123 @@
+>///<reference types="svelte" />
+>;function $$render() {
+>async () => {if(foo){
+#             ^ [Atom] => 0-1
+-             {
+#                ^^^ [Verbatim] => 5-8
+-                foo
+#                   ^ [Atom] => 8-9
+-                   }
+#
+>     { svelteHTML.createElement("element", {});}
+#^^^^ [Verbatim] => 9-11
+-
+-╚
+#    ^ [Atom] => 11-12
+-    <
+#                                 ^^^^^^^ [Verbatim] => 12-19
+-                                 element
+#
+>}
+# [Verbatim] => 22-23
+-
+-
+#^ [Atom] => 23-24
+-{
+#
+>
+# [Verbatim] => 28-29
+-
+-
+#
+>if($foo){ { svelteHTML.createElement("element", {});}}
+# [Verbatim] => 28-29
+-
+-
+#^ [Atom] => 30-31
+-{
+#   ^^^^ [Verbatim] => 35-39
+-   $foo
+#       ^ [Atom] => 39-40
+-       }
+#         ^ [Atom] => 40-41
+-         <
+#                                      ^^^^^^^ [Verbatim] => 41-48
+-                                      element
+#                                                     ^ [Atom] => 51-52
+-                                                     {
+#
+>
+# [Verbatim] => 56-57
+-
+-
+#
+>if(foo){
+# [Verbatim] => 56-57
+-
+-
+#^ [Atom] => 58-59
+-{
+#   ^^^ [Verbatim] => 63-66
+-   foo
+#      ^ [Atom] => 66-67
+-      }
+#
+>     { svelteHTML.createElement("element", {});}
+#^^^^ [Verbatim] => 67-69
+-
+-╚
+#    ^ [Atom] => 69-70
+-    <
+#                                 ^^^^^^^ [Verbatim] => 70-77
+-                                 element
+#
+>} else if (bar){
+# [Verbatim] => 79-80
+-
+-
+#^ [Atom] => 80-81
+-{
+#           ^^^ [Verbatim] => 90-93
+-           bar
+#              ^ [Atom] => 93-94
+-              }
+#
+>     { svelteHTML.createElement("element", {});}
+#^^^^ [Verbatim] => 94-96
+-
+-╚
+#    ^ [Atom] => 96-97
+-    <
+#                                 ^^^^^^^ [Verbatim] => 97-104
+-                                 element
+#
+>}else{
+# [Verbatim] => 106-107
+-
+-
+#^ [Atom] => 107-108
+-{
+# ^^^^ [Verbatim] => 109-113
+- else
+#     ^
+>     { svelteHTML.createElement("element", {});}
+#^^^^ [Atom] => 113-116
+-}
+-╚
+#    ^ [Atom] => 116-117
+-    <
+#                                 ^^^^^^^ [Verbatim] => 117-124
+-                                 element
+#
+>}};
+# [Verbatim] => 126-127
+-
+-
+#^ [Atom] => 127-128
+-{
+>return { props: /** @type {Record<string, never>} */ ({}), slots: {}, events: {} }}
+>
+>export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial(__sveltets_2_with_any_event($$render()))) {
+#                     ^^^^^^^^^^^^^^^^^^^^^^^ [Atom],[Definition] => 0-0
+-
+>}

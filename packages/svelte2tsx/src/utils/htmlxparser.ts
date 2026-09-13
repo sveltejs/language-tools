@@ -131,6 +131,55 @@ function blankVerbatimContent(htmlx: string, verbatimElements: Node[]) {
     return output;
 }
 
+interface ScriptTagsInfo {
+    start: number;
+    end: number;
+    content: {
+        start: number;
+        end: number;
+    };
+    attributes: Record<string, string | boolean>;
+}
+
+export function extractScriptTags(htmlx: string) {
+    const verbatimElements = findVerbatimElements(htmlx);
+    const scripts = verbatimElements.filter((node) => node.name === 'script');
+    if (!scripts) {
+        return undefined;
+    }
+    let module: ScriptTagsInfo;
+    let instance: ScriptTagsInfo;
+    for (const tag of scripts) {
+        const attributeMap: Record<string, string | boolean> = {};
+        for (const attr of tag.attributes) {
+            attributeMap[attr.name] = attr === true || (attr.value?.[0]?.raw ?? '');
+        }
+
+        if (!module && (attributeMap.context === 'module' || attributeMap.module === true)) {
+            module = toScriptTagInfo(tag, attributeMap);
+        } else if (!instance) {
+            instance = toScriptTagInfo(tag, attributeMap);
+        }
+    }
+
+    return {
+        module,
+        instance
+    };
+}
+
+function toScriptTagInfo(node: Node, attributeMap: Record<string, string | boolean>) {
+    return {
+        start: node.start,
+        end: node.end,
+        content: {
+            start: node.content.start,
+            end: node.content.end
+        },
+        attributes: attributeMap
+    };
+}
+
 export function parseHtmlx(
     htmlx: string,
     parse: typeof import('svelte/compiler').parse,

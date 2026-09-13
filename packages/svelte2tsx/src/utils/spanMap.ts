@@ -1,0 +1,339 @@
+import MagicString, { SourceMapSegment } from 'magic-string';
+import { COMPONENT_SUFFIX } from '../svelte2tsx/addComponentExport';
+import { IGNORE_POSITION_COMMENT } from './ignore';
+
+const GENERATE_LENGTH = 1;
+const ORIGINAL_LENGTH = 3;
+const FEATURES_FLAGS = 5;
+
+const constStart = 'const ';
+
+export class SpanMapGenerator {
+    private spans: Span[] = [];
+    private prependFlags = new Map<number, SpanMapFeature>();
+    private ignoreMappings = new Set<number>();
+
+    /**
+     * Add an identifier or literal span to the list of spans to be mapped.
+     * The span is defined by its start and end positions in the original source code.
+     */
+    addSourceSpan(
+        start: number,
+        end: number,
+        options?: { features?: SpanMapFeature; extraMapping?: ExtraGeneratedMapping }
+    ) {
+        this.spans.push({
+            start,
+            end,
+            features: options?.features,
+            extraMapping: options?.extraMapping
+        });
+    }
+
+    addFlagForPrepend(start: number, features: SpanMapFeature) {
+        const existingFlags = this.prependFlags.get(start) ?? SpanMapFeature.None;
+        this.prependFlags.set(start, existingFlags | features);
+    }
+
+    ignoreMappingForPosition(start: number) {
+        this.ignoreMappings.add(start);
+    }
+
+    generateSpanMapping(
+        str: MagicString,
+        generatedCode: string,
+        options: {
+            svelte5Plus: boolean;
+        }
+    ): SpanMapping[] {
+        const lineOffsets = getLineOffsets(generatedCode);
+        const orgLineOffsets = getLineOffsets(str.original);
+        const mappings: SpanMapping[] = [];
+        const map = str.generateDecodedMap({ hires: true }).mappings;
+        const ignorePositionCommentPos = findAllIgnorePositionComment(generatedCode);
+        const sourceSpanMap = new Map<number, Span>();
+        for (const span of this.spans) {
+            sourceSpanMap.set(span.start, span);
+        }
+
+        const flattenSegment: Array<{
+            lineOffset: number;
+            segment: SourceMapSegment;
+        }> = [];
+
+        for (let generatedLine = 0; generatedLine < map.length; generatedLine++) {
+            const line = map[generatedLine];
+            const currentLineOffset = lineOffsets[generatedLine];
+            for (let segmentIndex = 0; segmentIndex < line.length; segmentIndex++) {
+                const segment = line[segmentIndex];
+
+                flattenSegment.push({
+                    lineOffset: currentLineOffset,
+                    segment
+                });
+            }
+        }
+
+        let current: SpanMapping | undefined;
+        let currentSourceSpan: Span | undefined;
+        for (let segmentIndex = 0; segmentIndex < flattenSegment.length; segmentIndex++) {
+            const { lineOffset, segment } = flattenSegment[segmentIndex];
+            const originalStart = getSourceOffset(segment, orgLineOffsets);
+            if (originalStart === undefined) {
+                current = undefined;
+                currentSourceSpan = undefined;
+                continue;
+            }
+
+            const generatedStart = lineOffset + segment[0];
+            if (
+                ignorePositionCommentPos.has(generatedStart) ||
+                this.ignoreMappings.has(originalStart)
+            ) {
+                continue;
+            }
+            const sourceSpan = sourceSpanMap.get(originalStart);
+
+            if (sourceSpan || (currentSourceSpan && originalStart >= currentSourceSpan.end)) {
+                currentSourceSpan = sourceSpan;
+            }
+
+            const sourceChar = str.original.charCodeAt(originalStart);
+            const sameChar = generatedCode.charCodeAt(generatedStart) === sourceChar;
+
+            if (sourceSpan && !sameChar) {
+                const nextSegment = flattenSegment[segmentIndex + 1]?.segment;
+                if (nextSegment) {
+                    const nextOriginalStart = getSourceOffset(nextSegment, orgLineOffsets);
+                    const nextGeneratedStart = lineOffset + nextSegment[0];
+                    if (
+                        nextOriginalStart === originalStart + 1 &&
+                        generatedCode.charCodeAt(nextGeneratedStart - 1) === sourceChar &&
+                        generatedCode.charCodeAt(nextGeneratedStart) ===
+                            str.original.charCodeAt(nextOriginalStart)
+                    ) {
+                        const prependLength = nextGeneratedStart - generatedStart - 1;
+                        if (prependLength > 0) {
+                            const map: SpanMapping = [
+                                generatedStart,
+                                prependLength,
+                                originalStart,
+                                0,
+                                SpanMapKind.Atom
+                            ];
+                            addFlag(map, this.prependFlags.get(originalStart));
+                            mappings.push(map);
+                        }
+                        current = [
+                            nextGeneratedStart - 1,
+                            2,
+                            originalStart,
+                            2,
+                            SpanMapKind.Verbatim
+                        ];
+                        addFlag(current, sourceSpan.features);
+                        segmentIndex++;
+                        mappings.push(current);
+                        continue;
+                    }
+                }
+            }
+
+            if (current) {
+                let previousSegment =
+                    segmentIndex > 0 ? flattenSegment[segmentIndex - 1] : undefined;
+                if (previousSegment && sameChar) {
+                    const previousOriginalIndex = getSourceOffset(
+                        previousSegment.segment,
+                        orgLineOffsets
+                    );
+                    const previousGeneratedStart =
+                        previousSegment.lineOffset + previousSegment.segment[0];
+
+                    if (
+                        previousOriginalIndex !== undefined &&
+                        originalStart === previousOriginalIndex + 1 &&
+                        generatedStart === previousGeneratedStart + 1
+                    ) {
+                        current[GENERATE_LENGTH]++;
+                        current[ORIGINAL_LENGTH]++;
+                        continue;
+                    }
+                }
+            }
+
+            if (sourceSpan?.extraMapping) {
+                const start =
+                    generatedStart +
+                    sourceSpan.end -
+                    sourceSpan.start +
+                    sourceSpan.extraMapping.offsetFromEnd;
+                mappings.push([
+                    start,
+                    sourceSpan.extraMapping.length,
+                    originalStart,
+                    sourceSpan.end - sourceSpan.start,
+                    SpanMapKind.Atom
+                ]);
+                addFlag(mappings[mappings.length - 1], sourceSpan.extraMapping.features);
+            }
+
+            current = [
+                generatedStart,
+                1,
+                originalStart,
+                1,
+                sameChar ? SpanMapKind.Verbatim : SpanMapKind.Atom
+            ];
+            addFlag(current, sourceSpan?.features);
+            mappings.push(current);
+        }
+
+        this.addDefaultExportMapping(generatedCode, mappings, options.svelte5Plus);
+
+        return mappings;
+    }
+
+    private addDefaultExportMapping(
+        generatedCode: string,
+        result: SpanMapping[],
+        svelte5Plus: boolean
+    ) {
+        const componentSuffixIndex = generatedCode.lastIndexOf(COMPONENT_SUFFIX);
+        const startOfName = generatedCode.lastIndexOf(' ', componentSuffixIndex) + 1;
+        const name = generatedCode.substring(
+            startOfName,
+            componentSuffixIndex + COMPONENT_SUFFIX.length
+        );
+
+        const flags = SpanMapFeature.Definition;
+        if (!svelte5Plus) {
+            result.push([startOfName, name.length, 0, 0, SpanMapKind.Atom, flags]);
+            return;
+        }
+
+        const constIndex = generatedCode.lastIndexOf(constStart + name, startOfName);
+        if (constIndex !== -1) {
+            result.push([
+                constIndex,
+                name.length + constStart.length,
+                0,
+                0,
+                SpanMapKind.Atom,
+                flags
+            ]);
+        }
+    }
+}
+
+function getSourceOffset(segment: SourceMapSegment, sourceLineOffsets: number[]) {
+    const [, , originalLine, originalCharacter] = segment;
+    if (originalLine === undefined || originalCharacter === undefined) {
+        return undefined;
+    }
+
+    return sourceLineOffsets[originalLine] + originalCharacter;
+}
+
+function addFlag(span: SpanMapping, features: SpanMapFeature | undefined) {
+    if (features === undefined) {
+        return;
+    }
+    const existingFlags = span[5];
+    if (existingFlags === undefined) {
+        span[FEATURES_FLAGS] = features;
+    } else {
+        span[FEATURES_FLAGS] = existingFlags | features;
+    }
+}
+
+function findAllIgnorePositionComment(generatedCode: string): Set<number> {
+    const positions = new Set<number>();
+    let index = generatedCode.indexOf(IGNORE_POSITION_COMMENT);
+    while (index !== -1) {
+        positions.add(index);
+        index = generatedCode.indexOf(IGNORE_POSITION_COMMENT, index + 1);
+    }
+    return positions;
+}
+interface Span {
+    start: number;
+    end: number;
+    features: SpanMapFeature | undefined;
+    extraMapping?: ExtraGeneratedMapping;
+}
+
+export interface ExtraGeneratedMapping {
+    offsetFromEnd: number;
+    features: SpanMapFeature | undefined;
+    length: number;
+}
+
+function getLineOffsets(text: string) {
+    const lineOffsets: number[] = [];
+    let isLineStart = true;
+
+    for (let i = 0; i < text.length; i++) {
+        if (isLineStart) {
+            lineOffsets.push(i);
+            isLineStart = false;
+        }
+        const ch = text.charAt(i);
+        isLineStart = ch === '\r' || ch === '\n';
+        if (ch === '\r' && i + 1 < text.length && text.charAt(i + 1) === '\n') {
+            i++;
+        }
+    }
+
+    if (isLineStart && text.length > 0) {
+        lineOffsets.push(text.length);
+    }
+
+    return lineOffsets;
+}
+
+export enum SpanMapKind {
+    /** Verbatim spans in virtual text have the same length and content as their counterparts in original text. */
+    Verbatim = 0,
+    /** Atom spans in virtual text may have different length and content than their counterparts in the original text. */
+    Atom = 1,
+    /** Alias spans in virtual text may have different length and content than their counterparts in the original text, but diagnostics display their original text. */
+    Alias = 2
+}
+
+/** Controls which TypeScript language service features may use a span. */
+export enum SpanMapFeature {
+    None = 0,
+    Hover = 1 << 0,
+    SignatureHelp = 1 << 1,
+    Completion = 1 << 2,
+    Definition = 1 << 3,
+    TypeDefinition = 1 << 4,
+    Implementation = 1 << 5,
+    References = 1 << 6,
+    DocumentHighlights = 1 << 7,
+    Rename = 1 << 8,
+    CallHierarchy = 1 << 9,
+    CodeActions = 1 << 10,
+    Formatting = 1 << 11,
+    InlayHints = 1 << 12,
+    SemanticTokens = 1 << 13,
+    FoldingRanges = 1 << 14,
+    SelectionRanges = 1 << 15,
+    LinkedEditing = 1 << 16,
+    AutoInsert = 1 << 17,
+    DocumentSymbols = 1 << 18,
+    CodeLens = 1 << 19,
+    /** Enables every language service feature. This is the default when `features` is omitted. */
+    All = (CodeLens << 1) - 1
+}
+
+/** Positions and lengths are in the specified `positionEncoding`. */
+export type SpanMapping = [
+    virtualStart: number,
+    virtualLength: number,
+    originalStart: number,
+    originalLength: number,
+    kind: SpanMapKind,
+    features?: SpanMapFeature
+];

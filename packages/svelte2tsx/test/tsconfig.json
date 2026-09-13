@@ -1,12 +1,13 @@
 {
     "compilerOptions": {
-        "types": ["@types/node", "@types/mocha"],
+        "types": ["node", "mocha"],
         "target": "es6",
         "module": "nodenext",
         "moduleResolution": "nodenext",
         "esModuleInterop": true,
-        "rootDir": "."
+        "rootDir": ".",
+        "strict": false
     },
     "exclude": ["samples/**"],
-    "include": ["*.ts"]
+    "include": ["**/*.ts"]
 }

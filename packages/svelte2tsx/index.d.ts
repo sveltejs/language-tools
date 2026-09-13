@@ -16,6 +16,8 @@ export interface SvelteCompiledToTsx {
      * @deprecated Use TypeScript's `TypeChecker` to get the type information instead. This only covers literal typings.
      */
     events: ComponentEvents;
+
+    spanMappings: [number, number, number, number, number][] | undefined;
 }
 
 export interface IExportedNames {
@@ -103,8 +105,23 @@ export function svelte2tsx(
          * from the generated file location.
          */
         rewriteExternalImports?: InternalHelpers.RewriteExternalImportsConfig;
+
+        /**
+         * Prepends <reference path="..."> directives for the given shim paths to the generated file.
+         */
+        shimPaths?: string[];
+
+        /**
+         * Generates source map information using typescript 7's span map format
+         */
+        generateSpanMapping?: boolean;
+
+        /**
+         * If true, moves the `@ts-check` and `@ts-nocheck` comments from the script tag to the top of the generated file.
+         */
+        moveTsCheckDirective?: boolean;
     }
-): SvelteCompiledToTsx
+): SvelteCompiledToTsx;
 
 export interface EmitDtsConfig {
     /**
@@ -194,6 +211,15 @@ export const internalHelpers: {
             hasTypeDefinition: boolean;
         }
     >,
+    parseTemplateOnly(svelte: string, options: {
+        parse: typeof import('svelte/compiler').parse;
+        emitOnTemplateError?: boolean;
+        svelte5Plus: boolean;
+    }): unknown
+    extractScriptTags(svelte: string): {
+        module?: InternalHelpers.ScriptTagInfo;
+        instance?: InternalHelpers.ScriptTagInfo;
+    };
 	renderName: string
 };
 
@@ -219,5 +245,15 @@ export namespace InternalHelpers {
     export interface RewriteExternalImportsConfig {
         workspacePath: string;
         generatedPath: string;
+    }
+
+    export interface ScriptTagInfo {
+        start: number;
+        end: number;
+        content: {
+            start: number;
+            end: number;
+        };
+        attributes: Record<string, string | boolean>;
     }
 }

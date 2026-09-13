@@ -1,13 +1,10 @@
 ///<reference types="svelte" />
 ;
-import storeA from './store';
-import { storeB } from './store';
-import { storeB as storeC } from './store';
+    import storeA from './store';
+    import { storeB } from './store';
+    import { storeB as storeC } from './store';
 function $$render() {
 /*Ωignore_startΩ*/;let $storeA = __sveltets_2_store_get(storeA);;let $storeB = __sveltets_2_store_get(storeB);;let $storeC = __sveltets_2_store_get(storeC);/*Ωignore_endΩ*/
-    
-    
-    
 ;
 async () => {
 

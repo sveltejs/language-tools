@@ -4,12 +4,10 @@ import { SvelteComponentTyped } from "svelte"
     export const foo = 'foo';
 ;;
 
-import Bar from './bar';
-import { createEventDispatcher } from 'svelte';
+  import Bar from './bar';
+  import { createEventDispatcher } from 'svelte';
 function $$render() {
 
-  
-  
 
    let bar: Bar/*Ωignore_startΩ*/;bar = __sveltets_2_any(bar);/*Ωignore_endΩ*/;
    let foobar = '';
