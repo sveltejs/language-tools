@@ -125,7 +125,7 @@ export function startServer(options?: LSOptions) {
         '*.{' + watchExtensions.map((ext) => ext.slice(1)).join(',') + '}';
     const recursiveWatchPattern = '**/' + nonRecursiveWatchPattern;
 
-    let enableTsFeatures = true;
+    let enableTs6Features = true;
 
     connection.onInitialize((evt) => {
         const workspaceUris = evt.workspaceFolders?.map((folder) => folder.uri.toString()) ?? [
@@ -200,15 +200,15 @@ export function startServer(options?: LSOptions) {
         const fileSystemProvider = new FileSystemProvider();
         const workspaceFolders = evt.workspaceFolders ?? [{ name: '', uri: evt.rootUri ?? '' }];
 
-        enableTsFeatures =
-            !evt.initializationOptions.ts7ContentMapperOptions?.enable ||
+        enableTs6Features =
+            !evt.initializationOptions.tsGoContentMapperOptions?.enable ||
             !contentMapperEnableCheck(workspaceFolders);
 
         // Order of plugin registration matters for FirstNonNull, which affects for example hover info
         pluginHost.register(
             (sveltePlugin = new SveltePlugin(
                 configManager,
-                enableTsFeatures ? undefined : new TemplateASTParseLoader(docManager)
+                enableTs6Features ? undefined : new TemplateASTParseLoader(docManager)
             ))
         );
         pluginHost.register(
@@ -223,7 +223,7 @@ export function startServer(options?: LSOptions) {
             new CSSPlugin(docManager, configManager, workspaceFolders, cssLanguageServices)
         );
         const normalizedWorkspaceUris = workspaceUris.map(normalizeUri);
-        if (enableTsFeatures) {
+        if (enableTs6Features) {
             pluginHost.register(
                 new TypeScriptPlugin(
                     configManager,
@@ -275,7 +275,7 @@ export function startServer(options?: LSOptions) {
                     return diagnostics;
                 }
             );
-        } else if (enableTsFeatures) {
+        } else if (enableTs6Features) {
             connection.onDidSaveTextDocument(
                 diagnosticsManager.scheduleUpdateAll.bind(diagnosticsManager)
             );
@@ -374,43 +374,43 @@ export function startServer(options?: LSOptions) {
                     evt.initializationOptions?.configuration?.svelte?.plugin?.svelte
                         ?.documentHighlight?.enable ?? true,
 
-                signatureHelpProvider: enableTsFeatures
+                signatureHelpProvider: enableTs6Features
                     ? {
                           triggerCharacters: ['(', ',', '<'],
                           retriggerCharacters: [')']
                       }
                     : undefined,
-                semanticTokensProvider: enableTsFeatures
+                semanticTokensProvider: enableTs6Features
                     ? {
                           legend: getSemanticTokenLegends(),
                           range: true,
                           full: true
                       }
                     : undefined,
-                linkedEditingRangeProvider: enableTsFeatures,
-                implementationProvider: enableTsFeatures,
-                typeDefinitionProvider: enableTsFeatures,
-                inlayHintProvider: enableTsFeatures,
-                callHierarchyProvider: enableTsFeatures,
+                linkedEditingRangeProvider: enableTs6Features,
+                implementationProvider: enableTs6Features,
+                typeDefinitionProvider: enableTs6Features,
+                inlayHintProvider: enableTs6Features,
+                callHierarchyProvider: enableTs6Features,
                 codeLensProvider: {
-                    resolveProvider: enableTsFeatures
+                    resolveProvider: enableTs6Features
                 },
-                workspaceSymbolProvider: enableTsFeatures,
+                workspaceSymbolProvider: enableTs6Features,
                 diagnosticProvider: {
-                    interFileDependencies: enableTsFeatures,
+                    interFileDependencies: enableTs6Features,
                     workspaceDiagnostics: false
                 }
             },
             customServerStatus: {
                 experimental: {
-                    contentMapperModeEnabled: !enableTsFeatures
+                    contentMapperModeEnabled: !enableTs6Features
                 }
             }
         };
     });
 
     connection.onInitialized(() => {
-        if (watcher || !enableTsFeatures) {
+        if (watcher || !enableTs6Features) {
             return;
         }
 

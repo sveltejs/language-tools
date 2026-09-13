@@ -4,7 +4,7 @@ import { WorkspaceFolder } from 'vscode-languageserver-types';
 import { urlToPath } from '../../utils';
 
 /**
- * Only enable content-mapper mode when content mapper is configured in one of the tsconfig files
+ * During the experimental phase, only enable content-mapper mode when content mapper is configured in one of the tsconfig files
  */
 export function contentMapperEnableCheck(workspaceFolders: WorkspaceFolder[]) {
     const disableProjectFileSearchHost: ts.ParseConfigHost = {
