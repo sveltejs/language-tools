@@ -57,10 +57,11 @@ function startServer() {
             const { default: compiler } = await import(pathToFileURL(compilerPath).toString());
 
             let globalTypes = globalTypesCache.get(resolveTarget);
+            const isSvelte3 = compiler.VERSION.split('.')[0] === '3';
             if (!globalTypes) {
                 globalTypes = internalHelpers.get_global_types(
                     ts.sys,
-                    compiler.VERSION.split('.')[0] === '3',
+                    isSvelte3,
                     path.dirname(require.resolve('svelte/package.json', resolveConfig)),
                     path.dirname(require.resolve('svelte2tsx')),
                     resolveTarget
@@ -77,7 +78,9 @@ function startServer() {
                 version: compiler.VERSION,
                 shimPaths: globalTypes,
                 generateSpanMapping: true,
-                moveTsCheckDirective: true
+                moveTsCheckDirective: true,
+                // @ts-expect-error internal
+                noSvelteComponentTyped: !isSvelte3
             });
 
             return {
