@@ -8,9 +8,9 @@ function $$render/*Ωignore_startΩ*/<A,B extends keyof A,C extends boolean>/*Ω
     
     
 
-     let a: A/*Ωignore_startΩ*/;a = __sveltets_2_any(a);/*Ωignore_endΩ*/;
-     let b: B/*Ωignore_startΩ*/;b = __sveltets_2_any(b);/*Ωignore_endΩ*/;
-     let c: C/*Ωignore_startΩ*/;c = __sveltets_2_any(c);/*Ωignore_endΩ*/;
+     let a: A/*Ωignore_startΩ*/;a = __sveltets_2_any();a;/*Ωignore_endΩ*/;
+     let b: B/*Ωignore_startΩ*/;b = __sveltets_2_any();b;/*Ωignore_endΩ*/;
+     let c: C/*Ωignore_startΩ*/;c = __sveltets_2_any();c;/*Ωignore_endΩ*/;
 
     const dispatch = createEventDispatcher<{a: A}>();
 

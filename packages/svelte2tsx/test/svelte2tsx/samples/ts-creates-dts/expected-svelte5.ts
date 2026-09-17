@@ -9,7 +9,7 @@ import { SvelteComponentTyped } from "svelte"
 function $$render() {
 
 
-   let bar: Bar/*Ωignore_startΩ*/;bar = __sveltets_2_any(bar);/*Ωignore_endΩ*/;
+   let bar: Bar/*Ωignore_startΩ*/;bar = __sveltets_2_any();bar;/*Ωignore_endΩ*/;
    let foobar = '';
 
   const dispatch = createEventDispatcher<{swipe: string}>();
