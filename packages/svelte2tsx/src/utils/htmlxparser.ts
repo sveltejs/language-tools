@@ -152,7 +152,7 @@ export function extractScriptTags(htmlx: string) {
     for (const tag of scripts) {
         const attributeMap: Record<string, string | boolean> = {};
         for (const attr of tag.attributes) {
-            attributeMap[attr.name] = attr === true || (attr.value?.[0]?.raw ?? '');
+            attributeMap[attr.name] = attr.value === true || (attr.value?.[0]?.raw ?? '');
         }
 
         if (!module && (attributeMap.context === 'module' || attributeMap.module === true)) {
