@@ -38,6 +38,7 @@ import {
     sendNotificationMiddleware
 } from './typescript/configurationMiddleware';
 import { versions } from 'node:process';
+import { setupTsContentMapper } from './typescript-go/contentMapper';
 
 const [node_major, node_minor] = (versions?.node ?? '0.0.0-unknown').split('.', 3).map(Number);
 
@@ -58,11 +59,17 @@ let lsApi:
       }
     | undefined;
 
-export function activate(context: ExtensionContext) {
-    // The extension is activated on TS/JS/Svelte files because else it might be too late to configure the TS plugin:
-    // If we only activate on Svelte file and the user opens a TS file first, the configuration command is issued too late.
-    // We wait until there's a Svelte file open and only then start the actual language client.
-    const tsPlugin = new TsPlugin(context);
+export async function activate(context: ExtensionContext) {
+    let tsGoContentMapperOptions = await setupTsContentMapper(context.extension);
+
+    let tsPlugin: TsPlugin | undefined;
+    if (!tsGoContentMapperOptions.enable) {
+        // The extension is activated on TS/JS/Svelte files because else it might be too late to configure the TS plugin:
+        // If we only activate on Svelte file and the user opens a TS file first, the configuration command is issued too late.
+        // We wait until there's a Svelte file open and only then start the actual language client.
+        tsPlugin = new TsPlugin(context);
+        toggleFileReferencesMenu(true);
+    }
 
     context.subscriptions.push(
         commands.registerCommand('svelte.restartLanguageServer', async () => {
@@ -71,13 +78,13 @@ export function activate(context: ExtensionContext) {
     );
 
     if (workspace.textDocuments.some((doc) => doc.languageId === 'svelte')) {
-        lsApi = activateSvelteLanguageServer(context);
-        tsPlugin.askToEnable();
+        lsApi = activateSvelteLanguageServer(context, { tsGoContentMapperOptions });
+        tsPlugin?.askToEnable();
     } else {
         const onTextDocumentListener = workspace.onDidOpenTextDocument((doc) => {
             if (doc.languageId === 'svelte') {
-                lsApi = activateSvelteLanguageServer(context);
-                tsPlugin.askToEnable();
+                lsApi = activateSvelteLanguageServer(context, { tsGoContentMapperOptions });
+                tsPlugin?.askToEnable();
                 onTextDocumentListener.dispose();
             }
         });
@@ -86,6 +93,22 @@ export function activate(context: ExtensionContext) {
     }
 
     setupSvelteKit(context);
+
+    context.subscriptions.push(
+        workspace.onDidChangeConfiguration(async (event) => {
+            if (
+                event.affectsConfiguration('typescript.experimental.useTsgo') ||
+                event.affectsConfiguration('js/ts.experimental.useTsgo')
+            ) {
+                const newUseTsGoContentMapper = await setupTsContentMapper(context.extension);
+                if (newUseTsGoContentMapper !== tsGoContentMapperOptions) {
+                    tsGoContentMapperOptions = newUseTsGoContentMapper;
+                    toggleFileReferencesMenu(!tsGoContentMapperOptions.enable);
+                    await lsApi?.restartLS(false);
+                }
+            }
+        })
+    );
 
     // This API is considered private and only exposed for experimenting.
     // Interface may change at any time. Use at your own risk!
@@ -96,7 +119,7 @@ export function activate(context: ExtensionContext) {
          */
         getLanguageServer() {
             if (!lsApi) {
-                lsApi = activateSvelteLanguageServer(context);
+                lsApi = activateSvelteLanguageServer(context, { tsGoContentMapperOptions });
             }
 
             return lsApi.getLS();
@@ -110,7 +133,16 @@ export function deactivate() {
     return stop;
 }
 
-export function activateSvelteLanguageServer(context: ExtensionContext) {
+function toggleFileReferencesMenu(enable: boolean) {
+    commands.executeCommand('setContext', 'svelte.uiContext.fileReference.enable', enable);
+}
+
+export function activateSvelteLanguageServer(
+    context: ExtensionContext,
+    options?: {
+        tsGoContentMapperOptions: { enable: boolean };
+    }
+) {
     warnIfOldExtensionInstalled();
 
     const runtimeConfig = workspace.getConfiguration('svelte.language-server');
@@ -207,7 +239,8 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
                 html: workspace.getConfiguration('html')
             },
             dontFilterIncompleteCompletions: true, // VSCode filters client side and is smarter at it than us
-            isTrusted: workspace.isTrusted
+            isTrusted: workspace.isTrusted,
+            tsGoContentMapperOptions: options?.tsGoContentMapperOptions
         },
         middleware: {
             resolveCodeLens: resolveCodeLensMiddleware,
@@ -230,6 +263,14 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
             'html.autoClosingTags'
         );
         context.subscriptions.push(disposable);
+
+        if (
+            options?.tsGoContentMapperOptions.enable &&
+            !ls.initializeResult?.customServerStatus?.experimental?.contentMapperModeEnabled
+        ) {
+            toggleFileReferencesMenu(true);
+            enableCustomTs6Features();
+        }
     });
 
     workspace.onDidSaveTextDocument(async (doc) => {
@@ -271,12 +312,17 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
         return ls;
     }
 
-    addDidChangeTextDocumentListener(getLS);
+    function enableCustomTs6Features() {
+        addFindFileReferencesListener(getLS, context);
+        addFindComponentReferencesListener(getLS, context);
 
-    addFindFileReferencesListener(getLS, context);
-    addFindComponentReferencesListener(getLS, context);
+        addRenameFileListener(getLS);
+        addDidChangeTextDocumentListener(getLS);
+    }
 
-    addRenameFileListener(getLS);
+    if (!options?.tsGoContentMapperOptions.enable) {
+        enableCustomTs6Features();
+    }
 
     addCompilePreviewCommands(getLS, context);
 

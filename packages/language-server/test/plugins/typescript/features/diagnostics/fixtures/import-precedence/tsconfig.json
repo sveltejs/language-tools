@@ -9,5 +9,11 @@
         */
         "types": ["svelte"],
         "allowArbitraryExtensions": true // else .d.svelte.ts will be an error
-    }
+    },
+    "contentMappers": [
+        {
+            "package": "svelte-typescript-content-mapper",
+            "extensions": [".svelte"]
+        }
+    ]
 }

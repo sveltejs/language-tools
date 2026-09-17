@@ -8,6 +8,7 @@ import {
     CompletionList,
     Diagnostic,
     DocumentDiagnosticReport,
+    FoldingRange,
     FormattingOptions,
     Hover,
     Position,
@@ -26,6 +27,7 @@ import {
     CodeActionsProvider,
     CompletionsProvider,
     DiagnosticsProvider,
+    FoldingRangeProvider,
     FormattingProvider,
     HoverProvider,
     SelectionRangeProvider
@@ -36,6 +38,8 @@ import { getDiagnostics } from './features/getDiagnostics';
 import { getHoverInfo } from './features/getHoverInfo';
 import { getSelectionRange } from './features/getSelectionRanges';
 import { SvelteCompileResult, SvelteDocument } from './SvelteDocument';
+import { TemplateAstLoader } from './TemplateASTLoader';
+import { collectSvelteBlockFolding } from './features/getSvelteBlockFolding';
 
 export class SveltePlugin
     implements
@@ -44,12 +48,16 @@ export class SveltePlugin
         CompletionsProvider,
         HoverProvider,
         CodeActionsProvider,
-        SelectionRangeProvider
+        SelectionRangeProvider,
+        FoldingRangeProvider
 {
     __name = 'svelte';
     private docManager = new Map<Document, SvelteDocument>();
 
-    constructor(private configManager: LSConfigManager) {}
+    constructor(
+        private configManager: LSConfigManager,
+        private astLoader: TemplateAstLoader | undefined
+    ) {}
 
     async getCodeLens(document: Document): Promise<CodeLens[] | null> {
         if (!this.featureEnabled('runesLegacyModeCodeLens')) return null;
@@ -367,6 +375,23 @@ export class SveltePlugin
             return [];
         }
     }
+
+    async getFoldingRanges(document: Document): Promise<FoldingRange[]> {
+        if (!this.astLoader) {
+            return [];
+        }
+
+        const askWalker = this.astLoader.loadTemplateAst(document);
+
+        return collectSvelteBlockFolding(
+            document,
+            askWalker,
+            !!this.configManager.getClientCapabilities()?.textDocument?.foldingRange
+                ?.lineFoldingOnly
+        );
+    }
+
+    // TODO add document highligh
 
     async executeCommand(
         document: Document,

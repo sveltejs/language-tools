@@ -1,0 +1,30 @@
+{
+    "name": "svelte-typescript-content-mapper",
+    "version": "0.1.0",
+    "description": "",
+    "scripts": {},
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "type": "module",
+    "files": [
+        "dist"
+    ],
+    "typescript": {
+        "contentMapper": {
+            "exec": [
+                "node",
+                "dist/server.js"
+            ],
+            "compilerOptions": []
+        }
+    },
+    "dependencies": {
+        "svelte2tsx": "workspace:~",
+        "typescript": "~6.0.2",
+        "vscode-jsonrpc": "^8.2.0"
+    },
+    "devDependencies": {
+        "@types/node": "^18.0.0"
+    }
+}

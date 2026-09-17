@@ -3,7 +3,7 @@
     let module = true;
 ;;
 
-import { imported } from './x';
+    import { imported } from './x';
   const hoistable1/*Ωignore_positionΩ*/ = ()/*Ωignore_startΩ*/: ReturnType<import('svelte').Snippet>/*Ωignore_endΩ*/ => { async ()/*Ωignore_positionΩ*/ => {
      { svelteHTML.createElement("div", {});  }
 };return __sveltets_2_any(0)}; const hoistable2/*Ωignore_positionΩ*/ = (bar)/*Ωignore_startΩ*/: ReturnType<import('svelte').Snippet>/*Ωignore_endΩ*/ => { async ()/*Ωignore_positionΩ*/ => {
@@ -27,7 +27,6 @@ import { imported } from './x';
   const not_hoistable/*Ωignore_positionΩ*/ = ()/*Ωignore_startΩ*/: ReturnType<import('svelte').Snippet>/*Ωignore_endΩ*/ => { async ()/*Ωignore_positionΩ*/ => {
      { svelteHTML.createElement("div", {});foo; }
 };return __sveltets_2_any(0)};
-    
     let foo = true;
 ;
 async () => {

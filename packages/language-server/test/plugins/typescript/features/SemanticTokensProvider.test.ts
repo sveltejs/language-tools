@@ -15,14 +15,15 @@ import { LSAndTSDocResolver } from '../../../../src/plugins/typescript/LSAndTSDo
 import { pathToUrl } from '../../../../src/utils';
 import { serviceWarmup } from '../test-utils';
 import { VERSION } from 'svelte/compiler';
+import { SemanticTokensProvider } from '../../../../src/plugins';
 
 const testDir = path.join(__dirname, '..');
 const semanticTokenTestDir = path.join(testDir, 'testfiles', 'semantic-tokens');
 const isSvelte5Plus = +VERSION.split('.')[0] >= 5;
 
 describe('SemanticTokensProvider', function () {
-    const tsFile = 'tokens.svelte';
     serviceWarmup(this, semanticTokenTestDir, pathToUrl(testDir));
+    semanticTokensTest(setup);
 
     function setup(filename: string) {
         const docManager = new DocumentManager((textDocument) =>
@@ -41,6 +42,12 @@ describe('SemanticTokensProvider', function () {
         });
         return { provider, document };
     }
+});
+
+export function semanticTokensTest(
+    setup: (fileName: string) => { provider: SemanticTokensProvider; document: Document }
+) {
+    const tsFile = 'tokens.svelte';
 
     it('provides semantic token', async () => {
         const { provider, document } = setup(tsFile);
@@ -251,4 +258,4 @@ describe('SemanticTokensProvider', function () {
 
         return result;
     }
-});
+}

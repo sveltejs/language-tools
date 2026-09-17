@@ -44,12 +44,13 @@
         "@types/mocha": "^10.0.10",
         "@types/node": "^18.0.0",
         "@types/sinon": "^7.5.2",
-        "@typescript/native-preview": "~7.0.0-dev.20260703.1",
+        "@typescript/native": "npm:typescript@7.1.0-dev.20260902.1",
         "cross-env": "^7.0.2",
         "mocha": "^11.7.6",
         "sinon": "^11.0.0",
         "ts-node": "^10.0.0",
-        "typescript": "^6.0.3"
+        "typescript": "^6.0.3",
+        "svelte-typescript-content-mapper": "workspace:^"
     },
     "dependencies": {
         "@jridgewell/trace-mapping": "^0.3.25",

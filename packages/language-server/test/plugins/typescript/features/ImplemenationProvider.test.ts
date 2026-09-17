@@ -8,19 +8,17 @@ import { ImplementationProviderImpl } from '../../../../src/plugins/typescript/f
 import { pathToUrl } from '../../../../src/utils';
 import { Location } from 'vscode-languageserver-protocol';
 import { serviceWarmup } from '../test-utils';
+import { ImplementationProvider } from '../../../../src/plugins';
 
 const testDir = path.join(__dirname, '..');
 const implementationTestDir = path.join(testDir, 'testfiles', 'implementation');
 
 describe('ImplementationProvider', function () {
     serviceWarmup(this, implementationTestDir, pathToUrl(testDir));
+    implementationTest(setup);
 
     function getFullPath(filename: string) {
-        return path.join(testDir, 'testfiles', 'implementation', filename);
-    }
-
-    function getUri(filename: string) {
-        return pathToUrl(getFullPath(filename));
+        return path.join(implementationTestDir, filename);
     }
 
     function setup(filename: string) {
@@ -39,6 +37,17 @@ describe('ImplementationProvider', function () {
             text: ts.sys.readFile(filePath) || ''
         });
         return { provider, document };
+    }
+});
+
+export function implementationTest(
+    setup: (filename: string) => { provider: ImplementationProvider; document: Document }
+) {
+    function getFullPath(filename: string) {
+        return path.join(implementationTestDir, filename);
+    }
+    function getUri(filename: string) {
+        return pathToUrl(getFullPath(filename));
     }
 
     it('find implementations', async () => {
@@ -96,4 +105,4 @@ describe('ImplementationProvider', function () {
             }
         ]);
     });
-});
+}

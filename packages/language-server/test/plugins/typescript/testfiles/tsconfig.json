@@ -14,5 +14,11 @@
     "exclude": [
         /**For testing exclude */
         "./dist"
+    ],
+    "contentMappers": [
+        {
+            "package": "svelte-typescript-content-mapper",
+            "extensions": [".svelte"]
+        }
     ]
 }
