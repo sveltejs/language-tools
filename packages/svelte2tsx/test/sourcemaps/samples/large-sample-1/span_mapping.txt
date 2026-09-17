@@ -93,7 +93,7 @@
 -
 -
 #
->     let slug/*Ωignore_startΩ*/;slug = __sveltets_2_any(slug);/*Ωignore_endΩ*/;
+>     let slug/*Ωignore_startΩ*/;slug = __sveltets_2_any();slug;/*Ωignore_endΩ*/;
 #^^^^ [Verbatim] => 620-622
 -
 -╚
@@ -102,7 +102,7 @@
 #             ^ [Atom] => 637-638
 -             ;
 #
->     let chapter/*Ωignore_startΩ*/;chapter = __sveltets_2_any(chapter);/*Ωignore_endΩ*/;
+>     let chapter/*Ωignore_startΩ*/;chapter = __sveltets_2_any();chapter;/*Ωignore_endΩ*/;
 #^^^^ [Verbatim] => 638-640
 -
 -╚

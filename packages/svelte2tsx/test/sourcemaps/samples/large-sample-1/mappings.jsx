@@ -59,17 +59,17 @@ s
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                                                                                                                                                       {/**
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
-     let slug/*Ωignore_startΩ*/;slug = __sveltets_2_any(slug);/*Ωignore_endΩ*/;                                                                       {/**
-   ╚•let•slug/*Ωignore_startΩ*/;slug•=•__sveltets_2_any(slug);/*Ωignore_endΩ*/;↲    [generated] line 31                                               
-   ╚•let•slug;                                                                 ↲                                                                      
+     let slug/*Ωignore_startΩ*/;slug = __sveltets_2_any();slug;/*Ωignore_endΩ*/;                                                                      {/**
+   ╚•let•slug/*Ωignore_startΩ*/;slug•=•__sveltets_2_any();slug;/*Ωignore_endΩ*/;↲    [generated] line 31                                              
+   ╚•let•slug;                                                                  ↲                                                                     
    ╚      •let•slug;↲                                                                                                                                 
-   ╚export•let•slug;↲                                                               [original] line 29                                                
+   ╚export•let•slug;↲                                                                [original] line 29                                               
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
-     let chapter/*Ωignore_startΩ*/;chapter = __sveltets_2_any(chapter);/*Ωignore_endΩ*/;                                                              {/**
-   ╚•let•chapter/*Ωignore_startΩ*/;chapter•=•__sveltets_2_any(chapter);/*Ωignore_endΩ*/;↲    [generated] line 32                                      
-   ╚•let•chapter;                                                                       ↲                                                             
+     let chapter/*Ωignore_startΩ*/;chapter = __sveltets_2_any();chapter;/*Ωignore_endΩ*/;                                                             {/**
+   ╚•let•chapter/*Ωignore_startΩ*/;chapter•=•__sveltets_2_any();chapter;/*Ωignore_endΩ*/;↲    [generated] line 32                                     
+   ╚•let•chapter;                                                                        ↲                                                            
    ╚      •let•chapter;↲                                                                                                                              
-   ╚export•let•chapter;↲                                                                     [original] line 30                                       
+   ╚export•let•chapter;↲                                                                      [original] line 30                                      
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
 
     const { sections } = getContext('tutorial');

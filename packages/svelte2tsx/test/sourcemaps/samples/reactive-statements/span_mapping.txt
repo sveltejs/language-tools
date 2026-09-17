@@ -6,7 +6,7 @@
 - s
 >
 #
->     let prop/*Ωignore_startΩ*/;prop = __sveltets_2_any(prop);/*Ωignore_endΩ*//*Ωignore_startΩ*/;let $prop = __sveltets_2_store_get(prop);/*Ωignore_endΩ*/
+>     let prop/*Ωignore_startΩ*/;prop = __sveltets_2_any();prop;/*Ωignore_endΩ*//*Ωignore_startΩ*/;let $prop = __sveltets_2_store_get(prop);/*Ωignore_endΩ*/
 #^^^^ [Verbatim] => 8-10
 -
 -╚

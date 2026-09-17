@@ -4,7 +4,7 @@
 function $$render() {
 
     
-     let store: Writable<string[]> | null = null/*Ωignore_startΩ*/;store = __sveltets_2_any(store);/*Ωignore_endΩ*//*Ωignore_startΩ*/;let $store = __sveltets_2_store_get(store);/*Ωignore_endΩ*/;
+     let store: Writable<string[]> | null = null/*Ωignore_startΩ*/;store = __sveltets_2_any();store;/*Ωignore_endΩ*//*Ωignore_startΩ*/;let $store = __sveltets_2_store_get(store);/*Ωignore_endΩ*/;
     
     if ($store) {
         $store.length

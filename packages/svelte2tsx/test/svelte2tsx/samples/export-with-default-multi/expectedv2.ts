@@ -2,7 +2,7 @@
 ;function $$render() {
 
     /**@type { string | number }*/
-     let name = "world"/*Ωignore_startΩ*/;name = __sveltets_2_any(name);/*Ωignore_endΩ*/;let 
+     let name = "world"/*Ωignore_startΩ*/;name = __sveltets_2_any();name;/*Ωignore_endΩ*/;let 
         world = '';
 ;
 async () => {};

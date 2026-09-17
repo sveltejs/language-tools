@@ -435,7 +435,7 @@ export class ExportedNames {
     }
 
     /**
-     * Appends `prop = __sveltets_2_any(prop)`  to given declaration in order to
+     * Appends `prop = __sveltets_2_any();prop;`  to given declaration in order to
      * trick TS into widening the type. Else for example `let foo: string | undefined = undefined`
      * is narrowed to `undefined` by TS.
      */
@@ -495,7 +495,7 @@ export class ExportedNames {
                         this.str,
                         end,
                         surroundWithIgnoreComments(
-                            `${(this.isTsFile || !this.emitJsDoc) && kitType ? kitType : ''};${name} = __sveltets_2_any(${name});`
+                            `${(this.isTsFile || !this.emitJsDoc) && kitType ? kitType : ''};${name} = __sveltets_2_any();${name};`
                         )
                     );
                 } else {
@@ -503,7 +503,7 @@ export class ExportedNames {
                     preprendStr(
                         this.str,
                         end,
-                        surroundWithIgnoreComments(`;${name} = __sveltets_2_any(${name});`)
+                        surroundWithIgnoreComments(`;${name} = __sveltets_2_any();${name};`)
                     );
                 }
             } else {
