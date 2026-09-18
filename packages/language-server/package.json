@@ -65,7 +65,7 @@
         "svelte": "^4.2.19",
         "svelte2tsx": "workspace:~",
         "typescript-auto-import-cache": "^0.3.6",
-        "vscode-css-languageservice": "~6.3.5",
+        "vscode-css-languageservice": "~6.3.10",
         "vscode-html-languageservice": "~5.4.0",
         "vscode-languageserver": "9.0.1",
         "vscode-languageserver-protocol": "3.17.5",
