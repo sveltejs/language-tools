@@ -87,6 +87,9 @@ export function createSvelteSys(tsSystem: ts.System) {
         const realpath = tsSystem.realpath;
         svelteSys.realpath = function (path) {
             if (svelteFileExists(path)) {
+                // If it's a virtual .d.svelte.ts file, we need to check the realpath for the underlying .svelte file
+                // and then convert it back to a virtual Svelte file path.
+                // Converting it back is necessary so that TypeScript will complain that `allowArbitraryExtensions` isn't enabled
                 return toVirtualSvelteFilePath(realpath(toRealSvelteFilePath(path)));
             }
             return realpath(path);
