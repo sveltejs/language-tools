@@ -1,5 +1,15 @@
 # Changelog
 
+## 4.7.7
+
+### Patch Changes
+
+-   fix: recognise the real `<script>` and `<style>` start tags when a matching token also appears inside the other tag ([#3079](https://github.com/sveltejs/language-tools/pull/3079))
+
+-   fix: resolve symlinked packages when importing their `.svelte` files, so their types are not duplicated ([#3119](https://github.com/sveltejs/language-tools/pull/3119))
+
+-   fix: align default tsconfig "include" logic with tsc/tsserver ([#3110](https://github.com/sveltejs/language-tools/pull/3110))
+
 ## 4.7.6
 
 ### Patch Changes
