@@ -73,8 +73,8 @@ importers:
         specifier: ^0.3.6
         version: 0.3.6
       vscode-css-languageservice:
-        specifier: ~6.3.5
-        version: 6.3.5
+        specifier: ~6.3.10
+        version: 6.3.10
       vscode-html-languageservice:
         specifier: ~5.4.0
         version: 5.4.0
@@ -2119,8 +2119,8 @@ packages:
       jsdom:
         optional: true
 
-  vscode-css-languageservice@6.3.5:
-    resolution: {integrity: sha512-ehEIMXYPYEz/5Svi2raL9OKLpBt5dSAdoCFoLpo0TVFKrVpDemyuQwS3c3D552z/qQCg3pMp8oOLMObY6M3ajQ==}
+  vscode-css-languageservice@6.3.10:
+    resolution: {integrity: sha512-eq5N9Er3fC4vA9zd9EFhyBG90wtCCuXgRSpAndaOgXMh1Wgep5lBgRIeDgjZBW9pa+332yC9+49cZMW8jcL3MA==}
 
   vscode-html-languageservice@5.4.0:
     resolution: {integrity: sha512-9/cbc90BSYCghmHI7/VbWettHZdC7WYpz2g5gBK6UDUI1MkZbM773Q12uAYJx9jzAiNHPpyo6KzcwmcnugncAQ==}
@@ -3939,7 +3939,7 @@ snapshots:
       - tsx
       - yaml
 
-  vscode-css-languageservice@6.3.5:
+  vscode-css-languageservice@6.3.10:
     dependencies:
       '@vscode/l10n': 0.0.18
       vscode-languageserver-textdocument: 1.0.12

@@ -275,6 +275,19 @@ describe('CSS Plugin', () => {
             ]);
         });
 
+        it('- accepts modern CSS such as corner-shape', () => {
+            const { plugin, document } = setup(
+                '<style>div {border-radius: 12px; corner-shape: superellipse(1.2);}</style>'
+            );
+
+            const diagnostics = plugin.getDiagnostics(document);
+
+            assert.ok(
+                !diagnostics.some((d) => d.code === 'unknownProperties'),
+                `Expected no unknownProperties diagnostics, got ${JSON.stringify(diagnostics)}`
+            );
+        });
+
         it('- no diagnostics for sass', () => {
             const { plugin, document } = setup(
                 `<style lang="sass">
