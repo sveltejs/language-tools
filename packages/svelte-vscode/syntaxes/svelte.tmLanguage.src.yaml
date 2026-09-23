@@ -233,6 +233,7 @@ repository:
          { match: snippet,           name: keyword.control.svelte             },
          { match: html,              name: keyword.other.svelte               },
          { match: render,            name: keyword.other.svelte               },
+         { match: attach,            name: keyword.other.svelte               },
          { match: debug,             name: keyword.other.debugger.svelte      },
          { match: const,             name: storage.type.svelte                }]}
 
@@ -240,7 +241,7 @@ repository:
   special-tags-modes:
     patterns:
     # Expressions or simple values.
-    - begin: (?<=(if|key|then|catch|html|render).*?)\G
+    - begin: (?<=(if|key|then|catch|html|render|attach).*?)\G
       end: (?=})
       name: meta.embedded.expression.svelte source.ts
       patterns: [ include: source.ts ]
@@ -408,13 +409,16 @@ repository:
       end: \*/
       name: comment.block.svelte
 
-  # Attachments
+  # Attachments, e.g. `{@attach myAttachment()}`
   attributes-attach:
-    begin: (?<!:|=)\s*({@attach\s)
+    begin: (?<!:|=)\s*({)\s*((@)attach)(?=\s)
+    beginCaptures:
+      1: { name: punctuation.definition.block.begin.svelte }
+      2: { patterns: [ include: '#special-tags-keywords' ] }
     end: (\})
-    captures: { 1: { name: entity.other.attribute-name.svelte } }
-    contentName: meta.embedded.expression.svelte source.ts
-    patterns: [ include: source.ts ]
+    endCaptures: { 0: { name: punctuation.definition.block.end.svelte } }
+    name: meta.special.attach.svelte
+    patterns: [ include: '#special-tags-modes' ]
 
   # Interpolated shorthand attributes, like `{variable}` sitting by itself.
   attributes-interpolated:
