@@ -14,6 +14,7 @@ import {
     validate_test_file
 } from './process';
 import { VERSION } from 'svelte/compiler';
+import { SpanMapKind } from '../../src/utils/spanMap';
 
 const isSvelte5Plus = Number(VERSION[0]) >= 5;
 describe('sourcemaps', function () {
@@ -202,6 +203,24 @@ function parse(sample: Sample): Parsed {
                 sample.name
             )
         );
+
+        for (const [
+            generatedStart,
+            generatedLength,
+            originalStart,
+            originalLength,
+            kind
+        ] of spanMappings) {
+            assert.ok(generatedStart >= 0 && generatedStart + generatedLength <= code.length);
+            assert.ok(originalStart >= 0 && originalStart + originalLength <= original.length);
+            if (kind === SpanMapKind.Verbatim) {
+                assert.strictEqual(
+                    code.slice(generatedStart, generatedStart + generatedLength),
+                    original.slice(originalStart, originalStart + originalLength),
+                    'Verbatim spans must have the same generated and original text'
+                );
+            }
+        }
 
         map.file = 'output.tsx';
         map.sources = [filename];

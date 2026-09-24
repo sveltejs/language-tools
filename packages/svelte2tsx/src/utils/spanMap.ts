@@ -102,10 +102,10 @@ export class SpanMapGenerator {
             const sameChar = generatedCode.charCodeAt(generatedStart) === sourceChar;
 
             if (sourceSpan && !sameChar) {
-                const nextSegment = flattenSegment[segmentIndex + 1]?.segment;
+                const nextSegment = flattenSegment[segmentIndex + 1];
                 if (nextSegment) {
-                    const nextOriginalStart = getSourceOffset(nextSegment, orgLineOffsets);
-                    const nextGeneratedStart = lineOffset + nextSegment[0];
+                    const nextOriginalStart = getSourceOffset(nextSegment.segment, orgLineOffsets);
+                    const nextGeneratedStart = nextSegment.lineOffset + nextSegment.segment[0];
                     if (
                         nextOriginalStart === originalStart + 1 &&
                         generatedCode.charCodeAt(nextGeneratedStart - 1) === sourceChar &&
