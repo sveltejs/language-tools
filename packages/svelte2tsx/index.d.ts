@@ -216,7 +216,10 @@ export const internalHelpers: {
         emitOnTemplateError?: boolean;
         svelte5Plus: boolean;
     }): unknown
-    extractScriptTags(svelte: string): {
+    extractScriptTags(svelte: string, options?: {
+        parse: typeof import('svelte/compiler').parse;
+        svelte5Plus: boolean;
+    }): {
         module?: InternalHelpers.ScriptTagInfo;
         instance?: InternalHelpers.ScriptTagInfo;
     };

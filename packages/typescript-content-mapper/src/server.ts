@@ -41,10 +41,8 @@ function startServer() {
     connection.onRequest('transform', async (v: TransformParams): Promise<TransformResult> => {
         const { fileName, content } = v;
 
-        const scriptTags = internalHelpers.extractScriptTags(content);
-        const isTsFile =
-            isTs(scriptTags.instance?.attributes) || isTs(scriptTags.module?.attributes);
-        const extension = isTsFile ? '.ts' : '.js';
+        let scriptTags: ReturnType<typeof internalHelpers.extractScriptTags> | undefined;
+        let extension: '.ts' | '.js' = '.js';
 
         try {
             const projectInfo = projectMap.get(v.projectHandle);
@@ -55,6 +53,12 @@ function startServer() {
             };
             const compilerPath = require.resolve('svelte/compiler', resolveConfig);
             const { default: compiler } = await import(pathToFileURL(compilerPath).toString());
+
+            scriptTags = internalHelpers.extractScriptTags(content, {
+                parse: compiler.parse,
+                svelte5Plus: Number(compiler.VERSION.split('.')[0]) >= 5
+            });
+            extension = getScriptExtension(scriptTags);
 
             let globalTypes = globalTypesCache.get(resolveTarget);
             const isSvelte3 = compiler.VERSION.split('.')[0] === '3';
@@ -70,7 +74,7 @@ function startServer() {
             }
             const res = svelte2tsx(content, {
                 filename: fileName,
-                isTsFile: isTsFile,
+                isTsFile: extension === '.ts',
                 emitOnTemplateError: true,
                 emitJsDoc: true,
                 namespace: 'svelteHTML',
@@ -90,6 +94,8 @@ function startServer() {
                 diagnostics: []
             };
         } catch (error: any) {
+            scriptTags ??= internalHelpers.extractScriptTags(content);
+            extension = getScriptExtension(scriptTags);
             const lineOffsets = getLineOffsets(content);
             const diagnostics: MapperDiagnostic = {
                 messageText: (error as Error).message,
@@ -143,6 +149,14 @@ function startServer() {
 }
 
 startServer();
+
+function getScriptExtension(
+    scriptTags: ReturnType<typeof internalHelpers.extractScriptTags>
+): '.ts' | '.js' {
+    return isTs(scriptTags.instance?.attributes) || isTs(scriptTags.module?.attributes)
+        ? '.ts'
+        : '.js';
+}
 
 function isTs(attributes: Record<string, string | boolean> | undefined): boolean {
     if (!attributes) {

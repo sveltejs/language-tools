@@ -1,4 +1,5 @@
 import { Node } from 'estree-walker';
+import { parse, VERSION } from 'svelte/compiler';
 
 function parseAttributes(str: string, start: number) {
     const attrs: Node[] = [];
@@ -141,11 +142,35 @@ interface ScriptTagsInfo {
     attributes: Record<string, string | boolean>;
 }
 
-export function extractScriptTags(htmlx: string) {
+export function extractScriptTags(
+    htmlx: string,
+    options: { parse: typeof parse; svelte5Plus: boolean } = {
+        parse,
+        svelte5Plus: Number(VERSION.split('.')[0]) >= 5
+    }
+) {
     const verbatimElements = findVerbatimElements(htmlx);
-    const scripts = verbatimElements.filter((node) => node.name === 'script');
-    if (!scripts) {
-        return undefined;
+    let scripts = verbatimElements.filter((node) => node.name === 'script');
+    if (scripts.length > 0) {
+        try {
+            const { htmlxAst } = parseHtmlx(htmlx, options.parse, {
+                ...options,
+                emitOnTemplateError: true
+            });
+            // parseHtmlx appends every verbatim tag to the root, including scripts
+            // inside template elements, blocks and expressions. Only component
+            // scripts are outside the ranges of the original template children.
+            const templateChildren = (htmlxAst.children as Node[]).filter(
+                (node) => node.type !== 'Script' && node.type !== 'Style'
+            );
+            scripts = scripts.filter(
+                (tag) =>
+                    !templateChildren.some((node) => node.start <= tag.start && tag.end <= node.end)
+            );
+        } catch {
+            // Preserve script extraction for the mapper's fallback when the
+            // template cannot be parsed, even with error recovery enabled.
+        }
     }
     let module: ScriptTagsInfo;
     let instance: ScriptTagsInfo;
