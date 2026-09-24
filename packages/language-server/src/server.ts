@@ -201,7 +201,7 @@ export function startServer(options?: LSOptions) {
         const workspaceFolders = evt.workspaceFolders ?? [{ name: '', uri: evt.rootUri ?? '' }];
 
         enableTs6Features =
-            !evt.initializationOptions.tsGoContentMapperOptions?.enable ||
+            !evt.initializationOptions?.tsGoContentMapperOptions?.enable ||
             !contentMapperEnableCheck(workspaceFolders);
 
         // Order of plugin registration matters for FirstNonNull, which affects for example hover info
