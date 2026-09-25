@@ -232,7 +232,10 @@ export class ExportedNames {
                 this.str.appendRight(
                     generic_arg.end + this.astOffset,
                     // so that semantic tokens ignore it, preventing an overlap of tokens
-                    surroundWithIgnoreComments(this.$props.type)
+                    // type argument route is not valid in Svelte5 stable. Don't surround it with ignore comments to not hide the unexpected type argument error.
+                    node.initializer.typeArguments?.length > 0
+                        ? this.$props.type
+                        : surroundWithIgnoreComments(this.$props.type)
                 );
             }
 
