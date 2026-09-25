@@ -1,5 +1,5 @@
-import * as syncApi from '@typescript/native-preview/unstable/sync';
-import * as syncAst from '@typescript/native-preview/unstable/ast';
+import * as syncApi from '@typescript/native/unstable/sync';
+import * as syncAst from '@typescript/native/unstable/ast';
 import { pathToFileURL } from 'url';
 
 interface PkgInfo {

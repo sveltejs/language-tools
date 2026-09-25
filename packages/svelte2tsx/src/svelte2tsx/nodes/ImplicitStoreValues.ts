@@ -16,7 +16,7 @@ export class ImplicitStoreValues {
     private reactiveDeclarations: ts.LabeledStatement[] = [];
     private importStatements: Array<ts.ImportClause | ts.ImportSpecifier> = [];
 
-    public addStoreAcess = this.accessedStores.add.bind(this.accessedStores);
+    public addStoreAccess = this.accessedStores.add.bind(this.accessedStores);
     public addVariableDeclaration = this.variableDeclarations.push.bind(this.variableDeclarations);
     public addReactiveDeclaration = this.reactiveDeclarations.push.bind(this.reactiveDeclarations);
     public addImportStatement = this.importStatements.push.bind(this.importStatements);
@@ -27,7 +27,7 @@ export class ImplicitStoreValues {
         private isSvelte5Plus: boolean,
         private storeFromImportsWrapper = (input: string) => input
     ) {
-        storesResolvedInTemplate.forEach(this.addStoreAcess);
+        storesResolvedInTemplate.forEach(this.addStoreAccess);
     }
 
     /**

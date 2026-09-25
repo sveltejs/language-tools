@@ -1,8 +1,8 @@
 ///<reference types="svelte" />
 ;function $$render() {
 
-     let /** @type {import('./$types.js').PageData} */ data/*Ωignore_startΩ*/;data = __sveltets_2_any(data);/*Ωignore_endΩ*/;
-     let /** @type {import('./$types.js').ActionData} */ form/*Ωignore_startΩ*/;form = __sveltets_2_any(form);/*Ωignore_endΩ*/;
+     let /** @type {import('./$types.js').PageData} */ data/*Ωignore_startΩ*/;data = __sveltets_2_any();data;/*Ωignore_endΩ*/;
+     let /** @type {import('./$types.js').ActionData} */ form/*Ωignore_startΩ*/;form = __sveltets_2_any();form;/*Ωignore_endΩ*/;
      const /** @type {import('./$types.js').Snapshot} */ snapshot = {};
 ;
 async () => {};

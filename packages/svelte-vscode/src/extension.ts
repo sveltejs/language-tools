@@ -1,6 +1,7 @@
 import * as path from 'path';
 import {
     commands,
+    Disposable,
     ExtensionContext,
     extensions,
     IndentAction,
@@ -20,6 +21,7 @@ import {
     LanguageClientOptions,
     RequestType,
     RevealOutputChannelOn,
+    State,
     TextDocumentEdit,
     TextDocumentPositionParams,
     WorkspaceEdit as LSWorkspaceEdit
@@ -38,6 +40,7 @@ import {
     sendNotificationMiddleware
 } from './typescript/configurationMiddleware';
 import { versions } from 'node:process';
+import { setupTsContentMapper } from './typescript-go/contentMapper';
 
 const [node_major, node_minor] = (versions?.node ?? '0.0.0-unknown').split('.', 3).map(Number);
 
@@ -58,11 +61,25 @@ let lsApi:
       }
     | undefined;
 
-export function activate(context: ExtensionContext) {
-    // The extension is activated on TS/JS/Svelte files because else it might be too late to configure the TS plugin:
-    // If we only activate on Svelte file and the user opens a TS file first, the configuration command is issued too late.
-    // We wait until there's a Svelte file open and only then start the actual language client.
-    const tsPlugin = new TsPlugin(context);
+export async function activate(context: ExtensionContext) {
+    const options = {
+        tsGoContentMapperOptions: await setupTsContentMapper(context.extension)
+    };
+
+    let tsPlugin: TsPlugin | undefined;
+    function updateTsPlugin() {
+        if (options.tsGoContentMapperOptions.enable) {
+            tsPlugin?.dispose();
+            tsPlugin = undefined;
+            return;
+        }
+        // The extension is activated on TS/JS/Svelte files because else it might be too late to configure the TS plugin:
+        // If we only activate on Svelte file and the user opens a TS file first, the configuration command is issued too late.
+        // We wait until there's a Svelte file open and only then start the actual language client.
+        tsPlugin ??= new TsPlugin(context);
+    }
+    updateTsPlugin();
+    toggleFileReferencesMenu(!options.tsGoContentMapperOptions.enable);
 
     context.subscriptions.push(
         commands.registerCommand('svelte.restartLanguageServer', async () => {
@@ -71,13 +88,13 @@ export function activate(context: ExtensionContext) {
     );
 
     if (workspace.textDocuments.some((doc) => doc.languageId === 'svelte')) {
-        lsApi = activateSvelteLanguageServer(context);
-        tsPlugin.askToEnable();
+        lsApi = activateSvelteLanguageServer(context, options);
+        tsPlugin?.askToEnable();
     } else {
         const onTextDocumentListener = workspace.onDidOpenTextDocument((doc) => {
             if (doc.languageId === 'svelte') {
-                lsApi = activateSvelteLanguageServer(context);
-                tsPlugin.askToEnable();
+                lsApi = activateSvelteLanguageServer(context, options);
+                tsPlugin?.askToEnable();
                 onTextDocumentListener.dispose();
             }
         });
@@ -86,6 +103,23 @@ export function activate(context: ExtensionContext) {
     }
 
     setupSvelteKit(context);
+
+    context.subscriptions.push(
+        workspace.onDidChangeConfiguration(async (event) => {
+            if (
+                event.affectsConfiguration('typescript.experimental.useTsgo') ||
+                event.affectsConfiguration('js/ts.experimental.useTsgo') ||
+                event.affectsConfiguration('js/ts.contentMappers.enabled')
+            ) {
+                const newUseTsGoContentMapper = await setupTsContentMapper(context.extension);
+                if (newUseTsGoContentMapper.enable !== options.tsGoContentMapperOptions.enable) {
+                    options.tsGoContentMapperOptions = newUseTsGoContentMapper;
+                    updateTsPlugin();
+                    await lsApi?.restartLS(false);
+                }
+            }
+        })
+    );
 
     // This API is considered private and only exposed for experimenting.
     // Interface may change at any time. Use at your own risk!
@@ -96,7 +130,7 @@ export function activate(context: ExtensionContext) {
          */
         getLanguageServer() {
             if (!lsApi) {
-                lsApi = activateSvelteLanguageServer(context);
+                lsApi = activateSvelteLanguageServer(context, options);
             }
 
             return lsApi.getLS();
@@ -110,7 +144,16 @@ export function deactivate() {
     return stop;
 }
 
-export function activateSvelteLanguageServer(context: ExtensionContext) {
+function toggleFileReferencesMenu(enable: boolean) {
+    commands.executeCommand('setContext', 'svelte.uiContext.fileReference.enable', enable);
+}
+
+export function activateSvelteLanguageServer(
+    context: ExtensionContext,
+    options?: {
+        tsGoContentMapperOptions: { enable: boolean };
+    }
+) {
     warnIfOldExtensionInstalled();
 
     const runtimeConfig = workspace.getConfiguration('svelte.language-server');
@@ -195,7 +238,9 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
                 'html'
             ]
         },
-        initializationOptions: {
+        // A function so that we can change options (e.g. tsGoContentMapperOptions) after the
+        // extension activated and restart the LSP with the updated options
+        initializationOptions: () => ({
             configuration: {
                 svelte: workspace.getConfiguration('svelte'),
                 prettier: workspace.getConfiguration('prettier'),
@@ -207,8 +252,9 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
                 html: workspace.getConfiguration('html')
             },
             dontFilterIncompleteCompletions: true, // VSCode filters client side and is smarter at it than us
-            isTrusted: workspace.isTrusted
-        },
+            isTrusted: workspace.isTrusted,
+            tsGoContentMapperOptions: options?.tsGoContentMapperOptions
+        }),
         middleware: {
             resolveCodeLens: resolveCodeLensMiddleware,
             sendNotification: sendNotificationMiddleware
@@ -216,6 +262,15 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
     };
 
     const ls = createLanguageServer(serverOptions, clientOptions);
+    let ts6Features: Disposable | undefined;
+    context.subscriptions.push(
+        { dispose: () => ts6Features?.dispose() },
+        ls.onDidChangeState(({ newState }) => {
+            if (newState === State.Running) {
+                updateCustomTs6Features();
+            }
+        })
+    );
     ls.start().then(() => {
         const tagRequestor = (document: TextDocument, position: Position) => {
             const param = ls.code2ProtocolConverter.asTextDocumentPositionParams(
@@ -271,12 +326,23 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
         return ls;
     }
 
-    addDidChangeTextDocumentListener(getLS);
-
-    addFindFileReferencesListener(getLS, context);
-    addFindComponentReferencesListener(getLS, context);
-
-    addRenameFileListener(getLS);
+    function updateCustomTs6Features() {
+        const enable =
+            !ls.initializeResult?.customServerStatus?.experimental?.contentMapperModeEnabled;
+        toggleFileReferencesMenu(enable);
+        // With tsgo we want to disable various listeners that are only needed for our TS lsp functionality
+        if (enable && !ts6Features) {
+            ts6Features = Disposable.from(
+                addFindFileReferencesListener(getLS),
+                addFindComponentReferencesListener(getLS),
+                addRenameFileListener(getLS),
+                addDidChangeTextDocumentListener(getLS)
+            );
+        } else if (!enable) {
+            ts6Features?.dispose();
+            ts6Features = undefined;
+        }
+    }
 
     addCompilePreviewCommands(getLS, context);
 
@@ -357,7 +423,7 @@ function addDidChangeTextDocumentListener(getLS: () => LanguageClient) {
     // Only Svelte file changes are automatically notified through the inbuilt LSP
     // because the extension says it's only responsible for Svelte files.
     // Therefore we need to set this up for TS/JS files manually.
-    workspace.onDidChangeTextDocument((evt) => {
+    return workspace.onDidChangeTextDocument((evt) => {
         if (evt.document.languageId === 'typescript' || evt.document.languageId === 'javascript') {
             getLS().sendNotification('$/onDidChangeTsOrJsFile', {
                 uri: evt.document.uri.toString(true),
@@ -374,7 +440,7 @@ function addDidChangeTextDocumentListener(getLS: () => LanguageClient) {
 }
 
 function addRenameFileListener(getLS: () => LanguageClient) {
-    workspace.onDidRenameFiles(async (evt) => {
+    return workspace.onDidRenameFiles(async (evt) => {
         const oldUri = evt.files[0].oldUri.toString(true);
         const parts = oldUri.split(/\/|\\/);
         const lastPart = parts[parts.length - 1];
