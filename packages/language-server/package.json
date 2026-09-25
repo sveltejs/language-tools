@@ -50,7 +50,7 @@
         "sinon": "^11.0.0",
         "ts-node": "^10.0.0",
         "typescript": "^6.0.3",
-        "svelte-typescript-content-mapper": "workspace:^"
+        "@sveltejs/ts-content-mapper": "workspace:^"
     },
     "dependencies": {
         "@jridgewell/trace-mapping": "^0.3.25",

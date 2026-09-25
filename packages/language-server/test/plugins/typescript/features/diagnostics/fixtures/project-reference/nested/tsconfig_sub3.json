@@ -9,7 +9,7 @@
     },
     "contentMappers": [
         {
-            "package": "svelte-typescript-content-mapper",
+            "package": "@sveltejs/ts-content-mapper",
             "extensions": [".svelte"]
         }
     ]

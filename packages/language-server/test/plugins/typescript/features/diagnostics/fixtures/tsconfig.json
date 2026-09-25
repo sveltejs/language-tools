@@ -13,7 +13,7 @@
     "exclude": ["./svelte-native/**/*", "./node16/**/*", "project-reference/**/*"],
     "contentMappers": [
         {
-            "package": "svelte-typescript-content-mapper",
+            "package": "@sveltejs/ts-content-mapper",
             "extensions": [".svelte"]
         }
     ]

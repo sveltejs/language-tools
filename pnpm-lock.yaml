@@ -88,6 +88,9 @@ importers:
         specifier: ~3.1.0
         version: 3.1.0
     devDependencies:
+      '@sveltejs/ts-content-mapper':
+        specifier: workspace:^
+        version: link:../typescript-content-mapper
       '@types/estree':
         specifier: ^0.0.42
         version: 0.0.42
@@ -115,9 +118,6 @@ importers:
       sinon:
         specifier: ^11.0.0
         version: 11.1.2
-      svelte-typescript-content-mapper:
-        specifier: workspace:^
-        version: link:../typescript-content-mapper
       ts-node:
         specifier: ^10.0.0
         version: 10.9.1(@types/node@18.19.46)(typescript@6.0.3)

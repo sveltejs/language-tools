@@ -60,10 +60,10 @@ export async function setupTsContentMapper(
 
             // inferredProjectContribution: {
             //     manifest: {
-            //         name: 'svelte-typescript-content-mapper',
+            //         name: '@sveltejs/ts-content-mapper',
             //         exec: [
             //             process.execPath,
-            //             './node_modules/svelte-typescript-content-mapper/dist/server.js'
+            //             './node_modules/@sveltejs/ts-content-mapper/dist/server.js'
             //         ],
             //         cwd: svelteExtension.extensionUri
             //     }
