@@ -607,6 +607,9 @@ parseOptions(async (opts) => {
             if (opts.incremental) {
                 throw new Error('--tsgo-experimental-api cannot be used with --incremental');
             }
+            if (opts.tsgo) {
+                throw new Error('--tsgo-experimental-api cannot be used with --tsgo');
+            }
             const pkg = tryParseTsGoVersion(opts.tsconfig);
             if (!pkg) {
                 throw new Error(formatTsGoNotFoundError('--tsgo-experimental-api'));
