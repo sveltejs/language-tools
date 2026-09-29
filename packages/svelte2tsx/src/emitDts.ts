@@ -127,6 +127,7 @@ function loadTsconfig(config: EmitDtsConfig, svelteMap: SvelteMap) {
             ...options,
             noEmit: false, // Set to true in case of jsconfig, force false, else nothing is emitted
             noEmitOnError: false, // Type errors are svelte-check's job, force false, else nothing is emitted
+            isolatedDeclarations: false, // Same, and generated component code can't satisfy it
             moduleResolution:
                 options.moduleResolution &&
                 options.moduleResolution !== ts.ModuleResolutionKind.Classic
