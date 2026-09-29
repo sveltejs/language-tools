@@ -19,6 +19,7 @@ import {
 import {
     emitSvelteFiles,
     EmitResult,
+    isInCacheDir,
     mapCliDiagnosticsToLsp,
     runTypeScriptDiagnostics,
     updateDiagnosticsCache,
@@ -546,6 +547,8 @@ async function watchWithVirtualFiles(opts: SvelteCheckCliOptions, writer: Writer
             if (
                 path.includes('node_modules') ||
                 path.includes('.git') ||
+                // Files emitted by each run would otherwise trigger the next run
+                isInCacheDir(opts.workspaceUri.fsPath, path) ||
                 (stats?.isFile() && (!FILE_ENDING_REGEX.test(path) || VITE_CONFIG_REGEX.test(path)))
             ) {
                 return true;
