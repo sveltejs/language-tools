@@ -453,7 +453,8 @@ async function runWithVirtualFiles(
         opts.workspaceUri.fsPath,
         opts.filePathsToIgnore,
         opts.incremental,
-        opts.config
+        opts.config,
+        opts.tsconfig
     );
     const overlayTsconfig = writeOverlayTsconfig(
         opts.tsconfig,
