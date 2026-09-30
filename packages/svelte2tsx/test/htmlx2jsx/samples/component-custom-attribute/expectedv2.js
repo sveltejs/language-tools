@@ -1,0 +1,3 @@
+  { const $$_tnenopmoC0C = __sveltets_2_ensureComponent(Component); new $$_tnenopmoC0C({ target: __sveltets_2_any(), props: {...__sveltets_2_componentAttr({"custom:defer":true}),}});}
+ { const $$_tnenopmoC0C = __sveltets_2_ensureComponent(Component); new $$_tnenopmoC0C({ target: __sveltets_2_any(), props: {    ...__sveltets_2_componentAttr({"custom:hydrate:visible":{ rootMargin: '200px' }}),"someOtherProps":`foo`,}});}
+ { const $$_tnenopmoC0C = __sveltets_2_ensureComponent(Component); new $$_tnenopmoC0C({ target: __sveltets_2_any(), props: {  ...__sveltets_2_componentAttr({"custom:label":`hi ${name}`}),}});}
