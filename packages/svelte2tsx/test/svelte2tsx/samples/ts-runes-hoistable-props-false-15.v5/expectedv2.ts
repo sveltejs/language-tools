@@ -10,7 +10,6 @@ interface A {
 
 
 
-
 let {Abc}: A = $props()
 ;
 async () => {

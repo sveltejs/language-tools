@@ -1,7 +1,7 @@
 ///<reference types="svelte" />
 ;function $$render<T>() {
 
-     let a: T/*Ωignore_startΩ*/;a = __sveltets_2_any(a);/*Ωignore_endΩ*/;
+     let a: T/*Ωignore_startΩ*/;a = __sveltets_2_any();a;/*Ωignore_endΩ*/;
 ;
 async () => {};
 return { props: {a: a} as {a: T}, slots: {}, events: {} }}

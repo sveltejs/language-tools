@@ -8,10 +8,9 @@
     function f(mhm) {}
 ;;
 
-import foo2 from '../../../foo';
+    import foo2 from '../../../foo';
 function $$render() {
 
-    
     import('../../../bar');
 
     /** @type {import('../../../mhm').mhm} */

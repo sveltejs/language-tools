@@ -2,7 +2,8 @@
     "references": [
         { "path": "./packages/load-config" },
         { "path": "./packages/language-server" },
-        { "path": "./packages/svelte-vscode" }
+        { "path": "./packages/svelte-vscode" },
+        { "path": "./packages/typescript-content-mapper" }
     ],
     "files": [],
     "include": [],

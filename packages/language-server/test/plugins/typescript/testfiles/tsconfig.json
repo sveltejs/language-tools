@@ -19,5 +19,11 @@
     "exclude": [
         /**For testing exclude */
         "./dist"
+    ],
+    "contentMappers": [
+        {
+            "package": "@sveltejs/ts-content-mapper",
+            "extensions": [".svelte"]
+        }
     ]
 }

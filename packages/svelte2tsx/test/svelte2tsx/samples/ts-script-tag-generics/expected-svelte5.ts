@@ -1,7 +1,7 @@
 ///<reference types="svelte" />
 ;function $$render<T extends Record<string, any>>() {
 
-     let init: T/*Ωignore_startΩ*/;init = __sveltets_2_any(init);/*Ωignore_endΩ*/;
+     let init: T/*Ωignore_startΩ*/;init = __sveltets_2_any();init;/*Ωignore_endΩ*/;
 ;
 async () => {};
 return { props: {init: init} as {init: T}, exports: {}, bindings: "", slots: {}, events: {} }}
