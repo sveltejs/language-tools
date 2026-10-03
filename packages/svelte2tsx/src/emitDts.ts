@@ -24,8 +24,7 @@ export async function emitDts(config: EmitDtsConfig) {
             diagnostic.code === 2527 ||
             diagnostic.code === 5088 ||
             diagnostic.code === 2742 ||
-            diagnostic.code === 9005 ||
-            diagnostic.code === 9006 ||
+            (diagnostic.code >= 9005 && diagnostic.code <= 9039) ||
             (diagnostic.code >= 4000 && diagnostic.code <= 4108)
         );
     });
