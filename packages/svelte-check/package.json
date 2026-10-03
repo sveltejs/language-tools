@@ -42,7 +42,8 @@
         "prepublishOnly": "pnpm build",
         "test": "pnpm build",
         "test:sanity": "node test-sanity.js",
-        "test:flush": "node test-flush.js"
+        "test:flush": "node test-flush.js",
+        "test:watch": "node test-watch.js"
     },
     "devDependencies": {
         "@rollup/plugin-commonjs": "^24.0.0",
