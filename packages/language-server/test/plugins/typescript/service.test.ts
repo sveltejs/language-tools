@@ -790,6 +790,62 @@ describe('service', () => {
         assert.equal(normalizePath(ls2.tsconfigPath), normalizePath(tsconfigPath));
     });
 
+    it('enters reduced mode', async () => {
+        const dirPath = getRandomVirtualDirPath(testDir);
+        const { virtualSystem, lsDocumentContext, rootUris } = setup();
+
+        let notified = false;
+        lsDocumentContext.notifyExceedSizeLimit = () => {
+            notified = true;
+        };
+
+        const tsconfigPath = path.join(dirPath, 'tsconfig.json');
+        const name = 'very-large.js';
+        const largeFilePath = path.join(dirPath, name);
+        const svelteFileName = 'newFile.svelte';
+        const svelteFilePath = path.join(dirPath, svelteFileName);
+
+        virtualSystem.writeFile(
+            tsconfigPath,
+            JSON.stringify({
+                compilerOptions: {
+                    strict: true
+                }
+            })
+        );
+        virtualSystem.writeFile(largeFilePath, '');
+
+        const getFileSize = virtualSystem.getFileSize!;
+        virtualSystem.getFileSize = (fileName) => {
+            if (fileName.endsWith(name)) {
+                return 21 * 1024 * 1024; // 21 MiB
+            }
+            return getFileSize(fileName);
+        };
+
+        let ls = await getService(largeFilePath, rootUris, lsDocumentContext);
+        assert.ok(notified, 'expected to notifyExceedSizeLimit');
+        ls.getService();
+        console.log(ls.snapshotManager.getProjectFileNames());
+
+        // adding after reduced mode is enabled
+        const newFileSvelte = path.join(dirPath, 'newFile.svelte');
+        virtualSystem.writeFile(newFileSvelte, '');
+        ls.scheduleProjectFileUpdate([svelteFilePath]);
+
+        ls = await getService(newFileSvelte, rootUris, lsDocumentContext);
+        assert.equal(normalizePath(ls.tsconfigPath), normalizePath(tsconfigPath));
+        const snapshot = Document.createForTest(pathToUrl(svelteFilePath), '');
+        snapshot.openedByClient = true;
+        ls.updateSnapshot(snapshot);
+        ls.getService();
+
+        const semanticDiagnostics = getSemanticDiagnosticsMessages(ls, svelteFilePath);
+        assert.deepStrictEqual(semanticDiagnostics, [
+            "Cannot find type definition file for 'svelte'."
+        ]);
+    });
+
     function getSemanticDiagnosticsMessages(ls: LanguageServiceContainer, filePath: string) {
         return ls
             .getService()

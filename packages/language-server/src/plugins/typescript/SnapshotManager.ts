@@ -88,12 +88,6 @@ export class GlobalSnapshotsManager {
         this.emitter.off('change', listener);
     }
 }
-
-export interface TsFilesSpec {
-    include?: readonly string[];
-    exclude?: readonly string[];
-}
-
 /**
  * Should only be used by `service.ts`
  */
@@ -123,7 +117,7 @@ export class SnapshotManager {
 
     constructor(
         private globalSnapshotsManager: GlobalSnapshotsManager,
-        private fileSpec: TsFilesSpec,
+        private fileSpec: ts.ConfigFileSpecs,
         private workspaceRoot: string,
         private tsSystem: ts.System,
         projectFiles: string[],
@@ -165,11 +159,11 @@ export class SnapshotManager {
     }
 
     areIgnoredFromNewFileWatch(watcherNewFiles: string[]): boolean {
-        const { include } = this.fileSpec;
+        const { validatedExcludeSpecs } = this.fileSpec;
 
         // Since we default to not include anything,
         //  just don't waste time on this
-        if (include?.length === 0 || !this.watchingCanonicalDirectories) {
+        if (validatedExcludeSpecs?.length === 0 || !this.watchingCanonicalDirectories) {
             return true;
         }
 
@@ -196,14 +190,19 @@ export class SnapshotManager {
     }
 
     updateProjectFiles(): void {
-        const { include, exclude } = this.fileSpec;
+        const { validatedExcludeSpecs, validatedIncludeSpecs } = this.fileSpec;
 
-        if (include?.length === 0) {
+        if (validatedIncludeSpecs?.length === 0) {
             return;
         }
 
         const projectFiles = this.tsSystem
-            .readDirectory(this.workspaceRoot, this.watchExtensions, exclude, include)
+            .readDirectory(
+                this.workspaceRoot,
+                this.watchExtensions,
+                validatedExcludeSpecs,
+                validatedIncludeSpecs
+            )
             .map(normalizePath);
 
         projectFiles.forEach((projectFile) =>
@@ -264,6 +263,10 @@ export class SnapshotManager {
 
     getProjectFileNames(): string[] {
         return Array.from(this.projectFileToOriginalCasing.values());
+    }
+
+    getProjectFileToOriginalCasingMap(): ReadonlyMap<string, string> {
+        return this.projectFileToOriginalCasing;
     }
 
     isProjectFile(fileName: string): boolean {

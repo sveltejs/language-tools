@@ -134,6 +134,7 @@ function loadTsconfig(config: EmitDtsConfig, svelteMap: SvelteMap) {
                       ((ts.ModuleResolutionKind as any).NodeJs ?? ts.ModuleResolutionKind.Node10), // Classic if not set, which gives wrong results
             declaration: true, // Needed for d.ts file generation
             emitDeclarationOnly: true, // We only want d.ts file generation
+            noCheck: true, // Skip type-checking, svelte-check does that (TS 5.5+, ignored before)
             declarationDir: config.declarationDir, // Where to put the declarations
             allowNonTsExtensions: true
         },

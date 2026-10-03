@@ -377,7 +377,7 @@ repository:
   special-tags-block-end:
     # This is again technically not correct, and due to the same whitespacing reasons.
     # However... just don't introduce newlines in `{/if}` blocks. 'cuz that's weird.
-    begin: ({)\s*(/([a-z]*))
+    begin: ({)\s*(/(?![/*])([a-z]*))
     end: (})
     name: meta.special.$3.svelte meta.special.end.svelte
     beginCaptures:
