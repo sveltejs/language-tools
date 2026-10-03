@@ -275,9 +275,17 @@ export class SveltePlugin
             // the workspace already. If we did it, Prettier would - for some reason - use
             // the workspace version for parsing and the extension version for printing,
             // which could crash if the contract of the parser output changed.
-            return !isFallback && (await hasSveltePluginLoaded(prettier, plugins))
-                ? []
-                : [require.resolve('prettier-plugin-svelte')];
+            if (!isFallback && (await hasSveltePluginLoaded(prettier, plugins))) {
+                return [];
+            }
+            // In the fallback case, use the plugin version that fits the Svelte version
+            // of the component that should be formatted. Version 4 of the plugin
+            // only supports Svelte 5.
+            return [
+                require.resolve(
+                    document.isSvelte5 ? 'prettier-plugin-svelte4' : 'prettier-plugin-svelte'
+                )
+            ];
         }
 
         async function hasSveltePluginLoaded(
