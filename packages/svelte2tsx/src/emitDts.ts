@@ -24,7 +24,8 @@ export async function emitDts(config: EmitDtsConfig) {
             diagnostic.code === 2527 ||
             diagnostic.code === 5088 ||
             diagnostic.code === 2742 ||
-            (diagnostic.code >= 9005 && diagnostic.code <= 9039) ||
+            diagnostic.code === 9005 ||
+            diagnostic.code === 9006 ||
             (diagnostic.code >= 4000 && diagnostic.code <= 4108)
         );
     });
@@ -126,6 +127,8 @@ function loadTsconfig(config: EmitDtsConfig, svelteMap: SvelteMap) {
         options: {
             ...options,
             noEmit: false, // Set to true in case of jsconfig, force false, else nothing is emitted
+            noEmitOnError: false, // Type errors are svelte-check's job, force false, else nothing is emitted
+            isolatedDeclarations: false, // Same, and generated component code can't satisfy it
             moduleResolution:
                 options.moduleResolution &&
                 options.moduleResolution !== ts.ModuleResolutionKind.Classic
