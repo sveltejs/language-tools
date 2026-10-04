@@ -684,5 +684,7 @@ parseOptions(async (opts) => {
     } catch (_err) {
         console.error(_err);
         console.error('svelte-check failed');
+        // A failed run must not look like a clean one to CI.
+        exitAfterFlush(1);
     }
 });
