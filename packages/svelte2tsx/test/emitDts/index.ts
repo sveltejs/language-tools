@@ -52,12 +52,9 @@ async function testEmitDts(sample: string) {
 
         await emitDts({
             declarationDir,
-            svelteShimsPath: require.resolve(
-                join(
-                    process.cwd(),
-                    sample.endsWith('.v5') ? 'svelte-shims-v4.d.ts' : 'svelte-shims.d.ts'
-                )
-            ), // TODO make it -v4 once we have Svelte 4 in the workspace
+            svelteShimsPath: sample.endsWith('.v5')
+                ? undefined
+                : require.resolve(join(process.cwd(), 'svelte-shims.d.ts')), // TODO make it -v4 once we have Svelte 4 in the workspace
             ...config,
             libRoot: config.libRoot ? join(cwd, config.libRoot) : join(cwd, 'src')
         });
