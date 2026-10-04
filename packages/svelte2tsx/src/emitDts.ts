@@ -6,6 +6,7 @@ import { svelte2tsx } from './svelte2tsx';
 export interface EmitDtsConfig {
     declarationDir: string;
     svelteShimsPath?: string;
+    noSvelteComponentTyped?: boolean;
     libRoot?: string;
     tsconfig?: string;
 }
@@ -13,8 +14,13 @@ export interface EmitDtsConfig {
 export async function emitDts(config: EmitDtsConfig) {
     throwIfTypeScript7();
 
-    const svelteShimsPath = config.svelteShimsPath ?? findSvelteShims();
-    const svelteMap = await createSvelteMap(svelteShimsPath);
+    const noSvelteComponentTyped =
+        config.noSvelteComponentTyped ??
+        (config.svelteShimsPath
+            ? config.svelteShimsPath.replace(/\\/g, '/').endsWith('svelte2tsx/svelte-shims-v4.d.ts')
+            : Number(VERSION.split('.')[0]) >= 4);
+    const svelteShimsPath = config.svelteShimsPath ?? findSvelteShims(noSvelteComponentTyped);
+    const svelteMap = await createSvelteMap(noSvelteComponentTyped);
     const { options, filenames, absDeclarationDir } = loadTsconfig(
         config,
         svelteShimsPath,
@@ -68,10 +74,10 @@ function throwIfTypeScript7() {
 }
 
 /**
- * The shims that ship with this package, matching the installed version of Svelte
+ * The shims that ship with this package
  */
-function findSvelteShims(): string {
-    const shims = Number(VERSION.split('.')[0]) < 4 ? 'svelte-shims.d.ts' : 'svelte-shims-v4.d.ts';
+function findSvelteShims(noSvelteComponentTyped: boolean): string {
+    const shims = noSvelteComponentTyped ? 'svelte-shims-v4.d.ts' : 'svelte-shims.d.ts';
     // they sit next to the bundle, which is one directory above the source
     return ts.findConfigFile(__dirname, ts.sys.fileExists, shims);
 }
@@ -345,12 +351,9 @@ interface SvelteMap {
  * early on when we first need to look at the file contents and can read
  * those transformed source later on.
  */
-async function createSvelteMap(svelteShimsPath: string): Promise<SvelteMap> {
+async function createSvelteMap(noSvelteComponentTyped: boolean): Promise<SvelteMap> {
     const svelteFiles = new Map<string, { transformed: string; isTsFile: boolean }>();
 
-    const noSvelteComponentTyped = svelteShimsPath
-        .replace(/\\/g, '/')
-        .endsWith('svelte2tsx/svelte-shims-v4.d.ts');
     const version = noSvelteComponentTyped ? undefined : '3.42.0';
 
     function add(path: string): boolean {
