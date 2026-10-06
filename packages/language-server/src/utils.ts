@@ -73,6 +73,23 @@ function normalizeDriveLetter(path: string): string {
 }
 
 /**
+ * Whether diagnostics should be skipped for the file at the given path because it is a
+ * dependency inside `node_modules`. Files below `src/node_modules` are not skipped, because
+ * that is where Sapper put the user's own code.
+ */
+export function isFileInNodeModulesSkippedForDiagnostics(
+    filePath: string | null | undefined
+): boolean {
+    if (!filePath) {
+        return false;
+    }
+    return (
+        (filePath.includes('/node_modules/') || filePath.includes('\\node_modules\\')) &&
+        !(filePath.includes('/src/node_modules/') || filePath.includes('\\src\\node_modules\\'))
+    );
+}
+
+/**
  * URIs coming from the client could be encoded in a different
  * way than expected / than the internal services create them.
  * This normalizes them to be the same as the internally generated ones.

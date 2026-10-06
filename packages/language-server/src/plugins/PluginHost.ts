@@ -40,7 +40,11 @@ import {
 } from 'vscode-languageserver';
 import { Document, DocumentManager, getNodeIfIsInHTMLStartTag } from '../lib/documents';
 import { Logger } from '../logger';
-import { isNotNullOrUndefined, regexLastIndexOf } from '../utils';
+import {
+    isFileInNodeModulesSkippedForDiagnostics,
+    isNotNullOrUndefined,
+    regexLastIndexOf
+} from '../utils';
 import {
     AppCompletionItem,
     FileRename,
@@ -103,15 +107,7 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
     }
 
     private canSkipDiagnostics(document: Document) {
-        return (
-            (document.getFilePath()?.includes('/node_modules/') ||
-                document.getFilePath()?.includes('\\node_modules\\')) &&
-            // Sapper convention: Put stuff inside node_modules below src
-            !(
-                document.getFilePath()?.includes('/src/node_modules/') ||
-                document.getFilePath()?.includes('\\src\\node_modules\\')
-            )
-        );
+        return isFileInNodeModulesSkippedForDiagnostics(document.getFilePath());
     }
 
     async getDiagnosticsForPullMode(

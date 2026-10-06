@@ -2,3 +2,6 @@ dist/
 .vscode/
 node_modules/
 .svelte-check/
+
+# Fixture: a dependency that ships .svelte files with a type error (test-sanity.js)
+!test-success/node_modules/

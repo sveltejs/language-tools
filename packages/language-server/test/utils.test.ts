@@ -5,7 +5,8 @@ import {
     regexLastIndexOf,
     unique,
     groupBy,
-    debounce
+    debounce,
+    isFileInNodeModulesSkippedForDiagnostics
 } from '../src/utils';
 import { Position } from 'vscode-languageserver';
 import * as assert from 'assert';
@@ -92,6 +93,40 @@ describe('utils', () => {
                 normalizePath('/already/normalized/path/file.ts'),
                 '/already/normalized/path/file.ts'
             );
+        });
+    });
+
+    describe('#isFileInNodeModulesSkippedForDiagnostics', () => {
+        it('skips files inside node_modules', () => {
+            assert.equal(
+                isFileInNodeModulesSkippedForDiagnostics('/app/node_modules/lib/Widget.svelte'),
+                true
+            );
+            assert.equal(
+                isFileInNodeModulesSkippedForDiagnostics(
+                    'C:\\app\\node_modules\\lib\\Widget.svelte'
+                ),
+                true
+            );
+        });
+
+        it('does not skip src/node_modules (Sapper convention)', () => {
+            assert.equal(
+                isFileInNodeModulesSkippedForDiagnostics('/app/src/node_modules/lib/Widget.svelte'),
+                false
+            );
+            assert.equal(
+                isFileInNodeModulesSkippedForDiagnostics(
+                    'C:\\app\\src\\node_modules\\lib\\Widget.svelte'
+                ),
+                false
+            );
+        });
+
+        it('does not skip files outside node_modules', () => {
+            assert.equal(isFileInNodeModulesSkippedForDiagnostics('/app/src/App.svelte'), false);
+            assert.equal(isFileInNodeModulesSkippedForDiagnostics(null), false);
+            assert.equal(isFileInNodeModulesSkippedForDiagnostics(undefined), false);
         });
     });
 

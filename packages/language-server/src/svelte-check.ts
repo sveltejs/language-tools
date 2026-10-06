@@ -23,8 +23,19 @@ import {
 } from './plugins/typescript/DocumentSnapshot';
 import { isInGeneratedCode } from './plugins/typescript/features/utils';
 import { mapAndFilterDiagnostics } from './plugins/typescript/features/DiagnosticsProvider';
-import { convertRange, getDiagnosticTag, mapSeverity } from './plugins/typescript/utils';
-import { groupBy, normalizePath, pathToUrl, urlToPath } from './utils';
+import {
+    convertRange,
+    getDiagnosticTag,
+    isSvelteFilePath,
+    mapSeverity
+} from './plugins/typescript/utils';
+import {
+    groupBy,
+    isFileInNodeModulesSkippedForDiagnostics,
+    normalizePath,
+    pathToUrl,
+    urlToPath
+} from './utils';
 import { tsApiSync, tsAst } from './plugins/typescript-go/types';
 import { SvelteCheckTSGoDiagnosticsProvider } from './plugins/typescript-go/features/DiagnosticsProvider';
 
@@ -500,10 +511,18 @@ export class SvelteCheck {
             }
         }
 
-        const result = this.tsGoDiagnosticsProvider.mapAndFilterDiagnostics(
-            project,
-            allTsDiagnostics
-        );
+        // The program-wide diagnostics above include .svelte files that libraries in
+        // node_modules ship without a .svelte.d.ts. The default mode never reports those:
+        // they are opened as documents, and PluginHost skips documents in node_modules.
+        const result = this.tsGoDiagnosticsProvider
+            .mapAndFilterDiagnostics(project, allTsDiagnostics)
+            .filter(
+                (entry) =>
+                    !(
+                        isSvelteFilePath(entry.filePath) &&
+                        isFileInNodeModulesSkippedForDiagnostics(entry.filePath)
+                    )
+            );
         const map = new Map<
             string,
             { filePath: string; text: string; diagnostics: Diagnostic[] }
