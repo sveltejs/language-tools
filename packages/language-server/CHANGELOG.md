@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.18.5
+
+### Patch Changes
+
+-   fix: prevent errors in language service reduced mode ([#3110](https://github.com/sveltejs/language-tools/pull/3110))
+
+-   fix: recognise modern CSS properties such as corner-shape by updating vscode-css-languageservice ([#3122](https://github.com/sveltejs/language-tools/pull/3122))
+
+-   fix: resolve symlinked packages when importing their `.svelte` files, so their types are not duplicated ([#3119](https://github.com/sveltejs/language-tools/pull/3119))
+
+-   fix: fallback to prettier-plugin-svelte version 4 for Svelte 5 ([#3117](https://github.com/sveltejs/language-tools/pull/3117))
+
+-   Hide generated snippet functions from document symbols so they do not appear in the editor outline. ([#3114](https://github.com/sveltejs/language-tools/pull/3114))
+
+-   fix: align default tsconfig "include" logic with tsc/tsserver ([#3110](https://github.com/sveltejs/language-tools/pull/3110))
+
+-   Updated dependencies [[`7e2f572`](https://github.com/sveltejs/language-tools/commit/7e2f572fefd6962dd1072920bb3b419eabe4c441), [`1d367d0`](https://github.com/sveltejs/language-tools/commit/1d367d0c97b682059c55a27934e462bd872ee9a7), [`092af38`](https://github.com/sveltejs/language-tools/commit/092af3826bada5cd591b0efccc39eed970169465), [`b9f3faa`](https://github.com/sveltejs/language-tools/commit/b9f3faa27fec897291d67308112b0491a1e49221)]:
+    -   svelte2tsx@0.7.62
+
 ## 0.18.4
 
 ### Patch Changes
