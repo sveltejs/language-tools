@@ -1,6 +1,5 @@
 import {
     commands,
-    ExtensionContext,
     ProgressLocation,
     Uri,
     window,
@@ -12,16 +11,8 @@ import {
 import { LanguageClient } from 'vscode-languageclient/node';
 import { Location as LSLocation } from 'vscode-languageclient';
 
-export async function addFindComponentReferencesListener(
-    getLS: () => LanguageClient,
-    context: ExtensionContext
-) {
-    const disposable = commands.registerCommand(
-        'svelte.typescript.findComponentReferences',
-        handler
-    );
-
-    context.subscriptions.push(disposable);
+export function addFindComponentReferencesListener(getLS: () => LanguageClient) {
+    return commands.registerCommand('svelte.typescript.findComponentReferences', handler);
 
     async function handler(resource?: Uri) {
         if (!resource) {

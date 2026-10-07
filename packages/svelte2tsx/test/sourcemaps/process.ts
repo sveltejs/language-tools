@@ -11,6 +11,7 @@ import {
     MappedRange,
     Mappings,
     Position,
+    print_string,
     Range,
     range_for,
     reduce_segments,
@@ -25,6 +26,7 @@ import {
     ParsedSource,
     SourceText
 } from './parser';
+import { SpanMapFeature, SpanMapKind, SpanMapping } from '../../src/utils/spanMap';
 
 /**
  *
@@ -109,6 +111,10 @@ namespace raw {
 }
 
 namespace print {
+    const spanMapFeatureEntries = Object.entries(SpanMapFeature)
+        .filter(([key, value]) => typeof value === 'number')
+        .map(([key, value]) => [value as number, key] as const);
+
     /**
      * Return string for mappings.jsx
      */
@@ -163,6 +169,107 @@ namespace print {
 				].filter(Boolean).map(([map,comment])=>[" ".repeat(offset)+map,comment]) as [string, string][];
             }
         }
+    }
+
+    export function span_mapping(
+        { generated, original }: ParsedSource,
+        spanMappings: SpanMapping[]
+    ): string {
+        const sorted_by_generated = spanMappings.sort((a, b) => a[0] - b[0]);
+        const groups_by_line = new Map<number, SpanMapping[]>();
+        const line_break = print_string('\n');
+        for (const mapping of sorted_by_generated) {
+            const line = generated.toLineChar(mapping[0]).line.index;
+            const end_line = generated.toLineChar(mapping[0] + mapping[1]).line.index;
+            for (let i = line; i <= end_line; i++) {
+                let bucket = groups_by_line.get(i);
+                if (!bucket) {
+                    bucket = [];
+                    groups_by_line.set(i, bucket);
+                }
+                bucket.push(mapping);
+            }
+        }
+        return compose_file(function* () {
+            const lines = generated.lines;
+            for (const line of lines) {
+                const rendered_line = line.toString();
+                yield '>' + rendered_line;
+                const mappings = groups_by_line.get(line.index);
+                if (!mappings) {
+                    continue;
+                }
+
+                const tab_indexes: number[] = [];
+                for (let i = 0; i < rendered_line.length; i++) {
+                    if (rendered_line[i] === '\t') {
+                        tab_indexes.push(i + line.start);
+                    }
+                }
+                for (const mapping of mappings) {
+                    const [
+                        generated_start,
+                        generated_length,
+                        original_start,
+                        original_length,
+                        kind
+                    ] = mapping;
+                    const originalEnd = original_start + original_length;
+
+                    const tab_count_before = tab_indexes.filter((i) => i < generated_start).length;
+                    const range_start = Math.max(generated_start, line.start);
+                    const generated_end = generated_start + generated_length;
+                    const range_end = Math.min(generated_end, line.end);
+
+                    const tab_count_current = tab_indexes.filter(
+                        (i) => i >= generated_start && i < range_end
+                    ).length;
+
+                    const indent = ' '.repeat(range_start - line.start + tab_count_before * 3);
+                    let log =
+                        '#' + indent + '^'.repeat(range_end - range_start + tab_count_current * 3);
+
+                    if (generated_end > line.end) {
+                        yield log;
+                        continue;
+                    }
+
+                    const features = format_features_flags(mapping[5]);
+                    const feature_for_log = features ? `,[${features}]` : '';
+                    log += ` [${SpanMapKind[kind]}]${feature_for_log} => ${original_start}-${originalEnd}`;
+                    yield log;
+                    const original_text_print =
+                        indent + original.print_slice(original_start, originalEnd);
+                    for (const line of original_text_print.split(line_break)) {
+                        yield '-' + line;
+                    }
+                }
+            }
+        });
+    }
+
+    function format_features_flags(features: SpanMapFeature | undefined) {
+        if (features === undefined) {
+            return '';
+        }
+        const result: string[] = [];
+        let remainingFlags = features;
+        if (remainingFlags === 0) {
+            return 'None';
+        }
+        for (const [enumValue, enumName] of spanMapFeatureEntries) {
+            if (enumValue > features) {
+                break;
+            }
+            if (enumValue !== 0 && enumValue & features) {
+                result.push(enumName);
+                remainingFlags &= ~enumValue;
+            }
+        }
+        if (remainingFlags === 0) {
+            return result.join('|');
+        }
+        return result.length > 0 ? result.join('|') : '';
     }
 
     /**
@@ -382,11 +489,14 @@ export function is_edit_empty(test_edit: string) {
 export function process_transformed_text(
     original_text: string,
     generated_text: string,
-    mappings: Mappings
+    mappings: Mappings,
+    span_mappings: SpanMapping[] = []
 ) {
     const source = parse(original_text, generated_text, mappings);
     return {
         print_mappings: () => print.mappings(source),
+
+        print_span_mappings: () => print.span_mapping(source, span_mappings),
 
         generate_test_edit(test_file: string = '') {
             return print.test_edit(parse_test_file(test_file, source), source);

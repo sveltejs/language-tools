@@ -5,6 +5,7 @@ import { isImplicitlyClosedBlock, transform, TransformationArray } from '../util
 import { InlineComponent } from './InlineComponent';
 import { IGNORE_POSITION_COMMENT, surroundWithIgnoreComments } from '../../utils/ignore';
 import { Element } from './Element';
+import { SpanMapGenerator } from '../../utils/spanMap';
 
 /**
  * Transform #snippet into a function
@@ -30,6 +31,7 @@ import { Element } from './Element';
 export function handleSnippet(
     str: MagicString,
     snippetBlock: BaseNode,
+    spanMapGenerator: SpanMapGenerator | undefined,
     component?: InlineComponent | Element,
     emitJsDoc = false,
     isTsFile = false
@@ -137,7 +139,7 @@ export function handleSnippet(
             afterParameters
         );
 
-        transform(str, snippetBlock.start, startEnd, transforms);
+        transform(str, snippetBlock.start, startEnd, transforms, spanMapGenerator);
     }
 }
 

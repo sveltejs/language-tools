@@ -1,9 +1,8 @@
 ///<reference types="svelte" />
 ;
-import { createEventDispatcher as foo, abc } from "svelte";
+    import { createEventDispatcher as foo, abc } from "svelte";
 function $$render() {
 
-    
 
     const notDispatch = abc();
     const dispatch = foo();

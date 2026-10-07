@@ -1,9 +1,9 @@
 ///<reference types="svelte" />
 ;function $$render() {
 
-	 let foo: number = undefined/*Ωignore_startΩ*/;foo = __sveltets_2_any(foo);/*Ωignore_endΩ*/
+	 let foo: number = undefined/*Ωignore_startΩ*/;foo = __sveltets_2_any();foo;/*Ωignore_endΩ*/
 	 let foo2 = undefined
-	let clazz: string/*Ωignore_startΩ*/;clazz = __sveltets_2_any(clazz);/*Ωignore_endΩ*/
+	let clazz: string/*Ωignore_startΩ*/;clazz = __sveltets_2_any();clazz;/*Ωignore_endΩ*/
 	
 	 const bar: string = ''
 ;

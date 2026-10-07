@@ -1,9 +1,8 @@
 ///<reference types="svelte" />
 ;
-import { readable } from 'svelte/store';
+	import { readable } from 'svelte/store';
 function $$render() {
 
-	
 	const store = readable(Promise.resolve('test'), () => {})/*Ωignore_startΩ*/;let $store = __sveltets_2_store_get(store);/*Ωignore_endΩ*/;
 ;
 async () => {

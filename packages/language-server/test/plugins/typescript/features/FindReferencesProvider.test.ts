@@ -11,19 +11,17 @@ import { pathToUrl } from '../../../../src/utils';
 import { serviceWarmup } from '../test-utils';
 import { FindComponentReferencesProviderImpl } from '../../../../src/plugins/typescript/features/FindComponentReferencesProvider';
 import { VERSION } from 'svelte/compiler';
+import { FindReferencesProvider } from '../../../../src/plugins';
 
 const testDir = path.join(__dirname, '..');
 const isSvelte5Plus = +VERSION.split('.')[0] >= 5;
 
 describe('FindReferencesProvider', function () {
     serviceWarmup(this, testDir);
+    findReferencesTest(setup, it);
 
     function getFullPath(filename: string) {
         return path.join(testDir, 'testfiles', filename);
-    }
-    function getUri(filename: string) {
-        const filePath = path.join(testDir, 'testfiles', filename);
-        return pathToUrl(filePath);
     }
 
     function setup(filename: string) {
@@ -51,6 +49,20 @@ describe('FindReferencesProvider', function () {
             });
             return doc;
         }
+    }
+});
+
+export function findReferencesTest(
+    setup: (filename: string) => {
+        provider: FindReferencesProvider;
+        document: Document;
+        openDoc: (filename: string) => Document;
+    },
+    it: Mocha.TestFunction
+) {
+    function getUri(filename: string) {
+        const filePath = path.join(testDir, 'testfiles', filename);
+        return pathToUrl(filePath);
     }
 
     async function test(position: Position, includeDeclaration: boolean) {
@@ -439,4 +451,4 @@ describe('FindReferencesProvider', function () {
     after(() => {
         __resetCache();
     });
-});
+}

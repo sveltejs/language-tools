@@ -1,0 +1,58 @@
+>///<reference types="svelte" />
+>;function $$render() {
+>async () => { { const $$_tnenopmoC0C = __sveltets_2_ensureComponent(Component); const $$_tnenopmoC0 = new $$_tnenopmoC0C({ target: __sveltets_2_any(), props: {    }});{const {/*Ωignore_startΩ*/$$_$$/*Ωignore_endΩ*/,hi,hi2:hi_2,hi3,} = $$_tnenopmoC0.$$slot_def.default;$$_$$;
+#             ^ [Atom] => 0-1
+-             <
+#                                                                    ^^^^^^^^^ [Verbatim],[Hover|Completion|Definition|Implementation|References|DocumentHighlights|Rename|CallHierarchy|CodeActions|SelectionRanges|DocumentSymbols] => 1-10
+-                                                                    Component
+#                                                                                                                                                       ^^^^^ [Atom],[None] => 1-10
+-                                                                                                                                                       Component
+#                                                                                                                                                               ^ [Atom] => 12-13
+-                                                                                                                                                               e
+#                                                                                                                                                                ^ [Atom] => 18-19
+-                                                                                                                                                                l
+#                                                                                                                                                                 ^ [Atom] => 26-27
+-                                                                                                                                                                 {
+#                                                                                                                                                                  ^ [Verbatim] => 32-33
+-                                                                                                                                                                  •
+#                                                                                                                                                                                                                       ^^ [Verbatim] => 15-17
+-                                                                                                                                                                                                                       hi
+#                                                                                                                                                                                                                          ^^^ [Verbatim] => 22-25
+-                                                                                                                                                                                                                          hi2
+#                                                                                                                                                                                                                              ^^^^ [Verbatim] => 27-31
+-                                                                                                                                                                                                                              hi_2
+#                                                                                                                                                                                                                                   ^^^ [Verbatim] => 37-40
+-                                                                                                                                                                                                                                   hi3
+#
+>    hi;hi_2;hi3;
+# [Verbatim] => 41-42
+-
+-
+#^ [Atom] => 41-42
+-
+-
+#    ^^ [Verbatim] => 47-49
+-    hi
+#      ^ [Atom] => 49-50
+-      }
+#       ^^^^ [Verbatim] => 51-55
+-       hi_2
+#           ^ [Atom] => 55-56
+-           }
+#            ^^^ [Verbatim] => 57-60
+-            hi3
+#               ^
+> }Component}};
+# [Atom] => 60-62
+-}
+-
+#^ [Atom] => 62-63
+-<
+#  ^^^^^^^^^ [Verbatim] => 64-73
+-  Component
+>return { props: /** @type {Record<string, never>} */ ({}), slots: {}, events: {} }}
+>
+>export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial(__sveltets_2_with_any_event($$render()))) {
+#                     ^^^^^^^^^^^^^^^^^^^^^^^ [Atom],[Definition] => 0-0
+-
+>}

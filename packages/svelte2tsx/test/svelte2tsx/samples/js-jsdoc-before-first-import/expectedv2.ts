@@ -1,14 +1,11 @@
 ///<reference types="svelte" />
-;// non-leading comment
-/**@typedef {{ a: string }} Foo */
+;
+    // non-leading comment
 
-import '';
+    /**@typedef {{ a: string }} Foo */
+    import ''
 function $$render() {
 
-    
-
-    
-    
 ;
 async () => {};
 return { props: /** @type {Record<string, never>} */ ({}), slots: {}, events: {} }}
