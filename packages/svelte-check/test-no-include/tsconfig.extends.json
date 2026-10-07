@@ -1,0 +1,10 @@
+{
+    // "include" comes from the base config and must be kept
+    "extends": "./tsconfig.base.json",
+    "compilerOptions": {
+        "target": "ESNext",
+        "moduleResolution": "bundler",
+        "strict": true,
+        "skipLibCheck": true
+    }
+}
