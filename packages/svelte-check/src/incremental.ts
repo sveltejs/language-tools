@@ -74,6 +74,17 @@ function getCacheDir(workspacePath: string): string {
     return path.join(workspacePath, CACHE_DIR_NAME);
 }
 
+/**
+ * Checks whether a path is one of the possible cache directories or inside of them.
+ * Both locations are checked because `.svelte-kit` can be created while watching.
+ */
+export function isInCacheDir(workspacePath: string, filePath: string): boolean {
+    return [
+        path.join(workspacePath, CACHE_DIR_NAME),
+        path.join(workspacePath, SVELTE_KIT_DIR, CACHE_DIR_NAME)
+    ].some((cacheDir) => filePath === cacheDir || filePath.startsWith(cacheDir + path.sep));
+}
+
 function toPosixPath(value: string) {
     return value.replace(/\\/g, '/');
 }
