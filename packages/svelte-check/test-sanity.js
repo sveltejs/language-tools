@@ -7,7 +7,8 @@
  */
 
 const { execFileSync } = require('child_process');
-const { rmSync } = require('fs');
+const { mkdirSync, mkdtempSync, rmSync, writeFileSync } = require('fs');
+const os = require('os');
 const path = require('path');
 
 const CLI = path.join(__dirname, 'dist', 'src', 'index.js');
@@ -124,6 +125,98 @@ function test(name, opts) {
     }
 }
 
+/**
+ * Asserts that a compiler process which dies is reported as a failure rather than as a
+ * clean or partial run.
+ *
+ * @param {string} name
+ * @param {string} compilerBody Source of the fake `tsgo` executable written into the workspace.
+ */
+function testCrashedCompiler(name, compilerBody) {
+    // The compiler binary is resolved from the overlay tsconfig that svelte-check writes
+    // inside the workspace, so a fake `@typescript/native-preview` in the workspace's
+    // node_modules is picked up instead of the real one.
+    const crashWorkspace = mkdtempSync(path.join(os.tmpdir(), 'svelte-check-crash-'));
+    const tsgoPkg = path.join(crashWorkspace, 'node_modules', '@typescript/native-preview');
+    mkdirSync(tsgoPkg, { recursive: true });
+    mkdirSync(path.join(crashWorkspace, 'src'));
+    writeFileSync(
+        path.join(crashWorkspace, 'tsconfig.json'),
+        JSON.stringify({
+            compilerOptions: { target: 'ESNext', moduleResolution: 'bundler', strict: true },
+            include: ['src/**/*']
+        })
+    );
+    writeFileSync(
+        path.join(crashWorkspace, 'src', 'Test.svelte'),
+        '<script lang="ts">\n\tlet { label }: { label: string } = $props();\n</script>\n\n<button>{label}</button>\n'
+    );
+    writeFileSync(
+        path.join(tsgoPkg, 'package.json'),
+        JSON.stringify({
+            name: '@typescript/native-preview',
+            version: '7.0.0',
+            bin: { tsgo: './fake-tsgo.js' }
+        })
+    );
+    writeFileSync(path.join(tsgoPkg, 'fake-tsgo.js'), compilerBody);
+
+    let exitCode = 0;
+    let stderr = '';
+    try {
+        execFileSync(
+            'node',
+            [
+                CLI,
+                '--workspace',
+                crashWorkspace,
+                '--tsconfig',
+                path.join(crashWorkspace, 'tsconfig.json'),
+                '--tsgo',
+                '--output',
+                'machine-verbose'
+            ],
+            {
+                cwd: __dirname,
+                encoding: 'utf-8',
+                timeout: 60_000,
+                // stderr lands in `err.stderr` either way. Without this it is also forwarded
+                // to this process, which prints the crash while the test passes.
+                stdio: ['ignore', 'pipe', 'pipe']
+            }
+        );
+    } catch (err) {
+        const { status, stderr: errStderr, signal } = /** @type {any} */ (err);
+        exitCode = status ?? 0;
+        stderr = errStderr || '';
+        // Without this a signal-killed svelte-check reports "got exit 0", which sends the
+        // next person looking in the wrong place.
+        if (signal) {
+            stderr += ` (svelte-check itself was killed by signal ${signal})`;
+        }
+    }
+
+    // The message differs by platform: a kill arrives as a signal on POSIX and as an exit
+    // code on Windows, so accept either way of reporting the failed compiler process.
+    if (
+        exitCode !== 0 &&
+        /The TypeScript compiler process (was killed by signal|exited with code)/.test(stderr)
+    ) {
+        passed++;
+        console.log(`  PASS: ${name}`);
+    } else {
+        failed++;
+        console.log(`  FAIL: ${name}`);
+        console.log(
+            `        expected a non-zero exit and a compiler process error, got exit ${exitCode} and stderr ${JSON.stringify(
+                stderr
+            )}`
+        );
+    }
+
+    rmSync(crashWorkspace, { recursive: true, force: true });
+}
+
 console.log('svelte-check sanity tests\n');
 
 test('clean project', {
@@ -235,6 +328,28 @@ test('project with errors --tsgo', {
     tsgo: true,
     errors
 });
+
+// A compiler that dies must not look like a clean run, and one that dies after reporting
+// some diagnostics must not look like a completed one.
+testCrashedCompiler(
+    'crashed compiler is reported as a failure',
+    "process.kill(process.pid, 'SIGKILL');\n"
+);
+
+// The same failure without a signal, which is how Windows reports every kill.
+testCrashedCompiler(
+    'compiler exiting without output is reported as a failure',
+    'process.exit(1);\n'
+);
+
+// Windows reports a kill as an exit code and never as a signal, so the signal branch is
+// unreachable there and this case would resolve with its partial diagnostic instead.
+if (process.platform !== 'win32') {
+    testCrashedCompiler(
+        'crash after reporting a diagnostic is still a failure',
+        "process.stdout.write('src/Test.svelte:1:1 - error TS2322: Type mismatch.\\n');\nprocess.kill(process.pid, 'SIGKILL');\n"
+    );
+}
 
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed > 0 ? 1 : 0);
