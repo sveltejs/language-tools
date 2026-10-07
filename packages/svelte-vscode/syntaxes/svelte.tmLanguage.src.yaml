@@ -88,7 +88,7 @@ injections:
     contentName: text.pug, patterns: [{ include: text.pug }]}]
 
   # Default (just introduces a new scope)
-  'L:meta.template.svelte - meta.lang - (meta source)':
+  'L:meta.template.svelte - meta.lang - (meta source | comment)':
     patterns: [{begin: '(?<=>)\s', end: '(?=</template)', patterns: [{ include: '#scope' }]}]
 
   # ---- LANGUAGE EXTENSIONS
