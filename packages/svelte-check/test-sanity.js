@@ -329,6 +329,53 @@ test('project with errors --tsgo', {
     errors
 });
 
+// Without an `include` or `files`, TypeScript checks every file next to the tsconfig. The
+// overlay tsconfig used by --incremental / --tsgo must not narrow that down to nothing.
+const noIncludeErrors = [
+    { file: 'other/b.ts', line: 0, column: 13, code: 2322 },
+    { file: 'src/App.svelte', line: 1, column: 10, code: 2322 },
+    { file: 'src/a.ts', line: 0, column: 13, code: 2322 }
+];
+
+test('project without include', {
+    workspace: './test-no-include',
+    tsconfig: './tsconfig.json',
+    errors: noIncludeErrors
+});
+
+rmSync('./test-no-include/.svelte-check', { recursive: true, force: true });
+test('project without include (incremental)', {
+    workspace: './test-no-include',
+    tsconfig: './tsconfig.json',
+    incremental: true,
+    errors: noIncludeErrors
+});
+
+test('project without include --tsgo', {
+    workspace: './test-no-include',
+    tsconfig: './tsconfig.json',
+    tsgo: true,
+    errors: noIncludeErrors
+});
+
+// An `include` inherited through `extends` still applies, so `other/b.ts` is not checked.
+const inheritedIncludeErrors = noIncludeErrors.filter((error) => error.file.startsWith('src/'));
+
+rmSync('./test-no-include/.svelte-check', { recursive: true, force: true });
+test('project with include from extends (incremental)', {
+    workspace: './test-no-include',
+    tsconfig: './tsconfig.extends.json',
+    incremental: true,
+    errors: inheritedIncludeErrors
+});
+
+test('project with include from extends --tsgo', {
+    workspace: './test-no-include',
+    tsconfig: './tsconfig.extends.json',
+    tsgo: true,
+    errors: inheritedIncludeErrors
+});
+
 // A compiler that dies must not look like a clean run, and one that dies after reporting
 // some diagnostics must not look like a completed one.
 testCrashedCompiler(
