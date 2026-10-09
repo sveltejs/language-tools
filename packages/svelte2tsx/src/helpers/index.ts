@@ -9,6 +9,7 @@ import {
     upsertKitFile
 } from './sveltekit';
 import { findExports } from './typescript';
+import { sanitizeLooseAttributePrefixes } from './looseAttributePrefixes';
 
 /**
  * ## Internal, do not use! This is subject to change at any time.
@@ -26,5 +27,6 @@ export const internalHelpers = {
     toOriginalPos,
     findExports,
     get_global_types,
+    sanitizeLooseAttributePrefixes,
     renderName: '$$render'
 };
