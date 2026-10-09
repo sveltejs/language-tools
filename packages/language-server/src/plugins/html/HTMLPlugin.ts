@@ -126,6 +126,13 @@ export class HTMLPlugin
         return this.lang.doHover(document, position, html);
     }
 
+    private getEmmetSyntax(document: Document, position: Position) {
+        return isInTag(position, document.templateInfo) &&
+            document.getLanguageAttribute('template') === 'pug'
+            ? 'pug'
+            : 'html';
+    }
+
     async getCompletions(
         document: Document,
         position: Position,
@@ -159,7 +166,12 @@ export class HTMLPlugin
             this.configManager.getEmmetConfig().showExpandedAbbreviation !== 'never'
         ) {
             doEmmetCompleteInner = () =>
-                doEmmetComplete(document, position, 'html', this.configManager.getEmmetConfig());
+                doEmmetComplete(
+                    document,
+                    position,
+                    this.getEmmetSyntax(document, position),
+                    this.configManager.getEmmetConfig()
+                );
 
             this.lang.setCompletionParticipants([
                 {
