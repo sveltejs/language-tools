@@ -275,10 +275,10 @@ export class HoistableInterfaces {
             initializer: ts.CallExpression & { expression: ts.Identifier };
         }
     ) {
-        if (node.initializer.typeArguments?.length > 0 || node.type) {
-            const generic_arg = node.initializer.typeArguments?.[0] || node.type;
-            if (ts.isTypeReferenceNode(generic_arg)) {
-                const name = this.getEntityNameRoot(generic_arg.typeName);
+        if (node.type) {
+            const props_type = node.type;
+            if (ts.isTypeReferenceNode(props_type)) {
+                const name = this.getEntityNameRoot(props_type.typeName);
                 const interface_node = this.interface_map.get(name);
                 if (interface_node) {
                     this.props_interface.name = name;
@@ -287,9 +287,9 @@ export class HoistableInterfaces {
                 }
             } else {
                 this.props_interface.name = '$$ComponentProps';
-                this.props_interface.node = generic_arg;
+                this.props_interface.node = props_type;
                 this.collectTypeDependencies(
-                    generic_arg,
+                    props_type,
                     this.props_interface.type_deps,
                     this.props_interface.value_deps,
                     [],
