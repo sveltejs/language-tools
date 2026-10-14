@@ -57,6 +57,7 @@ export function handleAttribute(
     parent: BaseNode,
     preserveCase: boolean,
     svelte5Plus: boolean,
+    looseAttributePrefixes: string[] | undefined,
     element: Element | InlineComponent
 ): void {
     if (
@@ -80,10 +81,14 @@ export function handleAttribute(
         return;
     }
 
+    const isLooseAttribute = looseAttributePrefixes?.some((prefix) => attr.name.startsWith(prefix));
     const addAttribute =
         element instanceof Element
             ? (name: TransformationArray, value?: TransformationArray) => {
-                  if (attr.name.startsWith('data-') && !attr.name.startsWith('data-sveltekit-')) {
+                  if (
+                      isLooseAttribute ||
+                      (attr.name.startsWith('data-') && !attr.name.startsWith('data-sveltekit-'))
+                  ) {
                       // any attribute prefixed with data- is valid, but we can't
                       // type that statically, so we need this workaround
                       name.unshift('...__sveltets_2_empty({');
@@ -95,7 +100,15 @@ export function handleAttribute(
                   element.addAttribute(name, value);
               }
             : (name: TransformationArray, value?: TransformationArray) => {
-                  if (attr.name.startsWith('--')) {
+                  if (isLooseAttribute) {
+                      // configured as not part of the props definition (e.g. removed
+                      // by a preprocessor), so wrap it to not get "invalid prop" errors
+                      name.unshift('...__sveltets_2_empty({');
+                      if (!value) {
+                          value = ['__sveltets_2_any()'];
+                      }
+                      value.push('})');
+                  } else if (attr.name.startsWith('--')) {
                       // CSS custom properties are not part of the props
                       // definition, so wrap them to not get "--xx is invalid prop" errors
                       name.unshift('...__sveltets_2_cssProp({');
