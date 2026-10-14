@@ -1,0 +1,12 @@
+{
+    "compilerOptions": {
+        "moduleResolution": "bundler",
+        "module": "es2020",
+        "lib": ["es2020", "DOM"],
+        "target": "es2019",
+        "skipLibCheck": true,
+        "noEmitOnError": true,
+        "isolatedDeclarations": true
+    },
+    "include": ["./src/**/*.ts", "./src/**/*.svelte"]
+}

@@ -74,6 +74,17 @@ function getCacheDir(workspacePath: string): string {
     return path.join(workspacePath, CACHE_DIR_NAME);
 }
 
+/**
+ * Checks whether a path is one of the possible cache directories or inside of them.
+ * Both locations are checked because `.svelte-kit` can be created while watching.
+ */
+export function isInCacheDir(workspacePath: string, filePath: string): boolean {
+    return [
+        path.join(workspacePath, CACHE_DIR_NAME),
+        path.join(workspacePath, SVELTE_KIT_DIR, CACHE_DIR_NAME)
+    ].some((cacheDir) => filePath === cacheDir || filePath.startsWith(cacheDir + path.sep));
+}
+
 function toPosixPath(value: string) {
     return value.replace(/\\/g, '/');
 }
@@ -505,10 +516,35 @@ export function runTypeScriptDiagnostics(
             reject(err);
         });
 
-        proc.on('close', () => {
+        proc.on('close', (code, signal) => {
             const output = `${stdout}\n${stderr}`;
             try {
-                resolve(parseDiagnostics(output, cwd));
+                const diagnostics = parseDiagnostics(output, cwd);
+
+                // A non-zero exit can also mean the compiler reported diagnostics, so only
+                // treat it as an error when nothing was parsed. A signal always is: the
+                // run did not finish, so any diagnostics it printed are partial. A crash
+                // reported as an exit code after a diagnostic was printed (e.g. on Windows,
+                // where every kill is reported that way) still resolves.
+                if (signal !== null || (code !== 0 && diagnostics.length === 0)) {
+                    const reason =
+                        signal !== null
+                            ? `was killed by signal ${signal}`
+                            : `exited with code ${code} without a parseable diagnostic`;
+                    // Include what the compiler printed. Unparsed output, such as a global
+                    // error or an unknown compiler option, is often the only explanation.
+                    const detail = stripAnsi(output).trim();
+                    reject(
+                        new Error(
+                            `The TypeScript compiler process ${reason}.${
+                                detail ? `\n${detail.slice(0, 2000)}` : ''
+                            }`
+                        )
+                    );
+                    return;
+                }
+
+                resolve(diagnostics);
             } catch (e) {
                 reject(e);
             }
