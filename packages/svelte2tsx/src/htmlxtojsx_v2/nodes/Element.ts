@@ -199,22 +199,26 @@ export class Element {
 
         const slotLetTransformation: TransformationArray = [];
         if (this.slotLetsTransformation) {
+            const dummyParameter = this.spanMapGenerator ? '' : '$$_$$';
+            const dummyDestructuringParameter = this.spanMapGenerator
+                ? ''
+                : surroundWithIgnoreComments(dummyParameter) + ',';
             if (this.slotLetsTransformation[0][0] === 'default') {
                 slotLetTransformation.push(
                     // add dummy destructuring parameter because if all parameters are unused,
                     // the mapping will be confusing, because TS will highlight the whole destructuring
-                    `{const {${surroundWithIgnoreComments('$$_$$')},`,
+                    `{const {${dummyDestructuringParameter}`,
                     ...this.slotLetsTransformation[1],
-                    `} = ${this.parent.name}.$$slot_def.default;$$_$$;`
+                    `} = ${this.parent.name}.$$slot_def.default;${dummyParameter};`
                 );
             } else {
                 slotLetTransformation.push(
                     // See comment above
-                    `{const {${surroundWithIgnoreComments('$$_$$')},`,
+                    `{const {${dummyDestructuringParameter}`,
                     ...this.slotLetsTransformation[1],
                     `} = ${this.parent.name}.$$slot_def["`,
                     ...this.slotLetsTransformation[0],
-                    '"];$$_$$;'
+                    '"];' + dummyParameter + ';'
                 );
             }
             this.endTransformation.push('}');

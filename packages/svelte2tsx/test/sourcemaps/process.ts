@@ -489,14 +489,11 @@ export function is_edit_empty(test_edit: string) {
 export function process_transformed_text(
     original_text: string,
     generated_text: string,
-    mappings: Mappings,
-    span_mappings: SpanMapping[] = []
+    mappings: Mappings
 ) {
     const source = parse(original_text, generated_text, mappings);
     return {
         print_mappings: () => print.mappings(source),
-
-        print_span_mappings: () => print.span_mapping(source, span_mappings),
 
         generate_test_edit(test_file: string = '') {
             return print.test_edit(parse_test_file(test_file, source), source);
@@ -547,6 +544,18 @@ export function process_transformed_text(
             '#=='
         );
     }
+}
+
+export function process_content_mapper(
+    original_text: string,
+    generated_text: string,
+    span_mappings: SpanMapping[]
+) {
+    const source = parse(original_text, generated_text, []);
+
+    return {
+        print: () => print.span_mapping(source, span_mappings)
+    };
 }
 
 function parse_test_file(
