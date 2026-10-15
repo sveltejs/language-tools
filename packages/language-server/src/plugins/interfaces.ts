@@ -186,7 +186,11 @@ export interface SelectionRangeProvider {
 }
 
 export interface SemanticTokensProvider {
-    getSemanticTokens(textDocument: Document, range?: Range): Resolvable<SemanticTokens | null>;
+    getSemanticTokens(
+        textDocument: Document,
+        range?: Range,
+        cancellationToken?: CancellationToken
+    ): Resolvable<SemanticTokens | null>;
 }
 
 export interface LinkedEditingRangesProvider {

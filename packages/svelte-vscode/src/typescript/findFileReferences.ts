@@ -1,6 +1,5 @@
 import {
     commands,
-    ExtensionContext,
     ProgressLocation,
     Uri,
     window,
@@ -15,13 +14,8 @@ import { Location as LSLocation } from 'vscode-languageclient';
 /**
  * adopted from https://github.com/microsoft/vscode/blob/5f3e9c120a4407de3e55465588ce788618526eb0/extensions/typescript-language-features/src/languageFeatures/fileReferences.ts
  */
-export async function addFindFileReferencesListener(
-    getLS: () => LanguageClient,
-    context: ExtensionContext
-) {
-    const disposable = commands.registerCommand('svelte.typescript.findAllFileReferences', handler);
-
-    context.subscriptions.push(disposable);
+export function addFindFileReferencesListener(getLS: () => LanguageClient) {
+    return commands.registerCommand('svelte.typescript.findAllFileReferences', handler);
 
     async function handler(resource?: Uri) {
         if (!resource) {

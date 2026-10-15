@@ -11,20 +11,37 @@ import {
     is_test_empty,
     is_test_from_same_input,
     validate_edit_file,
-    validate_test_file
+    validate_test_file,
+    process_content_mapper
 } from './process';
 import { VERSION } from 'svelte/compiler';
+import { SpanMapKind } from '../../src/utils/spanMap';
 
-// TODO figure out what to do with those now that we have the new transformation
 const isSvelte5Plus = Number(VERSION[0]) >= 5;
-(isSvelte5Plus ? describe.skip : describe)('sourcemaps', function () {
+describe('sourcemaps', function () {
     for (const sample of each_sample(__dirname)) {
+        const svelte5PlusOnly = sample.name.includes('.v5');
+        if (svelte5PlusOnly && !isSvelte5Plus) {
+            continue;
+        }
+        if (!svelte5PlusOnly && isSvelte5Plus) {
+            continue;
+        }
+
         if (process.env.CI) {
-            sample.checkDirectory({ required: ['*.svelte', 'mappings.jsx', 'test.jsx'] });
+            sample.checkDirectory({
+                required: ['*.svelte', 'mappings.jsx', 'test.jsx', 'span_mapping.txt']
+            });
         } else {
             sample.checkDirectory({
                 required: ['*.svelte'],
-                allowed: ['mappings.jsx', 'test.jsx', 'test.edit.jsx', 'output.tsx']
+                allowed: [
+                    'mappings.jsx',
+                    'test.jsx',
+                    'test.edit.jsx',
+                    'output.tsx',
+                    'span_mapping.txt'
+                ]
             });
             maybe_generate(sample, regenerate);
             sample.onError(function (generate, err) {
@@ -58,6 +75,12 @@ const isSvelte5Plus = Number(VERSION[0]) >= 5;
             assert.strictEqual(
                 parsed.print_mappings(),
                 sample.get('mappings.jsx'),
+                `SourceMapping changed, run tests with --auto to update them`
+            );
+
+            assert.strictEqual(
+                parsed.print_span_mappings(),
+                sample.get('span_mapping.txt'),
                 `SourceMapping changed, run tests with --auto to update them`
             );
         });
@@ -157,9 +180,14 @@ function maybe_generate(sample: Sample, regenerate: (generate: GenerateFn) => vo
 function generate_output_and_mappings_file(generate: GenerateFn, parsed: Parsed, skip = false) {
     generate('output.tsx', parsed.inline, false);
     generate('mappings.jsx', parsed.print_mappings(), skip);
+    generate('span_mapping.txt', parsed.print_span_mappings(), skip);
 }
 
-type Parsed = ReturnType<typeof process_transformed_text> & { generated: string; inline: string };
+type Parsed = ReturnType<typeof process_transformed_text> & {
+    generated: string;
+    inline: string;
+    print_span_mappings(): string;
+};
 const cache = new WeakMap<Sample, Parsed>();
 
 /**
@@ -170,20 +198,51 @@ function parse(sample: Sample): Parsed {
     if (!cache.has(sample)) {
         const filename = sample.find_file('*.svelte');
         const original = sample.get(filename);
-        const { code, map } = svelte2tsx(
-            original,
-            get_svelte2tsx_config({ filename }, sample.name)
+        const config = get_svelte2tsx_config(
+            {
+                filename
+            },
+            sample.name
         );
+        const { code, map } = svelte2tsx(original, config);
+        const { code: content_mapper_code, spanMappings } = svelte2tsx(original, {
+            ...config,
+            generateSpanMapping: true
+        });
+
+        for (const [
+            generatedStart,
+            generatedLength,
+            originalStart,
+            originalLength,
+            kind
+        ] of spanMappings) {
+            assert.ok(generatedStart >= 0 && generatedStart + generatedLength <= code.length);
+            assert.ok(originalStart >= 0 && originalStart + originalLength <= original.length);
+            if (kind === SpanMapKind.Verbatim) {
+                assert.strictEqual(
+                    content_mapper_code.slice(generatedStart, generatedStart + generatedLength),
+                    original.slice(originalStart, originalStart + originalLength),
+                    'Verbatim spans must have the same generated and original text'
+                );
+            }
+        }
 
         map.file = 'output.tsx';
         map.sources = [filename];
         map.sourcesContent = [original];
 
         const mapped = process_transformed_text(original, code, decode(map.mappings) as any);
+        const { print: print_span_mappings } = process_content_mapper(
+            original,
+            content_mapper_code,
+            spanMappings
+        );
         cache.set(sample, {
             ...mapped,
             generated: code,
-            inline: code + `\n//# sourceMappingURL=${map.toUrl()}`
+            inline: code + `\n//# sourceMappingURL=${map.toUrl()}`,
+            print_span_mappings
         });
     }
     return cache.get(sample);

@@ -641,11 +641,11 @@
                 },
                 {
                     "command": "svelte.typescript.findAllFileReferences",
-                    "when": "editorLangId == svelte && resourceScheme == file"
+                    "when": "editorLangId == svelte && resourceScheme == file && svelte.uiContext.fileReference.enable"
                 },
                 {
                     "command": "svelte.typescript.findComponentReferences",
-                    "when": "editorLangId == svelte && resourceScheme == file"
+                    "when": "editorLangId == svelte && resourceScheme == file && svelte.uiContext.fileReference.enable"
                 }
             ],
             "editor/title": [
@@ -663,11 +663,11 @@
             "editor/title/context": [
                 {
                     "command": "svelte.typescript.findAllFileReferences",
-                    "when": "resourceLangId == svelte && resourceScheme == file"
+                    "when": "resourceLangId == svelte && resourceScheme == file && svelte.uiContext.fileReference.enable"
                 },
                 {
                     "command": "svelte.typescript.findComponentReferences",
-                    "when": "resourceLangId == svelte && resourceScheme == file"
+                    "when": "resourceLangId == svelte && resourceScheme == file && svelte.uiContext.fileReference.enable"
                 }
             ],
             "editor/context": [
@@ -678,24 +678,24 @@
                 },
                 {
                     "command": "svelte.typescript.findAllFileReferences",
-                    "when": "editorLangId == svelte",
+                    "when": "editorLangId == svelte && svelte.uiContext.fileReference.enable",
                     "group": "4_search"
                 },
                 {
                     "command": "svelte.typescript.findComponentReferences",
-                    "when": "editorLangId == svelte",
+                    "when": "editorLangId == svelte && svelte.uiContext.fileReference.enable",
                     "group": "4_search"
                 }
             ],
             "explorer/context": [
                 {
                     "command": "svelte.typescript.findAllFileReferences",
-                    "when": "resourceLangId == svelte",
+                    "when": "resourceLangId == svelte && svelte.uiContext.fileReference.enable",
                     "group": "4_search"
                 },
                 {
                     "command": "svelte.typescript.findComponentReferences",
-                    "when": "resourceLangId == svelte",
+                    "when": "resourceLangId == svelte && svelte.uiContext.fileReference.enable",
                     "group": "4_search"
                 },
                 {

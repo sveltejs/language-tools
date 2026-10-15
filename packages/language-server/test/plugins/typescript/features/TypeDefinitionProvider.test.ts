@@ -4,7 +4,7 @@ import ts from 'typescript';
 import { Location } from 'vscode-languageserver-protocol';
 import { Document, DocumentManager } from '../../../../src/lib/documents';
 import { LSConfigManager } from '../../../../src/ls-config';
-import { LSAndTSDocResolver } from '../../../../src/plugins';
+import { LSAndTSDocResolver, TypeDefinitionProvider } from '../../../../src/plugins';
 import { TypeDefinitionProviderImpl } from '../../../../src/plugins/typescript/features/TypeDefinitionProvider';
 import { pathToUrl } from '../../../../src/utils';
 import { serviceWarmup } from '../test-utils';
@@ -14,14 +14,7 @@ const typeDefinitionTestDir = path.join(testDir, 'testfiles', 'typedefinition');
 
 describe('TypeDefinitionProvider', function () {
     serviceWarmup(this, typeDefinitionTestDir, pathToUrl(testDir));
-
-    function getFullPath(filename: string) {
-        return path.join(typeDefinitionTestDir, filename);
-    }
-
-    function getUri(filename: string) {
-        return pathToUrl(getFullPath(filename));
-    }
+    typeDefinitionTest(setup);
 
     function setup(filename: string) {
         const docManager = new DocumentManager((textDocument) =>
@@ -40,7 +33,18 @@ describe('TypeDefinitionProvider', function () {
         });
         return { provider, document };
     }
+});
 
+function getFullPath(filename: string) {
+    return path.join(typeDefinitionTestDir, filename);
+}
+
+export function typeDefinitionTest(
+    setup: (filename: string) => { provider: TypeDefinitionProvider; document: Document }
+) {
+    function getUri(filename: string) {
+        return pathToUrl(getFullPath(filename));
+    }
     it('find type definition in TS file', async () => {
         const { document, provider } = setup('typedefinition.svelte');
 
@@ -105,4 +109,4 @@ describe('TypeDefinitionProvider', function () {
             }
         ]);
     });
-});
+}

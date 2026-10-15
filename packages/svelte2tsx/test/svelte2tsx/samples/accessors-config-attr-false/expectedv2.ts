@@ -1,7 +1,7 @@
 ///<reference types="svelte" />
 ;function $$render() {
 
-	 let foo: number = undefined/*Ωignore_startΩ*/;foo = __sveltets_2_any(foo);/*Ωignore_endΩ*/;
+	 let foo: number = undefined/*Ωignore_startΩ*/;foo = __sveltets_2_any();foo;/*Ωignore_endΩ*/;
 ;
 async () => { { svelteHTML.createElement("svelte:options", {  "accessors":false,});}
 };

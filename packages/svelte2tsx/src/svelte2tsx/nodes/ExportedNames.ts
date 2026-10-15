@@ -3,7 +3,12 @@ import ts from 'typescript';
 import { internalHelpers } from '../../helpers';
 import { surroundWithIgnoreComments } from '../../utils/ignore';
 import { preprendStr, overwriteStr } from '../../utils/magic-string';
-import { findExportKeyword, getLastLeadingDoc, isInterfaceOrTypeDeclaration } from '../utils/tsAst';
+import {
+    findExportKeyword,
+    getLastLeadingDoc,
+    isInterfaceOrTypeDeclaration,
+    nextLineOrNonWhitespace
+} from '../utils/tsAst';
 import { HoistableInterfaces } from './HoistableInterfaces';
 import { isKitErrorFile } from '../../helpers/sveltekit';
 
@@ -227,7 +232,7 @@ export class ExportedNames {
                 this.str.move(
                     generic_arg.pos + this.astOffset,
                     generic_arg.end + this.astOffset,
-                    node.parent.pos + this.astOffset
+                    this.getInsertPosForComponentProps(node)
                 );
                 this.str.appendRight(
                     generic_arg.end + this.astOffset,
@@ -389,7 +394,7 @@ export class ExportedNames {
             if (props.length > 0 || withUnknown) {
                 preprendStr(
                     this.str,
-                    node.parent.pos + this.astOffset,
+                    this.getInsertPosForComponentProps(node),
                     surroundWithIgnoreComments(`;type $$ComponentProps = ${propsStr};`)
                 );
                 preprendStr(this.str, node.name.end + this.astOffset, `: ${this.$props.type}`);
@@ -406,6 +411,23 @@ export class ExportedNames {
         }
     }
 
+    private getInsertPosForComponentProps(node: ts.VariableDeclaration) {
+        // Prevent the insertion being moved with import declarations.
+        const tsAst = node.getSourceFile();
+        const index = tsAst.statements.indexOf(node.parent.parent);
+        if (index > 0) {
+            const previousStatement = tsAst.statements[index - 1];
+            if (ts.isImportDeclaration(previousStatement)) {
+                return nextLineOrNonWhitespace(
+                    this.str.original,
+                    previousStatement.end + this.astOffset
+                );
+            }
+        }
+
+        return node.parent.pos + this.astOffset;
+    }
+
     private removeExport(start: number, end: number) {
         const exportStart = this.str.original.indexOf('export', start + this.astOffset);
         const exportEnd = exportStart + (end - start);
@@ -413,7 +435,7 @@ export class ExportedNames {
     }
 
     /**
-     * Appends `prop = __sveltets_2_any(prop)`  to given declaration in order to
+     * Appends `prop = __sveltets_2_any();prop;`  to given declaration in order to
      * trick TS into widening the type. Else for example `let foo: string | undefined = undefined`
      * is narrowed to `undefined` by TS.
      */
@@ -473,7 +495,7 @@ export class ExportedNames {
                         this.str,
                         end,
                         surroundWithIgnoreComments(
-                            `${(this.isTsFile || !this.emitJsDoc) && kitType ? kitType : ''};${name} = __sveltets_2_any(${name});`
+                            `${(this.isTsFile || !this.emitJsDoc) && kitType ? kitType : ''};${name} = __sveltets_2_any();${name};`
                         )
                     );
                 } else {
@@ -481,7 +503,7 @@ export class ExportedNames {
                     preprendStr(
                         this.str,
                         end,
-                        surroundWithIgnoreComments(`;${name} = __sveltets_2_any(${name});`)
+                        surroundWithIgnoreComments(`;${name} = __sveltets_2_any();${name};`)
                     );
                 }
             } else {

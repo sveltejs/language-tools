@@ -9,7 +9,7 @@
      * DOCS!
      * @typedef {'ABC'} ABC
      */
-     let a/*Ωignore_startΩ*/;a = __sveltets_2_any(a);/*Ωignore_endΩ*/;
+     let a/*Ωignore_startΩ*/;a = __sveltets_2_any();a;/*Ωignore_endΩ*/;
 ;
 async () => {};
 return { props: {

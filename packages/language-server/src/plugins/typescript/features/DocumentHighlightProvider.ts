@@ -10,7 +10,7 @@ import { isInGeneratedCode } from './utils';
 import { SvelteDocumentSnapshot } from '../DocumentSnapshot';
 // @ts-ignore
 import { TemplateNode } from 'svelte/types/compiler/interfaces';
-import { walkSvelteAst } from '../svelte-ast-utils';
+import { walkSvelteAst } from '../../svelte/features/svelte-ast-utils';
 
 type RangeTupleArray = Array<[start: number, end: number]>;
 
