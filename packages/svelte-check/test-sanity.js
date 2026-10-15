@@ -287,6 +287,12 @@ const errors = [
         code: 2322
     },
     {
+        file: 'src/CustomElement.svelte',
+        line: 0,
+        column: 16,
+        code: 2322
+    },
+    {
         file: 'src/routes/+page.ts',
         line: 0,
         column: 13,
