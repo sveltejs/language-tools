@@ -32,6 +32,7 @@ let failed = 0;
  * @param {boolean} [opts.incremental]
  * @param {boolean} [opts.tsgoExp]
  * @param {boolean} [opts.tsgo]
+ * @param {boolean} [opts.tscRs]
  * @param {ExpectedError[]} [opts.errors]
  */
 function test(name, opts) {
@@ -52,6 +53,9 @@ function test(name, opts) {
     }
     if (opts.tsgo) {
         args.push('--tsgo');
+    }
+    if (opts.tscRs) {
+        args.push('--tsc-rs');
     }
 
     let stdout;
@@ -249,6 +253,12 @@ test('clean project --tsgo', {
     tsgo: true
 });
 
+test('clean project --tsc-rs', {
+    workspace: './test-success',
+    tsconfig: './tsconfig.json',
+    tscRs: true
+});
+
 const errors = [
     {
         file: 'Index.svelte',
@@ -332,6 +342,13 @@ test('project with errors --tsgo', {
     workspace: './test-error',
     tsconfig: './tsconfig.json',
     tsgo: true,
+    errors
+});
+
+test('project with errors --tsc-rs', {
+    workspace: './test-error',
+    tsconfig: './tsconfig.json',
+    tscRs: true,
     errors
 });
 
