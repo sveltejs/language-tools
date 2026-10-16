@@ -1,5 +1,27 @@
 # Changelog
 
+## 4.7.7
+
+### Patch Changes
+
+-   fix: recognise modern CSS properties such as corner-shape by updating vscode-css-languageservice ([#3122](https://github.com/sveltejs/language-tools/pull/3122))
+
+-   fix: recognise the real `<script>` and `<style>` start tags when a matching token also appears inside the other tag ([#3079](https://github.com/sveltejs/language-tools/pull/3079))
+
+-   fix: resolve symlinked packages when importing their `.svelte` files, so their types are not duplicated ([#3119](https://github.com/sveltejs/language-tools/pull/3119))
+
+-   fix: align default tsconfig "include" logic with tsc/tsserver ([#3110](https://github.com/sveltejs/language-tools/pull/3110))
+
+-   fix: report a failed TypeScript compiler process and exit non-zero when a run fails ([#3133](https://github.com/sveltejs/language-tools/pull/3133))
+
+-   fix: ignore the `.svelte-check` cache directory in `--watch` with `--tsgo` / `--incremental` ([#3128](https://github.com/sveltejs/language-tools/pull/3128))
+
+-   fix: check all files with `--tsgo` / `--incremental` when the tsconfig has no `include` ([#3138](https://github.com/sveltejs/language-tools/pull/3138))
+
+-   fix: disallow `--tsgo` together with `--tsgo-experimental-api` ([#3128](https://github.com/sveltejs/language-tools/pull/3128))
+
+-   fix: type elements from Svelte's `svelte-html.d.ts` with `--tsgo` / `--incremental`, like the language server ([#3141](https://github.com/sveltejs/language-tools/pull/3141))
+
 ## 4.7.6
 
 ### Patch Changes
