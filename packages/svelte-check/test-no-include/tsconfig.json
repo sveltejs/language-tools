@@ -1,9 +1,0 @@
-{
-    // no "include" or "files": TypeScript defaults to checking every file in this directory
-    "compilerOptions": {
-        "target": "ESNext",
-        "moduleResolution": "bundler",
-        "strict": true,
-        "skipLibCheck": true
-    }
-}
