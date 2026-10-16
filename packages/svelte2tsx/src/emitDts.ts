@@ -1,10 +1,12 @@
 import * as path from 'path';
 import ts from 'typescript';
+import { VERSION } from 'svelte/compiler';
 import { svelte2tsx } from './svelte2tsx';
 
 export interface EmitDtsConfig {
     declarationDir: string;
-    svelteShimsPath: string;
+    svelteShimsPath?: string;
+    noSvelteComponentTyped?: boolean;
     libRoot?: string;
     tsconfig?: string;
 }
@@ -12,8 +14,18 @@ export interface EmitDtsConfig {
 export async function emitDts(config: EmitDtsConfig) {
     throwIfTypeScript7();
 
-    const svelteMap = await createSvelteMap(config);
-    const { options, filenames, absDeclarationDir } = loadTsconfig(config, svelteMap);
+    const noSvelteComponentTyped =
+        config.noSvelteComponentTyped ??
+        (config.svelteShimsPath
+            ? config.svelteShimsPath.replace(/\\/g, '/').endsWith('svelte2tsx/svelte-shims-v4.d.ts')
+            : Number(VERSION.split('.')[0]) >= 4);
+    const svelteShimsPath = config.svelteShimsPath ?? findSvelteShims(noSvelteComponentTyped);
+    const svelteMap = await createSvelteMap(noSvelteComponentTyped);
+    const { options, filenames, absDeclarationDir } = loadTsconfig(
+        config,
+        svelteShimsPath,
+        svelteMap
+    );
     const host = await createTsCompilerHost(options, svelteMap, absDeclarationDir);
     const program = ts.createProgram(filenames, options, host);
     const result = program.emit();
@@ -61,7 +73,16 @@ function throwIfTypeScript7() {
     }
 }
 
-function loadTsconfig(config: EmitDtsConfig, svelteMap: SvelteMap) {
+/**
+ * The shims that ship with this package
+ */
+function findSvelteShims(noSvelteComponentTyped: boolean): string {
+    const shims = noSvelteComponentTyped ? 'svelte-shims-v4.d.ts' : 'svelte-shims.d.ts';
+    // they sit next to the bundle, which is one directory above the source
+    return ts.findConfigFile(__dirname, ts.sys.fileExists, shims);
+}
+
+function loadTsconfig(config: EmitDtsConfig, svelteShimsPath: string, svelteMap: SvelteMap) {
     const libRoot = config.libRoot || process.cwd();
 
     const jsconfigFile = ts.findConfigFile(libRoot, ts.sys.fileExists, 'jsconfig.json');
@@ -116,7 +137,7 @@ function loadTsconfig(config: EmitDtsConfig, svelteMap: SvelteMap) {
 
     // Add ambient functions so TS knows how to resolve its invocations in the
     // code output of svelte2tsx.
-    filenames.push(config.svelteShimsPath);
+    filenames.push(svelteShimsPath);
 
     const absDeclarationDir = path.isAbsolute(config.declarationDir)
         ? config.declarationDir
@@ -332,13 +353,9 @@ interface SvelteMap {
  * early on when we first need to look at the file contents and can read
  * those transformed source later on.
  */
-async function createSvelteMap(config: EmitDtsConfig): Promise<SvelteMap> {
+async function createSvelteMap(noSvelteComponentTyped: boolean): Promise<SvelteMap> {
     const svelteFiles = new Map<string, { transformed: string; isTsFile: boolean }>();
 
-    // TODO detect Svelte version in here and set shimsPath accordingly if not given from above
-    const noSvelteComponentTyped = config.svelteShimsPath
-        .replace(/\\/g, '/')
-        .endsWith('svelte2tsx/svelte-shims-v4.d.ts');
     const version = noSvelteComponentTyped ? undefined : '3.42.0';
 
     function add(path: string): boolean {
