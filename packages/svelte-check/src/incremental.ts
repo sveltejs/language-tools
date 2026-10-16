@@ -408,7 +408,12 @@ export function writeOverlayTsconfig(
         (dir) => toRelativePosix(overlayDir, dir)
     );
     const tsconfigDir = path.dirname(tsconfigPath);
-    const rawInclude = normalizeConfigSpecs(parsed.raw?.include);
+    // `include` and `files` inherited through `extends` are already merged into `raw`. If neither
+    // is set, TypeScript defaults `include` to `**/*`. The overlay always sets `files` (the shims),
+    // which would turn that default into an empty `include`, so spell the default out.
+    const rawInclude =
+        normalizeConfigSpecs(parsed.raw?.include) ??
+        (normalizeConfigSpecs(parsed.raw?.files) ? undefined : ['**/*']);
     const rawExclude = normalizeConfigSpecs(parsed.raw?.exclude);
     const rawFiles = normalizeConfigSpecs(parsed.raw?.files) ?? [];
     const include = rebaseConfigSpecs(rawInclude, tsconfigDir, overlayDir);
