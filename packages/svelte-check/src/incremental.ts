@@ -443,7 +443,18 @@ export function writeOverlayTsconfig(
         path: toRelativePosix(overlayDir, path.resolve(tsconfigDir, ref.path))
     }));
 
-    const rebasedPaths = rebasePathsConfig(parsed.options, tsconfigDir, overlayDir, useTsgo);
+    const rebasedPaths = rebasePathsConfig(
+        {
+            ...parsed.options,
+            paths: {
+                ...getPackageImportPaths(tsconfigDir, parsed.options.paths),
+                ...parsed.options.paths
+            }
+        },
+        tsconfigDir,
+        overlayDir,
+        useTsgo
+    );
 
     const overlay = {
         extends: toRelativePosix(overlayDir, tsconfigPath),
@@ -957,6 +968,112 @@ function normalizeConfigSpecs(specs: unknown): string[] | undefined {
         return specs.map((spec) => String(spec));
     }
     return [String(specs)];
+}
+
+/**
+ * Returns package.json `imports` entries that target `.svelte` files as `paths` entries with
+ * absolute targets, e.g. SvelteKit's `"#lib/*": "./src/lib/*"` becomes `"#lib/*.svelte"`. TypeScript
+ * resolves such an import to the source directory, where no generated declaration exists (`rootDirs`
+ * only applies to relative imports). As `paths` entries they get the same mapping to the generated
+ * files as the user's own `paths`. Every other import keeps TypeScript's native package.json
+ * resolution.
+ *
+ * This is deliberately conservative, since `paths` and `imports` pick between overlapping patterns
+ * differently: an entry is only used if it is a string target inside the package with the pattern's
+ * `*` (at most one), no user `paths` entry could match the same imports, and no other entry is
+ * nested under a wildcard's prefix (except its `*` / `*.svelte` twin, where the `*.svelte` entry
+ * is the one Node picks for `.svelte` imports). The package is the one owning the tsconfig; a
+ * nested package that maps the same `.svelte` specifier differently is not taken into account.
+ */
+function getPackageImportPaths(
+    tsconfigDir: string,
+    userPaths: ts.MapLike<string[]> | undefined
+): Record<string, string[]> {
+    let dir = tsconfigDir;
+    let packageJsonPath = path.join(dir, 'package.json');
+    while (!fs.existsSync(packageJsonPath)) {
+        const parent = path.dirname(dir);
+        if (parent === dir) {
+            return {};
+        }
+        dir = parent;
+        packageJsonPath = path.join(dir, 'package.json');
+    }
+
+    let imports: unknown;
+    try {
+        imports = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8')).imports;
+    } catch {
+        return {};
+    }
+    if (!imports || typeof imports !== 'object' || Array.isArray(imports)) {
+        return {};
+    }
+
+    const patterns = Object.keys(imports).filter((pattern) => pattern.startsWith('#'));
+    const paths: Record<string, string[]> = {};
+    for (const pattern of patterns) {
+        const target: unknown = (imports as Record<string, unknown>)[pattern];
+        if (typeof target !== 'string' || !target.startsWith('./')) {
+            continue;
+        }
+        const relativeTarget = path.relative(dir, path.resolve(dir, target));
+        if (relativeTarget.startsWith('..') || path.isAbsolute(relativeTarget)) {
+            continue;
+        }
+
+        const patternParts = pattern.split('*');
+        const targetParts = target.split('*');
+        if (patternParts.length > 2 || targetParts.length !== patternParts.length) {
+            continue;
+        }
+
+        let key: string;
+        let svelteTarget: string;
+        if (patternParts.length === 1) {
+            if (!pattern.endsWith('.svelte') || !target.endsWith('.svelte')) {
+                continue;
+            }
+            key = pattern;
+            svelteTarget = target;
+        } else {
+            const [prefix, suffix] = patternParts;
+            const targetSuffix = targetParts[1];
+            const svelteTwin = prefix + '*.svelte';
+            if (suffix === '' && targetSuffix === '') {
+                if (patterns.includes(svelteTwin)) {
+                    // Node picks the more specific `*.svelte` entry for `.svelte` imports
+                    continue;
+                }
+                key = svelteTwin;
+                svelteTarget = target + '.svelte';
+            } else if (suffix.endsWith('.svelte') && targetSuffix.endsWith('.svelte')) {
+                key = pattern;
+                svelteTarget = target;
+            } else {
+                continue;
+            }
+            const twins = [pattern, prefix + '*', svelteTwin];
+            if (patterns.some((other) => !twins.includes(other) && other.startsWith(prefix))) {
+                // A more specific entry would be bypassed by the broader `paths` entry
+                continue;
+            }
+        }
+
+        const keyPrefix = key.split('*')[0];
+        if (
+            userPaths &&
+            Object.keys(userPaths).some((userPattern) => {
+                // The user's `paths` win if both could match the same import
+                const userPrefix = userPattern.split('*')[0];
+                return userPrefix.startsWith(keyPrefix) || keyPrefix.startsWith(userPrefix);
+            })
+        ) {
+            continue;
+        }
+        paths[key] = [path.resolve(dir, svelteTarget)];
+    }
+    return paths;
 }
 
 function rebasePathsConfig(
