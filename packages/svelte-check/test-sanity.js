@@ -249,6 +249,13 @@ test('clean project --tsgo', {
     tsgo: true
 });
 
+test('tsconfig files preserve plain TypeScript diagnostics with --tsgo', {
+    workspace: './test-tsconfig-files',
+    tsconfig: './tsconfig.child.json',
+    tsgo: true,
+    errors: [{ file: 'X/plain.ts', line: 0, column: 6, code: 2322 }]
+});
+
 const errors = [
     {
         file: 'Index.svelte',
