@@ -3,5 +3,11 @@
         "module": "esnext",
         "target": "esnext",
         "moduleResolution": "Bundler"
-    }
+    },
+    "contentMappers": [
+        {
+            "package": "@sveltejs/ts-content-mapper",
+            "extensions": [".svelte"]
+        }
+    ]
 }
