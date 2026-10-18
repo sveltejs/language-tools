@@ -408,7 +408,12 @@ export function writeOverlayTsconfig(
         (dir) => toRelativePosix(overlayDir, dir)
     );
     const tsconfigDir = path.dirname(tsconfigPath);
-    const rawInclude = normalizeConfigSpecs(parsed.raw?.include);
+    // `include` and `files` inherited through `extends` are already merged into `raw`. If neither
+    // is set, TypeScript defaults `include` to `**/*`. The overlay always sets `files` (the shims),
+    // which would turn that default into an empty `include`, so spell the default out.
+    const rawInclude =
+        normalizeConfigSpecs(parsed.raw?.include) ??
+        (normalizeConfigSpecs(parsed.raw?.files) ? undefined : ['**/*']);
     const rawExclude = normalizeConfigSpecs(parsed.raw?.exclude);
     const rawFiles = normalizeConfigSpecs(parsed.raw?.files) ?? [];
     const include = rebaseConfigSpecs(rawInclude, tsconfigDir, overlayDir);
@@ -1143,15 +1148,21 @@ export function updateDiagnosticsCache(
  * Resolves the paths to svelte2tsx shim declaration files.
  * These shims provide type definitions for Svelte-specific globals and JSX.
  * Uses different shim versions based on the installed Svelte version (v3 vs v4+).
+ * Like the language server (see `get_global_types` in svelte2tsx), Svelte's own
+ * `svelte-html.d.ts` is preferred over `svelte-jsx-v4.d.ts` when available, so that
+ * elements are typed from `svelte/elements` (including `<svelte:boundary>` and
+ * user augmentations of `SvelteHTMLElements`).
  *
  * @returns Array of absolute paths to the shim .d.ts files
  */
 function resolveSvelte2tsxShims(): string[] {
-    const shimNames = [
-        Number(VERSION.split('.')[0]) < 4 ? 'svelte-shims.d.ts' : 'svelte-shims-v4.d.ts',
-        Number(VERSION.split('.')[0]) < 4 ? 'svelte-jsx.d.ts' : 'svelte-jsx-v4.d.ts'
-        // 'svelte-native-jsx.d.ts' // TODO read tsconfig/svelte.config.js to see if it's enabled
-    ];
+    const isSvelte3 = Number(VERSION.split('.')[0]) < 4;
+    const svelteHtml = isSvelte3 ? undefined : resolveSvelteHtmlTypes();
+    const shimNames = [isSvelte3 ? 'svelte-shims.d.ts' : 'svelte-shims-v4.d.ts'];
+    if (!svelteHtml) {
+        shimNames.push(isSvelte3 ? 'svelte-jsx.d.ts' : 'svelte-jsx-v4.d.ts');
+    }
+    // 'svelte-native-jsx.d.ts' // TODO read tsconfig/svelte.config.js to see if it's enabled
     const resolved: string[] = [];
     for (const name of shimNames) {
         try {
@@ -1160,5 +1171,18 @@ function resolveSvelte2tsxShims(): string[] {
             // ignore missing optional shims
         }
     }
+    if (svelteHtml) {
+        resolved.push(svelteHtml);
+    }
     return resolved;
+}
+
+function resolveSvelteHtmlTypes(): string | undefined {
+    try {
+        const sveltePath = path.dirname(require.resolve('svelte/package.json'));
+        const svelteHtmlPath = path.join(sveltePath, 'svelte-html.d.ts');
+        return fs.existsSync(svelteHtmlPath) ? svelteHtmlPath : undefined;
+    } catch {
+        return undefined;
+    }
 }
