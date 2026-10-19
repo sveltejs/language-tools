@@ -1,8 +1,0 @@
-{
-    "compilerOptions": {
-        "target": "ESNext",
-        "moduleResolution": "bundler",
-        "strict": true
-    },
-    "exclude": ["X"]
-}
