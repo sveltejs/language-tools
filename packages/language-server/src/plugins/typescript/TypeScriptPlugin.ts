@@ -282,7 +282,7 @@ export class TypeScriptPlugin
         const navTree = lang.getNavigationTree(tsDoc.filePath);
 
         const symbols: SymbolInformation[] = [];
-        collectSymbols(navTree, undefined, (symbol) => symbols.push(symbol));
+        collectSymbols(navTree, undefined);
 
         const topContainerName = symbols[0].name;
         const result: SymbolInformation[] = [];
@@ -364,15 +364,12 @@ export class TypeScriptPlugin
 
         return result;
 
-        function collectSymbols(
-            tree: NavigationTree,
-            container: string | undefined,
-            cb: (symbol: SymbolInformation) => void
-        ) {
+        function collectSymbols(tree: NavigationTree, container: string | undefined) {
             const start = tree.spans[0];
             const end = tree.spans[tree.spans.length - 1];
-            if (start && end) {
-                cb(
+            // Match VS Code's TypeScript outline by excluding import and re-export aliases.
+            if (start && end && tree.kind !== ts.ScriptElementKind.alias) {
+                symbols.push(
                     SymbolInformation.create(
                         tree.text,
                         symbolKindFromString(tree.kind),
@@ -387,7 +384,7 @@ export class TypeScriptPlugin
             }
             if (tree.childItems) {
                 for (const child of tree.childItems) {
-                    collectSymbols(child, tree.text, cb);
+                    collectSymbols(child, tree.text);
                 }
             }
         }
