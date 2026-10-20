@@ -11,6 +11,7 @@ import {
     DeclarationTag
 } from '../interfaces';
 import { parseHtmlx } from '../utils/htmlxparser';
+import { sanitizeLooseAttributePrefixes } from '../helpers/looseAttributePrefixes';
 import { handleActionDirective } from './nodes/Action';
 import { handleAnimateDirective } from './nodes/Animation';
 import { handleAttribute } from './nodes/Attribute';
@@ -103,9 +104,13 @@ export function convertHtmlxToJsx(
         emitJsDoc?: boolean;
         isTsFile?: boolean;
         rewriteExternalImports?: RewriteExternalImportsOptions;
+        looseAttributePrefixes?: string[];
     } = { svelte5Plus: false }
 ): TemplateProcessResult {
     options.typingsNamespace = options.typingsNamespace || 'svelteHTML';
+    // The value may come straight from an unvalidated tsconfig, so sanitize it here
+    // to guard all entry points at once
+    options.looseAttributePrefixes = sanitizeLooseAttributePrefixes(options.looseAttributePrefixes);
     const preserveAttributeCase = options.namespace === 'foreign';
     const emitJsDoc = options.emitJsDoc ?? false;
     const isTsFile = options.isTsFile ?? false;
@@ -498,6 +503,7 @@ export function convertHtmlxToJsx(
                             parent,
                             preserveAttributeCase,
                             options.svelte5Plus,
+                            options.looseAttributePrefixes,
                             element
                         );
                         break;
@@ -675,6 +681,7 @@ export function htmlx2jsx(
         preserveAttributeCase: boolean;
         typingsNamespace: string;
         svelte5Plus: boolean;
+        looseAttributePrefixes?: string[];
     }
 ) {
     const { htmlxAst, tags } = parseHtmlx(htmlx, parse, { ...options });
