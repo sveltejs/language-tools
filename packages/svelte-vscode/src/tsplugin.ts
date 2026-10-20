@@ -1,21 +1,26 @@
-import { commands, ExtensionContext, extensions, window, workspace } from 'vscode';
+import { commands, Disposable, ExtensionContext, extensions, window, workspace } from 'vscode';
 
-export class TsPlugin {
+export class TsPlugin implements Disposable {
     private enabled: boolean;
+    private readonly configListener: Disposable;
 
     constructor(context: ExtensionContext) {
         this.enabled = TsPlugin.isEnabled();
         this.toggleTsPlugin(this.enabled);
 
-        context.subscriptions.push(
-            workspace.onDidChangeConfiguration(() => {
-                const enabled = TsPlugin.isEnabled();
-                if (enabled !== this.enabled) {
-                    this.enabled = enabled;
-                    this.toggleTsPlugin(this.enabled);
-                }
-            })
-        );
+        this.configListener = workspace.onDidChangeConfiguration(() => {
+            const enabled = TsPlugin.isEnabled();
+            if (enabled !== this.enabled) {
+                this.enabled = enabled;
+                this.toggleTsPlugin(this.enabled);
+            }
+        });
+        context.subscriptions.push(this);
+    }
+
+    dispose() {
+        this.configListener.dispose();
+        this.toggleTsPlugin(false);
     }
 
     static isEnabled(): boolean {

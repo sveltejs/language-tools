@@ -1,7 +1,7 @@
 ///<reference types="svelte" />
 ;function $$render() {
 
-     let foo:string/*Ωignore_startΩ*/;foo = __sveltets_2_any(foo);/*Ωignore_endΩ*/;
+     let foo:string/*Ωignore_startΩ*/;foo = __sveltets_2_any();foo;/*Ωignore_endΩ*/;
 ;
 async () => {
 };

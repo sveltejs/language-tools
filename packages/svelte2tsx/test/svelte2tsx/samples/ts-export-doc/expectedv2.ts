@@ -4,15 +4,15 @@
     /**
      * DOCS!
      */
-     let a: string/*Ωignore_startΩ*/;a = __sveltets_2_any(a);/*Ωignore_endΩ*/;
+     let a: string/*Ωignore_startΩ*/;a = __sveltets_2_any();a;/*Ωignore_endΩ*/;
     /**
      * MORE DOCS!
      */
      let b = 1;
-     let c/*Ωignore_startΩ*/;c = __sveltets_2_any(c);/*Ωignore_endΩ*/;
+     let c/*Ωignore_startΩ*/;c = __sveltets_2_any();c;/*Ωignore_endΩ*/;
 
     // not this one
-     let d/*Ωignore_startΩ*/;d = __sveltets_2_any(d);/*Ωignore_endΩ*/;
+     let d/*Ωignore_startΩ*/;d = __sveltets_2_any();d;/*Ωignore_endΩ*/;
 ;
 async () => {};
 return { props: {a: a , b: b , c: c , d: d} as {

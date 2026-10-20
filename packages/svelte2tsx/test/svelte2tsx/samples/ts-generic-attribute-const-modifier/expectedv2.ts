@@ -1,7 +1,7 @@
 ///<reference types="svelte" />
 ;function $$render<const T extends readonly string[]>() {
 
- let items: T/*Ωignore_startΩ*/;items = __sveltets_2_any(items);/*Ωignore_endΩ*/;
+ let items: T/*Ωignore_startΩ*/;items = __sveltets_2_any();items;/*Ωignore_endΩ*/;
 ;
 async () => {};
 return { props: {items: items} as {items: T}, slots: {}, events: {} }}

@@ -63,6 +63,7 @@ import {
     getExternalImportRewrite,
     RewriteExternalImportsOptions
 } from '../helpers/rewriteExternalImports';
+import { SpanMapGenerator } from '../utils/spanMap';
 
 export interface TemplateProcessResult {
     /**
@@ -103,6 +104,7 @@ export function convertHtmlxToJsx(
         emitJsDoc?: boolean;
         isTsFile?: boolean;
         rewriteExternalImports?: RewriteExternalImportsOptions;
+        spanMapGenerator?: SpanMapGenerator | undefined;
     } = { svelte5Plus: false }
 ): TemplateProcessResult {
     options.typingsNamespace = options.typingsNamespace || 'svelteHTML';
@@ -163,6 +165,7 @@ export function convertHtmlxToJsx(
     };
 
     const handleIdentifier = (node: BaseNode) => {
+        // Can happen in loose parsing mode, e.g. code is currently `{a.}`
         if (node.name === '$$props') {
             uses$$props = true;
             return;
@@ -319,7 +322,7 @@ export function convertHtmlxToJsx(
                         if (node.context) {
                             handleScopeAndResolveForSlotInner(node.context, node.expression, node);
                         }
-                        handleEach(str, node);
+                        handleEach(str, node, options.spanMapGenerator);
                         break;
                     case 'ElseBlock':
                         handleElse(str, node, parent);
@@ -344,7 +347,14 @@ export function convertHtmlxToJsx(
                         elementBeforeSnippet.push(element);
                         element = undefined;
 
-                        handleSnippet(str, node, parentComponent, emitJsDoc, isTsFile);
+                        handleSnippet(
+                            str,
+                            node,
+                            options.spanMapGenerator,
+                            parentComponent,
+                            emitJsDoc,
+                            isTsFile
+                        );
                         if (parent === ast) {
                             // root snippet -> move to instance script or possibly even module script
                             const result = analyze({
@@ -403,10 +413,15 @@ export function convertHtmlxToJsx(
                         break;
                     case 'InlineComponent':
                         if (element) {
-                            element.child = new InlineComponent(str, node, element);
+                            element.child = new InlineComponent(
+                                str,
+                                node,
+                                options.spanMapGenerator,
+                                element
+                            );
                             element = element.child;
                         } else {
-                            element = new InlineComponent(str, node);
+                            element = new InlineComponent(str, node, options.spanMapGenerator);
                         }
                         if (options.svelte5Plus) {
                             handleImplicitChildren(node, element as InlineComponent);
@@ -439,11 +454,17 @@ export function convertHtmlxToJsx(
                                     str,
                                     node,
                                     options.typingsNamespace,
+                                    options.spanMapGenerator,
                                     element
                                 );
                                 element = element.child;
                             } else {
-                                element = new Element(str, node, options.typingsNamespace);
+                                element = new Element(
+                                    str,
+                                    node,
+                                    options.typingsNamespace,
+                                    options.spanMapGenerator
+                                );
                             }
                         }
                         break;
@@ -475,19 +496,33 @@ export function convertHtmlxToJsx(
                         handleLeadingStartComment(str, node as BaseNode, ast);
                         handleTrailingEndComment(str, node as BaseNode, parent, ast);
                         stores.handleDirective(node, str);
-                        handleActionDirective(node as BaseDirective, element as Element);
+                        handleActionDirective(
+                            node as BaseDirective,
+                            element as Element,
+                            options.spanMapGenerator
+                        );
                         break;
                     case 'Transition':
                         handleLeadingStartComment(str, node as BaseNode, ast);
                         handleTrailingEndComment(str, node as BaseNode, parent, ast);
                         stores.handleDirective(node, str);
-                        handleTransitionDirective(str, node as BaseDirective, element as Element);
+                        handleTransitionDirective(
+                            str,
+                            node as BaseDirective,
+                            element as Element,
+                            options.spanMapGenerator
+                        );
                         break;
                     case 'Animation':
                         handleLeadingStartComment(str, node as BaseNode, ast);
                         handleTrailingEndComment(str, node as BaseNode, parent, ast);
                         stores.handleDirective(node, str);
-                        handleAnimateDirective(str, node as BaseDirective, element as Element);
+                        handleAnimateDirective(
+                            str,
+                            node as BaseDirective,
+                            element as Element,
+                            options.spanMapGenerator
+                        );
                         break;
                     case 'Attribute':
                         handleLeadingStartComment(str, node, ast);
@@ -498,7 +533,8 @@ export function convertHtmlxToJsx(
                             parent,
                             preserveAttributeCase,
                             options.svelte5Plus,
-                            element
+                            element,
+                            options.spanMapGenerator
                         );
                         break;
                     case 'Spread':
@@ -510,7 +546,12 @@ export function convertHtmlxToJsx(
                         handleLeadingStartComment(str, node as BaseNode, ast);
                         handleTrailingEndComment(str, node as BaseNode, parent, ast);
                         eventHandler.handleEventHandler(node, parent);
-                        handleEventHandler(str, node as BaseDirective, element);
+                        handleEventHandler(
+                            str,
+                            node as BaseDirective,
+                            element,
+                            options.spanMapGenerator
+                        );
                         break;
                     case 'Let':
                         handleLeadingStartComment(str, node as BaseNode, ast);
@@ -600,7 +641,7 @@ export function convertHtmlxToJsx(
                         break;
                     case 'AwaitBlock':
                         onTemplateScopeLeave();
-                        handleAwait(str, node);
+                        handleAwait(str, node, options.spanMapGenerator);
                         break;
                     case 'InlineComponent':
                     case 'Element':

@@ -1,0 +1,1 @@
+<script lang="ts">import {} from 'svelte'</script>
