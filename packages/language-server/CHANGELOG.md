@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.18.6
+
+### Patch Changes
+
+-   Hide imports and re-export aliases from document symbols to match VS Code's TypeScript outline. ([#3113](https://github.com/sveltejs/language-tools/pull/3113))
+
 ## 0.18.5
 
 ### Patch Changes
