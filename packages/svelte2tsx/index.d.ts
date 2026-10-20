@@ -118,8 +118,17 @@ export interface EmitDtsConfig {
      * If a path is given that points to `svelte-shims-v4.d.ts`,
      * the `SvelteComponent` import is used instead of
      * `SvelteComponentTyped` which is deprecated in Svelte v4.
+     * 
+     * Defaults to the shims that match `noSvelteComponentTyped`.
      */
-    svelteShimsPath: string;
+    svelteShimsPath?: string;
+    /**
+     * Whether to use the `SvelteComponent` import instead of `SvelteComponentTyped`,
+     * which is deprecated in Svelte v4.
+     * 
+     * Defaults to what `svelteShimsPath` points to, or else to `true` from Svelte v4 onwards.
+     */
+    noSvelteComponentTyped?: boolean;
     /**
      * If you want to emit types only for part of your project,
      * then set this to the folder for which the types should be emitted.
