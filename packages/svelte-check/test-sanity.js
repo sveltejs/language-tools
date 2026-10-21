@@ -137,7 +137,7 @@ function testCrashedCompiler(name, compilerBody) {
     // inside the workspace, so a fake `@typescript/native-preview` in the workspace's
     // node_modules is picked up instead of the real one.
     const crashWorkspace = mkdtempSync(path.join(os.tmpdir(), 'svelte-check-crash-'));
-    const tsgoPkg = path.join(crashWorkspace, 'node_modules', '@typescript/native-preview');
+    const tsgoPkg = path.join(crashWorkspace, 'node_modules', '@typescript/native');
     mkdirSync(tsgoPkg, { recursive: true });
     mkdirSync(path.join(crashWorkspace, 'src'));
     writeFileSync(
@@ -154,9 +154,9 @@ function testCrashedCompiler(name, compilerBody) {
     writeFileSync(
         path.join(tsgoPkg, 'package.json'),
         JSON.stringify({
-            name: '@typescript/native-preview',
+            name: 'typescript',
             version: '7.0.0',
-            bin: { tsgo: './fake-tsgo.js' }
+            bin: { tsc: './fake-tsgo.js' }
         })
     );
     writeFileSync(path.join(tsgoPkg, 'fake-tsgo.js'), compilerBody);

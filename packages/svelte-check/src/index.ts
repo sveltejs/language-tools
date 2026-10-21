@@ -30,6 +30,7 @@ import {
     formatTsGoNotFoundError,
     tryLoadApi as tryLoadTsApi,
     tryLoadAst as tryLoadTsAst,
+    tryLoadFs as tryLoadTsFs,
     tryParseTsGoVersion
 } from './tsgo';
 
@@ -631,15 +632,20 @@ parseOptions(async (opts) => {
                 }
             }
 
-            const apiModule = await tryLoadTsApi(opts.tsconfig, pkg);
-            const astModule = await tryLoadTsAst(opts.tsconfig, pkg);
-            if (!apiModule || !astModule) {
+            const [apiModule, astModule, fsModule] = await Promise.all([
+                tryLoadTsApi(opts.tsconfig, pkg),
+                tryLoadTsAst(opts.tsconfig, pkg),
+                tryLoadTsFs(opts.tsconfig, pkg)
+            ]);
+            if (!apiModule || !astModule || !fsModule) {
                 throw new Error(
                     `Unsupported ${pkg.pkgJsonName} version. Please ensure you have the latest version installed.` +
                         'If the problem persists, please report an issue in https://github.com/sveltejs/language-tools/issues.'
                 );
             }
-            svelteCheckOptions.experimental = { tsgo: { apiModule, astModule } };
+
+            const fullVersion = pkg.major + '.' + pkg.minor + '.' + pkg.patch;
+            svelteCheckOptions.experimental = { tsgo: { apiModule, astModule, tsVersion: fullVersion, fsModule  } };
         }
 
         const useVirtualFiles = opts.incremental || opts.tsgo;

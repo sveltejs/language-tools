@@ -1,5 +1,6 @@
-import * as syncApi from '@typescript/native-preview/unstable/sync';
-import * as syncAst from '@typescript/native-preview/unstable/ast';
+import * as syncApi from '@typescript/native/unstable/sync';
+import * as syncAst from '@typescript/native/unstable/ast';
+import * as syncFs from '@typescript/native/unstable/fs';
 import { pathToFileURL } from 'url';
 
 interface PkgInfo {
@@ -86,6 +87,17 @@ export async function tryLoadAst(
         (await tryImport(info.moduleName + '/ast', tsconfigPath))
     );
 }
+
+export async function tryLoadFs(
+    tsconfigPath: string,
+    info: PkgInfo
+): Promise<typeof syncFs | null> {
+    return (
+        (await tryImport(info.moduleName + '/unstable/fs', tsconfigPath)) ??
+        (await tryImport(info.moduleName + '/fs', tsconfigPath))
+    );
+}
+
 
 async function tryImport(moduleName: string, tsconfigPath: string): Promise<any | null> {
     try {
