@@ -42,7 +42,7 @@ export interface ExplicitConfigScope {
 
 type LoadConfigFromDirectoryFn = typeof loadConfigFromDirectory;
 
-interface KitFilesConfig {
+export interface KitFilesConfig {
     src?: string;
     params?: string;
     hooks?: { client?: string; server?: string; universal?: string };
