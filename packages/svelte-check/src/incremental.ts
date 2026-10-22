@@ -344,6 +344,18 @@ export async function emitSvelteFiles(
         };
     }
 
+    if (!incremental) {
+        // Without a saved manifest, remove what earlier runs emitted for files that are gone
+        const currentOutputs = new Set(
+            Object.values(manifest.entries).flatMap((entry) => [entry.outPath, entry.dtsPath])
+        );
+        for (const emittedFile of await findFiles(emitDir, [], () => true)) {
+            if (!currentOutputs.has(toPosixPath(emittedFile))) {
+                safeUnlink(emittedFile);
+            }
+        }
+    }
+
     if (incremental) {
         writeManifest(manifestPath, manifest, workspacePath);
     }

@@ -249,6 +249,24 @@ test('clean project --tsgo', {
     tsgo: true
 });
 
+// A component deleted since the last run must not be checked from its emitted files
+writeFileSync(
+    './test-success/src/Deleted.svelte',
+    '<script lang="ts">\n    const n: number = "";\n</script>\n'
+);
+test('project with errors --tsgo, before a component is deleted', {
+    workspace: './test-success',
+    tsconfig: './tsconfig.json',
+    tsgo: true,
+    errors: [{ file: 'src/Deleted.svelte', line: 1, column: 10, code: 2322 }]
+});
+rmSync('./test-success/src/Deleted.svelte');
+test('clean project --tsgo, after a component is deleted', {
+    workspace: './test-success',
+    tsconfig: './tsconfig.json',
+    tsgo: true
+});
+
 const errors = [
     {
         file: 'Index.svelte',
