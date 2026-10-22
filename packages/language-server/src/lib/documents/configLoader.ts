@@ -12,6 +12,7 @@ import _fs from 'fs';
 import { URL } from 'url';
 import { FileMap } from './fileCollection';
 import ts from 'typescript';
+import { InternalHelpers } from 'svelte2tsx';
 
 export type InternalPreprocessorGroup = PreprocessorGroup & {
     /**
@@ -40,6 +41,19 @@ export interface ExplicitConfigScope {
 }
 
 type LoadConfigFromDirectoryFn = typeof loadConfigFromDirectory;
+
+interface KitFilesConfig {
+    src?: string;
+    params?: string;
+    hooks?: { client?: string; server?: string; universal?: string };
+}
+
+export const defaultKitFilesSettings: InternalHelpers.KitFilesSettings = {
+    paramsPath: 'src/params',
+    serverHooksPath: 'src/hooks.server',
+    clientHooksPath: 'src/hooks.client',
+    universalHooksPath: 'src/hooks'
+};
 
 const DEFAULT_OPTIONS: CompileOptions = {
     dev: true
@@ -358,6 +372,17 @@ export class ConfigLoader {
     }
 
     /**
+     * Where the SvelteKit hooks and params files are for the file, from its config's `files` option
+     */
+    getKitFilesSettings(file: string): InternalHelpers.KitFilesSettings {
+        const files = this.getConfig(file)?.files;
+        const configPath = this.filePathToConfigPath.get(file);
+        return files && configPath
+            ? resolveKitFilesSettings(files, this.path.dirname(configPath))
+            : defaultKitFilesSettings;
+    }
+
+    /**
      * Like `getConfig`, but will search for a config above if no config found.
      */
     async awaitConfig(file: string): Promise<SvelteConfig | undefined> {
@@ -450,6 +475,31 @@ export class ConfigLoader {
             };
         }
     }
+}
+
+/**
+ * Where SvelteKit's hooks and params files are, from a config's `files` option. Like SvelteKit, a
+ * location the config sets, directly or through `files.src`, is resolved in the config's directory.
+ */
+export function resolveKitFilesSettings(
+    files: KitFilesConfig,
+    configDirectory: string
+): InternalHelpers.KitFilesSettings {
+    const locate = (location: string | undefined, name: string) => {
+        if (location !== undefined) {
+            return _path.resolve(configDirectory, location);
+        }
+        if (files.src !== undefined) {
+            return _path.resolve(configDirectory, files.src, name);
+        }
+        return `src/${name}`;
+    };
+    return {
+        paramsPath: locate(files.params, 'params'),
+        serverHooksPath: locate(files.hooks?.server, 'hooks.server'),
+        clientHooksPath: locate(files.hooks?.client, 'hooks.client'),
+        universalHooksPath: locate(files.hooks?.universal, 'hooks')
+    };
 }
 
 function getSvelteConfigExtensions(loadSvelteConfigTs: boolean) {

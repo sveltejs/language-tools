@@ -1,4 +1,5 @@
 import * as assert from 'assert';
+import sinon from 'sinon';
 import ts from 'typescript';
 import {
     computeChangeRange,
@@ -6,6 +7,7 @@ import {
     SvelteDocumentSnapshot
 } from '../../../src/plugins/typescript/DocumentSnapshot';
 import { Document } from '../../../src/lib/documents';
+import { configLoader, resolveKitFilesSettings } from '../../../src/lib/documents/configLoader';
 import { pathToUrl } from '../../../src/utils';
 
 /**
@@ -186,5 +188,35 @@ describe('SvelteDocumentSnapshot.getChangeRange', () => {
 
         const range = current.getChangeRange(old);
         assert.strictEqual(range, undefined);
+    });
+});
+
+describe('JSOrTSDocumentSnapshot SvelteKit files', () => {
+    afterEach(() => sinon.restore());
+
+    it('types hooks and params at the locations set in the Svelte config', () => {
+        sinon
+            .stub(configLoader, 'getKitFilesSettings')
+            .returns(
+                resolveKitFilesSettings(
+                    { src: './app', hooks: { server: 'app/server/hooks' } },
+                    '/project'
+                )
+            );
+        const handle = 'export const handle = ({ event, resolve }) => resolve(event);';
+        const hooks = new JSOrTSDocumentSnapshot(0, '/project/app/server/hooks.ts', handle);
+        assert.ok(hooks.getFullText().includes(').Handle'));
+        const params = new JSOrTSDocumentSnapshot(
+            0,
+            '/project/app/params/id.ts',
+            'export const match = (param) => true;'
+        );
+        assert.ok(params.getFullText().includes(': string'));
+        const elsewhere = new JSOrTSDocumentSnapshot(
+            0,
+            '/project/vendor/project/app/server/hooks.ts',
+            handle
+        );
+        assert.ok(!elsewhere.kitFile);
     });
 });

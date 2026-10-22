@@ -1,7 +1,7 @@
 import { EncodedSourceMap, TraceMap, originalPositionFor } from '@jridgewell/trace-mapping';
 // @ts-ignore
 import { TemplateNode } from 'svelte/types/compiler/interfaces';
-import { svelte2tsx, IExportedNames, internalHelpers } from 'svelte2tsx';
+import { svelte2tsx, IExportedNames, internalHelpers, InternalHelpers } from 'svelte2tsx';
 import ts from 'typescript';
 import { Position, Range, TextDocumentContentChangeEvent } from 'vscode-languageserver';
 import {
@@ -29,7 +29,7 @@ import { Logger } from '../../logger';
 import { dirname, resolve } from 'path';
 import { URI } from 'vscode-uri';
 import { surroundWithIgnoreComments } from './features/utils';
-import { configLoader } from '../../lib/documents/configLoader';
+import { configLoader, defaultKitFilesSettings } from '../../lib/documents/configLoader';
 
 /**
  * Computes the change range between two snapshots by scanning for the first and last
@@ -477,6 +477,13 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
     }
 }
 
+export function getKitFilesSettings(filePath: string): InternalHelpers.KitFilesSettings {
+    // Declaration files aren't hooks or params files, and there are many in node_modules
+    return filePath.endsWith('.d.ts')
+        ? defaultKitFilesSettings
+        : configLoader.getKitFilesSettings(filePath);
+}
+
 /**
  * A js/ts document snapshot suitable for the ts language service and the plugin.
  * Since no mapping has to be done here, it also implements the mapper interface.
@@ -496,10 +503,6 @@ export class JSOrTSDocumentSnapshot extends IdentityMapper implements DocumentSn
         inserted: string;
         total: number;
     }> = [];
-    private paramsPath = 'src/params';
-    private serverHooksPath = 'src/hooks.server';
-    private clientHooksPath = 'src/hooks.client';
-    private universalHooksPath = 'src/hooks';
 
     isOpenedInClient(): boolean {
         return this.openedByClient;
@@ -633,12 +636,7 @@ export class JSOrTSDocumentSnapshot extends IdentityMapper implements DocumentSn
         const result = internalHelpers.upsertKitFile(
             ts,
             this.filePath,
-            {
-                clientHooksPath: this.clientHooksPath,
-                paramsPath: this.paramsPath,
-                serverHooksPath: this.serverHooksPath,
-                universalHooksPath: this.universalHooksPath
-            },
+            getKitFilesSettings(this.filePath),
             () => this.createSource(),
             surroundWithIgnoreComments
         );
@@ -647,16 +645,6 @@ export class JSOrTSDocumentSnapshot extends IdentityMapper implements DocumentSn
             this.addedCode = [];
             this.text = this.originalText;
             return;
-        }
-
-        if (!this.kitFile) {
-            const files = configLoader.getConfig(this.filePath)?.files;
-            if (files) {
-                this.paramsPath ||= files.params;
-                this.serverHooksPath ||= files.hooks?.server;
-                this.clientHooksPath ||= files.hooks?.client;
-                this.universalHooksPath ||= files.hooks?.universal;
-            }
         }
 
         const { text, addedCode } = result;

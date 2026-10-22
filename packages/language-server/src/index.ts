@@ -1,6 +1,7 @@
 export * from './server';
 export { offsetAt, positionAt, getLineOffsets } from './lib/documents';
 export { normalizePath } from './utils';
+export { defaultKitFilesSettings, resolveKitFilesSettings } from './lib/documents/configLoader';
 export {
     mapSvelteCheckDiagnostics,
     SvelteCheck,

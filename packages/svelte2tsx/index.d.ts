@@ -209,6 +209,10 @@ export namespace InternalHelpers {
         inserted: string;
     }
 
+    /**
+     * Where the hooks and params files are, without extension. An absolute path names that one
+     * location; a relative one, like the defaults, matches in any folder.
+     */
     export interface KitFilesSettings {
         serverHooksPath: string;
         clientHooksPath: string;

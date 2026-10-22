@@ -9,7 +9,9 @@ import {
     mapSvelteCheckDiagnostics,
     offsetAt,
     positionAt,
-    getLineOffsets
+    getLineOffsets,
+    defaultKitFilesSettings,
+    resolveKitFilesSettings
 } from 'svelte-language-server';
 import { loadConfig } from '@sveltejs/load-config';
 import { findFiles } from './utils';
@@ -94,28 +96,13 @@ function toRelativePosix(baseDir: string, targetPath: string) {
     return toPosixPath(relative || '.');
 }
 
-/**
- * Default SvelteKit file paths used when svelte.config.js doesn't specify custom paths.
- */
-const defaultKitFilesSettings: InternalHelpers.KitFilesSettings = {
-    paramsPath: 'src/params',
-    serverHooksPath: 'src/hooks.server',
-    clientHooksPath: 'src/hooks.client',
-    universalHooksPath: 'src/hooks'
-};
-
-function kitFilesSettingsFromConfig(config: any): InternalHelpers.KitFilesSettings {
-    if (!config?.files) {
-        return defaultKitFilesSettings;
-    }
-
-    const files = config.files;
-    return {
-        paramsPath: files.params ?? defaultKitFilesSettings.paramsPath,
-        serverHooksPath: files.hooks?.server ?? defaultKitFilesSettings.serverHooksPath,
-        clientHooksPath: files.hooks?.client ?? defaultKitFilesSettings.clientHooksPath,
-        universalHooksPath: files.hooks?.universal ?? defaultKitFilesSettings.universalHooksPath
-    };
+function kitFilesSettingsFromConfig(
+    config: any,
+    configDirectory: string
+): InternalHelpers.KitFilesSettings {
+    return config?.files
+        ? resolveKitFilesSettings(config.files, configDirectory)
+        : defaultKitFilesSettings;
 }
 
 /**
@@ -136,7 +123,8 @@ async function loadKitFilesSettings(
 
     return kitFilesSettingsFromConfig(
         // SvelteKit 3 puts its options at the top level
-        'files' in result.config ? result.config : result.config.kit
+        'files' in result.config ? result.config : result.config.kit,
+        path.dirname(result.configFilePath)
     );
 }
 

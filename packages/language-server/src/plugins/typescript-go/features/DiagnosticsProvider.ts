@@ -36,6 +36,7 @@ import {
 import { DiagnosticsProvider } from '../../interfaces';
 import {
     DocumentSnapshot,
+    getKitFilesSettings,
     JSOrTSDocumentSnapshot,
     SvelteDocumentSnapshot,
     SvelteSnapshotOptions
@@ -338,12 +339,6 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
         Pick<FileSystem, 'readFile' | 'fileExists' | 'getAccessibleEntries'>
     > {
         const service = this;
-        const kitFiles: Parameters<typeof internalHelpers.isKitFile>[1] = {
-            serverHooksPath: 'src/hooks.client',
-            clientHooksPath: 'src/hooks.client',
-            universalHooksPath: 'src/hooks',
-            paramsPath: 'src/params'
-        };
 
         return {
             getAccessibleEntries(directory: string) {
@@ -392,7 +387,7 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
 
                 if (
                     normalizedPath.endsWith('node_modules/svelte/types/index.d.ts') ||
-                    internalHelpers.isKitFile(normalizedPath, kitFiles)
+                    internalHelpers.isKitFile(normalizedPath, getKitFilesSettings(normalizedPath))
                 ) {
                     const snapshot = DocumentSnapshot.fromFilePath(
                         normalizedPath,

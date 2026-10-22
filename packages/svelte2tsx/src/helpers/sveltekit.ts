@@ -16,6 +16,10 @@ export interface AddedCode {
     inserted: string;
 }
 
+/**
+ * Where the hooks and params files are, without extension. An absolute path names that one
+ * location; a relative one, like the defaults, matches in any folder.
+ */
 export interface KitFilesSettings {
     serverHooksPath: string;
     clientHooksPath: string;
@@ -67,8 +71,8 @@ export function isKitErrorFile(basename: string): boolean {
 export function isHooksFile(fileName: string, basename: string, hooksPath: string): boolean {
     return (
         ((basename === 'index.ts' || basename === 'index.js') &&
-            fileName.slice(0, -basename.length - 1).endsWith(hooksPath)) ||
-        fileName.slice(0, -path.extname(basename).length).endsWith(hooksPath)
+            isAtLocation(path.dirname(fileName), hooksPath)) ||
+        isAtLocation(fileName.slice(0, -path.extname(basename).length), hooksPath)
     );
 }
 
@@ -77,10 +81,17 @@ export function isHooksFile(fileName: string, basename: string, hooksPath: strin
  */
 export function isParamsFile(fileName: string, basename: string, paramsPath: string): boolean {
     return (
-        fileName.slice(0, -basename.length - 1).endsWith(paramsPath) &&
+        isAtLocation(path.dirname(fileName), paramsPath) &&
         !basename.includes('.test') &&
         !basename.includes('.spec')
     );
+}
+
+// Absolute locations are compared as paths, so separators and the drive letter's case don't matter
+function isAtLocation(filePath: string, location: string): boolean {
+    return path.isAbsolute(location)
+        ? path.relative(location, filePath) === ''
+        : filePath.endsWith(location);
 }
 
 export function upsertKitFile(
