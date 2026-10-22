@@ -480,23 +480,22 @@ export function resolveKitFilesSettings(
     files: unknown,
     configDirectory: string
 ): InternalHelpers.KitFilesSettings {
-    const options = isRecord(files) ? files : {};
-    const hooks = isRecord(options.hooks) ? options.hooks : {};
-    const src = typeof options.src === 'string' ? options.src : undefined;
+    const { src, params, hooks }: Record<string, unknown> = isRecord(files) ? files : {};
+    const { server, client, universal }: Record<string, unknown> = isRecord(hooks) ? hooks : {};
     const locate = (location: unknown, name: string) => {
         if (typeof location === 'string') {
             return _path.resolve(configDirectory, location);
         }
-        if (src !== undefined) {
+        if (typeof src === 'string') {
             return _path.resolve(configDirectory, src, name);
         }
         return `src/${name}`;
     };
     return {
-        paramsPath: locate(options.params, 'params'),
-        serverHooksPath: locate(hooks.server, 'hooks.server'),
-        clientHooksPath: locate(hooks.client, 'hooks.client'),
-        universalHooksPath: locate(hooks.universal, 'hooks')
+        paramsPath: locate(params, 'params'),
+        serverHooksPath: locate(server, 'hooks.server'),
+        clientHooksPath: locate(client, 'hooks.client'),
+        universalHooksPath: locate(universal, 'hooks')
     };
 }
 
