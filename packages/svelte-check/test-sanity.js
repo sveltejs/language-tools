@@ -89,6 +89,11 @@ function test(name, opts) {
     const issues = [];
     const expectedErrors = opts.errors || [];
 
+    // A run that fails before reporting would otherwise look like a clean one
+    if (!/^\d+ COMPLETED /m.test(stdout)) {
+        issues.push('svelte-check did not complete');
+    }
+
     if (errors.length !== expectedErrors.length) {
         issues.push(`expected ${expectedErrors.length} errors, got ${errors.length}`);
     }
