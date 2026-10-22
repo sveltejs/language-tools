@@ -268,12 +268,10 @@ function upsertKitRouteFile(
             const returnPos = ts.isArrowFunction(entries.node)
                 ? entries.node.equalsGreaterThanToken.getStart()
                 : entries.node.body.getStart();
-            const isAsync = entries.node.modifiers?.some(
-                (m) => m.kind === ts.SyntaxKind.AsyncKeyword
-            );
-            const returnType = `ReturnType<import('./$types.js').EntryGenerator>`;
+            const isAsync =
+                entries.node.modifiers?.some((m) => m.kind === ts.SyntaxKind.AsyncKeyword) ?? false;
             const returnInsertion = surround(
-                `: ${isAsync ? `globalThis.Promise<globalThis.Awaited<${returnType}>>` : returnType} `
+                `: ${getReturnType(`import('./$types.js').EntryGenerator`, isAsync)} `
             );
             insert(returnPos, returnInsertion);
         } else if (!isTsFile) {
@@ -543,11 +541,7 @@ function addTypeToFunction(
                     ? fn.node.equalsGreaterThanToken.getStart()
                     : fn.node.body.getStart();
                 const returnInsertion = surround(
-                    effectiveReturnType
-                        ? `: ${effectiveReturnType} `
-                        : isAsync
-                          ? `: globalThis.Promise<globalThis.Awaited<ReturnType<${type}>>> `
-                          : `: ReturnType<${type}> `
+                    `: ${effectiveReturnType ?? getReturnType(type, isAsync)} `
                 );
                 insert(returnPos, returnInsertion);
             }
@@ -556,6 +550,13 @@ function addTypeToFunction(
             addJsDocTypeToFunction(surround, insert, fn.node, jsdoc_type);
         }
     }
+}
+
+// An async function has to return the global Promise type (TS1064)
+function getReturnType(functionType: string, isAsync: boolean): string {
+    return isAsync
+        ? `globalThis.Promise<globalThis.Awaited<ReturnType<${functionType}>>>`
+        : `ReturnType<${functionType}>`;
 }
 
 function addJsDocTypeToVariable(
