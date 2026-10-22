@@ -1,4 +1,4 @@
-// The types SvelteKit's hooks are typed with
+// test-success doesn't install SvelteKit, so declare the type its server hooks get
 declare module '@sveltejs/kit' {
     export type Handle = (input: {
         event: { url: URL };
