@@ -11,7 +11,6 @@ import {
     positionAt,
     getLineOffsets,
     defaultKitFilesSettings,
-    KitFilesConfig,
     resolveKitFilesSettings
 } from 'svelte-language-server';
 import { loadConfig } from '@sveltejs/load-config';
@@ -98,13 +97,11 @@ function toRelativePosix(baseDir: string, targetPath: string) {
 }
 
 // SvelteKit 3 puts its options at the top level, SvelteKit 2 under `kit`
-function getKitFilesConfig(config: Record<string, unknown>): KitFilesConfig | undefined {
+function getKitFilesOption(config: Record<string, unknown>): unknown {
     const kitOptions = 'files' in config ? config : config.kit;
-    if (typeof kitOptions !== 'object' || kitOptions === null || !('files' in kitOptions)) {
-        return undefined;
-    }
-    const { files } = kitOptions;
-    return typeof files === 'object' && files !== null ? files : undefined;
+    return typeof kitOptions === 'object' && kitOptions !== null && 'files' in kitOptions
+        ? kitOptions.files
+        : undefined;
 }
 
 /**
@@ -123,10 +120,10 @@ async function loadKitFilesSettings(
         return defaultKitFilesSettings;
     }
 
-    const files = getKitFilesConfig(result.config);
-    return files
-        ? resolveKitFilesSettings(files, path.dirname(result.configFilePath))
-        : defaultKitFilesSettings;
+    return resolveKitFilesSettings(
+        getKitFilesOption(result.config),
+        path.dirname(result.configFilePath)
+    );
 }
 
 /**

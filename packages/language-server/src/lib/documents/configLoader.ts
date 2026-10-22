@@ -42,12 +42,6 @@ export interface ExplicitConfigScope {
 
 type LoadConfigFromDirectoryFn = typeof loadConfigFromDirectory;
 
-export interface KitFilesConfig {
-    src?: string;
-    params?: string;
-    hooks?: { client?: string; server?: string; universal?: string };
-}
-
 export const defaultKitFilesSettings: InternalHelpers.KitFilesSettings = {
     paramsPath: 'src/params',
     serverHooksPath: 'src/hooks.server',
@@ -480,26 +474,34 @@ export class ConfigLoader {
 /**
  * Where SvelteKit's hooks and params files are, from a config's `files` option. Like SvelteKit, a
  * location the config sets, directly or through `files.src`, is resolved in the config's directory.
+ * The option comes from user code, so anything that isn't a string is ignored.
  */
 export function resolveKitFilesSettings(
-    files: KitFilesConfig,
+    files: unknown,
     configDirectory: string
 ): InternalHelpers.KitFilesSettings {
-    const locate = (location: string | undefined, name: string) => {
-        if (location !== undefined) {
+    const options = isRecord(files) ? files : {};
+    const hooks = isRecord(options.hooks) ? options.hooks : {};
+    const src = typeof options.src === 'string' ? options.src : undefined;
+    const locate = (location: unknown, name: string) => {
+        if (typeof location === 'string') {
             return _path.resolve(configDirectory, location);
         }
-        if (files.src !== undefined) {
-            return _path.resolve(configDirectory, files.src, name);
+        if (src !== undefined) {
+            return _path.resolve(configDirectory, src, name);
         }
         return `src/${name}`;
     };
     return {
-        paramsPath: locate(files.params, 'params'),
-        serverHooksPath: locate(files.hooks?.server, 'hooks.server'),
-        clientHooksPath: locate(files.hooks?.client, 'hooks.client'),
-        universalHooksPath: locate(files.hooks?.universal, 'hooks')
+        paramsPath: locate(options.params, 'params'),
+        serverHooksPath: locate(hooks.server, 'hooks.server'),
+        clientHooksPath: locate(hooks.client, 'hooks.client'),
+        universalHooksPath: locate(hooks.universal, 'hooks')
     };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null;
 }
 
 function getSvelteConfigExtensions(loadSvelteConfigTs: boolean) {
