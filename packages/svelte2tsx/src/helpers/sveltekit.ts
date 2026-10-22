@@ -552,10 +552,11 @@ function addTypeToFunction(
     }
 }
 
-// An async function has to return the global Promise type (TS1064)
+// An async function has to return the global Promise type (TS1064). Only the promised part of the
+// return type goes in, so an async function where only a synchronous one is allowed still errors.
 function getReturnType(functionType: string, isAsync: boolean): string {
     return isAsync
-        ? `globalThis.Promise<globalThis.Awaited<ReturnType<${functionType}>>>`
+        ? `globalThis.Promise<globalThis.Awaited<globalThis.Extract<ReturnType<${functionType}>, globalThis.PromiseLike<unknown>>>>`
         : `ReturnType<${functionType}>`;
 }
 
