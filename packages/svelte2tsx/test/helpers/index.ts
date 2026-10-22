@@ -56,7 +56,7 @@ describe('Internal Helpers - upsertKitFile', () => {
         upsert(
             'hooks.server.ts',
             `export const handle = async ({ event, resolve }) => {};`,
-            `export const handle = async ({ event, resolve }: Parameters<import('@sveltejs/kit').Handle>[0]) : ReturnType<import('@sveltejs/kit').Handle> => {};`
+            `export const handle = async ({ event, resolve }: Parameters<import('@sveltejs/kit').Handle>[0]) : globalThis.Promise<globalThis.Awaited<ReturnType<import('@sveltejs/kit').Handle>>> => {};`
         );
     });
 
@@ -74,7 +74,7 @@ describe('Internal Helpers - upsertKitFile', () => {
         upsert(
             kit3Path('hooks.server.ts'),
             `export function handleError(e) {} export const handle = async (e) => {}; export function handleFetch(e) {}`,
-            `export function handleError(e: Parameters<import('@sveltejs/kit/hooks').HandleServerError>[0]) : ReturnType<import('@sveltejs/kit/hooks').HandleServerError> {} export const handle = async (e: Parameters<import('@sveltejs/kit/hooks').Handle>[0]) : ReturnType<import('@sveltejs/kit/hooks').Handle> => {}; export function handleFetch(e: Parameters<import('@sveltejs/kit/hooks').HandleFetch>[0]) : ReturnType<import('@sveltejs/kit/hooks').HandleFetch> {}`
+            `export function handleError(e: Parameters<import('@sveltejs/kit/hooks').HandleServerError>[0]) : ReturnType<import('@sveltejs/kit/hooks').HandleServerError> {} export const handle = async (e: Parameters<import('@sveltejs/kit/hooks').Handle>[0]) : globalThis.Promise<globalThis.Awaited<ReturnType<import('@sveltejs/kit/hooks').Handle>>> => {}; export function handleFetch(e: Parameters<import('@sveltejs/kit/hooks').HandleFetch>[0]) : ReturnType<import('@sveltejs/kit/hooks').HandleFetch> {}`
         );
         upsert(
             kit3Path('hooks.client.ts'),
@@ -109,6 +109,14 @@ describe('Internal Helpers - upsertKitFile', () => {
             '+server.js',
             `export async function GET(e) {}`,
             `/** @type {(arg0: import('./$types.js').RequestEvent) => Response | Promise<Response>} */ export async function GET(e) {}`
+        );
+    });
+
+    it('upserts async entries function', () => {
+        upsert(
+            '+page.ts',
+            `export async function entries() { return []; }`,
+            `export async function entries() : globalThis.Promise<globalThis.Awaited<ReturnType<import('./$types.js').EntryGenerator>>> { return []; }`
         );
     });
 

@@ -268,7 +268,13 @@ function upsertKitRouteFile(
             const returnPos = ts.isArrowFunction(entries.node)
                 ? entries.node.equalsGreaterThanToken.getStart()
                 : entries.node.body.getStart();
-            const returnInsertion = surround(`: ReturnType<import('./$types.js').EntryGenerator> `);
+            const isAsync = entries.node.modifiers?.some(
+                (m) => m.kind === ts.SyntaxKind.AsyncKeyword
+            );
+            const returnType = `ReturnType<import('./$types.js').EntryGenerator>`;
+            const returnInsertion = surround(
+                `: ${isAsync ? `globalThis.Promise<globalThis.Awaited<${returnType}>>` : returnType} `
+            );
             insert(returnPos, returnInsertion);
         } else if (!isTsFile) {
             addJsDocTypeToFunction(
@@ -537,7 +543,11 @@ function addTypeToFunction(
                     ? fn.node.equalsGreaterThanToken.getStart()
                     : fn.node.body.getStart();
                 const returnInsertion = surround(
-                    !effectiveReturnType ? `: ReturnType<${type}> ` : `: ${effectiveReturnType} `
+                    effectiveReturnType
+                        ? `: ${effectiveReturnType} `
+                        : isAsync
+                          ? `: globalThis.Promise<globalThis.Awaited<ReturnType<${type}>>> `
+                          : `: ReturnType<${type}> `
                 );
                 insert(returnPos, returnInsertion);
             }
