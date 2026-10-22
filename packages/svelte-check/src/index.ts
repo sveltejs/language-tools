@@ -630,6 +630,14 @@ parseOptions(async (opts) => {
                             minPre7_0Nightly
                     );
                 }
+            } else if (pkg.major === 7 && pkg.minor === 1 && pkg.preRelease?.includes('dev')) {
+                const minPre7_1Nightly = 'dev.20261021.1';
+                if (pkg.preRelease.localeCompare(minPre7_1Nightly) < 0) {
+                    throw new Error(
+                        'Unsupported TypeScript 7.1 version. Please upgrade to at least 7.1.0-beta or 7.1.0-' +
+                            minPre7_1Nightly
+                    );
+                }
             }
 
             const [apiModule, astModule, fsModule] = await Promise.all([
@@ -645,7 +653,9 @@ parseOptions(async (opts) => {
             }
 
             const fullVersion = pkg.major + '.' + pkg.minor + '.' + pkg.patch;
-            svelteCheckOptions.experimental = { tsgo: { apiModule, astModule, tsVersion: fullVersion, fsModule  } };
+            svelteCheckOptions.experimental = {
+                tsgo: { apiModule, astModule, tsVersion: fullVersion, fsModule }
+            };
         }
 
         const useVirtualFiles = opts.incremental || opts.tsgo;
