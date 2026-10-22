@@ -12,6 +12,7 @@ import { Document } from '../../../../../src/lib/documents';
 import ts from 'typescript';
 import { getPackageInfo } from '../../../../../src/importPackage';
 import assert from 'assert';
+import sinon from 'sinon';
 
 const isSvelte5Plus = Number(VERSION.split('.')[0]) >= 5;
 
@@ -38,6 +39,32 @@ describe('SvelteCheckTSGoDiagnosticsProvider', function () {
     executeTests({
         dir: fixturesDir,
         workspaceDir: fixturesDir
+    });
+
+    afterEach(() => sinon.restore());
+
+    it('returns Svelte file paths in their original case', async () => {
+        const syncApi = await import('@typescript/native-preview/unstable/sync');
+        const tsAst = await import('@typescript/native-preview/unstable/ast');
+        const tsconfig = path.join(__dirname, '../../testfiles/tsconfig.json');
+        // The file map lowercases its keys on case-insensitive file systems
+        sinon.stub(ts.sys, 'useCaseSensitiveFileNames').value(false);
+        const service = new SvelteCheckTSGoDiagnosticsProvider(
+            syncApi,
+            tsAst,
+            tsconfig,
+            'svelte2tsx',
+            (filePath, content) => new Document(pathToUrl(filePath), content)
+        );
+        sinon.restore();
+        try {
+            await service.getProject();
+            assert.deepStrictEqual(service.getAllSvelteFiles(), [
+                normalizePath(path.join(path.dirname(tsconfig), 'Upper.svelte'))
+            ]);
+        } finally {
+            service.dispose();
+        }
     });
 
     after(() => {

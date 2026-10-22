@@ -193,7 +193,10 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
     }
 
     getAllSvelteFiles(): string[] {
-        return Array.from(this.files.keys()).filter(isSvelteFilePath);
+        // not the keys, which are lowercase on case-insensitive file systems
+        return Array.from(this.files.values(), (snapshot) => snapshot.filePath).filter(
+            isSvelteFilePath
+        );
     }
 
     mapAndFilterDiagnostics(
