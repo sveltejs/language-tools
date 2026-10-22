@@ -268,7 +268,11 @@ function upsertKitRouteFile(
             const returnPos = ts.isArrowFunction(entries.node)
                 ? entries.node.equalsGreaterThanToken.getStart()
                 : entries.node.body.getStart();
-            const returnInsertion = surround(`: ReturnType<import('./$types.js').EntryGenerator> `);
+            const isAsync =
+                entries.node.modifiers?.some((m) => m.kind === ts.SyntaxKind.AsyncKeyword) ?? false;
+            const returnInsertion = surround(
+                `: ${getReturnType(`import('./$types.js').EntryGenerator`, isAsync)} `
+            );
             insert(returnPos, returnInsertion);
         } else if (!isTsFile) {
             addJsDocTypeToFunction(
@@ -537,7 +541,7 @@ function addTypeToFunction(
                     ? fn.node.equalsGreaterThanToken.getStart()
                     : fn.node.body.getStart();
                 const returnInsertion = surround(
-                    !effectiveReturnType ? `: ReturnType<${type}> ` : `: ${effectiveReturnType} `
+                    `: ${effectiveReturnType ?? getReturnType(type, isAsync)} `
                 );
                 insert(returnPos, returnInsertion);
             }
@@ -546,6 +550,14 @@ function addTypeToFunction(
             addJsDocTypeToFunction(surround, insert, fn.node, jsdoc_type);
         }
     }
+}
+
+// An async function has to return the global Promise type (TS1064). Only the promised part of the
+// return type goes in, so an async function where only a synchronous one is allowed still errors.
+function getReturnType(functionType: string, isAsync: boolean): string {
+    return isAsync
+        ? `globalThis.Promise<globalThis.Awaited<globalThis.Extract<ReturnType<${functionType}>, globalThis.PromiseLike<unknown>>>>`
+        : `ReturnType<${functionType}>`;
 }
 
 function addJsDocTypeToVariable(
