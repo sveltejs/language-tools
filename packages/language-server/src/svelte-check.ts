@@ -482,6 +482,13 @@ export class SvelteCheck {
         const configFileParsingDiagnosticsLength = allTsDiagnostics?.length ?? 0;
 
         allTsDiagnostics = allTsDiagnostics.concat(project.program.getSyntacticDiagnostics());
+        const contentMapperDiagnostic = allTsDiagnostics.find((v) => v.code === 18068);
+        if (contentMapperDiagnostic) {
+            contentMapperDiagnostic.text = 'Content mappers are not yet supported';
+            return this.tsGoDiagnosticsProvider.mapAndFilterDiagnostics(project, [
+                contentMapperDiagnostic
+            ]);
+        }
 
         if (allTsDiagnostics.length == configFileParsingDiagnosticsLength) {
             if (
