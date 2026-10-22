@@ -335,6 +335,45 @@ test('project with errors --tsgo', {
     errors
 });
 
+// A Kit file is emitted again when its hooks location in svelte.config.js changes
+const kitWorkspace = mkdtempSync(path.join(os.tmpdir(), 'svelte-check-kit-files-'));
+mkdirSync(path.join(kitWorkspace, 'src'));
+writeFileSync(path.join(kitWorkspace, 'package.json'), JSON.stringify({ type: 'module' }));
+writeFileSync(
+    path.join(kitWorkspace, 'tsconfig.json'),
+    JSON.stringify({ compilerOptions: { strict: true }, include: ['src/**/*'] })
+);
+// The workspace doesn't install SvelteKit, so declare the type a `reroute` hook gets
+writeFileSync(
+    path.join(kitWorkspace, 'src', 'kit.d.ts'),
+    "declare module '@sveltejs/kit' {\n\texport type Reroute = (input: { url: URL }) => string | void;\n}\n"
+);
+writeFileSync(
+    path.join(kitWorkspace, 'src', 'routing.ts'),
+    'export const reroute = ({ url }) => url.pathname;\n'
+);
+/** @param {string} hook */
+const setRoutingHook = (hook) =>
+    writeFileSync(
+        path.join(kitWorkspace, 'svelte.config.js'),
+        `export default { kit: { files: { hooks: { ${hook}: 'src/routing' } } } };\n`
+    );
+setRoutingHook('universal');
+test('Kit file --incremental', {
+    workspace: kitWorkspace,
+    tsconfig: path.join(kitWorkspace, 'tsconfig.json'),
+    incremental: true
+});
+// `reroute` isn't a client hook, so it's no longer typed
+setRoutingHook('client');
+test('Kit file --incremental, after its hooks location changes', {
+    workspace: kitWorkspace,
+    tsconfig: path.join(kitWorkspace, 'tsconfig.json'),
+    incremental: true,
+    errors: [{ file: 'src/routing.ts', line: 0, column: 26, code: 7031 }]
+});
+rmSync(kitWorkspace, { recursive: true, force: true });
+
 // A compiler that dies must not look like a clean run, and one that dies after reporting
 // some diagnostics must not look like a completed one.
 testCrashedCompiler(

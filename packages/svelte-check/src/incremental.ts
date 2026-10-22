@@ -32,6 +32,8 @@ type ManifestEntry = {
 
 type Manifest = {
     version: number;
+    /** The hooks and params locations the Kit files were emitted for */
+    kitFilesSettings?: InternalHelpers.KitFilesSettings;
     entries: Record<string, ManifestEntry>;
 };
 
@@ -110,11 +112,17 @@ function kitFilesSettingsFromConfig(config: any): InternalHelpers.KitFilesSettin
     }
 
     const files = config.files;
+    // The config is user code, and the settings are stored in the manifest, so keep only strings
+    const stringOr = (value: unknown, fallback: string) =>
+        typeof value === 'string' ? value : fallback;
     return {
-        paramsPath: files.params ?? defaultKitFilesSettings.paramsPath,
-        serverHooksPath: files.hooks?.server ?? defaultKitFilesSettings.serverHooksPath,
-        clientHooksPath: files.hooks?.client ?? defaultKitFilesSettings.clientHooksPath,
-        universalHooksPath: files.hooks?.universal ?? defaultKitFilesSettings.universalHooksPath
+        paramsPath: stringOr(files.params, defaultKitFilesSettings.paramsPath),
+        serverHooksPath: stringOr(files.hooks?.server, defaultKitFilesSettings.serverHooksPath),
+        clientHooksPath: stringOr(files.hooks?.client, defaultKitFilesSettings.clientHooksPath),
+        universalHooksPath: stringOr(
+            files.hooks?.universal,
+            defaultKitFilesSettings.universalHooksPath
+        )
     };
 }
 
@@ -164,6 +172,10 @@ export async function emitSvelteFiles(
         ? loadManifest(manifestPath, workspacePath)
         : { version: MANIFEST_VERSION, entries: {} as Record<string, ManifestEntry> };
     const kitFilesSettings = await loadKitFilesSettings(workspacePath, config);
+    // Kit files are transformed for these locations, so a change in the config means emitting them again
+    const kitFilesSettingsChanged =
+        JSON.stringify(manifest.kitFilesSettings) !== JSON.stringify(kitFilesSettings);
+    manifest.kitFilesSettings = kitFilesSettings;
     const isJsOrTsFile = (filePath: string) => filePath.endsWith('.ts') || filePath.endsWith('.js');
     const allRelevantFiles = await findFiles(
         workspacePath,
@@ -297,7 +309,12 @@ export async function emitSvelteFiles(
         }
 
         const hasChanged =
-            !incremental || !entry || outPathChanged || !statsUnchanged || !fs.existsSync(outPath);
+            !incremental ||
+            kitFilesSettingsChanged ||
+            !entry ||
+            outPathChanged ||
+            !statsUnchanged ||
+            !fs.existsSync(outPath);
 
         if (!hasChanged) {
             continue;
@@ -1074,7 +1091,11 @@ function loadManifest(manifestPath: string, workspacePath: string): Manifest {
                     : undefined
             };
         }
-        return { version: data.version, entries: resolvedEntries };
+        return {
+            version: data.version,
+            kitFilesSettings: data.kitFilesSettings,
+            entries: resolvedEntries
+        };
     } catch {
         return { version: MANIFEST_VERSION, entries: {} };
     }
@@ -1103,6 +1124,7 @@ function writeManifest(manifestPath: string, manifest: Manifest, workspacePath: 
     }
     const data: Manifest = {
         version: MANIFEST_VERSION,
+        kitFilesSettings: manifest.kitFilesSettings,
         entries: relativeEntries
     };
     fs.writeFileSync(manifestPath, JSON.stringify(data, null, 2), 'utf-8');
