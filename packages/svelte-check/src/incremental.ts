@@ -170,7 +170,8 @@ export async function emitSvelteFiles(
         filePathsToIgnore,
         (filePath) =>
             filePath.endsWith('.svelte') ||
-            (isJsOrTsFile(filePath) && internalHelpers.isKitFile(filePath, kitFilesSettings))
+            (isJsOrTsFile(filePath) && internalHelpers.isKitFile(filePath, kitFilesSettings)),
+        true
     );
     const svelteFiles: string[] = [];
     const kitFiles: string[] = [];

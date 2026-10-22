@@ -29,7 +29,7 @@
         "@jridgewell/trace-mapping": "^0.3.25",
         "@sveltejs/load-config": "workspace:^",
         "chokidar": "^4.0.1",
-        "fdir": "^6.2.0",
+        "fdir": "^6.4.6",
         "picocolors": "^1.0.0",
         "sade": "^1.7.4"
     },

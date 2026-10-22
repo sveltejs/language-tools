@@ -7,7 +7,7 @@
  */
 
 const { execFileSync } = require('child_process');
-const { mkdirSync, mkdtempSync, rmSync, writeFileSync } = require('fs');
+const { mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync, writeFileSync } = require('fs');
 const os = require('os');
 const path = require('path');
 
@@ -334,6 +334,29 @@ test('project with errors --tsgo', {
     tsgo: true,
     errors
 });
+
+// Components in a symlinked directory outside the workspace are checked like the default mode does
+const symlinkRoot = mkdtempSync(path.join(realpathSync(os.tmpdir()), 'svelte-check-symlink-'));
+const symlinkWorkspace = path.join(symlinkRoot, 'app');
+mkdirSync(symlinkWorkspace);
+mkdirSync(path.join(symlinkRoot, 'shared'));
+writeFileSync(
+    path.join(symlinkWorkspace, 'tsconfig.json'),
+    JSON.stringify({ compilerOptions: { strict: true }, include: ['src/**/*'] })
+);
+writeFileSync(
+    path.join(symlinkRoot, 'shared', 'Test.svelte'),
+    '<script lang="ts">\n\tconst n: number = "";\n</script>\n'
+);
+// A junction on Windows, which needs no extra rights
+symlinkSync(path.join(symlinkRoot, 'shared'), path.join(symlinkWorkspace, 'src'), 'junction');
+test('symlinked directory --tsgo', {
+    workspace: symlinkWorkspace,
+    tsconfig: path.join(symlinkWorkspace, 'tsconfig.json'),
+    tsgo: true,
+    errors: [{ file: 'src/Test.svelte', line: 1, column: 7, code: 2322 }]
+});
+rmSync(symlinkRoot, { recursive: true, force: true });
 
 // A compiler that dies must not look like a clean run, and one that dies after reporting
 // some diagnostics must not look like a completed one.
