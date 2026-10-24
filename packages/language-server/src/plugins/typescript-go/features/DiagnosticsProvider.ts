@@ -424,6 +424,7 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
                 const realFiles: string[] = [];
                 const directories: string[] = [];
                 const resultFiles: string[] = [];
+                /**Names from `files` or `directories` that are symbolic links. */
                 const symlinks: string[] = [];
                 try {
                     const entries = fs.readdirSync(directory, { withFileTypes: true });
@@ -433,17 +434,14 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
                         } else if (entry.isDirectory()) {
                             directories.push(entry.name);
                         } else if (entry.isSymbolicLink()) {
-                            if (useStableApi) {
-                                symlinks.push(entry.name);
-                            } else {
-                                const fullPath = path.join(directory, entry.name);
-                                const stats = fs.statSync(fs.realpathSync(fullPath));
-                                if (stats.isFile()) {
-                                    realFiles.push(entry.name);
-                                } else if (stats.isDirectory()) {
-                                    directories.push(entry.name);
-                                }
+                            const fullPath = path.join(directory, entry.name);
+                            const stats = fs.statSync(fs.realpathSync(fullPath));
+                            if (stats.isFile()) {
+                                realFiles.push(entry.name);
+                            } else if (stats.isDirectory()) {
+                                directories.push(entry.name);
                             }
+                            symlinks.push(entry.name);
                         }
                     }
                     for (const file of realFiles) {
