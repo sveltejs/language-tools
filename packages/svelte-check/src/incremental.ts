@@ -384,7 +384,11 @@ export function writeOverlayTsconfig(
     const tsBuildInfoFile = path.join(cacheDir, 'tsbuildinfo.json');
     const overlayDir = path.dirname(overlayPath);
 
-    const configFile = ts.readConfigFile(tsconfigPath, ts.sys.readFile);
+    // readConfigFile asserts when the name is not normalized (`.`/`..` segments, Windows backslashes).
+    const configFile = ts.readConfigFile(
+        toPosixPath(path.normalize(tsconfigPath)),
+        ts.sys.readFile
+    );
     if (configFile.error) {
         throw new Error(
             ts.formatDiagnosticsWithColorAndContext([configFile.error], {
