@@ -152,7 +152,6 @@ describe('SvelteDocumentSnapshot.getChangeRange', () => {
             options?.scriptKind ?? ts.ScriptKind.TS,
             '4.0.0',
             generatedText,
-            0,
             { has: () => false }
         );
     }

@@ -11,20 +11,15 @@ import {
     IdentityMapper,
     offsetAt,
     positionAt,
+    SourceMapDocumentMapper,
     TagInformation,
     isInTag,
     getLineOffsets,
     FilePosition
 } from '../../lib/documents';
 import { pathToUrl, urlToPath } from '../../utils';
-import { ConsumerDocumentMapper } from './DocumentMapper';
 import { SvelteNode, SvelteNodeWalker, walkSvelteAst } from './svelte-ast-utils';
-import {
-    getScriptKindFromAttributes,
-    getScriptKindFromFileName,
-    isSvelteFilePath,
-    getTsCheckComment
-} from './utils';
+import { getScriptKindFromAttributes, getScriptKindFromFileName, isSvelteFilePath } from './utils';
 import { Logger } from '../../logger';
 import { dirname, resolve } from 'path';
 import { URI } from 'vscode-uri';
@@ -122,7 +117,7 @@ export namespace DocumentSnapshot {
      * @param options options that apply to the svelte document
      */
     export function fromDocument(document: Document, options: SvelteSnapshotOptions) {
-        const { tsxMap, htmlAst, text, exportedNames, parserError, nrPrependedLines, scriptKind } =
+        const { tsxMap, htmlAst, text, exportedNames, parserError, scriptKind } =
             preprocessSvelteFile(document, options);
 
         return new SvelteDocumentSnapshot(
@@ -131,7 +126,6 @@ export namespace DocumentSnapshot {
             scriptKind,
             options.version,
             text,
-            nrPrependedLines,
             exportedNames,
             tsxMap,
             htmlAst
@@ -224,7 +218,6 @@ export namespace DocumentSnapshot {
 function preprocessSvelteFile(document: Document, options: SvelteSnapshotOptions) {
     let tsxMap: EncodedSourceMap | undefined;
     let parserError: ParserError | null = null;
-    let nrPrependedLines = 0;
     let text = document.getText();
     let exportedNames: IExportedNames = { has: () => false };
     let htmlAst: TemplateNode | undefined;
@@ -265,13 +258,6 @@ function preprocessSvelteFile(document: Document, options: SvelteSnapshotOptions
 
         if (tsxMap) {
             tsxMap.sources = [document.uri];
-
-            const scriptInfo = document.scriptInfo || document.moduleScriptInfo;
-            const tsCheck = getTsCheckComment(scriptInfo?.content);
-            if (tsCheck) {
-                text = tsCheck + text;
-                nrPrependedLines = 1;
-            }
         }
     } catch (e: any) {
         // Error start/end logic is different and has different offsets for line, so we need to convert that
@@ -298,7 +284,6 @@ function preprocessSvelteFile(document: Document, options: SvelteSnapshotOptions
         exportedNames,
         htmlAst,
         parserError,
-        nrPrependedLines,
         scriptKind
     };
 }
@@ -321,7 +306,6 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
         public readonly scriptKind: ts.ScriptKind,
         public readonly svelteVersion: string | undefined,
         private readonly text: string,
-        private readonly nrPrependedLines: number,
         private readonly exportedNames: IExportedNames,
         private readonly tsxMap?: EncodedSourceMap,
         private readonly htmlAst?: TemplateNode
@@ -469,11 +453,7 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
             return new FragmentMapper(this.parent.getText(), scriptInfo, this.url);
         }
 
-        return new ConsumerDocumentMapper(
-            new TraceMap(this.tsxMap),
-            this.url,
-            this.nrPrependedLines
-        );
+        return new SourceMapDocumentMapper(new TraceMap(this.tsxMap), this.url);
     }
 }
 
