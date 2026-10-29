@@ -1,4 +1,3 @@
-import type { FileSystem } from '@typescript/native-preview/unstable/fs' with { 'resolution-mode': 'import' };
 import fs from 'node:fs';
 import { dirname } from 'node:path';
 import path from 'path';
@@ -49,7 +48,7 @@ import {
 } from '../../typescript/features/utils';
 import { isAttributeName, isEventHandler } from '../../typescript/svelte-ast-utils';
 import { hasNonZeroRange, isSvelteFilePath, mapSeverity } from '../../typescript/utils';
-import { tsApiSync, tsAst } from '../types';
+import { tsApiSync, tsAst, tsFs } from '../types';
 import {
     gatherIdentifiers,
     getStartOfNode,
@@ -63,9 +62,18 @@ const D_SVELTE_TS_EXTENSION = '.d.svelte.ts';
 const D_SVELTE_TS_LENGTH = D_SVELTE_TS_EXTENSION.length;
 const SVELTE_DTS_EXTENSION = '.svelte.d.ts';
 
+export interface TSModules {
+    apiModule: typeof tsApiSync;
+    astModule: typeof tsAst;
+    fsModule: typeof tsFs;
+    tsVersion: string;
+}
+
 export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
     private readonly api: tsApiSync.API;
     private readonly tsApiModule: typeof tsApiSync;
+
+    private readonly tsFsModule: typeof tsFs;
     private readonly files: FileMap<DocumentSnapshot> = new FileMap();
     private readonly virtualFiles: FileMap<string> = new FileMap();
     private readonly tsAstModule: typeof tsAst;
@@ -78,8 +86,10 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
      */
     private projectConfig: ts.ParsedCommandLine;
     private pendingConfigLoading: Promise<void> | undefined;
+    private readonly useStableApi: boolean;
 
     private createDocument: (filePath: string, content: string) => Document;
+    private snapshot: tsApiSync.Snapshot | undefined;
 
     private pendingChanges = {
         created: new Set<string>(),
@@ -88,14 +98,14 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
     };
 
     constructor(
-        apiModule: typeof tsApiSync,
-        tsAstModule: typeof tsAst,
+        modules: TSModules,
         tsconfigPath: string,
         ambientTypesSource: string,
         createDocument: (filePath: string, content: string) => Document
     ) {
-        this.tsApiModule = apiModule;
-        this.tsAstModule = tsAstModule;
+        this.tsApiModule = modules.apiModule;
+        this.tsAstModule = modules.astModule;
+        this.tsFsModule = modules.fsModule;
         this.tsconfigPath = tsconfigPath;
         this.virtualTsconfigPath = path.join(
             path.dirname(tsconfigPath),
@@ -112,7 +122,9 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
             emitJsDoc: true
         };
 
-        this.api = new apiModule.API({
+        const [major, minor] = (modules.tsVersion || '7.0').split('.').map(Number);
+        this.useStableApi = major > 7 || (major === 7 && minor >= 1);
+        this.api = new this.tsApiModule.API({
             fs: this.createFsProxy()
         });
         this.projectConfig = this.parseConfig();
@@ -155,12 +167,22 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
             return [parserErrorDiag];
         }
 
-        const virtualPath = toVirtualPath(tsDoc);
+        const path = toVirtualPath(tsDoc);
         const diagnostics: tsApiSync.Diagnostic[] = [];
         const program = project.program;
-        diagnostics.push(...(program.getSyntacticDiagnostics(virtualPath) || []));
-        diagnostics.push(...(program.getSuggestionDiagnostics(virtualPath) || []));
-        diagnostics.push(...(program.getSemanticDiagnostics(virtualPath) || []));
+        if (this.useStableApi) {
+            this.api
+                .batch(
+                    program.getSyntacticDiagnostics.gen(path),
+                    program.getSuggestionDiagnostics.gen(path),
+                    program.getSemanticDiagnostics.gen(path)
+                )
+                .forEach((diag) => diagnostics.push(...diag));
+        } else {
+            diagnostics.push(...(program.getSyntacticDiagnostics(path) || []));
+            diagnostics.push(...(program.getSuggestionDiagnostics(path) || []));
+            diagnostics.push(...(program.getSemanticDiagnostics(path) || []));
+        }
 
         return mapAndFilterDiagnostics(
             this.tsAstModule,
@@ -177,17 +199,50 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
             await this.pendingConfigLoading;
             this.pendingConfigLoading = undefined;
         }
-        const snapshot = this.api.updateSnapshot({
-            openProject: this.virtualTsconfigPath,
-            fileChanges: {
-                created: Array.from(this.pendingChanges.created),
-                changed: Array.from(this.pendingChanges.changed),
-                deleted: Array.from(this.pendingChanges.deleted)
+
+        const changes = {
+            created: Array.from(this.pendingChanges.created),
+            changed: Array.from(this.pendingChanges.changed),
+            deleted: Array.from(this.pendingChanges.deleted)
+        };
+
+        let snapshot: tsApiSync.Snapshot;
+        if (this.useStableApi) {
+            if (!this.snapshot) {
+                this.snapshot = this.api.createSnapshot({
+                    openProjects: [this.virtualTsconfigPath],
+                    fileNotifications: changes
+                });
+            } else if (
+                changes.created.length !== 0 ||
+                changes.changed.length !== 0 ||
+                changes.deleted.length !== 0
+            ) {
+                this.snapshot = this.snapshot.update({
+                    fileNotifications: changes
+                });
             }
-        });
+            snapshot = this.snapshot;
+        } else {
+            // @ts-expect-error typescript < 7.1
+            snapshot = this.api.updateSnapshot({
+                openProject: this.virtualTsconfigPath,
+                fileChanges: {
+                    created: Array.from(this.pendingChanges.created),
+                    changed: Array.from(this.pendingChanges.changed),
+                    deleted: Array.from(this.pendingChanges.deleted)
+                }
+            });
+        }
+
         this.pendingChanges.created.clear();
         this.pendingChanges.changed.clear();
         this.pendingChanges.deleted.clear();
+        if (this.useStableApi) {
+            const project = snapshot.getConfiguredProject(this.virtualTsconfigPath);
+            return project;
+        }
+        // @ts-expect-error typescript < 7.1
         const project = snapshot.getProject(this.virtualTsconfigPath);
         return project;
     }
@@ -334,9 +389,22 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
         return this.projectConfig;
     }
 
-    private createFsProxy(): Required<
-        Pick<FileSystem, 'readFile' | 'fileExists' | 'getAccessibleEntries'>
-    > {
+    private createFsProxy(): tsFs.FileSystemCallbacks {
+        // optional chaining for supporting older version.
+        // For older version, undefined means using the default system callbacks. So this setup is type safe and also compatible with both older and newer versions.
+
+        const serverFS = this.tsFsModule?.serverFS;
+        const defaultSys: tsFs.FileSystemCallbacks = {
+            fileExists: serverFS?.useOS,
+            directoryExists: serverFS?.useOS,
+            getAccessibleEntries: serverFS?.useOS,
+            stat: serverFS?.useOS,
+            realpath: serverFS?.useOS,
+            writeFile: serverFS?.useOS,
+            removeFile: serverFS?.useOS,
+            readFile: serverFS?.useOS
+        };
+
         const service = this;
         const kitFiles: Parameters<typeof internalHelpers.isKitFile>[1] = {
             serverHooksPath: 'src/hooks.client',
@@ -346,10 +414,17 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
         };
 
         return {
+            directoryExists: serverFS?.useOS,
+            stat: serverFS?.useOS,
+            realpath: serverFS?.useOS,
+            writeFile: serverFS?.useOS,
+            removeFile: serverFS?.useOS,
             getAccessibleEntries(directory: string) {
                 const realFiles: string[] = [];
                 const directories: string[] = [];
                 const resultFiles: string[] = [];
+                /**Names from `files` or `directories` that are symbolic links. */
+                const symlinks: string[] = [];
                 try {
                     const entries = fs.readdirSync(directory, { withFileTypes: true });
                     for (const entry of entries) {
@@ -365,6 +440,7 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
                             } else if (stats.isDirectory()) {
                                 directories.push(entry.name);
                             }
+                            symlinks.push(entry.name);
                         }
                     }
                     for (const file of realFiles) {
@@ -372,11 +448,12 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
                     }
                     return {
                         files: resultFiles,
-                        directories
+                        directories,
+                        symlinks
                     };
                 } catch (error) {
                     Logger.error(`Error reading directory ${directory}:`, error);
-                    return undefined;
+                    return serverFS?.error;
                 }
             },
             readFile(path: string) {
@@ -404,8 +481,7 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
                     return snapshot.getFullText();
                 }
 
-                // undefined to signal api to read from disk by itself
-                return undefined;
+                return serverFS?.useOS;
             },
             fileExists(filePath: string) {
                 const virtualFiles = service.virtualFiles;
@@ -436,8 +512,7 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
                     }
                 }
 
-                // undefined to signal api to check existence by itself
-                return undefined;
+                return serverFS?.useOS;
             }
         };
 
