@@ -293,6 +293,18 @@ const errors = [
         code: 2322
     },
     {
+        file: 'src/PackageImport.svelte',
+        line: 4,
+        column: 9,
+        code: 2322
+    },
+    {
+        file: 'src/package-import.ts',
+        line: 2,
+        column: 13,
+        code: 2322
+    },
+    {
         file: 'src/routes/+page.ts',
         line: 0,
         column: 13,
