@@ -412,7 +412,6 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
             universalHooksPath: 'src/hooks',
             paramsPath: 'src/params'
         };
-        const useStableApi = this.useStableApi;
 
         return {
             directoryExists: serverFS?.useOS,
