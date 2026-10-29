@@ -142,6 +142,25 @@ declare function __sveltets_2_nonNullable<T>(type: T): NonNullable<T>;
 
 declare function __sveltets_2_cssProp(prop: Record<string, any>): {};
 
+declare function __sveltets_2_componentAttr(attr: svelteHTML.ComponentAttributes): {};
+
+declare namespace svelteHTML {
+    /**
+     * Augment this interface to globally allow custom namespaced attributes
+     * (e.g. `custom:defer`) on any Svelte component. All members should be optional.
+     *
+     * ```ts
+     * declare namespace svelteHTML {
+     *     interface ComponentAttributes {
+     *         'custom:defer'?: boolean;
+     *         'custom:hydrate:visible'?: { rootMargin?: string };
+     *     }
+     * }
+     * ```
+     */
+    interface ComponentAttributes {}
+}
+
 // @ts-ignore Svelte v3/v4 don't have this
 declare function __sveltets_2_ensureSnippet(val: ReturnType<import('svelte').Snippet> | undefined | null): any;
 
