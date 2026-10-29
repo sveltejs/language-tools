@@ -470,22 +470,27 @@ export function writeOverlayTsconfig(
 }
 
 /**
- * Spawns a TypeScript compiler process (tsc or tsgo) to perform type-checking
+ * Spawns a TypeScript compiler process (tsc, tsgo or tsc-rs) to perform type-checking
  * and collects the diagnostics from its output.
  *
  * @param tsconfigPath - Path to the tsconfig.json to use for compilation
- * @param useTsgo - When true, uses the experimental native TypeScript compiler (tsgo)
+ * @param compiler - Which compiler to use: tsc, the native TypeScript compiler (tsgo) or its Rust port (tsc-rs)
  * @param incremental - Whether to enable incremental compilation for faster subsequent runs
  * @param cwd - Working directory for the TypeScript compiler process
  * @returns Parsed diagnostics containing file paths, positions, severity, and messages
  */
 export function runTypeScriptDiagnostics(
     tsconfigPath: string,
-    useTsgo: boolean,
+    compiler: 'tsc' | 'tsgo' | 'tsc-rs',
     incremental: boolean,
     cwd: string
 ): Promise<ParsedDiagnostic[]> {
-    const binPath = useTsgo ? getTsGoBinPath(tsconfigPath) : require.resolve('typescript/bin/tsc');
+    const binPath =
+        compiler === 'tsc-rs'
+            ? getTscRsBinPath(tsconfigPath)
+            : compiler === 'tsgo'
+              ? getTsGoBinPath(tsconfigPath)
+              : require.resolve('typescript/bin/tsc');
 
     if (!binPath || !fs.existsSync(binPath) || !fs.statSync(binPath).isFile()) {
         throw new Error('Failed to locate TypeScript command-line executable.');
@@ -571,6 +576,24 @@ function getTsGoBinPath(tsconfigPath: string): string | undefined {
         pkg.bin[pkg.pkgJsonName === '@typescript/native-preview' ? 'tsgo' : 'tsc'];
 
     return binPathRelative ? path.join(path.dirname(pkg.path), binPathRelative) : undefined;
+}
+
+function getTscRsBinPath(tsconfigPath: string): string | undefined {
+    let pkgPath: string;
+    try {
+        pkgPath = require.resolve('tsc-rs/package.json', { paths: [tsconfigPath, __dirname] });
+    } catch (e) {
+        throw new Error(
+            'svelte-check --tsc-rs requires tsc-rs to be installed in the workspace. ' +
+                'You can install it via the following command.\n' +
+                'npm install --save-dev tsc-rs\n'
+        );
+    }
+
+    const bin = require(pkgPath).bin;
+    const binPathRelative = typeof bin === 'string' ? bin : bin?.['tsc-rs'];
+
+    return binPathRelative ? path.join(path.dirname(pkgPath), binPathRelative) : undefined;
 }
 
 /**
