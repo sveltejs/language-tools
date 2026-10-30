@@ -224,8 +224,11 @@ async function createTsCompilerHost(options: any, svelteMap: SvelteMap, absDecla
                               )
                             : sourcePath;
                     // Due to our hack of treating .svelte files as .ts files, we need to adjust the extension
+                    // map sources are relative to the map file
                     if (
-                        svelteMap.get(path.join(options.rootDir, toRealSvelteFilepath(sourcePath)))
+                        svelteMap.get(
+                            path.resolve(path.dirname(fileName), toRealSvelteFilepath(sourcePath))
+                        )
                     ) {
                         sourcePath = toRealSvelteFilepath(sourcePath);
                     }
