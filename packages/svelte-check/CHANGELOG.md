@@ -1,5 +1,13 @@
 # Changelog
 
+## 4.7.8
+
+### Patch Changes
+
+-   Preserve TypeScript files listed in `tsconfig.json` when running with `--tsgo`. ([#3146](https://github.com/sveltejs/language-tools/pull/3146))
+
+-   fix: update --tsgo-experimental-api for typescript 7.1 ([#3168](https://github.com/sveltejs/language-tools/pull/3168))
+
 ## 4.7.7
 
 ### Patch Changes

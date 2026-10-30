@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.63
+
+### Patch Changes
+
+-   fix: point component declaration maps to the original `.svelte` file instead of a non-existent `.svelte.ts` file ([#3173](https://github.com/sveltejs/language-tools/pull/3173))
+
 ## 0.7.62
 
 ### Patch Changes
