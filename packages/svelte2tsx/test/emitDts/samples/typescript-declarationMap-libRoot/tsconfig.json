@@ -1,0 +1,16 @@
+{
+    "compilerOptions": {
+        "moduleResolution": "node",
+        "module": "es2020",
+        "lib": ["es2020", "DOM"],
+        "target": "es2019",
+        "isolatedModules": true,
+        "resolveJsonModule": true,
+        "esModuleInterop": true,
+        "allowJs": true,
+        "checkJs": true,
+        "declarationMap": true,
+        "declaration": true
+    },
+    "include": ["./src/**/*.d.ts", "./src/**/*.js", "./src/**/*.ts", "./src/**/*.svelte"]
+}
