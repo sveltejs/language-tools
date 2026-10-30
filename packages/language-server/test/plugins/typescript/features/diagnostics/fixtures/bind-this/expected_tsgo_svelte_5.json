@@ -25,7 +25,7 @@
         },
         "severity": 1,
         "source": "ts",
-        "message": "Type 'HTMLDivElement' is missing the following properties from type 'HTMLInputElement': accept, alt, autocomplete, capture, and 54 more.",
+        "message": "Type 'HTMLDivElement' is missing the following properties from type 'HTMLInputElement': accept, alt, autocomplete, capture, and 55 more.",
         "code": 2740,
         "tags": []
     },
@@ -36,7 +36,7 @@
         },
         "severity": 1,
         "source": "ts",
-        "message": "Type 'Component' is not assignable to type 'OtherComponent'.\n  Types of property '$set' are incompatible.\n    Type '(props?: Partial<{ prop: boolean; }> | undefined) => void' is not assignable to type '(props?: Partial<{ prop: string; }> | undefined) => void'.\n      Types of parameters 'props' and 'props' are incompatible.\n        Type 'Partial<{ prop: string; }> | undefined' is not assignable to type 'Partial<{ prop: boolean; }> | undefined'.\n          Type 'Partial<{ prop: string; }>' is not assignable to type 'Partial<{ prop: boolean; }>'.\n            Types of property 'prop' are incompatible.\n              Type 'string | undefined' is not assignable to type 'boolean | undefined'.\n                Type 'string' is not assignable to type 'boolean | undefined'.",
+        "message": "Type 'Component' is not assignable to type 'OtherComponent'.\n  The types of '$$prop_def.prop' are incompatible between these types.\n    Type 'boolean' is not assignable to type 'string'.",
         "code": 2322,
         "tags": []
     },
@@ -58,8 +58,8 @@
         },
         "severity": 1,
         "source": "ts",
-        "message": "Property 'prop' is missing in type '{}' but required in type '{ prop: boolean; }'.",
-        "code": 2741,
+        "message": "Type '{}' is not assignable to type 'Properties<{ prop: boolean; }, any> | undefined'.",
+        "code": 2322,
         "tags": []
     },
     {
@@ -69,7 +69,7 @@
         },
         "severity": 1,
         "source": "ts",
-        "message": "Type 'Component' is not assignable to type 'OtherComponent'.",
+        "message": "Type 'Component' is not assignable to type 'OtherComponent'.\n  The types of '$$prop_def.prop' are incompatible between these types.\n    Type 'boolean' is not assignable to type 'string'.",
         "code": 2322,
         "tags": []
     },
@@ -80,7 +80,7 @@
         },
         "severity": 1,
         "source": "ts",
-        "message": "Type 'ComponentWithGeneric<boolean>' is not assignable to type 'ComponentWithGeneric<string>'.\n  Type 'boolean' is not assignable to type 'string'.",
+        "message": "Type 'ComponentWithGeneric<boolean>' is not assignable to type 'ComponentWithGeneric<string>'.\n  The types of '$$prop_def.prop' are incompatible between these types.\n    Type 'boolean' is not assignable to type 'string'.",
         "code": 2322,
         "tags": []
     },
@@ -91,8 +91,8 @@
         },
         "severity": 1,
         "source": "ts",
-        "message": "Property 'prop' is missing in type '{}' but required in type '{ prop: boolean; }'.",
-        "code": 2741,
+        "message": "Type '{}' is not assignable to type 'Properties<{ prop: boolean; }, any> | undefined'.",
+        "code": 2322,
         "tags": []
     }
 ]

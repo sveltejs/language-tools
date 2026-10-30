@@ -30,6 +30,7 @@ import {
     formatTsGoNotFoundError,
     tryLoadApi as tryLoadTsApi,
     tryLoadAst as tryLoadTsAst,
+    tryLoadFs as tryLoadTsFs,
     tryParseTsGoVersion
 } from './tsgo';
 
@@ -629,17 +630,32 @@ parseOptions(async (opts) => {
                             minPre7_0Nightly
                     );
                 }
+            } else if (pkg.major === 7 && pkg.minor === 1 && pkg.preRelease?.includes('dev')) {
+                const minPre7_1Nightly = 'dev.20261021.1';
+                if (pkg.preRelease.localeCompare(minPre7_1Nightly) < 0) {
+                    throw new Error(
+                        'Unsupported TypeScript 7.1 version. Please upgrade to at least 7.1.0-beta or 7.1.0-' +
+                            minPre7_1Nightly
+                    );
+                }
             }
 
-            const apiModule = await tryLoadTsApi(opts.tsconfig, pkg);
-            const astModule = await tryLoadTsAst(opts.tsconfig, pkg);
-            if (!apiModule || !astModule) {
+            const [apiModule, astModule, fsModule] = await Promise.all([
+                tryLoadTsApi(opts.tsconfig, pkg),
+                tryLoadTsAst(opts.tsconfig, pkg),
+                tryLoadTsFs(opts.tsconfig, pkg)
+            ]);
+            if (!apiModule || !astModule || !fsModule) {
                 throw new Error(
                     `Unsupported ${pkg.pkgJsonName} version. Please ensure you have the latest version installed.` +
                         'If the problem persists, please report an issue in https://github.com/sveltejs/language-tools/issues.'
                 );
             }
-            svelteCheckOptions.experimental = { tsgo: { apiModule, astModule } };
+
+            const fullVersion = pkg.major + '.' + pkg.minor + '.' + pkg.patch;
+            svelteCheckOptions.experimental = {
+                tsgo: { apiModule, astModule, tsVersion: fullVersion, fsModule }
+            };
         }
 
         const useVirtualFiles = opts.incremental || opts.tsgo;

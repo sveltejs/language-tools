@@ -1,5 +1,6 @@
 import * as syncApi from '@typescript/native/unstable/sync';
 import * as syncAst from '@typescript/native/unstable/ast';
+import * as syncFs from '@typescript/native/unstable/fs';
 import { pathToFileURL } from 'url';
 
 interface PkgInfo {
@@ -71,20 +72,33 @@ export async function tryLoadApi(
     tsconfigPath: string,
     info: PkgInfo
 ): Promise<typeof syncApi | null> {
-    return (
-        (await tryImport(info.moduleName + '/unstable/sync', tsconfigPath)) ??
-        (await tryImport(info.moduleName + '/sync', tsconfigPath))
-    );
+    if (shouldLoadStableApi(info)) {
+        return await tryImport(info.moduleName + '/sync', tsconfigPath);
+    }
+
+    return await tryImport(info.moduleName + '/unstable/sync', tsconfigPath);
 }
 
 export async function tryLoadAst(
     tsconfigPath: string,
     info: PkgInfo
 ): Promise<typeof syncAst | null> {
-    return (
-        (await tryImport(info.moduleName + '/unstable/ast', tsconfigPath)) ??
-        (await tryImport(info.moduleName + '/ast', tsconfigPath))
-    );
+    if (shouldLoadStableApi(info)) {
+        return await tryImport(info.moduleName + '/ast', tsconfigPath);
+    }
+
+    return await tryImport(info.moduleName + '/unstable/ast', tsconfigPath);
+}
+
+export async function tryLoadFs(
+    tsconfigPath: string,
+    info: PkgInfo
+): Promise<typeof syncFs | null> {
+    if (shouldLoadStableApi(info)) {
+        return await tryImport(info.moduleName + '/fs', tsconfigPath);
+    }
+
+    return await tryImport(info.moduleName + '/unstable/fs', tsconfigPath);
 }
 
 async function tryImport(moduleName: string, tsconfigPath: string): Promise<any | null> {
@@ -96,4 +110,8 @@ async function tryImport(moduleName: string, tsconfigPath: string): Promise<any 
     } catch (e) {
         return null;
     }
+}
+
+function shouldLoadStableApi(pkg: PkgInfo) {
+    return pkg.major > 7 || (pkg.major === 7 && pkg.minor >= 1);
 }

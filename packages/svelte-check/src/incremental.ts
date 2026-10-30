@@ -425,7 +425,11 @@ export function writeOverlayTsconfig(
     let configFiles = rebaseConfigSpecs(rawFiles, tsconfigDir, overlayDir) ?? [];
     // Remove .svelte files from the files list to avoid TS6054; replace with .d.svelte.ts
     configFiles = configFiles.filter((file) => !file.endsWith('.svelte'));
-    configFiles = configFiles.concat(rawFiles.map((file) => toVirtualSvelteDtsSpec(file)));
+    configFiles = configFiles.concat(
+        rawFiles
+            .filter((file) => file.endsWith('.svelte'))
+            .map((file) => toVirtualSvelteDtsSpec(file))
+    );
     const virtualInclude = rawInclude?.map((spec) => toVirtualSvelteDtsSpec(spec));
     const mergedInclude = [...(include ?? []), ...(virtualInclude ?? [])];
     const virtualExclude = rawExclude?.map((spec) => toVirtualSvelteDtsSpec(spec));

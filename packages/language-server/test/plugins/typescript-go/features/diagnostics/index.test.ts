@@ -121,11 +121,20 @@ function setupService(dir: string) {
         if (providerPool.has(tsconfig)) {
             return;
         }
-        const syncApi = await import('@typescript/native/unstable/sync');
-        const tsAst = await import('@typescript/native/unstable/ast');
+
+        const [syncApi, tsAst, tsFs, version] = await Promise.all([
+            import('@typescript/native/sync'),
+            import('@typescript/native/ast'),
+            import('@typescript/native/fs'),
+            import('@typescript/native')
+        ]);
         const service = new SvelteCheckTSGoDiagnosticsProvider(
-            syncApi,
-            tsAst,
+            {
+                apiModule: syncApi,
+                astModule: tsAst,
+                fsModule: tsFs,
+                tsVersion: version.version
+            },
             tsconfig,
             'svelte2tsx',
             (filePath, content) => new Document(pathToUrl(filePath), content)
