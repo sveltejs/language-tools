@@ -6,10 +6,11 @@
  * Usage: node test-sanity.js
  */
 
-const { execFileSync } = require('child_process');
+const { execFileSync, spawnSync } = require('child_process');
 const { mkdirSync, mkdtempSync, rmSync, writeFileSync } = require('fs');
 const os = require('os');
 const path = require('path');
+const { stripVTControlCharacters } = require('util');
 
 const CLI = path.join(__dirname, 'dist', 'src', 'index.js');
 
@@ -217,6 +218,74 @@ function testCrashedCompiler(name, compilerBody) {
     rmSync(crashWorkspace, { recursive: true, force: true });
 }
 
+/**
+ * Asserts that a run which fails before reporting any diagnostics exits with code 1 so CI does not
+ * treat it as a clean run. The helper also checks for the `svelte-check failed` line and the
+ * expected text.
+ *
+ * @param {string} name
+ * @param {object} opts
+ * @param {string} opts.file Name of a file to write into a throwaway workspace.
+ * @param {string} opts.contents Contents written to that file. The file is passed as --tsconfig.
+ * @param {boolean} [opts.dotSegment] Pass the path with an extra `.` segment so it is not normalized already.
+ * @param {boolean} [opts.dotDotSegment] Pass the path with a `sub/..` segment so it is not normalized already.
+ * @param {string[]} opts.args Extra CLI arguments.
+ * @param {string[]} opts.expected Substrings the output must contain.
+ */
+function testFailure(name, opts) {
+    const workspace = mkdtempSync(path.join(os.tmpdir(), 'svelte-check-failure-'));
+    try {
+        const tsconfig = path.join(workspace, opts.file);
+        writeFileSync(tsconfig, opts.contents);
+        let configArg = tsconfig;
+        if (opts.dotSegment) {
+            configArg = `${workspace}${path.sep}.${path.sep}${opts.file}`;
+        } else if (opts.dotDotSegment) {
+            mkdirSync(path.join(workspace, 'sub'));
+            configArg = `${workspace}${path.sep}sub${path.sep}..${path.sep}${opts.file}`;
+        }
+        const { status, signal, stdout, stderr, error } = spawnSync(
+            'node',
+            [
+                CLI,
+                '--workspace',
+                workspace,
+                '--tsconfig',
+                configArg,
+                '--output',
+                'machine-verbose',
+                ...opts.args
+            ],
+            { cwd: __dirname, encoding: 'utf-8', timeout: 60_000 }
+        );
+        const output = stripVTControlCharacters(`${stdout || ''}${stderr || ''}`);
+
+        // Only the top-level catch in index.ts prints `svelte-check failed`.
+        const reported = opts.expected.every((text) => output.includes(text));
+        if (status === 1 && output.includes('svelte-check failed') && reported) {
+            passed++;
+            console.log(`  PASS: ${name}`);
+        } else {
+            failed++;
+            console.log(`  FAIL: ${name}`);
+            const wanted = `exit code 1 and ${opts.expected
+                .map((text) => JSON.stringify(text))
+                .join(' plus ')}`;
+            const ended = status === null ? `signal ${signal}` : `exit ${status}`;
+            console.log(
+                `        expected ${wanted}, got ${ended} and output ${JSON.stringify(
+                    output.slice(0, 500)
+                )}`
+            );
+            if (error) {
+                console.log(`        spawn error: ${error.message}`);
+            }
+        }
+    } finally {
+        rmSync(workspace, { recursive: true, force: true });
+    }
+}
+
 console.log('svelte-check sanity tests\n');
 
 test('clean project', {
@@ -356,6 +425,24 @@ if (process.platform !== 'win32') {
         "process.stdout.write('src/Test.svelte:1:1 - error TS2322: Type mismatch.\\n');\nprocess.kill(process.pid, 'SIGKILL');\n"
     );
 }
+
+// Same malformed tsconfig through a path with a `.` or `..` segment. Without the normalize,
+// TypeScript asserts instead of reporting the parse error.
+testFailure('a tsconfig path with a dot segment reports the parse error', {
+    file: 'invalid.json',
+    contents: '{ "compilerOptions": ',
+    args: ['--incremental'],
+    dotSegment: true,
+    expected: ['invalid.json', 'TS1109']
+});
+
+testFailure('a tsconfig path with a .. segment reports the parse error', {
+    file: 'invalid.json',
+    contents: '{ "compilerOptions": ',
+    args: ['--incremental'],
+    dotDotSegment: true,
+    expected: ['invalid.json', 'TS1109']
+});
 
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed > 0 ? 1 : 0);
