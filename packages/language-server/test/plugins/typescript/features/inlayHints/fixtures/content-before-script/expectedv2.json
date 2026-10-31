@@ -1,0 +1,8 @@
+[
+    {
+        "label": [{ "value": ": " }, { "value": "number" }],
+        "position": { "line": 3, "character": 7 },
+        "kind": 1,
+        "paddingLeft": true
+    }
+]
