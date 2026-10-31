@@ -8,6 +8,7 @@ import {
     surroundWithIgnoreComments
 } from '../utils/ignore';
 import { internalHelpers } from '../helpers';
+import { hoistPragma } from './utils/hoistPragma';
 
 export interface CreateRenderFunctionPara extends InstanceScriptProcessResult {
     str: MagicString;
@@ -73,6 +74,8 @@ export function createRenderFunction({
         slots.size > 0 && mode !== 'dts' ? '\n' + surroundWithIgnoreComments(slotDeclaration) : '';
 
     if (scriptTag) {
+        hoistPragma(str, scriptTag);
+
         //I couldn't get magicstring to let me put the script before the <> we prepend during conversion of the template to jsx, so we just close it instead
         const scriptTagEnd = htmlx.lastIndexOf('>', scriptTag.content.start) + 1;
         str.overwrite(scriptTag.start, scriptTag.start + 1, ';');
