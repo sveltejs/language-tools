@@ -115,11 +115,6 @@ export function svelte2tsx(
          * Generates source map information using typescript 7's span map format
          */
         generateSpanMapping?: boolean;
-
-        /**
-         * If true, moves the `@ts-check` and `@ts-nocheck` comments from the script tag to the top of the generated file.
-         */
-        moveTsCheckDirective?: boolean;
     }
 ): SvelteCompiledToTsx;
 

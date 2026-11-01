@@ -372,7 +372,6 @@ type BaseConfig = {
     filename?: string;
     rewriteExternalImports?: Svelte2TsxConfig['rewriteExternalImports'];
     generateSpanMapping?: boolean;
-    moveTsCheckDirective?: boolean;
 };
 type Svelte2TsxConfig = Parameters<typeof svelte2tsx>[1];
 
@@ -389,7 +388,6 @@ export function get_svelte2tsx_config(base: BaseConfig, sampleName: string): Sve
         version: VERSION,
         rewriteExternalImports: base.rewriteExternalImports,
         generateSpanMapping: base.generateSpanMapping,
-        moveTsCheckDirective: base.moveTsCheckDirective ?? true
     };
 }
 

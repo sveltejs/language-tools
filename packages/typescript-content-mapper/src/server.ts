@@ -82,7 +82,6 @@ function startServer() {
                 version: compiler.VERSION,
                 shimPaths: globalTypes,
                 generateSpanMapping: true,
-                moveTsCheckDirective: true,
                 // @ts-expect-error internal
                 noSvelteComponentTyped: !isSvelte3
             });

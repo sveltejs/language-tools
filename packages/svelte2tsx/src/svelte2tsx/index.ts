@@ -60,7 +60,6 @@ export function svelte2tsx(
         };
         shimPaths?: string[];
         generateSpanMapping?: boolean;
-        moveTsCheckDirective?: boolean;
     } = { parse }
 ) {
     options.mode = options.mode || 'ts';
@@ -307,13 +306,11 @@ export function svelte2tsx(
         }
         str.prepend('///<reference types="svelte" />\n');
 
-        if (options.moveTsCheckDirective) {
-            const scriptOrModule = scriptTag || moduleScriptTag;
-            if (scriptOrModule) {
-                const tsCheckComments = extractTsCheckComment(scriptOrModule.content.raw);
-                if (tsCheckComments.length > 0) {
-                    str.prepend(tsCheckComments.join('\n') + '\n');
-                }
+        const scriptOrModule = scriptTag || moduleScriptTag;
+        if (scriptOrModule) {
+            const tsCheckComments = extractTsCheckComment(scriptOrModule.content.raw);
+            if (tsCheckComments.length > 0) {
+                str.prepend(tsCheckComments.join('\n') + '\n');
             }
         }
 

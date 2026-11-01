@@ -246,7 +246,6 @@ function preprocessSvelteFile(document: Document, options: SvelteSnapshotOptions
             typingsNamespace: options.typingsNamespace,
             emitOnTemplateError: options.transformOnTemplateError,
             namespace: document.config?.compilerOptions?.namespace,
-            moveTsCheckDirective: true,
             accessors:
                 document.config?.compilerOptions?.accessors ??
                 (typeof document.config?.compilerOptions?.customElement === 'function'
