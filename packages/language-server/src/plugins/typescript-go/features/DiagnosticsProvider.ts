@@ -407,7 +407,7 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
 
         const service = this;
         const kitFiles: Parameters<typeof internalHelpers.isKitFile>[1] = {
-            serverHooksPath: 'src/hooks.client',
+            serverHooksPath: 'src/hooks.server',
             clientHooksPath: 'src/hooks.client',
             universalHooksPath: 'src/hooks',
             paramsPath: 'src/params'
