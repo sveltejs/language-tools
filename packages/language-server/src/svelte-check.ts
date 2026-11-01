@@ -25,7 +25,7 @@ import { isInGeneratedCode } from './plugins/typescript/features/utils';
 import { mapAndFilterDiagnostics } from './plugins/typescript/features/DiagnosticsProvider';
 import { convertRange, getDiagnosticTag, mapSeverity } from './plugins/typescript/utils';
 import { groupBy, normalizePath, pathToUrl, urlToPath } from './utils';
-import { tsApiSync, tsAst } from './plugins/typescript-go/types';
+import { tsApiSync, tsAst, tsFs } from './plugins/typescript-go/types';
 import { SvelteCheckTSGoDiagnosticsProvider } from './plugins/typescript-go/features/DiagnosticsProvider';
 
 export function mapSvelteCheckDiagnostics(
@@ -78,6 +78,8 @@ export interface SvelteCheckOptions {
         tsgo: {
             apiModule: unknown;
             astModule: unknown;
+            fsModule: unknown;
+            tsVersion: string;
         };
     };
 }
@@ -146,16 +148,17 @@ export class SvelteCheck {
         if (shouldRegister('js') || options.tsconfig) {
             const workspaceUris = [pathToUrl(workspacePath)];
             if (options.experimental?.tsgo && options.tsconfig) {
-                const { apiModule, astModule } = options.experimental.tsgo as {
+                const modules = options.experimental.tsgo as {
                     apiModule: typeof tsApiSync;
                     astModule: typeof tsAst;
+                    fsModule: typeof tsFs;
+                    tsVersion: string;
                 };
-                if (!apiModule.API || !('ScriptKind' in astModule)) {
+                if (!modules.apiModule.API || !('ScriptKind' in modules.astModule)) {
                     throw new Error('Unsupported typescript-go version');
                 }
                 this.tsGoDiagnosticsProvider = new SvelteCheckTSGoDiagnosticsProvider(
-                    apiModule,
-                    astModule,
+                    modules,
                     options.tsconfig,
                     'svelte-check',
                     (filePath: string, text: string) =>
@@ -479,6 +482,13 @@ export class SvelteCheck {
         const configFileParsingDiagnosticsLength = allTsDiagnostics?.length ?? 0;
 
         allTsDiagnostics = allTsDiagnostics.concat(project.program.getSyntacticDiagnostics());
+        const contentMapperDiagnostic = allTsDiagnostics.find((v) => v.code === 18068);
+        if (contentMapperDiagnostic) {
+            contentMapperDiagnostic.text = 'Content mappers are not yet supported';
+            return this.tsGoDiagnosticsProvider.mapAndFilterDiagnostics(project, [
+                contentMapperDiagnostic
+            ]);
+        }
 
         if (allTsDiagnostics.length == configFileParsingDiagnosticsLength) {
             if (

@@ -1,0 +1,17 @@
+import { SvelteComponentTyped } from "svelte";
+declare const __propDef: {
+    props: {
+        foo: string;
+    };
+    events: {
+        [evt: string]: CustomEvent<any>;
+    };
+    slots: {};
+};
+export type TestProps = typeof __propDef.props;
+export type TestEvents = typeof __propDef.events;
+export type TestSlots = typeof __propDef.slots;
+export default class Test extends SvelteComponentTyped<TestProps, TestEvents, TestSlots> {
+}
+export {};
+//# sourceMappingURL=Test.svelte.d.ts.map
