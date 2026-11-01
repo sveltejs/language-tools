@@ -46,7 +46,7 @@ export class InlayHintProviderImpl implements InlayHintProvider {
 
         const inlayHints = lang.provideInlayHints(
             tsDoc.filePath,
-            this.convertToTargetTextSpan(range, tsDoc),
+            this.convertToTargetTextSpan(range, document, tsDoc),
             userPreferences
         );
 
@@ -101,15 +101,41 @@ export class InlayHintProviderImpl implements InlayHintProvider {
         );
     }
 
-    private convertToTargetTextSpan(range: Range, snapshot: DocumentSnapshot) {
+    private convertToTargetTextSpan(range: Range, document: Document, snapshot: DocumentSnapshot) {
         const generatedStartOffset = snapshot.getGeneratedPosition(range.start);
         const generatedEndOffset = snapshot.getGeneratedPosition(range.end);
 
-        const start = generatedStartOffset.line < 0 ? 0 : snapshot.offsetAt(generatedStartOffset);
-        const end =
+        let start = generatedStartOffset.line < 0 ? 0 : snapshot.offsetAt(generatedStartOffset);
+        let end =
             generatedEndOffset.line < 0
                 ? snapshot.getLength()
                 : snapshot.offsetAt(generatedEndOffset);
+
+        // svelte2tsx moves the scripts before the template, so the part of a script
+        // inside the range can be outside of the span between the mapped start and end
+        const rangeStart = document.offsetAt(range.start);
+        const rangeEnd = document.offsetAt(range.end);
+        for (const script of [document.scriptInfo, document.moduleScriptInfo]) {
+            if (!script || script.end < rangeStart || script.start > rangeEnd) {
+                continue;
+            }
+
+            for (const offset of [
+                Math.max(script.start, rangeStart),
+                Math.min(script.end, rangeEnd)
+            ]) {
+                const generatedPosition = snapshot.getGeneratedPosition(
+                    document.positionAt(offset)
+                );
+                if (generatedPosition.line < 0) {
+                    continue;
+                }
+
+                const generatedOffset = snapshot.offsetAt(generatedPosition);
+                start = Math.min(start, generatedOffset);
+                end = Math.max(end, generatedOffset);
+            }
+        }
 
         return {
             start,
