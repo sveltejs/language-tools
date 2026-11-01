@@ -1,5 +1,17 @@
 # Changelog
 
+## 4.7.8
+
+### Patch Changes
+
+-   Preserve TypeScript files listed in `tsconfig.json` when running with `--tsgo`. ([#3146](https://github.com/sveltejs/language-tools/pull/3146))
+
+-   fix: update --tsgo-experimental-api for typescript 7.1 ([#3168](https://github.com/sveltejs/language-tools/pull/3168))
+
+-   Report a tsconfig parse error instead of an internal error on `--incremental` and `--tsgo` runs when the tsconfig path is not normalized. ([#3169](https://github.com/sveltejs/language-tools/pull/3169))
+
+-   fix: type the exports of `src/hooks.server` with `--tsgo-experimental-api` ([#3154](https://github.com/sveltejs/language-tools/pull/3154))
+
 ## 4.7.7
 
 ### Patch Changes
