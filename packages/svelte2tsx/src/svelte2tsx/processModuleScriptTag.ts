@@ -12,6 +12,7 @@ import {
     rewriteExternalImportsInNode,
     RewriteExternalImportsOptions
 } from '../helpers/rewriteExternalImports';
+import { hoistPragma } from './utils/hoistPragma';
 
 export interface ModuleAst {
     htmlx: string;
@@ -84,6 +85,8 @@ export function processModuleScriptTag(
 
     const scriptStartTagEnd = htmlx.indexOf('>', script.start) + 1;
     const scriptEndTagStart = htmlx.lastIndexOf('<', script.end - 1);
+
+    hoistPragma(str, script);
 
     str.overwrite(script.start, scriptStartTagEnd, ';', {
         contentOnly: true
