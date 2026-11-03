@@ -1,77 +1,170 @@
 import * as vscode from 'vscode';
+import type {
+    ExtensionAPI as TsExtensionAPI,
+    TypeScriptSDK
+} from '@typescript/native/vscode' with { 'resolution-mode': 'import' };
 
-interface TsExtensionAPI {
-    onLanguageServerInitialized: vscode.Event<void>;
-    initializeAPIConnection(pipe?: string): Promise<string>;
-    registerContentMappers(
-        contributorId: string,
-        contributions: readonly ContentMapperContribution[]
-    ): vscode.Disposable;
-}
-
-interface ContentMapperContribution {
-    readonly extensions: readonly string[];
-    readonly inferredProjectContribution?: {
-        readonly options?: Readonly<Record<string, unknown>>;
-        readonly manifest: ContentMapperManifest;
-    };
-}
-
-interface ContentMapperManifest {
-    readonly name: string;
-    readonly version?: string;
-    readonly exec: readonly string[];
-    readonly cwd?: vscode.Uri;
-    readonly compilerOptions?: readonly string[];
-    readonly dynamicConfig?: boolean;
-}
-
-export interface ContentMapperOptions {
+export interface ContentMapperStartResult {
     readonly enable: boolean;
-    readonly extensionApi?: TsExtensionAPI;
+    readonly apiPipe?: string;
+    readonly typescriptPackageJsonPath?: string;
 }
 
-export async function setupTsContentMapper(
-    svelteExtension: vscode.Extension<any>
-): Promise<ContentMapperOptions> {
-    if (!getUseTsgo() || !contentMapperEnable()) {
-        return { enable: false };
+export class TsContentMapperService {
+    private readonly svelteExtension: vscode.Extension<any>;
+    private configEnabled = tsgoAndContentMapperEnabled();
+    private readonly disposables: vscode.Disposable[] = [];
+    private readonly enablementEmitter = new vscode.EventEmitter<boolean>();
+    private readonly tsServerRestartEmitter = new vscode.EventEmitter<void>();
+    private api: TsExtensionAPI | undefined;
+    private contentMapperDisposables: vscode.Disposable[] | undefined;
+    private svelteServerTsgoOption: Promise<ContentMapperStartResult> | undefined;
+
+    readonly onDidChangeEnablement = this.enablementEmitter.event;
+    readonly onTsServerRestart = this.tsServerRestartEmitter.event;
+
+    constructor(svelteExtension: vscode.Extension<any>) {
+        this.svelteExtension = svelteExtension;
+        this.disposables.push(
+            vscode.workspace.onDidChangeConfiguration((event) => {
+                this.onDidChangeConfiguration(event);
+            }),
+            this.enablementEmitter
+        );
     }
 
-    const tsGoExtension = vscode.extensions.getExtension('TypeScriptTeam.native-preview');
-
-    if (!tsGoExtension) {
-        return { enable: false };
-    }
-
-    const api = (await tsGoExtension.activate()) as TsExtensionAPI;
-
-    if (!(api && 'registerContentMappers' in api)) {
-        // TODO: might want to build a hybrid solution in this case, since we don't know when the extension will be updated to support the new API.
-        return { enable: false };
-    }
-
-    api.registerContentMappers(svelteExtension.id, [
-        {
-            extensions: ['.svelte']
-            // TODO: Enable this once content mapper mode is the default.
-            // The reason is that once inferredProjectContribution is enabled, typescript lsp will always enable the content mapper mode.
-            // Which means the content mapper won't be an opt-in experimental feature anymore.
-
-            // inferredProjectContribution: {
-            //     manifest: {
-            //         name: '@sveltejs/ts-content-mapper',
-            //         exec: [
-            //             process.execPath,
-            //             './node_modules/@sveltejs/ts-content-mapper/dist/server.js'
-            //         ],
-            //         cwd: svelteExtension.extensionUri
-            //     }
-            // }
+    async tryStart(): Promise<ContentMapperStartResult> {
+        if (!this.configEnabled) {
+            return { enable: false };
         }
-    ]);
 
-    return { enable: true, extensionApi: api };
+        const tsGoExtension = vscode.extensions.getExtension('TypeScriptTeam.native-preview');
+        if (!tsGoExtension) {
+            return { enable: false };
+        }
+
+        this.api ??= (await tsGoExtension.activate()) as TsExtensionAPI;
+
+        if (!this.configEnabled) {
+            return { enable: false };
+        }
+
+        if (!this.contentMapperDisposables) {
+            const disposables: vscode.Disposable[] = [];
+            const contentMapperRegistration = this.api.registerContentMappers(
+                this.svelteExtension.id,
+                [
+                    {
+                        extensions: ['.svelte']
+                        // TODO: Enable this once content mapper mode is the default.
+                        // The reason is that once inferredProjectContribution is enabled, typescript lsp will always enable the content mapper mode.
+                        // Which means the content mapper won't be an opt-in experimental feature anymore.
+
+                        // inferredProjectContribution: {
+                        //     manifest: {
+                        //         name: '@sveltejs/ts-content-mapper',
+                        //         exec: [
+                        //             process.execPath,
+                        //             './node_modules/@sveltejs/ts-content-mapper/dist/server.js'
+                        //         ],
+                        //         cwd: svelteExtension.extensionUri
+                        //     }
+                        // }
+                    }
+                ]
+            );
+            disposables.push(contentMapperRegistration);
+
+            // should trigger immediately if the language server is already initialized
+            disposables.push(
+                this.api.onLanguageServerInitialized(this.onTsServerInitialized.bind(this))
+            );
+
+            this.contentMapperDisposables = disposables;
+        }
+
+        return (await this.svelteServerTsgoOption) ?? { enable: false };
+    }
+
+    private disposeContentMapper() {
+        this.contentMapperDisposables?.forEach((disposable) => disposable.dispose());
+        this.contentMapperDisposables = undefined;
+    }
+
+    dispose(): void {
+        this.disposeContentMapper();
+        this.disposables.forEach((disposable) => disposable.dispose());
+    }
+
+    private onDidChangeConfiguration(event: vscode.ConfigurationChangeEvent): void {
+        if (
+            event.affectsConfiguration('typescript.experimental.useTsgo') ||
+            event.affectsConfiguration('js/ts.experimental.useTsgo') ||
+            event.affectsConfiguration('js/ts.contentMappers.enabled')
+        ) {
+            const newEnable = tsgoAndContentMapperEnabled();
+            if (newEnable !== this.configEnabled) {
+                this.configEnabled = newEnable;
+                if (!this.configEnabled) {
+                    this.disposeContentMapper();
+                    this.svelteServerTsgoOption = undefined;
+                }
+                this.enablementEmitter.fire(this.configEnabled);
+            }
+        }
+    }
+
+    /**
+     *
+     * @param tsdk undefined when using older versions before tsdk is exposed
+     * @returns
+     */
+    private onTsServerInitialized(tsdk: TypeScriptSDK | undefined): void {
+        if (!this.configEnabled || !this.api) {
+            return;
+        }
+
+        const firstInitialization = !this.svelteServerTsgoOption;
+        this.svelteServerTsgoOption = this.updateSvelteServerTsgGoOption(tsdk);
+        if (!firstInitialization) {
+            this.tsServerRestartEmitter.fire();
+        }
+    }
+
+    private async updateSvelteServerTsgGoOption(
+        tsdk: TypeScriptSDK | undefined
+    ): Promise<ContentMapperStartResult> {
+        if (tsdk?.version) {
+            const parts = tsdk.version.split('.');
+            const major = parseInt(parts[0]);
+            const minor = parseInt(parts[1]);
+            if (!isNaN(major) && !isNaN(minor) && (major === 7 || minor < 1)) {
+                return { enable: false };
+            }
+        }
+
+        const init =
+            tsdk?.initializeAPIConnection ??
+            // TODO: remove once the TypeScript 7 extension is updated
+            (this.api as any)?.initializeAPIConnection;
+
+        if (!init) {
+            return { enable: false };
+        }
+
+        // enable this once our language server make use of the api pipe connection
+        // const pipe = await init();
+
+        return {
+            enable: true,
+            apiPipe: undefined,
+            typescriptPackageJsonPath: tsdk?.packageJsonPath
+        };
+    }
+}
+
+function tsgoAndContentMapperEnabled(): boolean {
+    return !!getUseTsgo() && !!contentMapperEnable();
 }
 
 function getUseTsgo(): boolean | undefined {

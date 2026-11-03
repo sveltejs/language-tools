@@ -240,6 +240,9 @@ importers:
       '@types/vscode':
         specifier: ^1.67
         version: 1.78.0
+      '@typescript/native':
+        specifier: npm:typescript@7.1.0-beta
+        version: typescript@7.1.0-beta
       js-yaml:
         specifier: ^3.14.0
         version: 3.14.1

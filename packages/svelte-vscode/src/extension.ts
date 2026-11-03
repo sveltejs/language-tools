@@ -40,7 +40,7 @@ import {
     sendNotificationMiddleware
 } from './typescript/configurationMiddleware';
 import { versions } from 'node:process';
-import { setupTsContentMapper } from './typescript-go/contentMapper';
+import { TsContentMapperService } from './typescript-go/contentMapper';
 
 const [node_major, node_minor] = (versions?.node ?? '0.0.0-unknown').split('.', 3).map(Number);
 
@@ -62,8 +62,10 @@ let lsApi:
     | undefined;
 
 export async function activate(context: ExtensionContext) {
+    const contentMapperService = new TsContentMapperService(context.extension);
+    context.subscriptions.push(contentMapperService);
     const options = {
-        tsGoContentMapperOptions: await setupTsContentMapper(context.extension)
+        tsGoContentMapperOptions: await contentMapperService.tryStart()
     };
 
     let tsPlugin: TsPlugin | undefined;
@@ -105,18 +107,23 @@ export async function activate(context: ExtensionContext) {
     setupSvelteKit(context);
 
     context.subscriptions.push(
-        workspace.onDidChangeConfiguration(async (event) => {
-            if (
-                event.affectsConfiguration('typescript.experimental.useTsgo') ||
-                event.affectsConfiguration('js/ts.experimental.useTsgo') ||
-                event.affectsConfiguration('js/ts.contentMappers.enabled')
-            ) {
-                const newUseTsGoContentMapper = await setupTsContentMapper(context.extension);
-                if (newUseTsGoContentMapper.enable !== options.tsGoContentMapperOptions.enable) {
-                    options.tsGoContentMapperOptions = newUseTsGoContentMapper;
-                    updateTsPlugin();
-                    await lsApi?.restartLS(false);
-                }
+        contentMapperService.onDidChangeEnablement(async (newConfig) => {
+            if (newConfig !== options.tsGoContentMapperOptions.enable) {
+                const newOption = await contentMapperService.tryStart();
+                options.tsGoContentMapperOptions = newOption;
+                updateTsPlugin();
+                await lsApi?.restartLS(false);
+            }
+        })
+    );
+
+    context.subscriptions.push(
+        contentMapperService.onTsServerRestart(async () => {
+            const newOption = await contentMapperService.tryStart();
+            if (newOption.enable !== options.tsGoContentMapperOptions.enable || newOption.apiPipe) {
+                options.tsGoContentMapperOptions = newOption;
+                updateTsPlugin();
+                await lsApi?.restartLS(false);
             }
         })
     );

@@ -387,7 +387,7 @@ export function get_svelte2tsx_config(base: BaseConfig, sampleName: string): Sve
         emitJsDoc: sampleName.startsWith('jsdoc-'),
         version: VERSION,
         rewriteExternalImports: base.rewriteExternalImports,
-        generateSpanMapping: base.generateSpanMapping,
+        generateSpanMapping: base.generateSpanMapping
     };
 }
 
