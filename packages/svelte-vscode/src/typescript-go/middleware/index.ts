@@ -6,6 +6,7 @@ import type {
     LspMiddlewareContext
 } from '@typescript/native/vscode' with { 'resolution-mode': 'import' };
 import { filterGeneratedCompletions } from './completions';
+import { registerStoreMiddleware } from './stores';
 
 /** Has to match `TransformTsgoResponseRequest` in the language server */
 const TransformTsgoResponseRequest = '$/transformTsgoResponse';
@@ -81,6 +82,11 @@ export function registerSvelteLspMiddleware(
             }
             return filterGeneratedCompletions(result);
         })
+    );
+
+    // Runs after the forwarded definition/references middleware above (registration order)
+    disposables.push(
+        registerStoreMiddleware(api, () => !!access.getContentMapperModeClient(), log)
     );
 
     return vscode.Disposable.from(...disposables);
