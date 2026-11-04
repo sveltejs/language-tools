@@ -645,7 +645,7 @@
                 },
                 {
                     "command": "svelte.typescript.findComponentReferences",
-                    "when": "editorLangId == svelte && resourceScheme == file && svelte.uiContext.fileReference.enable"
+                    "when": "editorLangId == svelte && resourceScheme == file"
                 }
             ],
             "editor/title": [
@@ -667,7 +667,7 @@
                 },
                 {
                     "command": "svelte.typescript.findComponentReferences",
-                    "when": "resourceLangId == svelte && resourceScheme == file && svelte.uiContext.fileReference.enable"
+                    "when": "resourceLangId == svelte && resourceScheme == file"
                 }
             ],
             "editor/context": [
@@ -683,7 +683,7 @@
                 },
                 {
                     "command": "svelte.typescript.findComponentReferences",
-                    "when": "editorLangId == svelte && svelte.uiContext.fileReference.enable",
+                    "when": "editorLangId == svelte",
                     "group": "4_search"
                 }
             ],
@@ -695,7 +695,7 @@
                 },
                 {
                     "command": "svelte.typescript.findComponentReferences",
-                    "when": "resourceLangId == svelte && svelte.uiContext.fileReference.enable",
+                    "when": "resourceLangId == svelte",
                     "group": "4_search"
                 },
                 {

@@ -1,5 +1,6 @@
 import { internalHelpers } from 'svelte2tsx';
-import { tsApiSync, tsAst } from '../types';
+import { tsAst } from '../types';
+import { CancellationToken } from 'vscode-languageserver';
 
 type NodePredicate = (tsAstModule: typeof tsAst, node: tsAst.Node) => boolean;
 type NodeTypePredicate<T extends tsAst.Node> = (
@@ -151,3 +152,117 @@ export function gatherDescendants<T extends tsAst.Node>(
 
 export const gatherIdentifiers = (tsAstModule: typeof tsAst, node: tsAst.Node) =>
     gatherDescendants(tsAstModule, node, (tsAstModule, node) => tsAstModule.isIdentifier(node));
+
+export function getDeclarationFromName(tsAstModule: typeof tsAst, name: tsAst.Node) {
+    const parent = name.parent;
+    if (!parent) {
+        return undefined;
+    }
+
+    const { SyntaxKind } = tsAstModule;
+    switch (name.kind) {
+        case SyntaxKind.StringLiteral:
+        case SyntaxKind.NoSubstitutionTemplateLiteral:
+        case SyntaxKind.NumericLiteral:
+            if (tsAstModule.isComputedPropertyName(parent)) {
+                return parent.parent;
+            }
+            break;
+        case SyntaxKind.Identifier:
+            if (isDeclaration(tsAstModule, parent)) {
+                return parent;
+            } else if (tsAstModule.isQualifiedName(parent)) {
+                const tag = parent.parent;
+                return tsAstModule.isJSDocParameterTag(tag) && tag.name === parent
+                    ? tag
+                    : undefined;
+            } else {
+                // const binExp = parent.parent;
+                // return tsAstModule.isBinaryExpression(binExp) &&
+                //     tsAstModule.getAssignmentDeclarationKind(binExp) !==
+                //         tsAstModule.AssignmentDeclarationKind.None &&
+                //     ((binExp.left as tsAst.BindableStaticNameExpression).symbol || binExp.symbol) &&
+                //     tsAstModule.getNameOfDeclaration(binExp) === name
+                //     ? binExp
+                //     : undefined;
+            }
+        case SyntaxKind.PrivateIdentifier:
+            if (isDeclaration(tsAstModule, parent) && parent.name === name) {
+                return parent;
+            }
+            break;
+    }
+
+    return undefined;
+}
+
+export function isDeclaration(
+    tsAstModule: typeof tsAst,
+    node: tsAst.Node
+): node is tsAst.Declaration & { name?: tsAst.DeclarationName } {
+    if (node.kind === tsAstModule.SyntaxKind.TypeParameter) {
+        return node.parent && node.parent.kind !== tsAstModule.SyntaxKind.JSDocTemplateTag;
+    }
+
+    return isDeclarationKind(tsAstModule, node.kind);
+}
+
+function isDeclarationKind(tsAstModule: typeof tsAst, kind: tsAst.SyntaxKind) {
+    const { SyntaxKind } = tsAstModule;
+    return (
+        kind === SyntaxKind.ArrowFunction ||
+        kind === SyntaxKind.BindingElement ||
+        kind === SyntaxKind.ClassDeclaration ||
+        kind === SyntaxKind.ClassExpression ||
+        kind === SyntaxKind.ClassStaticBlockDeclaration ||
+        kind === SyntaxKind.Constructor ||
+        kind === SyntaxKind.EnumDeclaration ||
+        kind === SyntaxKind.EnumMember ||
+        kind === SyntaxKind.ExportSpecifier ||
+        kind === SyntaxKind.FunctionDeclaration ||
+        kind === SyntaxKind.FunctionExpression ||
+        kind === SyntaxKind.GetAccessor ||
+        kind === SyntaxKind.ImportClause ||
+        kind === SyntaxKind.ImportEqualsDeclaration ||
+        kind === SyntaxKind.ImportSpecifier ||
+        kind === SyntaxKind.InterfaceDeclaration ||
+        kind === SyntaxKind.JsxAttribute ||
+        kind === SyntaxKind.MethodDeclaration ||
+        kind === SyntaxKind.MethodSignature ||
+        kind === SyntaxKind.ModuleDeclaration ||
+        kind === SyntaxKind.NamespaceExportDeclaration ||
+        kind === SyntaxKind.NamespaceImport ||
+        kind === SyntaxKind.NamespaceExport ||
+        kind === SyntaxKind.Parameter ||
+        kind === SyntaxKind.PropertyAssignment ||
+        kind === SyntaxKind.PropertyDeclaration ||
+        kind === SyntaxKind.PropertySignature ||
+        kind === SyntaxKind.SetAccessor ||
+        kind === SyntaxKind.ShorthandPropertyAssignment ||
+        kind === SyntaxKind.TypeAliasDeclaration ||
+        kind === SyntaxKind.TypeParameter ||
+        kind === SyntaxKind.VariableDeclaration ||
+        kind === SyntaxKind.JSDocTypedefTag ||
+        kind === SyntaxKind.JSDocCallbackTag ||
+        kind === SyntaxKind.JSDocPropertyTag ||
+        kind === SyntaxKind.NamedTupleMember
+    );
+}
+
+export async function waitWithCancellation<T>(
+    promises: Promise<T>[],
+    cancellationToken: CancellationToken | undefined
+): Promise<T[]> {
+    if (cancellationToken == null) {
+        return await Promise.all(promises);
+    }
+
+    return await Promise.race([
+        Promise.all(promises),
+        new Promise<T[]>((resolve) => {
+            cancellationToken?.onCancellationRequested(() => {
+                resolve([]);
+            });
+        })
+    ]);
+}
