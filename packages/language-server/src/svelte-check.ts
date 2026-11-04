@@ -129,7 +129,7 @@ export class SvelteCheck {
         });
         // No HTMLPlugin, it does not provide diagnostics
         if (shouldRegister('svelte')) {
-            this.pluginHost.register(new SveltePlugin(this.configManager));
+            this.pluginHost.register(new SveltePlugin(this.configManager, undefined));
         }
         if (shouldRegister('css')) {
             const services = createLanguageServices({

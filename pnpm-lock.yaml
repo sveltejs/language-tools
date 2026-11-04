@@ -91,6 +91,9 @@ importers:
         specifier: ~3.1.0
         version: 3.1.0
     devDependencies:
+      '@sveltejs/ts-content-mapper':
+        specifier: workspace:^
+        version: link:../typescript-content-mapper
       '@types/estree':
         specifier: ^0.0.42
         version: 0.0.42
@@ -237,6 +240,9 @@ importers:
       '@types/vscode':
         specifier: ^1.67
         version: 1.78.0
+      '@typescript/native':
+        specifier: npm:typescript@7.1.0-beta
+        version: typescript@7.1.0-beta
       js-yaml:
         specifier: ^3.14.0
         version: 3.14.1
@@ -328,6 +334,22 @@ importers:
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
+
+  packages/typescript-content-mapper:
+    dependencies:
+      svelte2tsx:
+        specifier: workspace:~
+        version: link:../svelte2tsx
+      typescript:
+        specifier: ~6.0.2
+        version: 6.0.3
+      vscode-jsonrpc:
+        specifier: ^8.2.0
+        version: 8.2.0
+    devDependencies:
+      '@types/node':
+        specifier: ^18.0.0
+        version: 18.19.46
 
   packages/typescript-plugin:
     dependencies:

@@ -3,7 +3,7 @@
     import X from './X';
 ;;
 
-import { readable } from 'svelte/store';
+    import { readable } from 'svelte/store';
 ;
  
     /** I should not be sandwitched between the imports */
@@ -11,7 +11,6 @@ import { readable } from 'svelte/store';
         foo?: string;
     };function $$render() {
 
-    
     
     const store = readable(1)/*Ωignore_startΩ*/;let $store = __sveltets_2_store_get(store);/*Ωignore_endΩ*/
 

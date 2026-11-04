@@ -1,8 +1,8 @@
 ///<reference types="svelte" />
 ;function $$render() {
 
-     let number1: number/*Ωignore_startΩ*/;number1 = __sveltets_2_any(number1);/*Ωignore_endΩ*/
-     let number2: number/*Ωignore_startΩ*/;number2 = __sveltets_2_any(number2);/*Ωignore_endΩ*/
+     let number1: number/*Ωignore_startΩ*/;number1 = __sveltets_2_any();number1;/*Ωignore_endΩ*/
+     let number2: number/*Ωignore_startΩ*/;number2 = __sveltets_2_any();number2;/*Ωignore_endΩ*/
 ;
 async () => {
  { svelteHTML.createElement("h1", {});number1;  number2;  number1 + number2; }};

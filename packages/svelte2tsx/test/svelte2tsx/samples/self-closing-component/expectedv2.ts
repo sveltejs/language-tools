@@ -3,7 +3,6 @@
 import Test from './Test.svelte';
 function $$render() {
 
-
 let a = 'b';
 ;
 async () => { { const $$_tseT0C = __sveltets_2_ensureComponent(Test); new $$_tseT0C({ target: __sveltets_2_any(), props: {  "b":`6`,}});}

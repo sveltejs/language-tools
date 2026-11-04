@@ -8,5 +8,11 @@
           because TS does not look up other types.
         */
         "types": ["svelte"]
-    }
+    },
+    "contentMappers": [
+        {
+            "package": "@sveltejs/ts-content-mapper",
+            "extensions": [".svelte"]
+        }
+    ]
 }

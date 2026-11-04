@@ -1,4 +1,5 @@
 import { Node } from 'estree-walker';
+import { parse, VERSION } from 'svelte/compiler';
 
 function parseAttributes(str: string, start: number) {
     const attrs: Node[] = [];
@@ -129,6 +130,79 @@ function blankVerbatimContent(htmlx: string, verbatimElements: Node[]) {
         }
     }
     return output;
+}
+
+interface ScriptTagsInfo {
+    start: number;
+    end: number;
+    content: {
+        start: number;
+        end: number;
+    };
+    attributes: Record<string, string | boolean>;
+}
+
+export function extractScriptTags(
+    htmlx: string,
+    options: { parse: typeof parse; svelte5Plus: boolean } = {
+        parse,
+        svelte5Plus: Number(VERSION.split('.')[0]) >= 5
+    }
+) {
+    const verbatimElements = findVerbatimElements(htmlx);
+    let scripts = verbatimElements.filter((node) => node.name === 'script');
+    if (scripts.length > 0) {
+        try {
+            const { htmlxAst } = parseHtmlx(htmlx, options.parse, {
+                ...options,
+                emitOnTemplateError: true
+            });
+            // parseHtmlx appends every verbatim tag to the root, including scripts
+            // inside template elements, blocks and expressions. Only component
+            // scripts are outside the ranges of the original template children.
+            const templateChildren = (htmlxAst.children as Node[]).filter(
+                (node) => node.type !== 'Script' && node.type !== 'Style'
+            );
+            scripts = scripts.filter(
+                (tag) =>
+                    !templateChildren.some((node) => node.start <= tag.start && tag.end <= node.end)
+            );
+        } catch {
+            // Preserve script extraction for the mapper's fallback when the
+            // template cannot be parsed, even with error recovery enabled.
+        }
+    }
+    let module: ScriptTagsInfo;
+    let instance: ScriptTagsInfo;
+    for (const tag of scripts) {
+        const attributeMap: Record<string, string | boolean> = {};
+        for (const attr of tag.attributes) {
+            attributeMap[attr.name] = attr.value === true || (attr.value?.[0]?.raw ?? '');
+        }
+
+        if (!module && (attributeMap.context === 'module' || attributeMap.module === true)) {
+            module = toScriptTagInfo(tag, attributeMap);
+        } else if (!instance) {
+            instance = toScriptTagInfo(tag, attributeMap);
+        }
+    }
+
+    return {
+        module,
+        instance
+    };
+}
+
+function toScriptTagInfo(node: Node, attributeMap: Record<string, string | boolean>) {
+    return {
+        start: node.start,
+        end: node.end,
+        content: {
+            start: node.content.start,
+            end: node.content.end
+        },
+        attributes: attributeMap
+    };
 }
 
 export function parseHtmlx(
