@@ -62,6 +62,11 @@ import { createLanguageServices } from './plugins/css/service';
 import { FileSystemProvider } from './lib/FileSystemProvider';
 import { TemplateASTParseLoader } from './plugins/svelte/TemplateASTLoader';
 import { contentMapperEnableCheck } from './plugins/typescript-go/content-mapper';
+import {
+    TransformTsgoResponseParams,
+    TransformTsgoResponseRequest,
+    TsgoResponseTransformer
+} from './plugins/typescript-go/middleware';
 
 namespace TagCloseRequest {
     export const type: RequestType<TextDocumentPositionParams, string | null, any> =
@@ -112,6 +117,7 @@ export function startServer(options?: LSOptions) {
     const configManager = new LSConfigManager();
     const pluginHost = new PluginHost(docManager);
     let sveltePlugin: SveltePlugin = undefined as any;
+    let tsgoResponseTransformer: TsgoResponseTransformer | undefined;
     let watcher: FallbackWatcher | undefined;
     let pendingWatchPatterns: RelativePattern[] = [];
     let watchDirectory: (patterns: RelativePattern[]) => void = (patterns) => {
@@ -204,13 +210,15 @@ export function startServer(options?: LSOptions) {
             !evt.initializationOptions?.tsGoContentMapperOptions?.enable ||
             !contentMapperEnableCheck(workspaceFolders);
 
+        const templateAstLoader = enableTs6Features
+            ? undefined
+            : new TemplateASTParseLoader(docManager);
+        tsgoResponseTransformer = templateAstLoader
+            ? new TsgoResponseTransformer(docManager, templateAstLoader, pluginHost)
+            : undefined;
+
         // Order of plugin registration matters for FirstNonNull, which affects for example hover info
-        pluginHost.register(
-            (sveltePlugin = new SveltePlugin(
-                configManager,
-                enableTs6Features ? undefined : new TemplateASTParseLoader(docManager)
-            ))
-        );
+        pluginHost.register((sveltePlugin = new SveltePlugin(configManager, templateAstLoader)));
         pluginHost.register(
             new HTMLPlugin(docManager, configManager, fileSystemProvider, workspaceFolders)
         );
@@ -673,6 +681,11 @@ export function startServer(options?: LSOptions) {
 
     // The language server protocol does not have a specific "did rename/move files" event,
     // so we create our own in the extension client and handle it here
+    connection.onRequest(
+        TransformTsgoResponseRequest,
+        async (params: TransformTsgoResponseParams) =>
+            tsgoResponseTransformer ? tsgoResponseTransformer.transform(params) : params.result
+    );
     connection.onRequest('$/getEditsForFileRename', async (fileRename: RenameFile) =>
         pluginHost.updateImports(fileRename)
     );
