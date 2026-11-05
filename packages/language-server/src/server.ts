@@ -67,6 +67,8 @@ import {
     TransformTsgoResponseRequest,
     TsgoResponseTransformer
 } from './plugins/typescript-go/middleware';
+import { TypeScriptGoPlugin } from './plugins/typescript-go/TypeScriptGoPlugin';
+import { TsApiService } from './plugins/typescript-go/TsApiService';
 
 namespace TagCloseRequest {
     export const type: RequestType<TextDocumentPositionParams, string | null, any> =
@@ -132,8 +134,9 @@ export function startServer(options?: LSOptions) {
     const recursiveWatchPattern = '**/' + nonRecursiveWatchPattern;
 
     let enableTs6Features = true;
+    let tsGoPlugin: TypeScriptGoPlugin | undefined;
 
-    connection.onInitialize((evt) => {
+    connection.onInitialize(async (evt) => {
         const workspaceUris = evt.workspaceFolders?.map((folder) => folder.uri.toString()) ?? [
             evt.rootUri ?? ''
         ];
@@ -249,6 +252,15 @@ export function startServer(options?: LSOptions) {
                     docManager
                 )
             );
+        } else {
+            const tsApiService = await TsApiService.create(
+                evt.initializationOptions.tsGoContentMapperOptions,
+                configManager
+            );
+            if (tsApiService) {
+                const tsGoPlugin = new TypeScriptGoPlugin(tsApiService, configManager);
+                pluginHost.register(tsGoPlugin);
+            }
         }
 
         const clientSupportApplyEditCommand = !!evt.capabilities.workspace?.applyEdit;
@@ -381,6 +393,9 @@ export function startServer(options?: LSOptions) {
                 documentHighlightProvider:
                     evt.initializationOptions?.configuration?.svelte?.plugin?.svelte
                         ?.documentHighlight?.enable ?? true,
+                codeLensProvider: {
+                    resolveProvider: true
+                },
 
                 signatureHelpProvider: enableTs6Features
                     ? {
@@ -400,9 +415,6 @@ export function startServer(options?: LSOptions) {
                 typeDefinitionProvider: enableTs6Features,
                 inlayHintProvider: enableTs6Features,
                 callHierarchyProvider: enableTs6Features,
-                codeLensProvider: {
-                    resolveProvider: enableTs6Features
-                },
                 workspaceSymbolProvider: enableTs6Features,
                 diagnosticProvider: {
                     interFileDependencies: enableTs6Features,

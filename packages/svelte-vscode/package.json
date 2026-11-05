@@ -645,7 +645,7 @@
                 },
                 {
                     "command": "svelte.typescript.findComponentReferences",
-                    "when": "editorLangId == svelte && resourceScheme == file && svelte.uiContext.fileReference.enable"
+                    "when": "editorLangId == svelte && resourceScheme == file"
                 }
             ],
             "editor/title": [
@@ -667,7 +667,7 @@
                 },
                 {
                     "command": "svelte.typescript.findComponentReferences",
-                    "when": "resourceLangId == svelte && resourceScheme == file && svelte.uiContext.fileReference.enable"
+                    "when": "resourceLangId == svelte && resourceScheme == file"
                 }
             ],
             "editor/context": [
@@ -683,7 +683,7 @@
                 },
                 {
                     "command": "svelte.typescript.findComponentReferences",
-                    "when": "editorLangId == svelte && svelte.uiContext.fileReference.enable",
+                    "when": "editorLangId == svelte",
                     "group": "4_search"
                 }
             ],
@@ -695,7 +695,7 @@
                 },
                 {
                     "command": "svelte.typescript.findComponentReferences",
-                    "when": "resourceLangId == svelte && svelte.uiContext.fileReference.enable",
+                    "when": "resourceLangId == svelte",
                     "group": "4_search"
                 },
                 {
@@ -773,7 +773,6 @@
         "@types/node": "^18.0.0",
         "@types/semver": "^7.7.0",
         "@types/vscode": "^1.67",
-        "@typescript/native": "npm:typescript@7.1.0-beta",
         "js-yaml": "^3.14.0",
         "semver": "^7.7.2",
         "tslib": "^2.4.0",
@@ -781,6 +780,7 @@
         "textmate-grammar-test": "^0.6.0"
     },
     "dependencies": {
+        "@typescript/native": "npm:typescript@7.1.0-beta",
         "svelte-language-server": "workspace:*",
         "typescript-svelte-plugin": "workspace:*",
         "vscode-languageclient": "^9.0.1",
