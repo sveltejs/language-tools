@@ -773,7 +773,6 @@
         "@types/node": "^18.0.0",
         "@types/semver": "^7.7.0",
         "@types/vscode": "^1.67",
-        "@typescript/native": "npm:typescript@7.1.0-beta",
         "js-yaml": "^3.14.0",
         "semver": "^7.7.2",
         "tslib": "^2.4.0",
@@ -781,6 +780,7 @@
         "textmate-grammar-test": "^0.6.0"
     },
     "dependencies": {
+        "@typescript/native": "npm:typescript@7.1.0-beta",
         "svelte-language-server": "workspace:*",
         "typescript-svelte-plugin": "workspace:*",
         "vscode-languageclient": "^9.0.1",

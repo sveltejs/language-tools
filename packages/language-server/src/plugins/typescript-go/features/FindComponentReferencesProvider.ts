@@ -5,6 +5,7 @@ import { tsApiAsync, tsAst } from '../types';
 import { isNotNullOrUndefined, pathToUrl } from '../../../utils';
 import { CancellationToken } from 'vscode-languageserver-protocol';
 import { getDeclarationFromName, waitWithCancellation } from './utils';
+import { SvelteTsSourceFileDocument } from '../SvelteSourceFileDocument';
 
 export class TsGoComponentReferenceProvider implements FindComponentReferencesProvider {
     private readonly tsApiService: TsApiService;
@@ -57,7 +58,7 @@ export class TsGoComponentReferenceProvider implements FindComponentReferencesPr
             return null;
         }
         const locationPromises: Promise<Location | null>[] = [];
-        const documents = new Map<string, tsAst.SourceFile>();
+        const documents = new Map<string, SvelteTsSourceFileDocument>();
         for (const entry of refs) {
             const symbol = entry.symbol;
             const symbolDeclarations = options.includeDeclaration
@@ -113,7 +114,7 @@ export class TsGoComponentReferenceProvider implements FindComponentReferencesPr
     private async toLocation(
         nodeHandle: tsApiAsync.NodeHandle,
         symbolDeclaration: tsAst.Node[] | undefined,
-        documents: Map<string, tsAst.SourceFile>,
+        documents: Map<string, SvelteTsSourceFileDocument>,
         includeDeclaration: boolean
     ) {
         const node = await nodeHandle.resolve();
@@ -165,12 +166,13 @@ export class TsGoComponentReferenceProvider implements FindComponentReferencesPr
         }
         let spanMapDocument = documents.get(sourceFile.fileName);
         if (!spanMapDocument) {
-            documents.set(sourceFile.fileName, sourceFile);
-            spanMapDocument = sourceFile;
+            const doc = new SvelteTsSourceFileDocument(sourceFile);
+            documents.set(sourceFile.fileName, doc);
+            spanMapDocument = doc;
         }
 
-        const start = spanMapDocument.getLineAndCharacterOfPosition(originRange.range.pos);
-        const end = spanMapDocument.getLineAndCharacterOfPosition(originRange.range.end);
+        const start = spanMapDocument.originPositionAt(originRange.range.pos);
+        const end = spanMapDocument.originPositionAt(originRange.range.end);
 
         return {
             uri,
@@ -186,7 +188,7 @@ export class TsGoComponentReferenceProvider implements FindComponentReferencesPr
             return false;
         }
 
-        const declaration =  getDeclarationFromName(this.tsApiService.astModule, node);
+        const declaration = getDeclarationFromName(this.tsApiService.astModule, node);
         return symbolDeclaration.some((decl) => decl === declaration);
     }
 }
