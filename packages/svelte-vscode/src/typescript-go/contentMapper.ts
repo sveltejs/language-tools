@@ -152,12 +152,11 @@ export class TsContentMapperService {
             return { enable: false };
         }
 
-        // enable this once our language server make use of the api pipe connection
-        // const pipe = await init();
+        const pipe = await init();
 
         return {
             enable: true,
-            apiPipe: undefined,
+            apiPipe: pipe,
             typescriptPackageJsonPath: tsdk?.packageJsonPath
         };
     }

@@ -36,3 +36,7 @@ node_modules/svelte/compiler.mjs
 node_modules/svelte/compiler.mjs.map
 node_modules/vscode-css-languageservice/lib/esm
 node_modules/vscode-html-languageservice/lib/esm
+
+# include the api library but not the native binaries for each platform
+!node_modules/@typescript/native
+node_modules/@typescript

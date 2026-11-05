@@ -61,6 +61,9 @@ export default [
             'chokidar',
             // Dependencies of svelte-language-server
             // we don't want to bundle and instead require them as dependencies
+            '@typescript/native/vscode',
+            '@typescript/native/async',
+            '@typescript/native/ast',
             'typescript',
             'sade',
             '@sveltejs/load-config',

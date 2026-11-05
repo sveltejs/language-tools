@@ -341,7 +341,6 @@ export function activateSvelteLanguageServer(
         if (enable && !ts6Features) {
             ts6Features = Disposable.from(
                 addFindFileReferencesListener(getLS),
-                addFindComponentReferencesListener(getLS),
                 addRenameFileListener(getLS),
                 addDidChangeTextDocumentListener(getLS)
             );
@@ -350,6 +349,8 @@ export function activateSvelteLanguageServer(
             ts6Features = undefined;
         }
     }
+
+    addFindComponentReferencesListener(getLS);
 
     addCompilePreviewCommands(getLS, context);
 
