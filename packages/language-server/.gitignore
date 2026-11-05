@@ -2,3 +2,7 @@ dist/
 .vscode/
 node_modules/
 !test/plugins/typescript/features/diagnostics/fixtures/exports-map-svelte/node_modules/package
+!test/plugins/typescript-go/library-declarations/fixture/node_modules/
+test/plugins/typescript-go/library-declarations/fixture/node_modules/*
+!test/plugins/typescript-go/library-declarations/fixture/node_modules/my-lib/
+!test/plugins/typescript-go/library-declarations/fixture/node_modules/my-lib/dist/
