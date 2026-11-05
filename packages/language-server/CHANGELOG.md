@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.18.7
+
+### Patch Changes
+
+-   feat: experimental typescript 7 content mapper support ([#3111](https://github.com/sveltejs/language-tools/pull/3111))
+
+-   feat: typescript 7 component references ([#3183](https://github.com/sveltejs/language-tools/pull/3183))
+
+-   Updated dependencies [[`22f3225`](https://github.com/sveltejs/language-tools/commit/22f3225fcfc32f49b346063016fc6d23b58e146e)]:
+    -   svelte2tsx@0.7.64
+
 ## 0.18.6
 
 ### Patch Changes
