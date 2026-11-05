@@ -1,20 +1,16 @@
-import {
-    Diagnostic,
-    DiagnosticRelatedInformation,
-    DocumentDiagnosticReport,
-    Range
-} from 'vscode-languageserver';
+import { Diagnostic, DocumentDiagnosticReport } from 'vscode-languageserver';
 import { Document } from '../../../lib/documents';
-import { TemplateAstWalker } from '../../svelte/TemplateASTLoader';
 import { replaceGeneratedNames } from './generatedNames';
+import { VirtualCodeRelocation } from './virtualCodeDiagnostics';
 
 /**
  * Post-processing of TypeScript 7 diagnostics for Svelte files in content mapper mode.
  *
  * TS7 already maps diagnostics back to the `.svelte` file, so unlike the TS6 path we never see
  * the svelte2tsx output here. Everything below works on original-file positions + document text
- * (+ the template AST). Rules that need the virtual code or the type checker can't be ported
- * this way and have to move into svelte2tsx / the content mapper instead.
+ * (+ the template AST). The exception are problems in unmapped virtual code, which are placed with
+ * the TS7 API beforehand (`virtualCodeDiagnostics.ts`). Other rules that need the virtual code or the
+ * type checker have to move into svelte2tsx / the content mapper.
  */
 
 export const enum TsgoDiagnosticCode {
@@ -35,12 +31,11 @@ const UNUSED_CODES = new Set([6133, 6138, 6192, 6196, 6198, 6199, 6205]);
 const MAPPER_DIAGNOSTIC_SOURCE = 'svelte';
 
 const generatedVarRegex = /'\$\$_\w+(\.\$on)?'/;
-const nonBindableRegex = /^Type '"([\w$]+)"' is not assignable to type '[^']*'\.?$/;
 
 export interface TsgoDiagnosticsContext {
     document: Document;
-    /** Template-only AST. Undefined if it couldn't be loaded */
-    ast: TemplateAstWalker | undefined;
+    /** The problems of the virtual code diagnostic (18080) that could be placed, if any */
+    virtualCode?: VirtualCodeRelocation;
 }
 
 export function transformDiagnosticReport(
@@ -56,7 +51,7 @@ export function transformDiagnosticReport(
 
 export function transformDiagnostics(
     items: Diagnostic[],
-    { document, ast }: TsgoDiagnosticsContext
+    { document, virtualCode }: TsgoDiagnosticsContext
 ): Diagnostic[] {
     const text = document.getText();
     // svelte2tsx failed -> the mapper only returned the script contents. Template usages are unknown,
@@ -82,7 +77,7 @@ export function transformDiagnostics(
             continue;
         }
         if (diagnostic.code === TsgoDiagnosticCode.VIRTUAL_CODE_PROBLEMS) {
-            result.push(...resolveVirtualCodeDiagnostic(diagnostic, document, ast));
+            result.push(...resolveVirtualCodeDiagnostic(diagnostic, virtualCode));
             continue;
         }
         result.push(adjustMessage(diagnostic, document.isSvelte5));
@@ -146,76 +141,33 @@ function isGeneratedDeprecation(diagnostic: Diagnostic) {
 
 /**
  * TS7 collects all problems inside unmapped virtual code into a single diagnostic at the start of
- * the file, with the actual problems as related information (positions are also unmapped).
- *
- * We try to relocate the ones we can recognize from their message. That's heuristic - the proper
- * fix is to map these spans in svelte2tsx (e.g. map `$$bindings` to the `bind:` directive).
+ * the file, with the actual problems as related information (if the client supports it, positions
+ * are unmapped). Replace the ones placed through the TS7 API (`virtualCodeDiagnostics.ts`).
  */
 function resolveVirtualCodeDiagnostic(
     diagnostic: Diagnostic,
-    document: Document,
-    ast: TemplateAstWalker | undefined
+    virtualCode: VirtualCodeRelocation | undefined
 ): Diagnostic[] {
-    const related = diagnostic.relatedInformation ?? [];
-    const remaining: DiagnosticRelatedInformation[] = [];
-    const relocated: Diagnostic[] = [];
+    if (!virtualCode?.diagnostics.length) {
+        return [diagnostic];
+    }
+    if (virtualCode.complete) {
+        return virtualCode.diagnostics;
+    }
 
-    for (const info of related) {
-        const binding = relocateNonBindableError(info, document, ast);
-        if (binding) {
-            relocated.push({ ...diagnostic, ...binding, relatedInformation: undefined });
-        } else {
-            remaining.push(info);
+    const remaining = [...(diagnostic.relatedInformation ?? [])];
+    for (const message of virtualCode.relocatedMessages) {
+        const index = remaining.findIndex((info) => info.message.startsWith(message));
+        if (index !== -1) {
+            remaining.splice(index, 1);
         }
     }
-
-    if (related.length && !remaining.length) {
-        return relocated;
-    }
-    return [...relocated, { ...diagnostic, relatedInformation: remaining }];
-}
-
-/**
- * Port of TS6's `moveBindingErrorMessage`: `bind:x` on a component prop that isn't `$bindable()`.
- * In TS6 the error was on `$$bindings` in the generated code. TS7 can't map that, so we only get
- * the message. Relocate it if exactly one component binding with that name exists.
- */
-function relocateNonBindableError(
-    info: DiagnosticRelatedInformation,
-    document: Document,
-    ast: TemplateAstWalker | undefined
-): Pick<Diagnostic, 'range' | 'message'> | undefined {
-    const match = nonBindableRegex.exec(info.message);
-    if (!match || !ast || ast.parserError) {
-        return;
-    }
-    const name = match[1];
-
-    const candidates: Array<{ start: number; end: number }> = [];
-    ast.walkSvelteAst({
-        enter(node, parent) {
-            if (
-                node.type === 'Binding' &&
-                (node as any).name === name &&
-                parent?.type === 'InlineComponent'
-            ) {
-                candidates.push(node as any);
-            }
-        }
-    });
-    if (candidates.length !== 1) {
-        return;
-    }
-
-    return {
-        range: Range.create(
-            document.positionAt(candidates[0].start),
-            document.positionAt(candidates[0].end)
-        ),
-        message:
-            "Cannot use 'bind:' with this property. It is declared as non-bindable inside the component.\n" +
-            `To mark a property as bindable: 'let { ${name} = $bindable() } = $props()'`
-    };
+    return [
+        ...virtualCode.diagnostics,
+        diagnostic.relatedInformation
+            ? { ...diagnostic, relatedInformation: remaining }
+            : diagnostic
+    ];
 }
 
 /**

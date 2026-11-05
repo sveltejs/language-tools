@@ -1,4 +1,3 @@
-import { Document } from '../../lib/documents';
 import { Logger } from '../../logger';
 import { LSConfigManager, TSUserConfig } from '../../ls-config';
 import type { tsApiAsync, tsAst } from './types';
@@ -8,9 +7,17 @@ interface TsModules {
     tsAst: typeof tsAst;
 }
 
+/**
+ * Connection to the TS7 language server's own project state (`API.fromLSPConnection`), for the
+ * Svelte-specific features that LSP requests and the middleware can't cover.
+ *
+ * Positions in the API are offsets of the code TS7 sees: the virtual code (svelte2tsx output) for
+ * `.svelte` files. `TsApiLocationMapper` maps them to the original file.
+ */
 export class TsApiService {
     private readonly tsApi: tsApiAsync.API<true>;
-    astModule: typeof tsAst;
+    readonly astModule: typeof tsAst;
+    readonly apiModule: typeof tsApiAsync;
     private readonly configManager: LSConfigManager;
 
     private constructor(
@@ -20,14 +27,15 @@ export class TsApiService {
     ) {
         this.tsApi = api;
         this.astModule = modules.tsAst;
+        this.apiModule = modules.tsApiAsync;
         this.configManager = configManager;
     }
 
     static async create(
-        options: { apiPipe: string; typescriptPackageJsonPath: string | undefined },
+        options: { apiPipe?: string; typescriptPackageJsonPath?: string | undefined },
         configManager: LSConfigManager
     ): Promise<TsApiService | null> {
-        if (!options.apiPipe) {
+        if (!options?.apiPipe) {
             return null;
         }
 
@@ -56,36 +64,46 @@ export class TsApiService {
         }
     }
 
-    async getProject(uri: string): Promise<tsApiAsync.Project | undefined> {
+    /**
+     * Runs `fn` against the default project of `uri` in the language server's current snapshot.
+     *
+     * Every `getCurrentLanguageServerSnapshot` call creates a new snapshot that stays alive on both
+     * sides until it's disposed, so the snapshot is released when `fn` settles. Nodes, symbols and
+     * handles obtained in `fn` belong to that snapshot and must not be used afterwards.
+     */
+    async withProject<T>(
+        uri: string,
+        fn: (project: tsApiAsync.Project) => Promise<T>
+    ): Promise<T | undefined> {
         const snapshot = await this.tsApi.getCurrentLanguageServerSnapshot();
-        return snapshot.getDefaultProjectForFile({ uri });
+        try {
+            const project = await snapshot.getDefaultProjectForFile({ uri });
+            return project ? await fn(project) : undefined;
+        } finally {
+            snapshot
+                .dispose()
+                .catch((error) => Logger.error('Failed to release TypeScript snapshot', error));
+        }
     }
 
-    async getProjectAndTsDoc(document: Document): Promise<
-        | {
-              project: tsApiAsync.Project;
-              userPreferences: TSUserConfig;
-              sourceFile: tsAst.SourceFile;
-          }
-        | undefined
-    > {
-        const uri = document.uri;
-        const project = await this.getProject(uri);
-        if (!project) {
-            return undefined;
-        }
+    /** Like `withProject`, with the source file of `uri` (virtual code for Svelte files) */
+    async withSourceFile<T>(
+        uri: string,
+        fn: (project: tsApiAsync.Project, sourceFile: tsAst.SourceFile) => Promise<T>
+    ): Promise<T | undefined> {
+        return this.withProject(uri, async (project) => {
+            const sourceFile = await project.program.getSourceFile({ uri });
+            return sourceFile ? await fn(project, sourceFile) : undefined;
+        });
+    }
 
-        const sourceFile = await project?.program.getSourceFile({ uri });
-        if (!sourceFile) {
-            return undefined;
-        }
+    async dispose(): Promise<void> {
+        await this.tsApi.close();
+    }
 
-        return {
-            project,
-            userPreferences: this.configManager.getClientTsUserConfig(
-                sourceFile.scriptKind == this.astModule.ScriptKind.TS ? 'typescript' : 'javascript'
-            ),
-            sourceFile: sourceFile
-        };
+    getUserPreferences(sourceFile: tsAst.SourceFile): TSUserConfig {
+        return this.configManager.getClientTsUserConfig(
+            sourceFile.scriptKind == this.astModule.ScriptKind.TS ? 'typescript' : 'javascript'
+        );
     }
 }

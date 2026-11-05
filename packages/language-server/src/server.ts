@@ -63,6 +63,7 @@ import { FileSystemProvider } from './lib/FileSystemProvider';
 import { TemplateASTParseLoader } from './plugins/svelte/TemplateASTLoader';
 import { contentMapperEnableCheck } from './plugins/typescript-go/content-mapper';
 import {
+    StoreBindingRequest,
     TransformTsgoResponseParams,
     TransformTsgoResponseRequest,
     TsgoResponseTransformer
@@ -134,7 +135,6 @@ export function startServer(options?: LSOptions) {
     const recursiveWatchPattern = '**/' + nonRecursiveWatchPattern;
 
     let enableTs6Features = true;
-    let tsGoPlugin: TypeScriptGoPlugin | undefined;
 
     connection.onInitialize(async (evt) => {
         const workspaceUris = evt.workspaceFolders?.map((folder) => folder.uri.toString()) ?? [
@@ -216,8 +216,19 @@ export function startServer(options?: LSOptions) {
         const templateAstLoader = enableTs6Features
             ? undefined
             : new TemplateASTParseLoader(docManager);
+        const tsApiService = enableTs6Features
+            ? null
+            : await TsApiService.create(
+                  evt.initializationOptions?.tsGoContentMapperOptions,
+                  configManager
+              );
         tsgoResponseTransformer = templateAstLoader
-            ? new TsgoResponseTransformer(docManager, templateAstLoader, pluginHost)
+            ? new TsgoResponseTransformer(
+                  docManager,
+                  templateAstLoader,
+                  pluginHost,
+                  tsApiService ?? undefined
+              )
             : undefined;
 
         // Order of plugin registration matters for FirstNonNull, which affects for example hover info
@@ -252,15 +263,8 @@ export function startServer(options?: LSOptions) {
                     docManager
                 )
             );
-        } else {
-            const tsApiService = await TsApiService.create(
-                evt.initializationOptions.tsGoContentMapperOptions,
-                configManager
-            );
-            if (tsApiService) {
-                const tsGoPlugin = new TypeScriptGoPlugin(tsApiService, configManager);
-                pluginHost.register(tsGoPlugin);
-            }
+        } else if (tsApiService) {
+            pluginHost.register(new TypeScriptGoPlugin(tsApiService, configManager));
         }
 
         const clientSupportApplyEditCommand = !!evt.capabilities.workspace?.applyEdit;
@@ -697,6 +701,11 @@ export function startServer(options?: LSOptions) {
         TransformTsgoResponseRequest,
         async (params: TransformTsgoResponseParams) =>
             tsgoResponseTransformer ? tsgoResponseTransformer.transform(params) : params.result
+    );
+    connection.onRequest(
+        StoreBindingRequest,
+        async (params: TextDocumentPositionParams) =>
+            tsgoResponseTransformer?.getStoreBinding(params) ?? null
     );
     connection.onRequest('$/getEditsForFileRename', async (fileRename: RenameFile) =>
         pluginHost.updateImports(fileRename)

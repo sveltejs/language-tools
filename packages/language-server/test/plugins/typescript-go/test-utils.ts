@@ -5,10 +5,11 @@ import { existsSync, readdirSync, statSync } from 'fs';
 import { VERSION } from 'svelte/compiler';
 import { Document, DocumentManager } from '../../../src/lib/documents';
 import { LSConfigManager } from '../../../src/ls-config';
-import { ClientCapabilities } from 'vscode-languageserver-protocol';
+import { ClientCapabilities, ProtocolRequestType } from 'vscode-languageserver-protocol';
+import { TsApiService } from '../../../src/plugins/typescript-go/TsApiService';
 
 let tsserverPath: string | undefined;
-const isSvelte5Plus = Number(VERSION.split('.')[0]) >= 5;
+export const isSvelte5Plus = Number(VERSION.split('.')[0]) >= 5;
 
 export interface TsGoServiceSetupResult {
     service: TsLSPService;
@@ -48,6 +49,27 @@ export async function createTsGoServiceForTest(
     });
     await service.start();
     return { service, docManager, lsConfigManager };
+}
+
+/**
+ * An API connection to the test's TS7 server, set up the way the TS7 VS Code extension does it
+ * (`initializeAPIConnection` sends `custom/initializeAPISession`)
+ */
+export async function createTsApiServiceForTest(
+    service: TsLSPService,
+    lsConfigManager: LSConfigManager
+): Promise<TsApiService> {
+    const session = await service.sendRequest(
+        new ProtocolRequestType<{ pipe?: string }, { pipe: string }, never, void, void>(
+            'custom/initializeAPISession'
+        ),
+        {}
+    );
+    const api = await TsApiService.create({ apiPipe: session.pipe }, lsConfigManager);
+    if (!api) {
+        throw new Error('Could not connect to the TypeScript API');
+    }
+    return api;
 }
 
 export function setupSharedServices(

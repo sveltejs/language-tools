@@ -4,18 +4,25 @@ import {
     DocumentHighlight,
     DocumentHighlightParams,
     Position,
-    TextDocumentIdentifier
+    TextDocumentIdentifier,
+    TextDocumentPositionParams
 } from 'vscode-languageserver';
 import { DocumentManager } from '../../../lib/documents';
 import { Logger } from '../../../logger';
 import { TemplateAstLoader } from '../../svelte/TemplateASTLoader';
-import { transformDiagnosticReport } from './diagnostics';
+import { TsApiService } from '../TsApiService';
+import { TsgoDiagnosticCode, transformDiagnosticReport } from './diagnostics';
 import {
     transformHover,
     transformInlayHints,
     transformLocations,
     transformSignatureHelp
 } from './languageFeatures';
+import { StoreBinding, TsgoStores } from './stores';
+import { relocateVirtualCodeDiagnostics } from './virtualCodeDiagnostics';
+
+export { StoreBindingRequest } from './stores';
+export type { StoreBinding } from './stores';
 
 /**
  * Request sent by the VS Code extension from inside a TypeScript 7 LSP middleware callback
@@ -23,7 +30,11 @@ import {
  * and the Svelte language server returns the adjusted response.
  *
  * Keeping the logic here (instead of in the extension) means it has access to the document,
- * the template AST and the other plugins, and can be reused by other clients / svelte-check.
+ * the template AST, the other plugins and the TS7 API (virtual code, checker), and can be reused by
+ * other clients / svelte-check.
+ *
+ * Mostly for Svelte files. References and rename also come for other files when their result
+ * reaches into Svelte files (`$store` usages of a store declared in a `.ts` file).
  */
 export const TransformTsgoResponseRequest = '$/transformTsgoResponse';
 
@@ -52,17 +63,23 @@ export interface TsgoResponseTransformerHost {
 }
 
 export class TsgoResponseTransformer {
+    private readonly stores: TsgoStores | undefined;
+
     constructor(
         private readonly docManager: DocumentManager,
         private readonly astLoader: TemplateAstLoader,
-        private readonly host: TsgoResponseTransformerHost
-    ) {}
+        private readonly host: TsgoResponseTransformerHost,
+        /** Connection to TS7's project state. Without it, only text/AST based rules apply */
+        private readonly tsApi?: TsApiService
+    ) {
+        this.stores = tsApi && new TsgoStores(tsApi, (uri) => this.docManager.get(uri)?.getText());
+    }
 
     async transform({ method, params, result }: TransformTsgoResponseParams): Promise<unknown> {
         try {
             switch (method) {
                 case 'textDocument/diagnostic':
-                    return this.transformDiagnostics(
+                    return await this.transformDiagnostics(
                         params as DocumentDiagnosticParams,
                         result as DocumentDiagnosticReport
                     );
@@ -82,11 +99,29 @@ export class TsgoResponseTransformer {
                     return transformHover(result as any);
                 case 'textDocument/inlayHint':
                     return transformInlayHints(result as any);
-                case 'textDocument/definition':
                 case 'textDocument/typeDefinition':
-                case 'textDocument/implementation':
-                case 'textDocument/references':
                     return transformLocations(result as any);
+                case 'textDocument/definition':
+                case 'textDocument/implementation': {
+                    const locations = transformLocations(result as any);
+                    return this.stores
+                        ? await this.stores.definition(params as any, locations)
+                        : locations;
+                }
+                case 'textDocument/references': {
+                    const locations = transformLocations(result as any);
+                    return this.stores
+                        ? await this.stores.references(params as any, locations)
+                        : locations;
+                }
+                case 'textDocument/prepareRename':
+                    return this.stores
+                        ? await this.stores.prepareRename(params as any, result as any)
+                        : result;
+                case 'textDocument/rename':
+                    return this.stores
+                        ? await this.stores.rename(params as any, result as any)
+                        : result;
                 default:
                     return result;
             }
@@ -96,20 +131,42 @@ export class TsgoResponseTransformer {
         }
     }
 
-    private transformDiagnostics(
+    /** For the extension: where to rename when a rename starts at `$store` */
+    async getStoreBinding(params: TextDocumentPositionParams): Promise<StoreBinding | null> {
+        try {
+            return (await this.stores?.getStoreBinding(params)) ?? null;
+        } catch (error) {
+            Logger.error('Error resolving the store of a $store', error);
+            return null;
+        }
+    }
+
+    private async transformDiagnostics(
         params: DocumentDiagnosticParams,
         report: DocumentDiagnosticReport
-    ): DocumentDiagnosticReport {
+    ): Promise<DocumentDiagnosticReport> {
         const document = this.docManager.get(params.textDocument.uri);
         // can happen for diagnostics of tabs that aren't opened (yet)
         if (!document || !report) {
             return report;
         }
 
-        return transformDiagnosticReport(report, {
-            document,
-            ast: this.astLoader.loadTemplateAst(document)
-        });
+        const hasVirtualCodeProblems =
+            report.kind === 'full' &&
+            report.items.some((d) => d.code === TsgoDiagnosticCode.VIRTUAL_CODE_PROBLEMS);
+        const virtualCode =
+            hasVirtualCodeProblems && this.tsApi
+                ? await relocateVirtualCodeDiagnostics(
+                      this.tsApi,
+                      document,
+                      this.astLoader.loadTemplateAst(document)
+                  ).catch((error) => {
+                      Logger.error('Error placing virtual code diagnostics', error);
+                      return undefined;
+                  })
+                : undefined;
+
+        return transformDiagnosticReport(report, { document, virtualCode });
     }
 
     /**

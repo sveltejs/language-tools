@@ -27,7 +27,9 @@ type ForwardedMethod =
     | 'textDocument/definition'
     | 'textDocument/typeDefinition'
     | 'textDocument/implementation'
-    | 'textDocument/references';
+    | 'textDocument/references'
+    | 'textDocument/prepareRename'
+    | 'textDocument/rename';
 
 /**
  * How long we wait for the Svelte language server before giving up and using TS7's response as-is.
@@ -44,8 +46,20 @@ const forwardTimeouts: Record<ForwardedMethod, number> = {
     'textDocument/definition': 1000,
     'textDocument/typeDefinition': 1000,
     'textDocument/implementation': 1000,
-    'textDocument/references': 1000
+    // these run TS7 API queries for `$store` (references of the store, of each subscription)
+    'textDocument/references': 2000,
+    'textDocument/prepareRename': 500,
+    'textDocument/rename': 2000
 };
+
+/**
+ * Also forwarded for non-Svelte files if the result reaches into a Svelte file: references and
+ * rename of a store declared in a `.ts` file also need its `$store` usages.
+ */
+const crossFileMethods = new Set<ForwardedMethod>([
+    'textDocument/references',
+    'textDocument/rename'
+]);
 
 export function supportsLspMiddleware(api: TsExtensionAPI | undefined): boolean {
     return typeof api?.registerLspMiddleware === 'function';
@@ -97,10 +111,8 @@ export function registerSvelteLspMiddleware(
         })
     );
 
-    // Runs after the forwarded definition/references middleware above (registration order)
-    disposables.push(
-        registerStoreMiddleware(api, () => !!access.getContentMapperModeClient(), log)
-    );
+    // Runs after the forwarded rename middleware above (registration order)
+    disposables.push(registerStoreMiddleware(api, access, log));
 
     return vscode.Disposable.from(...disposables);
 }
@@ -112,7 +124,10 @@ async function forwardToSvelteLanguageServer<M extends ForwardedMethod>(
     access: SvelteLanguageServerAccess,
     log: (message: string) => void
 ): Promise<LspMiddlewareResult<M>> {
-    if (!isSvelteUri(params.textDocument.uri)) {
+    if (
+        !isSvelteUri(params.textDocument.uri) &&
+        !(crossFileMethods.has(method) && touchesSvelteFile(result))
+    ) {
         return result;
     }
     const client = access.getContentMapperModeClient();
@@ -152,4 +167,22 @@ async function forwardToSvelteLanguageServer<M extends ForwardedMethod>(
 
 function isSvelteUri(uri: string) {
     return uri.endsWith('.svelte');
+}
+
+/** Locations or a workspace edit with a `.svelte` file in it */
+function touchesSvelteFile(result: unknown): boolean {
+    if (!result || typeof result !== 'object') {
+        return false;
+    }
+    if (Array.isArray(result)) {
+        return result.some((location) => isSvelteUri(location?.uri ?? location?.targetUri ?? ''));
+    }
+    const edit = result as {
+        changes?: Record<string, unknown>;
+        documentChanges?: Array<{ textDocument?: { uri: string } }>;
+    };
+    return (
+        Object.keys(edit.changes ?? {}).some(isSvelteUri) ||
+        (edit.documentChanges ?? []).some((change) => isSvelteUri(change.textDocument?.uri ?? ''))
+    );
 }

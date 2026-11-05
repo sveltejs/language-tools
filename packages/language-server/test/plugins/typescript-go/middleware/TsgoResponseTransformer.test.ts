@@ -18,6 +18,7 @@ import {
     TransformTsgoResponseParams,
     TsgoResponseTransformer
 } from '../../../../src/plugins/typescript-go/middleware';
+import { transformDiagnostics as transformDiagnosticsWithContext } from '../../../../src/plugins/typescript-go/middleware/diagnostics';
 
 /**
  * The TS7 responses used here are trimmed copies of what `tsc --lsp` (7.1.0-dev.20261103.1) returned
@@ -139,38 +140,58 @@ describe('TsgoResponseTransformer', () => {
             assert.deepStrictEqual(items, [typeError]);
         });
 
-        it('relocates a non-bindable error out of the virtual code diagnostic', async () => {
-            const content = `<script lang="ts">\n\timport Child from './Child.svelte';\n\tlet count = 0;\n</script>\n\n<Child bind:value={count} req="r" />`;
-            const items = await transformDiagnostics(content, [
-                diag(
-                    [0, 0, 0, 0],
-                    18080,
-                    "Virtual code produced by the content mapper '@sveltejs/ts-content-mapper@0.1.0' has problems with no corresponding location in this file.",
+        describe('virtual code diagnostic (18080)', () => {
+            // What the TS7 API placed (see apiFeatures.test.ts for that part)
+            const relocated = diag(
+                [5, 7, 5, 25],
+                2322,
+                "Cannot use 'bind:' with this property. It is declared as non-bindable inside the component.\n" +
+                    "To mark a property as bindable: 'let { value = $bindable() } = $props()'"
+            );
+            const related = (message: string) => ({
+                location: { uri: 'file:///test/Test.svelte', range: Range.create(0, 0, 0, 0) },
+                message
+            });
+            const virtual = (...messages: string[]) =>
+                diag([0, 0, 0, 0], 18080, 'Virtual code ...', {
+                    relatedInformation: messages.map(related)
+                });
+            const document = new Document('file:///test/Test.svelte', legacy);
+
+            it('is replaced when all its problems were placed', () => {
+                const items = transformDiagnosticsWithContext(
+                    [virtual(`Type '"value"' is not assignable to type '""'.`)],
                     {
-                        relatedInformation: [
-                            {
-                                location: {
-                                    uri: 'file:///test/Test.svelte',
-                                    range: Range.create(0, 0, 0, 0)
-                                },
-                                message: `Type '"value"' is not assignable to type '""'.`
-                            }
-                        ]
+                        document,
+                        virtualCode: {
+                            diagnostics: [relocated],
+                            relocatedMessages: [`Type '"value"' is not assignable to type '""'.`],
+                            complete: true
+                        }
                     }
-                )
-            ]);
-            assert.deepStrictEqual(items, [
-                {
-                    range: Range.create(5, 7, 5, 25),
-                    code: 18080,
-                    source: 'ts',
-                    severity: DiagnosticSeverity.Error,
-                    relatedInformation: undefined,
-                    message:
-                        "Cannot use 'bind:' with this property. It is declared as non-bindable inside the component.\n" +
-                        "To mark a property as bindable: 'let { value = $bindable() } = $props()'"
-                }
-            ]);
+                );
+                assert.deepStrictEqual(items, [relocated]);
+            });
+
+            it('keeps the problems that were not placed', () => {
+                const items = transformDiagnosticsWithContext(
+                    [
+                        virtual(
+                            `Type '"value"' is not assignable to type '""'.`,
+                            'Some other problem.'
+                        )
+                    ],
+                    {
+                        document,
+                        virtualCode: {
+                            diagnostics: [relocated],
+                            relocatedMessages: [`Type '"value"' is not assignable to type '""'.`],
+                            complete: false
+                        }
+                    }
+                );
+                assert.deepStrictEqual(items, [relocated, virtual('Some other problem.')]);
+            });
         });
 
         it('keeps virtual code diagnostics it cannot place', async () => {
