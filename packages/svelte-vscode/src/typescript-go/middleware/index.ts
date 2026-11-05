@@ -5,7 +5,8 @@ import type {
     LspMiddlewareResult,
     LspMiddlewareContext
 } from '@typescript/native/vscode' with { 'resolution-mode': 'import' };
-import { filterGeneratedCompletions } from './completions';
+import { renameComponentAutoImports } from './completions';
+import { createCompletionMiddleware } from './completionsHost';
 import { registerStoreMiddleware } from './stores';
 
 /** Has to match `TransformTsgoResponseRequest` in the language server */
@@ -75,12 +76,24 @@ export function registerSvelteLspMiddleware(
         );
     }
 
+    const completionMiddleware = createCompletionMiddleware(log);
     disposables.push(
         api.registerLspMiddleware('textDocument/completion', (result, { params }) => {
-            if (!isSvelteUri(params.textDocument.uri) || !access.getContentMapperModeClient()) {
+            if (!access.getContentMapperModeClient()) {
                 return result;
             }
-            return filterGeneratedCompletions(result);
+            if (!isSvelteUri(params.textDocument.uri)) {
+                // e.g. `.ts` files auto-importing a component
+                return renameComponentAutoImports(result);
+            }
+            return completionMiddleware.completion(result, params);
+        }),
+        api.registerLspMiddleware('completionItem/resolve', (item) => {
+            if (!access.getContentMapperModeClient() || !item) {
+                return item;
+            }
+            // renames component auto-imports; in Svelte files also fixes the import placement
+            return completionMiddleware.resolve(item);
         })
     );
 
