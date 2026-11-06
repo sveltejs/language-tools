@@ -89,7 +89,12 @@ export default [
             {
                 exports: 'auto',
                 file: 'index.mjs',
-                format: 'esm'
+                format: 'esm',
+                // emitDts looks for the shims next to the bundle
+                intro:
+                    "import { fileURLToPath as __fileURLToPath } from 'url';\n" +
+                    "import { dirname as __pathDirname } from 'path';\n" +
+                    "const __dirname = import.meta.url.startsWith('file:') ? __pathDirname(__fileURLToPath(import.meta.url)) : '';"
             }
         ],
         plugins: [
