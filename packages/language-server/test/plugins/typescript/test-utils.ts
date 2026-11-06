@@ -17,7 +17,15 @@ import { findTsConfigPath } from '../../../src/plugins/typescript/utils';
 
 const isSvelte5Plus = Number(VERSION.split('.')[0]) >= 5;
 
-export function createVirtualTsSystem(currentDirectory: string): ts.System {
+export interface VirtualTsSystem extends ts.System {
+    /**
+     * Simulates an atomic file replacement (write a temp file, then rename it over
+     * the target). `fs.watchFile` reports this as `Created`, not `Changed`.
+     */
+    atomicReplaceFile(path: string, data: string): void;
+}
+
+export function createVirtualTsSystem(currentDirectory: string): VirtualTsSystem {
     const virtualFs = new FileMap<string>();
     // array behave more similar to the actual fs event than Set
     const watchers = new FileMap<ts.FileWatcherCallback[]>();
@@ -29,7 +37,17 @@ export function createVirtualTsSystem(currentDirectory: string): ts.System {
         return isAbsolute(path) ? path : join(currentDirectory, path);
     }
 
-    const virtualSystem: ts.System = {
+    function updateModifiedTime(normalizedPath: string) {
+        const lastModified = modifiedTime.get(normalizedPath);
+        let newModifiedTime = new Date();
+        if (lastModified && newModifiedTime <= lastModified) {
+            newModifiedTime = new Date(lastModified.getTime() + 1);
+        }
+        // make sure modified time is always increasing to trigger watchers reliably in tests
+        modifiedTime.set(normalizedPath, newModifiedTime);
+    }
+
+    const virtualSystem: VirtualTsSystem = {
         ...ts.sys,
         getCurrentDirectory() {
             return currentDirectory;
@@ -38,17 +56,18 @@ export function createVirtualTsSystem(currentDirectory: string): ts.System {
             const normalizedPath = normalizePath(toAbsolute(path));
             const existsBefore = virtualFs.has(normalizedPath);
             virtualFs.set(normalizedPath, data);
-            const lastModified = modifiedTime.get(normalizedPath);
-            let newModifiedTime = new Date();
-            if (lastModified && newModifiedTime <= lastModified) {
-                newModifiedTime = new Date(lastModified.getTime() + 1);
-            }
-            // make sure modified time is always increasing to trigger watchers reliably in tests
-            modifiedTime.set(normalizedPath, newModifiedTime);
+            updateModifiedTime(normalizedPath);
             triggerWatch(
                 normalizedPath,
                 existsBefore ? ts.FileWatcherEventKind.Changed : ts.FileWatcherEventKind.Created
             );
+        },
+        atomicReplaceFile(path, data) {
+            const normalizedPath = normalizePath(toAbsolute(path));
+            virtualFs.set(normalizedPath, data);
+            updateModifiedTime(normalizedPath);
+            // an atomic replacement shows up as a creation of the watched path
+            triggerWatch(normalizedPath, ts.FileWatcherEventKind.Created);
         },
         readFile(path) {
             return virtualFs.get(normalizePath(toAbsolute(path)));
