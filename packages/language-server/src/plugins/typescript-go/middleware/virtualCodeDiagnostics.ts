@@ -10,14 +10,15 @@ import type { tsApiAsync, tsAst } from '../types';
  *
  * TS7's LSP bundles them into one diagnostic (18080) at the start of the file, with no codes or
  * positions. The TS7 API reports them individually, with code and virtual position, so we can tell
- * from the svelte2tsx output what they are about, and where they belong.
+ * from the svelte2tsx output what they are about, and where they belong (or that they are false
+ * positives and can be dropped).
  */
 export interface VirtualCodeRelocation {
     /** The relocated problems, in original positions */
     diagnostics: Diagnostic[];
-    /** Messages of the relocated problems, to remove them from the related information of 18080 */
-    relocatedMessages: string[];
-    /** Every problem in unmapped virtual code was relocated, 18080 can go */
+    /** Messages of the relocated and dropped problems, to remove them from the related information of 18080 */
+    handledMessages: string[];
+    /** Every problem in unmapped virtual code was relocated or dropped, 18080 can go */
     complete: boolean;
 }
 
@@ -26,6 +27,10 @@ const IN_VIRTUAL_CODE = 18074;
 const NO_OVERLOAD_MATCHES_CALL = 2769;
 const ARG_TYPE_X_NOT_ASSIGNABLE_TO_TYPE_Y = 2345;
 const TYPE_X_NOT_ASSIGNABLE_TO_TYPE_Y = 2322;
+const DEPRECATED_SIGNATURE = 6387;
+
+/** Prefix of the names svelte2tsx generates for component constructors and instances */
+const generatedComponentPrefix = '$$_';
 
 const storeGetName = '__sveltets_2_store_get';
 const ensureComponentName = '__sveltets_2_ensureComponent';
@@ -63,20 +68,24 @@ export async function relocateVirtualCodeDiagnostics(
             mapper: new TsApiLocationMapper(api.astModule)
         };
         const diagnostics: Diagnostic[] = [];
-        const relocatedMessages: string[] = [];
+        const handledMessages: string[] = [];
         for (const diagnostic of unmapped) {
+            if (isGeneratedDeprecation(context, diagnostic)) {
+                handledMessages.push(diagnostic.text);
+                continue;
+            }
             const relocated =
                 (await relocateStoreMisuse(context, diagnostic)) ??
                 relocateNonBindableError(context, diagnostic);
             if (relocated) {
                 diagnostics.push(...relocated);
-                relocatedMessages.push(diagnostic.text);
+                handledMessages.push(diagnostic.text);
             }
         }
         return {
             diagnostics,
-            relocatedMessages,
-            complete: relocatedMessages.length === unmapped.length
+            handledMessages,
+            complete: handledMessages.length === unmapped.length
         };
     });
 }
@@ -95,6 +104,30 @@ function isInVirtualCode(diagnostic: ApiDiagnostic): boolean {
         diagnostic.code === IN_VIRTUAL_CODE ||
         !!diagnostic.messageChain?.some((chained) => isInVirtualCode(chained))
     );
+}
+
+/**
+ * Svelte 5 deprecates the constructor and `$on` of class components, but svelte2tsx uses them for
+ * components typed as classes (e.g. by the declarations of libraries built for Svelte 4):
+ * `new $$_ChildC({ ... })` and `$$_Child.$on('event', ...)`. The counterpart of
+ * `isGeneratedDeprecation` in `diagnostics.ts`, for deprecations in unmapped virtual code.
+ */
+function isGeneratedDeprecation(
+    { api, sourceFile }: RelocationContext,
+    diagnostic: ApiDiagnostic
+): boolean {
+    if (diagnostic.code !== DEPRECATED_SIGNATURE) {
+        return false;
+    }
+    const ast = api.astModule;
+    // reported at the constructor (`new $$_ChildC`), or at the name of the method (`$$_Child.$on`)
+    const token = ast.getTouchingToken(sourceFile, diagnostic.pos);
+    const parent = token?.parent;
+    const target =
+        token && parent && ast.isPropertyAccessExpression(parent) && parent.name.pos === token.pos
+            ? parent.expression
+            : token;
+    return !!target && ast.isIdentifier(target) && target.text.startsWith(generatedComponentPrefix);
 }
 
 /**

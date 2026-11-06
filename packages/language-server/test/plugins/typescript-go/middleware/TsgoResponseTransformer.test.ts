@@ -165,12 +165,38 @@ describe('TsgoResponseTransformer', () => {
                         document,
                         virtualCode: {
                             diagnostics: [relocated],
-                            relocatedMessages: [`Type '"value"' is not assignable to type '""'.`],
+                            handledMessages: [`Type '"value"' is not assignable to type '""'.`],
                             complete: true
                         }
                     }
                 );
                 assert.deepStrictEqual(items, [relocated]);
+            });
+
+            const deprecation =
+                "The signature 'new (options: ComponentConstructorOptions<{ name: string; }>): Child' of '$$_dlihC0C' is deprecated.";
+
+            it('is dropped when all its problems were dropped', () => {
+                const items = transformDiagnosticsWithContext([virtual(deprecation)], {
+                    document,
+                    virtualCode: { diagnostics: [], handledMessages: [deprecation], complete: true }
+                });
+                assert.deepStrictEqual(items, []);
+            });
+
+            it('keeps the problems that were not dropped', () => {
+                const items = transformDiagnosticsWithContext(
+                    [virtual(deprecation, 'Some other problem.')],
+                    {
+                        document,
+                        virtualCode: {
+                            diagnostics: [],
+                            handledMessages: [deprecation],
+                            complete: false
+                        }
+                    }
+                );
+                assert.deepStrictEqual(items, [virtual('Some other problem.')]);
             });
 
             it('keeps the problems that were not placed', () => {
@@ -185,7 +211,7 @@ describe('TsgoResponseTransformer', () => {
                         document,
                         virtualCode: {
                             diagnostics: [relocated],
-                            relocatedMessages: [`Type '"value"' is not assignable to type '""'.`],
+                            handledMessages: [`Type '"value"' is not assignable to type '""'.`],
                             complete: false
                         }
                     }

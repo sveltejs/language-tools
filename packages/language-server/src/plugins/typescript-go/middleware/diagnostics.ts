@@ -130,7 +130,8 @@ function isNoopInReactiveStatement(diagnostic: Diagnostic, document: Document, t
 }
 
 /**
- * Svelte 5: `$on` and the class constructor are deprecated, but the generated code uses them
+ * Svelte 5: `$on` and the class constructor are deprecated, but the generated code uses them.
+ * The ones in unmapped virtual code are part of 18080, they are dropped in `virtualCodeDiagnostics.ts`.
  */
 function isGeneratedDeprecation(diagnostic: Diagnostic) {
     return (
@@ -142,13 +143,13 @@ function isGeneratedDeprecation(diagnostic: Diagnostic) {
 /**
  * TS7 collects all problems inside unmapped virtual code into a single diagnostic at the start of
  * the file, with the actual problems as related information (if the client supports it, positions
- * are unmapped). Replace the ones placed through the TS7 API (`virtualCodeDiagnostics.ts`).
+ * are unmapped). Replace the ones placed or dropped through the TS7 API (`virtualCodeDiagnostics.ts`).
  */
 function resolveVirtualCodeDiagnostic(
     diagnostic: Diagnostic,
     virtualCode: VirtualCodeRelocation | undefined
 ): Diagnostic[] {
-    if (!virtualCode?.diagnostics.length) {
+    if (!virtualCode?.handledMessages.length) {
         return [diagnostic];
     }
     if (virtualCode.complete) {
@@ -156,7 +157,7 @@ function resolveVirtualCodeDiagnostic(
     }
 
     const remaining = [...(diagnostic.relatedInformation ?? [])];
-    for (const message of virtualCode.relocatedMessages) {
+    for (const message of virtualCode.handledMessages) {
         const index = remaining.findIndex((info) => info.message.startsWith(message));
         if (index !== -1) {
             remaining.splice(index, 1);

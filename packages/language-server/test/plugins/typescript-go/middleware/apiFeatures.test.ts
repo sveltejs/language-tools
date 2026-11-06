@@ -33,7 +33,8 @@ const files = [
     'NotAStore.svelte',
     'BindChild.svelte',
     'BindableChild.svelte',
-    'BindParent.svelte'
+    'BindParent.svelte',
+    'ClassComponentUser.svelte'
 ];
 
 const uriOf = (file: string) => pathToUrl(path.join(testDir, file));
@@ -318,6 +319,25 @@ describe('TS7 features through the API connection', function () {
                             "To mark a property as bindable: 'let { value = $bindable() } = $props()'"
                     }
                 ]);
+            }
+        );
+
+        // Svelte 4 doesn't deprecate the class component constructor or `$on`
+        (isSvelte5Plus ? it : it.skip)(
+            'drops deprecations of the generated code for class components',
+            async () => {
+                const { raw, result } = await request<DocumentDiagnosticReport>(
+                    'textDocument/diagnostic',
+                    { textDocument: { uri: uriOf('ClassComponentUser.svelte') } }
+                );
+
+                // the generated `new $$_…C(...)` and `$$_….$on(...)`, both in unmapped code
+                assert.strictEqual(raw.kind, 'full');
+                assert.deepStrictEqual(
+                    (raw as { items: Diagnostic[] }).items.map((d) => d.code),
+                    [18080]
+                );
+                assert.deepStrictEqual(result, { ...raw, items: [] });
             }
         );
     });
