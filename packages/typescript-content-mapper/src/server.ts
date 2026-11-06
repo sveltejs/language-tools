@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -40,6 +41,11 @@ function startServer() {
 
     connection.onRequest('transform', async (v: TransformParams): Promise<TransformResult> => {
         const { fileName, content } = v;
+
+        const libraryDeclaration = loadLibraryDeclaration(fileName);
+        if (libraryDeclaration) {
+            return libraryDeclaration;
+        }
 
         let scriptTags: ReturnType<typeof internalHelpers.extractScriptTags> | undefined;
         let extension: '.ts' | '.js' = '.js';
@@ -148,6 +154,70 @@ function startServer() {
 }
 
 startServer();
+
+const nodeModulesSegment = /[\\/]node_modules[\\/]/;
+
+/**
+ * Declaration files libraries ship next to `Foo.svelte`, in order of preference:
+ * - `Foo.d.svelte.ts`: the name TypeScript expects for declarations of a `.svelte` file
+ * - `Foo.svelte.d.ts`: what `@sveltejs/package`/`svelte2tsx`'s `emitDts` emit(ted for a long time)
+ */
+const siblingDeclarationSuffixes = ['.d.svelte.ts', '.svelte.d.ts'];
+
+/**
+ * Many Svelte libraries publish their `.svelte` sources together with generated declarations,
+ * e.g. `dist/Foo.svelte` + `dist/Foo.svelte.d.ts`, and their `index.d.ts` re-exports from `./Foo.svelte`.
+ * With a content mapper, TypeScript treats `.svelte` like `.ts`, so `./Foo.svelte` resolves to the
+ * source instead of the declarations next to it. Library sources would then be type-checked
+ * (reporting errors in the library) and decide the types users see.
+ *
+ * So for a `.svelte` file in `node_modules` that has declarations next to it, serve the
+ * declarations instead of transforming the source.
+ *
+ * Differences to a real declaration file, because TypeScript parses the result as a `.ts` file:
+ * - `// @ts-nocheck` is prepended: declaration-only syntax like accessors without a body
+ *   is an error outside of ambient contexts. Library declarations aren't checked anyway with
+ *   `skipLibCheck`, which most Svelte projects use.
+ * - The whole text maps to the start of the `.svelte` file, and only for navigation features,
+ *   so that go to definition lands in the component, like it does for components that are
+ *   transformed with svelte2tsx. Everything else in the original file is unmapped.
+ */
+function loadLibraryDeclaration(fileName: string): TransformResult | undefined {
+    if (!nodeModulesSegment.test(fileName) || !fileName.endsWith('.svelte')) {
+        return undefined;
+    }
+
+    const base = fileName.slice(0, -'.svelte'.length);
+    for (const suffix of siblingDeclarationSuffixes) {
+        let declaration: string;
+        try {
+            declaration = readFileSync(base + suffix, 'utf-8');
+        } catch {
+            continue;
+        }
+
+        const text = '// @ts-nocheck\n' + declaration.replace(/^\uFEFF/, '');
+        return {
+            text,
+            extension: '.ts',
+            mappings: [
+                [
+                    0,
+                    text.length,
+                    0,
+                    0,
+                    SpanMapKind.Atom,
+                    SpanMapFeature.Definition |
+                        SpanMapFeature.TypeDefinition |
+                        SpanMapFeature.Implementation
+                ]
+            ],
+            diagnostics: []
+        };
+    }
+
+    return undefined;
+}
 
 function getScriptExtension(
     scriptTags: ReturnType<typeof internalHelpers.extractScriptTags>
