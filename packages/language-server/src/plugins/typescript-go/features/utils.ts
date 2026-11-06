@@ -256,13 +256,23 @@ export async function waitWithCancellation<T>(
     if (cancellationToken == null) {
         return await Promise.all(promises);
     }
+    if (cancellationToken.isCancellationRequested) {
+        return [];
+    }
 
-    return await Promise.race([
-        Promise.all(promises),
-        new Promise<T[]>((resolve) => {
-            cancellationToken?.onCancellationRequested(() => {
-                resolve([]);
-            });
-        })
-    ]);
+    const all = Promise.all(promises);
+    // After a cancellation the API snapshot is released while requests may still be in flight.
+    // Their failures don't matter anymore, but must not become unhandled rejections.
+    all.catch(() => {});
+    let listener: { dispose(): void } | undefined;
+    try {
+        return await Promise.race([
+            all,
+            new Promise<T[]>((resolve) => {
+                listener = cancellationToken.onCancellationRequested(() => resolve([]));
+            })
+        ]);
+    } finally {
+        listener?.dispose();
+    }
 }

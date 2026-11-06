@@ -31,8 +31,12 @@ export class TsGoCodeLensProvider implements CodeLensProvider {
             return null;
         }
 
-        const projectAndTsDoc = await this.tsApiService.getProjectAndTsDoc(document);
-        if (!projectAndTsDoc || !projectAndTsDoc.userPreferences.referencesCodeLens?.enabled) {
+        const enabled = await this.tsApiService.withSourceFile(
+            document.uri,
+            async (_, sourceFile) =>
+                !!this.tsApiService.getUserPreferences(sourceFile).referencesCodeLens?.enabled
+        );
+        if (!enabled) {
             return null;
         }
 
