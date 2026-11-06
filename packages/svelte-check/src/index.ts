@@ -448,8 +448,11 @@ async function runWithVirtualFiles(
     writer: Writer
 ): Promise<Result | null> {
     if (!opts.tsconfig) {
-        throw new Error('`--incremental` / `--tsgo` requires a tsconfig/jsconfig file');
+        throw new Error(
+            '`--incremental` / `--tsgo` / `--tsc-rs` requires a tsconfig/jsconfig file'
+        );
     }
+    const compiler = opts.tscRs ? 'tsc-rs' : opts.tsgo ? 'tsgo' : 'tsc';
 
     const emitResult = await emitSvelteFiles(
         opts.workspaceUri.fsPath,
@@ -461,12 +464,13 @@ async function runWithVirtualFiles(
         opts.tsconfig,
         emitResult,
         opts.incremental,
-        opts.tsgo
+        // tsc-rs is a port of tsgo, so it needs the same overlay
+        compiler !== 'tsc'
     );
     const tsDiagnostics = mapCliDiagnosticsToLsp(
         await runTypeScriptDiagnostics(
             overlayTsconfig,
-            opts.tsgo,
+            compiler,
             opts.incremental,
             opts.workspaceUri.fsPath
         ),
@@ -601,6 +605,10 @@ parseOptions(async (opts) => {
             watch: opts.watch
         };
 
+        if (opts.tscRs && opts.tsgo) {
+            throw new Error('--tsc-rs cannot be used with --tsgo');
+        }
+
         if (opts.tsgoExperimental) {
             if (!opts.tsconfig) {
                 throw new Error('--tsgo-experimental-api requires a tsconfig/jsconfig file');
@@ -610,6 +618,9 @@ parseOptions(async (opts) => {
             }
             if (opts.tsgo) {
                 throw new Error('--tsgo-experimental-api cannot be used with --tsgo');
+            }
+            if (opts.tscRs) {
+                throw new Error('--tsgo-experimental-api cannot be used with --tsc-rs');
             }
             const pkg = tryParseTsGoVersion(opts.tsconfig);
             if (!pkg) {
@@ -658,7 +669,7 @@ parseOptions(async (opts) => {
             };
         }
 
-        const useVirtualFiles = opts.incremental || opts.tsgo;
+        const useVirtualFiles = opts.incremental || opts.tsgo || opts.tscRs;
         if (useVirtualFiles && opts.watch) {
             await watchWithVirtualFiles(opts, writer);
         } else if (useVirtualFiles) {

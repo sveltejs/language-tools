@@ -10,6 +10,7 @@ export interface SvelteCheckCliOptions {
     preserveWatchOutput: boolean;
     incremental: boolean;
     tsgo: boolean;
+    tscRs: boolean;
     tsgoExperimental: boolean;
     tsconfig?: string;
     config?: string;
@@ -48,8 +49,13 @@ export function parseOptions(cb: (opts: SvelteCheckCliOptions) => any) {
             false
         )
         .option(
+            '--tsc-rs',
+            'Use tsc-rs (a Rust port of the TypeScript 7 compiler) for TypeScript diagnostics. Requires writing transpiled Svelte files to disk (.svelte-kit if available, else .svelte-check)',
+            false
+        )
+        .option(
             '--tsgo-experimental-api',
-            'Use tsgo for TypeScript diagnostics with the experimental API. Cannot be used with --incremental or --tsgo. Experimental feature, might break without warning.',
+            'Use tsgo for TypeScript diagnostics with the experimental API. Cannot be used with --incremental, --tsgo or --tsc-rs. Experimental feature, might break without warning.',
             false
         )
         .option(
@@ -106,6 +112,7 @@ export function parseOptions(cb: (opts: SvelteCheckCliOptions) => any) {
                 preserveWatchOutput: !!opts.preserveWatchOutput,
                 incremental: !!opts.incremental,
                 tsgo: !!opts.tsgo,
+                tscRs: !!opts['tsc-rs'],
                 tsconfig,
                 config,
                 filePathsToIgnore: opts.ignore?.split(',') || [],
