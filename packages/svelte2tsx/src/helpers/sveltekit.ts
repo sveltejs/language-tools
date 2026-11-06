@@ -224,7 +224,7 @@ function upsertKitRouteFile(
         insertCode(addedCode, pos, inserted);
     };
 
-    const isTsFile = basename.endsWith('.ts');
+    const isTsFile = basename.endsWith('.ts') || basename.endsWith('.tsx');
     const exports = findExports(ts, source, isTsFile);
 
     // add type to load function if not explicitly typed
