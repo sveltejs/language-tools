@@ -15,7 +15,7 @@ import {
     process_content_mapper
 } from './process';
 import { VERSION } from 'svelte/compiler';
-import { SpanMapKind } from '../../src/utils/spanMap';
+import { assertValidSpanMap } from '../span-map/check';
 
 const isSvelte5Plus = Number(VERSION[0]) >= 5;
 describe('sourcemaps', function () {
@@ -205,28 +205,16 @@ function parse(sample: Sample): Parsed {
             sample.name
         );
         const { code, map } = svelte2tsx(original, config);
-        const { code: content_mapper_code, spanMappings } = svelte2tsx(original, {
+        const content_mapper_result = svelte2tsx(original, {
             ...config,
             generateSpanMapping: true
         });
-
-        for (const [
-            generatedStart,
-            generatedLength,
-            originalStart,
-            originalLength,
-            kind
-        ] of spanMappings) {
-            assert.ok(generatedStart >= 0 && generatedStart + generatedLength <= code.length);
-            assert.ok(originalStart >= 0 && originalStart + originalLength <= original.length);
-            if (kind === SpanMapKind.Verbatim) {
-                assert.strictEqual(
-                    content_mapper_code.slice(generatedStart, generatedStart + generatedLength),
-                    original.slice(originalStart, originalStart + originalLength),
-                    'Verbatim spans must have the same generated and original text'
-                );
-            }
-        }
+        const {
+            code: content_mapper_code,
+            spanMappings,
+            diagnosticDirectives
+        } = content_mapper_result;
+        assertValidSpanMap(original, content_mapper_result);
 
         map.file = 'output.tsx';
         map.sources = [filename];
@@ -236,7 +224,8 @@ function parse(sample: Sample): Parsed {
         const { print: print_span_mappings } = process_content_mapper(
             original,
             content_mapper_code,
-            spanMappings
+            spanMappings,
+            diagnosticDirectives?.directives ?? []
         );
         cache.set(sample, {
             ...mapped,

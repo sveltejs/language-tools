@@ -7,7 +7,7 @@ import {
     transform,
     TransformationArray
 } from '../utils/node-utils';
-import { ExtraGeneratedMapping, SpanMapFeature, SpanMapGenerator } from '../../utils/spanMap';
+import { mapGenerated, SpanMapFeature, SpanMapGenerator } from '../../utils/spanMap';
 
 // mainly excluding semantic tokens and type definition
 const componentNameFlags =
@@ -22,9 +22,6 @@ const componentNameFlags =
     SpanMapFeature.CodeActions |
     SpanMapFeature.SelectionRanges |
     SpanMapFeature.DocumentSymbols;
-
-const PROPS = 'props';
-const PROPS_LENGTH = PROPS.length;
 
 /**
  * Handles Svelte components as well as svelte:self and svelte:component
@@ -124,32 +121,23 @@ export class InlineComponent {
                 ? this.node.expression.end
                 : nodeNameStart + this.node.name.length;
 
-            const instantiate = `); new ${constructorName}({ target: __sveltets_2_any(), props: {`;
+            // Errors about the props as a whole (missing props) are reported at `props`,
+            // place them at the tag name
+            const props = mapGenerated(spanMapGenerator, 'props', [
+                this.startTagStart + 1,
+                this.tagNameEnd
+            ]);
             this.startTransformation.push(
                 `{ const ${constructorName} = __sveltets_2_ensureComponent(`,
                 [nodeNameStart, nodeNameEnd],
-                instantiate
+                `); new ${constructorName}({ target: __sveltets_2_any(), ${props}: {`
             );
-
-            let spanMapExtraMapping: ExtraGeneratedMapping | undefined;
-            if (spanMapGenerator) {
-                spanMapExtraMapping = {
-                    length: PROPS_LENGTH,
-                    offsetFromEnd: instantiate.lastIndexOf(PROPS),
-                    features: SpanMapFeature.None
-                };
-                spanMapGenerator?.addSourceSpan(nodeNameStart, nodeNameEnd, {
-                    features: componentNameFlags,
-                    extraMapping: spanMapExtraMapping
-                });
-            }
+            spanMapGenerator?.addSourceSpan(nodeNameStart, nodeNameEnd, {
+                features: componentNameFlags
+            });
 
             this.addNameConstDeclaration = () => {
-                const newInstantiate = `); const ${this._name} = new ${constructorName}({ target: __sveltets_2_any(), props: {`;
-                this.startTransformation[2] = newInstantiate;
-                if (spanMapExtraMapping) {
-                    spanMapExtraMapping.offsetFromEnd = newInstantiate.lastIndexOf(PROPS);
-                }
+                this.startTransformation[2] = `); const ${this._name} = new ${constructorName}({ target: __sveltets_2_any(), ${props}: {`;
             };
             this.startEndTransformation.push('}});');
         }
@@ -177,12 +165,13 @@ export class InlineComponent {
         [nameStart, nameEnd]: [number, number],
         expression?: [number, number],
         leadingComments: TransformationArray = [],
-        trailingComments: TransformationArray = []
+        trailingComments: TransformationArray = [],
+        openingQuote = '"'
     ): void {
         this.eventsTransformation.push(
             ...leadingComments,
             `${this.name}.$on(`,
-            surroundWith(this.str, [nameStart, nameEnd], '"', '"'),
+            surroundWith(this.str, [nameStart, nameEnd], openingQuote, '"'),
             ', ',
             expression ? expression : '() => {}',
             ');',

@@ -17,7 +17,21 @@ export interface SvelteCompiledToTsx {
      */
     events: ComponentEvents;
 
-    spanMappings: [number, number, number, number, number][] | undefined;
+    /**
+     * TypeScript 7 span map of `code`, if `generateSpanMapping` is set:
+     * `[virtualStart, virtualLength, originalStart, originalLength, kind, features?]`
+     * (kind: 0 = Verbatim, 1 = Atom, 2 = Alias). UTF-16 positions.
+     */
+    spanMappings: [number, number, number, number, number, number?][] | undefined;
+    /**
+     * TypeScript 7 diagnostic directives of `code`, if `generateSpanMapping` is set and there
+     * are any: an `Ignore` directive for each region of purely generated code.
+     */
+    diagnosticDirectives?: {
+        unusedExpectDirectiveDiagnostics: { code: number; messageText: string }[];
+        /** `[originalStart, originalLength, virtualStart, virtualEnd, policy, unusedExpectDirectiveIndex?]` (policy: 0 = Ignore, 1 = Expect) */
+        directives: [number, number, number, number, number, number?][];
+    };
 }
 
 export interface IExportedNames {
@@ -113,6 +127,8 @@ export function svelte2tsx(
 
         /**
          * Generates source map information using typescript 7's span map format
+         * (`spanMappings`), and diagnostic directives (`diagnosticDirectives`).
+         * Changes the output slightly. Not applicable to `mode: 'dts'`.
          */
         generateSpanMapping?: boolean;
     }

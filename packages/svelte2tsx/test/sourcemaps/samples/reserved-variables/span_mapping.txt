@@ -1,3 +1,4 @@
+# gap: 75.4% of 617 non-whitespace characters, 75.4% outside Ignore directives
 >///<reference types="svelte" />
 >;function $$render() { let $$props = __sveltets_2_allPropsType(); let $$restProps = __sveltets_2_restPropsType(); let $$slots = __sveltets_2_slotsType({});
 #^ [Atom] => 0-1

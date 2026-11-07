@@ -1,0 +1,10 @@
+[
+    {
+        "range": { "start": { "line": 5, "character": 15 }, "end": { "line": 5, "character": 20 } },
+        "severity": 1,
+        "source": "ts",
+        "message": "An object literal cannot have multiple properties with the same name.",
+        "code": 1117,
+        "tags": []
+    }
+]

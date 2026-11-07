@@ -1,0 +1,50 @@
+[
+    {
+        "range": { "start": { "line": 1, "character": 19 }, "end": { "line": 1, "character": 22 } },
+        "severity": 1,
+        "source": "ts",
+        "message": "Cannot find module '.' or its corresponding type declarations.",
+        "code": 2307,
+        "tags": []
+    },
+    {
+        "range": { "start": { "line": 2, "character": 27 }, "end": { "line": 2, "character": 30 } },
+        "severity": 1,
+        "source": "ts",
+        "message": "Cannot find module '.' or its corresponding type declarations.",
+        "code": 2307,
+        "tags": []
+    },
+    {
+        "range": { "start": { "line": 4, "character": 9 }, "end": { "line": 4, "character": 10 } },
+        "severity": 1,
+        "source": "ts",
+        "message": "Type 'boolean' is not assignable to type 'string | number'.",
+        "code": 2322,
+        "tags": []
+    },
+    {
+        "range": { "start": { "line": 9, "character": 10 }, "end": { "line": 9, "character": 17 } },
+        "severity": 1,
+        "source": "ts",
+        "message": "Property 'toFixed' does not exist on type 'string | number'.\n  Property 'toFixed' does not exist on type 'string'.",
+        "code": 2339,
+        "tags": []
+    },
+    {
+        "range": { "start": { "line": 1, "character": 10 }, "end": { "line": 1, "character": 13 } },
+        "severity": 4,
+        "source": "ts",
+        "message": "'Foo' is declared but its value is never read.",
+        "code": 6133,
+        "tags": [1]
+    },
+    {
+        "range": { "start": { "line": 2, "character": 3 }, "end": { "line": 2, "character": 31 } },
+        "severity": 4,
+        "source": "ts",
+        "message": "All imports in import declaration are unused.",
+        "code": 6192,
+        "tags": [1]
+    }
+]

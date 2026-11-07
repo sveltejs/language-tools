@@ -1,0 +1,13 @@
+[
+    {
+        "range": {
+            "start": { "line": 10, "character": 8 },
+            "end": { "line": 10, "character": 20 }
+        },
+        "severity": 1,
+        "source": "ts",
+        "message": "Expected 3 arguments, but got 2.",
+        "code": 2554,
+        "tags": []
+    }
+]

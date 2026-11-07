@@ -85,11 +85,17 @@ function startServer() {
                 // @ts-expect-error internal
                 noSvelteComponentTyped: !isSvelte3
             });
+            // invalid segments or directives that svelte2tsx dropped (a bug), the rest still works
+            const spanMapIssues: string[] | undefined = (res as any).spanMapIssues;
+            if (spanMapIssues) {
+                console.warn(`Invalid span map for ${fileName}:\n${spanMapIssues.join('\n')}`);
+            }
 
             return {
                 text: res.code,
                 extension,
                 mappings: res.spanMappings ?? [],
+                diagnosticDirectives: res.diagnosticDirectives,
                 diagnostics: []
             };
         } catch (error: any) {

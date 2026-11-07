@@ -7,6 +7,7 @@ import { Generics } from './nodes/Generics';
 import { surroundWithIgnoreComments } from '../utils/ignore';
 import { ComponentEvents } from './nodes/ComponentEvents';
 import { internalHelpers } from '../helpers';
+import { mapGenerated, SpanMapFeature, SpanMapGenerator } from '../utils/spanMap';
 
 export interface AddComponentExportPara {
     str: MagicString;
@@ -31,6 +32,7 @@ export interface AddComponentExportPara {
      * If true, emits JSDoc annotations for types in JS files instead of TypeScript syntax.
      */
     emitJsDoc?: boolean;
+    spanMapGenerator?: SpanMapGenerator;
 }
 
 /**
@@ -38,6 +40,19 @@ export interface AddComponentExportPara {
  * like reported in https://github.com/sveltejs/language-tools/issues/294
  */
 export const COMPONENT_SUFFIX = '__SvelteComponent_';
+
+/**
+ * Marks the declaration of the default export, so that go to definition of a default import
+ * lands at the start of the file
+ */
+function defaultExportAnchor(spanMapGenerator: SpanMapGenerator | undefined, text: string) {
+    return mapGenerated(spanMapGenerator, text, [0, 0], SpanMapFeature.Definition);
+}
+
+/** ` ClassName`, if there is a class name */
+function classNameOf(spanMapGenerator: SpanMapGenerator | undefined, name: string | undefined) {
+    return name ? ` ${defaultExportAnchor(spanMapGenerator, name)}` : '';
+}
 
 export function addComponentExport(params: AddComponentExportPara) {
     if (params.generics.has()) {
@@ -62,7 +77,8 @@ function addGenericsComponentExport({
     isSvelte5,
     noSvelteComponentTyped,
     hasTopLevelAwait,
-    emitJsDoc
+    emitJsDoc,
+    spanMapGenerator
 }: AddComponentExportPara) {
     const genericsDef = generics.toDefinitionString();
     const genericsRef = generics.toReferencesString();
@@ -172,7 +188,7 @@ ${templateComment}class __sveltets_Render {
                 `    ${genericsDef}(internal: unknown, props: ${propsType}): ${returnType('exports')};\n` +
                 `    z_$$bindings?: ${bindingsType};\n` +
                 `}\n` +
-                `${doc}const ${className || '$$Component'}: $$IsomorphicComponent = null as any;\n` +
+                `${doc}${defaultExportAnchor(spanMapGenerator, `const ${className || '$$Component'}`)}: $$IsomorphicComponent = null as any;\n` +
                 surroundWithIgnoreComments(
                     `type ${className || '$$Component'}${genericsDef} = InstanceType<typeof ${className || '$$Component'}${genericsRef}>;\n`
                 ) +
@@ -186,7 +202,7 @@ ${templateComment}class __sveltets_Render {
             statement +=
                 `\n${templateComment}` +
                 `/** @typedef {${componentType}} $$IsomorphicComponent */\n` +
-                `${doc}/** @type {$$IsomorphicComponent} */ export const ${componentName} = /** @type {any} */(null);\n` +
+                `${doc}/** @type {$$IsomorphicComponent} */ export ${defaultExportAnchor(spanMapGenerator, `const ${componentName}`)} = /** @type {any} */(null);\n` +
                 `/** @typedef {InstanceType<typeof ${componentName}>} ${componentName} */\n` +
                 `export default ${componentName};`;
         }
@@ -205,9 +221,7 @@ ${templateComment}class __sveltets_Render {
         if (useTSSyntax) {
             statement +=
                 `\n\nimport { ${svelteComponentClass} as __SvelteComponentTyped__ } from "svelte" \n` +
-                `${doc}export default class${
-                    className ? ` ${className}` : ''
-                }${genericsDef} extends __SvelteComponentTyped__<${returnType('props')}, ${returnType(
+                `${doc}export default class${classNameOf(spanMapGenerator, className)}${genericsDef} extends __SvelteComponentTyped__<${returnType('props')}, ${returnType(
                     'events'
                 )}, ${returnType('slots')}> {` +
                 exportedNames.createClassGetters(genericsRef) +
@@ -220,9 +234,7 @@ ${templateComment}class __sveltets_Render {
                 templateNames.map((t) => ` * @template ${t}\n`).join('') +
                 ` * @extends {__SvelteComponentTyped__<${returnType('props')}, ${returnType('events')}, ${returnType('slots')}>}\n` +
                 ` */\n` +
-                `export default class${
-                    className ? ` ${className}` : ''
-                } extends __SvelteComponentTyped__ {` +
+                `export default class${classNameOf(spanMapGenerator, className)} extends __SvelteComponentTyped__ {` +
                 exportedNames.createClassGetters(genericsRef) +
                 (usesAccessors ? exportedNames.createClassAccessors() : '') +
                 '\n}';
@@ -246,7 +258,8 @@ function addSimpleComponentExport({
     noSvelteComponentTyped,
     isSvelte5,
     hasTopLevelAwait,
-    emitJsDoc
+    emitJsDoc,
+    spanMapGenerator
 }: AddComponentExportPara) {
     const renderCall = hasTopLevelAwait
         ? `$${internalHelpers.renderName}`
@@ -342,7 +355,7 @@ declare function $$__sveltets_2_isomorphic_component<
             const useTypeScriptSyntax = isTsFile || !emitJsDoc;
             if (exportedNames.isRunesMode() && !usesSlots && !events.hasEvents()) {
                 statement =
-                    `\n${awaitDeclaration}${doc}${useTypeScriptSyntax ? '' : 'export '}const ${componentName} = __sveltets_2_fn_component(${renderCall});\n` +
+                    `\n${awaitDeclaration}${doc}${useTypeScriptSyntax ? '' : 'export '}${defaultExportAnchor(spanMapGenerator, `const ${componentName}`)} = __sveltets_2_fn_component(${renderCall});\n` +
                     // Surround the type with ignore comments so it is filtered out from go-to-definition etc,
                     // which for some editors can cause duplicates
                     surroundWithIgnoreComments(
@@ -353,7 +366,7 @@ declare function $$__sveltets_2_isomorphic_component<
                     `export default ${componentName};`;
             } else {
                 statement =
-                    `\n${awaitDeclaration}${doc}${useTypeScriptSyntax ? '' : 'export '}const ${componentName} = __sveltets_2_isomorphic_component${usesSlots ? '_slots' : ''}(${propDef});\n` +
+                    `\n${awaitDeclaration}${doc}${useTypeScriptSyntax ? '' : 'export '}${defaultExportAnchor(spanMapGenerator, `const ${componentName}`)} = __sveltets_2_isomorphic_component${usesSlots ? '_slots' : ''}(${propDef});\n` +
                     surroundWithIgnoreComments(
                         useTypeScriptSyntax
                             ? `type ${componentName} = InstanceType<typeof ${componentName}>;\n`
@@ -363,9 +376,7 @@ declare function $$__sveltets_2_isomorphic_component<
             }
         } else {
             statement =
-                `\n\n${doc}export default class${
-                    className ? ` ${className}` : ''
-                } extends __sveltets_2_createSvelte2TsxComponent(${propDef}) {` +
+                `\n\n${doc}export default class${classNameOf(spanMapGenerator, className)} extends __sveltets_2_createSvelte2TsxComponent(${propDef}) {` +
                 exportedNames.createClassGetters() +
                 (usesAccessors ? exportedNames.createClassAccessors() : '') +
                 '\n}';

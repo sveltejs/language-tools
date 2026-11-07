@@ -1,3 +1,4 @@
+# gap: 85.6% of 375 non-whitespace characters, 57.9% outside Ignore directives
 >///<reference types="svelte" />
 >;function $$render() {
 #^ [Atom] => 0-1
@@ -37,4 +38,6 @@
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ [Atom],[Definition] => 0-0
 -
 >/*Ωignore_startΩ*/type Input__SvelteComponent_ = ReturnType<typeof Input__SvelteComponent_>;
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 >/*Ωignore_endΩ*/export default Input__SvelteComponent_;
+#~~~~~~~~~~~~~~~~ [Ignore]

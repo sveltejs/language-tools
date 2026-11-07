@@ -1,3 +1,4 @@
+# gap: 88.6% of 299 non-whitespace characters, 88.6% outside Ignore directives
 >///<reference types="svelte" />
 >;function $$render() {
 >async () => { { svelteHTML.createElement("button", {count,});  }};

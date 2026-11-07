@@ -27,10 +27,8 @@ const IN_VIRTUAL_CODE = 18074;
 const NO_OVERLOAD_MATCHES_CALL = 2769;
 const ARG_TYPE_X_NOT_ASSIGNABLE_TO_TYPE_Y = 2345;
 const TYPE_X_NOT_ASSIGNABLE_TO_TYPE_Y = 2322;
+const DEPRECATED = 6385;
 const DEPRECATED_SIGNATURE = 6387;
-
-/** Prefix of the names svelte2tsx generates for component constructors and instances */
-const generatedComponentPrefix = '$$_';
 
 const storeGetName = '__sveltets_2_store_get';
 const ensureComponentName = '__sveltets_2_ensureComponent';
@@ -70,7 +68,7 @@ export async function relocateVirtualCodeDiagnostics(
         const diagnostics: Diagnostic[] = [];
         const handledMessages: string[] = [];
         for (const diagnostic of unmapped) {
-            if (isGeneratedDeprecation(context, diagnostic)) {
+            if (isDeprecation(diagnostic)) {
                 handledMessages.push(diagnostic.text);
                 continue;
             }
@@ -79,6 +77,8 @@ export async function relocateVirtualCodeDiagnostics(
                 relocateNonBindableError(context, diagnostic);
             if (relocated) {
                 diagnostics.push(...relocated);
+                handledMessages.push(diagnostic.text);
+            } else if (isInIgnoreRegion(sourceFile.text, diagnostic.pos)) {
                 handledMessages.push(diagnostic.text);
             }
         }
@@ -107,27 +107,44 @@ function isInVirtualCode(diagnostic: ApiDiagnostic): boolean {
 }
 
 /**
- * Svelte 5 deprecates the constructor and `$on` of class components, but svelte2tsx uses them for
- * components typed as classes (e.g. by the declarations of libraries built for Svelte 4):
- * `new $$_ChildC({ ... })` and `$$_Child.$on('event', ...)`. The counterpart of
- * `isGeneratedDeprecation` in `diagnostics.ts`, for deprecations in unmapped virtual code.
+ * Unmapped virtual code is generated, so a deprecation there is about what svelte2tsx uses, never
+ * about the user's code. E.g. Svelte 5 deprecates the constructor and `$on` of class components,
+ * but svelte2tsx uses them for components typed as classes (`new $$_ChildC({ ... })`,
+ * `$$_Child.$on('event', ...)`), or `ComponentConstructorOptions` in the component's type.
+ * TS6 dropped them, too (no source mapping). Deprecations are suggestions, which `Ignore`
+ * directives don't drop. The counterpart of `isGeneratedDeprecation` in `diagnostics.ts`.
  */
-function isGeneratedDeprecation(
-    { api, sourceFile }: RelocationContext,
-    diagnostic: ApiDiagnostic
-): boolean {
-    if (diagnostic.code !== DEPRECATED_SIGNATURE) {
-        return false;
+function isDeprecation(diagnostic: ApiDiagnostic): boolean {
+    return diagnostic.code === DEPRECATED || diagnostic.code === DEPRECATED_SIGNATURE;
+}
+
+const IGNORE_START_COMMENT = '/*Ωignore_startΩ*/';
+const IGNORE_END_COMMENT = '/*Ωignore_endΩ*/';
+
+/**
+ * Inside a `/*Ωignore_startΩ*\/…/*Ωignore_endΩ*\/` region of svelte2tsx (purely generated code), like
+ * TS6's `isInGeneratedCode`. svelte2tsx puts an `Ignore` directive over these regions, so only
+ * diagnostics the directives don't cover arrive here: syntactic ones, suggestions, and the ones at
+ * the argument of `__sveltets_2_store_get(x)`, which svelte2tsx leaves to the store misuse rule.
+ */
+function isInIgnoreRegion(text: string, position: number): boolean {
+    // regions can be nested
+    let depth = 0;
+    let nextStart = text.indexOf(IGNORE_START_COMMENT);
+    let nextEnd = text.indexOf(IGNORE_END_COMMENT);
+    while (
+        nextEnd !== -1 &&
+        Math.min(nextEnd, nextStart === -1 ? nextEnd : nextStart) <= position
+    ) {
+        if (nextStart !== -1 && nextStart < nextEnd) {
+            depth++;
+            nextStart = text.indexOf(IGNORE_START_COMMENT, nextStart + 1);
+        } else {
+            depth = Math.max(0, depth - 1);
+            nextEnd = text.indexOf(IGNORE_END_COMMENT, nextEnd + 1);
+        }
     }
-    const ast = api.astModule;
-    // reported at the constructor (`new $$_ChildC`), or at the name of the method (`$$_Child.$on`)
-    const token = ast.getTouchingToken(sourceFile, diagnostic.pos);
-    const parent = token?.parent;
-    const target =
-        token && parent && ast.isPropertyAccessExpression(parent) && parent.name.pos === token.pos
-            ? parent.expression
-            : token;
-    return !!target && ast.isIdentifier(target) && target.text.startsWith(generatedComponentPrefix);
+    return depth > 0 && nextEnd !== -1;
 }
 
 /**
