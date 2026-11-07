@@ -641,7 +641,7 @@
                 },
                 {
                     "command": "svelte.typescript.findAllFileReferences",
-                    "when": "editorLangId == svelte && resourceScheme == file"
+                    "when": "editorLangId == svelte && resourceScheme == file && svelte.uiContext.fileReference.enable"
                 },
                 {
                     "command": "svelte.typescript.findComponentReferences",
@@ -663,7 +663,7 @@
             "editor/title/context": [
                 {
                     "command": "svelte.typescript.findAllFileReferences",
-                    "when": "resourceLangId == svelte && resourceScheme == file"
+                    "when": "resourceLangId == svelte && resourceScheme == file && svelte.uiContext.fileReference.enable"
                 },
                 {
                     "command": "svelte.typescript.findComponentReferences",
@@ -678,7 +678,7 @@
                 },
                 {
                     "command": "svelte.typescript.findAllFileReferences",
-                    "when": "editorLangId == svelte",
+                    "when": "editorLangId == svelte && svelte.uiContext.fileReference.enable",
                     "group": "4_search"
                 },
                 {
@@ -690,7 +690,7 @@
             "explorer/context": [
                 {
                     "command": "svelte.typescript.findAllFileReferences",
-                    "when": "resourceLangId == svelte",
+                    "when": "resourceLangId == svelte && svelte.uiContext.fileReference.enable",
                     "group": "4_search"
                 },
                 {
@@ -780,6 +780,7 @@
         "textmate-grammar-test": "^0.6.0"
     },
     "dependencies": {
+        "@typescript/native": "npm:typescript@7.1.0-beta",
         "svelte-language-server": "workspace:*",
         "typescript-svelte-plugin": "workspace:*",
         "vscode-languageclient": "^9.0.1",

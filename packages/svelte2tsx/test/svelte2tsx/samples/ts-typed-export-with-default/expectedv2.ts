@@ -1,7 +1,7 @@
 ///<reference types="svelte" />
 ;function $$render() {
 
-     let name: string | number = "world"/*Ωignore_startΩ*/;name = __sveltets_2_any(name);/*Ωignore_endΩ*/
+     let name: string | number = "world"/*Ωignore_startΩ*/;name = __sveltets_2_any();name;/*Ωignore_endΩ*/
 ;
 async () => {};
 return { props: {name: name} as {name?: string | number}, slots: {}, events: {} }}

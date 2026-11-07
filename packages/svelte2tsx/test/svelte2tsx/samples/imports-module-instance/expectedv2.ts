@@ -3,10 +3,9 @@
     import { } from 'svelte/action';
 ;;
 
-import { } from 'svelte';
+    import { } from 'svelte';
 function $$render() {
 
-    
 ;
 async () => {
 
