@@ -1,13 +1,12 @@
 ///<reference types="svelte" />
 ;
-import type Foo from 'somewhere';
+    import type Foo from 'somewhere';
 interface ReferencedByGeneric {
         b: true;
         f: Foo;
     }
 function $$render/*Ωignore_startΩ*/<A,B extends ReferencedByGeneric>/*Ωignore_endΩ*/() {
 
-    
     interface ReferencesGeneric {
         a: A;
     }
@@ -16,8 +15,8 @@ function $$render/*Ωignore_startΩ*/<A,B extends ReferencedByGeneric>/*Ωignore
     
     
 
-     let a: ReferencesGeneric/*Ωignore_startΩ*/;a = __sveltets_2_any(a);/*Ωignore_endΩ*/;
-     let b: B/*Ωignore_startΩ*/;b = __sveltets_2_any(b);/*Ωignore_endΩ*/;
+     let a: ReferencesGeneric/*Ωignore_startΩ*/;a = __sveltets_2_any();a;/*Ωignore_endΩ*/;
+     let b: B/*Ωignore_startΩ*/;b = __sveltets_2_any();b;/*Ωignore_endΩ*/;
 ;
 async () => {};
 return { props: {a: a , b: b} as {a: ReferencesGeneric, b: B}, exports: {}, bindings: "", slots: {}, events: {} }}

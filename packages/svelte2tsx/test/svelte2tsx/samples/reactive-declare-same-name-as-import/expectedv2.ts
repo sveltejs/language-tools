@@ -3,7 +3,6 @@
 import { b as c } from "foo";
 function $$render() {
 
-
 let  b = __sveltets_2_invalidate(() => 7);
 
 let a;

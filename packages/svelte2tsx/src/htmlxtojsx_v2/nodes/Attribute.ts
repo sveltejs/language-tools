@@ -5,6 +5,7 @@ import { Attribute, BaseNode } from '../../interfaces';
 import { Element } from './Element';
 import { InlineComponent } from './InlineComponent';
 import { getLeadingCommentTransformation, getTrailingCommentTransformation } from './Comment';
+import { SpanMapGenerator } from '../../utils/spanMap';
 
 /**
  * List taken from `elements.d.ts` in Svelte core by searching for all attributes of type `number | undefined | null`;
@@ -57,7 +58,8 @@ export function handleAttribute(
     parent: BaseNode,
     preserveCase: boolean,
     svelte5Plus: boolean,
-    element: Element | InlineComponent
+    element: Element | InlineComponent,
+    spanMapGenerator: SpanMapGenerator | undefined
 ): void {
     if (
         parent.name === '!DOCTYPE' ||
@@ -137,6 +139,7 @@ export function handleAttribute(
             start--;
             str.overwrite(start, end, ' ', { contentOnly: true });
         }
+        spanMapGenerator?.addSourceSpan(attr.start, attr.end);
         addAttribute([[start, end], ...trailingComments]);
         return;
     } else {
@@ -154,6 +157,7 @@ export function handleAttribute(
                 contentOnly: true
             });
         }
+        spanMapGenerator?.addSourceSpan(attr.start, attr.start + attr.name.length);
         attributeName.push([attr.start, attr.start + attr.name.length], '"');
     }
 
@@ -210,6 +214,7 @@ export function handleAttribute(
             if (escapedValue !== null) {
                 str.overwrite(attrVal.start, attrVal.end, escapedValue, { contentOnly: true });
             }
+            spanMapGenerator?.addSourceSpan(attrVal.start, attrVal.end);
             attributeValue.push([attrVal.start, attrVal.end]);
             if (!needsNumberConversion) {
                 attributeValue.push(quote);

@@ -1,6 +1,7 @@
 import MagicString from 'magic-string';
 import { BaseNode } from '../../interfaces';
 import { withTrailingPropertyAccess, transform, TransformationArray } from '../utils/node-utils';
+import type { SpanMapGenerator } from '../../utils/spanMap';
 
 /**
  * This needs to be called on the way out, not on the way on, when walking,
@@ -25,7 +26,11 @@ import { withTrailingPropertyAccess, transform, TransformationArray } from '../u
  *  Both would throw "variable used before declaration" if we didn't do the
  * transformation this way.
  */
-export function handleAwait(str: MagicString, awaitBlock: BaseNode): void {
+export function handleAwait(
+    str: MagicString,
+    awaitBlock: BaseNode,
+    spanMapGenerator: SpanMapGenerator | undefined
+): void {
     const transforms: TransformationArray = ['{ '];
     if (!awaitBlock.pending.skip) {
         transforms.push([awaitBlock.pending.start, awaitBlock.pending.end]);
@@ -72,5 +77,5 @@ export function handleAwait(str: MagicString, awaitBlock: BaseNode): void {
         transforms.push('}');
     }
     transforms.push('}');
-    transform(str, awaitBlock.start, awaitBlock.end, transforms);
+    transform(str, awaitBlock.start, awaitBlock.end, transforms, spanMapGenerator);
 }

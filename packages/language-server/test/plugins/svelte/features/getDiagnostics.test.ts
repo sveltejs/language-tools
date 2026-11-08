@@ -48,7 +48,7 @@ describe('SveltePlugin#getDiagnostics', () => {
         const filePath = path.join(testDir, 'testfiles', filename);
         const document = new Document(pathToUrl(filePath), fs.readFileSync(filePath, 'utf-8'));
         const pluginManager = new LSConfigManager();
-        const plugin = new SveltePlugin(pluginManager);
+        const plugin = new SveltePlugin(pluginManager, undefined);
         return { plugin, document };
     }
 

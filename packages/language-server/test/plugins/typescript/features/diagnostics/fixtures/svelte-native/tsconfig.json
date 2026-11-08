@@ -9,5 +9,11 @@
     },
     "svelteOptions": {
         "namespace": "svelteNative"
-    }
+    },
+    "contentMappers": [
+        {
+            "package": "@sveltejs/ts-content-mapper",
+            "extensions": [".svelte"]
+        }
+    ]
 }
