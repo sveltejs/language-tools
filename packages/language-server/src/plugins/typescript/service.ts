@@ -1027,11 +1027,15 @@ async function createLanguageService(
 
         dispose();
 
-        if (kind === ts.FileWatcherEventKind.Changed) {
-            scheduleReload(fileName);
-        } else if (kind === ts.FileWatcherEventKind.Deleted) {
+        if (kind === ts.FileWatcherEventKind.Deleted) {
             services.delete(fileName);
             configFileForOpenFiles.clear();
+        } else {
+            // The service was disposed, so it must not be reused as is.
+            // `Changed` happens for in-place writes, `Created` when the file was
+            // replaced atomically (write temp file + rename), which `fs.watchFile`
+            // reports as creation. In both cases the config needs a reload.
+            scheduleReload(fileName);
         }
 
         docContext.onProjectReloaded?.([fileName]);
