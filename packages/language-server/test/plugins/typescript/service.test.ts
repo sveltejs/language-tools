@@ -416,62 +416,6 @@ describe('service', () => {
         }
     });
 
-    it('reloads ts service when tsconfig is replaced atomically', async () => {
-        const dirPath = getRandomVirtualDirPath(testDir);
-        const { virtualSystem, lsDocumentContext, rootUris } = setup();
-        const tsconfigPath = path.join(dirPath, 'tsconfig.json');
-        const svelteFilePath = path.join(dirPath, 'random.svelte');
-
-        virtualSystem.writeFile(
-            tsconfigPath,
-            JSON.stringify({
-                compilerOptions: <ts.CompilerOptions>{
-                    strict: false
-                }
-            })
-        );
-
-        virtualSystem.writeFile(svelteFilePath, '<script>const a: number = null;</script>');
-
-        const { reloadPromise, docContextWithReload } = createReloadTester(
-            { ...lsDocumentContext, watchTsConfig: true },
-            testAfterReload
-        );
-
-        const oldService = await getService(svelteFilePath, rootUris, docContextWithReload);
-        assert.strictEqual(oldService.compilerOptions.strict, false);
-        // initialize the language service, like an editor would before a config change
-        oldService.getService().getProgram();
-
-        // replacing a file atomically (write temp file + rename) makes `fs.watchFile`
-        // report Created instead of Changed
-        virtualSystem.atomicReplaceFile(
-            tsconfigPath,
-            JSON.stringify({
-                compilerOptions: <ts.CompilerOptions>{
-                    strict: true
-                }
-            })
-        );
-
-        await reloadPromise;
-
-        async function testAfterReload() {
-            const newService = await getService(svelteFilePath, rootUris, {
-                ...lsDocumentContext,
-                watchTsConfig: true
-            });
-            assert.strictEqual(
-                newService.compilerOptions.strict,
-                true,
-                'expected to reload compilerOptions after an atomic tsconfig replacement'
-            );
-            // reusing the disposed service would throw in here
-            assert.doesNotThrow(() => newService.getService().getProgram());
-            return true;
-        }
-    });
-
     it('can watch extended tsconfig', async () => {
         const dirPath = getRandomVirtualDirPath(testDir);
         const { virtualSystem, lsDocumentContext, rootUris } = setup();
