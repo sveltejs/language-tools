@@ -11,6 +11,11 @@ export interface SvelteCheckCliOptions {
     incremental: boolean;
     tsgo: boolean;
     tsgoExperimental: boolean;
+    /**
+     * TypeScript diagnostics from TypeScript 7 through its API, with `.svelte` files transformed by
+     * the content mapper configured in the tsconfig. Hidden while it's experimental.
+     */
+    experimentalTs7: boolean;
     tsconfig?: string;
     config?: string;
     filePathsToIgnore: string[];
@@ -98,6 +103,9 @@ export function parseOptions(cb: (opts: SvelteCheckCliOptions) => any) {
             if (opts.ignore && tsconfig) {
                 throwError('`--ignore` only has an effect when using `--no-tsconfig`');
             }
+            if (experimentalTs7) {
+                validateTs7Options(opts, tsconfig);
+            }
 
             cb({
                 workspaceUri,
@@ -113,13 +121,36 @@ export function parseOptions(cb: (opts: SvelteCheckCliOptions) => any) {
                 compilerWarnings: getCompilerWarnings(opts),
                 diagnosticSources: getDiagnosticSources(opts),
                 threshold: getThreshold(opts),
-                tsgoExperimental: !!opts['tsgo-experimental-api']
+                tsgoExperimental: !!opts['tsgo-experimental-api'],
+                experimentalTs7
             });
         });
 
-    prog.parse(process.argv, {
+    // Hidden flag: not declared, so that it's not in --help. sade rejects unknown flags.
+    const argv = process.argv.filter((arg) => arg !== TS7_FLAG);
+    const experimentalTs7 = argv.length !== process.argv.length;
+    prog.parse(argv, {
         unknown: (arg) => `Unknown option ${arg}`
     });
+}
+
+const TS7_FLAG = '--experimental-ts7';
+
+function validateTs7Options(opts: Record<string, any>, tsconfig: string | undefined) {
+    const conflicting = ['incremental', 'tsgo', 'tsgo-experimental-api', 'watch'].filter(
+        (option) => opts[option]
+    );
+    if (opts['no-tsconfig'] || process.argv.includes('--no-tsconfig')) {
+        conflicting.push('no-tsconfig');
+    }
+    if (conflicting.length) {
+        throwError(
+            `${TS7_FLAG} cannot be used with ${conflicting.map((option) => '--' + option).join(', ')}`
+        );
+    }
+    if (!tsconfig) {
+        throwError(`${TS7_FLAG} requires a tsconfig/jsconfig file`);
+    }
 }
 
 const outputFormats = ['human', 'human-verbose', 'machine', 'machine-verbose'] as const;

@@ -2,7 +2,7 @@ import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver';
 import { Document } from '../../../lib/documents';
 import { TemplateAstWalker } from '../../svelte/TemplateASTLoader';
 import { TsApiLocationMapper } from '../TsApiLocationMapper';
-import { TsApiService } from '../TsApiService';
+import type { TsApiAccess } from '../TsApiService';
 import type { tsApiAsync, tsAst } from '../types';
 
 /**
@@ -36,7 +36,7 @@ const ensureComponentName = '__sveltets_2_ensureComponent';
 type ApiDiagnostic = tsApiAsync.Diagnostic;
 
 export async function relocateVirtualCodeDiagnostics(
-    api: TsApiService,
+    api: TsApiAccess,
     document: Document,
     ast: TemplateAstWalker | undefined
 ): Promise<VirtualCodeRelocation | undefined> {
@@ -91,7 +91,7 @@ export async function relocateVirtualCodeDiagnostics(
 }
 
 interface RelocationContext {
-    api: TsApiService;
+    api: TsApiAccess;
     project: tsApiAsync.Project;
     sourceFile: tsAst.SourceFile;
     document: Document;
@@ -99,7 +99,8 @@ interface RelocationContext {
     mapper: TsApiLocationMapper;
 }
 
-function isInVirtualCode(diagnostic: ApiDiagnostic): boolean {
+/** In unmapped virtual code: TS7 adds an 18074 note to the message chain, and its position is virtual */
+export function isInVirtualCode(diagnostic: ApiDiagnostic): boolean {
     return (
         diagnostic.code === IN_VIRTUAL_CODE ||
         !!diagnostic.messageChain?.some((chained) => isInVirtualCode(chained))
@@ -268,7 +269,7 @@ function relocateNonBindableError(
 }
 
 /** `X` of `const $$_xC = __sveltets_2_ensureComponent(X);` in `block` */
-function findEnsureComponentArgument(api: TsApiService, block: tsAst.Node) {
+function findEnsureComponentArgument(api: TsApiAccess, block: tsAst.Node) {
     const ast = api.astModule;
     if (!ast.isBlock(block)) {
         return undefined;
