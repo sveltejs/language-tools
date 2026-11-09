@@ -1,13 +1,12 @@
 ### VS Code deployments
 
 -   The [publisher is Svelte](https://marketplace.visualstudio.com/manage/publishers/svelte)
--   Extension builds with a personal access token [created through one of the members](https://code.visualstudio.com/api/working-with-extensions/publishing-extension#publishing-extensions) of that publisher which is added to [GitHub settings](https://github.com/sveltejs/language-tools/settings/secrets/actions) (NOTE: this will change December 1st, PATs with global access scope are removed then by Microsoft)
--   Secret needs to be renewed once a year
+-   Extension builds via OIDC (setup on the marketplace side, linked to the release script in this repo)
 
 ### Open VSV deployments
 
 -   The [publisher is Svelte](https://open-vsx.org/extension/svelte)
--   Extension builds with a personal access token [created through one of the members](https://github.com/eclipse/openvsx/blob/master/cli/README.md#publish-extensions) of that publisher which is added to [GitHub settings](https://github.com/sveltejs/language-tools/settings/secrets/actions)
+-   Extension builds via OIDC (setup on the marketplace side, linked to the release script in this repo)
 
 ### npm deployments
 
