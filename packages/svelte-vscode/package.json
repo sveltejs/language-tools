@@ -781,6 +781,7 @@
     },
     "dependencies": {
         "@typescript/native": "npm:typescript@7.1.0-beta",
+        "svelte": "^5.57.0",
         "svelte-language-server": "workspace:*",
         "typescript-svelte-plugin": "workspace:*",
         "vscode-languageclient": "^9.0.1",

@@ -1,4 +1,3 @@
-import { SvelteComponentTyped } from "svelte";
 declare class __sveltets_Render<T extends boolean> {
     props(): {
         a: T;
@@ -11,10 +10,18 @@ declare class __sveltets_Render<T extends boolean> {
             c: T;
         };
     };
+    bindings(): string;
+    exports(): {};
 }
-export type InterfacesProps<T extends boolean> = ReturnType<__sveltets_Render<T>['props']>;
-export type InterfacesEvents<T extends boolean> = ReturnType<__sveltets_Render<T>['events']>;
-export type InterfacesSlots<T extends boolean> = ReturnType<__sveltets_Render<T>['slots']>;
-export default class Interfaces<T extends boolean> extends SvelteComponentTyped<InterfacesProps<T>, InterfacesEvents<T>, InterfacesSlots<T>> {
+interface $$IsomorphicComponent {
+    new <T extends boolean>(options: import('svelte').ComponentConstructorOptions<ReturnType<__sveltets_Render<T>['props']>>): import('svelte').SvelteComponent<ReturnType<__sveltets_Render<T>['props']>, ReturnType<__sveltets_Render<T>['events']>, ReturnType<__sveltets_Render<T>['slots']>> & {
+        $$bindings?: ReturnType<__sveltets_Render<T>['bindings']>;
+    } & ReturnType<__sveltets_Render<T>['exports']>;
+    <T extends boolean>(internal: unknown, props: {
+        $$events?: ReturnType<__sveltets_Render<T>['events']>;
+    }): ReturnType<__sveltets_Render<T>['exports']>;
+    z_$$bindings?: ReturnType<__sveltets_Render<any>['bindings']>;
 }
-export {};
+declare const Interfaces: $$IsomorphicComponent;
+type Interfaces<T extends boolean> = InstanceType<typeof Interfaces<T>>;
+export default Interfaces;
