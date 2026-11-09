@@ -13,15 +13,15 @@ jobs:
     if: github.repository == 'sveltejs/language-tools'
     permissions:
       contents: write # to create release (adjust package.json etc)
+      id-token: write # OpenID Connect token needed for trusted publishing to the VS Code Marketplace and Open VSX
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
         with:
-          node-version: "22.x"
-          registry-url: "https://registry.npmjs.org"
+          node-version: "26.x"
           cache: pnpm
 
       # Ensure everything is compiling
@@ -47,13 +47,7 @@ jobs:
           cd packages/svelte-vscode
           npm install
 
-          # Just a hard constraint from the vscode marketplace's usage of azure tokens
-          echo "Once a year this expires, tell Orta to access https://dev.azure.com/ortatherox0608/_usersSettings/tokens (logging in with GitHub) to get a new one"
-
-          # Ship it
-          npx vsce publish -p $VSCE_TOKEN
-          npx ovsx publish -p $OVSX_TOKEN
-
-        env:
-          VSCE_TOKEN: ${{ secrets.AZURE_PAN_TOKEN }}
-          OVSX_TOKEN: ${{ secrets.OVSX_TOKEN }}
+          # Ship it, authenticating via trusted publishing (OIDC) instead of long-lived tokens.
+          # Both registries need a trusted publisher registered for this workflow file.
+          npx --yes @vscode/vsce@4.1.0 publish --oidc
+          npx --yes ovsx@1.4.0 publish --trusted-publishing
