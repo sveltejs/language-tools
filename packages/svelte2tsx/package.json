@@ -30,19 +30,19 @@
         "@types/unist": "^2.0.3",
         "@types/vfile": "^3.0.2",
         "estree-walker": "^2.0.1",
-        "magic-string": "^0.30.11",
+        "magic-string": "0.30.11",
         "mocha": "^11.7.6",
         "periscopic": "^2.0.2",
         "rollup": "3.7.5",
         "rollup-plugin-delete": "^2.0.0",
         "source-map-support": "^0.5.16",
-        "svelte": "~4.2.19",
+        "svelte": "^5.57.0",
         "tiny-glob": "^0.2.6",
         "tslib": "^2.4.0",
         "typescript": "^6.0.3"
     },
     "peerDependencies": {
-        "svelte": "^3.55 || ^4.0.0-next.0 || ^4.0 || ^5.0.0-next.0",
+        "svelte": "^3.55 || ^4.0.0 || ^5.0.0",
         "typescript": "^4.9.4 || ^5.0.0 || ^6.0.0"
     },
     "scripts": {
