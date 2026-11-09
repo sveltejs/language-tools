@@ -4,3 +4,6 @@ packages:
 peerDependencyRules:
     allowedVersions:
         'prettier-plugin-svelte4>svelte': '^4.2.19'
+
+allowBuilds:
+    esbuild: true

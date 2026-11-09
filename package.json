@@ -7,7 +7,7 @@
     "scripts": {
         "bootstrap": "cd ./packages/svelte2tsx && pnpm build && cd ../load-config && pnpm build && cd ../svelte-vscode && pnpm build:grammar",
         "build": "tsc -b",
-        "test": "cross-env CI=true pnpm test -r",
+        "test": "cross-env CI=true pnpm -r test",
         "watch": "tsc -b -watch",
         "format": "prettier --write .",
         "lint": "prettier --check .",
@@ -18,13 +18,13 @@
         "typescript": "^6.0.3"
     },
     "devDependencies": {
-        "@changesets/changelog-github": "1.0.0-next.6",
-        "@changesets/cli": "^2.29.7",
+        "@changesets/changelog-github": "1.0.1",
+        "@changesets/cli": "^3.0.3",
         "cross-env": "^7.0.2",
         "prettier": "~3.3.3",
         "ts-node": "^10.0.0"
     },
-    "packageManager": "pnpm@9.3.0",
+    "packageManager": "pnpm@10.34.9",
     "pnpm": {
         "peerDependencyRules": {
             "allowedVersions": {
