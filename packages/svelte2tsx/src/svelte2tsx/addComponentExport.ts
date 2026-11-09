@@ -299,6 +299,13 @@ declare function $$__sveltets_2_isomorphic_component<
     Props extends Record<string, any>, Events extends Record<string, any>, Slots extends Record<string, any>, Exports extends Record<string, any>, Bindings extends string
 >(klass: {props: Props, events: Events, slots: Slots, exports?: Exports, bindings?: Bindings }): $$__sveltets_2_IsomorphicComponent<Props, Events, Slots, Exports, Bindings>;\n`) +
                 `${awaitDeclaration}${doc}const ${componentName} = $$__sveltets_2_isomorphic_component${usesSlots ? '_slots' : ''}(${propDef});\n` +
+                // TODO for JS files the d.ts output of this type is broken: TypeScript's declaration emit for JS files
+                // re-serializes TS-syntax type aliases and drops the module qualifier of `import('svelte').SvelteComponent`
+                // in the process, so the d.ts references `SvelteComponent` without importing it. This happens even when
+                // writing `import('svelte').SvelteComponent<..>` explicitly here, and adding an import (named or namespace)
+                // doesn't help either because TypeScript removes it. A JSDoc `@typedef` would produce correct output, but
+                // typedefs are always exported, so the const would need to be exported, too (else they don't merge) -
+                // which means the d.ts would contain a named export that doesn't exist at runtime.
                 surroundWithIgnoreComments(
                     `type ${componentName} = InstanceType<typeof ${componentName}>;\n`
                 ) +

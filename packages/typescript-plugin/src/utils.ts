@@ -308,11 +308,6 @@ export function importSvelteCompiler(
         const sveltePath = require.resolve('svelte/compiler', { paths: [fromPath] });
         const compiler = require(sveltePath);
 
-        if (compiler.VERSION.split('.')[0] === '3') {
-            // use built-in version for Svelte 3
-            return undefined;
-        }
-
         return compiler;
     } catch (e) {
         // ignore
