@@ -1,8 +1,10 @@
 import MagicString from 'magic-string';
-import ts from 'typescript';
+import type ts from 'typescript';
+import type { TsFacade } from '../../facade';
 import { nextLineOrNonWhitespace } from '../utils/tsAst';
 
 export function moveAllInstanceImports(
+    ts: TsFacade,
     tsAst: ts.SourceFile,
     astOffset: number,
     hasModuleScript: boolean,
@@ -18,13 +20,13 @@ export function moveAllInstanceImports(
             continue;
         }
         if (pending.length) {
-            lastMovedEnd = moveImportGroup(pending, str, astOffset, scriptStart, prepend);
+            lastMovedEnd = moveImportGroup(ts, pending, str, astOffset, scriptStart, prepend);
             pending.length = 0;
             prepend = '\n';
         }
     }
     if (pending.length) {
-        lastMovedEnd = moveImportGroup(pending, str, astOffset, scriptStart, prepend);
+        lastMovedEnd = moveImportGroup(ts, pending, str, astOffset, scriptStart, prepend);
         pending.length = 0;
     }
 
@@ -37,6 +39,7 @@ export function moveAllInstanceImports(
 }
 
 function moveImportGroup(
+    ts: TsFacade,
     imports: ts.ImportDeclaration[],
     str: MagicString,
     astOffset: number,
@@ -45,14 +48,18 @@ function moveImportGroup(
 ) {
     // Starting from the start line of the import or its leading comment
     // Avoid moving the astOffset so that the $store declaration and snippet won't move with it.
-    const start = nextLineOrNonWhitespace(str.original, imports[0].pos + astOffset);
+    const start = nextLineOrNonWhitespace(ts, str.original, imports[0].pos + astOffset);
 
     if (prependStr) {
         str.appendRight(start, prependStr);
     }
 
     // Next auto-import is inserted here. Remove import also ends with here.
-    const end = nextLineOrNonWhitespace(str.original, imports[imports.length - 1].end + astOffset);
+    const end = nextLineOrNonWhitespace(
+        ts,
+        str.original,
+        imports[imports.length - 1].end + astOffset
+    );
     str.move(start, end, scriptStart + 1);
     return end;
 }

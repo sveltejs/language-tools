@@ -29,8 +29,7 @@ function packageDir(packageName) {
 }
 
 const packages = {
-    typescript71: packageDir('typescript-next'),
-    typescript70: packageDir('@typescript/native'),
+    typescript71: packageDir('@typescript/native'),
     contentMapper: packageDir(CONTENT_MAPPER),
     svelte: packageDir('svelte')
 };
@@ -100,6 +99,22 @@ const knownDifferences = {
 let passed = 0;
 let failed = 0;
 const temporaryDirectories = [];
+
+/**
+ * A TypeScript package with only a package.json. Enough for the version checks, which reject it
+ * before loading anything.
+ *
+ * @param {string} version
+ */
+function createFakeTypeScript(version) {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'svelte-check-ts7-typescript-'));
+    temporaryDirectories.push(dir);
+    fs.writeFileSync(
+        path.join(dir, 'package.json'),
+        JSON.stringify({ name: 'typescript', version, bin: { tsc: './bin/tsc' } })
+    );
+    return dir;
+}
 
 /**
  * @param {string} name
@@ -477,7 +492,7 @@ function main() {
     test('TypeScript 7.0', () =>
         expectFailure(
             runSvelteCheck(
-                createWorkspace({ fixture: testError, typescript: packages.typescript70 }),
+                createWorkspace({ fixture: testError, typescript: createFakeTypeScript('7.0.2') }),
                 {
                     args: ['--experimental-ts7']
                 }

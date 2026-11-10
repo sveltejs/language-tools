@@ -17,6 +17,20 @@
     "main": "index.js",
     "module": "index.mjs",
     "types": "index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./index.d.ts",
+            "module": "./index.mjs",
+            "default": "./index.js"
+        },
+        "./tsgo": {
+            "types": "./tsgo.d.ts",
+            "module": "./tsgo.mjs",
+            "default": "./tsgo.js"
+        },
+        "./package.json": "./package.json",
+        "./*": "./*"
+    },
     "devDependencies": {
         "@jridgewell/sourcemap-codec": "^1.5.0",
         "@jridgewell/trace-mapping": "^0.3.25",
@@ -29,6 +43,7 @@
         "@types/node": "^18.0.0",
         "@types/unist": "^2.0.3",
         "@types/vfile": "^3.0.2",
+        "@typescript/native": "npm:typescript@7.1.0-beta",
         "estree-walker": "^2.0.1",
         "magic-string": "0.30.11",
         "mocha": "^11.7.6",
@@ -43,18 +58,24 @@
     },
     "peerDependencies": {
         "svelte": "^3.55 || ^4.0.0 || ^5.0.0",
-        "typescript": "^4.9.4 || ^5.0.0 || ^6.0.0"
+        "typescript": "^4.9.4 || ^5.0.0 || ^6.0.0 || ^7.1.0-0"
     },
     "scripts": {
         "build": "rollup -c",
         "prepublishOnly": "npm run build",
         "dev": "rollup -c -w",
-        "test": "mocha test/test.ts --no-experimental-strip-types"
+        "test": "mocha test/test.ts --no-experimental-strip-types",
+        "test:tsgo": "mocha test/test.ts --no-experimental-strip-types --tsgo"
     },
     "files": [
         "index.mjs",
         "index.js",
         "index.d.ts",
+        "tsgo.mjs",
+        "tsgo.js",
+        "tsgo.d.ts",
+        "common.d.ts",
+        "dist",
         "README.md",
         "LICENSE",
         "svelte-jsx.d.ts",

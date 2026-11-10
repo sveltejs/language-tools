@@ -1,5 +1,6 @@
 import path from 'path';
 import type ts from 'typescript';
+import type { TsFacade } from '../facade';
 
 export type RewriteExternalImportsOptions = {
     sourcePath: string;
@@ -70,7 +71,7 @@ export function getExternalImportRewrite(
 }
 
 export function getImportTypeSpecifierLiteral(
-    ts_impl: typeof ts,
+    ts_impl: TsFacade,
     node: ts.ImportTypeNode
 ): ts.StringLiteralLike | undefined {
     const argument = node.argument;
@@ -81,7 +82,7 @@ export function getImportTypeSpecifierLiteral(
 }
 
 function rewriteImportTypesInNode(
-    ts_impl: typeof ts,
+    ts_impl: TsFacade,
     node: ts.Node,
     applyImportRewrite: (module_specifier: ts.StringLiteralLike) => void
 ) {
@@ -97,7 +98,7 @@ function rewriteImportTypesInNode(
 }
 
 export function rewriteExternalImportsInNode(
-    ts_impl: typeof ts,
+    ts_impl: TsFacade,
     node: ts.Node,
     options: RewriteExternalImportsOptions,
     on_rewrite: (module_specifier: ts.StringLiteralLike, rewrite: ExternalImportRewrite) => void
@@ -139,7 +140,7 @@ export function rewriteExternalImportsInNode(
 }
 
 export function forEachExternalImportRewrite(
-    ts_impl: typeof ts,
+    ts_impl: TsFacade,
     source: ts.SourceFile,
     options: RewriteExternalImportsOptions,
     on_rewrite: (module_specifier: ts.StringLiteralLike, rewrite: ExternalImportRewrite) => void

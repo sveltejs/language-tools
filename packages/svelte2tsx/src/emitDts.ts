@@ -1,6 +1,7 @@
 import * as path from 'path';
 import ts from 'typescript';
 import { svelte2tsx } from './svelte2tsx';
+import { tsFacade } from './ts-facade';
 
 export interface EmitDtsConfig {
     declarationDir: string;
@@ -354,6 +355,7 @@ async function createSvelteMap(config: EmitDtsConfig): Promise<SvelteMap> {
         const code = ts.sys.readFile(path, 'utf-8');
         const isTsFile = /<script\s+[^>]*?lang=('|")(ts|typescript)('|")/.test(code);
         const transformed = svelte2tsx(code, {
+            typescript: tsFacade,
             filename: path,
             isTsFile,
             mode: 'dts',

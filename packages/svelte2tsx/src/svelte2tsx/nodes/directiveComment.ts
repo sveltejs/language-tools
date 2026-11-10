@@ -1,6 +1,6 @@
-import ts from 'typescript';
+import type { TsFacade } from '../../facade';
 
-export function extractTsCheckComment(scriptTagContent: string): string[] {
+export function extractTsCheckComment(ts: TsFacade, scriptTagContent: string): string[] {
     const topOfFileDirectives: string[] = [];
     ts.forEachLeadingCommentRange(scriptTagContent, 0, (pos, end, kind) => {
         if (kind !== ts.SyntaxKind.SingleLineCommentTrivia) {

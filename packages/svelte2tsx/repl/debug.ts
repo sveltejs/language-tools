@@ -1,5 +1,5 @@
 import fs from 'fs';
-import { svelte2tsx } from '../src/svelte2tsx/index';
+import { svelte2tsx } from '../src';
 import { VERSION } from 'svelte/compiler';
 
 for (const file of fs.readdirSync(__dirname)) {
@@ -7,7 +7,7 @@ for (const file of fs.readdirSync(__dirname)) {
     if (!fs.lstatSync(`${__dirname}/${file}`).isFile() || !file.endsWith('.svelte')) continue;
     const content = fs.readFileSync(`${__dirname}/${file}`, 'utf-8');
     const isTsFile = content.includes('lang="ts"');
-    const output = svelte2tsx(content, {version: VERSION, filename: file, isTsFile}).code;
+    const output = svelte2tsx(content, {version: VERSION, emitOnTemplateError: true,filename: file, isTsFile}).code;
     fs.writeFileSync(`${__dirname}/output/${file}.${isTsFile ? 'ts' : 'js'}`, output);
     console.log(output);
 }
