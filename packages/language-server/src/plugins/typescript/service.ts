@@ -381,13 +381,7 @@ async function createLanguageService(
         svelteTsPath = __dirname;
     }
     const sveltePackageInfo = getPackageInfo('svelte', tsconfigPath || workspacePath);
-    // Svelte 4 has some fixes with regards to parsing the generics attribute.
-    // Svelte 5 has new features, but we don't want to add the new compiler into language-tools. In the future it's probably
-    // best to shift more and more of this into user's node_modules for better handling of multiple Svelte versions.
-    const svelteCompiler =
-        sveltePackageInfo.version.major >= 4
-            ? importSvelte(tsconfigPath || workspacePath)
-            : undefined;
+    const svelteCompiler = importSvelte(tsconfigPath || workspacePath);
 
     const changedFilesForExportCache = new Set<string>();
     const svelteTsxFilesToOriginalCasing = getSvelteShimFiles();
@@ -1027,11 +1021,15 @@ async function createLanguageService(
 
         dispose();
 
-        if (kind === ts.FileWatcherEventKind.Changed) {
-            scheduleReload(fileName);
-        } else if (kind === ts.FileWatcherEventKind.Deleted) {
+        if (kind === ts.FileWatcherEventKind.Deleted) {
             services.delete(fileName);
             configFileForOpenFiles.clear();
+        } else {
+            // The service was disposed, so it must not be reused as is.
+            // `Changed` happens for in-place writes, `Created` when the file was
+            // replaced atomically (write temp file + rename), which `fs.watchFile`
+            // reports as creation. In both cases the config needs a reload.
+            scheduleReload(fileName);
         }
 
         docContext.onProjectReloaded?.([fileName]);
