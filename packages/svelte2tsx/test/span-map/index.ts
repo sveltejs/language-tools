@@ -60,6 +60,18 @@ describe('span maps', function () {
                 total.total += ratio.total;
                 total.unmapped += ratio.unmapped;
                 total.unmappedOutsideIgnore += ratio.unmappedOutsideIgnore;
+
+                // what the content mapper uses for projects that emit declarations
+                const forDeclarations = svelte2tsx(input, {
+                    ...config,
+                    generateSpanMapping: true,
+                    declarationEmit: true
+                });
+                assertValidSpanMap(input, forDeclarations);
+                assertDirectivesCoverIgnoreRegions(
+                    forDeclarations.code,
+                    forDeclarations.diagnosticDirectives?.directives
+                );
             });
         }
     }

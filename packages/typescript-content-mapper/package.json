@@ -2,7 +2,9 @@
     "name": "@sveltejs/ts-content-mapper",
     "version": "0.1.0",
     "description": "",
-    "scripts": {},
+    "scripts": {
+        "test": "node --test \"test/*.test.mjs\""
+    },
     "keywords": [],
     "author": "",
     "license": "ISC",
@@ -16,7 +18,10 @@
                 "node",
                 "dist/server.js"
             ],
-            "compilerOptions": []
+            "compilerOptions": [
+                "declaration",
+                "composite"
+            ]
         }
     },
     "dependencies": {
@@ -25,6 +30,8 @@
         "vscode-jsonrpc": "^8.2.0"
     },
     "devDependencies": {
-        "@types/node": "^18.0.0"
+        "@types/node": "^18.0.0",
+        "@typescript/native": "npm:typescript@7.1.0-beta",
+        "svelte": "^5.57.0"
     }
 }

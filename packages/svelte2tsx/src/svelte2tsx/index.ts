@@ -65,6 +65,8 @@ export interface Svelte2TsxOptions {
     };
     shimPaths?: string[];
     generateSpanMapping?: boolean;
+    /** See `Svelte2TsxOptions.declarationEmit` in `common.d.ts` */
+    declarationEmit?: boolean;
 }
 
 export function svelte2tsx(svelte: string, options: Svelte2TsxOptions) {
@@ -93,6 +95,8 @@ export function svelte2tsx(svelte: string, options: Svelte2TsxOptions) {
     const svelte5Plus = Number(options.version![0]) > 4;
     const isTsFile = options?.isTsFile;
     const emitJsDoc = options?.emitJsDoc ?? false;
+    // dts mode has its own way of producing declaration-friendly output
+    const declarationEmit = !!options.declarationEmit && options.mode !== 'dts';
 
     // process the htmlx as a svelte template
     let {
@@ -181,7 +185,8 @@ export function svelte2tsx(svelte: string, options: Svelte2TsxOptions) {
             isRunes,
             emitJsDoc,
             rewriteExternalImportsOptions,
-            spanMapGenerator
+            spanMapGenerator,
+            declarationEmit
         );
         uses$$props = uses$$props || res.uses$$props;
         uses$$restProps = uses$$restProps || res.uses$$restProps;
@@ -293,7 +298,8 @@ export function svelte2tsx(svelte: string, options: Svelte2TsxOptions) {
         hasTopLevelAwait,
         noSvelteComponentTyped: options.noSvelteComponentTyped,
         emitJsDoc,
-        spanMapGenerator
+        spanMapGenerator,
+        declarationEmit
     });
 
     if (options.mode === 'dts') {

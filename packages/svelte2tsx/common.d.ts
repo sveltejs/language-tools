@@ -145,6 +145,20 @@ export interface Svelte2TsxOptions {
      * Changes the output slightly. Not applicable to `mode: 'dts'`.
      */
     generateSpanMapping?: boolean;
+
+    /**
+     * Set this if TypeScript also emits declaration files from the output (`declaration` or `composite`),
+     * like a content mapper does for projects that emit them. Not applicable to `mode: 'dts'`.
+     * The output stays the same apart from what the declarations need:
+     * - the default export has the component's name (no `__SvelteComponent_` suffix), unless the component
+     *   mentions that name somewhere
+     * - its type doesn't reference svelte2tsx's shims (the consumers of the declarations don't have them)
+     * - interfaces in the instance script that stay inside the render function become type aliases, because
+     *   TypeScript can't refer to types that are local to a function in a declaration file. It inlines type aliases.
+     *
+     * Svelte 5 only, Svelte 4's class components still reference the shims.
+     */
+    declarationEmit?: boolean;
 }
 
 /**

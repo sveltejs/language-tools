@@ -76,6 +76,7 @@ function startServer() {
                 version: compiler.VERSION,
                 shimPaths: globalTypes,
                 generateSpanMapping: true,
+                declarationEmit: emitsDeclarations(project?.params.compilerOptions),
                 // @ts-expect-error internal
                 noSvelteComponentTyped: !isSvelte3
             });
@@ -259,6 +260,16 @@ async function createTransformer(packageJsonPath: string): Promise<Transformer> 
     }
     const { svelte2tsx } = await import('svelte2tsx');
     return { svelte2tsx };
+}
+
+/**
+ * Whether TypeScript emits declaration files for the project, like TypeScript's `GetEmitDeclarations`.
+ * The output for these is declaration-friendly (`declarationEmit`), so that `tsc` emits proper `.d.svelte.ts` files.
+ * That's why the manifest (package.json) declares that the transform depends on these options.
+ */
+function emitsDeclarations(compilerOptions: unknown): boolean {
+    const options = (compilerOptions ?? {}) as { declaration?: boolean; composite?: boolean };
+    return options.declaration === true || options.composite === true;
 }
 
 /** `ts.sys` for `get_global_types`, without loading TypeScript */

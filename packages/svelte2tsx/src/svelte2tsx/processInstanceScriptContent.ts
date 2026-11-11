@@ -54,7 +54,8 @@ export function processInstanceScriptContent(
     isRunes: boolean,
     emitJsDoc: boolean,
     rewriteExternalImports?: RewriteExternalImportsOptions,
-    spanMapGenerator: SpanMapGenerator | undefined = undefined
+    spanMapGenerator: SpanMapGenerator | undefined = undefined,
+    declarationEmit = false
 ): InstanceScriptProcessResult {
     const htmlx = str.original;
     const scriptContent = htmlx.substring(script.content.start, script.content.end);
@@ -388,11 +389,12 @@ export function processInstanceScriptContent(
         generics.getReferences()
     );
 
-    if (mode === 'dts') {
+    if (mode === 'dts' || declarationEmit) {
         // Transform interface declarations to type declarations because indirectly
         // using interfaces inside the return type of a function is forbidden.
         // This is not a problem for intellisense/type inference but it will
         // break dts generation (file will not be generated).
+        // Type aliases that are local to the render function are inlined into the declarations instead.
         if (hoisted) {
             transformInterfacesToTypes(
                 ts,

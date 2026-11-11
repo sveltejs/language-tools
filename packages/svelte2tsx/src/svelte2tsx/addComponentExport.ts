@@ -33,6 +33,8 @@ export interface AddComponentExportPara {
      */
     emitJsDoc?: boolean;
     spanMapGenerator?: SpanMapGenerator;
+    /** See `Svelte2TsxOptions.declarationEmit` */
+    declarationEmit?: boolean;
 }
 
 /**
@@ -40,6 +42,115 @@ export interface AddComponentExportPara {
  * like reported in https://github.com/sveltejs/language-tools/issues/294
  */
 export const COMPONENT_SUFFIX = '__SvelteComponent_';
+
+/**
+ * Global names that svelte2tsx's output refers to in the file's own code (the shims are separate files).
+ * The component's declaration would shadow them.
+ */
+const NAMES_USED_BY_GENERATED_CODE = new Set([
+    'Array',
+    'Awaited',
+    'CustomEvent',
+    'Element',
+    'InstanceType',
+    'Parameters',
+    'Partial',
+    'Pick',
+    'Promise',
+    'Record',
+    'ReturnType'
+]);
+
+/**
+ * The name of the component's default export. In declaration files (`dts` mode, `declarationEmit`)
+ * that's what users see, e.g. in auto imports, so it's the plain name from the file name if possible.
+ * Otherwise it has a suffix, so that it can't clash with the names of the component.
+ * With `declarationEmit` the plain name is used if the component doesn't mention it anywhere:
+ * then nothing in it can clash with the name or refer to it by accident (like a global `Image` in `Image.svelte`).
+ */
+function componentNameFromFilename(
+    fileName: string | undefined,
+    mode: AddComponentExportPara['mode'],
+    declarationEmit: boolean | undefined,
+    source: string
+): string | undefined {
+    const name = fileName && classNameFromFilename(fileName);
+    if (!name || mode === 'dts') {
+        return name;
+    }
+    const isUnused =
+        !NAMES_USED_BY_GENERATED_CODE.has(name) &&
+        !new RegExp(`(?<![\\w$])${name}(?![\\w$])`).test(source);
+    return declarationEmit && isUnused ? name : name + COMPONENT_SUFFIX;
+}
+
+/**
+ * The JSDoc of a type alias in a JS file. With `declarationEmit`, it belongs to an empty statement,
+ * because TypeScript copies the JSDoc of the statement it belongs to into the declaration file.
+ */
+function jsDocTypedef(type: string, name: string, declarationEmit: boolean | undefined) {
+    return `/** @typedef {${type}} ${name} */${declarationEmit ? ';' : ''}\n`;
+}
+
+/**
+ * Definitions of `__sveltets_2_IsomorphicComponent` and its factory from the shims, for files
+ * whose declarations are emitted: their consumers don't have the shims.
+ * Returns the definitions and the name of the factory.
+ */
+function isomorphicComponentDefinitions(
+    useTypeScriptSyntax: boolean,
+    usesSlots: boolean,
+    hasNoProps: boolean
+): [definitions: string, factory: string] {
+    if (useTypeScriptSyntax) {
+        // Same as in dts mode
+        return [
+            `\ninterface $$__sveltets_2_IsomorphicComponent<Props extends Record<string, any> = any, Events extends Record<string, any> = any, Slots extends Record<string, any> = any, Exports = {}, Bindings = string> {
+    new (options: import('svelte').ComponentConstructorOptions<Props>): import('svelte').SvelteComponent<Props, Events, Slots> & { $$bindings?: Bindings } & Exports;
+    (internal: unknown, props: ${hasNoProps ? '{$$events?: Events, $$slots?: Slots}' : 'Props & {$$events?: Events, $$slots?: Slots}'}): Exports & { $set?: any, $on?: any };
+    z_$$bindings?: Bindings;
+}\n` +
+                (usesSlots
+                    ? `type $$__sveltets_2_PropsWithChildren<Props, Slots> = Props &
+    (Slots extends { default: any }
+        ? Props extends Record<string, never>
+        ? any
+        : { children?: any }
+        : {});
+        declare function $$__sveltets_2_isomorphic_component_slots<
+            Props extends Record<string, any>, Events extends Record<string, any>, Slots extends Record<string, any>, Exports extends Record<string, any>, Bindings extends string
+        >(klass: {props: Props, events: Events, slots: Slots, exports?: Exports, bindings?: Bindings }): $$__sveltets_2_IsomorphicComponent<$$__sveltets_2_PropsWithChildren<Props, Slots>, Events, Slots, Exports, Bindings>;\n`
+                    : `
+declare function $$__sveltets_2_isomorphic_component<
+    Props extends Record<string, any>, Events extends Record<string, any>, Slots extends Record<string, any>, Exports extends Record<string, any>, Bindings extends string
+>(klass: {props: Props, events: Events, slots: Slots, exports?: Exports, bindings?: Bindings }): $$__sveltets_2_IsomorphicComponent<Props, Events, Slots, Exports, Bindings>;\n`),
+            `$$__sveltets_2_isomorphic_component${usesSlots ? '_slots' : ''}`
+        ];
+    }
+
+    // A JS file can't declare a type alias without exporting it, so the factory returns an object type
+    // literal. TypeScript writes its instantiation into the declaration file.
+    const props = usesSlots
+        ? '(Props & (Slots extends { default: any } ? Props extends Record<string, never> ? any : { children?: any } : {}))'
+        : 'Props';
+    const callProps = hasNoProps
+        ? '{$$events?: Events, $$slots?: Slots}'
+        : `${props} & {$$events?: Events, $$slots?: Slots}`;
+    return [
+        `
+/**
+ * @template {Record<string, any>} Props
+ * @template {Record<string, any>} Events
+ * @template {Record<string, any>} Slots
+ * @template {Record<string, any>} Exports
+ * @template {string} Bindings
+ * @param {{props: Props, events: Events, slots: Slots, exports?: Exports, bindings?: Bindings }} klass
+ * @returns {{ new (options: import('svelte').ComponentConstructorOptions<${props}>): import('svelte').SvelteComponent<${props}, Events, Slots> & { $$bindings?: Bindings } & Exports; (internal: unknown, props: ${callProps}): Exports & { $set?: any, $on?: any }; z_$$bindings?: Bindings }}
+ */
+function $$__sveltets_2_isomorphic_component(klass) { return /** @type {any} */ (klass); }\n`,
+        '$$__sveltets_2_isomorphic_component'
+    ];
+}
 
 /**
  * Marks the declaration of the default export, so that go to definition of a default import
@@ -78,7 +189,8 @@ function addGenericsComponentExport({
     noSvelteComponentTyped,
     hasTopLevelAwait,
     emitJsDoc,
-    spanMapGenerator
+    spanMapGenerator,
+    declarationEmit
 }: AddComponentExportPara) {
     const genericsDef = generics.toDefinitionString();
     const genericsRef = generics.toReferencesString();
@@ -97,7 +209,7 @@ function addGenericsComponentExport({
         : '';
 
     const doc = componentDocumentation.getFormatted();
-    const className = fileName && classNameFromFilename(fileName, mode !== 'dts');
+    const className = componentNameFromFilename(fileName, mode, declarationEmit, str.original);
 
     function returnType(forPart: string) {
         return `ReturnType<__sveltets_Render${genericsRef}['${forPart}']>`;
@@ -199,11 +311,20 @@ ${templateComment}class __sveltets_Render {
                 `(new ${genericsDef}(options: import('svelte').ComponentConstructorOptions<${returnType('props') + (usesSlots ? '& {children?: any}' : '')}>) => import('svelte').SvelteComponent<${returnType('props')}, ${returnType('events')}, ${returnType('slots')}> & { $$bindings?: ${returnType('bindings')} } & ${returnType('exports')}) & ` +
                 `(${genericsDef}(internal: unknown, props: ${propsType}) => ${returnType('exports')}) & ` +
                 `{z_$$bindings?: ${bindingsType}}`;
+            const declaration = `export ${defaultExportAnchor(spanMapGenerator, `const ${componentName}`)}`;
             statement +=
-                `\n${templateComment}` +
-                `/** @typedef {${componentType}} $$IsomorphicComponent */\n` +
-                `${doc}/** @type {$$IsomorphicComponent} */ export ${defaultExportAnchor(spanMapGenerator, `const ${componentName}`)} = /** @type {any} */(null);\n` +
-                `/** @typedef {InstanceType<typeof ${componentName}>} ${componentName} */\n` +
+                '\n' +
+                (declarationEmit
+                    ? // Not a typedef, because that would be exported (the signatures declare the generics themselves),
+                      // and a cast, because TypeScript copies the JSDoc of the statement into the declaration file
+                      `${doc}${declaration} = /** @type {${componentType}} */(/** @type {any} */(null));\n`
+                    : `${templateComment}/** @typedef {${componentType}} $$IsomorphicComponent */\n` +
+                      `${doc}/** @type {$$IsomorphicComponent} */ ${declaration} = /** @type {any} */(null);\n`) +
+                jsDocTypedef(
+                    `InstanceType<typeof ${componentName}>`,
+                    componentName,
+                    declarationEmit
+                ) +
                 `export default ${componentName};`;
         }
     } else if (mode === 'dts') {
@@ -259,7 +380,8 @@ function addSimpleComponentExport({
     isSvelte5,
     hasTopLevelAwait,
     emitJsDoc,
-    spanMapGenerator
+    spanMapGenerator,
+    declarationEmit
 }: AddComponentExportPara) {
     const renderCall = hasTopLevelAwait
         ? `$${internalHelpers.renderName}`
@@ -279,7 +401,7 @@ function addSimpleComponentExport({
     );
 
     const doc = componentDocumentation.getFormatted();
-    const className = fileName && classNameFromFilename(fileName, mode !== 'dts');
+    const className = componentNameFromFilename(fileName, mode, declarationEmit, str.original);
     const componentName = className || '$$Component';
 
     let statement: string;
@@ -291,27 +413,14 @@ function addSimpleComponentExport({
                 `export default ${componentName};`;
         } else if (isSvelte5) {
             // Inline definitions from Svelte shims; else dts files will reference the globals which will be unresolved
+            const [definitions, factory] = isomorphicComponentDefinitions(
+                true,
+                usesSlots,
+                !canHaveAnyProp && exportedNames.hasNoProps()
+            );
             statement =
-                `\ninterface $$__sveltets_2_IsomorphicComponent<Props extends Record<string, any> = any, Events extends Record<string, any> = any, Slots extends Record<string, any> = any, Exports = {}, Bindings = string> {
-    new (options: import('svelte').ComponentConstructorOptions<Props>): import('svelte').SvelteComponent<Props, Events, Slots> & { $$bindings?: Bindings } & Exports;
-    (internal: unknown, props: ${!canHaveAnyProp && exportedNames.hasNoProps() ? '{$$events?: Events, $$slots?: Slots}' : 'Props & {$$events?: Events, $$slots?: Slots}'}): Exports & { $set?: any, $on?: any };
-    z_$$bindings?: Bindings;
-}\n` +
-                (usesSlots
-                    ? `type $$__sveltets_2_PropsWithChildren<Props, Slots> = Props &
-    (Slots extends { default: any }
-        ? Props extends Record<string, never>
-        ? any
-        : { children?: any }
-        : {});
-        declare function $$__sveltets_2_isomorphic_component_slots<
-            Props extends Record<string, any>, Events extends Record<string, any>, Slots extends Record<string, any>, Exports extends Record<string, any>, Bindings extends string
-        >(klass: {props: Props, events: Events, slots: Slots, exports?: Exports, bindings?: Bindings }): $$__sveltets_2_IsomorphicComponent<$$__sveltets_2_PropsWithChildren<Props, Slots>, Events, Slots, Exports, Bindings>;\n`
-                    : `
-declare function $$__sveltets_2_isomorphic_component<
-    Props extends Record<string, any>, Events extends Record<string, any>, Slots extends Record<string, any>, Exports extends Record<string, any>, Bindings extends string
->(klass: {props: Props, events: Events, slots: Slots, exports?: Exports, bindings?: Bindings }): $$__sveltets_2_IsomorphicComponent<Props, Events, Slots, Exports, Bindings>;\n`) +
-                `${awaitDeclaration}${doc}const ${componentName} = $$__sveltets_2_isomorphic_component${usesSlots ? '_slots' : ''}(${propDef});\n` +
+                definitions +
+                `${awaitDeclaration}${doc}const ${componentName} = ${factory}(${propDef});\n` +
                 // TODO for JS files the d.ts output of this type is broken: TypeScript's declaration emit for JS files
                 // re-serializes TS-syntax type aliases and drops the module qualifier of `import('svelte').SvelteComponent`
                 // in the process, so the d.ts references `SvelteComponent` without importing it. This happens even when
@@ -368,16 +477,33 @@ declare function $$__sveltets_2_isomorphic_component<
                     surroundWithIgnoreComments(
                         useTypeScriptSyntax
                             ? `type ${componentName} = ReturnType<typeof ${componentName}>;\n`
-                            : `/** @typedef {ReturnType<typeof ${componentName}>} ${componentName} */\n`
+                            : jsDocTypedef(
+                                  `ReturnType<typeof ${componentName}>`,
+                                  componentName,
+                                  declarationEmit
+                              )
                     ) +
                     `export default ${componentName};`;
             } else {
+                // The shims' types would end up in the declaration file, so declare them in the file
+                const [definitions, factory] = declarationEmit
+                    ? isomorphicComponentDefinitions(
+                          useTypeScriptSyntax,
+                          usesSlots,
+                          !canHaveAnyProp && exportedNames.hasNoProps()
+                      )
+                    : ['', `__sveltets_2_isomorphic_component${usesSlots ? '_slots' : ''}`];
                 statement =
-                    `\n${awaitDeclaration}${doc}${useTypeScriptSyntax ? '' : 'export '}${defaultExportAnchor(spanMapGenerator, `const ${componentName}`)} = __sveltets_2_isomorphic_component${usesSlots ? '_slots' : ''}(${propDef});\n` +
+                    (definitions ? '\n' + surroundWithIgnoreComments(definitions) : '') +
+                    `\n${awaitDeclaration}${doc}${useTypeScriptSyntax ? '' : 'export '}${defaultExportAnchor(spanMapGenerator, `const ${componentName}`)} = ${factory}(${propDef});\n` +
                     surroundWithIgnoreComments(
                         useTypeScriptSyntax
                             ? `type ${componentName} = InstanceType<typeof ${componentName}>;\n`
-                            : `/** @typedef {InstanceType<typeof ${componentName}>} ${componentName} */\n`
+                            : jsDocTypedef(
+                                  `InstanceType<typeof ${componentName}>`,
+                                  componentName,
+                                  declarationEmit
+                              )
                     ) +
                     `export default ${componentName};`;
             }
@@ -460,7 +586,7 @@ function props(
  *
  * https://svelte.dev/docs#Tags
  */
-function classNameFromFilename(filename: string, appendSuffix: boolean): string | undefined {
+function classNameFromFilename(filename: string): string | undefined {
     try {
         const withoutExtensions = path.parse(filename).name?.split('.')[0];
         const withoutInvalidCharacters = withoutExtensions
@@ -475,8 +601,7 @@ function classNameFromFilename(filename: string, appendSuffix: boolean): string 
             .findIndex((char) => /[A-Za-z]/.test(char));
         const withoutLeadingInvalidCharacters = withoutInvalidCharacters.substr(firstValidCharIdx);
         const inPascalCase = pascalCase(withoutLeadingInvalidCharacters);
-        const finalName = firstValidCharIdx === -1 ? `A${inPascalCase}` : inPascalCase;
-        return `${finalName}${appendSuffix ? COMPONENT_SUFFIX : ''}`;
+        return firstValidCharIdx === -1 ? `A${inPascalCase}` : inPascalCase;
     } catch (error) {
         console.warn(`Failed to create a name for the component class from filename ${filename}`);
         return undefined;

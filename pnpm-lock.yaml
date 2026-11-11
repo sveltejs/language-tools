@@ -359,6 +359,12 @@ importers:
       '@types/node':
         specifier: ^18.0.0
         version: 18.19.46
+      '@typescript/native':
+        specifier: npm:typescript@7.1.0-beta
+        version: typescript@7.1.0-beta
+      svelte:
+        specifier: ^5.57.0
+        version: 5.57.3
 
   packages/typescript-plugin:
     dependencies:
