@@ -12,6 +12,7 @@ import {
     TextEdit,
     WorkspaceEdit
 } from 'vscode-languageserver';
+import { Document, DocumentManager } from '../../../../src/lib/documents';
 import { TemplateASTParseLoader } from '../../../../src/plugins/svelte/TemplateASTLoader';
 import { TsgoResponseTransformer } from '../../../../src/plugins/typescript-go/middleware';
 import { TsApiService } from '../../../../src/plugins/typescript-go/TsApiService';
@@ -240,6 +241,30 @@ describe('TS7 features through the API connection', function () {
                 position: positionOf('StoreUser.svelte', 'increment', 2)
             });
             assert.strictEqual(notAStoreUsage, null);
+        });
+
+        it('fails to tell the store of $store when the snapshot does not match the document', async () => {
+            // null would make the extension use TS7's rename, which breaks the code for a `$store`
+            const docManager = new DocumentManager((textDocument) =>
+                Document.createForTest(textDocument.uri, textDocument.text)
+            );
+            docManager.openClientDocument({
+                uri: uriOf('StoreAlias.svelte'),
+                text: textOf('StoreAlias.svelte') + '\n<p>edited</p>'
+            });
+            const ahead = new TsgoResponseTransformer(
+                docManager,
+                new TemplateASTParseLoader(docManager),
+                { findDocumentHighlight: async () => null },
+                api
+            );
+            await assert.rejects(
+                ahead.getStoreBinding({
+                    textDocument: { uri: uriOf('StoreAlias.svelte') },
+                    position: positionOf('StoreAlias.svelte', '$c', 1)
+                }),
+                /snapshot/
+            );
         });
 
         it('renames the $store usages together with the store', async () => {

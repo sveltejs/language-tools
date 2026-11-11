@@ -12,7 +12,7 @@ import {
     WorkspaceEdit
 } from 'vscode-languageserver';
 import { normalizeUri } from '../../../utils';
-import { TsApiLocationMapper } from '../TsApiLocationMapper';
+import { OriginalLocation, TsApiLocationMapper } from '../TsApiLocationMapper';
 import { TsApiService } from '../TsApiService';
 import type { tsApiAsync, tsAst } from '../types';
 
@@ -26,13 +26,13 @@ export interface StoreBinding {
 
 const storeGetName = '__sveltets_2_store_get';
 
-interface RequestContext {
+export interface RequestContext {
     project: tsApiAsync.Project;
     mapper: TsApiLocationMapper;
 }
 
 /** `let $store = __sveltets_2_store_get(store)`, the hidden declaration of a `$store` subscription */
-interface Subscription {
+export interface Subscription {
     /** The `$store` variable */
     declaration: tsAst.VariableDeclaration & { name: tsAst.Identifier };
     /** The `store` argument */
@@ -40,6 +40,81 @@ interface Subscription {
 }
 
 type DefinitionResult = Location | Location[] | LocationLink[] | null;
+
+/** `declaration` if it's the hidden `let $store = __sveltets_2_store_get(store)` */
+function asSubscription(ast: typeof tsAst, declaration: tsAst.Node): Subscription | undefined {
+    if (
+        !ast.isVariableDeclaration(declaration) ||
+        !ast.isIdentifier(declaration.name) ||
+        !declaration.initializer ||
+        !ast.isCallExpression(declaration.initializer)
+    ) {
+        return undefined;
+    }
+    const call = declaration.initializer;
+    const store = call.arguments[0];
+    if (
+        !ast.isIdentifier(call.expression) ||
+        call.expression.text !== storeGetName ||
+        !store ||
+        !ast.isIdentifier(store)
+    ) {
+        return undefined;
+    }
+    return { declaration: declaration as Subscription['declaration'], store };
+}
+
+/** The subscription whose store argument is `node` */
+export function subscriptionOfArgument(
+    ast: typeof tsAst,
+    node: tsAst.Node
+): Subscription | undefined {
+    const call = node.parent;
+    const declaration = call?.parent;
+    const subscription = declaration && asSubscription(ast, declaration);
+    return subscription && sameNode(subscription.store, node) ? subscription : undefined;
+}
+
+/**
+ * The `$store` usages of a subscription in the original files (its declaration is unmapped and
+ * drops out). With a `feature`, only the usages that feature may see, like in TS7's LSP.
+ */
+export async function findSubscriptionUsages(
+    ast: typeof tsAst,
+    ctx: RequestContext,
+    subscription: Subscription,
+    feature?: tsAst.SpanMapFeature
+): Promise<OriginalLocation[]> {
+    const references = await getReferences(ast, ctx, subscription.declaration.name);
+    return references
+        .map(({ node }) => ctx.mapper.toOriginalLocation(node, feature))
+        .filter((location): location is OriginalLocation => !!location);
+}
+
+async function getReferences(
+    ast: typeof tsAst,
+    ctx: RequestContext,
+    node: tsAst.Node
+): Promise<Array<{ node: tsAst.Node; isDefinition: boolean }>> {
+    const entries = await ctx.project.languageService.getReferencedSymbolsForNode(
+        node,
+        node.getStart()
+    );
+    const result = await Promise.all(
+        entries.map(async (entry) => {
+            const [definition, references] = await Promise.all([
+                entry.definition.resolve(),
+                resolveAll(entry.references)
+            ]);
+            const definitionName = definition && getDeclarationName(ast, definition);
+            return references.map((reference) => ({
+                node: reference,
+                isDefinition: !!definitionName && sameNode(definitionName, reference)
+            }));
+        })
+    );
+    return result.flat();
+}
 
 /**
  * `$store` <-> `store` for references, definition/implementation and rename.
@@ -148,7 +223,12 @@ export class TsgoStores {
         return prepared ?? result;
     }
 
-    /** Where the store of the `$store` at the position is bound in this file (import, declaration) */
+    /**
+     * Where the store of the `$store` at the position is bound in this file (import, declaration).
+     * Null means that there is no store subscription at the position: the caller then uses TS7's
+     * own rename. So this throws instead if it can't tell (TS7's snapshot doesn't match the
+     * document), because TS7's rename of a `$store` breaks the code.
+     */
     async getStoreBinding(params: TextDocumentPositionParams): Promise<StoreBinding | null> {
         if (!isSvelteUri(params.textDocument.uri)) {
             return null;
@@ -159,7 +239,8 @@ export class TsgoStores {
             async (ctx, identifier) => {
                 const subscription = await this.getSubscriptionAt(ctx, identifier);
                 return subscription && (await this.getLocalBinding(ctx, subscription.store));
-            }
+            },
+            true
         );
         return binding ? { uri: binding.uri, position: binding.range.start } : null;
     }
@@ -211,13 +292,18 @@ export class TsgoStores {
     private async withIdentifier<T>(
         params: TextDocumentPositionParams,
         feature: tsAst.SpanMapFeature,
-        fn: (ctx: RequestContext, identifier: tsAst.Identifier) => Promise<T | undefined>
+        fn: (ctx: RequestContext, identifier: tsAst.Identifier) => Promise<T | undefined>,
+        /** Throw instead of answering undefined ("nothing there") if TS7's snapshot is stale */
+        failOnStaleSnapshot = false
     ): Promise<T | undefined> {
         const uri = params.textDocument.uri;
         return this.api.withSourceFile(uri, async (project, sourceFile) => {
             const documentText = this.getDocumentText(uri);
             if (documentText !== undefined && documentText !== sourceFile.originalText) {
                 // TS7's snapshot is ahead of or behind what the response was computed for
+                if (failOnStaleSnapshot) {
+                    throw new Error("TypeScript's snapshot doesn't match the document");
+                }
                 return undefined;
             }
             const ctx: RequestContext = { project, mapper: new TsApiLocationMapper(this.ast) };
@@ -242,39 +328,7 @@ export class TsgoStores {
         }
         const symbol = await ctx.project.checker.getSymbolAtLocation(identifier);
         const declarations = await resolveAll(symbol?.declarations);
-        return declarations.map((d) => this.asSubscription(d)).find((s) => !!s);
-    }
-
-    /** `declaration` if it's the hidden `let $store = __sveltets_2_store_get(store)` */
-    private asSubscription(declaration: tsAst.Node): Subscription | undefined {
-        const ast = this.ast;
-        if (
-            !ast.isVariableDeclaration(declaration) ||
-            !ast.isIdentifier(declaration.name) ||
-            !declaration.initializer ||
-            !ast.isCallExpression(declaration.initializer)
-        ) {
-            return undefined;
-        }
-        const call = declaration.initializer;
-        const store = call.arguments[0];
-        if (
-            !ast.isIdentifier(call.expression) ||
-            call.expression.text !== storeGetName ||
-            !store ||
-            !ast.isIdentifier(store)
-        ) {
-            return undefined;
-        }
-        return { declaration: declaration as Subscription['declaration'], store };
-    }
-
-    /** The subscription whose store argument is `node` */
-    private subscriptionOfArgument(node: tsAst.Node): Subscription | undefined {
-        const call = node.parent;
-        const declaration = call?.parent;
-        const subscription = declaration && this.asSubscription(declaration);
-        return subscription && sameNode(subscription.store, node) ? subscription : undefined;
+        return declarations.map((d) => asSubscription(this.ast, d)).find((s) => !!s);
     }
 
     /** Subscriptions of the store `node` refers to, in all files */
@@ -282,9 +336,9 @@ export class TsgoStores {
         ctx: RequestContext,
         node: tsAst.Node
     ): Promise<Subscription[]> {
-        const references = await this.getReferences(ctx, node);
+        const references = await getReferences(this.ast, ctx, node);
         return references
-            .map(({ node }) => this.subscriptionOfArgument(node))
+            .map(({ node }) => subscriptionOfArgument(this.ast, node))
             .filter((s): s is Subscription => !!s);
     }
 
@@ -294,11 +348,11 @@ export class TsgoStores {
         node: tsAst.Node,
         includeDeclaration: boolean
     ): Promise<{ locations: Location[]; subscriptions: number }> {
-        const references = await this.getReferences(ctx, node);
+        const references = await getReferences(this.ast, ctx, node);
         const locations: Location[] = [];
         const subscriptions: Subscription[] = [];
         for (const reference of references) {
-            const subscription = this.subscriptionOfArgument(reference.node);
+            const subscription = subscriptionOfArgument(this.ast, reference.node);
             if (subscription) {
                 subscriptions.push(subscription);
                 continue;
@@ -318,39 +372,15 @@ export class TsgoStores {
         return { locations: [...locations, ...usages.flat()], subscriptions: subscriptions.length };
     }
 
-    /** The `$store` usages of a subscription (its declaration is unmapped and drops out) */
+    /** The `$store` usages of a subscription, as locations for references and rename */
     private async findUsages(ctx: RequestContext, subscription: Subscription): Promise<Location[]> {
-        const references = await this.getReferences(ctx, subscription.declaration.name);
-        return references
-            .map(({ node }) =>
-                ctx.mapper.toOriginalLocation(node, this.ast.SpanMapFeature.References)
-            )
-            .filter((l): l is NonNullable<typeof l> => !!l)
-            .map(({ uri, range }) => ({ uri, range }));
-    }
-
-    private async getReferences(
-        ctx: RequestContext,
-        node: tsAst.Node
-    ): Promise<Array<{ node: tsAst.Node; isDefinition: boolean }>> {
-        const entries = await ctx.project.languageService.getReferencedSymbolsForNode(
-            node,
-            node.getStart()
+        const usages = await findSubscriptionUsages(
+            this.ast,
+            ctx,
+            subscription,
+            this.ast.SpanMapFeature.References
         );
-        const result = await Promise.all(
-            entries.map(async (entry) => {
-                const [definition, references] = await Promise.all([
-                    entry.definition.resolve(),
-                    resolveAll(entry.references)
-                ]);
-                const definitionName = definition && getDeclarationName(this.ast, definition);
-                return references.map((reference) => ({
-                    node: reference,
-                    isDefinition: !!definitionName && sameNode(definitionName, reference)
-                }));
-            })
-        );
-        return result.flat();
+        return usages.map(({ uri, range }) => ({ uri, range }));
     }
 
     /** The local binding of the store `store` (argument of a subscription) in its file */

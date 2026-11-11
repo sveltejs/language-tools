@@ -1,7 +1,7 @@
 import { Diagnostic, DocumentDiagnosticReport } from 'vscode-languageserver';
 import { Document } from '../../../lib/documents';
 import { replaceGeneratedNames } from './generatedNames';
-import { VirtualCodeRelocation } from './virtualCodeDiagnostics';
+import type { VirtualCodeRelocation } from './virtualCodeDiagnostics';
 
 /**
  * Post-processing of TypeScript 7 diagnostics for Svelte files in content mapper mode.
@@ -18,8 +18,11 @@ export const enum TsgoDiagnosticCode {
     TYPE_X_NOT_ASSIGNABLE_TO_TYPE_Y = 2322,
     ARG_TYPE_X_NOT_ASSIGNABLE_TO_TYPE_Y = 2345,
     NOOP_IN_COMMAS = 2695,
+    NO_OVERLOAD_MATCHES_CALL = 2769,
     DEPRECATED_SIGNATURE = 6387,
     UNUSED_LABEL = 7028,
+    /** "This location is in virtual code produced by the content mapper ... " */
+    IN_VIRTUAL_CODE = 18074,
     /** "Virtual code produced by the content mapper '...' has problems with no corresponding location in this file." */
     VIRTUAL_CODE_PROBLEMS = 18080
 }
