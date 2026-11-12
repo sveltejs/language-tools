@@ -1,7 +1,7 @@
 import { Node } from 'estree-walker';
 import MagicString from 'magic-string';
 import { BaseDirective } from '../../interfaces';
-import { ExtraGeneratedMapping, SpanMapFeature, SpanMapGenerator } from '../../utils/spanMap';
+import { mapGenerated, SpanMapFeature, SpanMapGenerator } from '../../utils/spanMap';
 
 /**
  * A transformation array consists of three types:
@@ -189,16 +189,21 @@ const directiveMappingFeatures =
     SpanMapFeature.SemanticTokens |
     SpanMapFeature.SelectionRanges;
 
+/**
+ * `use:action`, `transition:fn`, `animate:fn`: maps the name with the directive features, and the
+ * generated `svelteHTML.mapElementTag('div')` argument (returned) to the name, so that errors about
+ * the element type land there
+ */
 export function addDirectiveNameMapping(
     spanMapGenerator: SpanMapGenerator | undefined,
     nameRange: [number, number],
-    extraMapping?: ExtraGeneratedMapping
-): void {
+    mapElement: string
+): string {
     const [start, end] = nameRange;
     spanMapGenerator?.addSourceSpan(start, end, {
-        features: directiveMappingFeatures,
-        extraMapping
+        features: directiveMappingFeatures
     });
+    return mapGenerated(spanMapGenerator, mapElement, nameRange);
 }
 
 /**

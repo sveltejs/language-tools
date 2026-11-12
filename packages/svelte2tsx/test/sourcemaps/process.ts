@@ -26,7 +26,12 @@ import {
     ParsedSource,
     SourceText
 } from './parser';
-import { SpanMapFeature, SpanMapKind, SpanMapping } from '../../src/utils/spanMap';
+import {
+    MappedDiagnosticDirective,
+    SpanMapFeature,
+    SpanMapKind,
+    SpanMapping
+} from '../../src/utils/spanMap';
 
 /**
  *
@@ -173,38 +178,60 @@ namespace print {
 
     export function span_mapping(
         { generated, original }: ParsedSource,
-        spanMappings: SpanMapping[]
+        spanMappings: SpanMapping[],
+        directives: MappedDiagnosticDirective[] = []
     ): string {
         const sorted_by_generated = spanMappings.sort((a, b) => a[0] - b[0]);
         const groups_by_line = new Map<number, SpanMapping[]>();
+        const directives_by_line = new Map<number, MappedDiagnosticDirective[]>();
         const line_break = print_string('\n');
-        for (const mapping of sorted_by_generated) {
-            const line = generated.toLineChar(mapping[0]).line.index;
-            const end_line = generated.toLineChar(mapping[0] + mapping[1]).line.index;
+        const add_to_lines = <T>(map: Map<number, T[]>, item: T, start: number, end: number) => {
+            const line = generated.toLineChar(start).line.index;
+            const end_line = generated.toLineChar(end).line.index;
             for (let i = line; i <= end_line; i++) {
-                let bucket = groups_by_line.get(i);
+                let bucket = map.get(i);
                 if (!bucket) {
                     bucket = [];
-                    groups_by_line.set(i, bucket);
+                    map.set(i, bucket);
                 }
-                bucket.push(mapping);
+                bucket.push(item);
             }
+        };
+        for (const mapping of sorted_by_generated) {
+            add_to_lines(groups_by_line, mapping, mapping[0], mapping[0] + mapping[1]);
+        }
+        for (const directive of directives) {
+            add_to_lines(directives_by_line, directive, directive[2], directive[3]);
         }
         return compose_file(function* () {
             const lines = generated.lines;
             for (const line of lines) {
                 const rendered_line = line.toString();
                 yield '>' + rendered_line;
-                const mappings = groups_by_line.get(line.index);
-                if (!mappings) {
-                    continue;
-                }
+                const mappings = groups_by_line.get(line.index) ?? [];
+                const line_directives = directives_by_line.get(line.index) ?? [];
 
                 const tab_indexes: number[] = [];
                 for (let i = 0; i < rendered_line.length; i++) {
                     if (rendered_line[i] === '\t') {
                         tab_indexes.push(i + line.start);
                     }
+                }
+                for (const [, , virtual_start, virtual_end] of line_directives) {
+                    // Ignore directives: drop TS's semantic diagnostics that start in the range
+                    const range_start = Math.max(virtual_start, line.start);
+                    const range_end = Math.min(virtual_end, line.end);
+                    if (range_end <= range_start) {
+                        continue;
+                    }
+                    const tabs_before = tab_indexes.filter((i) => i < range_start).length;
+                    const tabs_inside = tab_indexes.filter(
+                        (i) => i >= range_start && i < range_end
+                    ).length;
+                    yield '#' +
+                        ' '.repeat(range_start - line.start + tabs_before * 3) +
+                        '~'.repeat(range_end - range_start + tabs_inside * 3) +
+                        (virtual_end > line.end ? '' : ' [Ignore]');
                 }
                 for (const mapping of mappings) {
                     const [
@@ -549,12 +576,13 @@ export function process_transformed_text(
 export function process_content_mapper(
     original_text: string,
     generated_text: string,
-    span_mappings: SpanMapping[]
+    span_mappings: SpanMapping[],
+    directives: MappedDiagnosticDirective[]
 ) {
     const source = parse(original_text, generated_text, []);
 
     return {
-        print: () => print.span_mapping(source, span_mappings)
+        print: () => print.span_mapping(source, span_mappings, directives)
     };
 }
 

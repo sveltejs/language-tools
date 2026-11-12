@@ -1,4 +1,4 @@
-<script type="ts">
+<script lang="ts">
   export let x = 0
 
   let x2: number

@@ -340,6 +340,9 @@ importers:
 
   packages/typescript-content-mapper:
     dependencies:
+      '@sveltejs/load-config':
+        specifier: workspace:^
+        version: link:../load-config
       svelte2tsx:
         specifier: workspace:~
         version: link:../svelte2tsx

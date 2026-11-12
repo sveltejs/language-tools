@@ -3,6 +3,7 @@ import ts from 'typescript';
 import { surroundWithIgnoreComments } from '../../utils/ignore';
 import { getCurrentPrepends, preprendStr } from '../../utils/magic-string';
 import { extractIdentifiers, getNamesFromLabeledStatement } from '../utils/tsAst';
+import { SpanMapGenerator } from '../../utils/spanMap';
 
 /**
  * Tracks all store-usages as well as all variable declarations and imports in the component.
@@ -25,7 +26,8 @@ export class ImplicitStoreValues {
         storesResolvedInTemplate: string[] = [],
         private renderFunctionStart: number,
         private isSvelte5Plus: boolean,
-        private storeFromImportsWrapper = (input: string) => input
+        private storeFromImportsWrapper = (input: string) => input,
+        private spanMapGenerator?: SpanMapGenerator
     ) {
         storesResolvedInTemplate.forEach(this.addStoreAccess);
     }
@@ -164,6 +166,10 @@ export class ImplicitStoreValues {
     }
 
     private createStoreDeclaration(storeName: string): string {
-        return `;let $${storeName} = __sveltets_2_store_get(${storeName});`;
+        // The language server reports misused stores (errors at the argument) at the $store usages
+        const argument = this.spanMapGenerator
+            ? this.spanMapGenerator.keepDiagnostics(storeName)
+            : storeName;
+        return `;let $${storeName} = __sveltets_2_store_get(${argument});`;
     }
 }

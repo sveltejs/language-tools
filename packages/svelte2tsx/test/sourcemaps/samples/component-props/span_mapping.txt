@@ -89,6 +89,7 @@
 -
 #
 > { const $$_tnenopmoC0C = __sveltets_2_ensureComponent(Component); new $$_tnenopmoC0C({ target: __sveltets_2_any(), props: {   foo:bar,}});/*Ωignore_startΩ*/() => bar = __sveltets_2_any(null);/*Ωignore_endΩ*/}
+#                                                                                                                                           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ [Ignore]
 # [Verbatim] => 95-96
 -
 -

@@ -66,7 +66,10 @@ export function svelte2tsx(
     options.version = options.version || VERSION;
 
     const str = new MagicString(svelte);
-    const spanMapGenerator = options.generateSpanMapping ? new SpanMapGenerator() : undefined;
+    const spanMapGenerator =
+        options.generateSpanMapping && options.mode !== 'dts'
+            ? new SpanMapGenerator(svelte)
+            : undefined;
 
     const rewriteExternalImportsOptions: RewriteExternalImportsOptions | undefined =
         options.rewriteExternalImports && options.filename
@@ -130,7 +133,9 @@ export function svelte2tsx(
     const implicitStoreValues = new ImplicitStoreValues(
         resolvedStores,
         renderFunctionStart,
-        svelte5Plus
+        svelte5Plus,
+        undefined,
+        spanMapGenerator
     );
     //move the instance script and process the content
     let exportedNames = new ExportedNames(
@@ -209,7 +214,8 @@ export function svelte2tsx(
                 implicitStoreValues.getAccessedStores(),
                 renderFunctionStart,
                 svelte5Plus,
-                scriptTag || options.mode === 'ts' ? undefined : (input) => `</>;${input}<>`
+                scriptTag || options.mode === 'ts' ? undefined : (input) => `</>;${input}<>`,
+                spanMapGenerator
             ),
             moduleAst,
             rewriteExternalImportsOptions
@@ -271,7 +277,8 @@ export function svelte2tsx(
         isSvelte5: svelte5Plus,
         hasTopLevelAwait,
         noSvelteComponentTyped: options.noSvelteComponentTyped,
-        emitJsDoc
+        emitJsDoc,
+        spanMapGenerator
     });
 
     if (options.mode === 'dts') {
@@ -314,10 +321,23 @@ export function svelte2tsx(
             }
         }
 
-        const code = str.toString();
-        const spanMappings = spanMapGenerator?.generateSpanMapping(str, code, {
-            svelte5Plus
-        });
+        if (spanMapGenerator) {
+            const spanMap = spanMapGenerator.generate(str);
+            return {
+                code: spanMap.code,
+                get map() {
+                    return spanMap.generateMap({ hires: true, source: options?.filename });
+                },
+                exportedNames: exportedNames.getExportsMap(),
+                events: events.createAPI(),
+                spanMappings: spanMap.mappings,
+                diagnosticDirectives: spanMap.diagnosticDirectives,
+                // not part of the public API
+                spanMapIssues: spanMap.issues,
+                htmlAst
+            };
+        }
+
         return {
             code: str.toString(),
             get map() {
@@ -325,7 +345,9 @@ export function svelte2tsx(
             },
             exportedNames: exportedNames.getExportsMap(),
             events: events.createAPI(),
-            spanMappings: spanMappings,
+            spanMappings: undefined,
+            diagnosticDirectives: undefined,
+            spanMapIssues: undefined,
             // not part of the public API so people don't start using it
             htmlAst
         };

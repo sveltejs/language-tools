@@ -175,7 +175,11 @@ export class TsgoResponseTransformer {
                   })
                 : undefined;
 
-        return transformDiagnosticReport(report, { document, virtualCode });
+        return transformDiagnosticReport(report, {
+            document,
+            virtualCode,
+            getTemplateAst: () => this.astLoader.loadTemplateAst(document)
+        });
     }
 
     /**

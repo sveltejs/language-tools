@@ -496,11 +496,7 @@ export function convertHtmlxToJsx(
                         handleLeadingStartComment(str, node as BaseNode, ast);
                         handleTrailingEndComment(str, node as BaseNode, parent, ast);
                         stores.handleDirective(node, str);
-                        handleActionDirective(
-                            node as BaseDirective,
-                            element as Element,
-                            options.spanMapGenerator
-                        );
+                        handleActionDirective(node as BaseDirective, element as Element);
                         break;
                     case 'Transition':
                         handleLeadingStartComment(str, node as BaseNode, ast);

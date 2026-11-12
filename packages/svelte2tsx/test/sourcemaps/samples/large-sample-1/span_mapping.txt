@@ -94,6 +94,7 @@
 -
 #
 >     let slug/*Ωignore_startΩ*/;slug = __sveltets_2_any();slug;/*Ωignore_endΩ*/;
+#             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ [Ignore]
 #^^^^ [Verbatim] => 620-622
 -
 -╚
@@ -103,6 +104,7 @@
 -             ;
 #
 >     let chapter/*Ωignore_startΩ*/;chapter = __sveltets_2_any();chapter;/*Ωignore_endΩ*/;
+#                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ [Ignore]
 #^^^^ [Verbatim] => 638-640
 -
 -╚
@@ -555,6 +557,7 @@
 -
 #
 >  { svelteHTML.createElement("svelte:window", { "bind:innerWidth":width,});/*Ωignore_startΩ*/() => width = __sveltets_2_any(null);/*Ωignore_endΩ*/}
+#                                                                           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ [Ignore]
 # [Verbatim] => 5585-5586
 -
 -
@@ -1148,6 +1151,7 @@
 -             }
 #
 >          { const $$_elggoTneercS1C = __sveltets_2_ensureComponent(ScreenToggle); new $$_elggoTneercS1C({ target: __sveltets_2_any(), props: {  offset,"labels":['tutorial', 'input', 'output'],}});/*Ωignore_startΩ*/() => offset = __sveltets_2_any(null);/*Ωignore_endΩ*/}
+#                                                                                                                                                                                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ [Ignore]
 #^^^^^^^^ [Verbatim] => 6760-6763
 -
 -╚╚

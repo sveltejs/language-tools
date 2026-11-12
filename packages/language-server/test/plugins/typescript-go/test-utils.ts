@@ -18,7 +18,7 @@ export interface TsGoServiceSetupResult {
 }
 
 export async function createTsGoServiceForTest(
-    workspaceDir: string,
+    workspaceDir: string | string[],
     capabilities?: ClientCapabilities
 ): Promise<TsGoServiceSetupResult> {
     if (!tsserverPath) {
@@ -43,7 +43,9 @@ export async function createTsGoServiceForTest(
         lsConfigManager: lsConfigManager,
         tsserverPath: tsserverPath,
         serverInitializationOptions: {
-            workspaceFolders: [{ name: '', uri: pathToUrl(workspaceDir) }],
+            workspaceFolders: [workspaceDir]
+                .flat()
+                .map((dir) => ({ name: '', uri: pathToUrl(dir) })),
             capabilities
         }
     });
