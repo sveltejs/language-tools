@@ -109,23 +109,23 @@ The first row is of type `START` and contains the workspace folder (wrapped in q
 1590680325583 START "/home/user/language-tools/packages/language-server/test/plugins/typescript/testfiles"
 ```
 
-Any number of `ERROR` or `WARNING` records may follow. Their structure is identical and depends on the output argoument.
+Any number of `ERROR` or `WARNING` records may follow. Their structure is identical and depends on the output argument.
 
-If the argument is `machine` it will tell us the filename, the starting line and column numbers, and the error message. The filename is relative to the workspace directory. The filename and the message are both wrapped in quotes.
-
-###### Example:
-
-```
-1590680326283 ERROR "codeactions.svelte" 1:16 "Cannot find module 'blubb' or its corresponding type declarations."
-1590680326778 WARNING "imported-file.svelte" 0:37 "Component has unused export property 'prop'. If it is for external reference only, please consider using `export const prop`"
-```
-
-If the argument is `machine-verbose` it will tell us the filename, the starting line and column numbers, the ending line and column numbers, the error message, the code of diagnostic, the human-friendly description of the code and the human-friendly source of the diagnostic (eg. svelte/typescript). The filename is relative to the workspace directory. Each diagnostic is represented as an [ndjson](https://en.wikipedia.org/wiki/JSON_streaming#Newline-Delimited_JSON) line prefixed by the timestamp of the log.
+If the argument is `machine` it will tell us the filename, the starting line and column numbers, and the error message. The filename is relative to the workspace directory. The filename and the message are both wrapped in quotes. Line and column numbers are 1-based.
 
 ###### Example:
 
 ```
-1590680326283 {"type":"ERROR","fn":"codeaction.svelte","start":{"line":1,"character":16},"end":{"line":1,"character":23},"message":"Cannot find module 'blubb' or its corresponding type declarations.","code":2307,"source":"js"}
+1590680326283 ERROR "codeactions.svelte" 2:17 "Cannot find module 'blubb' or its corresponding type declarations."
+1590680326778 WARNING "imported-file.svelte" 1:38 "Component has unused export property 'prop'. If it is for external reference only, please consider using `export const prop`"
+```
+
+If the argument is `machine-verbose` it will tell us the filename, the starting line and column numbers, the ending line and column numbers, the error message, the code of diagnostic, the human-friendly description of the code and the human-friendly source of the diagnostic (eg. svelte/typescript). The filename is relative to the workspace directory. Each diagnostic is represented as an [ndjson](https://en.wikipedia.org/wiki/JSON_streaming#Newline-Delimited_JSON) line prefixed by the timestamp of the log. Unlike in the `machine` output, line and character numbers are 0-based, as in the [Language Server Protocol](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#position).
+
+###### Example:
+
+```
+1590680326283 {"type":"ERROR","filename":"codeactions.svelte","start":{"line":1,"character":16},"end":{"line":1,"character":23},"message":"Cannot find module 'blubb' or its corresponding type declarations.","code":2307,"source":"js"}
 1590680326778 {"type":"WARNING","filename":"imported-file.svelte","start":{"line":0,"character":37},"end":{"line":0,"character":51},"message":"Component has unused export property 'prop'. If it is for external reference only, please consider using `export
 const prop`","code":"unused-export-let","source":"svelte"}
 ```
