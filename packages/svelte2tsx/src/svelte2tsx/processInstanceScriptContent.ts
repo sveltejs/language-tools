@@ -1,6 +1,7 @@
 import MagicString from 'magic-string';
 import { Node } from 'estree-walker';
-import ts, { VariableDeclaration } from 'typescript';
+import type ts from 'typescript';
+import type { TsFacade } from '../facade';
 import { getBinaryAssignmentExpr, isNotPropertyNameOfImport, moveNode } from './utils/tsAst';
 import { ExportedNames, is$$PropsDeclaration } from './nodes/ExportedNames';
 import { ImplicitTopLevelNames } from './nodes/ImplicitTopLevelNames';
@@ -40,6 +41,7 @@ interface PendingStoreResolution {
 }
 
 export function processInstanceScriptContent(
+    ts: TsFacade,
     str: MagicString,
     script: Node,
     events: ComponentEvents,
@@ -65,6 +67,7 @@ export function processInstanceScriptContent(
     );
     const astOffset = script.content.start;
     const exportedNames = new ExportedNames(
+        ts,
         str,
         astOffset,
         basename,
@@ -74,7 +77,7 @@ export function processInstanceScriptContent(
         emitJsDoc,
         spanMapGenerator
     );
-    const generics = new Generics(str, astOffset, script);
+    const generics = new Generics(ts, str, astOffset, script);
     const interfacesAndTypes = new InterfacesAndTypes();
 
     if (moduleAst) {
@@ -83,7 +86,7 @@ export function processInstanceScriptContent(
         );
     }
 
-    const implicitTopLevelNames = new ImplicitTopLevelNames(str, astOffset);
+    const implicitTopLevelNames = new ImplicitTopLevelNames(ts, str, astOffset);
     let uses$$props = false;
     let uses$$restProps = false;
     let uses$$slots = false;
@@ -94,7 +97,7 @@ export function processInstanceScriptContent(
     let isDeclaration = false;
 
     //track the variable declaration node
-    let variableDeclarationNode: VariableDeclaration | null = null;
+    let variableDeclarationNode: ts.VariableDeclaration | null = null;
 
     //track $store variables since we are only supposed to give top level scopes special treatment, and users can declare $blah variables at higher scopes
     //which prevents us just changing all instances of Identity that start with $
@@ -156,7 +159,7 @@ export function processInstanceScriptContent(
 
         if (isDeclaration || ts.isParameter(parent)) {
             if (
-                isNotPropertyNameOfImport(ident) &&
+                isNotPropertyNameOfImport(ts, ident) &&
                 (!ts.isBindingElement(ident.parent) || ident.parent.name == ident)
             ) {
                 // we are a key, not a name, so don't care
@@ -203,7 +206,7 @@ export function processInstanceScriptContent(
         }
     };
 
-    moveAllInstanceImports(tsAst, astOffset, !!moduleAst, script.start, str);
+    moveAllInstanceImports(ts, tsAst, astOffset, !!moduleAst, script.start, str);
 
     const walk = (node: ts.Node, parent: ts.Node) => {
         type onLeaveCallback = () => void;
@@ -225,13 +228,13 @@ export function processInstanceScriptContent(
 
         generics.addIfIsGeneric(node);
 
-        if (is$$EventsDeclaration(node)) {
+        if (is$$EventsDeclaration(ts, node)) {
             events.setComponentEventsInterface(node, astOffset);
         }
-        if (is$$SlotsDeclaration(node)) {
+        if (is$$SlotsDeclaration(ts, node)) {
             uses$$SlotsInterface = true;
         }
-        if (is$$PropsDeclaration(node)) {
+        if (is$$PropsDeclaration(ts, node)) {
             exportedNames.uses$$Props = true;
             exportedNames.$$propsNameRange = [
                 node.name.getStart() + astOffset,
@@ -329,7 +332,7 @@ export function processInstanceScriptContent(
             node.label.text == '$' &&
             node.statement
         ) {
-            const binaryExpression = getBinaryAssignmentExpr(node);
+            const binaryExpression = getBinaryAssignmentExpr(ts, node);
             if (binaryExpression) {
                 implicitTopLevelNames.add(node);
                 implicitStoreValues.addReactiveDeclaration(node);
@@ -373,7 +376,7 @@ export function processInstanceScriptContent(
     // by a $$Generic, otherwise it will be used before being defined after the transformation
     const nodesToMove = interfacesAndTypes.getNodesWithNames(generics.getTypeReferences());
     for (const node of nodesToMove) {
-        moveNode(node, str, astOffset, script.start, tsAst);
+        moveNode(ts, node, str, astOffset, script.start, tsAst);
     }
 
     exportedNames.hoistableInterfaces.addDisallowed(implicitStoreValues.getAccessedStores());
@@ -392,13 +395,14 @@ export function processInstanceScriptContent(
         // break dts generation (file will not be generated).
         if (hoisted) {
             transformInterfacesToTypes(
+                ts,
                 tsAst,
                 str,
                 astOffset,
                 [...hoisted.values()].concat(nodesToMove)
             );
         } else {
-            transformInterfacesToTypes(tsAst, str, astOffset, nodesToMove);
+            transformInterfacesToTypes(ts, tsAst, str, astOffset, nodesToMove);
         }
     }
 
@@ -415,6 +419,7 @@ export function processInstanceScriptContent(
 }
 
 function transformInterfacesToTypes(
+    ts: TsFacade,
     tsAst: ts.SourceFile,
     str: MagicString,
     astOffset: any,

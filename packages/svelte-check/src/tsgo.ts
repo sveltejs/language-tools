@@ -1,6 +1,8 @@
-import * as syncApi from '@typescript/native/unstable/sync';
-import * as syncAst from '@typescript/native/unstable/ast';
-import * as syncFs from '@typescript/native/unstable/fs';
+// Types only: at runtime, the modules are loaded from the project's TypeScript 7,
+// from `/unstable/*` with TypeScript 7.0 (see below)
+import type * as syncApi from '@typescript/native/sync';
+import type * as syncAst from '@typescript/native/ast';
+import type * as syncFs from '@typescript/native/fs';
 import { pathToFileURL } from 'url';
 
 interface PkgInfo {

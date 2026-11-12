@@ -14,8 +14,10 @@ import { parse, VERSION } from 'svelte/compiler';
 import { getTopLevelImports } from './utils/tsAst';
 import { RewriteExternalImportsOptions } from '../helpers/rewriteExternalImports';
 import { extractTsCheckComment } from './nodes/directiveComment';
+import type { TsFacade } from '../facade';
 
 function processSvelteTemplate(
+    ts: TsFacade,
     str: MagicString,
     parse: typeof import('svelte/compiler').parse,
     options: {
@@ -32,36 +34,44 @@ function processSvelteTemplate(
     }
 ): TemplateProcessResult {
     const { htmlxAst, tags } = parseHtmlx(str.original, parse, options);
-    return convertHtmlxToJsx(str, htmlxAst, tags, options);
+    return convertHtmlxToJsx(ts, str, htmlxAst, tags, options);
 }
 
-export function svelte2tsx(
-    svelte: string,
-    options: {
-        parse?: typeof import('svelte/compiler').parse;
-        version?: string;
-        filename?: string;
-        isTsFile?: boolean;
-        emitOnTemplateError?: boolean;
-        namespace?: string;
-        mode?: 'ts' | 'dts';
-        accessors?: boolean;
-        typingsNamespace?: string;
-        noSvelteComponentTyped?: boolean;
-        /**
-         * If true, emits JSDoc annotations for types in JS files instead of TypeScript syntax.
-         * This is useful for svelte-check's incremental mode where the output needs to be
-         * valid JS that tsc can process without errors.
-         */
-        emitJsDoc?: boolean;
-        rewriteExternalImports?: {
-            workspacePath: string;
-            generatedPath: string;
-        };
-        shimPaths?: string[];
-        generateSpanMapping?: boolean;
-    } = { parse }
-) {
+export interface Svelte2TsxOptions {
+    /**
+     * The TypeScript API svelte2tsx parses the scripts with.
+     * Required here; the entry points (`svelte2tsx`, `svelte2tsx/tsgo`) provide a default.
+     */
+    typescript?: TsFacade;
+    parse?: typeof import('svelte/compiler').parse;
+    version?: string;
+    filename?: string;
+    isTsFile?: boolean;
+    emitOnTemplateError?: boolean;
+    namespace?: string;
+    mode?: 'ts' | 'dts';
+    accessors?: boolean;
+    typingsNamespace?: string;
+    noSvelteComponentTyped?: boolean;
+    /**
+     * If true, emits JSDoc annotations for types in JS files instead of TypeScript syntax.
+     * This is useful for svelte-check's incremental mode where the output needs to be
+     * valid JS that tsc can process without errors.
+     */
+    emitJsDoc?: boolean;
+    rewriteExternalImports?: {
+        workspacePath: string;
+        generatedPath: string;
+    };
+    shimPaths?: string[];
+    generateSpanMapping?: boolean;
+}
+
+export function svelte2tsx(svelte: string, options: Svelte2TsxOptions) {
+    const ts = options.typescript;
+    if (!ts) {
+        throw new Error('svelte2tsx: no TypeScript implementation (`typescript` option) given');
+    }
     options.mode = options.mode || 'ts';
     options.version = options.version || VERSION;
 
@@ -99,7 +109,7 @@ export function svelte2tsx(
         resolvedStores,
         usesAccessors,
         isRunes
-    } = processSvelteTemplate(str, options.parse || parse, {
+    } = processSvelteTemplate(ts, str, options.parse || parse, {
         ...options,
         svelte5Plus,
         rewriteExternalImports: rewriteExternalImportsOptions,
@@ -116,7 +126,7 @@ export function svelte2tsx(
     let moduleAst: ModuleAst | undefined;
 
     if (moduleScriptTag) {
-        moduleAst = createModuleAst(str, moduleScriptTag);
+        moduleAst = createModuleAst(ts, str, moduleScriptTag);
 
         if (moduleScriptTag.start != 0) {
             //move our module tag to the top
@@ -131,6 +141,7 @@ export function svelte2tsx(
         ? str.original.lastIndexOf('>', scriptTag.content.start) + 1
         : instanceScriptTarget;
     const implicitStoreValues = new ImplicitStoreValues(
+        ts,
         resolvedStores,
         renderFunctionStart,
         svelte5Plus,
@@ -139,6 +150,7 @@ export function svelte2tsx(
     );
     //move the instance script and process the content
     let exportedNames = new ExportedNames(
+        ts,
         str,
         0,
         basename,
@@ -147,7 +159,7 @@ export function svelte2tsx(
         isRunes,
         emitJsDoc
     );
-    let generics = new Generics(str, 0, { attributes: [] } as any);
+    let generics = new Generics(ts, str, 0, { attributes: [] } as any);
     let uses$$SlotsInterface = false;
     let hasTopLevelAwait = false;
     if (scriptTag) {
@@ -156,6 +168,7 @@ export function svelte2tsx(
             str.move(scriptTag.start, scriptTag.end, instanceScriptTarget);
         }
         const res = processInstanceScriptContent(
+            ts,
             str,
             scriptTag,
             events,
@@ -208,9 +221,11 @@ export function svelte2tsx(
     // we need to process the module script after the instance script has moved otherwise we get warnings about moving edited items
     if (moduleScriptTag) {
         processModuleScriptTag(
+            ts,
             str,
             moduleScriptTag,
             new ImplicitStoreValues(
+                ts,
                 implicitStoreValues.getAccessedStores(),
                 renderFunctionStart,
                 svelte5Plus,
@@ -237,7 +252,7 @@ export function svelte2tsx(
             if (scriptTag) {
                 snippetHoistTargetForModule = scriptTag.start + 1; // +1 because imports are also moved at that position, and we want to move interfaces after imports
             } else {
-                const imports = getTopLevelImports(moduleAst.tsAst);
+                const imports = getTopLevelImports(ts, moduleAst.tsAst);
                 const lastImport = imports[imports.length - 1];
                 snippetHoistTargetForModule = lastImport
                     ? lastImport.end + moduleAst.astOffset
@@ -315,7 +330,7 @@ export function svelte2tsx(
 
         const scriptOrModule = scriptTag || moduleScriptTag;
         if (scriptOrModule) {
-            const tsCheckComments = extractTsCheckComment(scriptOrModule.content.raw);
+            const tsCheckComments = extractTsCheckComment(ts, scriptOrModule.content.raw);
             if (tsCheckComments.length > 0) {
                 str.prepend(tsCheckComments.join('\n') + '\n');
             }

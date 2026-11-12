@@ -1,5 +1,6 @@
 import MagicString from 'magic-string';
-import ts from 'typescript';
+import type ts from 'typescript';
+import type { TsFacade } from '../../facade';
 import { internalHelpers } from '../../helpers';
 import { surroundWithIgnoreComments } from '../../utils/ignore';
 import { preprendStr, overwriteStr } from '../../utils/magic-string';
@@ -14,9 +15,10 @@ import { isKitErrorFile } from '../../helpers/sveltekit';
 import { mapGenerated, SpanMapGenerator } from '../../utils/spanMap';
 
 export function is$$PropsDeclaration(
+    ts: TsFacade,
     node: ts.Node
 ): node is ts.TypeAliasDeclaration | ts.InterfaceDeclaration {
-    return isInterfaceOrTypeDeclaration(node) && node.name.text === '$$Props';
+    return isInterfaceOrTypeDeclaration(ts, node) && node.name.text === '$$Props';
 }
 
 interface ExportedName {
@@ -29,7 +31,7 @@ interface ExportedName {
 }
 
 export class ExportedNames {
-    public hoistableInterfaces = new HoistableInterfaces();
+    public hoistableInterfaces: HoistableInterfaces;
     public usesAccessors = false;
     /**
      * Uses the `$$Props` type
@@ -64,6 +66,7 @@ export class ExportedNames {
     private getters = new Set<string>();
 
     constructor(
+        private ts: TsFacade,
         private str: MagicString,
         private astOffset: number,
         private basename: string,
@@ -72,7 +75,9 @@ export class ExportedNames {
         private isRunes: boolean,
         private emitJsDoc: boolean,
         private spanMapGenerator?: SpanMapGenerator
-    ) {}
+    ) {
+        this.hoistableInterfaces = new HoistableInterfaces(ts);
+    }
 
     /**
      * Emits a Kit type annotation (e.g. `: import('./$types.js').PageData`) either as a
@@ -90,10 +95,10 @@ export class ExportedNames {
     }
 
     handleVariableStatement(node: ts.VariableStatement, parent: ts.Node): void {
-        const exportModifier = findExportKeyword(node);
+        const exportModifier = findExportKeyword(this.ts, node);
         if (exportModifier) {
-            const isLet = node.declarationList.flags === ts.NodeFlags.Let;
-            const isConst = node.declarationList.flags === ts.NodeFlags.Const;
+            const isLet = node.declarationList.flags === this.ts.NodeFlags.Let;
+            const isConst = node.declarationList.flags === this.ts.NodeFlags.Const;
 
             this.handleExportedVariableDeclarationList(node.declarationList, (_, ...args) =>
                 this.addExportForBindingPattern(...args)
@@ -102,10 +107,10 @@ export class ExportedNames {
                 this.propTypeAssertToUserDefined(node.declarationList);
             } else if (isConst) {
                 node.declarationList.forEachChild((n) => {
-                    if (ts.isVariableDeclaration(n) && ts.isIdentifier(n.name)) {
+                    if (this.ts.isVariableDeclaration(n) && this.ts.isIdentifier(n.name)) {
                         this.addGetter(n.name);
 
-                        const type = n.type || ts.getJSDocType(n);
+                        const type = n.type || this.ts.getJSDocType(n);
                         const isKitExport =
                             internalHelpers.isKitRouteFile(this.basename) &&
                             n.name.getText() === 'snapshot';
@@ -121,7 +126,7 @@ export class ExportedNames {
                 });
             }
             this.removeExport(exportModifier.getStart(), exportModifier.end);
-        } else if (ts.isSourceFile(parent)) {
+        } else if (this.ts.isSourceFile(parent)) {
             this.handleExportedVariableDeclarationList(
                 node.declarationList,
                 this.addPossibleExport.bind(this)
@@ -129,7 +134,7 @@ export class ExportedNames {
             for (const declaration of node.declarationList.declarations) {
                 if (
                     declaration.initializer !== undefined &&
-                    ts.isCallExpression(declaration.initializer) &&
+                    this.ts.isCallExpression(declaration.initializer) &&
                     declaration.initializer.expression.getText() === '$props'
                 ) {
                     // @ts-expect-error TS is too stupid to narrow this properly
@@ -141,7 +146,7 @@ export class ExportedNames {
     }
 
     handleExportFunctionOrClass(node: ts.ClassDeclaration | ts.FunctionDeclaration): void {
-        const exportModifier = findExportKeyword(node);
+        const exportModifier = findExportKeyword(this.ts, node);
         if (!exportModifier) {
             return;
         }
@@ -157,7 +162,7 @@ export class ExportedNames {
 
     handleExportDeclaration(node: ts.ExportDeclaration): void {
         const { exportClause } = node;
-        if (ts.isNamedExports(exportClause)) {
+        if (this.ts.isNamedExports(exportClause)) {
             for (const ne of exportClause.elements) {
                 if (ne.propertyName) {
                     this.addExport(ne.propertyName, false, ne.name, undefined, undefined, true);
@@ -177,11 +182,11 @@ export class ExportedNames {
     ): void {
         const bindingLocalNames: string[] = [];
         // Check if the $props() rune uses $bindable()
-        if (ts.isObjectBindingPattern(node.name)) {
+        if (this.ts.isObjectBindingPattern(node.name)) {
             for (const element of node.name.elements) {
                 if (
-                    ts.isIdentifier(element.name) &&
-                    (!element.propertyName || ts.isIdentifier(element.propertyName)) &&
+                    this.ts.isIdentifier(element.name) &&
+                    (!element.propertyName || this.ts.isIdentifier(element.propertyName)) &&
                     !element.dotDotDotToken
                 ) {
                     const name = element.propertyName
@@ -192,10 +197,13 @@ export class ExportedNames {
                         let call = element.initializer;
                         // if it's an as expression we need to check wether the as
                         // expression expression is a call
-                        if (ts.isAsExpression(call)) {
+                        if (this.ts.isAsExpression(call)) {
                             call = call.expression;
                         }
-                        if (ts.isCallExpression(call) && ts.isIdentifier(call.expression)) {
+                        if (
+                            this.ts.isCallExpression(call) &&
+                            this.ts.isIdentifier(call.expression)
+                        ) {
                             if (call.expression.text === '$bindable') {
                                 this.$props.bindings.push(name);
                                 bindingLocalNames.push(element.name.text);
@@ -221,7 +229,7 @@ export class ExportedNames {
 
             const props_type = node.type;
             const type_name = props_type.getText();
-            if (ts.isTypeReferenceNode(props_type)) {
+            if (this.ts.isTypeReferenceNode(props_type)) {
                 this.$props.type = type_name;
             } else {
                 // Create a virtual type alias for the unnamed generic and reuse it for the props return type
@@ -254,7 +262,9 @@ export class ExportedNames {
             let start = -1;
             let comment: string;
             // reverse because we want to look at the last comment before the node first
-            for (const c of [...(ts.getLeadingCommentRanges(text, node.pos) || [])].reverse()) {
+            for (const c of [
+                ...(this.ts.getLeadingCommentRanges(text, node.pos) || [])
+            ].reverse()) {
                 const potential_match = text.substring(c.pos, c.end);
                 if (/@type\b/.test(potential_match)) {
                     comment = potential_match;
@@ -264,7 +274,7 @@ export class ExportedNames {
             }
             if (!comment) {
                 for (const c of [
-                    ...(ts.getLeadingCommentRanges(text, node.parent.pos) || []).reverse()
+                    ...(this.ts.getLeadingCommentRanges(text, node.parent.pos) || []).reverse()
                 ]) {
                     const potential_match = text.substring(c.pos, c.end);
                     if (/@type\b/.test(potential_match)) {
@@ -303,11 +313,11 @@ export class ExportedNames {
         const isKitRouteFile = internalHelpers.isKitRouteFile(this.basename);
         const isKitLayoutFile = isKitRouteFile && this.basename.includes('layout');
 
-        if (ts.isObjectBindingPattern(node.name)) {
+        if (this.ts.isObjectBindingPattern(node.name)) {
             for (const element of node.name.elements) {
                 if (
-                    !ts.isIdentifier(element.name) ||
-                    (element.propertyName && !ts.isIdentifier(element.propertyName)) ||
+                    !this.ts.isIdentifier(element.name) ||
+                    (element.propertyName && !this.ts.isIdentifier(element.propertyName)) ||
                     !!element.dotDotDotToken
                 ) {
                     withUnknown = true;
@@ -340,31 +350,31 @@ export class ExportedNames {
                         }
                     } else if (element.initializer) {
                         const initializer =
-                            ts.isCallExpression(element.initializer) &&
-                            ts.isIdentifier(element.initializer.expression) &&
+                            this.ts.isCallExpression(element.initializer) &&
+                            this.ts.isIdentifier(element.initializer.expression) &&
                             element.initializer.expression.text === '$bindable'
                                 ? element.initializer.arguments[0]
                                 : element.initializer;
 
                         const type = !initializer
                             ? 'any'
-                            : ts.isAsExpression(initializer)
+                            : this.ts.isAsExpression(initializer)
                               ? initializer.type.getText()
-                              : ts.isStringLiteral(initializer)
+                              : this.ts.isStringLiteral(initializer)
                                 ? 'string'
-                                : ts.isNumericLiteral(initializer)
+                                : this.ts.isNumericLiteral(initializer)
                                   ? 'number'
-                                  : initializer.kind === ts.SyntaxKind.TrueKeyword ||
-                                      initializer.kind === ts.SyntaxKind.FalseKeyword
+                                  : initializer.kind === this.ts.SyntaxKind.TrueKeyword ||
+                                      initializer.kind === this.ts.SyntaxKind.FalseKeyword
                                     ? 'boolean'
-                                    : ts.isIdentifier(initializer) &&
+                                    : this.ts.isIdentifier(initializer) &&
                                         initializer.text !== 'undefined'
                                       ? `typeof ${initializer.text}`
-                                      : ts.isArrowFunction(initializer)
+                                      : this.ts.isArrowFunction(initializer)
                                         ? 'Function'
-                                        : ts.isObjectLiteralExpression(initializer)
+                                        : this.ts.isObjectLiteralExpression(initializer)
                                           ? 'Record<string, any>'
-                                          : ts.isArrayLiteralExpression(initializer)
+                                          : this.ts.isArrayLiteralExpression(initializer)
                                             ? 'any[]'
                                             : 'any';
 
@@ -421,8 +431,9 @@ export class ExportedNames {
         const index = tsAst.statements.indexOf(node.parent.parent);
         if (index > 0) {
             const previousStatement = tsAst.statements[index - 1];
-            if (ts.isImportDeclaration(previousStatement)) {
+            if (this.ts.isImportDeclaration(previousStatement)) {
                 return nextLineOrNonWhitespace(
+                    this.ts,
                     this.str.original,
                     previousStatement.end + this.astOffset
                 );
@@ -451,7 +462,7 @@ export class ExportedNames {
         const handleTypeAssertion = (declaration: ts.VariableDeclaration) => {
             const identifier = declaration.name;
             const tsType = declaration.type;
-            const jsDocType = ts.getJSDocType(declaration);
+            const jsDocType = this.ts.getJSDocType(declaration);
             const type = tsType || jsDocType;
             const name = identifier.getText();
             const isKitExport =
@@ -474,7 +485,7 @@ export class ExportedNames {
             const end = declaration.end + this.astOffset;
 
             if (
-                ts.isIdentifier(identifier) &&
+                this.ts.isIdentifier(identifier) &&
                 // Ensure initialization for proper control flow and to avoid "possibly undefined" type errors.
                 // Also ensure prop is typed as any with a type annotation in TS strict mode
                 (!declaration.initializer ||
@@ -483,7 +494,7 @@ export class ExportedNames {
                     // Edge case: TS infers `export let bla = false` to type `false`.
                     // prevent that by adding the any-wrap in this case, too.
                     (!type &&
-                        [ts.SyntaxKind.FalseKeyword, ts.SyntaxKind.TrueKeyword].includes(
+                        [this.ts.SyntaxKind.FalseKeyword, this.ts.SyntaxKind.TrueKeyword].includes(
                             declaration.initializer.kind
                         )))
             ) {
@@ -516,11 +527,11 @@ export class ExportedNames {
         };
 
         const findComma = (target: ts.Node) =>
-            target.getChildren().filter((child) => child.kind === ts.SyntaxKind.CommaToken);
+            target.getChildren().filter((child) => child.kind === this.ts.SyntaxKind.CommaToken);
         const splitDeclaration = () => {
             const commas = node
                 .getChildren()
-                .filter((child) => child.kind === ts.SyntaxKind.SyntaxList)
+                .filter((child) => child.kind === this.ts.SyntaxKind.SyntaxList)
                 .map(findComma)
                 .reduce((current, previous) => [...current, ...previous], []);
 
@@ -546,17 +557,17 @@ export class ExportedNames {
         list: ts.VariableDeclarationList,
         add: ExportedNames['addPossibleExport']
     ) {
-        const isLet = list.flags === ts.NodeFlags.Let;
-        ts.forEachChild(list, (node) => {
-            if (ts.isVariableDeclaration(node)) {
-                if (ts.isIdentifier(node.name)) {
+        const isLet = list.flags === this.ts.NodeFlags.Let;
+        this.ts.forEachChild(list, (node) => {
+            if (this.ts.isVariableDeclaration(node)) {
+                if (this.ts.isIdentifier(node.name)) {
                     add(list, node.name, isLet, node.name, node.type, !node.initializer);
                 } else if (
-                    ts.isObjectBindingPattern(node.name) ||
-                    ts.isArrayBindingPattern(node.name)
+                    this.ts.isObjectBindingPattern(node.name) ||
+                    this.ts.isArrayBindingPattern(node.name)
                 ) {
-                    ts.forEachChild(node.name, (element) => {
-                        if (ts.isBindingElement(element)) {
+                    this.ts.forEachChild(node.name, (element) => {
+                        if (this.ts.isBindingElement(element)) {
                             add(list, element.name, isLet);
                         }
                     });
@@ -625,11 +636,11 @@ export class ExportedNames {
         type: ts.TypeNode = null,
         required = false
     ) {
-        if (!ts.isIdentifier(name)) {
+        if (!this.ts.isIdentifier(name)) {
             return;
         }
 
-        if (target && ts.isIdentifier(target)) {
+        if (target && this.ts.isIdentifier(target)) {
             this.possibleExports.set(name.text, {
                 declaration,
                 isLet,
@@ -689,8 +700,8 @@ export class ExportedNames {
         type: ts.TypeNode = null,
         required = false
     ): void {
-        if (ts.isIdentifier(name)) {
-            if (!target || ts.isIdentifier(target)) {
+        if (this.ts.isIdentifier(name)) {
+            if (!target || this.ts.isIdentifier(target)) {
                 this.addExport(name, isLet, target as ts.Identifier | null, type, required);
             }
             return;
@@ -698,7 +709,7 @@ export class ExportedNames {
 
         name.elements.forEach((child) => {
             // Skip array binding holes (`[a, , c]`), which have no `name`.
-            if (ts.isOmittedExpression(child)) {
+            if (this.ts.isOmittedExpression(child)) {
                 return;
             }
             this.addExportForBindingPattern(child.name, isLet, undefined, type, required);
@@ -714,11 +725,11 @@ export class ExportedNames {
         const exportExpr = target?.parent?.parent?.parent;
 
         if (variableDeclaration) {
-            doc = getLastLeadingDoc(variableDeclaration);
+            doc = getLastLeadingDoc(this.ts, variableDeclaration);
         }
 
         if (exportExpr && !doc) {
-            doc = getLastLeadingDoc(exportExpr);
+            doc = getLastLeadingDoc(this.ts, exportExpr);
         }
 
         return doc;

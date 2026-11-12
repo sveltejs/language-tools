@@ -1,13 +1,15 @@
 import MagicString from 'magic-string';
-import ts from 'typescript';
+import type ts from 'typescript';
+import type { TsFacade } from '../../facade';
 
 export function isInterfaceOrTypeDeclaration(
+    ts: TsFacade,
     node: ts.Node
 ): node is ts.TypeAliasDeclaration | ts.InterfaceDeclaration {
     return ts.isTypeAliasDeclaration(node) || ts.isInterfaceDeclaration(node);
 }
 
-export function findExportKeyword(node: ts.Node) {
+export function findExportKeyword(ts: TsFacade, node: ts.Node) {
     return ts.canHaveModifiers(node)
         ? ts.getModifiers(node)?.find((x) => x.kind == ts.SyntaxKind.ExportKeyword)
         : undefined;
@@ -16,7 +18,7 @@ export function findExportKeyword(node: ts.Node) {
 /**
  * Node is like `bla = ...` or `{bla} = ...` or `[bla] = ...`
  */
-function isAssignmentBinaryExpr(node: ts.Expression): node is ts.BinaryExpression {
+function isAssignmentBinaryExpr(ts: TsFacade, node: ts.Expression): node is ts.BinaryExpression {
     return (
         ts.isBinaryExpression(node) &&
         node.operatorToken.kind == ts.SyntaxKind.EqualsToken &&
@@ -30,15 +32,16 @@ function isAssignmentBinaryExpr(node: ts.Expression): node is ts.BinaryExpressio
  * Returns if node is like `$: bla = ...` or `$: ({bla} = ...)` or `$: [bla] = ...=`
  */
 export function getBinaryAssignmentExpr(
+    ts: TsFacade,
     node: ts.LabeledStatement
 ): ts.BinaryExpression | undefined {
     if (ts.isExpressionStatement(node.statement)) {
-        if (isAssignmentBinaryExpr(node.statement.expression)) {
+        if (isAssignmentBinaryExpr(ts, node.statement.expression)) {
             return node.statement.expression;
         }
         if (
             ts.isParenthesizedExpression(node.statement.expression) &&
-            isAssignmentBinaryExpr(node.statement.expression.expression)
+            isAssignmentBinaryExpr(ts, node.statement.expression.expression)
         ) {
             return node.statement.expression.expression;
         }
@@ -49,6 +52,7 @@ export function getBinaryAssignmentExpr(
  * Returns true if node is like `({bla} ..)` or `([bla] ...)`
  */
 export function isParenthesizedObjectOrArrayLiteralExpression(
+    ts: TsFacade,
     node: ts.Expression
 ): node is ts.ParenthesizedExpression {
     return (
@@ -64,16 +68,17 @@ export function isParenthesizedObjectOrArrayLiteralExpression(
  * Adapted from https://github.com/Rich-Harris/periscopic/blob/d7a820b04e1f88b452313ab3e54771b352f0defb/src/index.ts#L150
  */
 export function extractIdentifiers(
+    ts: TsFacade,
     node: ts.Node,
     identifiers: ts.Identifier[] = []
 ): ts.Identifier[] {
     if (ts.isIdentifier(node)) {
         identifiers.push(node);
     } else if (ts.isBindingElement(node)) {
-        extractIdentifiers(node.name, identifiers);
-    } else if (isMember(node)) {
+        extractIdentifiers(ts, node.name, identifiers);
+    } else if (isMember(ts, node)) {
         let object: ts.Node = node;
-        while (isMember(object)) {
+        while (isMember(ts, object)) {
             object = object.expression;
         }
         if (ts.isIdentifier(object)) {
@@ -81,36 +86,37 @@ export function extractIdentifiers(
         }
     } else if (ts.isArrayBindingPattern(node) || ts.isObjectBindingPattern(node)) {
         node.elements.forEach((element) => {
-            extractIdentifiers(element, identifiers);
+            extractIdentifiers(ts, element, identifiers);
         });
     } else if (ts.isObjectLiteralExpression(node)) {
         node.properties.forEach((child) => {
             if (ts.isSpreadAssignment(child)) {
-                extractIdentifiers(child.expression, identifiers);
+                extractIdentifiers(ts, child.expression, identifiers);
             } else if (ts.isShorthandPropertyAssignment(child)) {
                 // in ts Ast { a = 1 } and { a } are both ShorthandPropertyAssignment
-                extractIdentifiers(child.name, identifiers);
+                extractIdentifiers(ts, child.name, identifiers);
             } else if (ts.isPropertyAssignment(child)) {
                 // { a: b }
-                extractIdentifiers(child.initializer, identifiers);
+                extractIdentifiers(ts, child.initializer, identifiers);
             }
         });
     } else if (ts.isArrayLiteralExpression(node)) {
         node.elements.forEach((element) => {
             if (ts.isSpreadElement(element)) {
-                extractIdentifiers(element, identifiers);
+                extractIdentifiers(ts, element, identifiers);
             } else {
-                extractIdentifiers(element, identifiers);
+                extractIdentifiers(ts, element, identifiers);
             }
         });
     } else if (ts.isBinaryExpression(node)) {
-        extractIdentifiers(node.left, identifiers);
+        extractIdentifiers(ts, node.left, identifiers);
     }
 
     return identifiers;
 }
 
 export function isMember(
+    ts: TsFacade,
     node: ts.Node
 ): node is ts.ElementAccessExpression | ts.PropertyAccessExpression {
     return ts.isElementAccessExpression(node) || ts.isPropertyAccessExpression(node);
@@ -121,6 +127,7 @@ export function isMember(
  * if it is a variable declaration in the form of `const/let a = ..`
  */
 export function getVariableAtTopLevel(
+    ts: TsFacade,
     node: ts.SourceFile,
     identifierName: string
 ): ts.VariableDeclaration | undefined {
@@ -140,7 +147,7 @@ export function getVariableAtTopLevel(
 /**
  * Get the leading multiline trivia doc of the node.
  */
-export function getLastLeadingDoc(node: ts.Node): string | undefined {
+export function getLastLeadingDoc(ts: TsFacade, node: ts.Node): string | undefined {
     const nodeText = node.getFullText();
     const comments = ts
         .getLeadingCommentRanges(nodeText, 0)
@@ -166,7 +173,7 @@ export function getLastLeadingDoc(node: ts.Node): string | undefined {
  * Returns true if given identifier is not the property name of an aliased import.
  * In other words: It is not `a` in `import {a as b} from ..`
  */
-export function isNotPropertyNameOfImport(identifier: ts.Identifier): boolean {
+export function isNotPropertyNameOfImport(ts: TsFacade, identifier: ts.Identifier): boolean {
     return (
         !ts.isImportSpecifier(identifier.parent) || identifier.parent.propertyName !== identifier
     );
@@ -175,21 +182,21 @@ export function isNotPropertyNameOfImport(identifier: ts.Identifier): boolean {
 /**
  * Extract the variable names that are assigned to out of a labeled statement.
  */
-export function getNamesFromLabeledStatement(node: ts.LabeledStatement): string[] {
-    const leftHandSide = getBinaryAssignmentExpr(node)?.left;
+export function getNamesFromLabeledStatement(ts: TsFacade, node: ts.LabeledStatement): string[] {
+    const leftHandSide = getBinaryAssignmentExpr(ts, node)?.left;
     if (!leftHandSide) {
         return [];
     }
 
     return (
-        extractIdentifiers(leftHandSide)
+        extractIdentifiers(ts, leftHandSide)
             .map((id) => id.text)
             // svelte won't let you create a variable with $ prefix (reserved for stores)
             .filter((name) => !name.startsWith('$'))
     );
 }
 
-export function isSafeToPrefixWithSemicolon(node: ts.Identifier): boolean {
+export function isSafeToPrefixWithSemicolon(ts: TsFacade, node: ts.Identifier): boolean {
     let parent = node.parent;
     while (parent && !ts.isExpressionStatement(parent)) {
         parent = parent.parent;
@@ -214,6 +221,7 @@ export function isSafeToPrefixWithSemicolon(node: ts.Identifier): boolean {
  * move node to top of script so they appear outside our render function
  */
 export function moveNode(
+    ts: TsFacade,
     node: ts.Node,
     str: MagicString,
     astOffset: number,
@@ -229,7 +237,7 @@ export function moveNode(
     const comments = ts.getLeadingCommentRanges(node.getFullText(), 0) ?? [];
     if (
         !comments.some((comment) => comment.hasTrailingNewLine) &&
-        isNewGroup(sourceFile, node, scanner)
+        isNewGroup(ts, sourceFile, node, scanner)
     ) {
         str.appendRight(node.getStart() + astOffset, '\n');
     }
@@ -253,7 +261,12 @@ export function moveNode(
 /**
  * adopted from https://github.com/microsoft/TypeScript/blob/6e0447fdf165b1cec9fc80802abcc15bd23a268f/src/services/organizeImports.ts#L111
  */
-function isNewGroup(sourceFile: ts.SourceFile, topLevelImportDecl: ts.Node, scanner: ts.Scanner) {
+function isNewGroup(
+    ts: TsFacade,
+    sourceFile: ts.SourceFile,
+    topLevelImportDecl: ts.Node,
+    scanner: ts.Scanner
+) {
     const startPos = topLevelImportDecl.getFullStart();
     const endPos = topLevelImportDecl.getStart();
     scanner.setText(sourceFile.text, startPos, endPos - startPos);
@@ -274,11 +287,14 @@ function isNewGroup(sourceFile: ts.SourceFile, topLevelImportDecl: ts.Node, scan
     return false;
 }
 
-export function getTopLevelImports(sourceFile: ts.SourceFile): ts.ImportDeclaration[] {
+export function getTopLevelImports(
+    ts: TsFacade,
+    sourceFile: ts.SourceFile
+): ts.ImportDeclaration[] {
     return sourceFile.statements.filter(ts.isImportDeclaration).sort((a, b) => a.end - b.end);
 }
 
-export function nextLineOrNonWhitespace(text: string, pos: number) {
+export function nextLineOrNonWhitespace(ts: TsFacade, text: string, pos: number) {
     let nextCharCode = text.charCodeAt(pos);
     while (ts.isWhiteSpaceSingleLine(nextCharCode)) {
         pos++;

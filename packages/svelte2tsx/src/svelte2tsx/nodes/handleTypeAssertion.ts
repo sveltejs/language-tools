@@ -1,5 +1,5 @@
 import MagicString from 'magic-string';
-import ts from 'typescript';
+import type ts from 'typescript';
 
 /**
  * Transform type assertion to as expression: <Type>a => a as Type

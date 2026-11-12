@@ -24,7 +24,7 @@
  *                  symlinks to the project's, the content mapper and TypeScript 7.1 (as
  *                  `@typescript/native`). Nothing is written into the project.
  *   --sources      `js` (default) compares TypeScript diagnostics only, `all` also Svelte and CSS
- *   --typescript   TypeScript 7.1 for mirrors (default: svelte-check's `typescript-next`)
+ *   --typescript   TypeScript 7.1 for mirrors (default: svelte-check's `@typescript/native`)
  *   --mapper       content mapper for mirrors (default: svelte-check's `@sveltejs/ts-content-mapper`)
  *   --json         writes all results and differences
  *   --strict       exit code 1 if there are differences in the `other` bucket
@@ -321,7 +321,7 @@ function findOverride(dir) {
 function main() {
     const { corpora, options } = parseArgs();
     const packages = {
-        typescript: options.typescript ?? packageDir('typescript-next'),
+        typescript: options.typescript ?? packageDir('@typescript/native'),
         mapper: options.mapper ?? packageDir(CONTENT_MAPPER)
     };
     const report = [];

@@ -1,4 +1,4 @@
-import ts from 'typescript';
+import type ts from 'typescript';
 import { flatten } from '../../utils/object';
 
 type TypeOrInterface = ts.InterfaceDeclaration | ts.TypeAliasDeclaration;
