@@ -3,6 +3,7 @@ import * as fs from 'fs';
 import { join, relative, sep } from 'path';
 import { emitDts } from '../../src';
 import { VERSION } from 'svelte/compiler';
+import { TraceMap, originalPositionFor } from '@jridgewell/trace-mapping';
 
 function rimraf(path: string) {
     ((fs as any).rmSync || fs.rmdirSync)(path, { recursive: true, force: true });
@@ -138,4 +139,52 @@ describe('emitDts', async () => {
         if (isSvelte4Sample(sample) === isSvelte5Plus) continue;
         it(sample, async () => await testEmitDts(sample)).timeout(10000);
     }
+
+    it('maps component declarations back to the original .svelte source', async () => {
+        const cwd = join(__dirname, 'mappings');
+        const declarationDir = join(cwd, 'package');
+
+        try {
+            await emitDts({
+                declarationDir,
+                svelteShimsPath: require.resolve(join(process.cwd(), 'svelte-shims.d.ts')),
+                libRoot: join(cwd, 'src')
+            });
+
+            const dts = fs.readFileSync(join(declarationDir, 'Test.svelte.d.ts'), 'utf-8');
+            const map = new TraceMap(
+                fs.readFileSync(join(declarationDir, 'Test.svelte.d.ts.map'), 'utf-8')
+            );
+            const source_lines = fs
+                .readFileSync(join(cwd, 'src', 'Test.svelte'), 'utf-8')
+                .split('\n');
+
+            for (const [generated, expected_line] of [
+                ['foo: string', '    export let foo: string;'],
+                ['greet?: (greeting: string)', '    export function greet(greeting: string) {']
+            ]) {
+                const index = dts.indexOf(generated);
+                assert.notStrictEqual(index, -1, `${generated} not found in Test.svelte.d.ts`);
+                const before = dts.slice(0, index + generated.lastIndexOf('string')).split('\n');
+
+                const original = originalPositionFor(map, {
+                    line: before.length,
+                    column: before[before.length - 1].length
+                });
+
+                assert.strictEqual(original.source, '../src/Test.svelte');
+                const line = source_lines[original.line - 1];
+                assert.deepStrictEqual(
+                    {
+                        line,
+                        token: line?.slice(original.column, original.column + 'string'.length)
+                    },
+                    { line: expected_line, token: 'string' },
+                    `${generated} maps to ${original.line}:${original.column} of Test.svelte`
+                );
+            }
+        } finally {
+            rimraf(declarationDir);
+        }
+    }).timeout(10000);
 });
