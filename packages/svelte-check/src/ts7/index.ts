@@ -10,36 +10,55 @@ import {
     writeDiagnostics
 } from '../output';
 import { loadTypeScript7, resolveTypeScript7 } from './typescript';
+import { watch } from './watch';
 
 /**
  * svelte-check on TypeScript 7 (`--experimental-ts7`): TypeScript diagnostics from the project's
  * TypeScript 7.1+ through its API, with `.svelte` files transformed by the content mapper that the
- * tsconfig configures. One-shot runs only for now.
+ * tsconfig configures.
  */
 export async function run(opts: SvelteCheckCliOptions) {
     const writer = instantiateWriter(opts);
     // validated in options.ts
     const tsconfig = opts.tsconfig!;
 
-    let result: Result | null = null;
+    let svelteCheck: SvelteCheckTs7;
     try {
         assertSvelte5(tsconfig);
         const typescript = await loadTypeScript7(resolveTypeScript7(tsconfig), tsconfig);
         ensureNodeOnPath();
 
-        const svelteCheck = new SvelteCheckTs7(opts.workspaceUri.fsPath, {
+        svelteCheck = new SvelteCheckTs7(opts.workspaceUri.fsPath, {
             tsconfig,
             typescript,
             configPath: opts.config,
             compilerWarnings: opts.compilerWarnings,
             diagnosticSources: opts.diagnosticSources
         });
+    } catch (error) {
+        if (!(error instanceof SvelteCheckTs7Error)) {
+            throw error;
+        }
+        writer.failure(error);
+        exitAfterFlush(1);
+        return;
+    }
+
+    if (opts.watch) {
+        await watch(opts, writer, svelteCheck);
+        return;
+    }
+
+    let result: Result | null = null;
+    try {
         result = writeDiagnostics(opts.workspaceUri, writer, await svelteCheck.getDiagnostics());
     } catch (error) {
         if (!(error instanceof SvelteCheckTs7Error)) {
             throw error;
         }
         writer.failure(error);
+    } finally {
+        await svelteCheck.dispose();
     }
     exitAfterFlush(getExitCode(result, opts));
 }

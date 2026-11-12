@@ -14,7 +14,7 @@
  *   --verbose  also prints the failure messages of the failure-mode tests
  */
 
-const { spawnSync } = require('child_process');
+const { spawn, spawnSync } = require('child_process');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -112,6 +112,28 @@ function test(name, check) {
     } catch (error) {
         issues = [String(/** @type {any} */ (error)?.stack ?? error)];
     }
+    report(name, issues);
+}
+
+/**
+ * @param {string} name
+ * @param {() => Promise<string[]>} check returns the problems
+ */
+async function testAsync(name, check) {
+    let issues;
+    try {
+        issues = await check();
+    } catch (error) {
+        issues = [String(/** @type {any} */ (error)?.stack ?? error)];
+    }
+    report(name, issues);
+}
+
+/**
+ * @param {string} name
+ * @param {string[]} issues
+ */
+function report(name, issues) {
     if (issues.length) {
         failed++;
         console.log(`  FAIL: ${name}`);
@@ -242,19 +264,11 @@ function runSvelteCheck(workspace, { args = [], env = process.env, nodeArgs = []
     const entries = [];
     let failure;
     for (const line of result.stdout.split('\n')) {
-        const content = line.replace(/^\d+ /, '');
-        if (content.startsWith('FAILURE ')) {
-            failure = JSON.parse(content.slice('FAILURE '.length));
-        } else if (content.startsWith('{')) {
-            const entry = JSON.parse(content);
-            entries.push({
-                file: entry.filename.replace(/\\/g, '/'),
-                line: entry.start.line,
-                column: entry.start.character,
-                code: entry.code,
-                type: entry.type,
-                message: entry.message
-            });
+        const parsed = parseOutputLine(line);
+        if (parsed?.kind === 'failure') {
+            failure = parsed.message;
+        } else if (parsed?.kind === 'entry') {
+            entries.push(parsed.entry);
         }
     }
     return {
@@ -264,6 +278,133 @@ function runSvelteCheck(workspace, { args = [], env = process.env, nodeArgs = []
         entries,
         failure
     };
+}
+
+/**
+ * One line of `--output machine-verbose`
+ *
+ * @param {string} line
+ */
+function parseOutputLine(line) {
+    const content = line.replace(/^\d+ /, '');
+    if (content.startsWith('START ')) {
+        return /** @type {const} */ ({ kind: 'start' });
+    }
+    if (content.startsWith('COMPLETED ')) {
+        return /** @type {const} */ ({ kind: 'completed', summary: content });
+    }
+    if (content.startsWith('FAILURE ')) {
+        return /** @type {const} */ ({
+            kind: 'failure',
+            message: /** @type {string} */ (JSON.parse(content.slice('FAILURE '.length)))
+        });
+    }
+    if (content.startsWith('{')) {
+        const entry = JSON.parse(content);
+        return /** @type {const} */ ({
+            kind: 'entry',
+            entry: {
+                file: /** @type {string} */ (entry.filename).replace(/\\/g, '/'),
+                line: /** @type {number} */ (entry.start.line),
+                column: /** @type {number} */ (entry.start.character),
+                code: /** @type {number | string} */ (entry.code),
+                type: /** @type {'ERROR' | 'WARNING'} */ (entry.type),
+                message: /** @type {string} */ (entry.message)
+            }
+        });
+    }
+    return undefined;
+}
+
+/**
+ * svelte-check --watch, run in the background. `nextRun` waits for the next check to finish.
+ *
+ * @typedef {{ entries: ReturnType<typeof runSvelteCheck>['entries'], failure?: string }} WatchRun
+ */
+class WatchedSvelteCheck {
+    /** @param {string} workspace */
+    constructor(workspace) {
+        this.child = spawn(
+            process.execPath,
+            [
+                CLI,
+                '--workspace',
+                workspace,
+                '--tsconfig',
+                './tsconfig.json',
+                '--output',
+                'machine-verbose',
+                '--watch',
+                '--experimental-ts7'
+            ],
+            { cwd: __dirname, stdio: ['ignore', 'pipe', 'pipe'] }
+        );
+        /** @type {WatchRun[]} */
+        this.runs = [];
+        /** @type {WatchRun['entries']} */
+        this.entries = [];
+        this.stderr = '';
+        /** @type {(() => void) | undefined} */
+        this.notify = undefined;
+        this.returnedRuns = 0;
+        let buffer = '';
+        this.child.stdout.setEncoding('utf-8').on('data', (/** @type {string} */ chunk) => {
+            buffer += chunk;
+            const lines = buffer.split('\n');
+            buffer = lines.pop() ?? '';
+            for (const line of lines) {
+                this.handleLine(line);
+            }
+        });
+        this.child.stderr.setEncoding('utf-8').on('data', (chunk) => (this.stderr += chunk));
+        this.child.on('exit', () => this.notify?.());
+    }
+
+    /** @param {string} line */
+    handleLine(line) {
+        const parsed = parseOutputLine(line);
+        if (parsed?.kind === 'start') {
+            this.entries = [];
+        } else if (parsed?.kind === 'entry') {
+            this.entries.push(parsed.entry);
+        } else if (parsed?.kind === 'completed' || parsed?.kind === 'failure') {
+            this.runs.push({
+                entries: this.entries,
+                failure: parsed.kind === 'failure' ? parsed.message : undefined
+            });
+            this.entries = [];
+            this.notify?.();
+        }
+    }
+
+    /**
+     * The result of the next check (after the ones already returned)
+     *
+     * @param {number} [timeout]
+     * @returns {Promise<WatchRun>}
+     */
+    async nextRun(timeout = 60_000) {
+        const index = this.returnedRuns + 1;
+        const deadline = Date.now() + timeout;
+        while (this.runs.length < index) {
+            if (this.child.exitCode !== null || this.child.signalCode !== null) {
+                throw new Error(`svelte-check exited (${this.child.exitCode}):\n${this.stderr}`);
+            }
+            if (Date.now() > deadline) {
+                throw new Error(`no check within ${timeout} ms:\n${this.stderr}`);
+            }
+            await new Promise((resolve) => {
+                this.notify = () => resolve(undefined);
+                setTimeout(resolve, 200);
+            });
+        }
+        this.returnedRuns = index;
+        return this.runs[index - 1];
+    }
+
+    stop() {
+        this.child.kill();
+    }
 }
 
 /** @param {{ file: string, line: number, column: number, code: number | string, type: string }} entry */
@@ -397,7 +538,138 @@ const simpleTsconfig = {
     include: ['**/*']
 };
 
-function main() {
+/**
+ * `--watch`: one long-running svelte-check, files changed step by step. Each step checks the
+ * (file, code, severity) of all errors and warnings of the next run.
+ */
+async function testWatchMode() {
+    const workspace = createWorkspace({
+        tsconfig: simpleTsconfig,
+        files: {
+            'Counter.svelte':
+                '<script lang="ts">\n\timport { initial } from "./values";\n\tlet count: number = initial;\n</script>\n\n<button onclick={() => count++}>{count}</button>\n',
+            // 7006 with `strict`
+            'values.ts':
+                'export const initial: number = 0;\nexport function double(x) { return x * 2; }\n'
+        }
+    });
+    /** @param {string} name @param {string} content */
+    const write = (name, content) => fs.writeFileSync(path.join(workspace, name), content);
+    /** @param {WatchRun} run */
+    const keys = (run) =>
+        run.failure
+            ? [`FAILURE ${run.failure}`]
+            : run.entries.map((entry) => `${entry.file} ${entry.code} ${entry.type}`).sort();
+
+    /** @type {Array<{ name: string, change?: () => void, expected: (string | RegExp)[] }>} */
+    const steps = [
+        { name: 'first check', expected: ['values.ts 7006 ERROR'] },
+        {
+            name: 'a changed .ts file affects the Svelte file importing it',
+            change: () =>
+                write(
+                    'values.ts',
+                    'export const initial: string = "0";\nexport function double(x) { return x * 2; }\n'
+                ),
+            expected: ['Counter.svelte 2322 ERROR', 'values.ts 7006 ERROR']
+        },
+        {
+            name: 'a new Svelte file is part of the program (include), with Svelte diagnostics',
+            change: () =>
+                write(
+                    'Broken.svelte',
+                    '<script lang="ts">\n\tconst n: number = "x";\n</script>\n\n<img src="x.png" />{n}\n'
+                ),
+            expected: [
+                'Broken.svelte 2322 ERROR',
+                'Broken.svelte a11y_missing_attribute WARNING',
+                'Counter.svelte 2322 ERROR',
+                'values.ts 7006 ERROR'
+            ]
+        },
+        {
+            name: 'a changed Svelte file is transformed and compiled again',
+            change: () =>
+                write(
+                    'Counter.svelte',
+                    '<script lang="ts">\n\timport { initial } from "./values";\n\tlet count: number = Number(initial);\n</script>\n\n<img src="y.png" />\n<button onclick={() => count++}>{count}</button>\n'
+                ),
+            expected: [
+                'Broken.svelte 2322 ERROR',
+                'Broken.svelte a11y_missing_attribute WARNING',
+                'Counter.svelte a11y_missing_attribute WARNING',
+                'values.ts 7006 ERROR'
+            ]
+        },
+        {
+            name: 'a deleted Svelte file is gone',
+            change: () => fs.rmSync(path.join(workspace, 'Broken.svelte')),
+            expected: ['Counter.svelte a11y_missing_attribute WARNING', 'values.ts 7006 ERROR']
+        },
+        {
+            name: 'a changed tsconfig reloads the project',
+            change: () =>
+                write(
+                    'tsconfig.json',
+                    JSON.stringify({
+                        ...simpleTsconfig,
+                        compilerOptions: { ...simpleTsconfig.compilerOptions, strict: false },
+                        contentMappers: [{ package: CONTENT_MAPPER, extensions: ['.svelte'] }]
+                    })
+                ),
+            expected: ['Counter.svelte a11y_missing_attribute WARNING']
+        },
+        {
+            name: 'a deleted tsconfig is a failure',
+            change: () => fs.rmSync(path.join(workspace, 'tsconfig.json')),
+            expected: [/^FAILURE TypeScript could not load .*tsconfig\.json$/]
+        },
+        {
+            name: 'the tsconfig is back',
+            change: () =>
+                write(
+                    'tsconfig.json',
+                    JSON.stringify({
+                        ...simpleTsconfig,
+                        contentMappers: [{ package: CONTENT_MAPPER, extensions: ['.svelte'] }]
+                    })
+                ),
+            expected: ['Counter.svelte a11y_missing_attribute WARNING', 'values.ts 7006 ERROR']
+        }
+    ];
+
+    const svelteCheck = new WatchedSvelteCheck(workspace);
+    try {
+        for (const [index, step] of steps.entries()) {
+            if (step.change) {
+                step.change();
+            }
+            await testAsync(`--watch: ${step.name}`, async () => {
+                const actual = keys(await svelteCheck.nextRun());
+                const matches =
+                    actual.length === step.expected.length &&
+                    step.expected.every((expected, i) =>
+                        typeof expected === 'string'
+                            ? actual[i] === expected
+                            : expected.test(actual[i])
+                    );
+                return matches
+                    ? []
+                    : [
+                          `expected:\n  ${step.expected.join('\n  ')}\ngot:\n  ${actual.join('\n  ')}`
+                      ];
+            });
+            if (index === 0) {
+                // let the file watcher finish its initial scan
+                await new Promise((resolve) => setTimeout(resolve, 1000));
+            }
+        }
+    } finally {
+        svelteCheck.stop();
+    }
+}
+
+async function main() {
     const svelteMajor = Number(
         require(path.join(packages.svelte, 'package.json')).version.split('.')[0]
     );
@@ -471,6 +743,57 @@ function main() {
         );
         return loaded.length ? [`TypeScript 6 was loaded: ${loaded.join(', ')}`] : [];
     });
+
+    console.log('\nlike tsc\n');
+
+    /**
+     * @param {ReturnType<typeof runSvelteCheck>} result
+     * @param {string[]} expected `file code type`, sorted
+     */
+    const expectEntries = (result, expected) => {
+        if (result.failure || result.status === null) {
+            return [`run failed: ${result.failure ?? result.stderr}`];
+        }
+        const actual = result.entries
+            .map((entry) => `${entry.file} ${entry.code} ${entry.type}`)
+            .sort();
+        return JSON.stringify(actual) === JSON.stringify(expected)
+            ? []
+            : [`expected:\n  ${expected.join('\n  ')}\ngot:\n  ${actual.join('\n  ')}`];
+    };
+
+    test('syntax errors stop the semantic check (tsc order)', () =>
+        expectEntries(
+            runSvelteCheck(
+                createWorkspace({
+                    tsconfig: simpleTsconfig,
+                    files: {
+                        'broken.ts': 'export const a = ;\n',
+                        'Typed.svelte':
+                            '<script lang="ts">\n\tlet n: number = "x";\n</script>\n\n<p>{n}</p>\n'
+                    }
+                }),
+                { args: ['--experimental-ts7'] }
+            ),
+            ['broken.ts 1109 ERROR']
+        ));
+    test('TypeScript errors in node_modules are reported, Svelte compiler warnings are not', () =>
+        expectEntries(
+            runSvelteCheck(
+                createWorkspace({
+                    tsconfig: simpleTsconfig,
+                    files: {
+                        'App.svelte':
+                            '<script lang="ts">\n\timport Comp from "lib/Comp.svelte";\n</script>\n\n<Comp />\n',
+                        'node_modules/lib/package.json': '{ "name": "lib", "version": "1.0.0" }\n',
+                        'node_modules/lib/Comp.svelte':
+                            '<script lang="ts">\n\tlet n: number = "x";\n</script>\n\n<img src="x.png" />{n}\n'
+                    }
+                }),
+                { args: ['--experimental-ts7'] }
+            ),
+            ['node_modules/lib/Comp.svelte 2322 ERROR']
+        ));
 
     console.log('\nfailure modes\n');
 
@@ -573,7 +896,6 @@ function main() {
         '--incremental',
         '--tsgo',
         '--tsgo-experimental-api',
-        '--watch',
         '--no-tsconfig'
     ]) {
         test(`${conflicting} conflicts with --experimental-ts7`, () => {
@@ -587,19 +909,25 @@ function main() {
                   ];
         });
     }
+
+    console.log('\nwatch mode\n');
+
+    await testWatchMode();
 }
 
-try {
-    main();
-} finally {
-    for (const dir of temporaryDirectories) {
-        fs.rmSync(dir, { recursive: true, force: true });
-    }
-}
-
-if (failed || passed) {
-    console.log(`\n${passed} passed, ${failed} failed`);
-}
-if (failed) {
-    process.exitCode = 1;
-}
+main()
+    .catch((error) => {
+        console.log(error);
+        failed++;
+    })
+    .finally(() => {
+        for (const dir of temporaryDirectories) {
+            fs.rmSync(dir, { recursive: true, force: true });
+        }
+        if (failed || passed) {
+            console.log(`\n${passed} passed, ${failed} failed`);
+        }
+        if (failed) {
+            process.exitCode = 1;
+        }
+    });

@@ -137,7 +137,7 @@ export function parseOptions(cb: (opts: SvelteCheckCliOptions) => any) {
 const TS7_FLAG = '--experimental-ts7';
 
 function validateTs7Options(opts: Record<string, any>, tsconfig: string | undefined) {
-    const conflicting = ['incremental', 'tsgo', 'tsgo-experimental-api', 'watch'].filter(
+    const conflicting = ['incremental', 'tsgo', 'tsgo-experimental-api'].filter(
         (option) => opts[option]
     );
     if (opts['no-tsconfig'] || process.argv.includes('--no-tsconfig')) {
