@@ -1,4 +1,3 @@
-# gap: 90.9% of 1770 non-whitespace characters, 64.9% outside Ignore directives
 >///<reference types="svelte" />
 >;function $$render() {
 >async () => { const foo/*Ωignore_positionΩ*/ = (x)/*Ωignore_startΩ*/: ReturnType<import('svelte').Snippet>/*Ωignore_endΩ*/ => { async ()/*Ωignore_positionΩ*/ => {
