@@ -1,0 +1,7 @@
+{
+    "private": true,
+    "imports": {
+        "#helper": "./helper/index.js",
+        "#lib/*": "./src/lib/*"
+    }
+}
