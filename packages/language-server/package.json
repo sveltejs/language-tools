@@ -7,6 +7,7 @@
     "exports": {
         "./package.json": "./package.json",
         ".": "./dist/src/index.js",
+        "./svelte-check-ts7": "./dist/src/svelte-check-ts7/index.js",
         "./bin/server.js": "./bin/server.js"
     },
     "scripts": {

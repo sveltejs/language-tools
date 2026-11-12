@@ -5,8 +5,7 @@ import {
     VersionedTextDocumentIdentifier
 } from 'vscode-languageserver';
 import { Document } from './Document';
-import { normalizeUri } from '../../utils';
-import ts from 'typescript';
+import { isFileSystemCaseSensitive, normalizeUri } from '../../utils';
 import { FileMap, FileSet } from './fileCollection';
 
 export type DocumentEvent = 'documentOpen' | 'documentChange' | 'documentClose';
@@ -23,7 +22,7 @@ export class DocumentManager {
     constructor(
         private createDocument: (textDocument: Pick<TextDocumentItem, 'text' | 'uri'>) => Document,
         options: { useCaseSensitiveFileNames: boolean } = {
-            useCaseSensitiveFileNames: ts.sys.useCaseSensitiveFileNames
+            useCaseSensitiveFileNames: isFileSystemCaseSensitive()
         }
     ) {
         this.documents = new FileMap(options.useCaseSensitiveFileNames);

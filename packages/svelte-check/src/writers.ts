@@ -2,7 +2,8 @@ import pc from 'picocolors';
 import { sep } from 'path';
 import { Writable } from 'stream';
 import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver-protocol';
-import { offsetAt } from 'svelte-language-server';
+// not from the package's main entry, which would load TypeScript 6
+import { offsetAt } from 'svelte-language-server/svelte-check-ts7';
 
 export interface Writer {
     start: (workspaceDir: string) => void;
