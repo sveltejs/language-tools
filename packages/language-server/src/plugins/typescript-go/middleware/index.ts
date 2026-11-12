@@ -131,13 +131,22 @@ export class TsgoResponseTransformer {
         }
     }
 
-    /** For the extension: where to rename when a rename starts at `$store` */
+    /**
+     * For the extension: where to rename when a rename starts at `$store`.
+     *
+     * Null means "no store subscription there", and the extension then uses TS7's own rename. That
+     * rename breaks the code if it is a `$store` after all, so this fails instead of answering null
+     * when it can't tell (no API connection, stale snapshot, API error).
+     */
     async getStoreBinding(params: TextDocumentPositionParams): Promise<StoreBinding | null> {
+        if (!this.stores) {
+            throw new Error('No connection to the TypeScript API');
+        }
         try {
-            return (await this.stores?.getStoreBinding(params)) ?? null;
+            return await this.stores.getStoreBinding(params);
         } catch (error) {
             Logger.error('Error resolving the store of a $store', error);
-            return null;
+            throw error;
         }
     }
 
@@ -166,7 +175,11 @@ export class TsgoResponseTransformer {
                   })
                 : undefined;
 
-        return transformDiagnosticReport(report, { document, virtualCode });
+        return transformDiagnosticReport(report, {
+            document,
+            virtualCode,
+            getTemplateAst: () => this.astLoader.loadTemplateAst(document)
+        });
     }
 
     /**

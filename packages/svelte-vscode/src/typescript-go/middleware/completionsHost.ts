@@ -6,11 +6,12 @@ import type {
 import {
     CompletionMiddlewareHost,
     CompletionResult,
-    TextDocumentView,
     transformCompletions,
     transformResolvedItem
 } from './completions';
+import { getOpenDocument } from './documents';
 import { ImportEditOptions } from './importEdits';
+import { timedOut, withTimeout } from './utils';
 
 /** How long we wait for the extra completion request at the script position */
 const nestedRequestTimeout = 1000;
@@ -34,26 +35,22 @@ export function createCompletionMiddleware(log: (message: string) => void) {
             return getImportEditOptions();
         },
         getDocument(uri) {
-            const parsed = vscode.Uri.parse(uri).toString();
-            return toView(vscode.workspace.textDocuments.find((d) => d.uri.toString() === parsed));
+            return getOpenDocument(vscode.Uri.parse(uri));
         },
         async requestCompletions(uri, position) {
             const key = requestKey(uri, position);
             const capture: { result?: CompletionResult } = {};
             nested.set(key, capture);
-            let timer: ReturnType<typeof setTimeout> | undefined;
             try {
-                const completed = await Promise.race([
+                const completed = await withTimeout(
                     vscode.commands.executeCommand(
                         'vscode.executeCompletionItemProvider',
                         vscode.Uri.parse(uri),
                         new vscode.Position(position.line, position.character)
                     ),
-                    new Promise<'timeout'>((resolve) => {
-                        timer = setTimeout(() => resolve('timeout'), nestedRequestTimeout);
-                    })
-                ]);
-                if (completed === 'timeout') {
+                    nestedRequestTimeout
+                );
+                if (completed === timedOut) {
                     log(`[tsgo middleware] component completions timed out`);
                 }
                 return capture.result;
@@ -61,7 +58,6 @@ export function createCompletionMiddleware(log: (message: string) => void) {
                 log(`[tsgo middleware] component completions failed: ${error}`);
                 return undefined;
             } finally {
-                clearTimeout(timer);
                 nested.delete(key);
             }
         }
@@ -82,28 +78,12 @@ export function createCompletionMiddleware(log: (message: string) => void) {
         resolve(item: CompletionItem): CompletionItem {
             // TS7 puts the file of the completion request into `data`
             const fileName = (item.data as { fileName?: string } | undefined)?.fileName;
-            const document =
-                fileName?.endsWith('.svelte') &&
-                vscode.workspace.textDocuments.find((d) => d.uri.fsPath === fileName);
-            return transformResolvedItem(
-                item,
-                toView(document || undefined),
-                getImportEditOptions()
-            );
+            const document = fileName?.endsWith('.svelte')
+                ? getOpenDocument(vscode.Uri.file(fileName))
+                : undefined;
+            return transformResolvedItem(item, document, getImportEditOptions());
         }
     };
-}
-
-function toView(doc: vscode.TextDocument | undefined): TextDocumentView | undefined {
-    return (
-        doc && {
-            getText: () => doc.getText(),
-            // vscode.TextDocument only accepts vscode.Position instances
-            offsetAt: (position) =>
-                doc.offsetAt(new vscode.Position(position.line, position.character)),
-            positionAt: (offset) => doc.positionAt(offset)
-        }
-    );
 }
 
 /** Same setting the TS6 path uses for new script tags (`getNewScriptStartTag`) */
