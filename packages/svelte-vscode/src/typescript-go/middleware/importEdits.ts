@@ -3,12 +3,7 @@ import type {
     TextEdit
 } from '@typescript/native/vscode' with { 'resolution-mode': 'import' };
 import { Block, findBlocks, isModuleScript } from './componentTagText';
-
-interface TextView {
-    getText(): string;
-    offsetAt(position: { line: number; character: number }): number;
-    positionAt(offset: number): { line: number; character: number };
-}
+import type { TextDocumentView } from './utils';
 
 export interface ImportEditOptions {
     /** Start tag for a new script, e.g. `<script lang="ts">` */
@@ -27,7 +22,7 @@ export interface ImportEditOptions {
  */
 export function fixImportEdits(
     item: CompletionItem,
-    document: TextView,
+    document: TextDocumentView,
     options: ImportEditOptions
 ): CompletionItem {
     const edits = item.additionalTextEdits;
@@ -70,7 +65,7 @@ function insertIntoScript(
     script: Block,
     text: string,
     statements: string[],
-    document: TextView
+    document: TextDocumentView
 ): TextEdit {
     const content = text.slice(script.contentStart, script.contentEnd);
     const indent = /^\n?([ \t]+)\S/m.exec(content)?.[1] ?? '\t';
@@ -95,7 +90,7 @@ function insertIntoScript(
 
 function insertNewScript(
     statements: string[],
-    document: TextView,
+    document: TextDocumentView,
     options: ImportEditOptions
 ): TextEdit {
     const position = document.positionAt(0);

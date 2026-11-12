@@ -10,6 +10,7 @@ import {
     isComponentTagCandidate,
     TagNameContext
 } from './componentTagText';
+import type { TextDocumentView } from './utils';
 
 /**
  * Names that come from svelte2tsx's generated code or the svelte2tsx shims and are in scope of the
@@ -134,12 +135,6 @@ function isComponentTagItem(item: CompletionItem) {
 
 function isAutoImport(item: CompletionItem) {
     return !!(item.data as { autoImport?: unknown } | undefined)?.autoImport;
-}
-
-export interface TextDocumentView {
-    getText(): string;
-    offsetAt(position: { line: number; character: number }): number;
-    positionAt(offset: number): { line: number; character: number };
 }
 
 /**

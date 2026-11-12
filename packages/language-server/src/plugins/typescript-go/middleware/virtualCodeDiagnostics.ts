@@ -4,6 +4,8 @@ import { TemplateAstWalker } from '../../svelte/TemplateASTLoader';
 import { TsApiLocationMapper } from '../TsApiLocationMapper';
 import { TsApiService } from '../TsApiService';
 import type { tsApiAsync, tsAst } from '../types';
+import { TsgoDiagnosticCode } from './diagnostics';
+import { findSubscriptionUsages, subscriptionOfArgument } from './stores';
 
 /**
  * Problems inside unmapped virtual code, placed in the original file.
@@ -22,15 +24,6 @@ export interface VirtualCodeRelocation {
     complete: boolean;
 }
 
-/** "This location is in virtual code produced by the content mapper ... " */
-const IN_VIRTUAL_CODE = 18074;
-const NO_OVERLOAD_MATCHES_CALL = 2769;
-const ARG_TYPE_X_NOT_ASSIGNABLE_TO_TYPE_Y = 2345;
-const TYPE_X_NOT_ASSIGNABLE_TO_TYPE_Y = 2322;
-const DEPRECATED = 6385;
-const DEPRECATED_SIGNATURE = 6387;
-
-const storeGetName = '__sveltets_2_store_get';
 const ensureComponentName = '__sveltets_2_ensureComponent';
 
 type ApiDiagnostic = tsApiAsync.Diagnostic;
@@ -101,7 +94,7 @@ interface RelocationContext {
 
 function isInVirtualCode(diagnostic: ApiDiagnostic): boolean {
     return (
-        diagnostic.code === IN_VIRTUAL_CODE ||
+        diagnostic.code === TsgoDiagnosticCode.IN_VIRTUAL_CODE ||
         !!diagnostic.messageChain?.some((chained) => isInVirtualCode(chained))
     );
 }
@@ -115,7 +108,10 @@ function isInVirtualCode(diagnostic: ApiDiagnostic): boolean {
  * directives don't drop. The counterpart of `isGeneratedDeprecation` in `diagnostics.ts`.
  */
 function isDeprecation(diagnostic: ApiDiagnostic): boolean {
-    return diagnostic.code === DEPRECATED || diagnostic.code === DEPRECATED_SIGNATURE;
+    return (
+        diagnostic.code === TsgoDiagnosticCode.DEPRECATED ||
+        diagnostic.code === TsgoDiagnosticCode.DEPRECATED_SIGNATURE
+    );
 }
 
 const IGNORE_START_COMMENT = '/*Ωignore_startΩ*/';
@@ -152,52 +148,33 @@ function isInIgnoreRegion(text: string, position: number): boolean {
  * `let $x = __sveltets_2_store_get(x)`. Report it at every `$x` usage instead.
  */
 async function relocateStoreMisuse(
-    { api, project, sourceFile, mapper }: RelocationContext,
+    context: RelocationContext,
     diagnostic: ApiDiagnostic
 ): Promise<Diagnostic[] | undefined> {
     if (
-        diagnostic.code !== NO_OVERLOAD_MATCHES_CALL &&
-        diagnostic.code !== ARG_TYPE_X_NOT_ASSIGNABLE_TO_TYPE_Y
+        diagnostic.code !== TsgoDiagnosticCode.NO_OVERLOAD_MATCHES_CALL &&
+        diagnostic.code !== TsgoDiagnosticCode.ARG_TYPE_X_NOT_ASSIGNABLE_TO_TYPE_Y
     ) {
         return undefined;
     }
-    const ast = api.astModule;
-    const store = ast.getTouchingToken(sourceFile, diagnostic.pos);
-    const call = store?.parent;
-    const declaration = call?.parent;
-    if (
-        !store ||
-        !ast.isIdentifier(store) ||
-        !call ||
-        !ast.isCallExpression(call) ||
-        !ast.isIdentifier(call.expression) ||
-        call.expression.text !== storeGetName ||
-        call.arguments[0]?.pos !== store.pos ||
-        !declaration ||
-        !ast.isVariableDeclaration(declaration)
-    ) {
+    const ast = context.api.astModule;
+    // the error sits on the store argument of the hidden declaration
+    const token = ast.getTouchingToken(context.sourceFile, diagnostic.pos);
+    const subscription = token && subscriptionOfArgument(ast, token);
+    if (!subscription) {
         return undefined;
     }
 
-    const references = await project.languageService.getReferencedSymbolsForNode(
-        declaration.name,
-        declaration.name.getStart()
-    );
-    const usages = await Promise.all(
-        references.flatMap((entry) => entry.references.map((reference) => reference.resolve()))
-    );
-    const storeName = store.text;
+    // without a span feature: diagnostics have none, any mapping counts
+    const usages = await findSubscriptionUsages(ast, context, subscription);
+    if (!usages.length) {
+        return undefined;
+    }
+    const storeName = subscription.store.text;
     const message =
         `Cannot use '${storeName}' as a store. '${storeName}' needs to be an object with a subscribe method on it.\n\n` +
         flattenMessage(diagnostic);
-    const result: Diagnostic[] = [];
-    for (const usage of usages) {
-        const location = usage && mapper.toOriginalLocation(usage);
-        if (location) {
-            result.push(toDiagnostic(diagnostic, location.range, message));
-        }
-    }
-    return result.length ? result : undefined;
+    return usages.map((usage) => toDiagnostic(diagnostic, usage.range, message));
 }
 
 /**
@@ -211,7 +188,7 @@ function relocateNonBindableError(
 ): Diagnostic[] | undefined {
     const text = sourceFile.text;
     if (
-        diagnostic.code !== TYPE_X_NOT_ASSIGNABLE_TO_TYPE_Y ||
+        diagnostic.code !== TsgoDiagnosticCode.TYPE_X_NOT_ASSIGNABLE_TO_TYPE_Y ||
         !text.slice(diagnostic.pos, diagnostic.end).endsWith('.$$bindings') ||
         !templateAst ||
         templateAst.parserError
@@ -325,7 +302,7 @@ function toSeverity(category: number): DiagnosticSeverity {
 function flattenMessage(diagnostic: ApiDiagnostic, level = 0): string {
     const lines = [diagnostic.text];
     for (const chained of diagnostic.messageChain ?? []) {
-        if (chained.code !== IN_VIRTUAL_CODE) {
+        if (chained.code !== TsgoDiagnosticCode.IN_VIRTUAL_CODE) {
             lines.push('  '.repeat(level + 1) + flattenMessage(chained, level + 1));
         }
     }

@@ -42,6 +42,7 @@ describe('TsgoResponseTransformer', () => {
         const transformer = new TsgoResponseTransformer(docManager, astLoader, pluginHost);
         return {
             uri,
+            transformer,
             transform: <R>(
                 params: Omit<TransformTsgoResponseParams<any, R>, 'params'> & { params?: any }
             ) =>
@@ -299,6 +300,20 @@ describe('TsgoResponseTransformer', () => {
                 result: tsHighlights
             });
             assert.deepStrictEqual(result, tsHighlights);
+        });
+    });
+
+    describe('$store binding', () => {
+        it('fails without the TS7 API instead of answering "no store there"', async () => {
+            // null would make the extension use TS7's rename, which breaks the code for a `$store`
+            const { uri, transformer } = setup('<script>\n  let count;\n</script>\n{$count}');
+            await assert.rejects(
+                transformer.getStoreBinding({
+                    textDocument: { uri },
+                    position: { line: 3, character: 3 }
+                }),
+                /TypeScript API/
+            );
         });
     });
 });
