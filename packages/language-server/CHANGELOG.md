@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.19.0
+
+### Minor Changes
+
+-   breaking: move svelte to peer dependencies ([#3194](https://github.com/sveltejs/language-tools/pull/3194))
+
+### Patch Changes
+
+-   fix: reload the TypeScript service when a watched tsconfig is replaced atomically ([#3178](https://github.com/sveltejs/language-tools/pull/3178))
+
+-   feat: experimental typescript 7 content mapper support ([#3111](https://github.com/sveltejs/language-tools/pull/3111))
+
+-   feat: typescript 7 component references ([#3183](https://github.com/sveltejs/language-tools/pull/3183))
+
 ## 0.18.6
 
 ### Patch Changes
