@@ -432,7 +432,7 @@ export function findReferencesTest(
             includeDeclaration: true
         });
 
-        assert.deepStrictEqual(results, componentReferences);
+        assert.deepStrictEqual(sortLocations(results), sortLocations(componentReferences));
     });
 
     it('can find all component references', async () => {
@@ -444,8 +444,18 @@ export function findReferencesTest(
             includeDeclaration: true
         });
 
-        assert.deepStrictEqual(results, componentReferences);
+        assert.deepStrictEqual(sortLocations(results), sortLocations(componentReferences));
     });
+
+    /** The order of references doesn't matter */
+    function sortLocations(locations: Location[] | null) {
+        return [...(locations ?? [])].sort(
+            (a, b) =>
+                (a.uri < b.uri ? -1 : a.uri > b.uri ? 1 : 0) ||
+                a.range.start.line - b.range.start.line ||
+                a.range.start.character - b.range.start.character
+        );
+    }
 
     // Hacky, but it works. Needed due to testing both new and old transformation
     after(() => {

@@ -1,0 +1,14 @@
+{
+    "compilerOptions": {
+        "allowJs": true,
+        "target": "ESNext",
+        "strict": true,
+        "types": ["svelte"]
+    },
+    "contentMappers": [
+        {
+            "package": "@sveltejs/ts-content-mapper",
+            "extensions": [".svelte"]
+        }
+    ]
+}
