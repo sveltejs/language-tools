@@ -2,7 +2,9 @@
     "name": "@sveltejs/ts-content-mapper",
     "version": "0.1.0",
     "description": "",
-    "scripts": {},
+    "scripts": {
+        "build": "tsc"
+    },
     "keywords": [],
     "author": "",
     "license": "ISC",
