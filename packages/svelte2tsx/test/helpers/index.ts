@@ -104,6 +104,14 @@ describe('Internal Helpers - upsertKitFile', () => {
         );
     });
 
+    it('upserts +server.tsx GET const', () => {
+        upsert(
+            '+server.tsx',
+            `export const GET = async (e) => {};`,
+            `export const GET = async (e: import('./$types.js').RequestEvent) : Promise<Response> => {};`
+        );
+    });
+
     it('upserts GET async function with jsdoc', () => {
         upsert(
             '+server.js',
