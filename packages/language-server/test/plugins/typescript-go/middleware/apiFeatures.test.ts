@@ -180,6 +180,32 @@ describe('TS7 features through the API connection', function () {
             assert.strictEqual(result.length, 2);
         });
 
+        it('only resolves the references in Svelte files to find the subscriptions of a store', async () => {
+            // Resolving a reference fetches the AST of its file, and this runs for every identifier
+            const NodeHandle = api.apiModule.NodeHandle as any;
+            const resolve = NodeHandle.prototype.resolve;
+            const resolved: string[] = [];
+            NodeHandle.prototype.resolve = function (...args: unknown[]) {
+                resolved.push(this.path);
+                return resolve.apply(this, args);
+            };
+            try {
+                await request<Location[]>('textDocument/references', {
+                    textDocument: { uri: uriOf('stores.ts') },
+                    position: positionOf('stores.ts', 'count', 1),
+                    context: { includeDeclaration: true }
+                });
+            } finally {
+                NodeHandle.prototype.resolve = resolve;
+            }
+
+            assert.ok(resolved.length > 0, 'expected the subscriptions to be resolved');
+            assert.deepStrictEqual(
+                resolved.filter((path) => !path.endsWith('.svelte')),
+                []
+            );
+        });
+
         it('goes to the definition of the store from $store', async () => {
             const imported = await request<LocationLink[]>('textDocument/definition', {
                 textDocument: { uri: uriOf('StoreUser.svelte') },

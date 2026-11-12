@@ -91,6 +91,34 @@ export async function findSubscriptionUsages(
         .filter((location): location is OriginalLocation => !!location);
 }
 
+/**
+ * Subscriptions of the store `node` refers to, in all files.
+ *
+ * Only resolves the references in Svelte files: subscriptions (the hidden
+ * `__sveltets_2_store_get(store)`) only exist in their virtual code, and resolving a reference
+ * fetches the AST of its file. For an identifier that is used all over a project, that would be most
+ * of the work, and this runs for every references and rename request.
+ */
+async function findSubscriptions(
+    ast: typeof tsAst,
+    ctx: RequestContext,
+    node: tsAst.Node
+): Promise<Subscription[]> {
+    const entries = await ctx.project.languageService.getReferencedSymbolsForNode(
+        node,
+        node.getStart()
+    );
+    const references = await resolveAll(
+        entries
+            .flatMap((entry) => entry.references)
+            .filter((reference) => isSvelteFile(reference.path))
+    );
+    return references
+        .map((reference) => subscriptionOfArgument(ast, reference))
+        .filter((s): s is Subscription => !!s);
+}
+
+/** All references of the symbol of `node`, resolved. Fetches the AST of every file with a reference */
 async function getReferences(
     ast: typeof tsAst,
     ctx: RequestContext,
@@ -139,7 +167,10 @@ export class TsgoStores {
         return this.api.astModule;
     }
 
-    /** References of `$store`/`store`: both sides, plus the `$store` usages of every subscription */
+    /**
+     * References of `$store`/`store`: both sides, plus the `$store` usages of every subscription.
+     * `result` is TS7's answer, which this adds to.
+     */
     async references(
         params: ReferenceParams,
         result: Location[] | null
@@ -149,13 +180,19 @@ export class TsgoStores {
             this.ast.SpanMapFeature.References,
             async (ctx, identifier) => {
                 const subscription = await this.getSubscriptionAt(ctx, identifier);
-                const found = await this.findStoreReferences(
-                    ctx,
-                    subscription?.store ?? identifier,
-                    params.context.includeDeclaration
-                );
-                // Plain identifiers that aren't subscribed stores: TS7's answer is complete
-                return subscription || found.subscriptions > 0 ? found.locations : undefined;
+                if (subscription) {
+                    // From `$store`: TS7 only has the `$store` usages of this file
+                    return this.findStoreReferences(
+                        ctx,
+                        subscription.store,
+                        params.context.includeDeclaration
+                    );
+                }
+                // From a store: TS7 has everything but the `$store` usages. Other identifiers have
+                // no subscriptions, TS7's answer is complete
+                const subscriptions = await findSubscriptions(this.ast, ctx, identifier);
+                const usages = await Promise.all(subscriptions.map((s) => this.findUsages(ctx, s)));
+                return subscriptions.length ? usages.flat() : undefined;
             }
         );
         if (!references) {
@@ -170,7 +207,7 @@ export class TsgoStores {
         result: DefinitionResult
     ): Promise<DefinitionResult> {
         const isEmpty = !result || (Array.isArray(result) && !result.length);
-        if (!isEmpty || !isSvelteUri(params.textDocument.uri)) {
+        if (!isEmpty || !isSvelteFile(params.textDocument.uri)) {
             return result;
         }
         const links = await this.withIdentifier(
@@ -201,7 +238,7 @@ export class TsgoStores {
         params: PrepareRenameParams,
         result: PrepareRenameResult | null
     ): Promise<PrepareRenameResult | null> {
-        if (!isSvelteUri(params.textDocument.uri)) {
+        if (!isSvelteFile(params.textDocument.uri)) {
             return result;
         }
         const prepared = await this.withIdentifier(
@@ -230,7 +267,7 @@ export class TsgoStores {
      * document), because TS7's rename of a `$store` breaks the code.
      */
     async getStoreBinding(params: TextDocumentPositionParams): Promise<StoreBinding | null> {
-        if (!isSvelteUri(params.textDocument.uri)) {
+        if (!isSvelteFile(params.textDocument.uri)) {
             return null;
         }
         const binding = await this.withIdentifier(
@@ -267,7 +304,7 @@ export class TsgoStores {
                     return;
                 }
                 const editsByUri = getTextEdits(result);
-                for (const subscription of await this.findSubscriptions(ctx, identifier)) {
+                for (const subscription of await findSubscriptions(this.ast, ctx, identifier)) {
                     const binding = await this.getLocalBinding(ctx, subscription.store);
                     const edits = binding && editsByUri.get(normalizeUri(binding.uri));
                     const renamesLocalBinding = edits?.some(
@@ -331,23 +368,12 @@ export class TsgoStores {
         return declarations.map((d) => asSubscription(this.ast, d)).find((s) => !!s);
     }
 
-    /** Subscriptions of the store `node` refers to, in all files */
-    private async findSubscriptions(
-        ctx: RequestContext,
-        node: tsAst.Node
-    ): Promise<Subscription[]> {
-        const references = await getReferences(this.ast, ctx, node);
-        return references
-            .map(({ node }) => subscriptionOfArgument(this.ast, node))
-            .filter((s): s is Subscription => !!s);
-    }
-
     /** References of the store `node` refers to, plus the `$store` usages of its subscriptions */
     private async findStoreReferences(
         ctx: RequestContext,
         node: tsAst.Node,
         includeDeclaration: boolean
-    ): Promise<{ locations: Location[]; subscriptions: number }> {
+    ): Promise<Location[]> {
         const references = await getReferences(this.ast, ctx, node);
         const locations: Location[] = [];
         const subscriptions: Subscription[] = [];
@@ -369,7 +395,7 @@ export class TsgoStores {
             }
         }
         const usages = await Promise.all(subscriptions.map((s) => this.findUsages(ctx, s)));
-        return { locations: [...locations, ...usages.flat()], subscriptions: subscriptions.length };
+        return [...locations, ...usages.flat()];
     }
 
     /** The `$store` usages of a subscription, as locations for references and rename */
@@ -432,8 +458,8 @@ function sameNode(a: tsAst.Node, b: tsAst.Node) {
     );
 }
 
-function isSvelteUri(uri: string) {
-    return uri.endsWith('.svelte');
+function isSvelteFile(uriOrPath: string) {
+    return uriOrPath.endsWith('.svelte');
 }
 
 /** The text edits of a workspace edit by normalized uri, as mutable arrays of the edit itself */
