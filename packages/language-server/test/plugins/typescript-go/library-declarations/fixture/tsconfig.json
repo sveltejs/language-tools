@@ -1,0 +1,17 @@
+{
+    "compilerOptions": {
+        "strict": true,
+        "module": "esnext",
+        "moduleResolution": "bundler",
+        "target": "esnext",
+        "noEmit": true,
+        "types": []
+    },
+    "contentMappers": [
+        {
+            "package": "@sveltejs/ts-content-mapper",
+            "extensions": [".svelte"]
+        }
+    ],
+    "include": ["src"]
+}
