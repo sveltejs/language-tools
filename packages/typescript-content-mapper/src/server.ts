@@ -1,6 +1,7 @@
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { loadConfig } from '@sveltejs/load-config';
 import { svelte2tsx, internalHelpers } from 'svelte2tsx';
 import ts from 'typescript';
 import { createMessageConnection } from 'vscode-jsonrpc';
@@ -24,10 +25,13 @@ function startServer() {
         return result;
     });
 
-    const projectMap = new Map<string, OpenProjectParams>();
+    const projectMap = new Map<string, ProjectInfo>();
 
     connection.onRequest('openProject', (v: OpenProjectParams): OpenProjectResult => {
-        projectMap.set(v.projectHandle, v);
+        projectMap.set(v.projectHandle, {
+            params: v,
+            typingsNamespace: getTypingsNamespace(v.configFileName)
+        });
         return {};
     });
 
@@ -47,7 +51,7 @@ function startServer() {
         try {
             const projectInfo = projectMap.get(v.projectHandle);
             // In the inferred project, projectInfo isn't undefined and configFileName is empty string
-            const resolveTarget = projectInfo?.configFileName || fileName;
+            const resolveTarget = projectInfo?.params.configFileName || fileName;
             const resolveConfig = {
                 paths: [path.dirname(resolveTarget), path.dirname(fileURLToPath(import.meta.url))]
             };
@@ -72,12 +76,18 @@ function startServer() {
                 );
                 globalTypesCache.set(resolveTarget, globalTypes);
             }
+            const svelteOptions = await getSvelteCompilerOptions(projectInfo, fileName);
             const res = svelte2tsx(content, {
                 filename: fileName,
                 isTsFile: extension === '.ts',
                 emitOnTemplateError: true,
                 emitJsDoc: true,
-                namespace: 'svelteHTML',
+                namespace:
+                    typeof svelteOptions.namespace === 'string'
+                        ? svelteOptions.namespace
+                        : undefined,
+                typingsNamespace: projectInfo?.typingsNamespace ?? DEFAULT_TYPINGS_NAMESPACE,
+                accessors: getAccessors(svelteOptions, fileName),
                 parse: compiler.parse,
                 version: compiler.VERSION,
                 shimPaths: globalTypes,
@@ -154,6 +164,84 @@ function startServer() {
 }
 
 startServer();
+
+interface ProjectInfo {
+    params: OpenProjectParams;
+    /** The namespace of the element typings (`svelteOptions.namespace` of the tsconfig) */
+    typingsNamespace: string;
+    /** The Svelte config of the project, loaded on the first transform */
+    svelteOptions?: Promise<SvelteCompilerOptions>;
+}
+
+const DEFAULT_TYPINGS_NAMESPACE = 'svelteHTML';
+
+/**
+ * `svelteOptions.namespace` of the tsconfig, e.g. `svelteNative` for Svelte Native. TS doesn't pass
+ * it along (it's not a compiler option). Like TS6, only the tsconfig itself counts, not the ones it
+ * extends.
+ */
+function getTypingsNamespace(configFileName: string): string {
+    if (configFileName) {
+        const { config } = ts.readConfigFile(configFileName, ts.sys.readFile);
+        const namespace = config?.svelteOptions?.namespace;
+        if (typeof namespace === 'string' && namespace) {
+            return namespace;
+        }
+    }
+    return DEFAULT_TYPINGS_NAMESPACE;
+}
+
+/** The `compilerOptions` of the Svelte config that svelte2tsx needs */
+interface SvelteCompilerOptions {
+    namespace?: unknown;
+    accessors?: unknown;
+    customElement?: unknown;
+}
+
+/**
+ * The Svelte config of a TS project: the one next to its tsconfig, or above. Loaded once per
+ * project, so changes to it need a restart of the TS server.
+ */
+function getSvelteCompilerOptions(
+    project: ProjectInfo | undefined,
+    fileName: string
+): Promise<SvelteCompilerOptions> {
+    if (!project) {
+        return loadSvelteCompilerOptions(path.dirname(fileName));
+    }
+    // The inferred project has no tsconfig, use the directory of its first file
+    project.svelteOptions ??= loadSvelteCompilerOptions(
+        path.dirname(project.params.configFileName || fileName)
+    );
+    return project.svelteOptions;
+}
+
+async function loadSvelteCompilerOptions(dir: string): Promise<SvelteCompilerOptions> {
+    try {
+        // The Svelte options of the `vite.config` (vite-plugin-svelte or SvelteKit), else the
+        // `svelte.config`, in this directory or above
+        const result = await loadConfig(dir);
+        if (result && 'config' in result) {
+            return (result.config.compilerOptions ?? {}) as SvelteCompilerOptions;
+        }
+        if (result) {
+            console.warn(`Error loading the Svelte config ${result.configFilePath}:`, result.error);
+        }
+    } catch (error) {
+        console.warn(`Error loading the Svelte config for ${dir}:`, error);
+    }
+    return {};
+}
+
+/** Like TS6: `accessors`, else `customElement` (custom elements have accessors) */
+function getAccessors(options: SvelteCompilerOptions, fileName: string): boolean | undefined {
+    const accessors =
+        options.accessors ??
+        (typeof options.customElement === 'function'
+            ? options.customElement({ filename: fileName })
+            : options.customElement);
+    return accessors == null ? undefined : !!accessors;
+}
 
 function getScriptExtension(
     scriptTags: ReturnType<typeof internalHelpers.extractScriptTags>

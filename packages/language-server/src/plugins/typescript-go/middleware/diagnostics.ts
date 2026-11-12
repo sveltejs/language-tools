@@ -1,5 +1,8 @@
 import { Diagnostic, DocumentDiagnosticReport } from 'vscode-languageserver';
 import { Document } from '../../../lib/documents';
+import { isRangeInTag } from '../../../lib/documents/utils';
+import type { SvelteNode } from '../../svelte/features/svelte-ast-utils';
+import type { TemplateAstWalker } from '../../svelte/TemplateASTLoader';
 import { replaceGeneratedNames } from './generatedNames';
 import type { VirtualCodeRelocation } from './virtualCodeDiagnostics';
 
@@ -14,11 +17,15 @@ import type { VirtualCodeRelocation } from './virtualCodeDiagnostics';
  */
 
 export const enum TsgoDiagnosticCode {
+    MULTIPLE_PROPS_SAME_NAME = 1117,
     MODIFIERS_CANNOT_APPEAR_HERE = 1184,
+    DUPLICATE_IDENTIFIER = 2300,
     TYPE_X_NOT_ASSIGNABLE_TO_TYPE_Y = 2322,
     ARG_TYPE_X_NOT_ASSIGNABLE_TO_TYPE_Y = 2345,
     NOOP_IN_COMMAS = 2695,
     NO_OVERLOAD_MATCHES_CALL = 2769,
+    NEVER_READ = 6133,
+    ALL_IMPORTS_UNUSED = 6192,
     DEPRECATED = 6385,
     DEPRECATED_SIGNATURE = 6387,
     UNUSED_LABEL = 7028,
@@ -36,10 +43,15 @@ const MAPPER_DIAGNOSTIC_SOURCE = 'svelte';
 
 const generatedVarRegex = /'\$\$_\w+(\.\$on)?'/;
 
+/** Elements in the sense of TS6's `isAttributeName(node, 'Element')` / `isEventHandler(node, 'Element')` */
+const ELEMENT_LIKE_TYPES = new Set(['Element', 'Body', 'Window']);
+
 export interface TsgoDiagnosticsContext {
     document: Document;
     /** The problems of the virtual code diagnostic (18080) that could be placed, if any */
     virtualCode?: VirtualCodeRelocation;
+    /** Only called when a rule needs the template AST */
+    getTemplateAst?: () => TemplateAstWalker;
 }
 
 export function transformDiagnosticReport(
@@ -55,9 +67,14 @@ export function transformDiagnosticReport(
 
 export function transformDiagnostics(
     items: Diagnostic[],
-    { document, virtualCode }: TsgoDiagnosticsContext
+    { document, virtualCode, getTemplateAst }: TsgoDiagnosticsContext
 ): Diagnostic[] {
+    // Like TS6: scripts in other languages aren't type checked
+    if (['coffee', 'coffeescript'].includes(document.getLanguageAttribute('script'))) {
+        return [];
+    }
     const text = document.getText();
+    const usesPug = document.getLanguageAttribute('template') === 'pug';
     // svelte2tsx failed -> the mapper only returned the script contents. Template usages are unknown,
     // so all "unused" hints are false positives. The parse error itself is already reported by the
     // Svelte plugin (svelte compiler diagnostics), so drop the duplicate, too.
@@ -78,6 +95,12 @@ export function transformDiagnostics(
             continue;
         }
         if (isGeneratedDeprecation(diagnostic)) {
+            continue;
+        }
+        if (usesPug && isPugFalsePositive(diagnostic, document)) {
+            continue;
+        }
+        if (isDuplicateElementAttribute(diagnostic, document, getTemplateAst)) {
             continue;
         }
         if (diagnostic.code === TsgoDiagnosticCode.VIRTUAL_CODE_PROBLEMS) {
@@ -142,6 +165,60 @@ function isGeneratedDeprecation(diagnostic: Diagnostic) {
         diagnostic.code === TsgoDiagnosticCode.DEPRECATED_SIGNATURE &&
         generatedVarRegex.test(diagnostic.message)
     );
+}
+
+/**
+ * Like TS6: svelte2tsx generates no template code for pug, so everything in the template and the
+ * "unused" hints are false positives.
+ */
+function isPugFalsePositive(diagnostic: Diagnostic, document: Document) {
+    return (
+        isRangeInTag(diagnostic.range, document.templateInfo) ||
+        diagnostic.code === TsgoDiagnosticCode.NEVER_READ ||
+        diagnostic.code === TsgoDiagnosticCode.ALL_IMPORTS_UNUSED
+    );
+}
+
+/**
+ * Like TS6: duplicate attributes and event handlers on elements are fine in Svelte (e.g. two
+ * `on:click`), but svelte2tsx turns them into properties of the same object literal.
+ */
+function isDuplicateElementAttribute(
+    diagnostic: Diagnostic,
+    document: Document,
+    getTemplateAst: (() => TemplateAstWalker) | undefined
+) {
+    if (
+        diagnostic.code !== TsgoDiagnosticCode.MULTIPLE_PROPS_SAME_NAME &&
+        diagnostic.code !== TsgoDiagnosticCode.DUPLICATE_IDENTIFIER
+    ) {
+        return false;
+    }
+    const ast = getTemplateAst?.();
+    if (!ast || ast.parserError) {
+        return false;
+    }
+    const found = findTemplateNodeAt(ast, document.offsetAt(diagnostic.range.start));
+    return (
+        !!found &&
+        (found.node.type === 'Attribute' || found.node.type === 'EventHandler') &&
+        ELEMENT_LIKE_TYPES.has(found.parent?.type ?? '')
+    );
+}
+
+/** The innermost template node at the offset, like TS6's `svelteNodeAt` */
+function findTemplateNodeAt(ast: TemplateAstWalker, offset: number) {
+    let found: { node: SvelteNode; parent: SvelteNode | undefined } | undefined;
+    ast.walkSvelteAst({
+        enter(node, parent) {
+            if (node.start > offset || node.end < offset) {
+                this.skip();
+                return;
+            }
+            found = { node, parent };
+        }
+    });
+    return found;
 }
 
 /**

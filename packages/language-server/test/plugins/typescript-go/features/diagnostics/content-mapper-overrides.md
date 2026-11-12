@@ -13,12 +13,6 @@
 
 -   `fixtures/$$props-usage`, `fixtures/invalid-import`: TS7 resolves imports of missing `.svelte` files through Svelte's ambient `declare module '*.svelte'`, which the TS6 language server blanks out. No 2307, so an `@ts-expect-error` above such an import is unused.
 -   `fixtures/import-precedence`: TS7 resolves `./x.svelte` to the mapped `x.svelte` before `x.svelte.d.ts` / `x.d.svelte.ts`.
--   `fixtures/accessors-customElement-configs`: the mapper doesn't read `svelte.config.js` (`accessors`, `customElement`).
--   `fixtures/reactive-statement-unused-label/ignores-unused-label`: the mapper only checks `lang`, so `<script type="ts">` is treated as JS.
--   `fixtures/svelte-native`: the mapper ignores `svelteOptions.namespace` of the tsconfig.
 -   `fixtures/sveltekit-autotypings`, `fixtures/sveltekit-autotypings-arrow`: a content mapper can't rewrite SvelteKit's `.ts` route files, so `data` is `any`.
--   `fixtures/coffeescript-ignore`: the mapper transforms scripts in other languages (`lang="coffee"`), TS6 skips them.
--   `fixtures/pug`: no template code is generated for pug, TS6 drops the diagnostics of the template and unused imports.
--   `fixtures/element-events`, `fixtures/ignore-false-positives`: TS6's filter for duplicate attributes and event handlers on elements (1117/2300) isn't ported.
 -   `fixtures/transition-options`: TS6 drops 2554 for transitions that require the third (`options`) parameter, using the checker.
 -   `fixtures/reactive-statement-unused-in-comma-list/ignores-unused-let`, `fixtures/reactive-statement-unused-in-comma-list/keeps-legit-const`, `fixtures/reactive-statement-unused-in-comma-list/keeps-legit-import`: TS6 keeps 2695 for non-`let` names in `$:` (using the checker). The middleware drops all of them on `$:` lines, and none in `$: { … }` blocks.
