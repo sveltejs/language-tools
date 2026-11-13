@@ -7,6 +7,7 @@ import path from 'path';
 import { FileMap } from './lib/documents/fileCollection';
 import { ClientCapabilities } from 'vscode-languageserver-protocol';
 import { defu } from 'defu';
+import { TsLocals, tsLocals } from './plugins/typescript-go/localization';
 
 /**
  * Default config for the language server.
@@ -214,6 +215,7 @@ export interface TSUserConfig {
 
 interface TsJsSharedConfig {
     hover?: { maximumLength?: number };
+    locale?: string | undefined;
 }
 
 /**
@@ -350,6 +352,8 @@ export class LSConfigManager {
     private htmlConfig: HTMLConfig | undefined;
     private isTrusted = true;
     private clientCapabilities: ClientCapabilities | undefined;
+    private clientLocale: string | undefined;
+    private tsLocale: TsLocals = '';
 
     constructor() {
         this._updateTsUserPreferences('javascript', {});
@@ -460,8 +464,39 @@ export class LSConfigManager {
                 this.rawTsUserConfig[lang] = config[lang];
             }
         });
+        this.updateTsLocale(config['js/ts']?.locale);
         this.notifyListeners();
         this.resolvedAutoImportExcludeCache.clear();
+    }
+
+    private updateTsLocale(localeConfig: string | undefined): void {
+        let locale =
+            localeConfig === 'auto' ? this.clientLocale : localeConfig || this.clientLocale;
+
+        if (!locale || locale === 'en') {
+            this.tsLocale = '';
+            return;
+        }
+        const parsed = new Intl.Locale(locale);
+        // ignore script subtag
+        const normalized = parsed.language + '-' + parsed.region;
+        if (tsLocals.includes(normalized as TsLocals)) {
+            this.tsLocale = normalized as TsLocals;
+            return;
+        }
+
+        const withoutRegion = parsed.language + '-';
+        const fallback = tsLocals.find((loc) => loc.startsWith(withoutRegion));
+        if (fallback) {
+            this.tsLocale = fallback as TsLocals;
+            return;
+        }
+
+        this.tsLocale = '';
+    }
+
+    getTsLocale(): TsLocals {
+        return this.tsLocale;
     }
 
     /**
@@ -745,6 +780,10 @@ export class LSConfigManager {
     updateClientCapabilities(clientCapabilities: ClientCapabilities) {
         this.clientCapabilities = clientCapabilities;
         this.notifyListeners();
+    }
+
+    setClientLocale(clientLocale: string | undefined) {
+        this.clientLocale = clientLocale;
     }
 
     getClientCapabilities() {

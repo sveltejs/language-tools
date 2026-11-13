@@ -60,8 +60,13 @@ export class TsGoCodeLensProvider implements CodeLensProvider {
                 cancellationToken
             )) ?? [];
 
+        const title =
+            locations.length === 1
+                ? this.tsApiService.localeMessage('1_reference_95199')
+                : this.tsApiService.localeMessage('_0_references_95198', locations.length);
+
         codeLensToResolve.command = {
-            title: locations.length === 1 ? '1 reference' : `${locations.length} references`,
+            title,
             command: '',
             arguments: [textDocument.uri, codeLensToResolve.range.start, locations]
         };

@@ -167,6 +167,7 @@ export function startServer(options?: LSOptions) {
             (evt.initializationOptions?.configuration?.svelte ||
                 evt.initializationOptions?.config)?.['language-server']?.debug
         );
+        configManager.setClientLocale(evt.locale);
         // Backwards-compatible way of setting initialization options (first `||` is the old style)
         configManager.update(
             evt.initializationOptions?.configuration?.svelte?.plugin ||
