@@ -335,6 +335,39 @@ test('project with errors --tsgo', {
     errors
 });
 
+const parseErrorWorkspace = mkdtempSync(path.join(os.tmpdir(), 'svelte-check-parse-error-'));
+mkdirSync(path.join(parseErrorWorkspace, 'src'));
+writeFileSync(
+    path.join(parseErrorWorkspace, 'tsconfig.json'),
+    JSON.stringify({
+        compilerOptions: { target: 'ESNext', moduleResolution: 'bundler', strict: true },
+        include: ['src/**/*']
+    })
+);
+writeFileSync(
+    path.join(parseErrorWorkspace, 'src', 'Broken.svelte'),
+    '<script>\n\tlet x = $state(true);\n</script>\n\n{#if x}<div>{/if}\n'
+);
+const parseErrorOpts = {
+    workspace: parseErrorWorkspace,
+    tsconfig: path.join(parseErrorWorkspace, 'tsconfig.json'),
+    errors: [{ file: 'src/Broken.svelte', line: 4, column: 13, code: 'block_unexpected_close' }]
+};
+
+test('component with parse error (incremental, cold cache)', {
+    ...parseErrorOpts,
+    incremental: true
+});
+
+test('component with parse error (incremental, warm cache)', {
+    ...parseErrorOpts,
+    incremental: true
+});
+
+test('component with parse error --tsgo', { ...parseErrorOpts, tsgo: true });
+
+rmSync(parseErrorWorkspace, { recursive: true, force: true });
+
 // A compiler that dies must not look like a clean run, and one that dies after reporting
 // some diagnostics must not look like a completed one.
 testCrashedCompiler(
