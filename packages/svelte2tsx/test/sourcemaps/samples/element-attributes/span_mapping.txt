@@ -110,6 +110,7 @@
 -
 #
 > { svelteHTML.createElement("element", {  "bind:foo":foo,});/*Ωignore_startΩ*/() => foo = __sveltets_2_any(null);/*Ωignore_endΩ*/}
+#                                                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ [Ignore]
 # [Verbatim] => 115-116
 -
 -
@@ -130,6 +131,7 @@
 -
 #
 > { svelteHTML.createElement("element", {   "bind:foo":bar,});/*Ωignore_startΩ*/() => bar = __sveltets_2_any(null);/*Ωignore_endΩ*/}};
+#                                                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ [Ignore]
 # [Verbatim] => 143-144
 -
 -

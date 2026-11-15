@@ -60,33 +60,26 @@ export function findIfBlockEndTagStart(documentText: string, ifBlock: SvelteNode
     return documentText.lastIndexOf('{', documentText.lastIndexOf('/if', ifBlock.end));
 }
 
-type ESTreeWaker = Parameters<typeof walk>[1];
-type ESTreeEnterFunc = NonNullable<ESTreeWaker['enter']>;
-type ESTreeLeaveFunc = NonNullable<ESTreeWaker['leave']>;
+// Spelled out instead of derived via `Parameters<typeof walk>`: that picks the last overload, and
+// `walk` can gain a `(): never` one when Svelte 4 and Svelte 5 typings end up in the same program
+// (both declare the ambient module 'svelte/compiler', Svelte 4 re-exports estree-walker's `walk`
+// there and Svelte 5 declares a deprecated `walk(): never`, which TS merges into one symbol).
+// Same shape as estree-walker's handler (see `src/ambient.d.ts`).
+type SvelteNodeHandler = (
+    this: {
+        skip: () => void;
+        remove: () => void;
+        replace: (node: SvelteNode) => void;
+    },
+    node: SvelteNode,
+    parent: SvelteNode,
+    key: string,
+    index: number
+) => void;
 
 export interface SvelteNodeWalker {
-    enter?: (
-        this: {
-            skip: () => void;
-            remove: () => void;
-            replace: (node: SvelteNode) => void;
-        },
-        node: SvelteNode,
-        parent: SvelteNode,
-        key: Parameters<ESTreeEnterFunc>[2],
-        index: Parameters<ESTreeEnterFunc>[3]
-    ) => void;
-    leave?: (
-        this: {
-            skip: () => void;
-            remove: () => void;
-            replace: (node: SvelteNode) => void;
-        },
-        node: SvelteNode,
-        parent: SvelteNode,
-        key: Parameters<ESTreeLeaveFunc>[2],
-        index: Parameters<ESTreeLeaveFunc>[3]
-    ) => void;
+    enter?: SvelteNodeHandler;
+    leave?: SvelteNodeHandler;
 }
 
 // wrap the estree-walker to make it svelte specific

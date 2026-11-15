@@ -71,7 +71,8 @@ export function processInstanceScriptContent(
         isTSFile,
         isSvelte5Plus,
         isRunes,
-        emitJsDoc
+        emitJsDoc,
+        spanMapGenerator
     );
     const generics = new Generics(str, astOffset, script);
     const interfacesAndTypes = new InterfacesAndTypes();
@@ -232,6 +233,10 @@ export function processInstanceScriptContent(
         }
         if (is$$PropsDeclaration(node)) {
             exportedNames.uses$$Props = true;
+            exportedNames.$$propsNameRange = [
+                node.name.getStart() + astOffset,
+                node.name.getEnd() + astOffset
+            ];
         }
 
         if (ts.isVariableStatement(node)) {

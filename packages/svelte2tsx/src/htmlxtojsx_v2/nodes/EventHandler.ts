@@ -4,7 +4,7 @@ import { rangeWithTrailingPropertyAccess, surroundWith } from '../utils/node-uti
 import { Element } from './Element';
 import { InlineComponent } from './InlineComponent';
 import { getLeadingCommentTransformation, getTrailingCommentTransformation } from './Comment';
-import { SpanMapFeature, SpanMapGenerator } from '../../utils/spanMap';
+import { mapGenerated, SpanMapFeature, SpanMapGenerator } from '../../utils/spanMap';
 
 const eventNameFeatures =
     SpanMapFeature.Definition |
@@ -31,17 +31,19 @@ export function handleEventHandler(
     const leadingComments = getLeadingCommentTransformation(attr);
     const trailingComments = getTrailingCommentTransformation(attr);
     spanMapGenerator?.addSourceSpan(nameStart, nameEnd);
-
-    if (spanMapGenerator) {
-        const flags =
-            element instanceof InlineComponent ? componentNameFeatures : eventNameFeatures;
-        spanMapGenerator.addFlagForPrepend(nameStart, flags);
-    }
+    // the generated prefix of the name maps to its start
+    const prefix = (text: string) =>
+        mapGenerated(
+            spanMapGenerator,
+            text,
+            [nameStart, nameStart],
+            element instanceof InlineComponent ? componentNameFeatures : eventNameFeatures
+        );
 
     if (element instanceof Element) {
         // Prefix with "on:" for better mapping.
         // Surround with quotes because event name could contain invalid prop chars.
-        surroundWith(str, [nameStart, nameEnd], '"on:', '"');
+        surroundWith(str, [nameStart, nameEnd], prefix('"on:'), '"');
         element.addAttribute(
             [...leadingComments, [nameStart, nameEnd]],
             attr.expression
@@ -58,7 +60,8 @@ export function handleEventHandler(
                 ? rangeWithTrailingPropertyAccess(str.original, attr.expression)
                 : undefined,
             leadingComments,
-            trailingComments
+            trailingComments,
+            prefix('"')
         );
     }
 }

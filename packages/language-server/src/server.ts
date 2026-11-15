@@ -62,6 +62,12 @@ import { createLanguageServices } from './plugins/css/service';
 import { FileSystemProvider } from './lib/FileSystemProvider';
 import { TemplateASTParseLoader } from './plugins/svelte/TemplateASTLoader';
 import { contentMapperEnableCheck } from './plugins/typescript-go/content-mapper';
+import {
+    StoreBindingRequest,
+    TransformTsgoResponseParams,
+    TransformTsgoResponseRequest,
+    TsgoResponseTransformer
+} from './plugins/typescript-go/middleware';
 import { TypeScriptGoPlugin } from './plugins/typescript-go/TypeScriptGoPlugin';
 import { TsApiService } from './plugins/typescript-go/TsApiService';
 
@@ -114,6 +120,7 @@ export function startServer(options?: LSOptions) {
     const configManager = new LSConfigManager();
     const pluginHost = new PluginHost(docManager);
     let sveltePlugin: SveltePlugin = undefined as any;
+    let tsgoResponseTransformer: TsgoResponseTransformer | undefined;
     let watcher: FallbackWatcher | undefined;
     let pendingWatchPatterns: RelativePattern[] = [];
     let watchDirectory: (patterns: RelativePattern[]) => void = (patterns) => {
@@ -128,7 +135,6 @@ export function startServer(options?: LSOptions) {
     const recursiveWatchPattern = '**/' + nonRecursiveWatchPattern;
 
     let enableTs6Features = true;
-    let tsGoPlugin: TypeScriptGoPlugin | undefined;
 
     connection.onInitialize(async (evt) => {
         const workspaceUris = evt.workspaceFolders?.map((folder) => folder.uri.toString()) ?? [
@@ -207,13 +213,26 @@ export function startServer(options?: LSOptions) {
             !evt.initializationOptions?.tsGoContentMapperOptions?.enable ||
             !contentMapperEnableCheck(workspaceFolders);
 
+        const templateAstLoader = enableTs6Features
+            ? undefined
+            : new TemplateASTParseLoader(docManager);
+        const tsApiService = enableTs6Features
+            ? null
+            : await TsApiService.create(
+                  evt.initializationOptions?.tsGoContentMapperOptions,
+                  configManager
+              );
+        tsgoResponseTransformer = templateAstLoader
+            ? new TsgoResponseTransformer(
+                  docManager,
+                  templateAstLoader,
+                  pluginHost,
+                  tsApiService ?? undefined
+              )
+            : undefined;
+
         // Order of plugin registration matters for FirstNonNull, which affects for example hover info
-        pluginHost.register(
-            (sveltePlugin = new SveltePlugin(
-                configManager,
-                enableTs6Features ? undefined : new TemplateASTParseLoader(docManager)
-            ))
-        );
+        pluginHost.register((sveltePlugin = new SveltePlugin(configManager, templateAstLoader)));
         pluginHost.register(
             new HTMLPlugin(docManager, configManager, fileSystemProvider, workspaceFolders)
         );
@@ -244,15 +263,8 @@ export function startServer(options?: LSOptions) {
                     docManager
                 )
             );
-        } else {
-            const tsApiService = await TsApiService.create(
-                evt.initializationOptions.tsGoContentMapperOptions,
-                configManager
-            );
-            if (tsApiService) {
-                const tsGoPlugin = new TypeScriptGoPlugin(tsApiService, configManager);
-                pluginHost.register(tsGoPlugin);
-            }
+        } else if (tsApiService) {
+            pluginHost.register(new TypeScriptGoPlugin(tsApiService, configManager));
         }
 
         const clientSupportApplyEditCommand = !!evt.capabilities.workspace?.applyEdit;
@@ -685,6 +697,16 @@ export function startServer(options?: LSOptions) {
 
     // The language server protocol does not have a specific "did rename/move files" event,
     // so we create our own in the extension client and handle it here
+    connection.onRequest(
+        TransformTsgoResponseRequest,
+        async (params: TransformTsgoResponseParams) =>
+            tsgoResponseTransformer ? tsgoResponseTransformer.transform(params) : params.result
+    );
+    connection.onRequest(
+        StoreBindingRequest,
+        async (params: TextDocumentPositionParams) =>
+            tsgoResponseTransformer?.getStoreBinding(params) ?? null
+    );
     connection.onRequest('$/getEditsForFileRename', async (fileRename: RenameFile) =>
         pluginHost.updateImports(fileRename)
     );

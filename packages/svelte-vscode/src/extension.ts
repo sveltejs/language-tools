@@ -64,8 +64,15 @@ let lsApi:
 export async function activate(context: ExtensionContext) {
     const contentMapperService = new TsContentMapperService(context.extension);
     context.subscriptions.push(contentMapperService);
+    contentMapperService.setSvelteLanguageServerAccess({
+        getContentMapperModeClient() {
+            const ls = lsApi?.getLS();
+            return ls?.isRunning() && isContentMapperMode(ls) ? ls : undefined;
+        }
+    });
     const options = {
-        tsGoContentMapperOptions: await contentMapperService.tryStart()
+        tsGoContentMapperOptions: await contentMapperService.tryStart(),
+        deferDocumentHighlightsToTsgo: () => contentMapperService.lspMiddlewareActive
     };
 
     let tsPlugin: TsPlugin | undefined;
@@ -151,6 +158,10 @@ export function deactivate() {
     return stop;
 }
 
+function isContentMapperMode(ls: LanguageClient) {
+    return !!ls.initializeResult?.customServerStatus?.experimental?.contentMapperModeEnabled;
+}
+
 function toggleFileReferencesMenu(enable: boolean) {
     commands.executeCommand('setContext', 'svelte.uiContext.fileReference.enable', enable);
 }
@@ -159,6 +170,12 @@ export function activateSvelteLanguageServer(
     context: ExtensionContext,
     options?: {
         tsGoContentMapperOptions: { enable: boolean };
+        /**
+         * When TS7 serves the Svelte file and our middleware is registered on it, the highlights
+         * of both servers are merged in the middleware. VS Code only uses the first provider with
+         * a non-empty result, so ours must not compete.
+         */
+        deferDocumentHighlightsToTsgo?: () => boolean;
     }
 ) {
     warnIfOldExtensionInstalled();
@@ -264,7 +281,13 @@ export function activateSvelteLanguageServer(
         }),
         middleware: {
             resolveCodeLens: resolveCodeLensMiddleware,
-            sendNotification: sendNotificationMiddleware
+            sendNotification: sendNotificationMiddleware,
+            provideDocumentHighlights: (document, position, token, next) => {
+                if (options?.deferDocumentHighlightsToTsgo?.() && isContentMapperMode(ls)) {
+                    return null;
+                }
+                return next(document, position, token);
+            }
         }
     };
 
@@ -334,8 +357,7 @@ export function activateSvelteLanguageServer(
     }
 
     function updateCustomTs6Features() {
-        const enable =
-            !ls.initializeResult?.customServerStatus?.experimental?.contentMapperModeEnabled;
+        const enable = !isContentMapperMode(ls);
         toggleFileReferencesMenu(enable);
         // With tsgo we want to disable various listeners that are only needed for our TS lsp functionality
         if (enable && !ts6Features) {

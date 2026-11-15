@@ -3,6 +3,11 @@ import type {
     ExtensionAPI as TsExtensionAPI,
     TypeScriptSDK
 } from '@typescript/native/vscode' with { 'resolution-mode': 'import' };
+import {
+    registerSvelteLspMiddleware,
+    SvelteLanguageServerAccess,
+    supportsLspMiddleware
+} from './middleware';
 
 export interface ContentMapperStartResult {
     readonly enable: boolean;
@@ -19,6 +24,9 @@ export class TsContentMapperService {
     private api: TsExtensionAPI | undefined;
     private contentMapperDisposables: vscode.Disposable[] | undefined;
     private svelteServerTsgoOption: Promise<ContentMapperStartResult> | undefined;
+    private svelteLanguageServerAccess: SvelteLanguageServerAccess | undefined;
+    private lspMiddlewareRegistered = false;
+    private readonly log: (message: string) => void = (message) => console.log(message);
 
     readonly onDidChangeEnablement = this.enablementEmitter.event;
     readonly onTsServerRestart = this.tsServerRestartEmitter.event;
@@ -31,6 +39,21 @@ export class TsContentMapperService {
             }),
             this.enablementEmitter
         );
+    }
+
+    /**
+     * Called by the extension so the TS7 middleware can reach the Svelte language server
+     */
+    setSvelteLanguageServerAccess(access: SvelteLanguageServerAccess) {
+        this.svelteLanguageServerAccess = access;
+    }
+
+    /**
+     * Whether TS7 responses for Svelte files are post-processed by our middleware.
+     * Some Svelte LS providers (e.g. document highlight) defer to TS7 in that case and are merged there.
+     */
+    get lspMiddlewareActive(): boolean {
+        return this.lspMiddlewareRegistered;
     }
 
     async tryStart(): Promise<ContentMapperStartResult> {
@@ -74,6 +97,22 @@ export class TsContentMapperService {
                 ]
             );
             disposables.push(contentMapperRegistration);
+
+            // Older TS7 extensions don't have registerLspMiddleware
+            if (supportsLspMiddleware(this.api)) {
+                disposables.push(
+                    registerSvelteLspMiddleware(
+                        this.api,
+                        {
+                            getContentMapperModeClient: () =>
+                                this.svelteLanguageServerAccess?.getContentMapperModeClient()
+                        },
+                        this.log
+                    ),
+                    { dispose: () => (this.lspMiddlewareRegistered = false) }
+                );
+                this.lspMiddlewareRegistered = true;
+            }
 
             // should trigger immediately if the language server is already initialized
             disposables.push(
@@ -138,7 +177,7 @@ export class TsContentMapperService {
             const parts = tsdk.version.split('.');
             const major = parseInt(parts[0]);
             const minor = parseInt(parts[1]);
-            if (!isNaN(major) && !isNaN(minor) && (major === 7 || minor < 1)) {
+            if (!isNaN(major) && !isNaN(minor) && (major < 7 || (major === 7 && minor < 1))) {
                 return { enable: false };
             }
         }

@@ -10,7 +10,7 @@ import {
     rangeWithTrailingPropertyAccess,
     addDirectiveNameMapping
 } from '../utils/node-utils';
-import { SpanMapFeature, SpanMapGenerator } from '../../utils/spanMap';
+import { SpanMapGenerator } from '../../utils/spanMap';
 
 const voidTags = 'area,base,br,col,embed,hr,img,input,link,meta,param,source,track,wbr'.split(',');
 
@@ -152,8 +152,7 @@ export class Element {
     addAction(
         attr: BaseDirective,
         leadingComments: TransformationArray = [],
-        trailingComments: TransformationArray = [],
-        spanMapGenerator: SpanMapGenerator
+        trailingComments: TransformationArray = []
     ) {
         const id = `$$action_${this.actionIdentifiers.length}`;
         this.actionIdentifiers.push(id);
@@ -161,21 +160,17 @@ export class Element {
             this.actionsTransformation.push('{');
         }
         const nameRange = getDirectiveNameStartEndIdx(this.str, attr);
-        const mapElement = `${this.typingsNamespace}.mapElementTag('${this.tagName}')`;
+        const mapElement = addDirectiveNameMapping(
+            this.spanMapGenerator,
+            nameRange,
+            `${this.typingsNamespace}.mapElementTag('${this.tagName}')`
+        );
         this.actionsTransformation.push(
             ...leadingComments,
             `const ${id} = __sveltets_2_ensureAction(`,
             nameRange,
             `(${mapElement}`
         );
-
-        if (spanMapGenerator) {
-            addDirectiveNameMapping(spanMapGenerator, nameRange, {
-                features: SpanMapFeature.None,
-                length: mapElement.length,
-                offsetFromEnd: 1
-            });
-        }
 
         if (attr.expression) {
             this.actionsTransformation.push(
