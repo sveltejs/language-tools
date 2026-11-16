@@ -374,6 +374,13 @@ async function getSvelteDiagnosticsForIncremental(
         }
     }
 
+    const emittedFiles = new Set(emitResult.entries.map((entry) => entry.sourcePath));
+    for (const filePath of changedFiles) {
+        if (filePath.endsWith('.svelte') && !emittedFiles.has(filePath)) {
+            filesNeedingDiagnostics.push(filePath);
+        }
+    }
+
     // Phase 2: Run fresh diagnostics for changed/uncached files via the language server
     if (enabledSources.length && filesNeedingDiagnostics.length > 0) {
         const svelteCheck = new SvelteCheck(opts.workspaceUri.fsPath, {
