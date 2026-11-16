@@ -1,18 +1,12 @@
 import { Document, DocumentManager } from '../../lib/documents';
 import { internalHelpers } from 'svelte2tsx';
-import { SvelteNodeWalker, TemplateNode, walkSvelteAst } from './features/svelte-ast-utils';
+import { parseTemplateAst, TemplateAstWalker } from './templateAst';
+
+export type { TemplateAstWalker } from './templateAst';
 
 interface ASTCache {
     version: number;
-    walker: {
-        walkSvelteAst(walker: SvelteNodeWalker): void;
-        parserError: boolean;
-    };
-}
-
-export interface TemplateAstWalker {
-    walkSvelteAst(walker: SvelteNodeWalker): void;
-    parserError: boolean;
+    walker: TemplateAstWalker;
 }
 
 export interface TemplateAstLoader {
@@ -34,27 +28,7 @@ export class TemplateASTParseLoader implements TemplateAstLoader {
             return cache.walker;
         }
 
-        let result: TemplateAstWalker;
-        try {
-            const ast = internalHelpers.parseTemplateOnly(document.getText(), {
-                parse: document.compiler.parse,
-                emitOnTemplateError: true,
-                svelte5Plus: document.isSvelte5
-            }) as TemplateNode;
-            result = {
-                walkSvelteAst(walker: SvelteNodeWalker) {
-                    walkSvelteAst(ast.htmlxAst, walker);
-                },
-                parserError: false
-            };
-        } catch (error) {
-            result = {
-                walkSvelteAst() {
-                    // noop
-                },
-                parserError: true
-            };
-        }
+        const result = parseTemplateAst(document, internalHelpers.parseTemplateOnly);
         this.map.set(document.url, { version: document.version, walker: result });
         return result;
     }
