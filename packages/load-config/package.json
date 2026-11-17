@@ -16,6 +16,7 @@
     },
     "scripts": {
         "build": "tsc",
+        "test": "pnpm build && node --test",
         "prepublishOnly": "pnpm build"
     },
     "files": [

@@ -261,8 +261,22 @@ async function loadSvelteConfig(configFilePath: string): Promise<LoadConfigResul
 }
 
 async function tryImportVite(fromPath: string): Promise<ViteModule | undefined> {
+    // Vite+ projects depend on `vite-plus` instead of `vite`, so `vite` can't be resolved
+    // from the project. `vite-plus` re-exports the Vite API, `resolveConfig` included.
+    for (const packageName of ['vite', 'vite-plus']) {
+        const vite = await tryImportPackage(packageName, fromPath);
+        if (vite) {
+            return vite;
+        }
+    }
+}
+
+async function tryImportPackage(
+    packageName: string,
+    fromPath: string
+): Promise<ViteModule | undefined> {
     try {
-        const importPath = getViteImportPath(fromPath);
+        const importPath = getPackageImportPath(packageName, fromPath);
         if (importPath) {
             return await dynamicImport(pathToFileURL(importPath).href);
         }
@@ -270,11 +284,11 @@ async function tryImportVite(fromPath: string): Promise<ViteModule | undefined> 
         // fall through to legacy import
     }
 
-    return importViteLegacy(fromPath);
+    return importPackageLegacy(packageName, fromPath);
 }
 
-function getViteImportPath(fromPath: string): string | undefined {
-    const pkgPath = require.resolve('vite/package.json', { paths: [fromPath] });
+function getPackageImportPath(packageName: string, fromPath: string): string | undefined {
+    const pkgPath = require.resolve(`${packageName}/package.json`, { paths: [fromPath] });
     const pkgDir = path.dirname(pkgPath);
     const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8')) as {
         exports?: Record<string, unknown>;
@@ -321,9 +335,12 @@ function resolvePackageImportExport(exportEntry: unknown): string | undefined {
     return undefined;
 }
 
-async function importViteLegacy(fromPath: string): Promise<ViteModule | undefined> {
+async function importPackageLegacy(
+    packageName: string,
+    fromPath: string
+): Promise<ViteModule | undefined> {
     try {
-        const main = require.resolve('vite', { paths: [fromPath] });
+        const main = require.resolve(packageName, { paths: [fromPath] });
         // require.resolve will use the cjs version
         const prev = process.env.VITE_CJS_IGNORE_WARNING;
         process.env.VITE_CJS_IGNORE_WARNING = 'true';
