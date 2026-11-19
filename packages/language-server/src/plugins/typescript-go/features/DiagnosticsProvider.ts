@@ -259,7 +259,7 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
             return [];
         }
 
-        const normalizedSvelteTsxFiles = new FileSet()
+        const normalizedSvelteTsxFiles = new FileSet();
         for (const file of this.svelteTsxFiles) {
             normalizedSvelteTsxFiles.add(normalizePath(file));
         }
