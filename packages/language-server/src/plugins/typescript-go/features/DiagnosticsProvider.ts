@@ -22,7 +22,7 @@ import {
     positionAt
 } from '../../../lib/documents';
 import { configLoader } from '../../../lib/documents/configLoader';
-import { FileMap } from '../../../lib/documents/fileCollection';
+import { FileMap, FileSet } from '../../../lib/documents/fileCollection';
 import { Logger } from '../../../logger';
 import {
     clamp,
@@ -81,6 +81,7 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
     private readonly ambientTypesSource: string;
     private readonly snapshotOptions: SvelteSnapshotOptions;
     private readonly tsconfigPath: string;
+    private readonly svelteTsxFiles: string[];
     /**
      * files is currently empty
      */
@@ -132,6 +133,7 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
             this.snapshotOptions.typingsNamespace = this.projectConfig.raw.svelteOptions.namespace;
         }
         this.pendingConfigLoading = configLoader.loadConfigs(path.dirname(tsconfigPath));
+        this.svelteTsxFiles = this.loadSvelteTsxFiles();
         this.writeVirtualTsconfig();
     }
 
@@ -245,6 +247,46 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
         // @ts-expect-error typescript < 7.1
         const project = snapshot.getProject(this.virtualTsconfigPath);
         return project;
+    }
+
+    checkInputFiles(project: tsApiSync.Project): tsApiSync.Diagnostic[] {
+        const projectFiles =
+            project.parsedCommandLine?.fileNames ??
+            // typescript 7.0
+            (project as any).rootFiles;
+
+        if (projectFiles.length > this.svelteTsxFiles.length) {
+            return [];
+        }
+
+        const normalizedSvelteTsxFiles = new FileSet()
+        for (const file of this.svelteTsxFiles) {
+            normalizedSvelteTsxFiles.add(normalizePath(file));
+        }
+        for (const file of projectFiles) {
+            if (!normalizedSvelteTsxFiles.has(normalizePath(file))) {
+                return [];
+            }
+        }
+
+        const code = 18003;
+        // We override readDirectory to skip fs reading while parsing the config. So it should always have this error.
+        const existError = this.projectConfig.errors.find((v) => v.code == code);
+
+        return [
+            {
+                fileName: this.tsconfigPath as tsAst.RootedFilePath,
+                category: this.tsApiModule.DiagnosticCategory.Error,
+                code: code,
+                pos: existError?.start ?? 0,
+                end: (existError?.start ?? 0) + (existError?.length ?? 0),
+                text: existError
+                    ? typeof existError.messageText === 'string'
+                        ? existError.messageText
+                        : existError.messageText.messageText
+                    : 'No inputs were found in config file ' + this.tsconfigPath
+            }
+        ];
     }
 
     getAllSvelteFiles(): string[] {
@@ -554,9 +596,7 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
         return commandLine;
     }
 
-    private writeVirtualTsconfig() {
-        const commandLine = this.projectConfig;
-        const tsconfigPath = this.tsconfigPath;
+    private loadSvelteTsxFiles() {
         const sveltePackageInfo = getPackageInfo('svelte', this.virtualTsconfigPath);
 
         let svelteTsPath: string;
@@ -568,13 +608,18 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
             svelteTsPath = __dirname;
         }
 
-        const svelteTsxFiles = internalHelpers.get_global_types(
+        return internalHelpers.get_global_types(
             ts.sys,
             sveltePackageInfo.version.major === 3,
             sveltePackageInfo.path,
             svelteTsPath,
             undefined
         );
+    }
+
+    private writeVirtualTsconfig() {
+        const commandLine = this.projectConfig;
+        const tsconfigPath = this.tsconfigPath;
 
         const filesConfig = commandLine.raw.files;
         const rebasedFiles: string[] = [];
@@ -594,7 +639,7 @@ export class SvelteCheckTSGoDiagnosticsProvider implements DiagnosticsProvider {
         const virtualTsConfigContent = JSON.stringify({
             extends: './' + path.basename(tsconfigPath),
             compilerOptions: { allowArbitraryExtensions: true, noEmit: true },
-            files: rebasedFiles.concat(svelteTsxFiles),
+            files: rebasedFiles.concat(this.svelteTsxFiles),
             // otherwise only "files" will be included and not the default "everything"
             include: commandLine.raw.include ? undefined : ['**/*']
         });
