@@ -501,6 +501,10 @@ export class SvelteCheck {
                 allTsDiagnostics = allTsDiagnostics.concat(
                     this.tsGoDiagnosticsProvider.deduplicateDiagnostics(programOrGlobal)
                 );
+
+                allTsDiagnostics = allTsDiagnostics.concat(
+                    this.tsGoDiagnosticsProvider.checkInputFiles(project)
+                );
             }
 
             if (allTsDiagnostics.length == configFileParsingDiagnosticsLength) {
