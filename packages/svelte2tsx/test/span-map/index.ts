@@ -3,6 +3,7 @@ import path from 'path';
 import { VERSION } from 'svelte/compiler';
 import { svelte2tsx } from '../build';
 import { each_sample, get_svelte2tsx_config } from '../helpers';
+import { SpanMapKind, validateSpanMap } from '../../src/utils/spanMap';
 import { assertDirectivesCoverIgnoreRegions, assertValidSpanMap } from './check';
 
 const isSvelte5Plus = Number(VERSION[0]) >= 5;
@@ -46,4 +47,17 @@ describe('span maps', function () {
             });
         }
     }
+
+    it('maps removed text that starts with an emoji to the whole emoji', () => {
+        const input = '<span>👍 text</span>';
+        const { spanMappings } = svelte2tsx(input, { version: VERSION, generateSpanMapping: true });
+        const start = input.indexOf('👍');
+        const mapping = spanMappings.find(([, , originalStart]) => originalStart === start);
+        assert.deepStrictEqual(mapping?.slice(1, 5), [1, start, 2, SpanMapKind.Atom]);
+    });
+
+    it('rejects a segment that ends inside a surrogate pair', () => {
+        const [issue] = validateSpanMap('👍', ' ', [[0, 1, 0, 1, SpanMapKind.Atom]]);
+        assert.match(issue, /splits a surrogate pair/);
+    });
 });
