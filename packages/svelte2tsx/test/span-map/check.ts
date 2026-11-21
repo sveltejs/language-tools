@@ -4,6 +4,7 @@ import assert from 'assert';
  * Checks what TypeScript 7 checks for a content mapper's span map and diagnostic directives
  * (independent of svelte2tsx's own validation):
  * - segments sorted, non-overlapping, non-empty and in bounds; `Verbatim` text identical on both sides
+ * - no position of a segment or directive inside a surrogate pair
  * - directives in bounds, sorted and non-overlapping, only `Ignore` (svelte2tsx doesn't create others)
  * - no marker comments left in the output
  */
@@ -37,6 +38,13 @@ export function assertValidSpanMap(
         assert.ok(originalStart + originalLength <= original.length, `${message}: out of bounds`);
         assert.ok([0, 1, 2].includes(kind), `${message}: kind`);
         assert.ok(
+            !splitsSurrogatePair(code, virtualStart) &&
+                !splitsSurrogatePair(code, virtualStart + virtualLength) &&
+                !splitsSurrogatePair(original, originalStart) &&
+                !splitsSurrogatePair(original, originalStart + originalLength),
+            `${message}: splits a surrogate pair`
+        );
+        assert.ok(
             features === undefined || (features >= 0 && features < 1 << 20),
             `${message}: features`
         );
@@ -63,10 +71,24 @@ export function assertValidSpanMap(
         assert.ok(originalStart + originalLength <= original.length, `${message}: out of bounds`);
         assert.ok(virtualStart < virtualEnd && virtualEnd <= code.length, `${message}: range`);
         assert.ok(virtualStart >= previousEnd, `${message}: unsorted or overlapping`);
+        assert.ok(
+            !splitsSurrogatePair(code, virtualStart) &&
+                !splitsSurrogatePair(code, virtualEnd) &&
+                !splitsSurrogatePair(original, originalStart) &&
+                !splitsSurrogatePair(original, originalStart + originalLength),
+            `${message}: splits a surrogate pair`
+        );
         assert.strictEqual(policy, 0, `${message}: policy`);
         assert.strictEqual(index, undefined, `${message}: index`);
         previousEnd = virtualEnd;
     }
+}
+
+/** TypeScript rejects positions between the two UTF-16 code units of a code point */
+function splitsSurrogatePair(text: string, position: number) {
+    const before = text.charCodeAt(position - 1);
+    const after = text.charCodeAt(position);
+    return before >= 0xd800 && before <= 0xdbff && after >= 0xdc00 && after <= 0xdfff;
 }
 
 const IGNORE_END = '/*Ωignore_endΩ*/';
