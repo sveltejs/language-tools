@@ -4,6 +4,7 @@ import assert from 'assert';
  * Checks what TypeScript 7 checks for a content mapper's span map and diagnostic directives
  * (independent of svelte2tsx's own validation):
  * - segments sorted, non-overlapping, non-empty and in bounds; `Verbatim` text identical on both sides
+ * - no segment boundary between the two code units of a surrogate pair (an emoji)
  * - directives in bounds, sorted and non-overlapping, only `Ignore` (svelte2tsx doesn't create others)
  * - no marker comments left in the output
  */
@@ -35,6 +36,14 @@ export function assertValidSpanMap(
         assert.ok(virtualStart >= previousEnd, `${message}: unsorted or overlapping`);
         assert.ok(virtualStart + virtualLength <= code.length, `${message}: out of bounds`);
         assert.ok(originalStart + originalLength <= original.length, `${message}: out of bounds`);
+        for (const [text, offset] of [
+            [code, virtualStart],
+            [code, virtualStart + virtualLength],
+            [original, originalStart],
+            [original, originalStart + originalLength]
+        ] as const) {
+            assert.ok(!splitsSurrogatePair(text, offset), `${message}: splits a surrogate pair`);
+        }
         assert.ok([0, 1, 2].includes(kind), `${message}: kind`);
         assert.ok(
             features === undefined || (features >= 0 && features < 1 << 20),
@@ -67,6 +76,12 @@ export function assertValidSpanMap(
         assert.strictEqual(index, undefined, `${message}: index`);
         previousEnd = virtualEnd;
     }
+}
+
+function splitsSurrogatePair(text: string, offset: number) {
+    const high = text.charCodeAt(offset - 1);
+    const low = text.charCodeAt(offset);
+    return high >= 0xd800 && high <= 0xdbff && low >= 0xdc00 && low <= 0xdfff;
 }
 
 const IGNORE_END = '/*Ωignore_endΩ*/';

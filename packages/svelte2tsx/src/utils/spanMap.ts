@@ -241,11 +241,13 @@ export class SpanMapGenerator {
                 continue;
             }
 
+            // An atom covers the whole first code point on each side, so that it doesn't end inside
+            // a surrogate pair (text that starts with an emoji)
             current = [
                 generatedStart,
-                1,
+                sameChar ? 1 : codePointLength(generatedCode, generatedStart),
                 originalStart,
-                1,
+                sameChar ? 1 : codePointLength(str.original, originalStart),
                 sameChar ? SpanMapKind.Verbatim : SpanMapKind.Atom
             ];
             addFlag(current, sourceSpan?.features);
@@ -537,9 +539,10 @@ function subtract([start, end]: Range, holes: Range[]): Range[] {
 }
 
 /**
- * Checks what TypeScript checks: segments sorted, non-overlapping, in bounds, `Verbatim` text
- * identical on both sides; directives valid and non-overlapping. An invalid span map gives an
- * error (100037), an invalid directive fails the whole transform.
+ * Checks what TypeScript checks: segments sorted, non-overlapping, in bounds, no boundary inside a
+ * surrogate pair, `Verbatim` text identical on both sides; directives valid and non-overlapping.
+ * An invalid span map gives an error (100037), an invalid position or directive fails the whole
+ * transform.
  */
 export function validateSpanMap(
     original: string,
@@ -605,6 +608,14 @@ function getSegmentIssue(
     if (originalStart + originalLength > original.length) {
         return 'original range out of bounds';
     }
+    if (
+        splitsSurrogatePair(code, virtualStart) ||
+        splitsSurrogatePair(code, virtualStart + virtualLength) ||
+        splitsSurrogatePair(original, originalStart) ||
+        splitsSurrogatePair(original, originalStart + originalLength)
+    ) {
+        return 'segment splits a surrogate pair';
+    }
     if (kind !== SpanMapKind.Verbatim && kind !== SpanMapKind.Atom && kind !== SpanMapKind.Alias) {
         return 'invalid kind';
     }
@@ -656,6 +667,18 @@ function getDirectiveIssue(
 
 function isNonNegativeInt(value: number) {
     return Number.isInteger(value) && value >= 0;
+}
+
+/** Whether `offset` is between the two UTF-16 code units of a surrogate pair */
+function splitsSurrogatePair(text: string, offset: number): boolean {
+    const high = text.charCodeAt(offset - 1);
+    const low = text.charCodeAt(offset);
+    return high >= 0xd800 && high <= 0xdbff && low >= 0xdc00 && low <= 0xdfff;
+}
+
+/** The number of UTF-16 code units of the character at `index` */
+function codePointLength(text: string, index: number): 1 | 2 {
+    return splitsSurrogatePair(text, index + 1) ? 2 : 1;
 }
 
 function addFlag(span: SpanMapping, features: SpanMapFeature | undefined) {
