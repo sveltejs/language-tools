@@ -152,29 +152,39 @@ You may need to set `baseUrl` in `tsconfig.json` at the project root to include 
 
 If it's a non-experimental standard attribute/event, this may very well be a missing typing from our [HTML typings](https://github.com/sveltejs/svelte/blob/master/packages/svelte/elements.d.ts). In that case, you are welcome to open an issue and/or a PR fixing it.
 
-In case this is a custom or experimental attribute/event, you can enhance the typings like this:
-Create a `additional-svelte-typings.d.ts` file:
+In case this is a custom or experimental attribute/event, you can enhance the typings by augmenting the `svelte/elements` module. Create a `additional-svelte-typings.d.ts` file:
 
 ```ts
-declare namespace svelteHTML {
-    // enhance elements
-    interface IntrinsicElements {
-        'my-custom-element': { someattribute: string; 'on:event': (e: CustomEvent<any>) => void };
+import { HTMLButtonAttributes } from 'svelte/elements';
+
+declare module 'svelte/elements' {
+    // add a new element
+    export interface SvelteHTMLElements {
+        'my-custom-element': HTMLButtonAttributes;
     }
-    // enhance attributes
-    interface HTMLAttributes<T> {
-        // If you want to use on:beforeinstallprompt
-        'on:beforeinstallprompt'?: (event: any) => any;
-        // If you want to use myCustomAttribute={..} (note: all lowercase)
+    // add a new attribute that is available on all HTML elements
+    export interface HTMLAttributes<T> {
+        // If you want to use mycustomattribute={..} (note: all lowercase)
         mycustomattribute?: any;
+        // Custom event handler attributes use the onxxx form.
         // You can replace any with something more specific if you like
+        onmycustomevent?: (event: CustomEvent<string>) => void;
+    }
+    // add a new attribute for a specific element
+    export interface HTMLButtonAttributes {
+        veryexperimentalattribute?: string;
     }
 }
+
+// ensure this is not an ambient module, else types will be overridden instead of augmented
+export {};
 ```
 
 Then make sure that `d.ts` file is referenced in your `tsconfig.json`. If it reads something like `"include": ["src/**/*"]` and your `d.ts` file is inside `src`, it should work. You may need to reload for the changes to take effect.
 
-> You need `svelte-check` version 3 / VS Code extension version 106 for this. Also see the next section.
+Because the module is augmented, the added attributes are also there when you import `HTMLAttributes` or `SvelteHTMLElements` from `svelte/elements` in your own code, not only inside the template.
+
+> Enhancing the `svelteHTML` namespace was the recommended way before. It is kept for backwards compatibility only and does not apply to special elements such as `<svelte:window>` and `<svelte:document>`, so prefer the augmentation above. See the [Svelte docs](https://svelte.dev/docs/svelte/typescript#Enhancing-built-in-DOM-types) for the full guide.
 
 If the typings are related to special attributes/events related to an action that is applied on the same element, you can instead type the action in a way that is picked up by the tooling:
 
@@ -197,7 +207,7 @@ export function myAction(node: HTMLElement, parameter: Parameter): ActionReturn<
 
 ### I'm getting deprecation warnings for svelte.JSX / I want to migrate to the new typings
 
-Since `svelte-check` version 3 and VS Code extension version 106, a different transformation is used to get intellisense for Svelte files. This also leads to the old way of enhancing HTML typings being deprecated. You should migrate all usages of `svelte.JSX` away to either `svelte/elements` or the new `svelteHTML` namespace.
+Since `svelte-check` version 3 and VS Code extension version 106, a different transformation is used to get intellisense for Svelte files. This also leads to the old way of enhancing HTML typings being deprecated. You should migrate all usages of `svelte.JSX` away to `svelte/elements`.
 
 If you used `svelte.JSX` in your library to express that you have a component that wraps a HTML element, use `svelte/elements` (part of Svelte since version 3.55) instead:
 
@@ -227,25 +237,29 @@ export MyFancyButton extends SvelteComponentTyped<
 </button>
 ```
 
-If you used `svelte.JSX` in your project to enhance the HTML typings, use the `svelteHTML` namespace instead:
+If you used `svelte.JSX` in your project to enhance the HTML typings, augment `svelte/elements` instead:
 
 ```diff
 -declare namespace svelte.JSX {
-+declare namespace svelteHTML {
++declare module 'svelte/elements' {
     // enhance elements
-    interface IntrinsicElements {
+-    interface IntrinsicElements {
++    export interface SvelteHTMLElements {
         'my-custom-element': { someattribute: string };
     }
     // enhance attributes
-    interface HTMLAttributes<T> {
-        // If you want to use on:beforeinstallprompt
--        onbeforeinstallprompt?: (event: any) => any;
-+        'on:beforeinstallprompt'?: (event: any) => any;
+-    interface HTMLAttributes<T> {
++    export interface HTMLAttributes<T> {
+        // If you want to use onbeforeinstallprompt
+        onbeforeinstallprompt?: (event: any) => any;
         // If you want to use myCustomAttribute={..} (note: all lowercase)
         mycustomattribute?: any;
         // You can replace any with something more specific if you like
     }
 }
++
++// ensure this is not an ambient module, else types will be overridden instead of augmented
++export {};
 ```
 
 ### I'm unable to use installed types (for example through `@types/..`)
