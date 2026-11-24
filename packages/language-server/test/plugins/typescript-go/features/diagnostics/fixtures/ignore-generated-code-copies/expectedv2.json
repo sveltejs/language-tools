@@ -1,0 +1,21 @@
+[
+    {
+        "range": { "start": { "line": 8, "character": 19 }, "end": { "line": 8, "character": 31 } },
+        "severity": 1,
+        "source": "ts",
+        "message": "Cannot find name 'doesNotExist'.",
+        "code": 2304,
+        "tags": []
+    },
+    {
+        "range": {
+            "start": { "line": 11, "character": 19 },
+            "end": { "line": 11, "character": 35 }
+        },
+        "severity": 1,
+        "source": "ts",
+        "message": "Cannot find name 'alsoDoesNotExist'.",
+        "code": 2304,
+        "tags": []
+    }
+]

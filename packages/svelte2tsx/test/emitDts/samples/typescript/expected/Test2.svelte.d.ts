@@ -1,20 +1,24 @@
-import { SvelteComponentTyped } from "svelte";
 import type { Foo } from './foo';
-declare const __propDef: {
-    props: {
-        foo: Foo;
-        bar: {
-            a: true;
-        };
+interface $$__sveltets_2_IsomorphicComponent<Props extends Record<string, any> = any, Events extends Record<string, any> = any, Slots extends Record<string, any> = any, Exports = {}, Bindings = string> {
+    new (options: import('svelte').ComponentConstructorOptions<Props>): import('svelte').SvelteComponent<Props, Events, Slots> & {
+        $$bindings?: Bindings;
+    } & Exports;
+    (internal: unknown, props: Props & {
+        $$events?: Events;
+        $$slots?: Slots;
+    }): Exports & {
+        $set?: any;
+        $on?: any;
     };
-    events: {
-        [evt: string]: CustomEvent<any>;
-    };
-    slots: {};
-};
-export type Test2Props = typeof __propDef.props;
-export type Test2Events = typeof __propDef.events;
-export type Test2Slots = typeof __propDef.slots;
-export default class Test2 extends SvelteComponentTyped<Test2Props, Test2Events, Test2Slots> {
+    z_$$bindings?: Bindings;
 }
-export {};
+declare const Test2: $$__sveltets_2_IsomorphicComponent<{
+    foo: Foo;
+    bar: {
+        a: true;
+    };
+}, {
+    [evt: string]: CustomEvent<any>;
+}, {}, {}, string>;
+type Test2 = InstanceType<typeof Test2>;
+export default Test2;

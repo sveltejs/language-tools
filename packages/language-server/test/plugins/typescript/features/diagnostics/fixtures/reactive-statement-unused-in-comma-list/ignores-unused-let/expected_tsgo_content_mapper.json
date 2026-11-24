@@ -1,0 +1,10 @@
+[
+    {
+        "range": { "start": { "line": 13, "character": 8 }, "end": { "line": 13, "character": 9 } },
+        "severity": 1,
+        "source": "ts",
+        "message": "Left side of comma operator is unused and has no side effects.",
+        "code": 2695,
+        "tags": [1]
+    }
+]

@@ -28,12 +28,15 @@ function findDtsFiles(dir: string, declarationDir: string): string[] {
     return results;
 }
 
+const isSvelte5Plus = Number(VERSION.split('.')[0]) >= 5;
+
+/** Samples with a `.v4` suffix only run against Svelte 4, all others only against Svelte 5+ */
+function isSvelte4Sample(sample: string) {
+    return /\.v4(\.solo)?$/.test(sample);
+}
+
 async function testEmitDts(sample: string) {
     const cwd = join(__dirname, 'samples', sample);
-
-    if (sample.endsWith('.v5') && +VERSION[0] < 5) {
-        return; // skip
-    }
 
     const spuriousFiles: string[] = [];
     const config = fs.existsSync(join(cwd, 'config.json'))
@@ -52,12 +55,7 @@ async function testEmitDts(sample: string) {
 
         await emitDts({
             declarationDir,
-            svelteShimsPath: require.resolve(
-                join(
-                    process.cwd(),
-                    sample.endsWith('.v5') ? 'svelte-shims-v4.d.ts' : 'svelte-shims.d.ts'
-                )
-            ), // TODO make it -v4 once we have Svelte 4 in the workspace
+            svelteShimsPath: require.resolve(join(process.cwd(), 'svelte-shims-v4.d.ts')),
             ...config,
             libRoot: config.libRoot ? join(cwd, config.libRoot) : join(cwd, 'src')
         });
@@ -137,6 +135,7 @@ describe('emitDts', async () => {
     let samplesToTest = samples.filter((s) => s.endsWith('.solo'));
     samplesToTest = samplesToTest.length ? samplesToTest : samples;
     for (const sample of samplesToTest) {
+        if (isSvelte4Sample(sample) === isSvelte5Plus) continue;
         it(sample, async () => await testEmitDts(sample)).timeout(10000);
     }
 });

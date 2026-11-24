@@ -19,25 +19,27 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           # This makes Actions fetch all Git history so that Changesets can generate changelogs with the correct commits
           fetch-depth: 0
-      - uses: pnpm/action-setup@v4.1.0
+      - uses: pnpm/action-setup@v6
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
-          node-version: 24.x
+          node-version: 26.x
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
 
       - name: Create Release Pull Request or Publish to npm
         id: changesets
-        uses: changesets/action@v1
+        uses: changesets/action@v2
         with:
-          version: pnpm changeset:version
-          publish: pnpm changeset:publish
+          version-script: pnpm changeset:version
+          publish-script: pnpm changeset:publish
         env:
+          # Not used by the action itself (it uses the `github-token` input, which defaults to this token),
+          # but read by @changesets/changelog-github to look up PR and commit info for the changelog
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_CONFIG_PROVENANCE: true

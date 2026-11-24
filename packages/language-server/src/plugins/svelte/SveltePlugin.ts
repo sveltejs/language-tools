@@ -8,6 +8,7 @@ import {
     CompletionList,
     Diagnostic,
     DocumentDiagnosticReport,
+    DocumentHighlight,
     FoldingRange,
     FormattingOptions,
     Hover,
@@ -27,6 +28,7 @@ import {
     CodeActionsProvider,
     CompletionsProvider,
     DiagnosticsProvider,
+    DocumentHighlightProvider,
     FoldingRangeProvider,
     FormattingProvider,
     HoverProvider,
@@ -40,6 +42,7 @@ import { getSelectionRange } from './features/getSelectionRanges';
 import { SvelteCompileResult, SvelteDocument } from './SvelteDocument';
 import { TemplateAstLoader } from './TemplateASTLoader';
 import { collectSvelteBlockFolding } from './features/getSvelteBlockFolding';
+import { getSvelteDocumentHighlight } from './features/getSvelteDocumentHighlight';
 
 export class SveltePlugin
     implements
@@ -49,7 +52,8 @@ export class SveltePlugin
         HoverProvider,
         CodeActionsProvider,
         SelectionRangeProvider,
-        FoldingRangeProvider
+        FoldingRangeProvider,
+        DocumentHighlightProvider
 {
     __name = 'svelte';
     private docManager = new Map<Document, SvelteDocument>();
@@ -399,7 +403,22 @@ export class SveltePlugin
         );
     }
 
-    // TODO add document highligh
+    /**
+     * Svelte block/tag keyword highlights. Only used in content mapper mode;
+     * in TS6 mode the TypeScript plugin's highlight provider handles these.
+     */
+    findDocumentHighlight(document: Document, position: Position): DocumentHighlight[] | null {
+        if (!this.astLoader) {
+            return null;
+        }
+
+        const ast = this.astLoader.loadTemplateAst(document);
+        if (ast.parserError) {
+            return null;
+        }
+
+        return getSvelteDocumentHighlight(document, ast, position);
+    }
 
     async executeCommand(
         document: Document,

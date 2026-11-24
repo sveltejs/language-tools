@@ -2,10 +2,10 @@ import { TsApiService } from '../TsApiService';
 import { FindComponentReferencesProvider } from '../../interfaces';
 import { Location } from 'vscode-languageserver-types';
 import { tsApiAsync, tsAst } from '../types';
-import { isNotNullOrUndefined, pathToUrl } from '../../../utils';
+import { isNotNullOrUndefined } from '../../../utils';
 import { CancellationToken } from 'vscode-languageserver-protocol';
 import { getDeclarationFromName, waitWithCancellation } from './utils';
-import { SvelteTsSourceFileDocument } from '../SvelteSourceFileDocument';
+import { TsApiLocationMapper } from '../TsApiLocationMapper';
 
 export class TsGoComponentReferenceProvider implements FindComponentReferencesProvider {
     private readonly tsApiService: TsApiService;
@@ -35,49 +35,48 @@ export class TsGoComponentReferenceProvider implements FindComponentReferencesPr
             cancellationToken?: CancellationToken | undefined;
         }
     ): Promise<Location[] | null> {
-        const project = await this.tsApiService.getProject(uri);
-        if (!project || options.cancellationToken?.isCancellationRequested) {
-            return null;
-        }
-
-        const file = await project.program.getSourceFile({ uri });
-        if (!file || options.cancellationToken?.isCancellationRequested) {
-            return null;
-        }
-
-        const node = this.findDefinitionNode(file);
-        if (!node) {
-            return null;
-        }
-
-        const refs = await project.languageService.getReferencedSymbolsForNode(
-            node,
-            node.getStart()
-        );
-        if (options.cancellationToken?.isCancellationRequested) {
-            return null;
-        }
-        const locationPromises: Promise<Location | null>[] = [];
-        const documents = new Map<string, SvelteTsSourceFileDocument>();
-        for (const entry of refs) {
-            const symbol = entry.symbol;
-            const symbolDeclarations = options.includeDeclaration
-                ? undefined
-                : await this.resolveDeclaration(symbol, options.cancellationToken);
-
+        const result = await this.tsApiService.withSourceFile(uri, async (project, file) => {
             if (options.cancellationToken?.isCancellationRequested) {
                 return null;
             }
-            for (const ref of entry.references) {
-                locationPromises.push(
-                    this.toLocation(ref, symbolDeclarations, documents, options.includeDeclaration)
-                );
+
+            const node = this.findDefinitionNode(file);
+            if (!node) {
+                return null;
             }
-        }
 
-        const result = await waitWithCancellation(locationPromises, options.cancellationToken);
+            const refs = await project.languageService.getReferencedSymbolsForNode(
+                node,
+                node.getStart()
+            );
+            if (options.cancellationToken?.isCancellationRequested) {
+                return null;
+            }
+            const locationPromises: Promise<Location | null>[] = [];
+            const mapper = new TsApiLocationMapper(this.tsApiService.astModule);
+            for (const entry of refs) {
+                const symbol = entry.symbol;
+                const symbolDeclarations = options.includeDeclaration
+                    ? undefined
+                    : await this.resolveDeclaration(symbol, options.cancellationToken);
 
-        return result.filter(isNotNullOrUndefined);
+                if (options.cancellationToken?.isCancellationRequested) {
+                    return null;
+                }
+                for (const ref of entry.references) {
+                    locationPromises.push(
+                        this.toLocation(ref, symbolDeclarations, mapper, options.includeDeclaration)
+                    );
+                }
+            }
+
+            const locations = await waitWithCancellation(
+                locationPromises,
+                options.cancellationToken
+            );
+            return locations.filter(isNotNullOrUndefined);
+        });
+        return result ?? null;
     }
 
     private async resolveDeclaration(
@@ -114,9 +113,9 @@ export class TsGoComponentReferenceProvider implements FindComponentReferencesPr
     private async toLocation(
         nodeHandle: tsApiAsync.NodeHandle,
         symbolDeclaration: tsAst.Node[] | undefined,
-        documents: Map<string, SvelteTsSourceFileDocument>,
+        mapper: TsApiLocationMapper,
         includeDeclaration: boolean
-    ) {
+    ): Promise<Location | null> {
         const node = await nodeHandle.resolve();
         if (!node) {
             return null;
@@ -125,62 +124,36 @@ export class TsGoComponentReferenceProvider implements FindComponentReferencesPr
             return null;
         }
 
+        // Undefined for references in generated code (e.g. svelte2tsx's hidden helpers), which
+        // otherwise map to an insertion point with "none" fidelity
+        const location = mapper.toOriginalLocation(
+            node,
+            this.tsApiService.astModule.SpanMapFeature.References
+        );
         const sourceFile = node.getSourceFile();
-        if (!sourceFile) {
-            return null;
-        }
-        const startOffset = node.getStart();
-        const endOffset = node.getEnd();
-        const uri = pathToUrl(sourceFile.fileName);
-        if (!sourceFile.spanMap) {
-            const start = sourceFile.getLineAndCharacterOfPosition(startOffset);
-            const end = sourceFile.getLineAndCharacterOfPosition(endOffset);
-            return {
-                uri,
-                range: {
-                    start,
-                    end
-                }
-            };
-        }
-
-        const originRange = sourceFile.spanMap?.virtualToOriginalSpan({
-            pos: startOffset,
-            end: endOffset
-        });
-        if (!originRange) {
+        if (!location || !sourceFile) {
             return null;
         }
 
-        const isComponentDef = originRange.range.pos === 0;
-        if (isComponentDef) {
-            return null;
-        }
-
-        const isEndTag =
-            sourceFile.originalText.charCodeAt(startOffset - 1) === 47 /* '/' */ &&
-            sourceFile.originalText.charCodeAt(startOffset - 2) === 60; /* '<' */
-
-        if (isEndTag) {
-            return null;
-        }
-        let spanMapDocument = documents.get(sourceFile.fileName);
-        if (!spanMapDocument) {
-            const doc = new SvelteTsSourceFileDocument(sourceFile);
-            documents.set(sourceFile.fileName, doc);
-            spanMapDocument = doc;
-        }
-
-        const start = spanMapDocument.originPositionAt(originRange.range.pos);
-        const end = spanMapDocument.originPositionAt(originRange.range.end);
-
-        return {
-            uri,
-            range: {
-                start,
-                end
+        if (sourceFile.spanMap) {
+            // svelte2tsx anchors the default export at the start of the file (go-to-definition)
+            const isComponentDef = location.start === 0;
+            if (isComponentDef) {
+                return null;
             }
-        };
+
+            // Only report start tags. Check the original text: `location.start` is an offset
+            // there, `node.getStart()` one in the virtual code
+            const originalText = sourceFile.originalText;
+            const isEndTag =
+                originalText.charCodeAt(location.start - 1) === 47 /* '/' */ &&
+                originalText.charCodeAt(location.start - 2) === 60; /* '<' */
+            if (isEndTag) {
+                return null;
+            }
+        }
+
+        return { uri: location.uri, range: location.range };
     }
 
     private isDeclarationOfSymbol(symbolDeclaration: tsAst.Node[] | undefined, node: tsAst.Node) {

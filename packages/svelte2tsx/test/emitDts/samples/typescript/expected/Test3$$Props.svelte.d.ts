@@ -1,22 +1,27 @@
-import { SvelteComponentTyped } from "svelte";
-declare const __propDef: {
-    props: {
-        b?: () => void;
-    } & {
-        /**
-         * comment is preserved
-         */
-        a: string;
+interface $$__sveltets_2_IsomorphicComponent<Props extends Record<string, any> = any, Events extends Record<string, any> = any, Slots extends Record<string, any> = any, Exports = {}, Bindings = string> {
+    new (options: import('svelte').ComponentConstructorOptions<Props>): import('svelte').SvelteComponent<Props, Events, Slots> & {
+        $$bindings?: Bindings;
+    } & Exports;
+    (internal: unknown, props: Props & {
+        $$events?: Events;
+        $$slots?: Slots;
+    }): Exports & {
+        $set?: any;
+        $on?: any;
     };
-    events: {
-        [evt: string]: CustomEvent<any>;
-    };
-    slots: {};
-};
-export type Test3PropsProps = typeof __propDef.props;
-export type Test3PropsEvents = typeof __propDef.events;
-export type Test3PropsSlots = typeof __propDef.slots;
-export default class Test3Props extends SvelteComponentTyped<Test3PropsProps, Test3PropsEvents, Test3PropsSlots> {
-    get b(): () => void;
+    z_$$bindings?: Bindings;
 }
-export {};
+declare const Test3Props: $$__sveltets_2_IsomorphicComponent<{
+    b?: () => void;
+} & {
+    /**
+     * comment is preserved
+     */
+    a: string;
+}, {
+    [evt: string]: CustomEvent<any>;
+}, {}, {
+    b: () => void;
+}, string>;
+type Test3Props = InstanceType<typeof Test3Props>;
+export default Test3Props;

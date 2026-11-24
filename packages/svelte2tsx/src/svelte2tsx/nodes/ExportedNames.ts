@@ -11,6 +11,7 @@ import {
 } from '../utils/tsAst';
 import { HoistableInterfaces } from './HoistableInterfaces';
 import { isKitErrorFile } from '../../helpers/sveltekit';
+import { mapGenerated, SpanMapGenerator } from '../../utils/spanMap';
 
 export function is$$PropsDeclaration(
     node: ts.Node
@@ -34,6 +35,8 @@ export class ExportedNames {
      * Uses the `$$Props` type
      */
     public uses$$Props = false;
+    /** Original range of the name of the `$$Props` declaration */
+    public $$propsNameRange: [number, number] | undefined;
     /**
      * Component contains globals that have a rune name
      */
@@ -67,7 +70,8 @@ export class ExportedNames {
         private isTsFile: boolean,
         private isSvelte5Plus: boolean,
         private isRunes: boolean,
-        private emitJsDoc: boolean
+        private emitJsDoc: boolean,
+        private spanMapGenerator?: SpanMapGenerator
     ) {}
 
     /**
@@ -751,10 +755,18 @@ export class ExportedNames {
             // - The check if exports are assignable to $$Props is not done because a component should be allowed
             //   to use less props than defined (it just ignores them)
             // - __sveltets_2_ensureRightProps needs to be declared in a way that doesn't affect the type result of props
+            // - errors of the check are reported at its argument, place them at the $$Props declaration
+            const propsArgument = this.$$propsNameRange
+                ? mapGenerated(
+                      this.spanMapGenerator,
+                      '__sveltets_2_any("") as $$Props',
+                      this.$$propsNameRange
+                  )
+                : '__sveltets_2_any("") as $$Props';
             return (
                 '{ ...__sveltets_2_ensureRightProps<{' +
                 this.createReturnElementsType(lets).join(',') +
-                '}>(__sveltets_2_any("") as $$Props)} as ' +
+                `}>(${propsArgument})} as ` +
                 // We add other exports of classes and functions here because
                 // they need to appear in the props object in order to properly
                 // type bind:xx but they are not needed to be part of $$Props

@@ -10,7 +10,12 @@
         */
         "types": ["svelte"]
     },
-    "exclude": ["./svelte-native/**/*", "./node16/**/*", "project-reference/**/*"],
+    "exclude": [
+        "./accessors-customElement-configs/**/*",
+        "./svelte-native/**/*",
+        "./node16/**/*",
+        "project-reference/**/*"
+    ],
     "contentMappers": [
         {
             "package": "@sveltejs/ts-content-mapper",

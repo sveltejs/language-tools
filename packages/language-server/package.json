@@ -48,6 +48,7 @@
         "cross-env": "^7.0.2",
         "mocha": "^11.7.6",
         "sinon": "^11.0.0",
+        "svelte": "^5.57.0",
         "ts-node": "^10.0.0",
         "typescript": "^6.0.3",
         "@sveltejs/ts-content-mapper": "workspace:^"
@@ -64,7 +65,6 @@
         "prettier": "~3.3.3",
         "prettier-plugin-svelte": "^3.5.0",
         "prettier-plugin-svelte4": "npm:prettier-plugin-svelte@^4.0.0",
-        "svelte": "^4.2.19",
         "svelte2tsx": "workspace:~",
         "typescript-auto-import-cache": "^0.3.6",
         "vscode-css-languageservice": "~6.3.10",
@@ -75,6 +75,7 @@
         "vscode-uri": "~3.1.0"
     },
     "peerDependencies": {
-        "typescript": "^5.9.2 || ^6.0.2"
+        "typescript": "^5.9.2 || ^6.0.2",
+        "svelte": "^4.2.0 || ^5.0.0"
     }
 }
