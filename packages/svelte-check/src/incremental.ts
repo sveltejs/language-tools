@@ -687,13 +687,13 @@ export function mapCliDiagnosticsToLsp(
             } else {
                 // Svelte file: use source maps for position mapping
                 const generatedText = fs.readFileSync(entry.outPath, 'utf-8');
+                const sourceFile = parseSourceFile(
+                    entry.outPath,
+                    generatedText,
+                    entry.isTsFile ?? false
+                );
                 const tsDiagnostics = fileDiagnostics.map((diag) =>
-                    cliDiagnosticToTsDiagnostic(
-                        diag,
-                        entry.outPath,
-                        generatedText,
-                        entry.isTsFile ?? false
-                    )
+                    cliDiagnosticToTsDiagnostic(diag, sourceFile)
                 );
                 const mappedDiagnostics = mapSvelteCheckDiagnostics(
                     entry.sourcePath,
@@ -857,6 +857,16 @@ function isTypescriptFile(filePath: string): boolean {
     return /\.(ts|tsx|mts|cts)$/.test(filePath);
 }
 
+function parseSourceFile(filePath: string, text: string, isTsFile: boolean): ts.SourceFile {
+    return ts.createSourceFile(
+        filePath,
+        text,
+        ts.ScriptTarget.Latest,
+        true,
+        isTsFile ? ts.ScriptKind.TS : ts.ScriptKind.JS
+    );
+}
+
 /**
  * Converts a CLI-parsed diagnostic into a TypeScript Diagnostic object.
  * Creates a source file from the generated text to calculate precise byte positions.
@@ -870,17 +880,8 @@ function isTypescriptFile(filePath: string): boolean {
  */
 function cliDiagnosticToTsDiagnostic(
     diag: ParsedDiagnostic,
-    filePath: string,
-    generatedText: string,
-    isTsFile: boolean
+    sourceFile: ts.SourceFile
 ): ts.Diagnostic {
-    const sourceFile = ts.createSourceFile(
-        filePath,
-        generatedText,
-        ts.ScriptTarget.Latest,
-        true,
-        isTsFile ? ts.ScriptKind.TS : ts.ScriptKind.JS
-    );
     const start = sourceFile.getPositionOfLineAndCharacter(diag.line, diag.character);
 
     return {
