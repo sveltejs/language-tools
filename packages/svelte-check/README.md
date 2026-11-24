@@ -18,7 +18,6 @@ Installation:
 npm i -D svelte-check
 ```
 
-
 Package.json:
 
 ```json
