@@ -579,13 +579,13 @@ async function watchWithVirtualFiles(opts: SvelteCheckCliOptions, writer: Writer
 // `process.stdout.write` is asynchronous on non-TTY pipes, and `process.exit`
 // does not wait for queued writes to drain. Under heavy diagnostic load this
 // caused the output to be cut short when using `--output machine-verbose`.
+// Setting the exit code and letting the event loop end flushes every queued
+// write, in Node and in Bun (whose empty-write callback can run before earlier
+// writes reach the pipe, so waiting on it still truncated the output there).
+// The unref'd timer only fires if something else keeps the process alive.
 function exitAfterFlush(code: number): void {
-    let pending = 2;
-    const done = () => {
-        if (--pending === 0) process.exit(code);
-    };
-    process.stdout.write('', done);
-    process.stderr.write('', done);
+    process.exitCode = code;
+    setTimeout(() => process.exit(code), 10_000).unref();
 }
 
 parseOptions(async (opts) => {
