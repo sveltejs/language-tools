@@ -8,14 +8,6 @@
 
 Requires Node 16 or later.
 
-## Installation
-
-You will need to have the `svelte-check` package installed in your project:
-
-```sh
-npm i -D svelte-check
-```
-
 ## Usage
 
 ### Local / in your project
@@ -23,8 +15,9 @@ npm i -D svelte-check
 Installation:
 
 ```sh
-npx svelte-check
+npm i -D svelte-check
 ```
+
 
 Package.json:
 
