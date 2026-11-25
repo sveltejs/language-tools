@@ -47,3 +47,33 @@ describe('span maps', function () {
         }
     }
 });
+
+describe('span map merges', function () {
+    it('maps a binding that follows an ignored character to itself', () => {
+        // The character before `bind:` is overwritten and ignored. The binding name must not
+        // extend the mapping that comes before it in the generated code (the `/` of `/>`).
+        for (const input of [
+            '<input\n\tbind:checked={checked}\n/>\n\n<p>text after the element</p>',
+            '<svelte:window\n\tbind:innerWidth={width} />'
+        ]) {
+            const { code, spanMappings } = svelte2tsx(input, {
+                version: VERSION,
+                generateSpanMapping: true
+            });
+            const start = input.indexOf('bind:');
+            const name = input.slice(start, input.indexOf('=', start));
+            const mappings = spanMappings
+                .filter(([, , originalStart]) => originalStart === start)
+                .map(([virtualStart, virtualLength, , originalLength]) => ({
+                    text: code.slice(virtualStart, virtualStart + virtualLength),
+                    originalLength
+                }));
+            assert.ok(
+                mappings.some(
+                    ({ text, originalLength }) => text === name && originalLength === name.length
+                ),
+                `${name} doesn't map to itself: ${JSON.stringify(mappings)}`
+            );
+        }
+    });
+});

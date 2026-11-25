@@ -229,12 +229,13 @@ export class SpanMapGenerator {
                 }
             }
 
+            // Compare with the end of `current`, not with the previous segment: the previous
+            // segment can be an ignored one (`ignoreMappingForPosition`) that `current` doesn't cover
             if (
                 current &&
                 sameChar &&
-                segmentIndex > 0 &&
-                originalStart === original[segmentIndex - 1] + 1 &&
-                generatedStart === generated[segmentIndex - 1] + 1
+                originalStart === current[2] + current[ORIGINAL_LENGTH] &&
+                generatedStart === current[0] + current[GENERATE_LENGTH]
             ) {
                 current[GENERATE_LENGTH]++;
                 current[ORIGINAL_LENGTH]++;
