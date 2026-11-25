@@ -241,13 +241,17 @@ export class SpanMapGenerator {
                 continue;
             }
 
-            current = [
-                generatedStart,
-                1,
-                originalStart,
-                1,
-                sameChar ? SpanMapKind.Verbatim : SpanMapKind.Atom
-            ];
+            // An atom covers the whole first code point: TypeScript rejects positions inside a
+            // surrogate pair (a verbatim run is extended over it)
+            current = sameChar
+                ? [generatedStart, 1, originalStart, 1, SpanMapKind.Verbatim]
+                : [
+                      generatedStart,
+                      codePointLength(generatedCode, generatedStart),
+                      originalStart,
+                      codePointLength(str.original, originalStart),
+                      SpanMapKind.Atom
+                  ];
             addFlag(current, sourceSpan?.features);
             mappings.push(current);
         }
@@ -538,7 +542,8 @@ function subtract([start, end]: Range, holes: Range[]): Range[] {
 
 /**
  * Checks what TypeScript checks: segments sorted, non-overlapping, in bounds, `Verbatim` text
- * identical on both sides; directives valid and non-overlapping. An invalid span map gives an
+ * identical on both sides, no position inside a surrogate pair; directives valid and
+ * non-overlapping. An invalid span map gives an
  * error (100037), an invalid directive fails the whole transform.
  */
 export function validateSpanMap(
@@ -608,6 +613,14 @@ function getSegmentIssue(
     if (kind !== SpanMapKind.Verbatim && kind !== SpanMapKind.Atom && kind !== SpanMapKind.Alias) {
         return 'invalid kind';
     }
+    if (
+        splitsSurrogatePair(code, virtualStart) ||
+        splitsSurrogatePair(code, virtualStart + virtualLength) ||
+        splitsSurrogatePair(original, originalStart) ||
+        splitsSurrogatePair(original, originalStart + originalLength)
+    ) {
+        return 'position splits a surrogate pair';
+    }
     if (features !== undefined && (!isNonNegativeInt(features) || features & ~SpanMapFeature.All)) {
         return 'invalid features';
     }
@@ -647,6 +660,14 @@ function getDirectiveIssue(
     if (originalStart + originalLength > original.length) {
         return 'original range out of bounds';
     }
+    if (
+        splitsSurrogatePair(code, virtualStart) ||
+        splitsSurrogatePair(code, virtualEnd) ||
+        splitsSurrogatePair(original, originalStart) ||
+        splitsSurrogatePair(original, originalStart + originalLength)
+    ) {
+        return 'position splits a surrogate pair';
+    }
     if (policy !== DiagnosticDirectivePolicy.Ignore || index !== undefined) {
         // svelte2tsx only creates Ignore directives
         return 'unexpected policy';
@@ -656,6 +677,16 @@ function getDirectiveIssue(
 
 function isNonNegativeInt(value: number) {
     return Number.isInteger(value) && value >= 0;
+}
+
+/** Whether `position` is between the two UTF-16 code units of a code point */
+function splitsSurrogatePair(text: string, position: number) {
+    return codePointLength(text, position - 1) === 2;
+}
+
+/** 2 at the start of a surrogate pair, else 1 */
+function codePointLength(text: string, index: number) {
+    return (text.codePointAt(index) ?? 0) > 0xffff ? 2 : 1;
 }
 
 function addFlag(span: SpanMapping, features: SpanMapFeature | undefined) {
