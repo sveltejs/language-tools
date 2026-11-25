@@ -111,51 +111,5 @@ export function assertDirectivesCoverIgnoreRegions(
     }
 }
 
-export interface GapRatio {
-    /** Non-whitespace characters of the virtual code, without the `///<reference>` header */
-    total: number;
-    /** ... that no segment covers */
-    unmapped: number;
-    /** ... that no segment and no Ignore directive covers */
-    unmappedOutsideIgnore: number;
-}
-
-export function getGapRatio(
-    code: string,
-    spanMappings: SpanMapping[],
-    directives: Directive[] | undefined
-): GapRatio {
-    const mapped = new Uint8Array(code.length);
-    for (const [start, length] of spanMappings) {
-        mapped.fill(1, start, start + length);
-    }
-    const ignored = new Uint8Array(code.length);
-    for (const [, , start, end] of directives ?? []) {
-        ignored.fill(1, start, end);
-    }
-    let headerEnd = 0;
-    while (code.startsWith('///<reference', headerEnd)) {
-        headerEnd = code.indexOf('\n', headerEnd) + 1;
-    }
-    const result: GapRatio = { total: 0, unmapped: 0, unmappedOutsideIgnore: 0 };
-    for (let i = headerEnd; i < code.length; i++) {
-        if (/\s/.test(code[i])) continue;
-        result.total++;
-        if (!mapped[i]) {
-            result.unmapped++;
-            if (!ignored[i]) result.unmappedOutsideIgnore++;
-        }
-    }
-    return result;
-}
-
-export function formatGapRatio({ total, unmapped, unmappedOutsideIgnore }: GapRatio) {
-    const percent = (n: number) => (total ? ((100 * n) / total).toFixed(1) : '0.0') + '%';
-    return (
-        `gap: ${percent(unmapped)} of ${total} non-whitespace characters, ` +
-        `${percent(unmappedOutsideIgnore)} outside Ignore directives`
-    );
-}
-
 type SpanMapping = [number, number, number, number, number, number?];
 type Directive = [number, number, number, number, number, number?];

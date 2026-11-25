@@ -12,7 +12,7 @@ import {
     WorkspaceEdit
 } from 'vscode-languageserver';
 import { normalizeUri } from '../../../utils';
-import { TsApiLocationMapper } from '../TsApiLocationMapper';
+import { OriginalLocation, TsApiLocationMapper } from '../TsApiLocationMapper';
 import { TsApiService } from '../TsApiService';
 import type { tsApiAsync, tsAst } from '../types';
 
@@ -26,13 +26,13 @@ export interface StoreBinding {
 
 const storeGetName = '__sveltets_2_store_get';
 
-interface RequestContext {
+export interface RequestContext {
     project: tsApiAsync.Project;
     mapper: TsApiLocationMapper;
 }
 
 /** `let $store = __sveltets_2_store_get(store)`, the hidden declaration of a `$store` subscription */
-interface Subscription {
+export interface Subscription {
     /** The `$store` variable */
     declaration: tsAst.VariableDeclaration & { name: tsAst.Identifier };
     /** The `store` argument */
@@ -40,6 +40,109 @@ interface Subscription {
 }
 
 type DefinitionResult = Location | Location[] | LocationLink[] | null;
+
+/** `declaration` if it's the hidden `let $store = __sveltets_2_store_get(store)` */
+function asSubscription(ast: typeof tsAst, declaration: tsAst.Node): Subscription | undefined {
+    if (
+        !ast.isVariableDeclaration(declaration) ||
+        !ast.isIdentifier(declaration.name) ||
+        !declaration.initializer ||
+        !ast.isCallExpression(declaration.initializer)
+    ) {
+        return undefined;
+    }
+    const call = declaration.initializer;
+    const store = call.arguments[0];
+    if (
+        !ast.isIdentifier(call.expression) ||
+        call.expression.text !== storeGetName ||
+        !store ||
+        !ast.isIdentifier(store)
+    ) {
+        return undefined;
+    }
+    return { declaration: declaration as Subscription['declaration'], store };
+}
+
+/** The subscription whose store argument is `node` */
+export function subscriptionOfArgument(
+    ast: typeof tsAst,
+    node: tsAst.Node
+): Subscription | undefined {
+    const call = node.parent;
+    const declaration = call?.parent;
+    const subscription = declaration && asSubscription(ast, declaration);
+    return subscription && sameNode(subscription.store, node) ? subscription : undefined;
+}
+
+/**
+ * The `$store` usages of a subscription in the original files (its declaration is unmapped and
+ * drops out). With a `feature`, only the usages that feature may see, like in TS7's LSP.
+ */
+export async function findSubscriptionUsages(
+    ast: typeof tsAst,
+    ctx: RequestContext,
+    subscription: Subscription,
+    feature?: tsAst.SpanMapFeature
+): Promise<OriginalLocation[]> {
+    const references = await getReferences(ast, ctx, subscription.declaration.name);
+    return references
+        .map(({ node }) => ctx.mapper.toOriginalLocation(node, feature))
+        .filter((location): location is OriginalLocation => !!location);
+}
+
+/**
+ * Subscriptions of the store `node` refers to, in all files.
+ *
+ * Only resolves the references in Svelte files: subscriptions (the hidden
+ * `__sveltets_2_store_get(store)`) only exist in their virtual code, and resolving a reference
+ * fetches the AST of its file. For an identifier that is used all over a project, that would be most
+ * of the work, and this runs for every references and rename request.
+ */
+async function findSubscriptions(
+    ast: typeof tsAst,
+    ctx: RequestContext,
+    node: tsAst.Node
+): Promise<Subscription[]> {
+    const entries = await ctx.project.languageService.getReferencedSymbolsForNode(
+        node,
+        node.getStart()
+    );
+    const references = await resolveAll(
+        entries
+            .flatMap((entry) => entry.references)
+            .filter((reference) => isSvelteFile(reference.path))
+    );
+    return references
+        .map((reference) => subscriptionOfArgument(ast, reference))
+        .filter((s): s is Subscription => !!s);
+}
+
+/** All references of the symbol of `node`, resolved. Fetches the AST of every file with a reference */
+async function getReferences(
+    ast: typeof tsAst,
+    ctx: RequestContext,
+    node: tsAst.Node
+): Promise<Array<{ node: tsAst.Node; isDefinition: boolean }>> {
+    const entries = await ctx.project.languageService.getReferencedSymbolsForNode(
+        node,
+        node.getStart()
+    );
+    const result = await Promise.all(
+        entries.map(async (entry) => {
+            const [definition, references] = await Promise.all([
+                entry.definition.resolve(),
+                resolveAll(entry.references)
+            ]);
+            const definitionName = definition && getDeclarationName(ast, definition);
+            return references.map((reference) => ({
+                node: reference,
+                isDefinition: !!definitionName && sameNode(definitionName, reference)
+            }));
+        })
+    );
+    return result.flat();
+}
 
 /**
  * `$store` <-> `store` for references, definition/implementation and rename.
@@ -64,7 +167,10 @@ export class TsgoStores {
         return this.api.astModule;
     }
 
-    /** References of `$store`/`store`: both sides, plus the `$store` usages of every subscription */
+    /**
+     * References of `$store`/`store`: both sides, plus the `$store` usages of every subscription.
+     * `result` is TS7's answer, which this adds to.
+     */
     async references(
         params: ReferenceParams,
         result: Location[] | null
@@ -74,13 +180,19 @@ export class TsgoStores {
             this.ast.SpanMapFeature.References,
             async (ctx, identifier) => {
                 const subscription = await this.getSubscriptionAt(ctx, identifier);
-                const found = await this.findStoreReferences(
-                    ctx,
-                    subscription?.store ?? identifier,
-                    params.context.includeDeclaration
-                );
-                // Plain identifiers that aren't subscribed stores: TS7's answer is complete
-                return subscription || found.subscriptions > 0 ? found.locations : undefined;
+                if (subscription) {
+                    // From `$store`: TS7 only has the `$store` usages of this file
+                    return this.findStoreReferences(
+                        ctx,
+                        subscription.store,
+                        params.context.includeDeclaration
+                    );
+                }
+                // From a store: TS7 has everything but the `$store` usages. Other identifiers have
+                // no subscriptions, TS7's answer is complete
+                const subscriptions = await findSubscriptions(this.ast, ctx, identifier);
+                const usages = await Promise.all(subscriptions.map((s) => this.findUsages(ctx, s)));
+                return subscriptions.length ? usages.flat() : undefined;
             }
         );
         if (!references) {
@@ -95,7 +207,7 @@ export class TsgoStores {
         result: DefinitionResult
     ): Promise<DefinitionResult> {
         const isEmpty = !result || (Array.isArray(result) && !result.length);
-        if (!isEmpty || !isSvelteUri(params.textDocument.uri)) {
+        if (!isEmpty || !isSvelteFile(params.textDocument.uri)) {
             return result;
         }
         const links = await this.withIdentifier(
@@ -126,7 +238,7 @@ export class TsgoStores {
         params: PrepareRenameParams,
         result: PrepareRenameResult | null
     ): Promise<PrepareRenameResult | null> {
-        if (!isSvelteUri(params.textDocument.uri)) {
+        if (!isSvelteFile(params.textDocument.uri)) {
             return result;
         }
         const prepared = await this.withIdentifier(
@@ -148,9 +260,14 @@ export class TsgoStores {
         return prepared ?? result;
     }
 
-    /** Where the store of the `$store` at the position is bound in this file (import, declaration) */
+    /**
+     * Where the store of the `$store` at the position is bound in this file (import, declaration).
+     * Null means that there is no store subscription at the position: the caller then uses TS7's
+     * own rename. So this throws instead if it can't tell (TS7's snapshot doesn't match the
+     * document), because TS7's rename of a `$store` breaks the code.
+     */
     async getStoreBinding(params: TextDocumentPositionParams): Promise<StoreBinding | null> {
-        if (!isSvelteUri(params.textDocument.uri)) {
+        if (!isSvelteFile(params.textDocument.uri)) {
             return null;
         }
         const binding = await this.withIdentifier(
@@ -159,7 +276,8 @@ export class TsgoStores {
             async (ctx, identifier) => {
                 const subscription = await this.getSubscriptionAt(ctx, identifier);
                 return subscription && (await this.getLocalBinding(ctx, subscription.store));
-            }
+            },
+            true
         );
         return binding ? { uri: binding.uri, position: binding.range.start } : null;
     }
@@ -186,7 +304,7 @@ export class TsgoStores {
                     return;
                 }
                 const editsByUri = getTextEdits(result);
-                for (const subscription of await this.findSubscriptions(ctx, identifier)) {
+                for (const subscription of await findSubscriptions(this.ast, ctx, identifier)) {
                     const binding = await this.getLocalBinding(ctx, subscription.store);
                     const edits = binding && editsByUri.get(normalizeUri(binding.uri));
                     const renamesLocalBinding = edits?.some(
@@ -211,13 +329,18 @@ export class TsgoStores {
     private async withIdentifier<T>(
         params: TextDocumentPositionParams,
         feature: tsAst.SpanMapFeature,
-        fn: (ctx: RequestContext, identifier: tsAst.Identifier) => Promise<T | undefined>
+        fn: (ctx: RequestContext, identifier: tsAst.Identifier) => Promise<T | undefined>,
+        /** Throw instead of answering undefined ("nothing there") if TS7's snapshot is stale */
+        failOnStaleSnapshot = false
     ): Promise<T | undefined> {
         const uri = params.textDocument.uri;
         return this.api.withSourceFile(uri, async (project, sourceFile) => {
             const documentText = this.getDocumentText(uri);
             if (documentText !== undefined && documentText !== sourceFile.originalText) {
                 // TS7's snapshot is ahead of or behind what the response was computed for
+                if (failOnStaleSnapshot) {
+                    throw new Error("TypeScript's snapshot doesn't match the document");
+                }
                 return undefined;
             }
             const ctx: RequestContext = { project, mapper: new TsApiLocationMapper(this.ast) };
@@ -242,50 +365,7 @@ export class TsgoStores {
         }
         const symbol = await ctx.project.checker.getSymbolAtLocation(identifier);
         const declarations = await resolveAll(symbol?.declarations);
-        return declarations.map((d) => this.asSubscription(d)).find((s) => !!s);
-    }
-
-    /** `declaration` if it's the hidden `let $store = __sveltets_2_store_get(store)` */
-    private asSubscription(declaration: tsAst.Node): Subscription | undefined {
-        const ast = this.ast;
-        if (
-            !ast.isVariableDeclaration(declaration) ||
-            !ast.isIdentifier(declaration.name) ||
-            !declaration.initializer ||
-            !ast.isCallExpression(declaration.initializer)
-        ) {
-            return undefined;
-        }
-        const call = declaration.initializer;
-        const store = call.arguments[0];
-        if (
-            !ast.isIdentifier(call.expression) ||
-            call.expression.text !== storeGetName ||
-            !store ||
-            !ast.isIdentifier(store)
-        ) {
-            return undefined;
-        }
-        return { declaration: declaration as Subscription['declaration'], store };
-    }
-
-    /** The subscription whose store argument is `node` */
-    private subscriptionOfArgument(node: tsAst.Node): Subscription | undefined {
-        const call = node.parent;
-        const declaration = call?.parent;
-        const subscription = declaration && this.asSubscription(declaration);
-        return subscription && sameNode(subscription.store, node) ? subscription : undefined;
-    }
-
-    /** Subscriptions of the store `node` refers to, in all files */
-    private async findSubscriptions(
-        ctx: RequestContext,
-        node: tsAst.Node
-    ): Promise<Subscription[]> {
-        const references = await this.getReferences(ctx, node);
-        return references
-            .map(({ node }) => this.subscriptionOfArgument(node))
-            .filter((s): s is Subscription => !!s);
+        return declarations.map((d) => asSubscription(this.ast, d)).find((s) => !!s);
     }
 
     /** References of the store `node` refers to, plus the `$store` usages of its subscriptions */
@@ -293,12 +373,12 @@ export class TsgoStores {
         ctx: RequestContext,
         node: tsAst.Node,
         includeDeclaration: boolean
-    ): Promise<{ locations: Location[]; subscriptions: number }> {
-        const references = await this.getReferences(ctx, node);
+    ): Promise<Location[]> {
+        const references = await getReferences(this.ast, ctx, node);
         const locations: Location[] = [];
         const subscriptions: Subscription[] = [];
         for (const reference of references) {
-            const subscription = this.subscriptionOfArgument(reference.node);
+            const subscription = subscriptionOfArgument(this.ast, reference.node);
             if (subscription) {
                 subscriptions.push(subscription);
                 continue;
@@ -315,42 +395,18 @@ export class TsgoStores {
             }
         }
         const usages = await Promise.all(subscriptions.map((s) => this.findUsages(ctx, s)));
-        return { locations: [...locations, ...usages.flat()], subscriptions: subscriptions.length };
+        return [...locations, ...usages.flat()];
     }
 
-    /** The `$store` usages of a subscription (its declaration is unmapped and drops out) */
+    /** The `$store` usages of a subscription, as locations for references and rename */
     private async findUsages(ctx: RequestContext, subscription: Subscription): Promise<Location[]> {
-        const references = await this.getReferences(ctx, subscription.declaration.name);
-        return references
-            .map(({ node }) =>
-                ctx.mapper.toOriginalLocation(node, this.ast.SpanMapFeature.References)
-            )
-            .filter((l): l is NonNullable<typeof l> => !!l)
-            .map(({ uri, range }) => ({ uri, range }));
-    }
-
-    private async getReferences(
-        ctx: RequestContext,
-        node: tsAst.Node
-    ): Promise<Array<{ node: tsAst.Node; isDefinition: boolean }>> {
-        const entries = await ctx.project.languageService.getReferencedSymbolsForNode(
-            node,
-            node.getStart()
+        const usages = await findSubscriptionUsages(
+            this.ast,
+            ctx,
+            subscription,
+            this.ast.SpanMapFeature.References
         );
-        const result = await Promise.all(
-            entries.map(async (entry) => {
-                const [definition, references] = await Promise.all([
-                    entry.definition.resolve(),
-                    resolveAll(entry.references)
-                ]);
-                const definitionName = definition && getDeclarationName(this.ast, definition);
-                return references.map((reference) => ({
-                    node: reference,
-                    isDefinition: !!definitionName && sameNode(definitionName, reference)
-                }));
-            })
-        );
-        return result.flat();
+        return usages.map(({ uri, range }) => ({ uri, range }));
     }
 
     /** The local binding of the store `store` (argument of a subscription) in its file */
@@ -402,8 +458,8 @@ function sameNode(a: tsAst.Node, b: tsAst.Node) {
     );
 }
 
-function isSvelteUri(uri: string) {
-    return uri.endsWith('.svelte');
+function isSvelteFile(uriOrPath: string) {
+    return uriOrPath.endsWith('.svelte');
 }
 
 /** The text edits of a workspace edit by normalized uri, as mutable arrays of the edit itself */

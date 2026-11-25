@@ -32,7 +32,6 @@ import {
     SpanMapKind,
     SpanMapping
 } from '../../src/utils/spanMap';
-import { formatGapRatio, getGapRatio } from '../span-map/check';
 
 /**
  *
@@ -583,9 +582,7 @@ export function process_content_mapper(
     const source = parse(original_text, generated_text, []);
 
     return {
-        print: () =>
-            `# ${formatGapRatio(getGapRatio(generated_text, span_mappings, directives))}\n` +
-            print.span_mapping(source, span_mappings, directives)
+        print: () => print.span_mapping(source, span_mappings, directives)
     };
 }
 

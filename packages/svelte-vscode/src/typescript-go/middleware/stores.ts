@@ -6,7 +6,9 @@ import type {
     TextEdit,
     WorkspaceEdit
 } from '@typescript/native/vscode' with { 'resolution-mode': 'import' };
+import { getOpenDocument } from './documents';
 import type { SvelteLanguageServerAccess } from './index';
+import { isAtDollarIdentifier, isSvelteUri, timedOut, withTimeout } from './utils';
 
 /** Has to match `StoreBindingRequest` in the language server */
 const StoreBindingRequest = '$/tsgoStoreBinding';
@@ -29,6 +31,11 @@ interface StoreBinding {
  * `vscode.executeDocumentRenameProvider`. The language server tells us where `store` is bound; the
  * nested rename then comes back through the forwarded rename middleware, which adds the `$store`
  * edits.
+ *
+ * TS7's own edit breaks the code if the rename did start at a `$store`. It is therefore only passed
+ * on if the position can't be one (no `$name` there), or if the language server says that it isn't
+ * one. If we can't find out, or the nested rename fails, there is no rename at all. That has to be
+ * `null`: when a middleware throws, TS7 uses its own response.
  */
 export function registerStoreMiddleware(
     api: TsExtensionAPI,
@@ -37,9 +44,15 @@ export function registerStoreMiddleware(
 ): vscode.Disposable {
     return api.registerLspMiddleware('textDocument/rename', async (result, { params }) => {
         const client = access.getContentMapperModeClient();
-        if (!client || !params.textDocument.uri.endsWith('.svelte')) {
+        if (!client || !isSvelteUri(params.textDocument.uri)) {
             return result;
         }
+        // Also saves the round trip to the language server for every other rename
+        const document = getOpenDocument(vscode.Uri.parse(params.textDocument.uri));
+        if (document && !isAtDollarIdentifier(document, params.position)) {
+            return result;
+        }
+
         try {
             const binding = await withTimeout(
                 client.sendRequest<StoreBinding | null>(StoreBindingRequest, {
@@ -48,7 +61,12 @@ export function registerStoreMiddleware(
                 }),
                 storeBindingTimeout
             );
+            if (binding === timedOut) {
+                log(`[tsgo middleware] rename ($store handling) timed out, not renaming`);
+                return null;
+            }
             if (!binding) {
+                // a `$name` that is no store subscription (e.g. a property): TS7's edit is right
                 return result;
             }
             const edit = await vscode.commands.executeCommand<vscode.WorkspaceEdit | undefined>(
@@ -57,27 +75,12 @@ export function registerStoreMiddleware(
                 new vscode.Position(binding.position.line, binding.position.character),
                 params.newName.replace(/^\$/, '')
             );
-            // null instead of TS7's edit, which would only rename the `$store` usages
             return edit ? toLspWorkspaceEdit(edit) : null;
         } catch (error) {
-            log(`[tsgo middleware] rename ($store handling) failed: ${error}`);
-            return result;
+            log(`[tsgo middleware] rename ($store handling) failed, not renaming: ${error}`);
+            return null;
         }
     });
-}
-
-async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    try {
-        return await Promise.race([
-            promise,
-            new Promise<null>((resolve) => {
-                timer = setTimeout(() => resolve(null), ms);
-            })
-        ]);
-    } finally {
-        clearTimeout(timer);
-    }
 }
 
 function toLspRange(range: vscode.Range): Range {

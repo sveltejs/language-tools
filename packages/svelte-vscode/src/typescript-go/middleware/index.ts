@@ -8,6 +8,7 @@ import type {
 import { renameComponentAutoImports } from './completions';
 import { createCompletionMiddleware } from './completionsHost';
 import { registerStoreMiddleware } from './stores';
+import { isSvelteUri, timedOut, withTimeout } from './utils';
 
 /** Has to match `TransformTsgoResponseRequest` in the language server */
 const TransformTsgoResponseRequest = '$/transformTsgoResponse';
@@ -136,21 +137,17 @@ async function forwardToSvelteLanguageServer<M extends ForwardedMethod>(
     }
 
     const cancellation = new vscode.CancellationTokenSource();
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const timeout = new Promise<'timeout'>((resolve) => {
-        timer = setTimeout(() => resolve('timeout'), forwardTimeouts[method]);
-    });
     const start = Date.now();
     try {
-        const transformed = await Promise.race([
+        const transformed = await withTimeout(
             client.sendRequest<LspMiddlewareResult<M>>(
                 TransformTsgoResponseRequest,
                 { method, params, result },
                 cancellation.token
             ),
-            timeout
-        ]);
-        if (transformed === 'timeout') {
+            forwardTimeouts[method]
+        );
+        if (transformed === timedOut) {
             cancellation.cancel();
             log(`[tsgo middleware] ${method} timed out after ${Date.now() - start}ms`);
             return result;
@@ -160,13 +157,8 @@ async function forwardToSvelteLanguageServer<M extends ForwardedMethod>(
         log(`[tsgo middleware] ${method} failed: ${error}`);
         return result;
     } finally {
-        clearTimeout(timer);
         cancellation.dispose();
     }
-}
-
-function isSvelteUri(uri: string) {
-    return uri.endsWith('.svelte');
 }
 
 /** Locations or a workspace edit with a `.svelte` file in it */

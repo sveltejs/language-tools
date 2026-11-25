@@ -3,13 +3,7 @@ import path from 'path';
 import { VERSION } from 'svelte/compiler';
 import { svelte2tsx } from '../build';
 import { each_sample, get_svelte2tsx_config } from '../helpers';
-import {
-    assertDirectivesCoverIgnoreRegions,
-    assertValidSpanMap,
-    formatGapRatio,
-    GapRatio,
-    getGapRatio
-} from './check';
+import { assertDirectivesCoverIgnoreRegions, assertValidSpanMap } from './check';
 
 const isSvelte5Plus = Number(VERSION[0]) >= 5;
 
@@ -19,8 +13,6 @@ const isSvelte5Plus = Number(VERSION[0]) >= 5;
  * the `span_mapping.txt` snapshots of the sourcemaps tests.
  */
 describe('span maps', function () {
-    const total: GapRatio = { total: 0, unmapped: 0, unmappedOutsideIgnore: 0 };
-
     for (const dir of ['svelte2tsx', 'sourcemaps']) {
         for (const sample of each_sample(path.join(__dirname, '..', dir))) {
             if (sample.name.endsWith('.v5') && !isSvelte5Plus) continue;
@@ -42,7 +34,7 @@ describe('span maps', function () {
                 const plain = svelte2tsx(input, config);
                 const result = svelte2tsx(input, { ...config, generateSpanMapping: true });
 
-                assertValidSpanMap(input, result);
+                assertValidSpanMap(input, result as any);
                 assertDirectivesCoverIgnoreRegions(
                     result.code,
                     result.diagnosticDirectives?.directives
@@ -51,22 +43,7 @@ describe('span maps', function () {
                     // the source map is adjusted for the removed markers
                     assert.strictEqual(result.map.mappings, plain.map.mappings);
                 }
-
-                const ratio = getGapRatio(
-                    result.code,
-                    result.spanMappings,
-                    result.diagnosticDirectives?.directives
-                );
-                total.total += ratio.total;
-                total.unmapped += ratio.unmapped;
-                total.unmappedOutsideIgnore += ratio.unmappedOutsideIgnore;
             });
         }
     }
-
-    after(() => {
-        if (process.env.SPAN_MAP_GAP_RATIO) {
-            console.log(`  span maps, all samples: ${formatGapRatio(total)}`);
-        }
-    });
 });

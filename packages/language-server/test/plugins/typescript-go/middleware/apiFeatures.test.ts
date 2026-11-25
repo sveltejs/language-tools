@@ -12,6 +12,7 @@ import {
     TextEdit,
     WorkspaceEdit
 } from 'vscode-languageserver';
+import { Document, DocumentManager } from '../../../../src/lib/documents';
 import { TemplateASTParseLoader } from '../../../../src/plugins/svelte/TemplateASTLoader';
 import { TsgoResponseTransformer } from '../../../../src/plugins/typescript-go/middleware';
 import { TsApiService } from '../../../../src/plugins/typescript-go/TsApiService';
@@ -179,6 +180,32 @@ describe('TS7 features through the API connection', function () {
             assert.strictEqual(result.length, 2);
         });
 
+        it('only resolves the references in Svelte files to find the subscriptions of a store', async () => {
+            // Resolving a reference fetches the AST of its file, and this runs for every identifier
+            const NodeHandle = api.apiModule.NodeHandle as any;
+            const resolve = NodeHandle.prototype.resolve;
+            const resolved: string[] = [];
+            NodeHandle.prototype.resolve = function (...args: unknown[]) {
+                resolved.push(this.path);
+                return resolve.apply(this, args);
+            };
+            try {
+                await request<Location[]>('textDocument/references', {
+                    textDocument: { uri: uriOf('stores.ts') },
+                    position: positionOf('stores.ts', 'count', 1),
+                    context: { includeDeclaration: true }
+                });
+            } finally {
+                NodeHandle.prototype.resolve = resolve;
+            }
+
+            assert.ok(resolved.length > 0, 'expected the subscriptions to be resolved');
+            assert.deepStrictEqual(
+                resolved.filter((path) => !path.endsWith('.svelte')),
+                []
+            );
+        });
+
         it('goes to the definition of the store from $store', async () => {
             const imported = await request<LocationLink[]>('textDocument/definition', {
                 textDocument: { uri: uriOf('StoreUser.svelte') },
@@ -240,6 +267,30 @@ describe('TS7 features through the API connection', function () {
                 position: positionOf('StoreUser.svelte', 'increment', 2)
             });
             assert.strictEqual(notAStoreUsage, null);
+        });
+
+        it('fails to tell the store of $store when the snapshot does not match the document', async () => {
+            // null would make the extension use TS7's rename, which breaks the code for a `$store`
+            const docManager = new DocumentManager((textDocument) =>
+                Document.createForTest(textDocument.uri, textDocument.text)
+            );
+            docManager.openClientDocument({
+                uri: uriOf('StoreAlias.svelte'),
+                text: textOf('StoreAlias.svelte') + '\n<p>edited</p>'
+            });
+            const ahead = new TsgoResponseTransformer(
+                docManager,
+                new TemplateASTParseLoader(docManager),
+                { findDocumentHighlight: async () => null },
+                api
+            );
+            await assert.rejects(
+                ahead.getStoreBinding({
+                    textDocument: { uri: uriOf('StoreAlias.svelte') },
+                    position: positionOf('StoreAlias.svelte', '$c', 1)
+                }),
+                /snapshot/
+            );
         });
 
         it('renames the $store usages together with the store', async () => {

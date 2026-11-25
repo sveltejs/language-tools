@@ -1,4 +1,3 @@
-# gap: 85.6% of 375 non-whitespace characters, 57.9% outside Ignore directives
 >///<reference types="svelte" />
 >;function $$render() {
 #^ [Atom] => 0-1
