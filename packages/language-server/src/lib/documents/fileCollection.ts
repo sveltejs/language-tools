@@ -1,5 +1,8 @@
-import ts from 'typescript';
-import { createGetCanonicalFileName, GetCanonicalFileName } from '../../utils';
+import {
+    createGetCanonicalFileName,
+    GetCanonicalFileName,
+    isFileSystemCaseSensitive
+} from '../../utils';
 
 /**
  * wrapper around Map<string, T> for case insensitive file systems
@@ -8,7 +11,7 @@ export class FileMap<T> implements Iterable<[string, T]> {
     private getCanonicalFileName: GetCanonicalFileName;
     private readonly map = new Map<string, T>();
 
-    constructor(useCaseSensitiveFileNames = ts.sys.useCaseSensitiveFileNames) {
+    constructor(useCaseSensitiveFileNames = isFileSystemCaseSensitive()) {
         this.getCanonicalFileName = createGetCanonicalFileName(useCaseSensitiveFileNames);
     }
 
@@ -75,7 +78,7 @@ export class FileSet implements Iterable<string> {
     private getCanonicalFileName: GetCanonicalFileName;
     private readonly set = new Set<string>();
 
-    constructor(useCaseSensitiveFileNames = ts.sys.useCaseSensitiveFileNames) {
+    constructor(useCaseSensitiveFileNames = isFileSystemCaseSensitive()) {
         this.getCanonicalFileName = createGetCanonicalFileName(useCaseSensitiveFileNames);
     }
 

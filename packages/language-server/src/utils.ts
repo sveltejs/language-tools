@@ -1,5 +1,6 @@
 import { Node } from 'vscode-html-languageservice';
 import { Position, Range } from 'vscode-languageserver';
+import { existsSync } from 'node:fs';
 import { isDeepStrictEqual } from 'node:util';
 import { URI } from 'vscode-uri';
 
@@ -356,6 +357,29 @@ export function createGetCanonicalFileName(
 
 function identity<T>(x: T) {
     return x;
+}
+
+let fileSystemCaseSensitive: boolean | undefined;
+
+/**
+ * Whether file names are case sensitive. Same check as TypeScript's `sys.useCaseSensitiveFileNames`,
+ * without loading TypeScript.
+ *
+ * adopted from https://github.com/microsoft/TypeScript/blob/v6.0.3/src/compiler/sys.ts (isFileSystemCaseSensitive)
+ */
+export function isFileSystemCaseSensitive(): boolean {
+    if (fileSystemCaseSensitive === undefined) {
+        // If this file exists under a different case, the file system is case-insensitive
+        fileSystemCaseSensitive = process.platform !== 'win32' && !existsSync(swapCase(__filename));
+    }
+    return fileSystemCaseSensitive;
+}
+
+function swapCase(text: string): string {
+    return text.replace(/\w/g, (char) => {
+        const upper = char.toUpperCase();
+        return char === upper ? char.toLowerCase() : upper;
+    });
 }
 
 export function memoize<T>(callback: () => T): () => T {

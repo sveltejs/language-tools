@@ -11,7 +11,6 @@ import _path from 'path';
 import _fs from 'fs';
 import { URL } from 'url';
 import { FileMap } from './fileCollection';
-import ts from 'typescript';
 
 export type InternalPreprocessorGroup = PreprocessorGroup & {
     /**
@@ -431,9 +430,16 @@ export class ConfigLoader {
                 preprocess: {
                     // @ts-ignore name property exists in Svelte 4 onwards
                     name: 'svelte-language-tools-ts-fallback-preprocessor',
-                    script: ({ content, attributes, filename }) => {
+                    script: async ({ content, attributes, filename }) => {
                         if (attributes.lang !== 'ts') return;
 
+                        // loaded lazily, so that loading the config doesn't load TypeScript
+                        const { default: ts } = await import('typescript');
+                        if (typeof ts?.transpileModule !== 'function') {
+                            // TypeScript 7 installed as `typescript` has no JS compiler API.
+                            // Svelte 5 compiles TypeScript (without enums etc.) itself.
+                            return;
+                        }
                         const { outputText, sourceMapText } = ts.transpileModule(content, {
                             fileName: filename,
                             compilerOptions: {

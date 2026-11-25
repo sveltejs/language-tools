@@ -1,12 +1,22 @@
-import ts from 'typescript';
+import type ts from 'typescript';
 import { VSCodeEmmetConfig } from '@vscode/emmet-helper';
 import { importPrettier } from './importPackage';
 import { Document } from './lib/documents';
 import { returnObjectIfHasKeys } from './utils';
 import path from 'path';
+import { EOL } from 'os';
 import { FileMap } from './lib/documents/fileCollection';
 import { ClientCapabilities } from 'vscode-languageserver-protocol';
 import { defu } from 'defu';
+
+// Values of TypeScript enums, inlined so that loading the config doesn't load TypeScript
+// (the TypeScript 7 path of svelte-check uses the config, too)
+const IndentStyleSmart = 2 as ts.IndentStyle.Smart;
+const SemicolonPreferenceIgnore = 'ignore' as ts.SemicolonPreference.Ignore;
+const SemicolonPreferenceInsert = 'insert' as ts.SemicolonPreference.Insert;
+const SemicolonPreferenceRemove = 'remove' as ts.SemicolonPreference.Remove;
+const ScriptKindTS = 3 as ts.ScriptKind.TS;
+const ScriptKindTSX = 4 as ts.ScriptKind.TSX;
 
 /**
  * Default config for the language server.
@@ -566,7 +576,10 @@ export class LSConfigManager {
             this.resolvedAutoImportExcludeCache.get(normalizedWorkspacePath);
 
         if (!autoImportFileExcludePatterns) {
-            const version = ts.version.split('.');
+            // Only used by the TypeScript 6 language service, which has TypeScript loaded already.
+            // A lazy require, so that loading the config doesn't load TypeScript.
+            const { version: tsVersion }: typeof ts = require('typescript');
+            const version = tsVersion.split('.');
             const major = parseInt(version[0]);
             const minor = parseInt(version[1]);
 
@@ -657,7 +670,7 @@ export class LSConfigManager {
             indentSize: 4,
             tabSize: 4,
             convertTabsToSpaces: true,
-            indentStyle: ts.IndentStyle.Smart,
+            indentStyle: IndentStyleSmart,
             insertSpaceAfterConstructor: false,
             insertSpaceAfterCommaDelimiter: true,
             insertSpaceAfterSemicolonInForStatements: true,
@@ -672,7 +685,7 @@ export class LSConfigManager {
             placeOpenBraceOnNewLineForFunctions: false,
             placeOpenBraceOnNewLineForControlBlocks: false,
             trimTrailingWhitespace: true,
-            semicolons: ts.SemicolonPreference.Ignore,
+            semicolons: SemicolonPreferenceIgnore,
 
             // Override TypeScript's default because VSCode default to true
             // Also this matches the style of prettier
@@ -693,7 +706,7 @@ export class LSConfigManager {
     ): Promise<ts.FormatCodeSettings> {
         const filePath = document.getFilePath();
         const configLang =
-            scriptKind === ts.ScriptKind.TS || scriptKind === ts.ScriptKind.TSX
+            scriptKind === ScriptKindTS || scriptKind === ScriptKindTSX
                 ? 'typescript'
                 : 'javascript';
 
@@ -720,13 +733,11 @@ export class LSConfigManager {
         return {
             ...tsFormatCodeOptions,
 
-            newLineCharacter: documentUseLf ? '\n' : ts.sys.newLine,
+            newLineCharacter: documentUseLf ? '\n' : EOL,
             baseIndentSize: prettierConfig.svelteIndentScriptAndStyle === false ? 0 : indentSize,
             indentSize,
             convertTabsToSpaces: !prettierConfig.useTabs,
-            semicolons: useSemicolons
-                ? ts.SemicolonPreference.Insert
-                : ts.SemicolonPreference.Remove,
+            semicolons: useSemicolons ? SemicolonPreferenceInsert : SemicolonPreferenceRemove,
             tabSize: indentSize
         };
     }

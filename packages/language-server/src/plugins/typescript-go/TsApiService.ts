@@ -8,6 +8,12 @@ interface TsModules {
 }
 
 /**
+ * What the virtual-code diagnostics need from the TS7 API: the language server's connection
+ * (`TsApiService`) or svelte-check's own API session (`svelte-check-ts7`).
+ */
+export type TsApiAccess = Pick<TsApiService, 'astModule' | 'withSourceFile'>;
+
+/**
  * Connection to the TS7 language server's own project state (`API.fromLSPConnection`), for the
  * Svelte-specific features that LSP requests and the middleware can't cover.
  *
