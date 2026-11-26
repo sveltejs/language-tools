@@ -13,7 +13,7 @@ import {
 } from 'svelte-language-server';
 import { loadConfig } from '@sveltejs/load-config';
 import { findFiles } from './utils';
-import { formatTsGoNotFoundError, tryParseTsGoVersion } from './tsgo';
+import { formatTsGoNotFoundError, tryParseTs7Version, TS7_BINS } from './tsgo';
 
 type ManifestEntry = {
     sourcePath: string;
@@ -508,7 +508,7 @@ export function runTypeScriptDiagnostics(
     incremental: boolean,
     cwd: string
 ): Promise<ParsedDiagnostic[]> {
-    const binPath = useTsgo ? getTsGoBinPath(tsconfigPath) : require.resolve('typescript/bin/tsc');
+    const binPath = useTsgo ? getTs7BinPath(tsconfigPath) : require.resolve('typescript/bin/tsc');
 
     if (!binPath || !fs.existsSync(binPath) || !fs.statSync(binPath).isFile()) {
         throw new Error('Failed to locate TypeScript command-line executable.');
@@ -584,14 +584,13 @@ export function runTypeScriptDiagnostics(
     });
 }
 
-function getTsGoBinPath(tsconfigPath: string): string | undefined {
-    const pkg = tryParseTsGoVersion(tsconfigPath);
+function getTs7BinPath(tsconfigPath: string): string | undefined {
+    const pkg = tryParseTs7Version(tsconfigPath);
     if (!pkg) {
         throw new Error(formatTsGoNotFoundError('--tsgo'));
     }
 
-    const binPathRelative =
-        pkg.bin[pkg.pkgJsonName === '@typescript/native-preview' ? 'tsgo' : 'tsc'];
+    const binPathRelative = pkg.bin[TS7_BINS[pkg.pkgJsonName]];
 
     return binPathRelative ? path.join(path.dirname(pkg.path), binPathRelative) : undefined;
 }

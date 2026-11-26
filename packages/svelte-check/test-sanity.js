@@ -132,7 +132,11 @@ function test(name, opts) {
  * @param {string} name
  * @param {string} compilerBody Source of the fake `tsgo` executable written into the workspace.
  */
-function testCrashedCompiler(name, compilerBody) {
+function testCrashedCompiler(
+    name,
+    compilerBody,
+    pkgJson = { name: 'typescript', version: '7.0.0', bin: { tsc: './fake-tsgo.js' } }
+) {
     // The compiler binary is resolved from the overlay tsconfig that svelte-check writes
     // inside the workspace, so a fake `@typescript/native-preview` in the workspace's
     // node_modules is picked up instead of the real one.
@@ -151,14 +155,7 @@ function testCrashedCompiler(name, compilerBody) {
         path.join(crashWorkspace, 'src', 'Test.svelte'),
         '<script lang="ts">\n\tlet { label }: { label: string } = $props();\n</script>\n\n<button>{label}</button>\n'
     );
-    writeFileSync(
-        path.join(tsgoPkg, 'package.json'),
-        JSON.stringify({
-            name: 'typescript',
-            version: '7.0.0',
-            bin: { tsc: './fake-tsgo.js' }
-        })
-    );
+    writeFileSync(path.join(tsgoPkg, 'package.json'), JSON.stringify(pkgJson));
     writeFileSync(path.join(tsgoPkg, 'fake-tsgo.js'), compilerBody);
 
     let exitCode = 0;
@@ -359,6 +356,13 @@ testCrashedCompiler(
     'compiler exiting without output is reported as a failure',
     'process.exit(1);\n'
 );
+
+// tsrs, a Rust port of TypeScript 7, is accepted under its own name and runs its `tsrs` bin
+testCrashedCompiler('tsrs runs as TypeScript 7 through its tsrs bin', 'process.exit(1);\n', {
+    name: 'tsrs',
+    version: '7.1.0-beta.tsrs5',
+    bin: { tsrs: './fake-tsgo.js' }
+});
 
 // Windows reports a kill as an exit code and never as a signal, so the signal branch is
 // unreachable there and this case would resolve with its partial diagnostic instead.
