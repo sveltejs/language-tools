@@ -472,7 +472,7 @@ export function convertHtmlxToJsx(
                         break;
                     case 'Comment':
                         componentDocumentation.handleComment(node);
-                        handleComment(str, node);
+                        handleComment(str, node, options.spanMapGenerator);
                         break;
                     case 'Binding':
                         handleLeadingStartComment(str, node as BaseNode, ast);
@@ -485,7 +485,8 @@ export function convertHtmlxToJsx(
                             options.typingsNamespace === 'svelteHTML',
                             options.svelte5Plus,
                             emitJsDoc,
-                            isTsFile
+                            isTsFile,
+                            options.spanMapGenerator
                         );
                         break;
                     case 'Class':

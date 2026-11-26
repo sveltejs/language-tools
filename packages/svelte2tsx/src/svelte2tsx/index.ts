@@ -321,7 +321,8 @@ export function svelte2tsx(svelte: string, options: Svelte2TsxOptions) {
         };
     } else {
         if (options.shimPaths) {
-            for (const shimPath of options.shimPaths.reverse()) {
+            // a copy: callers like the content mapper pass the same array to every call
+            for (const shimPath of [...options.shimPaths].reverse()) {
                 const normalizedPath = shimPath.replace(/\\/g, '/');
                 str.prepend(`///<reference path="${normalizedPath}" />\n`);
             }

@@ -275,8 +275,11 @@ namespace print {
         });
     }
 
+    /** The default of svelte2tsx's spans: everything but Formatting (see `SpanMapGenerator.generate`) */
+    const defaultFeatures = SpanMapFeature.All & ~SpanMapFeature.Formatting;
+
     function format_features_flags(features: SpanMapFeature | undefined) {
-        if (features === undefined) {
+        if (features === undefined || features === defaultFeatures) {
             return '';
         }
         const result: string[] = [];

@@ -93,8 +93,12 @@ export function handleAttribute(
                           value = ['__sveltets_2_any()'];
                       }
                       value.push('})');
+                      element.addAttribute(name, value);
+                      return;
                   }
-                  element.addAttribute(name, value);
+                  const key =
+                      parent.type === 'Element' ? transformAttributeCase(attr.name) : attr.name;
+                  element.addAttribute(name, value, key);
               }
             : (name: TransformationArray, value?: TransformationArray) => {
                   if (attr.name.startsWith('--')) {

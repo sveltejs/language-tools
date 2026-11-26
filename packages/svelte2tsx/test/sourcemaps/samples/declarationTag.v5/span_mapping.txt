@@ -6,12 +6,16 @@
 - s
 >
 #
->    let {} = $props();
-#^^^^^^^^^^^^^^^^^^^^^^
->;
-# [Verbatim] => 18-42
+>    let/** @typedef {Record<string, never>} $$ComponentProps */ {} = $props();
+#^^^^^^^ [Verbatim] => 18-26
 -
--••••let•{}•=•$props();
+-••••let
+#       ^ [Atom] => 26-27
+-       •
+#                                                                ^^^^^^^^^^^^^^
+>;
+# [Verbatim] => 27-42
+-{}•=•$props();
 -
 #^ [Atom] => 42-43
 -<

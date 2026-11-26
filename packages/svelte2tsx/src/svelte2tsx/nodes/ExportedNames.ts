@@ -402,26 +402,28 @@ export class ExportedNames {
         }
 
         // Create a virtual type alias for the unnamed generic and reuse it for the props return type
-        // so that rename, find references etc works seamlessly across components
+        // so that rename, find references etc works seamlessly across components.
+        // The alias is always declared, because the props return type refers to it. The variable is only
+        // annotated with it if props were found: `let props = $props()` stays `any`, and names that a
+        // SvelteKit route file doesn't type aren't errors.
+        const annotate = props.length > 0 || withUnknown;
         if (this.isTsFile) {
             this.$props.type = '$$ComponentProps';
-            if (props.length > 0 || withUnknown) {
-                preprendStr(
-                    this.str,
-                    this.getInsertPosForComponentProps(node),
-                    surroundWithIgnoreComments(`;type $$ComponentProps = ${propsStr};`)
-                );
+            preprendStr(
+                this.str,
+                this.getInsertPosForComponentProps(node),
+                surroundWithIgnoreComments(`;type $$ComponentProps = ${propsStr};`)
+            );
+            if (annotate) {
                 preprendStr(this.str, node.name.end + this.astOffset, `: ${this.$props.type}`);
             }
         } else {
             this.$props.comment = '/** @type {$$ComponentProps} */';
-            if (props.length > 0 || withUnknown) {
-                preprendStr(
-                    this.str,
-                    node.pos + this.astOffset,
-                    `/** @typedef {${propsStr}} $$ComponentProps */${this.$props.comment}`
-                );
-            }
+            preprendStr(
+                this.str,
+                node.pos + this.astOffset,
+                `/** @typedef {${propsStr}} $$ComponentProps */${annotate ? this.$props.comment : ''}`
+            );
         }
     }
 

@@ -20,6 +20,7 @@ import {
     RewriteExternalImportsOptions
 } from '../helpers/rewriteExternalImports';
 import { SpanMapGenerator } from '../utils/spanMap';
+import { handleReactiveStatementDiagnostics } from './nodes/reactiveStatementDiagnostics';
 
 export interface InstanceScriptProcessResult {
     exportedNames: ExportedNames;
@@ -87,6 +88,8 @@ export function processInstanceScriptContent(
     }
 
     const implicitTopLevelNames = new ImplicitTopLevelNames(ts, str, astOffset);
+    /** Top-level `$:` statements */
+    const reactiveStatements: ts.LabeledStatement[] = [];
     let uses$$props = false;
     let uses$$restProps = false;
     let uses$$slots = false;
@@ -332,6 +335,7 @@ export function processInstanceScriptContent(
             node.label.text == '$' &&
             node.statement
         ) {
+            reactiveStatements.push(node);
             const binaryExpression = getBinaryAssignmentExpr(ts, node);
             if (binaryExpression) {
                 implicitTopLevelNames.add(node);
@@ -367,6 +371,15 @@ export function processInstanceScriptContent(
         pendingStoreResolutions = pendingStoreResolutions.filter(({ isPropsId }) => !isPropsId);
     }
     pendingStoreResolutions.map(resolveStore);
+
+    handleReactiveStatementDiagnostics(
+        ts,
+        str,
+        astOffset,
+        tsAst,
+        reactiveStatements,
+        spanMapGenerator
+    );
 
     // declare implicit reactive variables we found in the script
     implicitTopLevelNames.modifyCode(rootScope.declared);

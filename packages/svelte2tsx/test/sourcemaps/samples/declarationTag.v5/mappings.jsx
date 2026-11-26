@@ -10,7 +10,10 @@
                   ↲                                                                                                                                   
 <script•lang="ts">↲    [original] line 1 (rest generated at line 2)                                                                                   
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
-    let {} = $props();                                                                                                                                {/**
+    let/** @typedef {Record<string, never>} $$ComponentProps */ {} = $props();                                                                        {/**
+••••let/**•@typedef•{Record<string,•never>}•$$ComponentProps•*/•{}•=•$props();↲    [generated] line 4                                                 
+••••let•                                                        {}•=•$props();↲                                                                       
+••••let•{}•=•$props();↲                                                            [original] line 2                                                  
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
 ;                                                                                                                                                     {/**
 ;↲            [generated] line 5                                                                                                                      

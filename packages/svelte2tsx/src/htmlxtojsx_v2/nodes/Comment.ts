@@ -1,12 +1,34 @@
 import MagicString from 'magic-string';
 import { BaseNode } from '../../interfaces';
 import { TransformationArray } from '../utils/node-utils';
+import { SpanMapGenerator } from '../../utils/spanMap';
 
 /**
- * Removes comment altogether as it's unimportant for the output
+ * Removes comment altogether as it's unimportant for the output.
+ *
+ * In content mapper mode, `<!-- @ts-expect-error -->` and `<!-- @ts-ignore -->` become the same
+ * TypeScript comment directive, mapped to the HTML comment. Like in TypeScript (and JSX), it's
+ * line-based: it applies to the errors on the next line of the template (the template's line
+ * structure is kept), not to a whole multi-line element or its children, and an unused
+ * `@ts-expect-error` is reported on the HTML comment. Only a comment that ends its line counts: an
+ * inline one (`<!-- @ts-ignore --><input ...>`) would apply to the next line instead of its element.
  */
-export function handleComment(str: MagicString, node: BaseNode): void {
-    str.overwrite(node.start, node.end, '', { contentOnly: true });
+export function handleComment(
+    str: MagicString,
+    node: BaseNode,
+    spanMapGenerator?: SpanMapGenerator
+): void {
+    let replacement = '';
+    if (spanMapGenerator && /^[ \t]*(?:\r?\n|$)/.test(str.original.slice(node.end))) {
+        const directive = /^\s*@(ts-expect-error|ts-ignore)\b/.exec(node.data ?? '')?.[1];
+        if (directive) {
+            replacement = spanMapGenerator.mapGenerated(`/* @${directive} */`, [
+                node.start,
+                node.end
+            ]);
+        }
+    }
+    str.overwrite(node.start, node.end, replacement, { contentOnly: true });
 }
 
 /**

@@ -8,6 +8,11 @@ import { throwError } from '../utils/error';
 export class Generics {
     /** The whole `T extends boolean` */
     private definitions: string[] = [];
+    /**
+     * Like `definitions`, without the `const` modifier (`const T extends string` → `T extends string`),
+     * which is only allowed on type parameters of functions, methods and classes (TS1277)
+     */
+    private typeAliasDefinitions: string[] = [];
     private typeReferences: string[] = [];
     /** The `T` in `T extends boolean` */
     private references: string[] = [];
@@ -25,6 +30,10 @@ export class Generics {
             const typeParameters = this.getGenericTypeParameters(generics);
 
             this.definitions = typeParameters?.map((param) => param.getText()) ?? [];
+            this.typeAliasDefinitions =
+                typeParameters?.map((param) =>
+                    param.getText().slice(param.name.getStart() - param.getStart())
+                ) ?? [];
             this.references = typeParameters?.map((param) => param.name.getText()) ?? [];
         } else {
             this.genericsAttr = undefined;
@@ -66,8 +75,10 @@ export class Generics {
                 const typeReference = node.type.typeArguments[0].getText();
                 this.typeReferences.push(typeReference);
                 this.definitions.push(`${node.name.text} extends ${typeReference}`);
+                this.typeAliasDefinitions.push(`${node.name.text} extends ${typeReference}`);
             } else {
                 this.definitions.push(node.name.text);
+                this.typeAliasDefinitions.push(node.name.text);
             }
             this.references.push(node.name.text);
             this.str.remove(this.astOffset + node.getStart(), this.astOffset + node.getEnd());
@@ -104,6 +115,11 @@ export class Generics {
     toDefinitionString(addIgnore = false) {
         const surround = addIgnore ? surroundWithIgnoreComments : (str: string) => str;
         return this.definitions.length ? surround(`<${this.definitions.join(',')}>`) : '';
+    }
+
+    /** For type aliases: type parameters can't be `const` there */
+    toTypeAliasDefinitionString() {
+        return this.typeAliasDefinitions.length ? `<${this.typeAliasDefinitions.join(',')}>` : '';
     }
 
     toReferencesString() {
