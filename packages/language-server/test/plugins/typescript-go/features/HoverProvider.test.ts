@@ -5,7 +5,10 @@ import { Hover, MarkupKind, Position } from 'vscode-languageserver-types';
 import { Document } from '../../../../src/lib/documents';
 import { HoverProvider } from '../../../../src/plugins';
 import { pathToUrl } from '../../../../src/utils';
-import { setupSharedServices } from '../test-utils';
+import { TemplateASTParseLoader } from '../../../../src/plugins/svelte/TemplateASTLoader';
+import { TsgoResponseTransformer } from '../../../../src/plugins/typescript-go/middleware';
+import { TsApiService } from '../../../../src/plugins/typescript-go/TsApiService';
+import { createTsApiServiceForTest, setupSharedServices } from '../test-utils';
 import assert from 'assert';
 
 const testDir = path.join(__dirname, '../../typescript');
@@ -26,6 +29,23 @@ describe('HoverProvider (TS GO)', function () {
         }
     });
 
+    // Content mapper mode: TS7's hover goes through the middleware (hover fallbacks with the API)
+    let api: TsApiService | undefined;
+    let transformer: TsgoResponseTransformer | undefined;
+    before(async () => {
+        const { service, docManager, lsConfigManager } = getServices();
+        api = await createTsApiServiceForTest(service, lsConfigManager);
+        transformer = new TsgoResponseTransformer(
+            docManager,
+            new TemplateASTParseLoader(docManager),
+            { findDocumentHighlight: async () => null },
+            api
+        );
+    });
+    after(async () => {
+        await api?.dispose().catch(() => {});
+    });
+
     function getFullPath(filename: string) {
         return path.join(hoverTestDir, filename);
     }
@@ -34,14 +54,19 @@ describe('HoverProvider (TS GO)', function () {
         const { docManager, service } = getServices();
         const provider: HoverProvider = {
             async doHover(document: Document, position: Position) {
-                const res = await service.sendRequest(HoverRequest.type, {
+                const params = {
                     textDocument: {
                         uri: document.getURL()
                     },
                     position
-                });
+                };
+                const res = await service.sendRequest(HoverRequest.type, params);
 
-                return res;
+                return (await transformer!.transform({
+                    method: 'textDocument/hover',
+                    params,
+                    result: res
+                })) as Hover | null;
             }
         };
 
@@ -104,12 +129,15 @@ describe('HoverProvider (TS GO)', function () {
         });
     });
 
-    it.skip('provides formatted hover info for component events', async () => {
+    // TS7 returns nothing here; the middleware adds it from the TS7 API (middleware/hover.ts)
+    it('provides formatted hover info for component events', async () => {
         const { provider, document } = setup('hoverinfo.svelte');
 
         assert.deepStrictEqual(await provider.doHover(document, Position.create(12, 26)), <Hover>{
-            contents:
-                '```typescript\nabc: MouseEvent\n```\nTEST\n```ts\nconst abc: boolean = true;\n```'
+            contents: {
+                kind: 'markdown',
+                value: '```typescript\nabc: MouseEvent\n```\nTEST\n```ts\nconst abc: boolean = true;\n```'
+            }
         });
     });
 
@@ -236,7 +264,8 @@ describe('HoverProvider (TS GO)', function () {
         });
     });
 
-    it.skip('provides formatted hover info for custom elements', async () => {
+    // TS7 returns nothing here; the middleware adds it from the TS7 API (middleware/hover.ts)
+    it('provides formatted hover info for custom elements', async () => {
         const { provider, document } = setup('hoverinfo.svelte');
 
         assert.deepStrictEqual(await provider.doHover(document, Position.create(13, 7)), <Hover>{
@@ -247,11 +276,15 @@ describe('HoverProvider (TS GO)', function () {
         });
     });
 
-    it.skip('provides formatted hover info for custom elements properties', async () => {
+    // TS7 serves this one itself (in its format: markdown, no `---`)
+    it('provides formatted hover info for custom elements properties', async () => {
         const { provider, document } = setup('hoverinfo.svelte');
 
         assert.deepStrictEqual(await provider.doHover(document, Position.create(13, 18)), <Hover>{
-            contents: '```typescript\n(property) foo: string\n```\n---\nbar',
+            contents: {
+                kind: 'markdown',
+                value: '```typescript\n(property) foo: string\n```\nbar'
+            },
             range: {
                 end: {
                     character: 19,

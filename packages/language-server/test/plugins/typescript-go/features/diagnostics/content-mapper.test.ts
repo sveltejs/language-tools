@@ -44,8 +44,9 @@ import {
  * removes the ones that are no longer needed. TS6's files are never written.
  *
  * `fixtures` next to this file has cases the TS6 fixtures don't cover. Their `expectedv2.json` is
- * what TS6 reports for them. They're about svelte2tsx's output, so TS7 must report the same without
- * the middleware, too (as `tsc` or svelte-check would).
+ * what TS6 reports for them, unless a `README.md` in the fixture says why it differs (where TS7
+ * reports a real error TS6 misses). They're about svelte2tsx's output, so TS7 must report the same
+ * without the middleware, too (as `tsc` or svelte-check would).
  */
 
 /**
@@ -178,6 +179,7 @@ async function executeTest(
             path.join(dir, expectedTsGo)
         ].find(existsSync) ?? path.join(dir, expected);
     const overrideFile = path.join(dir, contentMapperExpected);
+    reportRawDifferences(dir, raw, existsSync(overrideFile) ? overrideFile : sharedExpectedFile);
     const auto = process.argv.includes('--auto');
     const matches = (file: string) => {
         try {
@@ -220,6 +222,35 @@ async function executeTest(
         return;
     }
     assertSameDiagnostics(diagnostics, overrideFile);
+}
+
+/**
+ * With `CONTENT_MAPPER_RAW_REPORT=<file>`: appends a JSON line per fixture with what TS7 alone
+ * (without the middleware, as `tsc` or other editors see it) reports beyond the expectation
+ * (`extra`) and doesn't report (`missing`). Doesn't affect the result of the test.
+ */
+function reportRawDifferences(dir: string, raw: Diagnostic[], expectedFile: string) {
+    const reportFile = process.env.CONTENT_MAPPER_RAW_REPORT;
+    if (!reportFile) {
+        return;
+    }
+    // 18080's problems are in its message (see `withRelatedInformation`)
+    const summary = (d: Diagnostic) =>
+        `${d.range.start.line}:${d.range.start.character}-${d.range.end.line}:${d.range.end.character} ${d.code} ` +
+        (d.code === VIRTUAL_CODE_PROBLEMS
+            ? d.message.split('\n').slice(1).join(' | ').slice(0, 400)
+            : d.message.split('\n')[0].slice(0, 100));
+    const expectedSummaries = (JSON.parse(readFileSync(expectedFile, 'utf-8')) as Diagnostic[]).map(
+        summary
+    );
+    const rawSummaries = raw.map(summary);
+    const extra = rawSummaries.filter((s) => !expectedSummaries.includes(s));
+    const missing = expectedSummaries.filter((s) => !rawSummaries.includes(s));
+    writeFileSync(
+        reportFile,
+        JSON.stringify({ fixture: normalizePath(dir), extra, missing }) + '\n',
+        { flag: 'a' }
+    );
 }
 
 function assertSameDiagnostics(actual: Diagnostic[], expectedFile: string) {

@@ -72,6 +72,7 @@ export class ConfigLoader {
     private disabled = false;
     private loadSvelteConfigTs: boolean;
     private explicitConfigScope?: ExplicitConfigScope;
+    private fallbackWithoutTypeScript = false;
 
     constructor(
         private globSync: typeof fdir,
@@ -91,6 +92,16 @@ export class ConfigLoader {
      */
     setDisabled(disabled: boolean): void {
         this.disabled = disabled;
+    }
+
+    /**
+     * Keep TypeScript out of the automatic fallback preprocessing, used when there's no Svelte
+     * config: svelte-preprocess doesn't transpile TypeScript, and the barebones TypeScript
+     * preprocessor isn't used. For svelte-check on TypeScript 7, which has no JS compiler API (and
+     * Svelte 5, which parses TypeScript itself).
+     */
+    setFallbackWithoutTypeScript(withoutTypeScript: boolean): void {
+        this.fallbackWithoutTypeScript = withoutTypeScript;
     }
 
     /**
@@ -415,16 +426,21 @@ export class ConfigLoader {
             );
             return {
                 preprocess: sveltePreprocess({
-                    // 4.x does not have transpileOnly anymore, but if the user has version 3.x
-                    // in his repo, that one is loaded instead, for which we still need this.
-                    typescript: {
-                        transpileOnly: true,
-                        compilerOptions: { sourceMap: true, inlineSourceMap: false }
-                    }
+                    typescript: this.fallbackWithoutTypeScript
+                        ? false
+                        : {
+                              // 4.x does not have transpileOnly anymore, but if the user has version 3.x
+                              // in his repo, that one is loaded instead, for which we still need this.
+                              transpileOnly: true,
+                              compilerOptions: { sourceMap: true, inlineSourceMap: false }
+                          }
                 }),
                 isFallbackConfig: true
             };
         } catch (e) {
+            if (this.fallbackWithoutTypeScript) {
+                return { isFallbackConfig: true };
+            }
             // User doesn't have svelte-preprocess installed, provide a barebones TS preprocessor
             return {
                 preprocess: {

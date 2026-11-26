@@ -1,0 +1,53 @@
+[
+    {
+        "range": {
+            "start": {
+                "line": 6,
+                "character": 0
+            },
+            "end": {
+                "line": 6,
+                "character": 25
+            }
+        },
+        "severity": 1,
+        "source": "ts",
+        "message": "Unused '@ts-expect-error' directive.",
+        "code": 2578,
+        "tags": []
+    },
+    {
+        "range": {
+            "start": {
+                "line": 11,
+                "character": 16
+            },
+            "end": {
+                "line": 11,
+                "character": 24
+            }
+        },
+        "severity": 1,
+        "source": "ts",
+        "message": "Property 'reported' does not exist on type 'number'.",
+        "code": 2339,
+        "tags": []
+    },
+    {
+        "range": {
+            "start": {
+                "line": 14,
+                "character": 16
+            },
+            "end": {
+                "line": 14,
+                "character": 26
+            }
+        },
+        "severity": 1,
+        "source": "ts",
+        "message": "Property 'notIgnored' does not exist on type 'number'.",
+        "code": 2339,
+        "tags": []
+    }
+]

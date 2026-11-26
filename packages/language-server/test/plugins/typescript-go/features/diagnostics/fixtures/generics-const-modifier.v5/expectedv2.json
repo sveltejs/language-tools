@@ -1,0 +1,10 @@
+[
+    {
+        "range": { "start": { "line": 6, "character": 54 }, "end": { "line": 6, "character": 59 } },
+        "severity": 1,
+        "source": "ts",
+        "message": "Type '\"a\" | \"b\"' is not assignable to type '\"c\"'.\n  Type '\"a\"' is not assignable to type '\"c\"'.",
+        "code": 2322,
+        "tags": []
+    }
+]

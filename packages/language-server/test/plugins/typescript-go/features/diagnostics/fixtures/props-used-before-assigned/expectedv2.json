@@ -1,0 +1,21 @@
+[
+    {
+        "range": { "start": { "line": 7, "character": 31 }, "end": { "line": 7, "character": 39 } },
+        "severity": 1,
+        "source": "ts",
+        "message": "Variable 'notAProp' is used before being assigned.",
+        "code": 2454,
+        "tags": []
+    },
+    {
+        "range": {
+            "start": { "line": 10, "character": 16 },
+            "end": { "line": 10, "character": 24 }
+        },
+        "severity": 1,
+        "source": "ts",
+        "message": "Variable 'notAProp' is used before being assigned.",
+        "code": 2454,
+        "tags": []
+    }
+]

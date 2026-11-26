@@ -9,6 +9,7 @@ import { ClientCapabilities, ProtocolRequestType } from 'vscode-languageserver-p
 import { TsApiService } from '../../../src/plugins/typescript-go/TsApiService';
 
 let tsserverPath: string | undefined;
+const languageServerPackageDir = path.resolve(__dirname, '..', '..', '..');
 export const isSvelte5Plus = Number(VERSION.split('.')[0]) >= 5;
 
 export interface TsGoServiceSetupResult {
@@ -27,7 +28,13 @@ export async function createTsGoServiceForTest(
         const getExePathModule = await import(
             pathToUrl(path.join(path.dirname(pkgPath), 'lib', 'getExePath.js'))
         );
-        tsserverPath = getExePathModule.default() as string;
+        // getExePath takes the Node modules as an argument instead of importing them
+        tsserverPath = getExePathModule.default({
+            fs: require('fs'),
+            module: require('module'),
+            path: require('path'),
+            url: require('url')
+        }) as string;
     }
 
     const docManager = new DocumentManager((textDocument) =>
@@ -43,7 +50,11 @@ export async function createTsGoServiceForTest(
         lsConfigManager: lsConfigManager,
         tsserverPath: tsserverPath,
         serverInitializationOptions: {
-            workspaceFolders: [workspaceDir]
+            // TS 7.1 (since microsoft/TypeScript#64837) only loads content
+            // mappers from a node_modules inside an open workspace folder. The test projects get
+            // `@sveltejs/ts-content-mapper` from the language-server package's node_modules, so
+            // that package is opened as an additional (last) workspace folder.
+            workspaceFolders: [workspaceDir, languageServerPackageDir]
                 .flat()
                 .map((dir) => ({ name: '', uri: pathToUrl(dir) })),
             capabilities

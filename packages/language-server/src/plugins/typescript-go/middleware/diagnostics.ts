@@ -1,8 +1,6 @@
 import { Diagnostic, DocumentDiagnosticReport } from 'vscode-languageserver';
 import { Document } from '../../../lib/documents';
 import { isRangeInTag } from '../../../lib/documents/utils';
-import type { SvelteNode } from '../../svelte/features/svelte-ast-utils';
-import type { TemplateAstWalker } from '../../svelte/TemplateASTLoader';
 import { replaceGeneratedNames } from './generatedNames';
 import type { VirtualCodeRelocation } from './virtualCodeDiagnostics';
 
@@ -17,12 +15,9 @@ import type { VirtualCodeRelocation } from './virtualCodeDiagnostics';
  */
 
 export const enum TsgoDiagnosticCode {
-    MULTIPLE_PROPS_SAME_NAME = 1117,
     MODIFIERS_CANNOT_APPEAR_HERE = 1184,
-    DUPLICATE_IDENTIFIER = 2300,
     TYPE_X_NOT_ASSIGNABLE_TO_TYPE_Y = 2322,
     ARG_TYPE_X_NOT_ASSIGNABLE_TO_TYPE_Y = 2345,
-    NOOP_IN_COMMAS = 2695,
     NO_OVERLOAD_MATCHES_CALL = 2769,
     NEVER_READ = 6133,
     ALL_IMPORTS_UNUSED = 6192,
@@ -43,15 +38,10 @@ const MAPPER_DIAGNOSTIC_SOURCE = 'svelte';
 
 const generatedVarRegex = /'\$\$_\w+(\.\$on)?'/;
 
-/** Elements in the sense of TS6's `isAttributeName(node, 'Element')` / `isEventHandler(node, 'Element')` */
-const ELEMENT_LIKE_TYPES = new Set(['Element', 'Body', 'Window']);
-
 export interface TsgoDiagnosticsContext {
     document: Document;
     /** The problems of the virtual code diagnostic (18080) that could be placed, if any */
     virtualCode?: VirtualCodeRelocation;
-    /** Only called when a rule needs the template AST */
-    getTemplateAst?: () => TemplateAstWalker;
 }
 
 export function transformDiagnosticReport(
@@ -67,7 +57,7 @@ export function transformDiagnosticReport(
 
 export function transformDiagnostics(
     items: Diagnostic[],
-    { document, virtualCode, getTemplateAst }: TsgoDiagnosticsContext
+    { document, virtualCode }: TsgoDiagnosticsContext
 ): Diagnostic[] {
     // Like TS6: scripts in other languages aren't type checked
     if (['coffee', 'coffeescript'].includes(document.getLanguageAttribute('script'))) {
@@ -75,9 +65,10 @@ export function transformDiagnostics(
     }
     const text = document.getText();
     const usesPug = document.getLanguageAttribute('template') === 'pug';
-    // svelte2tsx failed -> the mapper only returned the script contents. Template usages are unknown,
-    // so all "unused" hints are false positives. The parse error itself is already reported by the
-    // Svelte plugin (svelte compiler diagnostics), so drop the duplicate, too.
+    // svelte2tsx failed -> the mapper only returned the script contents, with an `Ignore` directive
+    // over it (like TS6, only the parse error counts). Directives don't cover suggestions, so the
+    // "unused" hints (template usages are unknown) are dropped here. The parse error itself is
+    // already reported by the Svelte plugin (svelte compiler diagnostics), so drop the duplicate, too.
     const mapperParseFailed = items.some(isMapperDiagnostic);
 
     const result: Diagnostic[] = [];
@@ -91,23 +82,19 @@ export function transformDiagnostics(
         if (isReactiveStatementLabel(diagnostic, document, text)) {
             continue;
         }
-        if (isNoopInReactiveStatement(diagnostic, document, text)) {
-            continue;
-        }
         if (isGeneratedDeprecation(diagnostic)) {
             continue;
         }
         if (usesPug && isPugFalsePositive(diagnostic, document)) {
             continue;
         }
-        if (isDuplicateElementAttribute(diagnostic, document, getTemplateAst)) {
-            continue;
-        }
         if (diagnostic.code === TsgoDiagnosticCode.VIRTUAL_CODE_PROBLEMS) {
             result.push(...resolveVirtualCodeDiagnostic(diagnostic, virtualCode));
             continue;
         }
-        result.push(adjustMessage(diagnostic, document.isSvelte5));
+        result.push(
+            adjustMessage(withNonBindableMessage(diagnostic, document), document.isSvelte5)
+        );
     }
 
     return dedupe(result.map(replaceGeneratedNamesInMessages));
@@ -130,6 +117,11 @@ function isMapperDiagnostic(diagnostic: Diagnostic) {
 
 /**
  * `$: foo` is a label named `$` -> TS says "Unused label."
+ *
+ * svelte2tsx puts an `Ignore` directive over the label (`reactiveStatementDiagnostics.ts`), which
+ * covers the error (`allowUnusedLabels: false`). Without that option it's a suggestion, which
+ * directives don't apply to, so the hint is dropped here.
+ * (`let`s listed as dependencies, 2695, are handled by svelte2tsx alone.)
  */
 function isReactiveStatementLabel(diagnostic: Diagnostic, document: Document, text: string) {
     if (diagnostic.code !== TsgoDiagnosticCode.UNUSED_LABEL) {
@@ -138,22 +130,6 @@ function isReactiveStatementLabel(diagnostic: Diagnostic, document: Document, te
     const start = document.offsetAt(diagnostic.range.start);
     const end = document.offsetAt(diagnostic.range.end);
     return text.slice(start, end) === '$' && /^\s*:/.test(text.slice(end, end + 20));
-}
-
-/**
- * `$: a, b, c` lists dependencies, the comma expressions are intentional.
- *
- * Deviation from TS6: there we only ignored identifiers that are `let` variables (via
- * `getDefinitionAtPosition`) and re-reported the others. Without type information we drop all of
- * them inside `$:` statements.
- */
-function isNoopInReactiveStatement(diagnostic: Diagnostic, document: Document, text: string) {
-    if (diagnostic.code !== TsgoDiagnosticCode.NOOP_IN_COMMAS) {
-        return false;
-    }
-    const lineStart = document.offsetAt({ line: diagnostic.range.start.line, character: 0 });
-    const start = document.offsetAt(diagnostic.range.start);
-    return /^\s*\$:/.test(text.slice(lineStart, start));
 }
 
 /**
@@ -177,48 +153,6 @@ function isPugFalsePositive(diagnostic: Diagnostic, document: Document) {
         diagnostic.code === TsgoDiagnosticCode.NEVER_READ ||
         diagnostic.code === TsgoDiagnosticCode.ALL_IMPORTS_UNUSED
     );
-}
-
-/**
- * Like TS6: duplicate attributes and event handlers on elements are fine in Svelte (e.g. two
- * `on:click`), but svelte2tsx turns them into properties of the same object literal.
- */
-function isDuplicateElementAttribute(
-    diagnostic: Diagnostic,
-    document: Document,
-    getTemplateAst: (() => TemplateAstWalker) | undefined
-) {
-    if (
-        diagnostic.code !== TsgoDiagnosticCode.MULTIPLE_PROPS_SAME_NAME &&
-        diagnostic.code !== TsgoDiagnosticCode.DUPLICATE_IDENTIFIER
-    ) {
-        return false;
-    }
-    const ast = getTemplateAst?.();
-    if (!ast || ast.parserError) {
-        return false;
-    }
-    const found = findTemplateNodeAt(ast, document.offsetAt(diagnostic.range.start));
-    return (
-        !!found &&
-        (found.node.type === 'Attribute' || found.node.type === 'EventHandler') &&
-        ELEMENT_LIKE_TYPES.has(found.parent?.type ?? '')
-    );
-}
-
-/** The innermost template node at the offset, like TS6's `svelteNodeAt` */
-function findTemplateNodeAt(ast: TemplateAstWalker, offset: number) {
-    let found: { node: SvelteNode; parent: SvelteNode | undefined } | undefined;
-    ast.walkSvelteAst({
-        enter(node, parent) {
-            if (node.start > offset || node.end < offset) {
-                this.skip();
-                return;
-            }
-            found = { node, parent };
-        }
-    });
-    return found;
 }
 
 /**
@@ -255,6 +189,31 @@ function resolveVirtualCodeDiagnostic(
 /**
  * Port of TS6's `adjustIfNecessary`
  */
+/**
+ * `bind:x` on a component prop that isn't `$bindable()`: svelte2tsx maps the failing
+ * `$$_child.$$bindings = 'x'` to the directive, and TS reports `Type '"x"' is not assignable to type
+ * ...` there. TS6's message instead (`moveBindingErrorMessage`). Older mappers leave the access
+ * unmapped, `virtualCodeDiagnostics.ts` places those.
+ */
+function withNonBindableMessage(diagnostic: Diagnostic, document: Document): Diagnostic {
+    if (diagnostic.code !== TsgoDiagnosticCode.TYPE_X_NOT_ASSIGNABLE_TO_TYPE_Y) {
+        return diagnostic;
+    }
+    const range = document
+        .getText()
+        .slice(document.offsetAt(diagnostic.range.start), document.offsetAt(diagnostic.range.end));
+    const name = /^bind:([\w$]+)/.exec(range)?.[1];
+    if (!name || !diagnostic.message.startsWith(`Type '"${name}"' is not assignable to type `)) {
+        return diagnostic;
+    }
+    return {
+        ...diagnostic,
+        message:
+            "Cannot use 'bind:' with this property. It is declared as non-bindable inside the component.\n" +
+            `To mark a property as bindable: 'let { ${name} = $bindable() } = $props()'`
+    };
+}
+
 function adjustMessage(diagnostic: Diagnostic, isSvelte5Plus: boolean): Diagnostic {
     if (
         diagnostic.code === TsgoDiagnosticCode.ARG_TYPE_X_NOT_ASSIGNABLE_TO_TYPE_Y &&

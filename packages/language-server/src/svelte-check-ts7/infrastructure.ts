@@ -15,7 +15,7 @@ export class SvelteCheckTs7Error extends Error {
 
 export const CONTENT_MAPPER_PACKAGE = '@sveltejs/ts-content-mapper';
 
-const contentMapperEntry = `"contentMappers": [{ "package": "${CONTENT_MAPPER_PACKAGE}", "extensions": [".svelte"] }]`;
+const contentMapperEntry = `"contentMappers": [{ "package": "${CONTENT_MAPPER_PACKAGE}" }]`;
 
 const ISSUES_URL = 'https://github.com/sveltejs/language-tools/issues';
 
@@ -33,6 +33,9 @@ const enum ContentMapperCode {
     NotInitialized = 18099,
     Last = 18124
 }
+
+/** TS `DiagnosticCategory.Error` */
+export const ERROR_CATEGORY = 1;
 
 /** Category `Message`: the details in a message chain */
 const MESSAGE_CATEGORY = 3;
@@ -78,36 +81,54 @@ export function throwIfContentMapperFailed(diagnostics: Iterable<ApiDiagnostic>,
         );
     }
 
-    const shown = failures.slice(0, MAX_LISTED_FAILURES);
     throw new SvelteCheckTs7Error(
         [
             'TypeScript could not use the Svelte content mapper, so its results for Svelte files would be incomplete:',
-            ...shown.map((failure) => '  ' + formatDiagnostic(failure, cwd).replace(/\n/g, '\n  ')),
-            ...(failures.length > shown.length
-                ? [`  ... and ${failures.length - shown.length} more`]
-                : []),
+            ...listDiagnostics(failures, cwd),
             ...hints
         ].join('\n')
     );
 }
 
-export function missingContentMapperError(tsconfigPath: string): SvelteCheckTs7Error {
-    return new SvelteCheckTs7Error(
-        `${tsconfigPath} doesn't map .svelte files, so TypeScript 7 can't check them. ` +
-            `Add this to the tsconfig (top level, next to "compilerOptions"):\n` +
-            `  ${contentMapperEntry}\n` +
-            `and install the content mapper: npm install --save-dev ${CONTENT_MAPPER_PACKAGE}`
-    );
+/** Some tsconfig has a `contentMappers` entry (raw, `extends` resolved by TypeScript) */
+export function hasContentMappers(rawConfigs: readonly unknown[]): boolean {
+    return rawConfigs.some((rawConfig) => {
+        const contentMappers = (rawConfig as { contentMappers?: unknown } | undefined)
+            ?.contentMappers;
+        return Array.isArray(contentMappers) && contentMappers.length > 0;
+    });
 }
 
-/** `contentMappers` (including entries inherited through `extends`) has an entry for `.svelte` */
-export function hasSvelteContentMapper(rawConfig: unknown): boolean {
-    const contentMappers = (rawConfig as { contentMappers?: unknown } | undefined)?.contentMappers;
-    return (
-        Array.isArray(contentMappers) &&
-        contentMappers.some(
-            (mapper) => Array.isArray(mapper?.extensions) && mapper.extensions.includes('.svelte')
-        )
+/**
+ * No Svelte file is in the programs of the tsconfig (and the tsconfigs it references), and none
+ * of these tsconfigs has `contentMappers`
+ */
+export function missingContentMapperError(
+    tsconfigPaths: readonly string[],
+    /** Problems TypeScript reported for the projects, e.g. an invalid `include` */
+    problems: readonly ApiDiagnostic[],
+    cwd: string
+): SvelteCheckTs7Error {
+    const [tsconfig, ...references] = tsconfigPaths;
+    const projects = references.length
+        ? `${tsconfig} and the tsconfigs it references (${references.join(', ')})`
+        : tsconfig;
+    const errors = problems.filter((problem) => problem.category === ERROR_CATEGORY);
+    const reported = errors.length
+        ? ['\nTypeScript reported these problems:', ...listDiagnostics(errors, cwd)].join('\n')
+        : '';
+
+    return new SvelteCheckTs7Error(
+        `No Svelte file is part of the TypeScript program of ${projects}, and ${references.length ? 'none of them has' : "it doesn't have"} ` +
+            `a "contentMappers" entry, so TypeScript 7 doesn't check Svelte files. Either\n` +
+            `- add this to the tsconfig that includes your Svelte files (top level, next to "compilerOptions"):\n` +
+            `    ${contentMapperEntry}\n` +
+            `  and install the content mapper: npm install --save-dev ${CONTENT_MAPPER_PACKAGE}\n` +
+            `- or, if this tsconfig isn't meant for Svelte files, point --tsconfig (or --workspace) ` +
+            `at the tsconfig that includes your Svelte files\n` +
+            `(svelte-check checks with TypeScript 7 because of --experimental-ts7, or because \`typescript\` ` +
+            `is TypeScript 7.1 or newer. Its default mode needs TypeScript 5 or 6 as \`typescript\`.)` +
+            reported
     );
 }
 
@@ -128,6 +149,18 @@ export function dedupeDiagnostics(diagnostics: ApiDiagnostic[]): ApiDiagnostic[]
         seen.add(key);
         return true;
     });
+}
+
+/** Indented, one per line, at most `MAX_LISTED_FAILURES` */
+function listDiagnostics(diagnostics: ApiDiagnostic[], cwd: string): string[] {
+    const shown = diagnostics.slice(0, MAX_LISTED_FAILURES);
+    const lines = shown.map(
+        (diagnostic) => '  ' + formatDiagnostic(diagnostic, cwd).replace(/\n/g, '\n  ')
+    );
+    if (diagnostics.length > shown.length) {
+        lines.push(`  ... and ${diagnostics.length - shown.length} more`);
+    }
+    return lines;
 }
 
 function formatDiagnostic(diagnostic: ApiDiagnostic, cwd: string): string {

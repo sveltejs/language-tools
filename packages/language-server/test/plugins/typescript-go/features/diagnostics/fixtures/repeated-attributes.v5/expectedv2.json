@@ -1,0 +1,53 @@
+[
+    {
+        "range": {
+            "start": {
+                "line": 8,
+                "character": 45
+            },
+            "end": {
+                "line": 8,
+                "character": 53
+            }
+        },
+        "severity": 1,
+        "source": "ts",
+        "message": "Property 'notThere' does not exist on type 'MouseEvent & { currentTarget: EventTarget & HTMLButtonElement; }'.",
+        "code": 2339,
+        "tags": []
+    },
+    {
+        "range": {
+            "start": {
+                "line": 9,
+                "character": 8
+            },
+            "end": {
+                "line": 9,
+                "character": 11
+            }
+        },
+        "severity": 1,
+        "source": "ts",
+        "message": "Object literal may only specify known properties, and '\"on:wat\"' does not exist in type 'HTMLProps<\"div\", HTMLAttributes<any>>'.",
+        "code": 2353,
+        "tags": []
+    },
+    {
+        "range": {
+            "start": {
+                "line": 9,
+                "character": 26
+            },
+            "end": {
+                "line": 9,
+                "character": 29
+            }
+        },
+        "severity": 1,
+        "source": "ts",
+        "message": "Object literal may only specify known properties, and '\"on:wat\"' does not exist in type 'HTMLProps<\"div\", HTMLAttributes<any>>'.",
+        "code": 2353,
+        "tags": []
+    }
+]

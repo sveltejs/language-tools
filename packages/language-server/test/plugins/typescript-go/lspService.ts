@@ -162,6 +162,7 @@ export class TsLSPService {
                     inlayHint: clientCapabilities?.textDocument?.inlayHint,
                     signatureHelp: clientCapabilities?.textDocument?.signatureHelp,
                     foldingRange: clientCapabilities?.textDocument?.foldingRange,
+                    documentSymbol: clientCapabilities?.textDocument?.documentSymbol,
                     semanticTokens: clientCapabilities?.textDocument?.semanticTokens
                 },
                 workspace: {

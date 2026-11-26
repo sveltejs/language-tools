@@ -214,6 +214,21 @@ describe('ConfigLoader', () => {
         );
     });
 
+    it('adds a fallback without TypeScript preprocessor if told so (TypeScript 7)', async () => {
+        const configLoader = createConfigLoader(
+            mockFdir([]),
+            { existsSync: () => false },
+            (module: URL) => Promise.resolve({ default: { preprocess: module.toString() } }),
+            process.features
+        );
+        configLoader.setFallbackWithoutTypeScript(true);
+        await configLoader.loadConfigs(normalizePath('/some/path'));
+
+        const config = configLoader.getConfig(normalizePath('/some/path/comp.svelte'));
+        assert.strictEqual(config?.isFallbackConfig, true);
+        assert.strictEqual(config?.preprocess, undefined);
+    });
+
     it('will not load config multiple times if config loading started in parallel', async () => {
         let firstGlobCall = true;
         let nrImportCalls = 0;

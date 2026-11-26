@@ -12,19 +12,26 @@ import { CSSPlugin } from '../plugins/css/CSSPlugin';
 import { createLanguageServices } from '../plugins/css/service';
 import { PluginHost } from '../plugins/PluginHost';
 import { SveltePlugin } from '../plugins/svelte/SveltePlugin';
+import type { TsApiAccess } from '../plugins/typescript-go/TsApiService';
 import type { tsApiAsync } from '../plugins/typescript-go/types';
 import type { SvelteCheckDiagnosticSource } from '../svelte-check';
 import { normalizePath, pathToUrl } from '../utils';
 import { ApiDiagnostic, getSvelteFileSource, toFileDiagnostic } from './convert';
 import { isSvelteFile, shouldCheckFile } from './files';
 import {
-    hasSvelteContentMapper,
+    ERROR_CATEGORY,
+    hasContentMappers,
     isContentMapperFailure,
     missingContentMapperError,
     throwIfContentMapperFailed
 } from './infrastructure';
-import { postProcessSvelteDiagnostics } from './postprocess';
-import { FileNotifications, Ts7Project, TypeScript7Modules } from './project';
+import { postProcessSvelteDiagnostics, withUnresolvedSvelteImports } from './postprocess';
+import {
+    FileNotifications,
+    ProjectFileDiagnostics,
+    Ts7Project,
+    TypeScript7Modules
+} from './project';
 
 export interface SvelteCheckTs7Options {
     /** Absolute path of the tsconfig/jsconfig. It must map `.svelte` files with the content mapper */
@@ -45,9 +52,6 @@ export interface SvelteCheckFileDiagnostics {
 
 export type FileChange = 'created' | 'changed' | 'deleted';
 
-/** TS `DiagnosticCategory.Error` */
-const ERROR_CATEGORY = 1;
-
 /** State of one `getDiagnostics` call */
 interface CheckRun {
     /** Once the program is known: the Svelte files that are worth checking */
@@ -61,8 +65,9 @@ interface CheckRun {
  * `SvelteCheck`.
  *
  * Reports the same files as `SvelteCheck` with a tsconfig (the program's files, see `files.ts`),
- * in the same shape. This module doesn't load TypeScript 6. svelte2tsx (and with it TS6) is only
- * loaded on demand, see `postprocess.ts`.
+ * in the same shape. Nothing in here loads TypeScript, neither 6 nor the `typescript` package of 7
+ * (only its API modules, passed in as `typescript`). svelte2tsx is only loaded on demand, through
+ * its TypeScript-free `svelte2tsx/tsgo` entry point, see `postprocess.ts`.
  *
  * One API session (`tsc --api`, with the content mapper process and its transforms) is kept for
  * all `getDiagnostics` calls, until `dispose`. In watch mode, the caller reports file changes with
@@ -100,6 +105,10 @@ export class SvelteCheckTs7 {
         this.sources = new Set(options.diagnosticSources ?? ['js', 'svelte', 'css']);
         this.tsconfigDirectory = dirname(options.tsconfig);
 
+        // Without a Svelte config, don't preprocess with TypeScript: TypeScript 7 has no JS API (and
+        // the `typescript` package may be TypeScript 7), and Svelte 5 parses TypeScript itself.
+        // This applies to the whole process (the shared config loader).
+        configLoader.setFallbackWithoutTypeScript(true);
         configLoader.setExplicitConfigScope(
             options.configPath
                 ? { configPath: options.configPath, rootDirectory: this.tsconfigDirectory }
@@ -171,12 +180,14 @@ export class SvelteCheckTs7 {
     }
 
     /**
-     * Watch mode: the directories to watch for changes. The tsconfig's directory and the
-     * directories of the program's files outside `node_modules` (like the TypeScript 6 path).
+     * Watch mode: the directories to watch for changes. The directories of the tsconfig and the
+     * ones it references, and the directories of the programs' files outside `node_modules`
+     * (like the TypeScript 6 path).
      */
     getWatchDirectories(): string[] {
         const directories = [
             this.tsconfigDirectory,
+            ...(this.project?.tsconfigPaths.map((tsconfig) => dirname(tsconfig)) ?? []),
             ...this.programFiles
                 .filter(
                     (fileName) =>
@@ -184,16 +195,7 @@ export class SvelteCheckTs7 {
                 )
                 .map((fileName) => dirname(fileName))
         ];
-        const sorted = [...new Set(directories.map((directory) => resolve(directory)))].sort();
-        const result: string[] = [];
-        for (const directory of sorted) {
-            // sorted, so a parent comes right before its subdirectories
-            const parent = result[result.length - 1];
-            if (!parent || !(directory === parent || directory.startsWith(parent + sep))) {
-                result.push(directory);
-            }
-        }
-        return result;
+        return outermostDirectories(directories);
     }
 
     /** Ends the TS7 API session, which also stops the content mapper */
@@ -244,16 +246,28 @@ export class SvelteCheckTs7 {
     }
 
     private async check(project: Ts7Project, run: CheckRun): Promise<SvelteCheckFileDiagnostics[]> {
-        const tsconfig = this.options.tsconfig;
-        if (!hasSvelteContentMapper(project.rawConfig)) {
-            throw missingContentMapperError(tsconfig);
+        const programFiles = await project.getProgramFiles();
+        this.programFiles = programFiles.map((file) => file.fileName);
+        // TypeScript only adds Svelte files to a program when a content mapper maps `.svelte`, and
+        // otherwise silently doesn't check them
+        if (
+            !programFiles.some((file) => isSvelteFile(file.fileName)) &&
+            !hasContentMappers(project.rawConfigs)
+        ) {
+            const problems = await project.getProjectProblems().catch(() => []);
+            // e.g. the content mapper isn't installed
+            throwIfContentMapperFailed(problems, this.tsconfigDirectory);
+            throw missingContentMapperError(
+                project.tsconfigPaths,
+                problems,
+                this.tsconfigDirectory
+            );
         }
 
-        const fileNames = await project.getSourceFileNames();
-        this.programFiles = fileNames;
-        const filesToCheck = fileNames.filter(shouldCheckFile);
-        const svelteFiles = filesToCheck.filter(isSvelteFile);
-        run.svelteFilesToCheck = new Set(svelteFiles.map(normalizePath));
+        const filesToCheck = programFiles.filter((file) => shouldCheckFile(file.fileName));
+        const svelteFiles = filesToCheck.filter((file) => isSvelteFile(file.fileName));
+        const svelteFileNames = svelteFiles.map((file) => file.fileName);
+        run.svelteFilesToCheck = new Set(svelteFileNames.map(normalizePath));
         for (const file of this.svelteDiagnostics.keys()) {
             if (!run.svelteFilesToCheck.has(file)) {
                 this.svelteDiagnostics.delete(file);
@@ -264,10 +278,17 @@ export class SvelteCheckTs7 {
         // awaited below, after the Svelte files
         typeScriptDiagnostics.catch(() => {});
         // the Svelte files that weren't checked yet, while TypeScript checks
-        await this.runSvelteDiagnostics(svelteFiles, run);
-        const { config, program, files: diagnosticsByFile } = await typeScriptDiagnostics;
+        await this.runSvelteDiagnostics(svelteFileNames, run);
+        const {
+            config,
+            program,
+            files: diagnosticsByFile,
+            semanticallyChecked
+        } = await typeScriptDiagnostics;
 
-        const fileDiagnostics = [...diagnosticsByFile.values()].flat();
+        const fileDiagnostics = [...diagnosticsByFile.values()]
+            .flat()
+            .flatMap((entry) => entry.diagnostics);
         if ([...config, ...program, ...fileDiagnostics].some(isContentMapperFailure)) {
             // TS7 reports failed transforms per file, as syntax errors. The failure message names them.
             const failedTransforms = this.sources.has('js')
@@ -279,22 +300,23 @@ export class SvelteCheckTs7 {
             );
         }
 
-        const checked = new Set(filesToCheck);
-        const result: SvelteCheckFileDiagnostics[] = [];
-        for (const fileName of fileNames) {
-            const diagnostics = diagnosticsByFile.get(fileName) ?? [];
-            if (!checked.has(fileName)) {
-                result.push({ filePath: fileName, text: '', diagnostics: [] });
-            } else if (isSvelteFile(fileName)) {
-                result.push(await this.getSvelteFileDiagnostics(project, fileName, diagnostics));
-            } else {
-                result.push({
-                    filePath: fileName,
-                    text: diagnostics.length ? readFileSync(fileName, 'utf-8') : '',
-                    diagnostics: diagnostics.map(toFileDiagnostic)
-                });
-            }
-        }
+        const checked = new Set(filesToCheck.map((file) => file.fileName));
+        // Concurrently: post-processing and the unresolved-import lookup wait for the TS7 API
+        const result: SvelteCheckFileDiagnostics[] = await Promise.all(
+            programFiles.map(async ({ fileName, tsconfigs }) => {
+                if (!checked.has(fileName)) {
+                    return { filePath: fileName, text: '', diagnostics: [] };
+                }
+                const byProgram = withSemanticallyCheckedPrograms(
+                    diagnosticsByFile.get(fileName) ?? [],
+                    tsconfigs,
+                    semanticallyChecked
+                );
+                return isSvelteFile(fileName)
+                    ? this.getSvelteFileDiagnostics(fileName, byProgram)
+                    : getScriptFileDiagnostics(fileName, byProgram);
+            })
+        );
 
         // like TS6 svelte-check: program-wide and global errors are warnings
         // TODO change for next major version?
@@ -311,23 +333,33 @@ export class SvelteCheckTs7 {
         return result;
     }
 
+    /** Post-processed in each project that contains the file, identical diagnostics once */
     private async getSvelteFileDiagnostics(
-        project: Ts7Project,
         filePath: string,
-        typeScriptDiagnostics: ApiDiagnostic[]
+        typeScriptDiagnostics: FileDiagnosticsByProgram[]
     ): Promise<SvelteCheckFileDiagnostics> {
         const svelteDiagnostics = (await this.svelteDiagnostics.get(normalizePath(filePath))) ?? [];
         const document = this.getDocument(filePath);
-        const diagnostics = typeScriptDiagnostics.length
-            ? await postProcessSvelteDiagnostics(document, typeScriptDiagnostics, project, {
-                  source: getSvelteFileSource(document),
-                  keepMapperDiagnostics: !this.sources.has('svelte')
-              })
-            : [];
+        const diagnostics: Diagnostic[] = [];
+        for (const {
+            program,
+            diagnostics: projectDiagnostics,
+            semanticallyChecked
+        } of typeScriptDiagnostics) {
+            if (projectDiagnostics.length || semanticallyChecked) {
+                diagnostics.push(
+                    ...(await postProcessSvelteDiagnostics(document, projectDiagnostics, program, {
+                        source: getSvelteFileSource(document),
+                        keepMapperDiagnostics: !this.sources.has('svelte'),
+                        unresolvedSvelteImports: semanticallyChecked
+                    }))
+                );
+            }
+        }
         return {
             filePath,
             text: document.getText(),
-            diagnostics: [...svelteDiagnostics, ...diagnostics]
+            diagnostics: [...svelteDiagnostics, ...dedupeLspDiagnostics(diagnostics)]
         };
     }
 
@@ -398,4 +430,106 @@ function findSvelteFiles(directory: string): Promise<string[]> {
         .withFullPaths()
         .crawl(directory)
         .withPromise();
+}
+
+/** The TypeScript diagnostics of a file in one of the programs that contain it */
+interface FileDiagnosticsByProgram extends ProjectFileDiagnostics {
+    /** The program got to the semantic check (see `ProjectDiagnostics.semanticallyChecked`) */
+    semanticallyChecked: boolean;
+}
+
+/**
+ * Per program that contains the file: its diagnostics, also for the programs without any that
+ * got to the semantic check (svelte-check adds semantic diagnostics of its own there)
+ */
+function withSemanticallyCheckedPrograms(
+    diagnostics: ProjectFileDiagnostics[],
+    tsconfigs: readonly string[],
+    semanticallyChecked: ReadonlyMap<string, TsApiAccess>
+): FileDiagnosticsByProgram[] {
+    const checkedPrograms = new Set(
+        tsconfigs
+            .map((tsconfig) => semanticallyChecked.get(tsconfig))
+            .filter((program): program is TsApiAccess => !!program)
+    );
+    const result: FileDiagnosticsByProgram[] = diagnostics.map((entry) => ({
+        ...entry,
+        semanticallyChecked: checkedPrograms.has(entry.program)
+    }));
+    for (const program of checkedPrograms) {
+        if (!diagnostics.some((entry) => entry.program === program)) {
+            result.push({ program, diagnostics: [], semanticallyChecked: true });
+        }
+    }
+    return result;
+}
+
+/** Declaration files, also of arbitrary extensions (`.d.svelte.ts`) */
+const DECLARATION_FILE = /\.d(\.[^/.]+)?\.[cm]?ts$/;
+
+/** TS/JS files: like TypeScript, plus unresolved `.svelte` imports (see `withUnresolvedSvelteImports`) */
+async function getScriptFileDiagnostics(
+    fileName: string,
+    typeScriptDiagnostics: FileDiagnosticsByProgram[]
+): Promise<SvelteCheckFileDiagnostics> {
+    let text: string | undefined;
+    const diagnostics: Diagnostic[] = [];
+    for (const {
+        program,
+        diagnostics: projectDiagnostics,
+        semanticallyChecked
+    } of typeScriptDiagnostics) {
+        let converted = projectDiagnostics.map(toFileDiagnostic);
+        if (semanticallyChecked && !DECLARATION_FILE.test(fileName)) {
+            text ??= readFileSync(fileName, 'utf-8');
+            // the `source` of the file's other TypeScript diagnostics
+            converted = await withUnresolvedSvelteImports(
+                converted,
+                program,
+                pathToUrl(fileName),
+                text,
+                undefined
+            );
+        }
+        diagnostics.push(...converted);
+    }
+    const deduped = dedupeLspDiagnostics(diagnostics);
+    return {
+        filePath: fileName,
+        text: deduped.length ? (text ?? readFileSync(fileName, 'utf-8')) : '',
+        diagnostics: deduped
+    };
+}
+
+/** The same diagnostic from several projects is reported once */
+function dedupeLspDiagnostics(diagnostics: Diagnostic[]): Diagnostic[] {
+    const seen = new Set<string>();
+    return diagnostics.filter((diagnostic) => {
+        const key = JSON.stringify([
+            diagnostic.range,
+            diagnostic.severity,
+            diagnostic.code,
+            diagnostic.source,
+            diagnostic.message
+        ]);
+        if (seen.has(key)) {
+            return false;
+        }
+        seen.add(key);
+        return true;
+    });
+}
+
+/** Without the ones inside others */
+function outermostDirectories(directories: string[]): string[] {
+    const sorted = [...new Set(directories.map((directory) => resolve(directory)))].sort();
+    const result: string[] = [];
+    for (const directory of sorted) {
+        // sorted, so a parent comes right before its subdirectories
+        const parent = result[result.length - 1];
+        if (!parent || !(directory === parent || directory.startsWith(parent + sep))) {
+            result.push(directory);
+        }
+    }
+    return result;
 }
