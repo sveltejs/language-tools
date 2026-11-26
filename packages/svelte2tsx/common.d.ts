@@ -50,7 +50,7 @@ export interface ComponentEvents {
 /**
  * The TypeScript API svelte2tsx parses the contents of the script tags with. One of
  * - TypeScript 6's (or 5's) `ts` namespace: `import ts from 'typescript'`. This is the default of `svelte2tsx`.
- * - a TypeScript 7 implementation: `createTsgoFacade()` of `svelte2tsx/tsgo`. This is the default of `svelte2tsx/tsgo`.
+ * - a TypeScript 7 implementation: `await createTsgoFacade()` of `svelte2tsx/tsgo`. This is the default of `svelte2tsx/tsgo`.
  *
  * Internally, it's the subset of TypeScript 6's API that svelte2tsx uses (`src/facade.ts`).
  */
@@ -91,28 +91,28 @@ export interface Svelte2TsxOptions {
      * The shims need to be provided by the user ambient-style,
      * for example through `filenames.push(require.resolve('svelte2tsx/svelte-shims.d.ts'))`.
      * If you pass 'ts', it uses the regular Svelte->TS/JS transformation.
-     * 
+     *
      * @default 'ts'
      */
-    mode?: 'ts' | 'dts',
+    mode?: 'ts' | 'dts';
     /**
      * Tells svelte2tsx from which namespace some specific functions to use.
-     * 
+     *
      * Example: 'svelteHTML' -> svelteHTML.createElement<..>(..)
-     * 
+     *
      * A namespace needs to implement the following functions:
      * - `createElement(str: string, validAttributes: ..): Element`
      * - `mapElementTag<Key extends keyof YourElements>(str: Key): YourElements[Key]`
-     * 
+     *
      * @default 'svelteHTML'
      */
     typingsNamespace?: string;
     /**
-     * The accessor option from svelte config. 
+     * The accessor option from svelte config.
      * Would be overridden by the same config in the svelte:option element if exist
      * see https://svelte.dev/docs#svelte_compile for more info
      */
-    accessors?: boolean
+    accessors?: boolean;
     /**
      * The Svelte parser to use. Defaults to the one bundled with `svelte2tsx`.
      */

@@ -9,9 +9,13 @@ export * from './common';
  * using TypeScript 7 to parse the scripts.
  *
  * Unless the `typescript` option is given, it uses a facade created with `createTsgoFacade()`
- * on the first call, i.e. TypeScript 7 as resolved from svelte2tsx (the `typescript` peer dependency).
+ * on the first call and reused afterwards, i.e. TypeScript 7 as resolved from svelte2tsx
+ * (the `typescript` peer dependency).
  */
-export function svelte2tsx(svelte: string, options?: Svelte2TsxOptions): SvelteCompiledToTsx;
+export function svelte2tsx(
+    svelte: string,
+    options?: Svelte2TsxOptions
+): Promise<SvelteCompiledToTsx>;
 
 /**
  * The TypeScript facade implemented with TypeScript 7. It parses through a `tsc --api` child process
@@ -30,13 +34,15 @@ export interface CreateTsgoFacadeOptions {
      * Where to load TypeScript 7 from: a module specifier resolved from svelte2tsx (default: `typescript`),
      * or the absolute path of the directory of a TypeScript 7 package, e.g. the one of a project,
      * or one installed under an alias (`"@typescript/native": "npm:typescript@7"`).
-     *
-     * TypeScript 7's modules are ES modules, which are loaded with `require(esm)` (Node 20.19+, 22.12+).
      */
     typescript?: string;
 }
 
-export function createTsgoFacade(options?: CreateTsgoFacadeOptions): TsgoFacade;
+/**
+ * Creates the TypeScript 7 implementation of the TypeScript facade, for the `typescript` option
+ * of `svelte2tsx`.
+ */
+export function createTsgoFacade(options?: CreateTsgoFacadeOptions): Promise<TsgoFacade>;
 
 /**
  * ## Internal, do not use! This is subject to change at any time.

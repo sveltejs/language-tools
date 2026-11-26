@@ -2,6 +2,7 @@
 // It must not load the `typescript` package of TypeScript 6 (see `index.ts` for that one).
 import { createRequire } from 'module';
 import path from 'path';
+import { pathToFileURL } from 'url';
 import { svelte2tsx as svelte2tsxWithFacade, type Svelte2TsxOptions } from './svelte2tsx';
 import {
     createTsgoFacade as createTsgoFacadeFromModules,
@@ -23,15 +24,12 @@ export interface CreateTsgoFacadeOptions {
  * Creates the TypeScript 7 implementation of the TypeScript facade, for the `typescript` option of `svelte2tsx`.
  * It spawns a `tsc --api` process on the first parse; `dispose()` closes it.
  */
-export function createTsgoFacade(options: CreateTsgoFacadeOptions = {}): TsgoFacade {
-    return createTsgoFacadeFromModules(loadTypeScript7(options.typescript));
+export async function createTsgoFacade(options: CreateTsgoFacadeOptions = {}): Promise<TsgoFacade> {
+    return createTsgoFacadeFromModules(await loadTypeScript7(options.typescript));
 }
 
-/**
- * Loads `typescript/ast` and `typescript/sync` of TypeScript 7.
- * They are ES modules, so loading them synchronously needs `require(esm)` (Node 20.19+, 22.12+).
- */
-function loadTypeScript7(from = 'typescript'): Ts7Modules {
+/** Loads `typescript/ast` and `typescript/sync` of TypeScript 7, which are ES modules, with `import()` */
+async function loadTypeScript7(from = 'typescript'): Promise<Ts7Modules> {
     const resolveFrom = createRequire(import.meta.url);
     const packageJsonPath = path.isAbsolute(from)
         ? path.join(from, 'package.json')
@@ -43,16 +41,30 @@ function loadTypeScript7(from = 'typescript'): Ts7Modules {
         );
     }
     // The package refers to itself by its own name, whatever name it's installed under
-    const requireTs = createRequire(packageJsonPath);
-    return { ast: requireTs('typescript/ast'), sync: requireTs('typescript/sync') };
+    const resolveTs = createRequire(packageJsonPath);
+    const [ast, sync] = await Promise.all(
+        ['typescript/ast', 'typescript/sync'].map(
+            (id) => import(pathToFileURL(resolveTs.resolve(id)).href)
+        )
+    );
+    return { ast, sync };
 }
 
-let defaultFacade: TsgoFacade | undefined;
+let defaultFacade: Promise<TsgoFacade> | undefined;
 
-export function svelte2tsx(svelte: string, options: Svelte2TsxOptions = {}) {
+/** Created on first use; a failure (e.g. TypeScript 7 isn't installed) is retried on the next call */
+function getDefaultFacade(): Promise<TsgoFacade> {
+    defaultFacade ??= createTsgoFacade().catch((error) => {
+        defaultFacade = undefined;
+        throw error;
+    });
+    return defaultFacade;
+}
+
+export async function svelte2tsx(svelte: string, options: Svelte2TsxOptions = {}) {
     return svelte2tsxWithFacade(svelte, {
         ...options,
-        typescript: options.typescript ?? (defaultFacade ??= createTsgoFacade())
+        typescript: options.typescript ?? (await getDefaultFacade())
     });
 }
 
