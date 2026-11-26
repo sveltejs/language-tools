@@ -29,16 +29,59 @@ export function fixImportEdits(
     if (!edits?.length) {
         return item;
     }
+    const fixed = fixImportTextEdits(edits, document, options);
+    return fixed === edits ? item : { ...item, additionalTextEdits: fixed };
+}
+
+/**
+ * The edits of a completion item or code action (quick fix "Add import") in a Svelte file:
+ * - import edits outside of a script are moved into it (see `fixImportEdits`)
+ * - import edits in a script are indented like the script. TS7 indents them with its own format
+ *   options (4 spaces), which knows nothing about the indentation of the script tag's content.
+ * Returns `edits` itself if nothing changed.
+ */
+export function fixImportTextEdits(
+    edits: readonly TextEdit[],
+    document: TextDocumentView,
+    options: ImportEditOptions
+): TextEdit[] {
     const text = document.getText();
     const scripts = findBlocks(text).filter((block) => block.tag === 'script');
-    const isInScript = (edit: TextEdit) => {
+    const scriptOf = (edit: TextEdit) => {
         const start = document.offsetAt(edit.range.start);
         const end = document.offsetAt(edit.range.end);
-        return scripts.some((s) => s.contentStart <= start && end <= s.contentEnd);
+        return scripts.find((s) => s.contentStart <= start && end <= s.contentEnd);
     };
-    const misplaced = edits.filter((edit) => isImportEdit(edit) && !isInScript(edit));
+    let changed = false;
+    const misplaced: TextEdit[] = [];
+    const kept: TextEdit[] = [];
+    for (const edit of edits) {
+        if (!isImportEdit(edit)) {
+            kept.push(edit);
+            continue;
+        }
+        const script = scriptOf(edit);
+        if (!script) {
+            misplaced.push(edit);
+            changed = true;
+            continue;
+        }
+        const reindented = reindentImports(
+            edit.newText,
+            getScriptIndent(text.slice(script.contentStart, script.contentEnd))
+        );
+        if (reindented !== edit.newText) {
+            changed = true;
+            kept.push({ ...edit, newText: reindented });
+        } else {
+            kept.push(edit);
+        }
+    }
+    if (!changed) {
+        return edits as TextEdit[];
+    }
     if (misplaced.length === 0) {
-        return item;
+        return kept;
     }
 
     const statements = misplaced.flatMap((edit) =>
@@ -51,14 +94,22 @@ export function fixImportEdits(
     const relocated = script
         ? insertIntoScript(script, text, statements, document)
         : insertNewScript(statements, document, options);
-    return {
-        ...item,
-        additionalTextEdits: [...edits.filter((edit) => !misplaced.includes(edit)), relocated]
-    };
+    return [...kept, relocated];
 }
 
 function isImportEdit(edit: TextEdit) {
     return /^\s*import\s/.test(edit.newText);
+}
+
+/** Indentation of the first non-empty line of the script content, `\t` if it's empty */
+function getScriptIndent(content: string): string {
+    const firstLine = /^([ \t]*)\S/m.exec(content);
+    return firstLine ? firstLine[1] : '\t';
+}
+
+/** Gives every line of `newText` that starts an import statement the script's indentation */
+function reindentImports(newText: string, indent: string): string {
+    return newText.replace(/^[ \t]*(?=import\s)/gm, indent);
 }
 
 function insertIntoScript(

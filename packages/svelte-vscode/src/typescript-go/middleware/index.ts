@@ -5,8 +5,11 @@ import type {
     LspMiddlewareResult,
     LspMiddlewareContext
 } from '@typescript/native/vscode' with { 'resolution-mode': 'import' };
+import { transformCodeActions } from './codeActions';
 import { renameComponentAutoImports } from './completions';
-import { createCompletionMiddleware } from './completionsHost';
+import { createCompletionMiddleware, getImportEditOptions } from './completionsHost';
+import { getOpenDocument } from './documents';
+import { isInStartTag } from './componentTagText';
 import { registerStoreMiddleware } from './stores';
 import { isSvelteUri, timedOut, withTimeout } from './utils';
 
@@ -30,7 +33,8 @@ type ForwardedMethod =
     | 'textDocument/implementation'
     | 'textDocument/references'
     | 'textDocument/prepareRename'
-    | 'textDocument/rename';
+    | 'textDocument/rename'
+    | 'textDocument/documentSymbol';
 
 /**
  * How long we wait for the Svelte language server before giving up and using TS7's response as-is.
@@ -50,7 +54,9 @@ const forwardTimeouts: Record<ForwardedMethod, number> = {
     // these run TS7 API queries for `$store` (references of the store, of each subscription)
     'textDocument/references': 2000,
     'textDocument/prepareRename': 500,
-    'textDocument/rename': 2000
+    'textDocument/rename': 2000,
+    // adds the instance script's symbols from the TS7 API (TS7 drops them)
+    'textDocument/documentSymbol': 1000
 };
 
 /**
@@ -86,14 +92,22 @@ export function registerSvelteLspMiddleware(
     for (const method of Object.keys(forwardTimeouts) as ForwardedMethod[]) {
         disposables.push(
             api.registerLspMiddleware(method, (result, context) =>
-                forwardToSvelteLanguageServer(method, result, context, access, log)
+                forwardToSvelteLanguageServer(
+                    method,
+                    result,
+                    context,
+                    access,
+                    log,
+                    forwardTimeouts[method]
+                )
             )
         );
     }
 
     const completionMiddleware = createCompletionMiddleware(log);
     disposables.push(
-        api.registerLspMiddleware('textDocument/completion', (result, { params }) => {
+        api.registerLspMiddleware('textDocument/completion', async (result, context) => {
+            const { params } = context;
             if (!access.getContentMapperModeClient()) {
                 return result;
             }
@@ -101,7 +115,26 @@ export function registerSvelteLspMiddleware(
                 // e.g. `.ts` files auto-importing a component
                 return renameComponentAutoImports(result);
             }
-            return completionMiddleware.completion(result, params);
+            const transformed = await completionMiddleware.completion(result, params);
+            // In a start tag, TS7 offers the attributes of the `svelteHTML` typings, the Svelte LS
+            // the HTML ones. The LS drops the duplicates like TS6 mode did (PluginHost). Only
+            // forwarded there: completions are hot and large.
+            const document = getOpenDocument(vscode.Uri.parse(params.textDocument.uri));
+            if (
+                document &&
+                hasCompletionItems(transformed) &&
+                isInStartTag(document.getText(), document.offsetAt(params.position))
+            ) {
+                return forwardToSvelteLanguageServer(
+                    'textDocument/completion',
+                    transformed,
+                    context,
+                    access,
+                    log,
+                    startTagCompletionTimeout
+                );
+            }
+            return transformed;
         }),
         api.registerLspMiddleware('completionItem/resolve', (item) => {
             if (!access.getContentMapperModeClient() || !item) {
@@ -112,22 +145,48 @@ export function registerSvelteLspMiddleware(
         })
     );
 
+    disposables.push(
+        api.registerLspMiddleware('textDocument/codeAction', (result, { params }) => {
+            if (!access.getContentMapperModeClient() || !isSvelteUri(params.textDocument.uri)) {
+                return result;
+            }
+            return transformCodeActions(
+                result,
+                params.textDocument.uri,
+                getOpenDocument(vscode.Uri.parse(params.textDocument.uri)),
+                getImportEditOptions()
+            );
+        })
+    );
+
+    // No formatting middleware: svelte2tsx's span map turns TS7's Formatting feature off, so TS7
+    // returns no edits for Svelte files (LS test `features/FormattingProvider.test.ts`, e2e
+    // `features` formatting checks). Its formatter stays registered (see the README).
+
     // Runs after the forwarded rename middleware above (registration order)
     disposables.push(registerStoreMiddleware(api, access, log));
 
     return vscode.Disposable.from(...disposables);
 }
 
-async function forwardToSvelteLanguageServer<M extends ForwardedMethod>(
+/** Completions in a start tag (`<input on|`): ~450 TS7 items, deduped in the LS */
+const startTagCompletionTimeout = 300;
+
+function hasCompletionItems(result: LspMiddlewareResult<'textDocument/completion'>) {
+    return !!result && (Array.isArray(result) ? result.length > 0 : result.items.length > 0);
+}
+
+async function forwardToSvelteLanguageServer<M extends ForwardedMethod | 'textDocument/completion'>(
     method: M,
     result: LspMiddlewareResult<M>,
     { params }: LspMiddlewareContext<M>,
     access: SvelteLanguageServerAccess,
-    log: (message: string) => void
+    log: (message: string) => void,
+    timeout: number
 ): Promise<LspMiddlewareResult<M>> {
     if (
         !isSvelteUri(params.textDocument.uri) &&
-        !(crossFileMethods.has(method) && touchesSvelteFile(result))
+        !(crossFileMethods.has(method as ForwardedMethod) && touchesSvelteFile(result))
     ) {
         return result;
     }
@@ -145,7 +204,7 @@ async function forwardToSvelteLanguageServer<M extends ForwardedMethod>(
                 { method, params, result },
                 cancellation.token
             ),
-            forwardTimeouts[method]
+            timeout
         );
         if (transformed === timedOut) {
             cancellation.cancel();

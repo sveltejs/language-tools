@@ -17,6 +17,8 @@ import {
     WorkspaceEdit
 } from 'vscode';
 import {
+    CloseAction,
+    ErrorAction,
     ExecuteCommandRequest,
     LanguageClientOptions,
     RequestType,
@@ -40,7 +42,10 @@ import {
     sendNotificationMiddleware
 } from './typescript/configurationMiddleware';
 import { versions } from 'node:process';
-import { TsContentMapperService } from './typescript-go/contentMapper';
+import {
+    CheckContentMapperConfigRequest,
+    TsContentMapperService
+} from './typescript-go/contentMapper';
 
 const [node_major, node_minor] = (versions?.node ?? '0.0.0-unknown').split('.', 3).map(Number);
 
@@ -62,7 +67,10 @@ let lsApi:
     | undefined;
 
 export async function activate(context: ExtensionContext) {
-    const contentMapperService = new TsContentMapperService(context.extension);
+    const contentMapperService = new TsContentMapperService(
+        context.extension,
+        context.workspaceState
+    );
     context.subscriptions.push(contentMapperService);
     contentMapperService.setSvelteLanguageServerAccess({
         getContentMapperModeClient() {
@@ -70,9 +78,15 @@ export async function activate(context: ExtensionContext) {
             return ls?.isRunning() && isContentMapperMode(ls) ? ls : undefined;
         }
     });
-    const options = {
+    const options: SvelteLanguageServerOptions = {
         tsGoContentMapperOptions: await contentMapperService.tryStart(),
-        deferDocumentHighlightsToTsgo: () => contentMapperService.lspMiddlewareActive
+        deferDocumentHighlightsToTsgo: () => contentMapperService.lspMiddlewareActive,
+        renewTsGoContentMapperOptions: () => contentMapperService.renewApiConnection(),
+        onDidStart: (ls, requestedContentMapperMode) =>
+            contentMapperService.onSvelteLanguageServerStarted(
+                requestedContentMapperMode,
+                ls.initializeResult?.customServerStatus?.experimental?.contentMapperConfig
+            )
     };
 
     let tsPlugin: TsPlugin | undefined;
@@ -88,7 +102,8 @@ export async function activate(context: ExtensionContext) {
         tsPlugin ??= new TsPlugin(context);
     }
     updateTsPlugin();
-    toggleFileReferencesMenu(!options.tsGoContentMapperOptions.enable);
+    // both modes serve file references (TS6, or TS7 through its API)
+    commands.executeCommand('setContext', 'svelte.uiContext.fileReference.enable', true);
 
     context.subscriptions.push(
         commands.registerCommand('svelte.restartLanguageServer', async () => {
@@ -117,9 +132,13 @@ export async function activate(context: ExtensionContext) {
         contentMapperService.onDidChangeEnablement(async (newConfig) => {
             if (newConfig !== options.tsGoContentMapperOptions.enable) {
                 const newOption = await contentMapperService.tryStart();
-                options.tsGoContentMapperOptions = newOption;
-                updateTsPlugin();
-                await lsApi?.restartLS(false);
+                // When turned on at runtime, the TS7 server usually isn't (re)started yet, and
+                // the option stays off until it is (onTsServerRestart). Don't restart for nothing.
+                if (newOption.enable !== options.tsGoContentMapperOptions.enable) {
+                    options.tsGoContentMapperOptions = newOption;
+                    updateTsPlugin();
+                    await lsApi?.restartLS(false);
+                }
             }
         })
     );
@@ -127,6 +146,7 @@ export async function activate(context: ExtensionContext) {
     context.subscriptions.push(
         contentMapperService.onTsServerRestart(async () => {
             const newOption = await contentMapperService.tryStart();
+            // a new TS7 server needs a new API connection (apiPipe) too
             if (newOption.enable !== options.tsGoContentMapperOptions.enable || newOption.apiPipe) {
                 options.tsGoContentMapperOptions = newOption;
                 updateTsPlugin();
@@ -158,25 +178,46 @@ export function deactivate() {
     return stop;
 }
 
+/** Allows fewer than `max` crashes per `windowMs` (vscode-languageclient's default: 5 in 3 minutes) */
+class CrashLimiter {
+    private readonly crashes: number[] = [];
+
+    constructor(
+        private readonly max: number,
+        private readonly windowMs: number
+    ) {}
+
+    /** Call on each crash; false once the limit is reached */
+    allowRestart(now: number): boolean {
+        this.crashes.push(now);
+        while (this.crashes.length && this.crashes[0] <= now - this.windowMs) {
+            this.crashes.shift();
+        }
+        return this.crashes.length < this.max;
+    }
+}
+
 function isContentMapperMode(ls: LanguageClient) {
     return !!ls.initializeResult?.customServerStatus?.experimental?.contentMapperModeEnabled;
 }
 
-function toggleFileReferencesMenu(enable: boolean) {
-    commands.executeCommand('setContext', 'svelte.uiContext.fileReference.enable', enable);
+interface SvelteLanguageServerOptions {
+    tsGoContentMapperOptions: { enable: boolean };
+    /**
+     * When TS7 serves the Svelte file and our middleware is registered on it, the highlights
+     * of both servers are merged in the middleware. VS Code only uses the first provider with
+     * a non-empty result, so ours must not compete.
+     */
+    deferDocumentHighlightsToTsgo?: () => boolean;
+    /** Fresh options for a restart (a new TS7 API pipe) */
+    renewTsGoContentMapperOptions?: () => Promise<{ enable: boolean }>;
+    /** After each (re)start of the language server */
+    onDidStart?: (ls: LanguageClient, requestedContentMapperMode: boolean) => void;
 }
 
 export function activateSvelteLanguageServer(
     context: ExtensionContext,
-    options?: {
-        tsGoContentMapperOptions: { enable: boolean };
-        /**
-         * When TS7 serves the Svelte file and our middleware is registered on it, the highlights
-         * of both servers are merged in the middleware. VS Code only uses the first provider with
-         * a non-empty result, so ours must not compete.
-         */
-        deferDocumentHighlightsToTsgo?: () => boolean;
-    }
+    options?: SvelteLanguageServerOptions
 ) {
     warnIfOldExtensionInstalled();
 
@@ -279,6 +320,28 @@ export function activateSvelteLanguageServer(
             isTrusted: workspace.isTrusted,
             tsGoContentMapperOptions: options?.tsGoContentMapperOptions
         }),
+        errorHandler: {
+            error: () => ({ action: ErrorAction.Continue }),
+            closed: () => {
+                if (!crashLimiter.allowRestart(Date.now())) {
+                    return {
+                        action: CloseAction.DoNotRestart,
+                        message:
+                            'The Svelte language server crashed 5 times in the last 3 minutes. It will not be restarted.'
+                    };
+                }
+                if (
+                    !options?.renewTsGoContentMapperOptions ||
+                    !options.tsGoContentMapperOptions.enable
+                ) {
+                    return { action: CloseAction.Restart };
+                }
+                // The client would restart it with the old TS7 API pipe, which can't be
+                // connected to again: restartLS gets a new one
+                setTimeout(() => restartLS(false), 0);
+                return { action: CloseAction.DoNotRestart, handled: true };
+            }
+        },
         middleware: {
             resolveCodeLens: resolveCodeLensMiddleware,
             sendNotification: sendNotificationMiddleware,
@@ -291,15 +354,24 @@ export function activateSvelteLanguageServer(
         }
     };
 
+    const crashLimiter = new CrashLimiter(5, 3 * 60 * 1000);
     const ls = createLanguageServer(serverOptions, clientOptions);
     let ts6Features: Disposable | undefined;
+    let tsgoFeatures: Disposable | undefined;
+    // what the running server was started with (the options can change before a restart)
+    let requestedContentMapperMode = !!options?.tsGoContentMapperOptions.enable;
     context.subscriptions.push(
         { dispose: () => ts6Features?.dispose() },
+        { dispose: () => tsgoFeatures?.dispose() },
         ls.onDidChangeState(({ newState }) => {
-            if (newState === State.Running) {
+            if (newState === State.Starting) {
+                requestedContentMapperMode = !!options?.tsGoContentMapperOptions.enable;
+            } else if (newState === State.Running) {
                 updateCustomTs6Features();
+                options?.onDidStart?.(ls, requestedContentMapperMode);
             }
-        })
+        }),
+        watchContentMapperConfig()
     );
     ls.start().then(() => {
         const tagRequestor = (document: TextDocument, position: Position) => {
@@ -321,8 +393,7 @@ export function activateSvelteLanguageServer(
         const parts = doc.uri.toString(true).split(/\/|\\/);
         if (
             [
-                // /^tsconfig\.json$/,
-                // /^jsconfig\.json$/,
+                // tsconfig/jsconfig: see watchContentMapperConfig
                 /^svelte\.config\.(js|ts|cjs|mjs|mts)$/,
                 // Vite config can contain Svelte config
                 /^vite\.config\.(js|cjs|mjs|ts|mts)$/,
@@ -344,12 +415,71 @@ export function activateSvelteLanguageServer(
         }
 
         restartingLs = true;
-        outputChannel.clear();
-        await ls.restart();
+        try {
+            if (options?.renewTsGoContentMapperOptions) {
+                // the API pipe of the previous start can't be connected to again
+                options.tsGoContentMapperOptions = await options.renewTsGoContentMapperOptions();
+            }
+            outputChannel.clear();
+            if (ls.state === State.Stopped) {
+                // after a crash (see the error handler)
+                await ls.start();
+            } else {
+                await ls.restart();
+            }
+        } finally {
+            restartingLs = false;
+        }
         if (showNotification) {
             window.showInformationMessage('Svelte language server restarted.');
         }
-        restartingLs = false;
+    }
+
+    /**
+     * Content mapper mode is decided when the server starts (see the README, "TypeScript 7"): by
+     * whether a `tsconfig*.json`/`jsconfig*.json` mentions the mapper. When one changes and TS7
+     * could serve Svelte files, ask the server again and restart only if the mode would change.
+     * In TS6 mode the server watches the configs itself. Workspace folder changes restart
+     * directly. A change while the server is not running (e.g. restarting) is not checked.
+     */
+    function watchContentMapperConfig(): Disposable {
+        const wanted = () => !!options?.tsGoContentMapperOptions.enable;
+        const recheck = async () => {
+            if (!wanted() || restartingLs || !ls.isRunning()) {
+                return;
+            }
+            try {
+                const { configFile } = await ls.sendRequest<{ configFile?: string }>(
+                    CheckContentMapperConfigRequest
+                );
+                if (!!configFile !== isContentMapperMode(ls)) {
+                    await restartLS(false);
+                }
+            } catch (error) {
+                console.log(`Checking the content mapper config failed: ${error}`);
+            }
+        };
+        const watcher = workspace.createFileSystemWatcher('**/{tsconfig,jsconfig}*.json');
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        const onChange = (uri: Uri) => {
+            if (!wanted() || uri.path.includes('/node_modules/')) {
+                return;
+            }
+            clearTimeout(timer);
+            timer = setTimeout(recheck, 500);
+        };
+        return Disposable.from(
+            watcher,
+            watcher.onDidChange(onChange),
+            watcher.onDidCreate(onChange),
+            watcher.onDidDelete(onChange),
+            workspace.onDidChangeWorkspaceFolders(() => {
+                if (wanted()) {
+                    restartLS(false);
+                }
+            }),
+            { dispose: () => clearTimeout(timer) }
+        );
     }
 
     function getLS() {
@@ -358,11 +488,9 @@ export function activateSvelteLanguageServer(
 
     function updateCustomTs6Features() {
         const enable = !isContentMapperMode(ls);
-        toggleFileReferencesMenu(enable);
         // With tsgo we want to disable various listeners that are only needed for our TS lsp functionality
         if (enable && !ts6Features) {
             ts6Features = Disposable.from(
-                addFindFileReferencesListener(getLS),
                 addRenameFileListener(getLS),
                 addDidChangeTextDocumentListener(getLS)
             );
@@ -370,9 +498,16 @@ export function activateSvelteLanguageServer(
             ts6Features?.dispose();
             ts6Features = undefined;
         }
+        if (!enable && !tsgoFeatures) {
+            tsgoFeatures = addWillRenameFilesListenerForTsgo(getLS);
+        } else if (enable) {
+            tsgoFeatures?.dispose();
+            tsgoFeatures = undefined;
+        }
     }
 
     addFindComponentReferencesListener(getLS);
+    context.subscriptions.push(addFindFileReferencesListener(getLS));
 
     addCompilePreviewCommands(getLS, context);
 
@@ -466,6 +601,38 @@ function addDidChangeTextDocumentListener(getLS: () => LanguageClient) {
                 }))
             });
         }
+    });
+}
+
+/**
+ * Content mapper mode: TS7 updates the imports in TS/JS files when files are renamed, but not the
+ * ones in Svelte files (neither imports of the renamed file nor a moved Svelte file's own relative
+ * imports). The language server computes those before the rename, while the old paths still resolve
+ * (TS7's view through its API), as edits for the old uris.
+ */
+function addWillRenameFilesListenerForTsgo(getLS: () => LanguageClient) {
+    return workspace.onWillRenameFiles((evt) => {
+        const files = evt.files
+            .filter((file) => file.oldUri.scheme === 'file' && file.newUri.scheme === 'file')
+            .map((file) => ({
+                oldUri: file.oldUri.toString(true),
+                newUri: file.newUri.toString(true)
+            }));
+        if (!files.length) {
+            return;
+        }
+        evt.waitUntil(
+            getLS()
+                .sendRequest<LSWorkspaceEdit | null>('$/getEditsForFileRename', files)
+                .then(
+                    (edit) =>
+                        edit ? getLS().protocol2CodeConverter.asWorkspaceEdit(edit) : undefined,
+                    (error) => {
+                        console.log('Updating imports in Svelte files failed', error);
+                        return undefined;
+                    }
+                )
+        );
     });
 }
 

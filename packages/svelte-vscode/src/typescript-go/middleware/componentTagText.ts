@@ -128,6 +128,52 @@ function isInExpressionOrComment(text: string, offset: number, blocks: Block[]):
     return depth > 0;
 }
 
+/**
+ * Whether `offset` is inside a start tag of the template, after its name (`<div |`, `<input on|`,
+ * also inside attribute values). That is where the Svelte language server offers HTML attributes
+ * and TS7 the same names from the `svelteHTML` typings. A cheap pre-check; the language server
+ * decides with the HTML AST.
+ */
+export function isInStartTag(text: string, offset: number): boolean {
+    const before = text.slice(Math.max(0, offset - 2000), offset);
+    const base = offset - before.length;
+    let tagStart = -1;
+    for (let i = before.length - 1; i >= 0; i--) {
+        if (before[i] === '<' && /[A-Za-z]/.test(before[i + 1] ?? '')) {
+            tagStart = base + i;
+            break;
+        }
+    }
+    if (tagStart === -1) {
+        return false;
+    }
+    // a name must have been typed, and the tag must not have been closed yet
+    if (/^<[\w$.:-]*$/.test(text.slice(tagStart, offset))) {
+        return false;
+    }
+    let depth = 0;
+    let quote: string | undefined;
+    for (let i = tagStart + 1; i < offset; i++) {
+        const char = text[i];
+        if (quote) {
+            if (char === quote) quote = undefined;
+        } else if (char === '{') {
+            depth++;
+        } else if (char === '}') {
+            depth = Math.max(0, depth - 1);
+        } else if (char === '"' || char === "'" || (depth > 0 && char === '`')) {
+            quote = char;
+        } else if (char === '>' && depth === 0) {
+            return false;
+        }
+    }
+    const blocks = findBlocks(text);
+    if (blocks.some((block) => tagStart >= block.start && tagStart < block.end)) {
+        return false;
+    }
+    return !isInExpressionOrComment(text, tagStart, blocks);
+}
+
 const startsWithUppercase = /^[A-Z]/;
 
 /**
