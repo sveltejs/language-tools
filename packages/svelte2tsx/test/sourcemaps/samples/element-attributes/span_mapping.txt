@@ -122,6 +122,8 @@
 -                                        •
 #                                         ^ [Atom] => 141-142
 -                                         /
+#                                          ^^^^^^^^^^ [Atom],[None] => 131-139
+-                                          bind:foo
 #                                                     ^^^ [Verbatim] => 136-139
 -                                                     foo
 #
@@ -130,7 +132,7 @@
 -
 -
 #
-> { svelteHTML.createElement("element", {   "bind:foo":bar,});/*Ωignore_startΩ*/() => bar = __sveltets_2_any(null);/*Ωignore_endΩ*/}};
+> { svelteHTML.createElement("element", {   "bind:foo":bar,});/*Ωignore_startΩ*/() => bar = __sveltets_2_any(null);/*Ωignore_endΩ*/}
 #                                                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ [Ignore]
 # [Verbatim] => 143-144
 -
@@ -145,10 +147,37 @@
 -                                         {
 #                                          ^ [Atom] => 174-175
 -                                          /
+#                                           ^ [Atom] => 159-159
+-
 #                                            ^^^^^^^^ [Verbatim] => 159-167
 -                                            bind:foo
 #                                                      ^^^ [Verbatim] => 169-172
 -                                                      bar
+#
+>
+# [Verbatim] => 176-177
+-
+-
+#
+> { svelteHTML.createElement("input", {  "bind:checked":v,});/*Ωignore_startΩ*/() => v = __sveltets_2_any(null);/*Ωignore_endΩ*/}};
+#                                                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ [Ignore]
+# [Verbatim] => 176-177
+-
+-
+#^ [Atom] => 178-179
+-<
+#                             ^^^^^ [Verbatim] => 179-184
+-                             input
+#                                      ^ [Atom] => 199-200
+-                                      {
+#                                       ^ [Atom] => 203-204
+-                                       /
+#                                        ^ [Atom] => 186-186
+-
+#                                         ^^^^^^^^^^^^ [Verbatim] => 186-198
+-                                         bind:checked
+#                                                       ^ [Verbatim] => 200-201
+-                                                       v
 >return { props: /** @type {Record<string, never>} */ ({}), slots: {}, events: {} }}
 >
 >export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial(__sveltets_2_with_any_event($$render()))) {

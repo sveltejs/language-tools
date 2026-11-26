@@ -27,10 +27,17 @@ import {
     isStoreVariableIn$storeDeclaration,
     get$storeOffsetOf$storeDeclaration
 } from './utils';
-import { not, passMap, swapRangeStartEndIfNecessary, memoize } from '../../../utils';
+import {
+    not,
+    passMap,
+    swapRangeStartEndIfNecessary,
+    memoize,
+    isPositionEqual
+} from '../../../utils';
 import { LSConfigManager } from '../../../ls-config';
 import { isAttributeName, isEventHandler } from '../svelte-ast-utils';
 import { internalHelpers } from 'svelte2tsx';
+import { getAttributeContextAtPosition } from '../../../lib/documents/parseHtml';
 
 export enum DiagnosticCode {
     MODIFIERS_CANNOT_APPEAR_HERE = 1184, // "Modifiers cannot appear here."
@@ -220,12 +227,39 @@ export function mapAndFilterDiagnostics(
             continue;
         }
 
+        if (isPositionEqual(diagnostic.range.start, diagnostic.range.end)) {
+            adjustDirectiveRange(diagnostic, document);
+        }
+
         diagnostic = adjustIfNecessary(diagnostic, tsDoc.isSvelte5Plus);
         diagnostic = swapDiagRangeStartEndIfNecessary(diagnostic);
         converted.push(diagnostic);
     }
 
     return converted;
+}
+
+function adjustDirectiveRange(diagnostic: Diagnostic, document: Document) {
+    const attributeContext = getAttributeContextAtPosition(document, diagnostic.range.start);
+    if (!attributeContext || attributeContext.inValue) {
+        return;
+    }
+
+    const colonIndex = attributeContext.name.indexOf(':');
+    if (colonIndex === -1) {
+        return;
+    }
+
+    const attributeStart = document
+        .getText()
+        .lastIndexOf(attributeContext.name, document.offsetAt(diagnostic.range.start));
+    const end = attributeStart + attributeContext.name.length;
+    const start = attributeContext.name.startsWith('bind:')
+        ? attributeStart
+        : attributeStart + colonIndex + 1;
+
+    diagnostic.range.start = document.positionAt(start);
+    diagnostic.range.end = document.positionAt(end);
 }
 
 function moveBindingErrorMessage(

@@ -483,7 +483,8 @@ export function convertHtmlxToJsx(
                             options.typingsNamespace === 'svelteHTML',
                             options.svelte5Plus,
                             emitJsDoc,
-                            isTsFile
+                            isTsFile,
+                            options.spanMapGenerator
                         );
                         break;
                     case 'Class':

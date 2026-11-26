@@ -185,6 +185,7 @@ export class SpanMapGenerator {
             const originalStart = original[segmentIndex];
             const generatedStart = generated[segmentIndex];
             if (this.ignoreMappings.has(originalStart)) {
+                current = undefined;
                 continue;
             }
             const sourceSpan = sourceSpanMap.get(originalStart);

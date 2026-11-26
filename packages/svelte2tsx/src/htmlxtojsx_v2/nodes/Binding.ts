@@ -11,6 +11,7 @@ import { InlineComponent } from './InlineComponent';
 import { surroundWithIgnoreComments } from '../../utils/ignore';
 import { SequenceExpression } from 'estree';
 import { getLeadingCommentTransformation, getTrailingCommentTransformation } from './Comment';
+import { mapGenerated, SpanMapGenerator } from '../../utils/spanMap';
 
 /**
  * List of binding names that are transformed to sth like `binding = variable`.
@@ -60,7 +61,8 @@ export function handleBinding(
     preserveBind: boolean,
     isSvelte5Plus: boolean,
     emitJsDoc: boolean,
-    isTsFile: boolean
+    isTsFile: boolean,
+    spanMapGenerator: SpanMapGenerator | undefined
 ): void {
     const isGetSetBinding = attr.expression.type === 'SequenceExpression';
     const [get, set] = isGetSetBinding ? (attr.expression as SequenceExpression).expressions : [];
@@ -148,27 +150,36 @@ export function handleBinding(
 
     // other bindings which are transformed to normal attributes/props
     const isShorthand = attr.expression.start === attr.start + 'bind:'.length;
-    const name: TransformationArray =
-        preserveBind && element instanceof Element
-            ? // HTML typings - preserve the bind: prefix
-              isShorthand
-                ? [...leadingComments, `"${str.original.substring(attr.start, attr.end)}"`]
-                : [
-                      ...leadingComments,
-                      '"',
-                      [attr.start, str.original.lastIndexOf('=', attr.expression.start)],
-                      '"'
+    let name: TransformationArray;
+    if (preserveBind && element instanceof Element) {
+        // HTML typings - preserve the bind: prefix
+        if (isShorthand) {
+            const withQuote = mapGenerated(
+                spanMapGenerator,
+                `"${str.original.substring(attr.start, attr.end)}"`,
+                [attr.start, attr.end]
+            );
+            name = [...leadingComments, withQuote];
+        } else {
+            const endIndex = str.original.lastIndexOf('=', attr.expression.start);
+            name = [...leadingComments, [attr.start, endIndex], '"'];
+            str.overwrite(attr.start, attr.start + 1, '"' + str.original.charAt(attr.start), {
+                contentOnly: true
+            });
+            spanMapGenerator?.addSourceSpan(attr.start, endIndex);
+        }
+    } else {
+        // Other typings - remove the bind: prefix
+        name = isShorthand
+            ? [...leadingComments, [attr.expression.start, attr.expression.end]]
+            : [
+                  ...leadingComments,
+                  [
+                      attr.start + 'bind:'.length,
+                      str.original.lastIndexOf('=', attr.expression.start)
                   ]
-            : // Other typings - remove the bind: prefix
-              isShorthand
-              ? [...leadingComments, [attr.expression.start, attr.expression.end]]
-              : [
-                    ...leadingComments,
-                    [
-                        attr.start + 'bind:'.length,
-                        str.original.lastIndexOf('=', attr.expression.start)
-                    ]
-                ];
+              ];
+    }
 
     const value: TransformationArray | undefined = isShorthand
         ? preserveBind && element instanceof Element
