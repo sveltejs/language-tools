@@ -3,9 +3,13 @@ import * as path from 'path';
 import { pathToFileURL } from 'url';
 import type { TypeScript7Modules } from 'svelte-language-server/svelte-check-ts7';
 import { SvelteCheckTs7Error } from 'svelte-language-server/svelte-check-ts7';
-
-/** The npm alias used while TypeScript 6 is still installed as `typescript` */
-const TS7_ALIAS = '@typescript/native';
+import {
+    INSTALL_TYPESCRIPT_7,
+    isSupportedTypeScript7,
+    ParsedVersion,
+    parseVersion,
+    TS7_ALIAS
+} from '../typescriptVersions';
 
 export interface TypeScript7Package {
     /** How it's imported: `typescript` or the alias */
@@ -15,13 +19,12 @@ export interface TypeScript7Package {
 }
 
 interface FoundPackage extends TypeScript7Package {
-    major: number;
-    minor: number;
+    parsed: ParsedVersion;
 }
 
 /**
  * The project's TypeScript 7, resolved from the tsconfig directory: `typescript`, or
- * `@typescript/native` (`npm install -D @typescript/native@npm:typescript@^7.1`).
+ * `@typescript/native`.
  *
  * Requires 7.1, the first version with content mappers. 7.0 ignores the tsconfig's
  * `contentMappers` and the API's `runExternalCode` without any error, so Svelte files would
@@ -29,26 +32,26 @@ interface FoundPackage extends TypeScript7Package {
  */
 export function resolveTypeScript7(tsconfigPath: string): TypeScript7Package {
     const found = [findPackage('typescript', tsconfigPath), findPackage(TS7_ALIAS, tsconfigPath)];
-    const supported = found.find(
-        (pkg) => pkg && (pkg.major > 7 || (pkg.major === 7 && pkg.minor >= 1))
-    );
+    const supported = found.find((pkg) => pkg && isSupportedTypeScript7(pkg.parsed));
     if (supported) {
-        return supported;
+        const { parsed, ...pkg } = supported;
+        return pkg;
     }
 
-    const typescript7 = found.find((pkg) => pkg && pkg.major >= 7);
+    const typescript7 = found.find((pkg) => pkg && pkg.parsed.major >= 7);
+    const requirement = 'svelte-check --experimental-ts7 requires TypeScript 7.1 or higher';
     throw new SvelteCheckTs7Error(
         (typescript7
-            ? `svelte-check --experimental-ts7 requires TypeScript 7.1 or newer, found ${typescript7.version} (${typescript7.packageJsonPath}). ` +
+            ? `${requirement}, found ${typescript7.version} (${typescript7.packageJsonPath}). ` +
               'TypeScript 7.0 has no content mappers, so it would silently skip Svelte files.'
-            : 'svelte-check --experimental-ts7 requires TypeScript 7.1 or newer in the project, ' +
-              `as \`typescript\` or as \`${TS7_ALIAS}\` (found ${
+            : `${requirement} in the project, as \`typescript\` or as \`${TS7_ALIAS}\` (found ${
                   found
                       .filter((pkg): pkg is FoundPackage => !!pkg)
                       .map((pkg) => `${pkg.moduleName} ${pkg.version}`)
                       .join(', ') || 'none'
               }).`) +
-            `\nInstall it with: npm install --save-dev typescript@^7.1 (or, next to TypeScript 6: npm install --save-dev ${TS7_ALIAS}@npm:typescript@^7.1)`
+            '\n' +
+            INSTALL_TYPESCRIPT_7
     );
 }
 
@@ -79,8 +82,7 @@ function findPackage(moduleName: string, tsconfigPath: string): FoundPackage | u
         return undefined;
     }
     const version: string = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8')).version ?? '';
-    const [major, minor] = version.split('.').map((part) => parseInt(part, 10));
-    return { moduleName, version, packageJsonPath, major, minor };
+    return { moduleName, version, packageJsonPath, parsed: parseVersion(version) };
 }
 
 async function importFromProject(moduleName: string, tsconfigPath: string): Promise<any> {

@@ -1,0 +1,21 @@
+// Modelled on the tsconfig.node.json of Vite's svelte-ts template, without `"types": ["node"]`.
+// `node.config.ts` stands in for `vite.config.ts`: a vite.config without Vite installed would
+// make the Svelte config loading fail.
+{
+    "compilerOptions": {
+        "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
+        "target": "es2023",
+        "lib": ["ES2023"],
+        "skipLibCheck": true,
+        "module": "nodenext",
+        "allowImportingTsExtensions": true,
+        "verbatimModuleSyntax": true,
+        "moduleDetection": "force",
+        "noEmit": true,
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
+        "erasableSyntaxOnly": true,
+        "noFallthroughCasesInSwitch": true
+    },
+    "include": ["node.config.ts"]
+}

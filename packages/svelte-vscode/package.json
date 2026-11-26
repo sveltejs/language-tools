@@ -780,7 +780,7 @@
         "textmate-grammar-test": "^0.6.0"
     },
     "dependencies": {
-        "@typescript/native": "npm:typescript@7.1.0-beta",
+        "@typescript/native": "npm:typescript@7.1.0-dev.20261125.1",
         "svelte": "^5.57.0",
         "svelte-language-server": "workspace:*",
         "typescript-svelte-plugin": "workspace:*",

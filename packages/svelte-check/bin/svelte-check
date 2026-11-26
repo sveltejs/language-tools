@@ -1,4 +1,3 @@
 #!/usr/bin/env node
 
-require('./ts-version-check.js');
 require('../dist/src/index.js');

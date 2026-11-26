@@ -43,7 +43,7 @@
         "@types/node": "^18.0.0",
         "@types/unist": "^2.0.3",
         "@types/vfile": "^3.0.2",
-        "@typescript/native": "npm:typescript@7.1.0-beta",
+        "@typescript/native": "npm:typescript@7.1.0-dev.20261125.1",
         "estree-walker": "^2.0.1",
         "magic-string": "0.30.11",
         "mocha": "^11.7.6",
