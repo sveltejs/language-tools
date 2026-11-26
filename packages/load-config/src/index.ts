@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import { pathToFileURL, URL } from 'node:url';
 
@@ -63,14 +64,31 @@ const dynamicImport = new Function('modulePath', 'return import(modulePath)') as
  * `vite.config` with either vite-plugin-svelte or the SvelteKit plugin providing options is preferred over `svelte.config`.
  *
  * The results are cached to optimize subsequent calls.
+ *
+ * `version` is for reloading a config that may have changed on disk (pass something derived from
+ * the contents of the config files): the result cache is bypassed, and a `svelte.config` is evaluated
+ * again unless it was already imported with that version. ES modules are imported with the version in
+ * the URL, CommonJS modules are removed from `require.cache` first. Every version of an ES module
+ * stays in memory (Node has no way to unload it), and files a config imports are not evaluated again.
+ * `vite.config`s are bundled again by Vite on every load anyway.
  */
 export function loadConfig(
     dirOrFile: string,
-    { traverse = true, clearCache = false }: { traverse?: boolean; clearCache?: boolean } = {}
+    {
+        traverse = true,
+        clearCache = false,
+        version
+    }: { traverse?: boolean; clearCache?: boolean; version?: string } = {}
 ): Promise<LoadConfigResult> {
+    const resolved = path.resolve(dirOrFile);
+    if (version !== undefined) {
+        return isFile(resolved)
+            ? loadConfigFromFile(resolved, version)
+            : loadConfigUncached(resolved, traverse, version);
+    }
+
     if (clearCache) cache.clear();
 
-    const resolved = path.resolve(dirOrFile);
     const cached = cache.get(resolved);
     if (cached) {
         return cached;
@@ -91,12 +109,15 @@ function isFile(filePath: string): boolean {
     }
 }
 
-async function loadConfigFromFile(configFilePath: string): Promise<LoadConfigResult> {
+async function loadConfigFromFile(
+    configFilePath: string,
+    version?: string
+): Promise<LoadConfigResult> {
     const basename = path.basename(configFilePath);
     const root = path.dirname(configFilePath);
 
     if (/^svelte\.config\./.test(basename)) {
-        return (await loadSvelteConfig(configFilePath)) ?? undefined;
+        return (await loadSvelteConfig(configFilePath, version)) ?? undefined;
     }
 
     const viteResult = await loadSvelteConfigFromVite(root, configFilePath);
@@ -104,23 +125,30 @@ async function loadConfigFromFile(configFilePath: string): Promise<LoadConfigRes
         return viteResult;
     }
 
-    return loadSvelteConfig(configFilePath);
+    return loadSvelteConfig(configFilePath, version);
 }
 
-async function loadConfigUncached(dir: string, traverse: boolean): Promise<LoadConfigResult> {
+async function loadConfigUncached(
+    dir: string,
+    traverse: boolean,
+    version?: string
+): Promise<LoadConfigResult> {
     let currentDir = dir;
     const dirs = [dir];
 
     while (true) {
-        const result = await loadConfigFromDirectory(currentDir);
+        const result = await loadConfigFromDirectory(currentDir, version);
         if (result) {
-            if (isLoadedConfig(result)) {
-                // Cache the loaded config for all traversed directories
-                for (const d of dirs) {
-                    cache.set(d, Promise.resolve(result));
+            // with a `version`, nothing is cached (see `loadConfig`)
+            if (version === undefined) {
+                if (isLoadedConfig(result)) {
+                    // Cache the loaded config for all traversed directories
+                    for (const d of dirs) {
+                        cache.set(d, Promise.resolve(result));
+                    }
+                } else {
+                    cache.delete(dir);
                 }
-            } else {
-                cache.delete(dir);
             }
             return result;
         }
@@ -138,7 +166,7 @@ async function loadConfigUncached(dir: string, traverse: boolean): Promise<LoadC
     }
 }
 
-async function loadConfigFromDirectory(dir: string): Promise<LoadConfigResult> {
+async function loadConfigFromDirectory(dir: string, version?: string): Promise<LoadConfigResult> {
     const viteConfigPath = findConfigInDirectory(dir, 'vite.config', VITE_CONFIG_EXTENSIONS);
     let viteError: FailedConfig | undefined;
 
@@ -161,7 +189,7 @@ async function loadConfigFromDirectory(dir: string): Promise<LoadConfigResult> {
         return viteError;
     }
 
-    return (await loadSvelteConfig(svelteConfigPath)) ?? viteError;
+    return (await loadSvelteConfig(svelteConfigPath, version)) ?? viteError;
 }
 
 let resolving: Promise<void> | null = null;
@@ -188,7 +216,7 @@ async function loadSvelteConfigFromVite(
     try {
         const resolved = await vite.resolveConfig(
             { root, configFile: configFilePath, logLevel: 'error' },
-            'serve'
+            'build'
         );
         const kitPlugin = resolved.plugins.find(
             (plugin) => plugin.name === 'vite-plugin-sveltekit-setup'
@@ -237,9 +265,27 @@ function changeCwd(dir: string): () => void {
     }
 }
 
-async function loadSvelteConfig(configFilePath: string): Promise<LoadConfigResult> {
+const nodeRequire = createRequire(__filename);
+
+/** The version each config file was last imported with (see `loadConfig`) */
+const importedVersions = new Map<string, string>();
+
+async function loadSvelteConfig(
+    configFilePath: string,
+    version?: string
+): Promise<LoadConfigResult> {
     try {
-        const config = (await dynamicImport(pathToFileURL(configFilePath).href))?.default;
+        let url = pathToFileURL(configFilePath).href;
+        if (version !== undefined) {
+            url += `?v=${encodeURIComponent(version)}`;
+            // Node's ESM loader evaluates CommonJS through `require.cache` (keyed by file name, so
+            // the query doesn't help there)
+            if (importedVersions.get(configFilePath) !== version) {
+                delete nodeRequire.cache[configFilePath];
+                importedVersions.set(configFilePath, version);
+            }
+        }
+        const config = (await dynamicImport(url))?.default;
         if (!config) {
             throw new Error(
                 'Missing exports in the config. Make sure to include "export default config" or "module.exports = config"'
