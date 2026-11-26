@@ -1,25 +1,29 @@
 import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
+import { Writable } from 'node:stream';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { loadConfig } from '@sveltejs/load-config';
-import {
-    createTsgoFacade,
-    internalHelpers,
-    svelte2tsx as svelte2tsxTs7,
-    type TsFacade
-} from 'svelte2tsx/tsgo';
+import { createTsgoFacade, internalHelpers, svelte2tsx, type TsFacade } from 'svelte2tsx/tsgo';
 import { createMessageConnection } from 'vscode-jsonrpc';
 import { StreamMessageReader, StreamMessageWriter } from 'vscode-jsonrpc/node.js';
+import { loadProjectSvelteConfig, type SvelteCompilerOptions } from './svelte-config.js';
+import { findTypeScript } from './typescript.js';
 
-// Override console.log to prevent logging to stdout
-// This is important because the client/server communicates with the client via stdout, and logging to stdout would interfere with this communication
-console.log = (...args) => console.warn('[log]', ...args);
+// stdout is the protocol channel: only the message writer gets the real stdout. Everything else
+// written to it (`console.log` and `process.stdout.write` in svelte2tsx, a Svelte config or its
+// plugins) goes to stderr, where TS ignores it.
+const writeStdout = process.stdout.write.bind(process.stdout);
+const protocolOutput = new Writable({
+    write(chunk, encoding, callback) {
+        writeStdout(chunk, encoding, callback);
+    }
+});
+process.stdout.write = process.stderr.write.bind(process.stderr) as typeof process.stdout.write;
 
 function startServer() {
     const connection = createMessageConnection(
         new StreamMessageReader(process.stdin),
-        new StreamMessageWriter(process.stdout)
+        new StreamMessageWriter(protocolOutput)
     );
 
     connection.onRequest('initialize', (v: InitializeParams) => {
@@ -34,14 +38,30 @@ function startServer() {
     /** For transforms of projects that weren't opened (shouldn't happen) */
     const unknownProjectContexts = new Map<string, Promise<ProjectContext>>();
 
-    connection.onRequest('openProject', (v: OpenProjectParams): OpenProjectResult => {
-        projects.set(v.projectHandle, {
-            params: v,
-            contexts: new Map(),
-            typingsNamespace: getTypingsNamespace(v.configFileName)
-        });
-        return {};
-    });
+    connection.onRequest(
+        'openProject',
+        async (v: OpenProjectParams): Promise<OpenProjectResult> => {
+            const project: Project = {
+                params: v,
+                contexts: new Map(),
+                typingsNamespace: getTypingsNamespace(v.configFileName)
+            };
+            projects.set(v.projectHandle, project);
+            if (!v.configFileName) {
+                // The inferred project: its files can belong to different Svelte projects, the Svelte
+                // config is loaded on the first transform and not watched
+                return { configIdentity: 'inferred project' };
+            }
+            // The manifest declares `dynamicConfig`: TS asks again when one of the `watchedFiles`
+            // changes, and transforms the files again if `configIdentity` changed
+            const svelteConfig = await loadProjectSvelteConfig(path.dirname(v.configFileName));
+            project.svelteOptions = Promise.resolve(svelteConfig.compilerOptions);
+            return {
+                configIdentity: `${svelteConfig.identity}\n${project.typingsNamespace}`,
+                watchedFiles: svelteConfig.watchedFiles
+            };
+        }
+    );
 
     connection.onRequest('closeProject', (v: CloseProjectParams) => {
         projects.delete(v.projectHandle);
@@ -58,7 +78,7 @@ function startServer() {
             const project = projects.get(v.projectHandle);
             // In the inferred project, configFileName is an empty string
             const resolveTarget = project?.params.configFileName || fileName;
-            const { compiler, isSvelte3, globalTypes, svelte2tsx, typescript } = await getOrCreate(
+            const { compiler, isSvelte3, globalTypes, typescript } = await getOrCreate(
                 project?.contexts ?? unknownProjectContexts,
                 path.dirname(resolveTarget),
                 () => createProjectContext(resolveTarget)
@@ -71,16 +91,13 @@ function startServer() {
             extension = getScriptExtension(scriptTags);
 
             const svelteOptions = await getSvelteCompilerOptions(project, fileName);
-            const res = svelte2tsx(content, {
+            const res = await svelte2tsx(content, {
                 typescript,
                 filename: fileName,
                 isTsFile: extension === '.ts',
                 emitOnTemplateError: true,
                 emitJsDoc: true,
-                namespace:
-                    typeof svelteOptions.namespace === 'string'
-                        ? svelteOptions.namespace
-                        : undefined,
+                namespace: svelteOptions.namespace,
                 typingsNamespace: project?.typingsNamespace ?? DEFAULT_TYPINGS_NAMESPACE,
                 accessors: getAccessors(svelteOptions, fileName),
                 parse: compiler.parse,
@@ -151,6 +168,23 @@ function startServer() {
                 text: content.slice(script.content.start, script.content.end),
                 extension,
                 mappings: [[0, length, script.content.start, length, SpanMapKind.Verbatim]],
+                // Like TS6, only the parse error is reported: TypeScript's errors in the script alone
+                // would be guesses (e.g. everything used only in the template is "unused")
+                diagnosticDirectives:
+                    length > 0
+                        ? {
+                              unusedExpectDirectiveDiagnostics: [],
+                              directives: [
+                                  [
+                                      script.content.start,
+                                      length,
+                                      0,
+                                      length,
+                                      DiagnosticDirectivePolicy.Ignore
+                                  ]
+                              ]
+                          }
+                        : undefined,
                 diagnostics: [diagnostics]
             };
         }
@@ -170,34 +204,25 @@ interface Project {
     contexts: Map<string, Promise<ProjectContext>>;
     /** The namespace of the element typings (`svelteOptions.namespace` of the tsconfig) */
     typingsNamespace: string;
-    /** The Svelte config of the project, loaded on the first transform */
+    /** The Svelte config of the project: loaded by `openProject`, or on the first transform */
     svelteOptions?: Promise<SvelteCompilerOptions>;
 }
 
 /** What a transform needs that only depends on the project. Resolved on the first transform. */
-interface ProjectContext extends Transformer {
+interface ProjectContext {
     /** `svelte/compiler` of the project */
     compiler: { parse: any; VERSION: string };
     isSvelte3: boolean;
     globalTypes: string[];
-}
-
-interface Transformer {
-    svelte2tsx: typeof svelte2tsxTs7;
-    /** undefined: the entry point's default */
-    typescript?: TsFacade;
+    /** The facade svelte2tsx parses the scripts with: TypeScript 7's */
+    typescript: TsFacade;
 }
 
 const require = createRequire(import.meta.url);
 const mapperDir = path.dirname(fileURLToPath(import.meta.url));
-const svelte2tsxDir = path.dirname(require.resolve('svelte2tsx'));
-/**
- * Overrides which TypeScript package parses the scripts:
- * a module specifier (e.g. `@typescript/native`) or the path of a package directory
- */
-const typescriptSpecifier = process.env.SVELTE_CONTENT_MAPPER_TYPESCRIPT || 'typescript';
-/** Keyed by the path of the TypeScript package.json, so projects using the same TypeScript share it */
-const transformers = new Map<string, Promise<Transformer>>();
+const svelte2tsxDir = path.dirname(require.resolve('svelte2tsx/package.json'));
+/** Keyed by the TypeScript package directory, so projects using the same TypeScript share it */
+const typescriptFacades = new Map<string, Promise<TsFacade>>();
 
 async function createProjectContext(resolveTarget: string): Promise<ProjectContext> {
     const paths = [path.dirname(resolveTarget), mapperDir];
@@ -211,28 +236,23 @@ async function createProjectContext(resolveTarget: string): Promise<ProjectConte
         svelte2tsxDir,
         resolveTarget
     );
-    const transformer = await getTransformer(paths);
-    return { ...transformer, compiler, isSvelte3, globalTypes };
+    const typescript = await getTypeScriptFacade(paths);
+    return { compiler, isSvelte3, globalTypes, typescript };
 }
 
 /**
- * svelte2tsx with the TypeScript the project uses: with TypeScript 7.1+, it parses the scripts
- * with that one (`svelte2tsx/tsgo`), so that it understands the same syntax as the TypeScript
- * running this mapper. Otherwise, it uses TypeScript 6 (`svelte2tsx`).
+ * svelte2tsx parses the scripts with the project's TypeScript 7.1+ (see `findTypeScript`), so that
+ * it understands the same syntax as the TypeScript running this mapper.
+ *
+ * Throws if there is none; the transform then reports that as a diagnostic.
  */
-function getTransformer(paths: string[]): Promise<Transformer> {
-    let packageJsonPath = '';
-    try {
-        packageJsonPath = require.resolve(
-            path.isAbsolute(typescriptSpecifier)
-                ? path.join(typescriptSpecifier, 'package.json')
-                : `${typescriptSpecifier}/package.json`,
-            { paths }
-        );
-    } catch {
-        // no TypeScript in the project, use svelte2tsx's
-    }
-    return getOrCreate(transformers, packageJsonPath, () => createTransformer(packageJsonPath));
+function getTypeScriptFacade(paths: string[]): Promise<TsFacade> {
+    const { packageDir, version } = findTypeScript(paths);
+    return getOrCreate(typescriptFacades, packageDir, async () => {
+        const typescript = await createTsgoFacade({ typescript: packageDir });
+        console.warn(`Parsing with TypeScript ${version} (${packageDir})`);
+        return typescript;
+    });
 }
 
 /** Caches the promise, but not a failure (e.g. Svelte not installed yet): that's retried next time */
@@ -253,27 +273,6 @@ function getOrCreate<T>(
         promise = created;
     }
     return promise;
-}
-
-async function createTransformer(packageJsonPath: string): Promise<Transformer> {
-    const version: string | undefined = packageJsonPath
-        ? JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8')).version
-        : undefined;
-    const [major, minor] = (version ?? '0.0').split('.').map(Number);
-    if (major > 7 || (major === 7 && minor >= 1)) {
-        try {
-            const typescript = createTsgoFacade({ typescript: path.dirname(packageJsonPath) });
-            console.warn(`Parsing with TypeScript ${version} (${packageJsonPath})`);
-            return { svelte2tsx: svelte2tsxTs7, typescript };
-        } catch (error) {
-            console.warn(
-                `Could not load TypeScript ${version} (${packageJsonPath}), using TypeScript 6:`,
-                error
-            );
-        }
-    }
-    const { svelte2tsx } = await import('svelte2tsx');
-    return { svelte2tsx };
 }
 
 /** `ts.sys` for `get_global_types`, without loading TypeScript */
@@ -355,56 +354,44 @@ function stripJsonComments(text: string): string {
     return result;
 }
 
-/** The `compilerOptions` of the Svelte config that svelte2tsx needs */
-interface SvelteCompilerOptions {
-    namespace?: unknown;
-    accessors?: unknown;
-    customElement?: unknown;
-}
-
 /**
- * The Svelte config of a TS project: the one next to its tsconfig, or above. Loaded once per
- * project, so changes to it need a restart of the TS server.
+ * The Svelte config of a TS project: the one next to its tsconfig, or above (loaded by `openProject`).
+ * The inferred project has no tsconfig, it uses the directory of its first file.
  */
 function getSvelteCompilerOptions(
     project: Project | undefined,
     fileName: string
 ): Promise<SvelteCompilerOptions> {
+    const load = (dir: string) =>
+        loadProjectSvelteConfig(dir).then((config) => config.compilerOptions);
     if (!project) {
-        return loadSvelteCompilerOptions(path.dirname(fileName));
+        return load(path.dirname(fileName));
     }
-    // The inferred project has no tsconfig, use the directory of its first file
-    project.svelteOptions ??= loadSvelteCompilerOptions(
-        path.dirname(project.params.configFileName || fileName)
-    );
+    project.svelteOptions ??= load(path.dirname(project.params.configFileName || fileName));
     return project.svelteOptions;
 }
 
-async function loadSvelteCompilerOptions(dir: string): Promise<SvelteCompilerOptions> {
-    try {
-        // The Svelte options of the `vite.config` (vite-plugin-svelte or SvelteKit), else the
-        // `svelte.config`, in this directory or above
-        const result = await loadConfig(dir);
-        if (result && 'config' in result) {
-            return (result.config.compilerOptions ?? {}) as SvelteCompilerOptions;
-        }
-        if (result) {
-            console.warn(`Error loading the Svelte config ${result.configFilePath}:`, result.error);
-        }
-    } catch (error) {
-        console.warn(`Error loading the Svelte config for ${dir}:`, error);
-    }
-    return {};
-}
-
-/** Like TS6: `accessors`, else `customElement` (custom elements have accessors) */
+/**
+ * Like TS6: `accessors`, else `customElement` (custom elements have accessors), which can also be a
+ * function of the file name (`(options: { filename: string }) => boolean` in Svelte 5)
+ */
 function getAccessors(options: SvelteCompilerOptions, fileName: string): boolean | undefined {
-    const accessors =
-        options.accessors ??
-        (typeof options.customElement === 'function'
-            ? options.customElement({ filename: fileName })
-            : options.customElement);
-    return accessors == null ? undefined : !!accessors;
+    if (options.accessors !== undefined) {
+        return options.accessors;
+    }
+    let customElement = options.customElement;
+    if (typeof customElement === 'function') {
+        try {
+            customElement = customElement({ filename: fileName });
+        } catch (error) {
+            console.warn(
+                `compilerOptions.customElement of the Svelte config threw for ${fileName}:`,
+                error
+            );
+            return undefined;
+        }
+    }
+    return customElement == null ? undefined : !!customElement;
 }
 
 function getScriptExtension(

@@ -3,7 +3,8 @@
     "version": "0.1.0",
     "description": "",
     "scripts": {
-        "build": "tsc"
+        "build": "tsc",
+        "test": "tsc && node --test \"test/**/*.test.mjs\""
     },
     "keywords": [],
     "author": "",
@@ -18,13 +19,16 @@
                 "node",
                 "dist/server.js"
             ],
-            "compilerOptions": []
+            "compilerOptions": [],
+            "extensions": [
+                ".svelte"
+            ],
+            "dynamicConfig": true
         }
     },
     "dependencies": {
         "@sveltejs/load-config": "workspace:^",
         "svelte2tsx": "workspace:~",
-        "typescript": "~6.0.2",
         "vscode-jsonrpc": "^8.2.0"
     },
     "devDependencies": {
