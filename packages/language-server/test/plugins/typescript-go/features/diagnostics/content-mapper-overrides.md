@@ -7,7 +7,6 @@
 ## By design
 
 -   `fixtures/parser-error`, `fixtures/svelte-element-error`: the Svelte plugin reports the compiler error, the middleware drops the mapper's duplicate. TS6 reported it as a TS diagnostic, too.
--   `fixtures/actions-animations-transitions-typechecks`: an element that doesn't fit a `transition:`/`use:` function is reported on the directive name, instead of TS6's empty range next to it.
 
 ## Not handled yet
 

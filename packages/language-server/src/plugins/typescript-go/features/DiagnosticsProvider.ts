@@ -26,6 +26,7 @@ import { FileMap, FileSet } from '../../../lib/documents/fileCollection';
 import { Logger } from '../../../logger';
 import {
     clamp,
+    isPositionEqual,
     memoize,
     normalizePath,
     passMap,
@@ -55,6 +56,7 @@ import {
     isInReactiveStatement,
     isReactiveStatement
 } from './utils';
+import { getAttributeContextAtPosition } from '../../../lib/documents/parseHtml';
 
 const VIRTUAL_SUFFIX = '_virtual__';
 const SVELTE_EXT_LENGTH = '.svelte'.length;
@@ -837,6 +839,9 @@ function mapAndFilterDiagnostics(
         if (!hasNoNegativeLines(diagnostic) || !noFalsePositive(diagnostic)) {
             continue;
         }
+        if (isPositionEqual(diagnostic.range.start, diagnostic.range.end)) {
+            adjustDirectiveRange(diagnostic, document);
+        }
 
         diagnostic = adjustIfNecessary(diagnostic, tsDoc.isSvelte5Plus);
         diagnostic = swapDiagRangeStartEndIfNecessary(diagnostic);
@@ -844,6 +849,29 @@ function mapAndFilterDiagnostics(
     }
 
     return converted;
+}
+
+function adjustDirectiveRange(diagnostic: Diagnostic, document: Document) {
+    const attributeContext = getAttributeContextAtPosition(document, diagnostic.range.start);
+    if (!attributeContext || attributeContext.inValue) {
+        return;
+    }
+
+    const colonIndex = attributeContext.name.indexOf(':');
+    if (colonIndex === -1) {
+        return;
+    }
+
+    const attributeStart = document
+        .getText()
+        .lastIndexOf(attributeContext.name, document.offsetAt(diagnostic.range.start));
+    const end = attributeStart + attributeContext.name.length;
+    const start = attributeContext.name.startsWith('bind:')
+        ? attributeStart
+        : attributeStart + colonIndex + 1;
+
+    diagnostic.range.start = document.positionAt(start);
+    diagnostic.range.end = document.positionAt(end);
 }
 
 function flattenDiagnosticMessage(diag: tsApiSync.Diagnostic, level = 0): string {

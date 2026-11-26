@@ -1,6 +1,6 @@
 [
     {
-        "range": { "start": { "line": 9, "character": 19 }, "end": { "line": 9, "character": 19 } },
+        "range": { "start": { "line": 9, "character": 16 }, "end": { "line": 9, "character": 20 } },
         "severity": 1,
         "source": "ts",
         "message": "Argument of type 'HTMLDivElement' is not assignable to parameter of type 'SVGElement & { getTotalLength(): number; }'.\n  Type 'HTMLDivElement' is missing the following properties from type 'SVGElement': ownerSVGElement, viewportElement",
@@ -9,8 +9,8 @@
     },
     {
         "range": {
-            "start": { "line": 14, "character": 12 },
-            "end": { "line": 14, "character": 12 }
+            "start": { "line": 14, "character": 7 },
+            "end": { "line": 14, "character": 13 }
         },
         "severity": 1,
         "source": "ts",

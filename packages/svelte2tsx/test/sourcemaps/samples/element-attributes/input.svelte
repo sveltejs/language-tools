@@ -23,3 +23,7 @@
 <element 
     bind:foo={bar}
 />
+
+<input
+	bind:checked={v}
+/>
