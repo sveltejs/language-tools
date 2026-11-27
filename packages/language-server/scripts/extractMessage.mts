@@ -49,10 +49,14 @@ for (const local of locals) {
 
 const json = JSON.stringify(result, null, 2);
 const text = [
+    '// the content is generated from TypeScript localization files',
+    '// original URL: https://github.com/microsoft/TypeScript/tree/main/tsc/internal/diagnostics',
+    '',
     'export const tsLocals = ' + JSON.stringify(locals, null, 2) + ' as const;',
     'export type TsLocals = (typeof tsLocals)[number];',
     'export type MessageKey = ' + keeps.map((k) => `'${k}'`).join(' | ') + ';',
     'export const localizedMessages: Record<TsLocals, Record<MessageKey, string>> = ' + json,
+    '',
     'export function getFormatTemplate(locale: TsLocals, key: MessageKey): string {',
     "    return localizedMessages[locale]?.[key] ?? localizedMessages['']?.[key];",
     '}'

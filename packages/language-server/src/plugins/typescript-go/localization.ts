@@ -1,3 +1,6 @@
+// the content is generated from TypeScript localization files
+// original URL: https://github.com/microsoft/TypeScript/tree/main/tsc/internal/diagnostics
+
 export const tsLocals = [
     '',
     'cs-CZ',
@@ -135,6 +138,7 @@ export const localizedMessages: Record<TsLocals, Record<MessageKey, string>> = {
         '1_reference_95199': '1 個參考'
     }
 };
+
 export function getFormatTemplate(locale: TsLocals, key: MessageKey): string {
     return localizedMessages[locale]?.[key] ?? localizedMessages['']?.[key];
 }
