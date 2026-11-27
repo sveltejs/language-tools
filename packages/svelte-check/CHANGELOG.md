@@ -1,5 +1,15 @@
 # Changelog
 
+## 4.7.9
+
+### Patch Changes
+
+-   fix: avoid repeating parsing in --tsgo/--incremental ([#3204](https://github.com/sveltejs/language-tools/pull/3204))
+
+-   fix: report no input files in --tsgo-experimental-api ([#3205](https://github.com/sveltejs/language-tools/pull/3205))
+
+-   fix: resolve `.svelte` files imported through package.json `imports` (e.g. `#lib/*`) with `--tsgo` / `--incremental` ([#3143](https://github.com/sveltejs/language-tools/pull/3143))
+
 ## 4.7.8
 
 ### Patch Changes
