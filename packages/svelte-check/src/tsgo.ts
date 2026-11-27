@@ -16,16 +16,23 @@ interface PkgInfo {
     bin: Record<string, string>;
 }
 
-export function tryParseTsGoVersion(tsconfigPath: string): PkgInfo | null {
+/**
+ * package.json `name` of each accepted TypeScript 7 package, mapped to its compiler bin.
+ * `typescript` also covers the `@typescript/native` alias. tsrs is a Rust port of TypeScript 7.
+ */
+export const TS7_BINS: Record<string, string> = {
+    typescript: 'tsc',
+    '@typescript/native-preview': 'tsgo',
+    tsrs: 'tsrs'
+};
+
+export function tryParseTs7Version(tsconfigPath: string): PkgInfo | null {
     const pkg =
         tryParsePkg(tsconfigPath, '@typescript/native') ??
-        tryParsePkg(tsconfigPath, '@typescript/native-preview');
+        tryParsePkg(tsconfigPath, '@typescript/native-preview') ??
+        tryParsePkg(tsconfigPath, 'tsrs');
 
-    if (
-        pkg &&
-        (pkg.pkgJsonName === 'typescript' || pkg.pkgJsonName === '@typescript/native-preview') &&
-        pkg.major >= 7
-    ) {
+    if (pkg && pkg.pkgJsonName in TS7_BINS && pkg.major >= 7) {
         return pkg;
     }
 

@@ -25,7 +25,7 @@ import {
     tryLoadApi as tryLoadTsApi,
     tryLoadAst as tryLoadTsAst,
     tryLoadFs as tryLoadTsFs,
-    tryParseTsGoVersion
+    tryParseTs7Version
 } from './tsgo';
 
 /**
@@ -508,7 +508,7 @@ export async function run(opts: SvelteCheckCliOptions) {
         if (opts.tsgo) {
             throw new Error('--tsgo-experimental-api cannot be used with --tsgo');
         }
-        const pkg = tryParseTsGoVersion(opts.tsconfig);
+        const pkg = tryParseTs7Version(opts.tsconfig);
         if (!pkg) {
             throw new Error(formatTsGoNotFoundError('--tsgo-experimental-api'));
         }
