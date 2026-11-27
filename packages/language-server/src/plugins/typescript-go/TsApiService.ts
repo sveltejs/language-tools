@@ -1,5 +1,6 @@
 import { Logger } from '../../logger';
 import { LSConfigManager, TSUserConfig } from '../../ls-config';
+import { getFormatTemplate, MessageKey } from './localization';
 import type { tsApiAsync, tsAst } from './types';
 
 interface TsModules {
@@ -105,6 +106,16 @@ export class TsApiService {
 
     async dispose(): Promise<void> {
         await this.tsApi.close();
+    }
+
+    localeMessage(key: MessageKey, ...args: Array<string | number>): string {
+        const locale = this.configManager.getTsLocale();
+        const template = getFormatTemplate(locale, key);
+        let result = template;
+        for (let i = 0; i < args.length; i++) {
+            result = result.replace(`{${i}}`, args[i].toString());
+        }
+        return result;
     }
 
     getUserPreferences(sourceFile: tsAst.SourceFile): TSUserConfig {
