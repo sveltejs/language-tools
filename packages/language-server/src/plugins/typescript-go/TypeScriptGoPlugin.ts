@@ -4,6 +4,7 @@ import {
     CodeActionContext,
     CodeActionKind,
     CodeLens,
+    Hover,
     Location,
     Range,
     Position,
@@ -18,6 +19,7 @@ import {
     FileRename,
     FindComponentReferencesProvider,
     FindReferencesProvider,
+    HoverProvider,
     UpdateImportsProvider
 } from '../interfaces';
 import { TsApiService } from './TsApiService';
@@ -27,6 +29,7 @@ import { TsGoCodeLensProvider } from './features/CodeLensProvider';
 import { TsGoFileReferencesProvider } from './features/FileReferencesProvider';
 import { TsGoUpdateImportsProvider } from './features/UpdateImportsProvider';
 import { getAddLangTsCodeAction } from './features/AddLangTsCodeAction';
+import { getFallbackHover } from './features/HoverProvider';
 
 export class TypeScriptGoPlugin
     implements
@@ -35,9 +38,13 @@ export class TypeScriptGoPlugin
         FindComponentReferencesProvider,
         FindReferencesProvider,
         FileReferencesProvider,
+        HoverProvider,
         UpdateImportsProvider
 {
-    constructor(apiService: TsApiService, configManager: LSConfigManager) {
+    constructor(
+        private readonly apiService: TsApiService,
+        configManager: LSConfigManager
+    ) {
         const findComponentReferencesProvider = new TsGoComponentReferenceProvider(apiService);
         this.findComponentReferencesProvider = findComponentReferencesProvider;
         this.fileReferencesProvider = new TsGoFileReferencesProvider(apiService);
@@ -59,6 +66,11 @@ export class TypeScriptGoPlugin
     /** Edits in Svelte files only (TS7 does the rest), before the rename, see the provider */
     updateImports(fileRename: FileRename): Promise<WorkspaceEdit | null> {
         return this.updateImportsProvider.updateImports(fileRename);
+    }
+
+    /** Only where TS7 has no hover: custom element tags, `on:event` on components */
+    doHover(document: Document, position: Position): Promise<Hover | null> {
+        return getFallbackHover(this.apiService, document, position);
     }
 
     /** Only the actions TS7 can't offer (it serves the rest itself) */

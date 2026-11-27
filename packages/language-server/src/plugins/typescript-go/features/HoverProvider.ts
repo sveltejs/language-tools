@@ -6,7 +6,7 @@ import type { tsApiAsync } from '../types';
 
 /**
  * Hovers TS7 doesn't give in Svelte files (it returns null there), which the TS6 `HoverProvider`
- * added from the checker:
+ * added from the checker. What this does:
  * - a custom element tag (`<custom-element>`): the documentation of its
  *   `svelteHTML.IntrinsicElements` entry. (Its attributes do get TS7 hovers.)
  * - an `on:event` directive on a component (Svelte 4 style events): the event's type and docs, from

@@ -168,9 +168,10 @@ function getModuleSpecifier(
 }
 
 /**
- * Whether TypeScript reports semantic errors for the file: not with a `// @ts-nocheck` pragma (a
- * leading comment; svelte2tsx moves the script's to the top of the virtual code), JavaScript only
- * with `checkJs` or `// @ts-check`
+ * Whether TypeScript reports semantic errors for the file: like TypeScript, the last of the
+ * `// @ts-check` and `// @ts-nocheck` pragmas decides (leading comments; svelte2tsx moves the
+ * script's to the top of the virtual code). Without either, TypeScript is checked and JavaScript
+ * only with `checkJs`.
  */
 function isChecked(
     ast: TsApiAccess['astModule'],
@@ -178,15 +179,18 @@ function isChecked(
     checkJs: boolean | undefined
 ): boolean {
     const text = sourceFile.text;
-    const pragmas = (ast.getLeadingCommentRanges(text, 0) ?? []).map((comment) =>
-        text.slice(comment.pos, comment.end)
-    );
-    if (pragmas.some((pragma) => /^\/\/\s*@ts-nocheck\b/.test(pragma))) {
-        return false;
+    const pragma = (ast.getLeadingCommentRanges(text, 0) ?? [])
+        .map((comment) =>
+            /^\/\/\s*@ts-(nocheck|check)\b/.exec(text.slice(comment.pos, comment.end))
+        )
+        .filter((match) => match !== null)
+        .pop();
+    if (pragma) {
+        return pragma[1] === 'check';
     }
     const isJs =
         sourceFile.scriptKind === ast.ScriptKind.JS || sourceFile.scriptKind === ast.ScriptKind.JSX;
-    return !isJs || !!checkJs || pragmas.some((pragma) => /^\/\/\s*@ts-check\b/.test(pragma));
+    return !isJs || !!checkJs;
 }
 
 /** A `// @ts-ignore` / `// @ts-expect-error` comment of `statement`, on the line above `specifier` */

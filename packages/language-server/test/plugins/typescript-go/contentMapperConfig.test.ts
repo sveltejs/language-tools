@@ -50,6 +50,67 @@ describe('findContentMapperCandidates', () => {
         );
     });
 
+    describe('registration inherited through extends', () => {
+        const folders = () => [{ name: '', uri: pathToUrl(root) }];
+        const found = () =>
+            findContentMapperCandidates(folders()).map((c) => path.relative(root, c));
+
+        it('relative, with and without .json (SvelteKit)', () => {
+            write(path.join(root, '.svelte-kit/tsconfig.json'), { contentMappers: [mapper] });
+            write(path.join(root, 'tsconfig.json'), { extends: './.svelte-kit/tsconfig.json' });
+            write(path.join(root, 'tsconfig.app.json'), { extends: './.svelte-kit/tsconfig' });
+            assert.deepStrictEqual(found(), ['tsconfig.json', 'tsconfig.app.json']);
+            // the workspace config is reported, not the extended one
+            assert.deepStrictEqual(checkContentMapperConfig(folders()), {
+                configFile: path.join(root, 'tsconfig.json')
+            });
+        });
+
+        it('a chain of two, and comments in the config', () => {
+            write(path.join(root, 'configs/svelte.json'), { contentMappers: [mapper] });
+            write(path.join(root, 'configs/base.json'), { extends: './svelte.json' });
+            write(
+                path.join(root, 'tsconfig.json'),
+                '// comment\n{\n  /* c */ "extends": "./configs/base.json", // trailing\n}\n'
+            );
+            assert.deepStrictEqual(found(), ['tsconfig.json']);
+        });
+
+        it('an array', () => {
+            write(path.join(root, 'strict.json'), { compilerOptions: { strict: true } });
+            write(path.join(root, 'svelte.json'), { contentMappers: [mapper] });
+            write(path.join(root, 'tsconfig.json'), {
+                extends: ['./strict.json', './svelte.json']
+            });
+            assert.deepStrictEqual(found(), ['tsconfig.json']);
+        });
+
+        it('a package in node_modules, by name or by its tsconfig.json', () => {
+            write(path.join(root, 'node_modules/@my/tsconfig/package.json'), {
+                name: '@my/tsconfig'
+            });
+            write(path.join(root, 'node_modules/@my/tsconfig/tsconfig.json'), {
+                contentMappers: [mapper]
+            });
+            write(path.join(root, 'tsconfig.json'), { extends: '@my/tsconfig' });
+            write(path.join(root, 'app/tsconfig.json'), {
+                extends: '@my/tsconfig/tsconfig.json'
+            });
+            assert.deepStrictEqual(found(), ['tsconfig.json', path.join('app', 'tsconfig.json')]);
+        });
+
+        it('a cycle ends, an unresolvable entry is skipped', () => {
+            write(path.join(root, 'a.json'), { extends: './b.json' });
+            write(path.join(root, 'b.json'), { extends: './a.json' });
+            write(path.join(root, 'tsconfig.json'), { extends: './a.json' });
+            write(path.join(root, 'svelte.json'), { contentMappers: [mapper] });
+            write(path.join(root, 'tsconfig.app.json'), {
+                extends: ['./missing.json', 'no-such-package', './svelte.json']
+            });
+            assert.deepStrictEqual(found(), ['tsconfig.app.json']);
+        });
+    });
+
     it('checkContentMapperConfig: on with the first candidate, off without one', () => {
         const folders = [{ name: '', uri: pathToUrl(root) }];
         assert.deepStrictEqual(checkContentMapperConfig(folders), { configFile: undefined });

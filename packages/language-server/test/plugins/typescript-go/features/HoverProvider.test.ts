@@ -8,6 +8,11 @@ import { pathToUrl } from '../../../../src/utils';
 import { TemplateASTParseLoader } from '../../../../src/plugins/svelte/TemplateASTLoader';
 import { TsgoResponseTransformer } from '../../../../src/plugins/typescript-go/middleware';
 import { TsApiService } from '../../../../src/plugins/typescript-go/TsApiService';
+import { FileSystemProvider } from '../../../../src/lib/FileSystemProvider';
+import { HTMLPlugin } from '../../../../src/plugins/html/HTMLPlugin';
+import { PluginHost } from '../../../../src/plugins/PluginHost';
+import { SveltePlugin } from '../../../../src/plugins/svelte/SveltePlugin';
+import { TypeScriptGoPlugin } from '../../../../src/plugins/typescript-go/TypeScriptGoPlugin';
 import { createTsApiServiceForTest, setupSharedServices } from '../test-utils';
 import assert from 'assert';
 
@@ -29,9 +34,11 @@ describe('HoverProvider (TS GO)', function () {
         }
     });
 
-    // Content mapper mode: TS7's hover goes through the middleware (hover fallbacks with the API)
+    // Content mapper mode: TS7's hover goes through the middleware; the hovers TS7 doesn't give are
+    // the Svelte language server's own (plugins in the server's order, the first answer counts)
     let api: TsApiService | undefined;
     let transformer: TsgoResponseTransformer | undefined;
+    let pluginHost: PluginHost | undefined;
     before(async () => {
         const { service, docManager, lsConfigManager } = getServices();
         api = await createTsApiServiceForTest(service, lsConfigManager);
@@ -41,7 +48,26 @@ describe('HoverProvider (TS GO)', function () {
             { findDocumentHighlight: async () => null },
             api
         );
+        pluginHost = new PluginHost(docManager);
+        pluginHost.initialize({ filterIncompleteCompletions: true, definitionLinkSupport: true });
+        pluginHost.register(
+            new SveltePlugin(lsConfigManager, new TemplateASTParseLoader(docManager))
+        );
+        pluginHost.register(
+            new HTMLPlugin(docManager, lsConfigManager, new FileSystemProvider(), [])
+        );
+        pluginHost.register(new TypeScriptGoPlugin(api!, lsConfigManager));
     });
+
+    /** TS7's own hover (none) and the Svelte language server's */
+    async function bothServers(document: Document, position: Position) {
+        const ts7 = await getServices().service.sendRequest(HoverRequest.type, {
+            textDocument: { uri: document.getURL() },
+            position
+        });
+        const svelte = await pluginHost!.doHover({ uri: document.getURL() }, position);
+        return { ts7, svelte };
+    }
     after(async () => {
         await api?.dispose().catch(() => {});
     });
@@ -129,11 +155,13 @@ describe('HoverProvider (TS GO)', function () {
         });
     });
 
-    // TS7 returns nothing here; the middleware adds it from the TS7 API (middleware/hover.ts)
+    // TS7 returns nothing here; the Svelte LS answers from the TS7 API (features/HoverProvider.ts)
     it('provides formatted hover info for component events', async () => {
-        const { provider, document } = setup('hoverinfo.svelte');
+        const { document } = setup('hoverinfo.svelte');
 
-        assert.deepStrictEqual(await provider.doHover(document, Position.create(12, 26)), <Hover>{
+        const { ts7, svelte } = await bothServers(document, Position.create(12, 26));
+        assert.strictEqual(ts7, null);
+        assert.deepStrictEqual(svelte, <Hover>{
             contents: {
                 kind: 'markdown',
                 value: '```typescript\nabc: MouseEvent\n```\nTEST\n```ts\nconst abc: boolean = true;\n```'
@@ -264,11 +292,13 @@ describe('HoverProvider (TS GO)', function () {
         });
     });
 
-    // TS7 returns nothing here; the middleware adds it from the TS7 API (middleware/hover.ts)
+    // TS7 returns nothing here; the Svelte LS answers from the TS7 API (features/HoverProvider.ts)
     it('provides formatted hover info for custom elements', async () => {
-        const { provider, document } = setup('hoverinfo.svelte');
+        const { document } = setup('hoverinfo.svelte');
 
-        assert.deepStrictEqual(await provider.doHover(document, Position.create(13, 7)), <Hover>{
+        const { ts7, svelte } = await bothServers(document, Position.create(13, 7));
+        assert.strictEqual(ts7, null);
+        assert.deepStrictEqual(svelte, <Hover>{
             contents: {
                 value: 'Custom doc for custom element',
                 kind: 'markdown'

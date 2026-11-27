@@ -7,7 +7,6 @@ import {
     DocumentHighlightParams,
     DocumentSymbol,
     DocumentSymbolParams,
-    Hover,
     Position,
     SymbolInformation,
     TextDocumentIdentifier,
@@ -16,7 +15,6 @@ import {
 import { DocumentManager, getNodeIfIsInHTMLStartTag } from '../../../lib/documents';
 import { dedupeStartTagCompletions, TsgoCompletionResult } from './completions';
 import { getLostDocumentSymbols, mergeDocumentSymbols } from './documentSymbols';
-import { getFallbackHover } from './hover';
 import { Logger } from '../../../logger';
 import { TemplateAstLoader } from '../../svelte/TemplateASTLoader';
 import { TsApiService } from '../TsApiService';
@@ -121,10 +119,7 @@ export class TsgoResponseTransformer {
                 case 'textDocument/signatureHelp':
                     return transformSignatureHelp(result as any);
                 case 'textDocument/hover':
-                    return await this.transformHover(
-                        params as TextDocumentPositionParams,
-                        result as Hover | null
-                    );
+                    return transformHover(result as any);
                 case 'textDocument/inlayHint':
                     return transformInlayHints(result as any);
                 case 'textDocument/typeDefinition':
@@ -221,18 +216,6 @@ export class TsgoResponseTransformer {
                   items: addUnresolvedSvelteImports(transformed.items, unresolved)
               }
             : transformed;
-    }
-
-    private async transformHover(
-        params: TextDocumentPositionParams,
-        result: Hover | null
-    ): Promise<Hover | null> {
-        const transformed = transformHover(result as any) as Hover | null;
-        const document = this.docManager.get(params.textDocument.uri);
-        if (transformed || !document || !this.tsApi) {
-            return transformed;
-        }
-        return getFallbackHover(this.tsApi, document, params.position);
     }
 
     /** Only forwarded by the client at start tag positions, see `dedupeStartTagCompletions` */

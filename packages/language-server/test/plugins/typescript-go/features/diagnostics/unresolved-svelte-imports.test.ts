@@ -121,6 +121,13 @@ import {
             assert.deepStrictEqual(await getDiagnostics(path.join(project, 'NoCheck.svelte')), []);
         });
 
+        it('the last of @ts-check and @ts-nocheck wins, like TypeScript', async () => {
+            const summary = async (name: string) =>
+                summarize(await getDiagnostics(path.join(project, `${name}.svelte`)));
+            assert.deepStrictEqual(await summary('NocheckThenCheck'), ['3:24-3:42 2307']);
+            assert.deepStrictEqual(await summary('CheckThenNocheck'), []);
+        });
+
         it('decides like TypeScript whether the file is checked (pragmas, script kind)', async () => {
             const summary = async (name: string) =>
                 summarize(await getDiagnostics(path.join(project, `${name}.svelte`)));

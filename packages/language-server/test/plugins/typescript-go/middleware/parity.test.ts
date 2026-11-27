@@ -18,6 +18,7 @@ import { SveltePlugin } from '../../../../src/plugins/svelte/SveltePlugin';
 import { TsgoResponseTransformer } from '../../../../src/plugins/typescript-go/middleware';
 import { dedupeStartTagCompletions } from '../../../../src/plugins/typescript-go/middleware/completions';
 import { TsApiService } from '../../../../src/plugins/typescript-go/TsApiService';
+import { TypeScriptGoPlugin } from '../../../../src/plugins/typescript-go/TypeScriptGoPlugin';
 import { TsGoFileReferencesProvider } from '../../../../src/plugins/typescript-go/features/FileReferencesProvider';
 import {
     TsGoUpdateImportsProvider,
@@ -94,6 +95,8 @@ describe('TS7 feature parity in content mapper mode (middleware)', function () {
             services.docManager.openClientDocument({ uri: uriOf(file), text: textOf(file) });
         }
         api = await createTsApiServiceForTest(services.service, services.lsConfigManager);
+        // after Svelte and HTML, as in the server
+        pluginHost.register(new TypeScriptGoPlugin(api, services.lsConfigManager));
         transformer = new TsgoResponseTransformer(
             services.docManager,
             new TemplateASTParseLoader(services.docManager),
@@ -351,11 +354,15 @@ describe('TS7 feature parity in content mapper mode (middleware)', function () {
     });
 
     describe('component event hover', () => {
+        /** TS7's own hover and the Svelte language server's (the first plugin answer) */
         async function hoverAt(needle: string, delta: number) {
-            const { raw, result } = await request<Hover | null>('textDocument/hover', {
-                textDocument: { uri: uriOf('DottedEvents.svelte') },
-                position: positionOf('DottedEvents.svelte', needle, delta)
+            const textDocument = { uri: uriOf('DottedEvents.svelte') };
+            const position = positionOf('DottedEvents.svelte', needle, delta);
+            const { raw } = await request<Hover | null>('textDocument/hover', {
+                textDocument,
+                position
             });
+            const result = await pluginHost.doHover(textDocument, position);
             return { raw, value: (result?.contents as any)?.value as string | undefined };
         }
 
