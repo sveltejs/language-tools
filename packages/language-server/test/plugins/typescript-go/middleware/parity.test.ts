@@ -28,6 +28,7 @@ import { pathToUrl } from '../../../../src/utils';
 import {
     createTsApiServiceForTest,
     createTsGoServiceForTest,
+    isSvelte5Plus,
     TsGoServiceSetupResult
 } from '../test-utils';
 
@@ -127,7 +128,7 @@ describe('TS7 feature parity in content mapper mode (middleware)', function () {
         return { raw, result };
     }
 
-    describe('document symbols', () => {
+    (isSvelte5Plus ? describe : describe.skip)('document symbols', () => {
         it('TS7 alone drops the instance script (nested in the unmapped $$render)', async () => {
             const { raw } = await request<DocumentSymbol[]>('textDocument/documentSymbol', {
                 textDocument: { uri: uriOf('Symbols.svelte') }
@@ -295,7 +296,7 @@ describe('TS7 feature parity in content mapper mode (middleware)', function () {
         });
     });
 
-    describe('start tag completions', () => {
+    (isSvelte5Plus ? describe : describe.skip)('start tag completions', () => {
         async function completionsAt(needle: string, delta: number) {
             const position = positionOf('StartTag.svelte', needle, delta);
             const { raw, result } = await request<CompletionList>('textDocument/completion', {

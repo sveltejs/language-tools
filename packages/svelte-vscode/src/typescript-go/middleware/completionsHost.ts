@@ -87,7 +87,7 @@ export function createCompletionMiddleware(log: (message: string) => void) {
 }
 
 /** Same setting the TS6 path uses for new script tags (`getNewScriptStartTag`) */
-function getImportEditOptions(): ImportEditOptions {
+export function getImportEditOptions(): ImportEditOptions {
     const lang = vscode.workspace
         .getConfiguration('svelte.plugin.svelte')
         .get<string>('defaultScriptLanguage', 'none');

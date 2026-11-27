@@ -19,6 +19,11 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
+// The svelte-check processes started here inherit this environment. A `NODE_PATH` from the caller
+// (pnpm's `.bin` shims set one with the hoisted `node_modules/.pnpm/node_modules`) would let them
+// find packages that the test workspaces deliberately don't have, such as TypeScript 7.1.
+delete process.env.NODE_PATH;
+
 const CLI = path.join(__dirname, 'dist', 'src', 'index.js');
 const CONTENT_MAPPER = '@sveltejs/ts-content-mapper';
 const verbose = process.argv.includes('--verbose');

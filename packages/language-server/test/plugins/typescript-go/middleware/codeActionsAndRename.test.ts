@@ -15,119 +15,123 @@ import { pathToUrl } from '../../../../src/utils';
 import {
     createTsApiServiceForTest,
     createTsGoServiceForTest,
+    isSvelte5Plus,
     TsGoServiceSetupResult
 } from '../test-utils';
 
-describe('Add lang="ts" code action (content mapper mode, TS7 diagnostics)', function () {
-    this.timeout(20_000);
-    const testDir = path.join(__dirname, '..', 'parity');
-    const uriOf = (file: string) => pathToUrl(path.join(testDir, file));
-    const files = ['AddLang.svelte', 'AddLangTemplate.svelte', 'AddLangNoScript.svelte'];
+(isSvelte5Plus ? describe : describe.skip)(
+    'Add lang="ts" code action (content mapper mode, TS7 diagnostics)',
+    function () {
+        this.timeout(20_000);
+        const testDir = path.join(__dirname, '..', 'parity');
+        const uriOf = (file: string) => pathToUrl(path.join(testDir, file));
+        const files = ['AddLang.svelte', 'AddLangTemplate.svelte', 'AddLangNoScript.svelte'];
 
-    let services: TsGoServiceSetupResult;
-    let api: TsApiService;
-    let plugin: TypeScriptGoPlugin;
-    before(async () => {
-        services = await createTsGoServiceForTest(testDir);
-        for (const file of files) {
-            services.docManager.openClientDocument({
-                uri: uriOf(file),
-                text: fs.readFileSync(path.join(testDir, file), 'utf-8')
-            });
-        }
-        api = await createTsApiServiceForTest(services.service, services.lsConfigManager);
-        plugin = new TypeScriptGoPlugin(api, services.lsConfigManager);
-    });
-    after(async () => {
-        await api?.dispose().catch(() => {});
-        services?.service.dispose();
-    });
-
-    async function tsDiagnostics(file: string): Promise<Diagnostic[]> {
-        const report = await services.service.sendRequest(
-            new ProtocolRequestType<any, DocumentDiagnosticReport, never, void, void>(
-                'textDocument/diagnostic'
-            ),
-            { textDocument: { uri: uriOf(file) } }
-        );
-        return report.kind === 'full' ? report.items : [];
-    }
-
-    async function actionsFor(file: string, only?: string[]) {
-        const diagnostics = await tsDiagnostics(file);
-        const document = services.docManager.get(uriOf(file))!;
-        return {
-            diagnostics,
-            actions: plugin.getCodeActions(document, diagnostics[0]?.range ?? ({} as any), {
-                diagnostics,
-                only
-            })
-        };
-    }
-
-    const edits = (action: any) =>
-        (action.edit.documentChanges[0] as TextDocumentEdit).edits.map((e) => [
-            e.range.start.line,
-            e.range.start.character,
-            e.newText
-        ]);
-
-    it('adds lang="ts" to both script tags for a type annotation (TS8010)', async () => {
-        const { diagnostics, actions } = await actionsFor('AddLang.svelte', [
-            CodeActionKind.QuickFix
-        ]);
-        assert.ok(
-            diagnostics.some((d) => d.code === 8010),
-            JSON.stringify(diagnostics.map((d) => d.code))
-        );
-        assert.deepStrictEqual(
-            actions.map((a) => [a.title, a.kind]),
-            [['Add lang="ts" to <script> tag', CodeActionKind.QuickFix]]
-        );
-        assert.deepStrictEqual(edits(actions[0]), [
-            [0, 7, ' lang="ts"'],
-            [4, 7, ' lang="ts"']
-        ]);
-    });
-
-    it('for a TS-only expression in the template (TS8016)', async () => {
-        const { diagnostics, actions } = await actionsFor('AddLangTemplate.svelte');
-        assert.ok(
-            diagnostics.some((d) => Number(d.code) >= 8004 && Number(d.code) <= 8017),
-            JSON.stringify(diagnostics.map((d) => d.code))
-        );
-        assert.deepStrictEqual(edits(actions[0]), [[0, 7, ' lang="ts"']]);
-    });
-
-    it('adds a <script lang="ts"> tag to a document without script', async () => {
-        const { diagnostics, actions } = await actionsFor('AddLangNoScript.svelte');
-        assert.ok(
-            diagnostics.some((d) => Number(d.code) >= 8004 && Number(d.code) <= 8017),
-            JSON.stringify(diagnostics.map((d) => d.code))
-        );
-        assert.strictEqual(actions[0]?.title, 'Add <script lang="ts"> tag');
-        assert.deepStrictEqual(edits(actions[0]), [[0, 0, '<script lang="ts"></script>\n']]);
-    });
-
-    it('nothing without such a diagnostic, for other kinds, or for lang="ts" scripts', async () => {
-        const document = services.docManager.get(uriOf('AddLang.svelte'))!;
-        const { diagnostics } = await actionsFor('AddLang.svelte');
-        const range = diagnostics[0].range;
-        assert.deepStrictEqual(plugin.getCodeActions(document, range, { diagnostics: [] }), []);
-        assert.deepStrictEqual(
-            plugin.getCodeActions(document, range, {
-                diagnostics,
-                only: [CodeActionKind.SourceOrganizeImports]
-            }),
-            []
-        );
-        const ts = services.docManager.openClientDocument({
-            uri: uriOf('AddLangTs.svelte'),
-            text: '<script lang="ts">\n\tlet n: number = 1;\n</script>\n'
+        let services: TsGoServiceSetupResult;
+        let api: TsApiService;
+        let plugin: TypeScriptGoPlugin;
+        before(async () => {
+            services = await createTsGoServiceForTest(testDir);
+            for (const file of files) {
+                services.docManager.openClientDocument({
+                    uri: uriOf(file),
+                    text: fs.readFileSync(path.join(testDir, file), 'utf-8')
+                });
+            }
+            api = await createTsApiServiceForTest(services.service, services.lsConfigManager);
+            plugin = new TypeScriptGoPlugin(api, services.lsConfigManager);
         });
-        assert.deepStrictEqual(plugin.getCodeActions(ts, range, { diagnostics }), []);
-    });
-});
+        after(async () => {
+            await api?.dispose().catch(() => {});
+            services?.service.dispose();
+        });
+
+        async function tsDiagnostics(file: string): Promise<Diagnostic[]> {
+            const report = await services.service.sendRequest(
+                new ProtocolRequestType<any, DocumentDiagnosticReport, never, void, void>(
+                    'textDocument/diagnostic'
+                ),
+                { textDocument: { uri: uriOf(file) } }
+            );
+            return report.kind === 'full' ? report.items : [];
+        }
+
+        async function actionsFor(file: string, only?: string[]) {
+            const diagnostics = await tsDiagnostics(file);
+            const document = services.docManager.get(uriOf(file))!;
+            return {
+                diagnostics,
+                actions: plugin.getCodeActions(document, diagnostics[0]?.range ?? ({} as any), {
+                    diagnostics,
+                    only
+                })
+            };
+        }
+
+        const edits = (action: any) =>
+            (action.edit.documentChanges[0] as TextDocumentEdit).edits.map((e) => [
+                e.range.start.line,
+                e.range.start.character,
+                e.newText
+            ]);
+
+        it('adds lang="ts" to both script tags for a type annotation (TS8010)', async () => {
+            const { diagnostics, actions } = await actionsFor('AddLang.svelte', [
+                CodeActionKind.QuickFix
+            ]);
+            assert.ok(
+                diagnostics.some((d) => d.code === 8010),
+                JSON.stringify(diagnostics.map((d) => d.code))
+            );
+            assert.deepStrictEqual(
+                actions.map((a) => [a.title, a.kind]),
+                [['Add lang="ts" to <script> tag', CodeActionKind.QuickFix]]
+            );
+            assert.deepStrictEqual(edits(actions[0]), [
+                [0, 7, ' lang="ts"'],
+                [4, 7, ' lang="ts"']
+            ]);
+        });
+
+        it('for a TS-only expression in the template (TS8016)', async () => {
+            const { diagnostics, actions } = await actionsFor('AddLangTemplate.svelte');
+            assert.ok(
+                diagnostics.some((d) => Number(d.code) >= 8004 && Number(d.code) <= 8017),
+                JSON.stringify(diagnostics.map((d) => d.code))
+            );
+            assert.deepStrictEqual(edits(actions[0]), [[0, 7, ' lang="ts"']]);
+        });
+
+        it('adds a <script lang="ts"> tag to a document without script', async () => {
+            const { diagnostics, actions } = await actionsFor('AddLangNoScript.svelte');
+            assert.ok(
+                diagnostics.some((d) => Number(d.code) >= 8004 && Number(d.code) <= 8017),
+                JSON.stringify(diagnostics.map((d) => d.code))
+            );
+            assert.strictEqual(actions[0]?.title, 'Add <script lang="ts"> tag');
+            assert.deepStrictEqual(edits(actions[0]), [[0, 0, '<script lang="ts"></script>\n']]);
+        });
+
+        it('nothing without such a diagnostic, for other kinds, or for lang="ts" scripts', async () => {
+            const document = services.docManager.get(uriOf('AddLang.svelte'))!;
+            const { diagnostics } = await actionsFor('AddLang.svelte');
+            const range = diagnostics[0].range;
+            assert.deepStrictEqual(plugin.getCodeActions(document, range, { diagnostics: [] }), []);
+            assert.deepStrictEqual(
+                plugin.getCodeActions(document, range, {
+                    diagnostics,
+                    only: [CodeActionKind.SourceOrganizeImports]
+                }),
+                []
+            );
+            const ts = services.docManager.openClientDocument({
+                uri: uriOf('AddLangTs.svelte'),
+                text: '<script lang="ts">\n\tlet n: number = 1;\n</script>\n'
+            });
+            assert.deepStrictEqual(plugin.getCodeActions(ts, range, { diagnostics }), []);
+        });
+    }
+);
 
 describe('import updates across projects (content mapper mode)', function () {
     this.timeout(20_000);
