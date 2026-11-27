@@ -1,13 +1,18 @@
 {
     "name": "@sveltejs/ts-content-mapper",
     "version": "0.1.0",
-    "description": "",
+    "description": "Content mapper turning Svelte files into something TypeScript 7+ understands",
+    "homepage": "https://github.com/sveltejs/language-tools/tree/master/packages/typescript-content-mapper",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/sveltejs/language-tools.git"
+    },
     "scripts": {
         "build": "tsc"
     },
     "keywords": [],
     "author": "",
-    "license": "ISC",
+    "license": "MIT",
     "type": "module",
     "files": [
         "dist"
