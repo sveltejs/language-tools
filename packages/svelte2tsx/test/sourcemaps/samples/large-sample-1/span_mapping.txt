@@ -174,6 +174,7 @@
 >    // TODO is there a non-hacky way to trigger scroll when chapter changes?
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 >    ;() => {$: if (scrollable) chapter, scrollable.scrollTo(0, 0);}
+#            ~ [Ignore]
 #^^^^ [Verbatim] => 659-1262
 -
 -
@@ -207,8 +208,10 @@
 -
 -╚//•TODO•is•there•a•non-hacky•way•to•trigger•scroll•when•chapter•changes?
 -╚
-#            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ [Verbatim] => 1262-1316
--            $:•if•(scrollable)•chapter,•scrollable.scrollTo(0,•0);
+#            ^ [Verbatim] => 1262-1263
+-            $
+#             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ [Verbatim] => 1263-1316
+-             :•if•(scrollable)•chapter,•scrollable.scrollTo(0,•0);
 #                                                                  ^ [Atom] => 1316-1317
 -
 -
@@ -263,6 +266,7 @@
 >
 #
 >    ;() => {$: if (repl) {
+#            ~ [Ignore]
 #^^^^ [Verbatim] => 1693-1788
 -
 -
@@ -273,7 +277,9 @@
 -╚});
 -
 -╚
-#            ^^^^^^^^^^^^^^
+#            ^ [Verbatim] => 1788-1789
+-            $
+#             ^^^^^^^^^^^^^
 >        completed = false;
 #^^^^^^^^^^^^^^^^^^^^^^^^^^
 >        repl.set({
@@ -283,8 +289,8 @@
 >        });
 #^^^^^^^^^^^
 >    }}
-#^^^^^ [Verbatim] => 1788-1885
--$:•if•(repl)•{
+#^^^^^ [Verbatim] => 1789-1885
+-:•if•(repl)•{
 -╚╚completed•=•false;
 -╚╚repl.set({
 -╚╚╚components:•chapter.app_a.map(clone)

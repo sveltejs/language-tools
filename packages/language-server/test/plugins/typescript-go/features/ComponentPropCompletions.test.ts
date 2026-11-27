@@ -8,7 +8,7 @@ import {
     DocumentDiagnosticRequest
 } from 'vscode-languageserver';
 import { pathToUrl } from '../../../../src/utils';
-import { setupSharedServices } from '../test-utils';
+import { isSvelte5Plus, setupSharedServices } from '../test-utils';
 
 const testDir = path.join(__dirname, '..', 'testfiles', 'completions');
 
@@ -17,7 +17,7 @@ const testDir = path.join(__dirname, '..', 'testfiles', 'completions');
  * verbatim in the span map, also one-character ones, so TS7 maps the position exactly and offers the
  * props from the component's type
  */
-describe('Component prop completions (TS GO)', function () {
+(isSvelte5Plus ? describe : describe.skip)('Component prop completions (TS GO)', function () {
     const getServices = setupSharedServices(testDir);
 
     function open() {

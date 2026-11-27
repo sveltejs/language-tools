@@ -4,7 +4,7 @@
     "description": "",
     "scripts": {
         "build": "tsc",
-        "test": "tsc && node --test \"test/**/*.test.mjs\""
+        "test": "tsc && cross-env NODE_PATH= node --test \"test/**/*.test.mjs\""
     },
     "keywords": [],
     "author": "",
