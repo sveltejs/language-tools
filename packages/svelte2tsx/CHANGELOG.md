@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.7.64
+
+### Patch Changes
+
+-   feat: better content-mapper support ([#3192](https://github.com/sveltejs/language-tools/pull/3192))
+
+-   feat: experimental typescript 7 content mapper support ([#3111](https://github.com/sveltejs/language-tools/pull/3111))
+
+-   feat: tsgo entry point that requires TS 7.1 ([#3196](https://github.com/sveltejs/language-tools/pull/3196))
+
 ## 0.7.63
 
 ### Patch Changes
