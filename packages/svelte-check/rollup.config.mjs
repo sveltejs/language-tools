@@ -27,12 +27,19 @@ export default [
                     if (facade.endsWith('/src/ts7/index.ts')) {
                         return 'ts7.js';
                     }
-                    if (
-                        chunk.moduleIds.some((id) =>
-                            /\/svelte2tsx\/index\.m?js$/.test(id.replace(/\\/g, '/'))
-                        )
-                    ) {
+                    const has = (pattern) =>
+                        chunk.moduleIds.some((id) => pattern.test(id.replace(/\\/g, '/')));
+                    if (has(/\/svelte2tsx\/index\.m?js$/)) {
                         return 'svelte2tsx.js';
+                    }
+                    // svelte2tsx/tsgo, which the TS7 path loads on demand: it doesn't require
+                    // `typescript`, unlike svelte2tsx.js
+                    if (has(/\/svelte2tsx\/tsgo\.m?js$/)) {
+                        return 'svelte2tsx-tsgo.js';
+                    }
+                    // what both svelte2tsx entry points share
+                    if (has(/\/svelte2tsx\/dist\/common\.m?js$/)) {
+                        return 'svelte2tsx-common.js';
                     }
                     return '[name].js';
                 }

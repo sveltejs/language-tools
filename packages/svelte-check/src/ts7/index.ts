@@ -9,11 +9,11 @@ import {
     Result,
     writeDiagnostics
 } from '../output';
-import { loadTypeScript7, resolveTypeScript7 } from './typescript';
+import { loadTypeScript7, resolveTypeScript7, TypeScript7Package } from './typescript';
 import { watch } from './watch';
 
 /**
- * svelte-check on TypeScript 7 (`--experimental-ts7`): TypeScript diagnostics from the project's
+ * svelte-check on TypeScript 7 (`--experimental-ts7`, implied by TypeScript 7.1 as `typescript`): TypeScript diagnostics from the project's
  * TypeScript 7.1+ through its API, with `.svelte` files transformed by the content mapper that the
  * tsconfig configures.
  */
@@ -25,8 +25,15 @@ export async function run(opts: SvelteCheckCliOptions) {
     let svelteCheck: SvelteCheckTs7;
     try {
         assertSvelte5(tsconfig);
-        const typescript = await loadTypeScript7(resolveTypeScript7(tsconfig), tsconfig);
+        const typescriptPackage = resolveTypeScript7(tsconfig);
+        // which path runs, also when it's implied by TypeScript 7.1 as `typescript` (stderr keeps
+        // the machine-readable output as it is)
+        console.error(
+            `svelte-check: experimental TypeScript 7 support, with TypeScript ${typescriptPackage.version} (${typescriptPackage.moduleName})`
+        );
+        const typescript = await loadTypeScript7(typescriptPackage, tsconfig);
         ensureNodeOnPath();
+        setContentMapperTypeScript(typescriptPackage);
 
         svelteCheck = new SvelteCheckTs7(opts.workspaceUri.fsPath, {
             tsconfig,
@@ -80,6 +87,19 @@ function assertSvelte5(tsconfigPath: string) {
         );
     }
 }
+
+/**
+ * The content mapper parses the scripts of Svelte files with the TypeScript named by this variable
+ * (default: the first TypeScript 7.1+ it resolves from the project, as `typescript` or as the
+ * alias). Make that the exact TypeScript 7 that checks them. TypeScript starts the
+ * mapper with svelte-check's environment (svelte-check → TS7 API process → mapper process).
+ * A value the user set is kept.
+ */
+function setContentMapperTypeScript(pkg: TypeScript7Package) {
+    process.env[CONTENT_MAPPER_TYPESCRIPT_ENV] ??= path.dirname(pkg.packageJsonPath);
+}
+
+const CONTENT_MAPPER_TYPESCRIPT_ENV = 'SVELTE_CONTENT_MAPPER_TYPESCRIPT';
 
 /**
  * TypeScript starts the content mapper with the command in its package.json, `node …`. Make that

@@ -35,7 +35,7 @@
     },
     "peerDependencies": {
         "svelte": "^4.0.0 || ^5.0.0",
-        "typescript": "^5.0.0 || ^6.0.0"
+        "typescript": "^5.0.0 || ^6.0.0 || ^7.1.0-0"
     },
     "scripts": {
         "build": "cd ../load-config && pnpm build && cd ../svelte2tsx && pnpm build && cd ../language-server && pnpm build && cd ../svelte-check && rollup -c && pnpm test:sanity",
@@ -53,7 +53,7 @@
         "@rollup/plugin-typescript": "^10.0.0",
         "@sveltejs/ts-content-mapper": "workspace:^",
         "@types/sade": "^1.7.2",
-        "@typescript/native": "npm:typescript@7.1.0-beta",
+        "@typescript/native": "npm:typescript@7.1.0-dev.20261125.1",
         "rollup": "3.7.5",
         "rollup-plugin-cleanup": "^3.2.0",
         "rollup-plugin-copy": "^3.4.0",

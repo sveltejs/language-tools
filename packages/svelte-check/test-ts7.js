@@ -30,6 +30,7 @@ function packageDir(packageName) {
 
 const packages = {
     typescript71: packageDir('@typescript/native'),
+    typescript6: packageDir('typescript'),
     contentMapper: packageDir(CONTENT_MAPPER),
     svelte: packageDir('svelte')
 };
@@ -553,6 +554,95 @@ const simpleTsconfig = {
     include: ['**/*']
 };
 
+/** A `bind:` on a prop that isn't `$bindable()`: the error starts in generated code */
+const bindToNonBindableProp = {
+    'Child.svelte':
+        '<script lang="ts">\n\tlet { value }: { value: string } = $props();\n</script>\n\n<p>{value}</p>\n',
+    'Parent.svelte':
+        '<script lang="ts">\n\timport Child from "./Child.svelte";\n\tlet text = $state("a");\n</script>\n\n<Child bind:value={text} />\n'
+};
+
+/**
+ * Runs the TS7 path and records whether svelte-check's process loaded the `typescript` package
+ * itself: TypeScript 6's `lib/typescript.js`, or the main entry of any `typescript` (TypeScript 7's
+ * is only a version stub). Its API modules (`typescript/async`, `typescript/ast`) are fine.
+ *
+ * @param {string} workspace
+ * @returns {{ result: ReturnType<typeof runSvelteCheck>, loaded: string[] | undefined }}
+ */
+function runRecordingTypeScriptLoads(workspace) {
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'svelte-check-ts7-hook-'));
+    temporaryDirectories.push(directory);
+    const marker = path.join(directory, 'modules.json');
+    const hook = path.join(directory, 'hook.cjs');
+    fs.writeFileSync(
+        hook,
+        `const Module = require('module');
+const loaded = new Set();
+const resolveFilename = Module._resolveFilename;
+Module._resolveFilename = function (request, ...rest) {
+    const resolved = resolveFilename.call(this, request, ...rest);
+    if (request === 'typescript') loaded.add(resolved);
+    return resolved;
+};
+process.on('exit', () => {
+    for (const file of Object.keys(require.cache)) {
+        if (/[\\\\/]typescript[\\\\/]lib[\\\\/]typescript\\.js$/.test(file)) loaded.add(file);
+    }
+    require('fs').writeFileSync(${JSON.stringify(marker)}, JSON.stringify([...loaded]));
+});
+`
+    );
+    const result = runSvelteCheck(workspace, {
+        args: ['--experimental-ts7'],
+        nodeArgs: ['--require', hook]
+    });
+    return {
+        result,
+        loaded: fs.existsSync(marker) ? JSON.parse(fs.readFileSync(marker, 'utf-8')) : undefined
+    };
+}
+
+/**
+ * A content mapper package that records the environment the real content mapper is started
+ * with, and then runs it. Its manifest is the real one (`extensions`, `dynamicConfig`, ...), only
+ * `exec` starts the recording wrapper.
+ *
+ * @returns {{ dir: string, recorded: () => { typescript: string | null } | undefined }}
+ */
+function recordingContentMapper() {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'svelte-check-ts7-mapper-'));
+    temporaryDirectories.push(dir);
+    const record = path.join(dir, 'environment.json');
+    fs.writeFileSync(
+        path.join(dir, 'package.json'),
+        JSON.stringify({
+            name: 'recording-content-mapper',
+            version: '1.0.0',
+            type: 'module',
+            typescript: {
+                contentMapper: {
+                    ...require(path.join(packages.contentMapper, 'package.json')).typescript
+                        .contentMapper,
+                    exec: ['node', 'server.js']
+                }
+            }
+        })
+    );
+    fs.writeFileSync(
+        path.join(dir, 'server.js'),
+        `import fs from 'node:fs';
+fs.writeFileSync(${JSON.stringify(record)}, JSON.stringify({ typescript: process.env.SVELTE_CONTENT_MAPPER_TYPESCRIPT ?? null }));
+await import(${JSON.stringify(require('url').pathToFileURL(path.join(packages.contentMapper, 'dist', 'server.js')).href)});
+`
+    );
+    return {
+        dir,
+        recorded: () =>
+            fs.existsSync(record) ? JSON.parse(fs.readFileSync(record, 'utf-8')) : undefined
+    };
+}
+
 /**
  * `--watch`: one long-running svelte-check, files changed step by step. Each step checks the
  * (file, code, severity) of all errors and warnings of the next run.
@@ -684,6 +774,103 @@ async function testWatchMode() {
     }
 }
 
+/**
+ * `--watch` with project references: a referenced tsconfig deleted and created again, next to a
+ * second referenced project, and a reference removed.
+ */
+async function testWatchModeReferences() {
+    const project = {
+        ...simpleTsconfig,
+        include: ['src/**/*'],
+        contentMappers: [{ package: CONTENT_MAPPER, extensions: ['.svelte'] }]
+    };
+    const workspace = createWorkspace({
+        tsconfig: { files: [], references: [{ path: './app' }, { path: './good' }] },
+        contentMappers: false,
+        files: {
+            'app/tsconfig.json': JSON.stringify(project),
+            'app/src/App.svelte': '<p>app</p>\n',
+            // 7006 with `strict`
+            'app/src/file.ts': 'export function f(x) { return x; }\n',
+            'good/tsconfig.json': JSON.stringify(project),
+            'good/src/Good.svelte':
+                '<script lang="ts">\n\tconst n: number = "x";\n</script>\n\n<p>{n}</p>\n'
+        }
+    });
+    /** @param {string} name @param {string} content */
+    const write = (name, content) => fs.writeFileSync(path.join(workspace, name), content);
+    /** @param {WatchRun} run */
+    const keys = (run) =>
+        run.failure
+            ? [`FAILURE ${run.failure}`]
+            : run.entries.map((entry) => `${entry.file} ${entry.code} ${entry.type}`).sort();
+    const both = ['app/src/file.ts 7006 ERROR', 'good/src/Good.svelte 2322 ERROR'];
+
+    /** @type {Array<{ name: string, change?: () => void, expected: (string | RegExp)[] }>} */
+    const steps = [
+        { name: 'first check, both referenced projects', expected: both },
+        {
+            name: 'a deleted referenced tsconfig is a failure',
+            change: () => fs.rmSync(path.join(workspace, 'app', 'tsconfig.json')),
+            expected: [/^FAILURE TypeScript could not load .*app[\\/]tsconfig\.json, which/]
+        },
+        {
+            name: 'the referenced tsconfig is back',
+            change: () => write('app/tsconfig.json', JSON.stringify(project)),
+            expected: both
+        },
+        {
+            name: 'a changed file of the restored project',
+            change: () =>
+                write(
+                    'app/src/file.ts',
+                    'export function f(x) { return x; }\nexport const s: string = 1;\n'
+                ),
+            expected: ['app/src/file.ts 2322 ERROR', ...both].sort()
+        },
+        {
+            name: 'a reference removed from the root tsconfig',
+            change: () =>
+                write(
+                    'tsconfig.json',
+                    JSON.stringify({ files: [], references: [{ path: './good' }] })
+                ),
+            // app/src/App.svelte isn't included by any tsconfig now
+            expected: ['good/src/Good.svelte 2322 ERROR']
+        }
+    ];
+
+    const svelteCheck = new WatchedSvelteCheck(workspace);
+    try {
+        for (const [index, step] of steps.entries()) {
+            if (step.change) {
+                step.change();
+            }
+            await testAsync(`--watch with references: ${step.name}`, async () => {
+                const actual = keys(await svelteCheck.nextRun());
+                const matches =
+                    actual.length === step.expected.length &&
+                    step.expected.every((expected, i) =>
+                        typeof expected === 'string'
+                            ? actual[i] === expected
+                            : expected.test(actual[i])
+                    );
+                return matches
+                    ? []
+                    : [
+                          `expected:\n  ${step.expected.join('\n  ')}\ngot:\n  ${actual.join('\n  ')}`
+                      ];
+            });
+            if (index === 0) {
+                // let the file watcher finish its initial scan
+                await new Promise((resolve) => setTimeout(resolve, 1000));
+            }
+        }
+    } finally {
+        svelteCheck.stop();
+    }
+}
+
 async function main() {
     const svelteMajor = Number(
         require(path.join(packages.svelte, 'package.json')).version.split('.')[0]
@@ -732,34 +919,32 @@ async function main() {
         return issues;
     });
 
-    test('TypeScript 6 is not loaded (project with a svelte.config, no generated-code diagnostics)', () => {
-        const marker = path.join(
-            fs.mkdtempSync(path.join(os.tmpdir(), 'svelte-check-ts7-hook-')),
-            'modules.json'
-        );
-        temporaryDirectories.push(path.dirname(marker));
-        const hook = path.join(path.dirname(marker), 'hook.cjs');
-        fs.writeFileSync(
-            hook,
-            `process.on('exit', () => require('fs').writeFileSync(${JSON.stringify(marker)}, JSON.stringify(Object.keys(require.cache))));`
-        );
-        const result = runSvelteCheck(
+    test('TypeScript is not loaded (project with a svelte.config, no generated-code diagnostics)', () => {
+        const { result, loaded } = runRecordingTypeScriptLoads(
             createWorkspace({
                 fixture: testError,
                 files: { 'svelte.config.js': 'export default {};\n' }
-            }),
-            { args: ['--experimental-ts7'], nodeArgs: ['--require', hook] }
+            })
         );
-        if (result.failure || !fs.existsSync(marker)) {
+        if (result.failure || !loaded) {
             return [`run failed: ${result.failure ?? result.stderr}`];
         }
-        const loaded = JSON.parse(fs.readFileSync(marker, 'utf-8')).filter(
-            (/** @type {string} */ file) => /[\\/]typescript[\\/]lib[\\/]typescript\.js$/.test(file)
-        );
-        return loaded.length ? [`TypeScript 6 was loaded: ${loaded.join(', ')}`] : [];
+        return loaded.length ? [`TypeScript was loaded: ${loaded.join(', ')}`] : [];
     });
-
-    console.log('\nlike tsc\n');
+    test('TypeScript is not loaded (no svelte.config, diagnostics in generated code)', () => {
+        const { result, loaded } = runRecordingTypeScriptLoads(
+            createWorkspace({ tsconfig: simpleTsconfig, files: bindToNonBindableProp })
+        );
+        if (result.failure || !loaded) {
+            return [`run failed: ${result.failure ?? result.stderr}`];
+        }
+        const issues = loaded.length ? [`TypeScript was loaded: ${loaded.join(', ')}`] : [];
+        // the diagnostic that needs svelte2tsx's template AST (relocated from generated code)
+        if (!result.entries.some((entry) => /Cannot use 'bind:'/.test(entry.message))) {
+            issues.push(`expected the bind: error, got:\n${result.entries.map(key).join('\n')}`);
+        }
+        return issues;
+    });
 
     /**
      * @param {ReturnType<typeof runSvelteCheck>} result
@@ -777,6 +962,180 @@ async function main() {
             : [`expected:\n  ${expected.join('\n  ')}\ngot:\n  ${actual.join('\n  ')}`];
     };
 
+    const appWithError = {
+        'App.svelte': '<script lang="ts">\n\tconst n: number = "x";\n</script>\n\n<p>{n}</p>\n'
+    };
+    const envWithoutOverride = { ...process.env };
+    delete envWithoutOverride.SVELTE_CONTENT_MAPPER_TYPESCRIPT;
+    for (const alias of [false, true]) {
+        test(`the content mapper parses with the TypeScript 7 that checks (${
+            alias ? 'TS7 as @typescript/native, TS6 as typescript' : 'TS7 as typescript'
+        })`, () => {
+            const mapper = recordingContentMapper();
+            const result = runSvelteCheck(
+                createWorkspace({
+                    tsconfig: {
+                        ...simpleTsconfig,
+                        contentMappers: [
+                            { package: 'recording-content-mapper', extensions: ['.svelte'] }
+                        ]
+                    },
+                    contentMappers: false,
+                    typescript: alias ? packages.typescript6 : packages.typescript71,
+                    links: {
+                        'recording-content-mapper': mapper.dir,
+                        ...(alias ? { '@typescript/native': packages.typescript71 } : {})
+                    },
+                    files: appWithError
+                }),
+                { args: ['--experimental-ts7'], env: envWithoutOverride }
+            );
+            const issues = expectEntries(result, ['App.svelte 2322 ERROR']);
+            const recorded = mapper.recorded();
+            if (!recorded?.typescript) {
+                issues.push(
+                    `SVELTE_CONTENT_MAPPER_TYPESCRIPT not set: ${JSON.stringify(recorded)}`
+                );
+            } else if (fs.realpathSync(recorded.typescript) !== packages.typescript71) {
+                issues.push(`SVELTE_CONTENT_MAPPER_TYPESCRIPT is ${recorded.typescript}`);
+            }
+            return issues;
+        });
+    }
+
+    console.log('\nwhat the tsconfig can look like\n');
+
+    test("contentMappers entry without extensions (from the content mapper's package.json)", () =>
+        expectEntries(
+            runSvelteCheck(
+                createWorkspace({
+                    tsconfig: { ...simpleTsconfig, contentMappers: [{ package: CONTENT_MAPPER }] },
+                    contentMappers: false,
+                    files: appWithError
+                }),
+                { args: ['--experimental-ts7'] }
+            ),
+            ['App.svelte 2322 ERROR']
+        ));
+    test('contentMappers entry with include', () =>
+        expectEntries(
+            runSvelteCheck(
+                createWorkspace({
+                    tsconfig: {
+                        ...simpleTsconfig,
+                        contentMappers: [
+                            {
+                                package: CONTENT_MAPPER,
+                                extensions: ['.svelte'],
+                                include: ['src/**/*']
+                            }
+                        ]
+                    },
+                    contentMappers: false,
+                    files: { 'src/App.svelte': appWithError['App.svelte'] }
+                }),
+                { args: ['--experimental-ts7'] }
+            ),
+            ['src/App.svelte 2322 ERROR']
+        ));
+    test("without a content mapper, TypeScript's own config errors are in the failure", () =>
+        expectFailure(
+            runSvelteCheck(
+                createWorkspace({
+                    tsconfig: { ...simpleTsconfig, include: ['src/**'] },
+                    contentMappers: false,
+                    files: { 'src/App.svelte': appWithError['App.svelte'] }
+                }),
+                { args: ['--experimental-ts7'] }
+            ),
+            [
+                /No Svelte file is part of the TypeScript program/,
+                /error TS5010: File specification cannot end in a recursive directory wildcard/
+            ]
+        ));
+    const viteFixture = path.join(__dirname, 'test-ts7-vite');
+    test('Vite-style tsconfig: the referenced projects are checked', () =>
+        expectEntries(
+            runSvelteCheck(createWorkspace({ fixture: viteFixture, contentMappers: false }), {
+                args: ['--experimental-ts7']
+            }),
+            ['node.config.ts 6133 ERROR', 'src/App.svelte 2322 ERROR', 'src/shared.ts 2322 ERROR']
+        ));
+    test('Vite-style tsconfig without a content mapper', () =>
+        expectFailure(
+            runSvelteCheck(
+                createWorkspace({
+                    fixture: viteFixture,
+                    contentMappers: false,
+                    files: {
+                        'tsconfig.app.json': JSON.stringify({
+                            ...readJsonc(path.join(viteFixture, 'tsconfig.app.json')),
+                            contentMappers: undefined
+                        })
+                    }
+                }),
+                { args: ['--experimental-ts7'] }
+            ),
+            [
+                /No Svelte file is part of the TypeScript program of .*tsconfig\.json and the tsconfigs it references \(.*tsconfig\.app\.json, .*tsconfig\.node\.json\), and none of them has a "contentMappers" entry/,
+                /add this to the tsconfig that includes your Svelte files/
+            ]
+        ));
+    test('a file in two referenced projects is checked in both, identical diagnostics once', () => {
+        const strict = {
+            ...simpleTsconfig,
+            include: ['src/**/*'],
+            contentMappers: [{ package: CONTENT_MAPPER, extensions: ['.svelte'] }]
+        };
+        const loose = { ...strict, compilerOptions: { ...strict.compilerOptions, strict: false } };
+        return expectEntries(
+            runSvelteCheck(
+                createWorkspace({
+                    tsconfig: {
+                        files: [],
+                        // the loose one first: it must not hide the strict one's errors
+                        references: [
+                            { path: './tsconfig.loose.json' },
+                            { path: './tsconfig.strict.json' }
+                        ]
+                    },
+                    contentMappers: false,
+                    files: {
+                        'tsconfig.loose.json': JSON.stringify(loose),
+                        'tsconfig.strict.json': JSON.stringify(strict),
+                        // 2322 in both projects, 7006 only with strict
+                        'src/App.svelte':
+                            '<script lang="ts">\n\tconst n: number = "x";\n\tfunction f(x) { return x; }\n</script>\n\n<p>{n}{f(1)}</p>\n',
+                        'src/shared.ts':
+                            'export function shared(x) { return x; }\nexport const s: string = 1;\n'
+                    }
+                }),
+                { args: ['--experimental-ts7'] }
+            ),
+            [
+                'src/App.svelte 2322 ERROR',
+                'src/App.svelte 7006 ERROR',
+                'src/shared.ts 2322 ERROR',
+                'src/shared.ts 7006 ERROR'
+            ]
+        );
+    });
+    test('a referenced tsconfig that does not exist is a failure', () =>
+        expectFailure(
+            runSvelteCheck(
+                createWorkspace({
+                    tsconfig: { ...simpleTsconfig, references: [{ path: './missing' }] },
+                    files: appWithError
+                }),
+                { args: ['--experimental-ts7'] }
+            ),
+            [
+                /TypeScript could not load .*missing[\\/]tsconfig\.json, which .*tsconfig\.json references/
+            ]
+        ));
+
+    console.log('\nlike tsc\n');
+
     test('syntax errors stop the semantic check (tsc order)', () =>
         expectEntries(
             runSvelteCheck(
@@ -792,22 +1151,104 @@ async function main() {
             ),
             ['broken.ts 1109 ERROR']
         ));
-    test('TypeScript errors in node_modules are reported, Svelte compiler warnings are not', () =>
+    test('node_modules: TypeScript errors of .ts files are reported, of .svelte files not (like TS6)', () =>
         expectEntries(
             runSvelteCheck(
                 createWorkspace({
                     tsconfig: simpleTsconfig,
                     files: {
                         'App.svelte':
-                            '<script lang="ts">\n\timport Comp from "lib/Comp.svelte";\n</script>\n\n<Comp />\n',
+                            '<script lang="ts">\n\timport Comp from "lib/Comp.svelte";\n\timport { value } from "lib/util";\n</script>\n\n<Comp />{value}\n',
                         'node_modules/lib/package.json': '{ "name": "lib", "version": "1.0.0" }\n',
                         'node_modules/lib/Comp.svelte':
-                            '<script lang="ts">\n\tlet n: number = "x";\n</script>\n\n<img src="x.png" />{n}\n'
+                            '<script lang="ts">\n\tlet n: number = "x";\n</script>\n\n<img src="x.png" />{n}\n',
+                        'node_modules/lib/util.ts': 'export const value: number = "x";\n'
                     }
                 }),
                 { args: ['--experimental-ts7'] }
             ),
-            ['node_modules/lib/Comp.svelte 2322 ERROR']
+            ['node_modules/lib/util.ts 2322 ERROR']
+        ));
+
+    // Svelte's types declare `*.svelte` modules, which hides missing ones from TS7
+    const missingSvelteImports = {
+        'Exists.svelte': '<p>exists</p>\n',
+        'App.svelte':
+            '<script lang="ts">\n\timport Exists from "./Exists.svelte";\n\timport Missing from "./Missing.svelte";\n\timport Button from "missing-lib/Button.svelte";\n</script>\n\n<Exists /><Missing /><Button />\n',
+        'index.ts':
+            'import Exists from "./Exists.svelte";\nimport Missing from "./Missing.svelte";\nexport { default as Button } from "missing-lib/Button.svelte";\nexport { Exists, Missing };\n'
+    };
+    test('imports of .svelte files that do not exist (relative and package), in .svelte and .ts files', () => {
+        const result = runSvelteCheck(
+            createWorkspace({ tsconfig: simpleTsconfig, files: missingSvelteImports }),
+            { args: ['--experimental-ts7'] }
+        );
+        const issues = expectEntries(result, [
+            'App.svelte 2307 ERROR',
+            'App.svelte 2307 ERROR',
+            'index.ts 2307 ERROR',
+            'index.ts 2307 ERROR'
+        ]);
+        const located = result.entries
+            .map((entry) => `${entry.file}:${entry.line} ${entry.message}`)
+            .sort();
+        const expected = [
+            "App.svelte:2 Cannot find module './Missing.svelte' or its corresponding type declarations.",
+            "App.svelte:3 Cannot find module 'missing-lib/Button.svelte' or its corresponding type declarations.",
+            "index.ts:1 Cannot find module './Missing.svelte' or its corresponding type declarations.",
+            "index.ts:2 Cannot find module 'missing-lib/Button.svelte' or its corresponding type declarations."
+        ];
+        if (JSON.stringify(located) !== JSON.stringify(expected)) {
+            issues.push(`expected:\n  ${expected.join('\n  ')}\ngot:\n  ${located.join('\n  ')}`);
+        }
+        return issues;
+    });
+    test('@ts-expect-error and @ts-ignore above an import of a .svelte file that does not exist', () =>
+        expectEntries(
+            runSvelteCheck(
+                createWorkspace({
+                    tsconfig: simpleTsconfig,
+                    files: {
+                        'App.svelte':
+                            '<script lang="ts">\n\t// @ts-expect-error\n\timport Missing from "./Missing.svelte";\n\t// @ts-ignore\n\timport Other from "./Other.svelte";\n</script>\n\n<Missing /><Other />\n',
+                        'index.ts':
+                            '// @ts-expect-error\nimport Missing from "./Missing.svelte";\nexport { Missing };\n'
+                    }
+                }),
+                { args: ['--experimental-ts7'] }
+            ),
+            // neither the missing modules nor an unused @ts-expect-error (2578)
+            []
+        ));
+    test('imports of .svelte files that do not exist, in files with a byte order mark', () =>
+        expectEntries(
+            runSvelteCheck(
+                createWorkspace({
+                    tsconfig: simpleTsconfig,
+                    files: {
+                        'App.svelte':
+                            '\uFEFF<script lang="ts">\n\timport Missing from "./Missing.svelte";\n</script>\n\n<Missing />\n',
+                        'index.ts': '\uFEFFimport Gone from "./Gone.svelte";\nexport { Gone };\n'
+                    }
+                }),
+                { args: ['--experimental-ts7'] }
+            ),
+            ['App.svelte 2307 ERROR', 'index.ts 2307 ERROR']
+        ));
+    test("a project's own declare module '*.svelte' keeps imports of missing .svelte files silent", () =>
+        expectEntries(
+            runSvelteCheck(
+                createWorkspace({
+                    tsconfig: simpleTsconfig,
+                    files: {
+                        ...missingSvelteImports,
+                        'ambient.d.ts':
+                            "declare module '*.svelte' {\n\tconst component: any;\n\texport default component;\n}\n"
+                    }
+                }),
+                { args: ['--experimental-ts7'] }
+            ),
+            []
         ));
 
     console.log('\nfailure modes\n');
@@ -821,8 +1262,9 @@ async function main() {
                 }
             ),
             [
-                /requires TypeScript 7\.1 or newer, found 7\.0\./,
-                /npm install --save-dev typescript@\^7\.1/
+                /requires TypeScript 7\.1 or higher, found 7\.0\.2/,
+                /Install a TypeScript 7\.1 or higher\n/,
+                /npm install --save-dev @typescript\/native@npm:typescript@\^7\.1/
             ]
         ));
     test('no TypeScript 7', () =>
@@ -830,7 +1272,107 @@ async function main() {
             runSvelteCheck(createWorkspace({ fixture: testError, typescript: null }), {
                 args: ['--experimental-ts7']
             }),
-            [/requires TypeScript 7\.1 or newer in the project/]
+            [/requires TypeScript 7\.1 or higher in the project/]
+        ));
+    /**
+     * A hook that makes svelte-check's own `typescript` (the one its default mode would load) the
+     * given package, and fails if the default mode loads it. The default mode resolves `typescript`
+     * from svelte-check, not from the workspace.
+     *
+     * @param {string} typescriptDir
+     */
+    const typescriptHook = (typescriptDir) => {
+        const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'svelte-check-ts7-hook-'));
+        temporaryDirectories.push(directory);
+        const hook = path.join(directory, 'hook.cjs');
+        fs.writeFileSync(
+            hook,
+            `const Module = require('module');
+const resolveFilename = Module._resolveFilename;
+Module._resolveFilename = function (request, ...rest) {
+    if (request === 'typescript/package.json') return ${JSON.stringify(path.join(typescriptDir, 'package.json'))};
+    if (request === 'typescript') throw new Error('TypeScript was loaded');
+    return resolveFilename.call(this, request, ...rest);
+};
+`
+        );
+        return ['--require', hook];
+    };
+    test('TypeScript 7.1 as `typescript`: the TypeScript 7 support without --experimental-ts7', () => {
+        const result = runSvelteCheck(createWorkspace({ fixture: testError }), {
+            nodeArgs: typescriptHook(packages.typescript71)
+        });
+        const issues = [];
+        if (result.failure || result.status !== 1) {
+            issues.push(`run failed (${result.status}): ${result.failure ?? result.stderr}`);
+        }
+        if (
+            JSON.stringify(result.entries.map(key)) !==
+            JSON.stringify(ts7TestError.entries.map(key))
+        ) {
+            issues.push(
+                `different results than with --experimental-ts7:\n${result.entries.map(key).join('\n')}`
+            );
+        }
+        if (
+            !/svelte-check: experimental TypeScript 7 support, with TypeScript 7\.1\./.test(
+                result.stderr
+            )
+        ) {
+            issues.push(`expected the TypeScript 7 note on stderr, got:\n${result.stderr}`);
+        }
+        return issues;
+    });
+    test('TypeScript 7.1 as `typescript` with --tsgo is an error', () => {
+        const result = runSvelteCheck(createWorkspace({ fixture: testError }), {
+            args: ['--tsgo'],
+            nodeArgs: typescriptHook(packages.typescript71)
+        });
+        return result.status !== 0 &&
+            /With TypeScript 7\.1\.\S+ as `typescript`, svelte-check uses its experimental TypeScript 7 support, which cannot be used with --tsgo \(--incremental, --tsgo and --tsgo-experimental-api need TypeScript 5 or 6 as `typescript`\)/.test(
+                result.stderr
+            )
+            ? []
+            : [`expected an error, got exit ${result.status}:\n${result.stdout}\n${result.stderr}`];
+    });
+    test('TypeScript 7.1 as `typescript` with --no-tsconfig is an error', () => {
+        const result = runSvelteCheck(createWorkspace({ fixture: testError }), {
+            args: ['--no-tsconfig'],
+            nodeArgs: typescriptHook(packages.typescript71)
+        });
+        return result.status !== 0 &&
+            /svelte-check uses its experimental TypeScript 7 support, which cannot be used with --no-tsconfig/.test(
+                result.stderr
+            )
+            ? []
+            : [`expected an error, got exit ${result.status}:\n${result.stdout}\n${result.stderr}`];
+    });
+    test('TypeScript 7.1 as `typescript` without a tsconfig is an error', () => {
+        const workspace = createWorkspace({ tsconfig: {}, files: appWithError });
+        fs.rmSync(path.join(workspace, 'tsconfig.json'));
+        const result = spawnSync(
+            process.execPath,
+            [...typescriptHook(packages.typescript71), CLI, '--workspace', workspace],
+            { cwd: __dirname, encoding: 'utf-8', timeout: 120_000 }
+        );
+        return result.status !== 0 &&
+            /svelte-check uses its experimental TypeScript 7 support, which requires a tsconfig\/jsconfig file/.test(
+                result.stderr
+            )
+            ? []
+            : [`expected an error, got exit ${result.status}:\n${result.stdout}\n${result.stderr}`];
+    });
+    test('TypeScript 7.0 as `typescript` is an error, in both modes', () =>
+        expectFailure(
+            runSvelteCheck(createWorkspace({ fixture: testError }), {
+                nodeArgs: typescriptHook(createFakeTypeScript('7.0.2'))
+            }),
+            [
+                /found TypeScript 7\.0\.2 as `typescript` .*, which it doesn't support: its default mode needs TypeScript 5 or 6/,
+                /its experimental TypeScript 7 support needs TypeScript 7\.1 or higher/,
+                /Install a TypeScript 7\.1 or higher\n/,
+                /npm install --save-dev typescript@\^6/
+            ]
         ));
     test('tsconfig without a content mapper for .svelte', () =>
         expectFailure(
@@ -838,7 +1380,7 @@ async function main() {
                 args: ['--experimental-ts7']
             }),
             [
-                /doesn't map \.svelte files/,
+                /No Svelte file is part of the TypeScript program of .*tsconfig\.json, and it doesn't have a "contentMappers" entry/,
                 /"contentMappers": \[\{ "package": "@sveltejs\/ts-content-mapper"/
             ]
         ));
@@ -928,6 +1470,7 @@ async function main() {
     console.log('\nwatch mode\n');
 
     await testWatchMode();
+    await testWatchModeReferences();
 }
 
 main()

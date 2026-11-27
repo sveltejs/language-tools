@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import sade from 'sade';
 import { URI } from 'vscode-uri';
+import { getImpliedTypeScript7 } from './typescriptVersions';
 
 export interface SvelteCheckCliOptions {
     workspaceUri: URI;
@@ -13,7 +14,8 @@ export interface SvelteCheckCliOptions {
     tsgoExperimental: boolean;
     /**
      * TypeScript diagnostics from TypeScript 7 through its API, with `.svelte` files transformed by
-     * the content mapper configured in the tsconfig. Hidden while it's experimental.
+     * the content mapper configured in the tsconfig. Experimental. Also when `typescript` is
+     * TypeScript 7.1 or newer, without the flag.
      */
     experimentalTs7: boolean;
     tsconfig?: string;
@@ -43,18 +45,23 @@ export function parseOptions(cb: (opts: SvelteCheckCliOptions) => any) {
         )
         .option('--preserveWatchOutput', 'Do not clear the screen in watch mode', false)
         .option(
+            '--experimental-ts7',
+            'Experimental: TypeScript diagnostics from TypeScript ^7.1, which checks Svelte files with the Svelte content mapper. Implied when `typescript` is TypeScript 7.1 or newer; use the flag when TypeScript 7.1 is installed as `@typescript/native` next to TypeScript 5 or 6. Needs `@sveltejs/ts-content-mapper`, a `contentMappers` entry in the tsconfig, and Svelte 5. See the README.',
+            false
+        )
+        .option(
             '--incremental',
-            'Use incremental checks with a disk cache of svelte2tsx outputs. Requires writing transpiled Svelte files to disk (.svelte-kit if available, else .svelte-check)',
+            'Legacy: incremental checks with a disk cache of svelte2tsx outputs, checked by the `tsc` of TypeScript 5 or 6. Requires writing transpiled Svelte files to disk (.svelte-kit if available, else .svelte-check)',
             false
         )
         .option(
             '--tsgo',
-            'Use tsgo for TypeScript diagnostics. Requires writing transpiled Svelte files to disk (.svelte-kit if available, else .svelte-check)',
+            'Legacy: like --incremental, but checked by the `tsc` of TypeScript 7 installed as `@typescript/native` (TypeScript 5 or 6 is still needed as `typescript`). For TypeScript 7.1, use --experimental-ts7 instead. Requires writing transpiled Svelte files to disk (.svelte-kit if available, else .svelte-check)',
             false
         )
         .option(
             '--tsgo-experimental-api',
-            'Use tsgo for TypeScript diagnostics with the experimental API. Cannot be used with --incremental or --tsgo. Experimental feature, might break without warning.',
+            'Legacy: TypeScript diagnostics from TypeScript 7 installed as `@typescript/native` through its API, with TypeScript 5 or 6 still needed as `typescript`. Does not support content mappers. For TypeScript 7.1, use --experimental-ts7 instead. Cannot be used with --incremental or --tsgo. Experimental feature, might break without warning.',
             false
         )
         .option(
@@ -96,6 +103,9 @@ export function parseOptions(cb: (opts: SvelteCheckCliOptions) => any) {
         .option('--color', 'Force enabling of color output', false)
         .option('--no-color', 'Force disabling of color output', false)
         .action((opts) => {
+            // With TypeScript 7.1 as `typescript`, the TypeScript 7 support is the only way
+            const impliedTypeScript7 = opts[TS7_OPTION] ? undefined : getImpliedTypeScript7();
+            const experimentalTs7 = !!opts[TS7_OPTION] || !!impliedTypeScript7;
             const workspaceUri = getWorkspaceUri(opts);
             const tsconfig = getTsconfig(opts, workspaceUri.fsPath);
             const config = getConfig(opts, workspaceUri.fsPath);
@@ -104,7 +114,7 @@ export function parseOptions(cb: (opts: SvelteCheckCliOptions) => any) {
                 throwError('`--ignore` only has an effect when using `--no-tsconfig`');
             }
             if (experimentalTs7) {
-                validateTs7Options(opts, tsconfig);
+                validateTs7Options(opts, tsconfig, impliedTypeScript7);
             }
 
             cb({
@@ -126,17 +136,22 @@ export function parseOptions(cb: (opts: SvelteCheckCliOptions) => any) {
             });
         });
 
-    // Hidden flag: not declared, so that it's not in --help. sade rejects unknown flags.
-    const argv = process.argv.filter((arg) => arg !== TS7_FLAG);
-    const experimentalTs7 = argv.length !== process.argv.length;
-    prog.parse(argv, {
+    prog.parse(process.argv, {
         unknown: (arg) => `Unknown option ${arg}`
     });
 }
 
-const TS7_FLAG = '--experimental-ts7';
+const TS7_OPTION = 'experimental-ts7';
+const TS7_FLAG = '--' + TS7_OPTION;
 
-function validateTs7Options(opts: Record<string, any>, tsconfig: string | undefined) {
+function validateTs7Options(
+    opts: Record<string, any>,
+    tsconfig: string | undefined,
+    impliedTypeScript7: string | undefined
+) {
+    const reason = impliedTypeScript7
+        ? `With TypeScript ${impliedTypeScript7} as \`typescript\`, svelte-check uses its experimental TypeScript 7 support, which`
+        : TS7_FLAG;
     const conflicting = ['incremental', 'tsgo', 'tsgo-experimental-api'].filter(
         (option) => opts[option]
     );
@@ -145,11 +160,14 @@ function validateTs7Options(opts: Record<string, any>, tsconfig: string | undefi
     }
     if (conflicting.length) {
         throwError(
-            `${TS7_FLAG} cannot be used with ${conflicting.map((option) => '--' + option).join(', ')}`
+            `${reason} cannot be used with ${conflicting.map((option) => '--' + option).join(', ')}` +
+                (impliedTypeScript7 && conflicting.some((option) => option !== 'no-tsconfig')
+                    ? ' (--incremental, --tsgo and --tsgo-experimental-api need TypeScript 5 or 6 as `typescript`)'
+                    : '')
         );
     }
     if (!tsconfig) {
-        throwError(`${TS7_FLAG} requires a tsconfig/jsconfig file`);
+        throwError(`${reason} requires a tsconfig/jsconfig file`);
     }
 }
 
