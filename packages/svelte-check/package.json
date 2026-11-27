@@ -40,8 +40,9 @@
     "scripts": {
         "build": "cd ../load-config && pnpm build && cd ../svelte2tsx && pnpm build && cd ../language-server && pnpm build && cd ../svelte-check && rollup -c && pnpm test:sanity",
         "prepublishOnly": "pnpm build",
-        "test": "pnpm build",
+        "test": "pnpm build && pnpm test:ts7",
         "test:sanity": "node test-sanity.js",
+        "test:ts7": "node test-ts7.js",
         "test:flush": "node test-flush.js"
     },
     "devDependencies": {

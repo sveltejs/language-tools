@@ -35,6 +35,9 @@ const voidTags = 'area,base,br,col,embed,hr,img,input,link,meta,param,source,tra
  */
 export class Element {
     private startEndTransformation: TransformationArray = ['});'];
+    /** Content mapper mode: the keys of the attributes so far, and the repeated ones (see `addAttribute`) */
+    private attributeKeys = new Set<string>();
+    private repeatedAttributesTransformation: TransformationArray = [];
     private attrsTransformation: TransformationArray = [];
     private slotLetsTransformation?: [TransformationArray, TransformationArray];
     private actionsTransformation: TransformationArray = [];
@@ -120,15 +123,33 @@ export class Element {
 
     /**
      * attribute={foo}  -->  "attribute": foo,
+     *
+     * In content mapper mode, an attribute whose `key` was seen before on this element (repeated event
+     * handlers, which Svelte allows, or duplicate attributes, which the Svelte compiler reports) gets
+     * its own `createElement` call after the element's, so it's checked like the first one without
+     * TypeScript reporting duplicate properties (1117; TS6 filters that afterwards). Known limit: that
+     * call lacks the element's other attributes, action-provided events and a dynamic tag (see
+     * `content-mapper-overrides.md` in the language server's tests).
      * @param name Attribute name
      * @param value Attribute value, if present. If not present, this is treated as a shorthand attribute
+     * @param key The property name, for attributes that may repeat (attributes and event handlers)
      */
-    addAttribute(name: TransformationArray, value?: TransformationArray): void {
-        if (value) {
-            this.attrsTransformation.push(...name, ':', ...value, ',');
-        } else {
-            this.attrsTransformation.push(...name, ',');
+    addAttribute(name: TransformationArray, value?: TransformationArray, key?: string): void {
+        const property = value ? [...name, ':', ...value, ','] : [...name, ','];
+        if (this.spanMapGenerator && key !== undefined && this.node.name !== 'slot') {
+            if (this.attributeKeys.has(key)) {
+                const tag =
+                    this.node.name === 'svelte:element' ? '""' : JSON.stringify(this.node.name);
+                this.repeatedAttributesTransformation.push(
+                    `${this.typingsNamespace}.createElement(${tag}, {`,
+                    ...property,
+                    '});'
+                );
+                return;
+            }
+            this.attributeKeys.add(key);
         }
+        this.attrsTransformation.push(...property);
     }
 
     /**
@@ -191,6 +212,10 @@ export class Element {
 
     performTransformation(): void {
         this.endTransformation.push('}');
+        if (this.repeatedAttributesTransformation.length) {
+            // right after the element's `createElement(...});`
+            this.startEndTransformation.splice(1, 0, ...this.repeatedAttributesTransformation);
+        }
 
         const slotLetTransformation: TransformationArray = [];
         if (this.slotLetsTransformation) {

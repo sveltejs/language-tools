@@ -81,6 +81,7 @@ function addGenericsComponentExport({
     spanMapGenerator
 }: AddComponentExportPara) {
     const genericsDef = generics.toDefinitionString();
+    const typeAliasGenericsDef = generics.toTypeAliasDefinitionString();
     const genericsRef = generics.toReferencesString();
     const useTSSyntax = isTsFile || !emitJsDoc;
     const templateNames =
@@ -190,7 +191,7 @@ ${templateComment}class __sveltets_Render {
                 `}\n` +
                 `${doc}${defaultExportAnchor(spanMapGenerator, `const ${className || '$$Component'}`)}: $$IsomorphicComponent = null as any;\n` +
                 surroundWithIgnoreComments(
-                    `type ${className || '$$Component'}${genericsDef} = InstanceType<typeof ${className || '$$Component'}${genericsRef}>;\n`
+                    `type ${className || '$$Component'}${typeAliasGenericsDef} = InstanceType<typeof ${className || '$$Component'}${genericsRef}>;\n`
                 ) +
                 `export default ${className || '$$Component'};`;
         } else {
@@ -208,9 +209,9 @@ ${templateComment}class __sveltets_Render {
         }
     } else if (mode === 'dts') {
         statement +=
-            `export type ${PropsName}${genericsDef} = ${returnType('props')};\n` +
-            `export type ${EventsName}${genericsDef} = ${returnType('events')};\n` +
-            `export type ${SlotsName}${genericsDef} = ${returnType('slots')};\n` +
+            `export type ${PropsName}${typeAliasGenericsDef} = ${returnType('props')};\n` +
+            `export type ${EventsName}${typeAliasGenericsDef} = ${returnType('events')};\n` +
+            `export type ${SlotsName}${typeAliasGenericsDef} = ${returnType('slots')};\n` +
             `\n${doc}export default class${
                 className ? ` ${className}` : ''
             }${genericsDef} extends ${svelteComponentClass}<${PropsName}${genericsRef}, ${EventsName}${genericsRef}, ${SlotsName}${genericsRef}> {` +

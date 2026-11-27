@@ -12,7 +12,8 @@ import TemplateScope from './TemplateScope';
 import { SvelteIdentifier, WithName } from '../../interfaces';
 // @ts-ignore
 import { Directive } from 'svelte/types/compiler/interfaces';
-import ts from 'typescript';
+import type ts from 'typescript';
+import type { TsFacade } from '../../facade';
 import { isInterfaceOrTypeDeclaration } from '../utils/tsAst';
 
 /**
@@ -49,9 +50,10 @@ function attributeStrValueAsJsExpression(attr: Node): string {
 }
 
 export function is$$SlotsDeclaration(
+    ts: TsFacade,
     node: ts.Node
 ): node is ts.TypeAliasDeclaration | ts.InterfaceDeclaration {
-    return isInterfaceOrTypeDeclaration(node) && node.name.text === '$$Slots';
+    return isInterfaceOrTypeDeclaration(ts, node) && node.name.text === '$$Slots';
 }
 
 export class SlotHandler {

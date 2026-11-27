@@ -47,3 +47,21 @@ describe('span maps', function () {
         }
     }
 });
+
+describe('span maps: attribute names', () => {
+    it('keeps one-character attribute names verbatim (completions at `<Child v|`)', () => {
+        const input = '<script lang="ts">import Child from "./Child.svelte";</script>\n<Child v />';
+        const result = svelte2tsx(input, {
+            filename: 'Input.svelte',
+            isTsFile: true,
+            mode: 'ts',
+            generateSpanMapping: true
+        }) as any;
+        const nameStart = input.indexOf(' v ') + 1;
+        // 0: virtual start, 1: virtual length, 2: original start, 3: original length, 4: kind
+        const mapping = result.spanMappings.find((m: number[]) => m[2] === nameStart && m[3] === 1);
+        assert.ok(mapping, 'the name is mapped');
+        assert.strictEqual(mapping[4], 0, 'Verbatim');
+        assert.strictEqual(result.code.slice(mapping[0] - 1, mapping[0] + 2), '"v"');
+    });
+});

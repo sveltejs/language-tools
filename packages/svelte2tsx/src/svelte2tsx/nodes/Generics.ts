@@ -1,5 +1,6 @@
 import MagicString from 'magic-string';
-import ts from 'typescript';
+import type ts from 'typescript';
+import type { TsFacade } from '../../facade';
 import { Node } from 'estree-walker';
 import { surroundWithIgnoreComments } from '../../utils/ignore';
 import { throwError } from '../utils/error';
@@ -7,12 +8,18 @@ import { throwError } from '../utils/error';
 export class Generics {
     /** The whole `T extends boolean` */
     private definitions: string[] = [];
+    /**
+     * Like `definitions`, without the `const` modifier (`const T extends string` → `T extends string`),
+     * which is only allowed on type parameters of functions, methods and classes (TS1277)
+     */
+    private typeAliasDefinitions: string[] = [];
     private typeReferences: string[] = [];
     /** The `T` in `T extends boolean` */
     private references: string[] = [];
     genericsAttr: Node | undefined;
 
     constructor(
+        private ts: TsFacade,
         private str: MagicString,
         private astOffset: number,
         script: Node
@@ -23,6 +30,10 @@ export class Generics {
             const typeParameters = this.getGenericTypeParameters(generics);
 
             this.definitions = typeParameters?.map((param) => param.getText()) ?? [];
+            this.typeAliasDefinitions =
+                typeParameters?.map((param) =>
+                    param.getText().slice(param.name.getStart() - param.getStart())
+                ) ?? [];
             this.references = typeParameters?.map((param) => param.name.getText()) ?? [];
         } else {
             this.genericsAttr = undefined;
@@ -30,20 +41,20 @@ export class Generics {
     }
 
     private getGenericTypeParameters(rawGenericsAttr: string) {
-        const sourceFile = ts.createSourceFile(
+        const sourceFile = this.ts.createSourceFile(
             'index.ts',
             `<${rawGenericsAttr}>() => {}`,
-            ts.ScriptTarget.Latest,
+            this.ts.ScriptTarget.Latest,
             true
         );
         const firstStatement = sourceFile.statements[0];
 
-        if (!firstStatement || !ts.isExpressionStatement(firstStatement)) {
+        if (!firstStatement || !this.ts.isExpressionStatement(firstStatement)) {
             return;
         }
 
         const arrowFunction = firstStatement.expression;
-        if (!ts.isArrowFunction(arrowFunction)) {
+        if (!this.ts.isArrowFunction(arrowFunction)) {
             return;
         }
 
@@ -51,7 +62,7 @@ export class Generics {
     }
 
     addIfIsGeneric(node: ts.Node) {
-        if (ts.isTypeAliasDeclaration(node) && this.is$$GenericType(node.type)) {
+        if (this.ts.isTypeAliasDeclaration(node) && this.is$$GenericType(node.type)) {
             if (this.genericsAttr) {
                 throw new Error(
                     'Invalid $$Generic declaration: $$Generic definitions are not allowed when the generics attribute is present on the script tag'
@@ -64,8 +75,10 @@ export class Generics {
                 const typeReference = node.type.typeArguments[0].getText();
                 this.typeReferences.push(typeReference);
                 this.definitions.push(`${node.name.text} extends ${typeReference}`);
+                this.typeAliasDefinitions.push(`${node.name.text} extends ${typeReference}`);
             } else {
                 this.definitions.push(node.name.text);
+                this.typeAliasDefinitions.push(node.name.text);
             }
             this.references.push(node.name.text);
             this.str.remove(this.astOffset + node.getStart(), this.astOffset + node.getEnd());
@@ -73,7 +86,7 @@ export class Generics {
     }
 
     throwIfIsGeneric(node: ts.Node) {
-        if (ts.isTypeAliasDeclaration(node) && this.is$$GenericType(node.type)) {
+        if (this.ts.isTypeAliasDeclaration(node) && this.is$$GenericType(node.type)) {
             throwError(
                 this.astOffset + node.getStart(),
                 this.astOffset + node.getEnd(),
@@ -85,8 +98,8 @@ export class Generics {
 
     private is$$GenericType(node: ts.TypeNode): node is ts.TypeReferenceNode {
         return (
-            ts.isTypeReferenceNode(node) &&
-            ts.isIdentifier(node.typeName) &&
+            this.ts.isTypeReferenceNode(node) &&
+            this.ts.isIdentifier(node.typeName) &&
             node.typeName.text === '$$Generic'
         );
     }
@@ -102,6 +115,11 @@ export class Generics {
     toDefinitionString(addIgnore = false) {
         const surround = addIgnore ? surroundWithIgnoreComments : (str: string) => str;
         return this.definitions.length ? surround(`<${this.definitions.join(',')}>`) : '';
+    }
+
+    /** For type aliases: type parameters can't be `const` there */
+    toTypeAliasDefinitionString() {
+        return this.typeAliasDefinitions.length ? `<${this.typeAliasDefinitions.join(',')}>` : '';
     }
 
     toReferencesString() {

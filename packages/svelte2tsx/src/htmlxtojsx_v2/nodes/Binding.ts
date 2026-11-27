@@ -1,3 +1,4 @@
+import { mapGenerated, SpanMapGenerator } from '../../utils/spanMap';
 import MagicString from 'magic-string';
 import {
     getEnd,
@@ -60,7 +61,8 @@ export function handleBinding(
     preserveBind: boolean,
     isSvelte5Plus: boolean,
     emitJsDoc: boolean,
-    isTsFile: boolean
+    isTsFile: boolean,
+    spanMapGenerator?: SpanMapGenerator
 ): void {
     const isGetSetBinding = attr.expression.type === 'SequenceExpression';
     const [get, set] = isGetSetBinding ? (attr.expression as SequenceExpression).expressions : [];
@@ -191,7 +193,13 @@ export function handleBinding(
 
     if (isSvelte5Plus && element instanceof InlineComponent) {
         // To check if property is actually bindable
-        element.appendToStartEnd([`${element.name}.$$bindings = '${attr.name}';`]);
+        // Content mapper mode: the access is mapped to the `bind:` directive (diagnostics only), so
+        // the error for a prop that isn't bindable is reported there, also by plain `tsc`
+        const bindings = mapGenerated(spanMapGenerator, `${element.name}.$$bindings`, [
+            attr.start,
+            attr.end
+        ]);
+        element.appendToStartEnd([`${bindings} = '${attr.name}';`]);
     }
 
     if (element instanceof Element) {

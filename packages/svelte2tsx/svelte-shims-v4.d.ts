@@ -175,6 +175,17 @@ type __sveltets_2_SvelteTransitionConfig = {
 /** @internal PRIVATE API, DO NOT USE */
 type __sveltets_2_SvelteTransitionReturnType = __sveltets_2_SvelteTransitionConfig | (() => __sveltets_2_SvelteTransitionConfig)
 declare function __sveltets_2_ensureTransition(transitionCall: __sveltets_2_SvelteTransitionReturnType): {};
+/**
+ * @internal PRIVATE API, DO NOT USE
+ * The options Svelte passes to a transition function after node and params (`{ direction }`), if
+ * the function requires exactly three parameters (TS6 dropped "Expected 3 arguments" for those;
+ * with more required parameters, the error stays as it is). Content mapper mode only.
+ */
+declare function __sveltets_2_transitionRest<F>(fn: F): F extends (...args: infer P) => any
+    ? P extends [any, any, any, ...infer Rest]
+        ? Rest extends [any, ...any[]] ? [] : [{ direction: 'in' | 'out' | 'both' }]
+        : []
+    : [];
 
 // Includes undefined and null for all types as all usages also allow these
 declare function __sveltets_2_ensureType<T>(type: AConstructorTypeOf<T>, el: T | undefined | null): {};

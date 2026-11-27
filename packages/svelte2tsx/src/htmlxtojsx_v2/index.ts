@@ -57,6 +57,7 @@ import {
 } from '../svelte2tsx/nodes/handleScopeAndResolveForSlot';
 import { EventHandler } from '../svelte2tsx/nodes/event-handler';
 import { ComponentEvents } from '../svelte2tsx/nodes/ComponentEvents';
+import type { TsFacade } from '../facade';
 import { analyze } from 'periscopic';
 import { handleAttachTag } from './nodes/AttachTag';
 import {
@@ -91,6 +92,7 @@ export interface TemplateProcessResult {
  * and converts it to JSX
  */
 export function convertHtmlxToJsx(
+    ts: TsFacade,
     str: MagicString,
     ast: TemplateNode,
     tags: BaseNode[],
@@ -470,7 +472,7 @@ export function convertHtmlxToJsx(
                         break;
                     case 'Comment':
                         componentDocumentation.handleComment(node);
-                        handleComment(str, node);
+                        handleComment(str, node, options.spanMapGenerator);
                         break;
                     case 'Binding':
                         handleLeadingStartComment(str, node as BaseNode, ast);
@@ -483,7 +485,8 @@ export function convertHtmlxToJsx(
                             options.typingsNamespace === 'svelteHTML',
                             options.svelte5Plus,
                             emitJsDoc,
-                            isTsFile
+                            isTsFile,
+                            options.spanMapGenerator
                         );
                         break;
                     case 'Class':
@@ -687,6 +690,7 @@ export function convertHtmlxToJsx(
         rootSnippets,
         slots: slotHandler.getSlotDef(),
         events: new ComponentEvents(
+            ts,
             eventHandler,
             tags.some((tag) => tag.attributes?.some((a) => a.name === 'strictEvents')),
             str
@@ -707,7 +711,8 @@ export function convertHtmlxToJsx(
 export function htmlx2jsx(
     htmlx: string,
     parse: typeof import('svelte/compiler').parse,
-    options?: {
+    options: {
+        typescript: TsFacade;
         emitOnTemplateError?: boolean;
         preserveAttributeCase: boolean;
         typingsNamespace: string;
@@ -717,7 +722,7 @@ export function htmlx2jsx(
     const { htmlxAst, tags } = parseHtmlx(htmlx, parse, { ...options });
     const str = new MagicString(htmlx);
 
-    convertHtmlxToJsx(str, htmlxAst, tags, {
+    convertHtmlxToJsx(options.typescript, str, htmlxAst, tags, {
         ...options,
         namespace: options?.preserveAttributeCase ? 'foreign' : undefined
     });

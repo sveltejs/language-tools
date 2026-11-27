@@ -25,5 +25,5 @@ interface $$IsomorphicComponent {
     z_$$bindings?: ReturnType<__sveltets_Render<any>['bindings']>;
 }
 const Input__SvelteComponent_: $$IsomorphicComponent = null as any;
-/*Ωignore_startΩ*/type Input__SvelteComponent_<const T extends readonly string[]> = InstanceType<typeof Input__SvelteComponent_<T>>;
+/*Ωignore_startΩ*/type Input__SvelteComponent_<T extends readonly string[]> = InstanceType<typeof Input__SvelteComponent_<T>>;
 /*Ωignore_endΩ*/export default Input__SvelteComponent_;

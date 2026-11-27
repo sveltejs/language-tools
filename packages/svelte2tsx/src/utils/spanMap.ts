@@ -4,6 +4,7 @@ import { IGNORE_END_COMMENT, IGNORE_START_COMMENT } from './ignore';
 const GENERATE_LENGTH = 1;
 const ORIGINAL_LENGTH = 3;
 const FEATURES_FLAGS = 5;
+const QUOTE = '"'.charCodeAt(0);
 
 /**
  * Generates TypeScript 7's span map and diagnostic directives for the svelte2tsx output.
@@ -17,6 +18,8 @@ const FEATURES_FLAGS = 5;
  *   over derived ones inside their range.
  * - Every `/*Ωignore_startΩ*\/…/*Ωignore_endΩ*\/` region becomes an `Ignore` directive over its
  *   final virtual range, except for the parts wrapped with `keepDiagnostics`.
+ * - Original text marked with `ignoreDiagnosticsOf` gets an `Ignore` directive, too: for diagnostics
+ *   that start there and that only exist because of how the code is used (e.g. the `$` label of `$:`).
  */
 export class SpanMapGenerator {
     private spans: Span[] = [];
@@ -73,6 +76,19 @@ export class SpanMapGenerator {
         return this.mark(text, { type: 'keepDiagnostics' });
     }
 
+    /**
+     * Ignores the diagnostics that start in the original text `[start, end)`, wherever it ends up in
+     * the output (markers around it, which move with it). Must only be used where TypeScript can't
+     * start a diagnostic the user needs to see.
+     */
+    ignoreDiagnosticsOf(str: MagicString, start: number, end: number): void {
+        const id = this.annotations.push({ type: 'ignore' }) - 1;
+        const marker = `/*${this.markerPrefix}${id}Ω*/`;
+        // attached to the chunk itself, so that text inserted around it stays outside
+        str.prependRight(start, marker);
+        str.appendLeft(end, marker);
+    }
+
     private mark(text: string, annotation: Annotation): string {
         const id = this.annotations.push(annotation) - 1;
         const marker = `/*${this.markerPrefix}${id}Ω*/`;
@@ -96,6 +112,10 @@ export class SpanMapGenerator {
             if (length > 0) {
                 mapping[0] = start;
                 mapping[GENERATE_LENGTH] = length;
+                // TS would format the virtual code and map the edits back into the Svelte file
+                // (script indentation removed, `{x}` -> `{ x}`): never right for the original
+                mapping[FEATURES_FLAGS] =
+                    (mapping[FEATURES_FLAGS] ?? SpanMapFeature.All) & ~SpanMapFeature.Formatting;
                 mappings.push(mapping);
             }
         }
@@ -103,6 +123,7 @@ export class SpanMapGenerator {
         const directives = createIgnoreDirectives(
             code,
             markers.keep.map(([start, end]) => [shift.map(start), shift.map(end)]),
+            markers.ignore.map(([start, end]) => [shift.map(start), shift.map(end)]),
             mappings
         );
         const checked = checkSpanMap(str.original, code, mappings, directives);
@@ -128,6 +149,7 @@ export class SpanMapGenerator {
         const removed: Range[] = [];
         const segments: SpanMapping[] = [];
         const keep: Range[] = [];
+        const ignore: Range[] = [];
         const open = new Map<number, number>();
 
         this.markerRegex.lastIndex = 0;
@@ -161,11 +183,13 @@ export class SpanMapGenerator {
                     SpanMapKind.Atom,
                     annotation.features
                 ]);
+            } else if (annotation.type === 'ignore') {
+                ignore.push([textStart, start]);
             } else {
                 keep.push([textStart, start]);
             }
         }
-        return { removed, segments, keep };
+        return { removed, segments, keep, ignore };
     }
 
     /**
@@ -226,6 +250,20 @@ export class SpanMapGenerator {
                         mappings.push(current);
                         continue;
                     }
+                }
+                // The same for a one-character span (`"v` for the attribute `v`, where the next
+                // segment follows generated text): without it the whole `"v` is one atom, and the
+                // position after `v` has no exact mapping (no completions at `<Child v|`)
+                if (
+                    sourceSpan.end === originalStart + 1 &&
+                    generatedCode.charCodeAt(generatedStart) === QUOTE &&
+                    generatedCode.charCodeAt(generatedStart + 1) === sourceChar
+                ) {
+                    mappings.push([generatedStart, 1, originalStart, 0, SpanMapKind.Atom]);
+                    current = [generatedStart + 1, 1, originalStart, 1, SpanMapKind.Verbatim];
+                    addFlag(current, sourceSpan.features);
+                    mappings.push(current);
+                    continue;
                 }
             }
 
@@ -322,7 +360,8 @@ type Annotation =
           originalEnd: number;
           features: SpanMapFeature;
       }
-    | { type: 'keepDiagnostics' };
+    | { type: 'keepDiagnostics' }
+    | { type: 'ignore' };
 
 /**
  * Lays the explicit segments over the derived ones: inside an explicit segment's range, only it
@@ -467,10 +506,12 @@ function getLineStarts(text: string) {
 /**
  * One `Ignore` directive per ignore region, nested and adjacent regions merged, without the
  * `keep` ranges. Like TS6's `isInGeneratedCode`, a region without an end comment isn't ignored.
+ * The `ignore` ranges (`ignoreDiagnosticsOf`) are merged in.
  */
 function createIgnoreDirectives(
     code: string,
     keep: Range[],
+    ignore: Range[],
     mappings: SpanMapping[]
 ): MappedDiagnosticDirective[] {
     const regions: Range[] = [];
@@ -499,21 +540,40 @@ function createIgnoreDirectives(
     }
 
     const sortedKeep = [...keep].sort((a, b) => a[0] - b[0]);
+    const ranges: Range[] = [];
+    for (const region of regions) {
+        ranges.push(...subtract(region, sortedKeep));
+    }
+    for (const range of ignore) {
+        if (range[0] < range[1]) {
+            ranges.push(range);
+        }
+    }
+    ranges.sort((a, b) => a[0] - b[0]);
+
+    const merged: Range[] = [];
+    for (const range of ranges) {
+        const last = merged[merged.length - 1];
+        if (last && last[1] >= range[0]) {
+            last[1] = Math.max(last[1], range[1]);
+        } else {
+            merged.push([...range]);
+        }
+    }
+
     const directives: MappedDiagnosticDirective[] = [];
     let mappingIndex = 0;
     let anchor = 0;
-    for (const region of regions) {
-        for (const [start, end] of subtract(region, sortedKeep)) {
-            // The original range is informational: where the generated code is attached
-            while (
-                mappingIndex < mappings.length &&
-                mappings[mappingIndex][0] + mappings[mappingIndex][1] <= start
-            ) {
-                anchor = mappings[mappingIndex][2] + mappings[mappingIndex][3];
-                mappingIndex++;
-            }
-            directives.push([anchor, 0, start, end, DiagnosticDirectivePolicy.Ignore]);
+    for (const [start, end] of merged) {
+        // The original range is informational: where the generated code is attached
+        while (
+            mappingIndex < mappings.length &&
+            mappings[mappingIndex][0] + mappings[mappingIndex][1] <= start
+        ) {
+            anchor = mappings[mappingIndex][2] + mappings[mappingIndex][3];
+            mappingIndex++;
         }
+        directives.push([anchor, 0, start, end, DiagnosticDirectivePolicy.Ignore]);
     }
     return directives;
 }

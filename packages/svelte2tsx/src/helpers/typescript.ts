@@ -1,6 +1,7 @@
 import type ts from 'typescript';
+import type { TsFacade } from '../facade';
 
-type _ts = typeof ts;
+type _ts = TsFacade;
 
 /**
  * Finds the top level const/let/function exports of a source file.

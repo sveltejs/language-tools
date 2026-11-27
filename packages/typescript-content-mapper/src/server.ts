@@ -1,9 +1,14 @@
+import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { loadConfig } from '@sveltejs/load-config';
-import { svelte2tsx, internalHelpers } from 'svelte2tsx';
-import ts from 'typescript';
+import {
+    createTsgoFacade,
+    internalHelpers,
+    svelte2tsx as svelte2tsxTs7,
+    type TsFacade
+} from 'svelte2tsx/tsgo';
 import { createMessageConnection } from 'vscode-jsonrpc';
 import { StreamMessageReader, StreamMessageWriter } from 'vscode-jsonrpc/node.js';
 
@@ -25,22 +30,23 @@ function startServer() {
         return result;
     });
 
-    const projectMap = new Map<string, ProjectInfo>();
+    const projects = new Map<string, Project>();
+    /** For transforms of projects that weren't opened (shouldn't happen) */
+    const unknownProjectContexts = new Map<string, Promise<ProjectContext>>();
 
     connection.onRequest('openProject', (v: OpenProjectParams): OpenProjectResult => {
-        projectMap.set(v.projectHandle, {
+        projects.set(v.projectHandle, {
             params: v,
+            contexts: new Map(),
             typingsNamespace: getTypingsNamespace(v.configFileName)
         });
         return {};
     });
 
     connection.onRequest('closeProject', (v: CloseProjectParams) => {
-        projectMap.delete(v.projectHandle);
+        projects.delete(v.projectHandle);
         return {};
     });
-    const globalTypesCache = new Map<string, string[]>();
-    const require = createRequire(import.meta.url);
 
     connection.onRequest('transform', async (v: TransformParams): Promise<TransformResult> => {
         const { fileName, content } = v;
@@ -49,14 +55,14 @@ function startServer() {
         let extension: '.ts' | '.js' = '.js';
 
         try {
-            const projectInfo = projectMap.get(v.projectHandle);
-            // In the inferred project, projectInfo isn't undefined and configFileName is empty string
-            const resolveTarget = projectInfo?.params.configFileName || fileName;
-            const resolveConfig = {
-                paths: [path.dirname(resolveTarget), path.dirname(fileURLToPath(import.meta.url))]
-            };
-            const compilerPath = require.resolve('svelte/compiler', resolveConfig);
-            const { default: compiler } = await import(pathToFileURL(compilerPath).toString());
+            const project = projects.get(v.projectHandle);
+            // In the inferred project, configFileName is an empty string
+            const resolveTarget = project?.params.configFileName || fileName;
+            const { compiler, isSvelte3, globalTypes, svelte2tsx, typescript } = await getOrCreate(
+                project?.contexts ?? unknownProjectContexts,
+                path.dirname(resolveTarget),
+                () => createProjectContext(resolveTarget)
+            );
 
             scriptTags = internalHelpers.extractScriptTags(content, {
                 parse: compiler.parse,
@@ -64,20 +70,9 @@ function startServer() {
             });
             extension = getScriptExtension(scriptTags);
 
-            let globalTypes = globalTypesCache.get(resolveTarget);
-            const isSvelte3 = compiler.VERSION.split('.')[0] === '3';
-            if (!globalTypes) {
-                globalTypes = internalHelpers.get_global_types(
-                    ts.sys,
-                    isSvelte3,
-                    path.dirname(require.resolve('svelte/package.json', resolveConfig)),
-                    path.dirname(require.resolve('svelte2tsx')),
-                    resolveTarget
-                );
-                globalTypesCache.set(resolveTarget, globalTypes);
-            }
-            const svelteOptions = await getSvelteCompilerOptions(projectInfo, fileName);
+            const svelteOptions = await getSvelteCompilerOptions(project, fileName);
             const res = svelte2tsx(content, {
+                typescript,
                 filename: fileName,
                 isTsFile: extension === '.ts',
                 emitOnTemplateError: true,
@@ -86,7 +81,7 @@ function startServer() {
                     typeof svelteOptions.namespace === 'string'
                         ? svelteOptions.namespace
                         : undefined,
-                typingsNamespace: projectInfo?.typingsNamespace ?? DEFAULT_TYPINGS_NAMESPACE,
+                typingsNamespace: project?.typingsNamespace ?? DEFAULT_TYPINGS_NAMESPACE,
                 accessors: getAccessors(svelteOptions, fileName),
                 parse: compiler.parse,
                 version: compiler.VERSION,
@@ -165,13 +160,137 @@ function startServer() {
 
 startServer();
 
-interface ProjectInfo {
+interface Project {
     params: OpenProjectParams;
+    /**
+     * Keyed by the directory the project's packages are resolved from: the directory of the tsconfig,
+     * so there's one per configured project. The inferred project has no tsconfig, its files resolve
+     * from their own directories.
+     */
+    contexts: Map<string, Promise<ProjectContext>>;
     /** The namespace of the element typings (`svelteOptions.namespace` of the tsconfig) */
     typingsNamespace: string;
     /** The Svelte config of the project, loaded on the first transform */
     svelteOptions?: Promise<SvelteCompilerOptions>;
 }
+
+/** What a transform needs that only depends on the project. Resolved on the first transform. */
+interface ProjectContext extends Transformer {
+    /** `svelte/compiler` of the project */
+    compiler: { parse: any; VERSION: string };
+    isSvelte3: boolean;
+    globalTypes: string[];
+}
+
+interface Transformer {
+    svelte2tsx: typeof svelte2tsxTs7;
+    /** undefined: the entry point's default */
+    typescript?: TsFacade;
+}
+
+const require = createRequire(import.meta.url);
+const mapperDir = path.dirname(fileURLToPath(import.meta.url));
+const svelte2tsxDir = path.dirname(require.resolve('svelte2tsx'));
+/**
+ * Overrides which TypeScript package parses the scripts:
+ * a module specifier (e.g. `@typescript/native`) or the path of a package directory
+ */
+const typescriptSpecifier = process.env.SVELTE_CONTENT_MAPPER_TYPESCRIPT || 'typescript';
+/** Keyed by the path of the TypeScript package.json, so projects using the same TypeScript share it */
+const transformers = new Map<string, Promise<Transformer>>();
+
+async function createProjectContext(resolveTarget: string): Promise<ProjectContext> {
+    const paths = [path.dirname(resolveTarget), mapperDir];
+    const compilerPath = require.resolve('svelte/compiler', { paths });
+    const { default: compiler } = await import(pathToFileURL(compilerPath).toString());
+    const isSvelte3 = compiler.VERSION.split('.')[0] === '3';
+    const globalTypes = internalHelpers.get_global_types(
+        fsSystem,
+        isSvelte3,
+        path.dirname(require.resolve('svelte/package.json', { paths })),
+        svelte2tsxDir,
+        resolveTarget
+    );
+    const transformer = await getTransformer(paths);
+    return { ...transformer, compiler, isSvelte3, globalTypes };
+}
+
+/**
+ * svelte2tsx with the TypeScript the project uses: with TypeScript 7.1+, it parses the scripts
+ * with that one (`svelte2tsx/tsgo`), so that it understands the same syntax as the TypeScript
+ * running this mapper. Otherwise, it uses TypeScript 6 (`svelte2tsx`).
+ */
+function getTransformer(paths: string[]): Promise<Transformer> {
+    let packageJsonPath = '';
+    try {
+        packageJsonPath = require.resolve(
+            path.isAbsolute(typescriptSpecifier)
+                ? path.join(typescriptSpecifier, 'package.json')
+                : `${typescriptSpecifier}/package.json`,
+            { paths }
+        );
+    } catch {
+        // no TypeScript in the project, use svelte2tsx's
+    }
+    return getOrCreate(transformers, packageJsonPath, () => createTransformer(packageJsonPath));
+}
+
+/** Caches the promise, but not a failure (e.g. Svelte not installed yet): that's retried next time */
+function getOrCreate<T>(
+    cache: Map<string, Promise<T>>,
+    key: string,
+    create: () => Promise<T>
+): Promise<T> {
+    let promise = cache.get(key);
+    if (!promise) {
+        const created = create();
+        cache.set(key, created);
+        created.catch(() => {
+            if (cache.get(key) === created) {
+                cache.delete(key);
+            }
+        });
+        promise = created;
+    }
+    return promise;
+}
+
+async function createTransformer(packageJsonPath: string): Promise<Transformer> {
+    const version: string | undefined = packageJsonPath
+        ? JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8')).version
+        : undefined;
+    const [major, minor] = (version ?? '0.0').split('.').map(Number);
+    if (major > 7 || (major === 7 && minor >= 1)) {
+        try {
+            const typescript = createTsgoFacade({ typescript: path.dirname(packageJsonPath) });
+            console.warn(`Parsing with TypeScript ${version} (${packageJsonPath})`);
+            return { svelte2tsx: svelte2tsxTs7, typescript };
+        } catch (error) {
+            console.warn(
+                `Could not load TypeScript ${version} (${packageJsonPath}), using TypeScript 6:`,
+                error
+            );
+        }
+    }
+    const { svelte2tsx } = await import('svelte2tsx');
+    return { svelte2tsx };
+}
+
+/** `ts.sys` for `get_global_types`, without loading TypeScript */
+const fsSystem = {
+    fileExists: (file: string) => fs.statSync(file, { throwIfNoEntry: false })?.isFile() ?? false,
+    directoryExists: (dir: string) =>
+        fs.statSync(dir, { throwIfNoEntry: false })?.isDirectory() ?? false,
+    resolvePath: (file: string) => path.resolve(file),
+    readFile: (file: string) => {
+        try {
+            return fs.readFileSync(file, 'utf-8');
+        } catch {
+            return undefined;
+        }
+    },
+    writeFile: (file: string, data: string) => fs.writeFileSync(file, data)
+};
 
 const DEFAULT_TYPINGS_NAMESPACE = 'svelteHTML';
 
@@ -182,13 +301,58 @@ const DEFAULT_TYPINGS_NAMESPACE = 'svelteHTML';
  */
 function getTypingsNamespace(configFileName: string): string {
     if (configFileName) {
-        const { config } = ts.readConfigFile(configFileName, ts.sys.readFile);
+        const config = readTsconfig(configFileName);
         const namespace = config?.svelteOptions?.namespace;
         if (typeof namespace === 'string' && namespace) {
             return namespace;
         }
     }
     return DEFAULT_TYPINGS_NAMESPACE;
+}
+
+/**
+ * Reads a tsconfig (JSON with comments and trailing commas) without loading TypeScript.
+ * undefined if it can't be read or parsed.
+ */
+function readTsconfig(configFileName: string): any {
+    const text = fsSystem.readFile(configFileName);
+    if (text === undefined) {
+        return undefined;
+    }
+    try {
+        return JSON.parse(stripJsonComments(text));
+    } catch {
+        return undefined;
+    }
+}
+
+/** Removes the comments and trailing commas of JSONC, keeping the strings as they are */
+function stripJsonComments(text: string): string {
+    let result = '';
+    let i = 0;
+    while (i < text.length) {
+        const char = text[i];
+        if (char === '"') {
+            const start = i++;
+            while (i < text.length && text[i] !== '"') {
+                i += text[i] === '\\' ? 2 : 1;
+            }
+            result += text.slice(start, ++i);
+        } else if (char === '/' && text[i + 1] === '/') {
+            while (i < text.length && text[i] !== '\n') {
+                i++;
+            }
+        } else if (char === '/' && text[i + 1] === '*') {
+            const end = text.indexOf('*/', i + 2);
+            i = end === -1 ? text.length : end + 2;
+        } else if (char === ',' && /^\s*[}\]]/.test(text.slice(i + 1))) {
+            i++;
+        } else {
+            result += char;
+            i++;
+        }
+    }
+    return result;
 }
 
 /** The `compilerOptions` of the Svelte config that svelte2tsx needs */
@@ -203,7 +367,7 @@ interface SvelteCompilerOptions {
  * project, so changes to it need a restart of the TS server.
  */
 function getSvelteCompilerOptions(
-    project: ProjectInfo | undefined,
+    project: Project | undefined,
     fileName: string
 ): Promise<SvelteCompilerOptions> {
     if (!project) {

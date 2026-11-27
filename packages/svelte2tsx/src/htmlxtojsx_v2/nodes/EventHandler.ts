@@ -51,7 +51,8 @@ export function handleEventHandler(
                       rangeWithTrailingPropertyAccess(str.original, attr.expression),
                       ...trailingComments
                   ]
-                : ['undefined', ...trailingComments]
+                : ['undefined', ...trailingComments],
+            `on:${attr.name}`
         );
     } else {
         element.addEvent(

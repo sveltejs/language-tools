@@ -1,7 +1,7 @@
 ///<reference types="svelte" />
 ;function $$render() {
 
-	let props = $props();
+	let/** @typedef {Record<string, any>} $$ComponentProps */ props = $props();
 	let id = $props.id();
 ;
 async () => {

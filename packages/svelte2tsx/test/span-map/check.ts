@@ -6,6 +6,7 @@ import assert from 'assert';
  * - segments sorted, non-overlapping, non-empty and in bounds; `Verbatim` text identical on both sides
  * - directives in bounds, sorted and non-overlapping, only `Ignore` (svelte2tsx doesn't create others)
  * - no marker comments left in the output
+ * - the Formatting feature off for every segment (svelte2tsx's own rule)
  */
 export function assertValidSpanMap(
     original: string,
@@ -39,6 +40,12 @@ export function assertValidSpanMap(
         assert.ok(
             features === undefined || (features >= 0 && features < 1 << 20),
             `${message}: features`
+        );
+        // Formatting (1 << 11) is off for every span: TS7 must not format Svelte files through the
+        // virtual code (`SpanMapGenerator.generate`)
+        assert.ok(
+            features !== undefined && !(features & (1 << 11)),
+            `${message}: formatting enabled`
         );
         if (kind === 0) {
             assert.strictEqual(
@@ -74,7 +81,9 @@ const IGNORE_END = '/*Ωignore_endΩ*/';
 /**
  * Each position inside an ignore region (TS6's `isInGeneratedCode`, outermost regions) is
  * covered by an `Ignore` directive, except for the arguments of `__sveltets_2_store_get(x)`,
- * whose diagnostics the language server post-processes. Nothing outside is covered.
+ * whose diagnostics the language server post-processes. So is the `$` of each top-level `$:`
+ * statement (at a line start, or right after the `;() => {` svelte2tsx wraps blocks with).
+ * Nothing else is covered.
  */
 export function assertDirectivesCoverIgnoreRegions(
     code: string,
@@ -89,6 +98,10 @@ export function assertDirectivesCoverIgnoreRegions(
         } else if (depth > 0 && --depth === 0) {
             expected.fill(1, start, match.index + IGNORE_END.length);
         }
+    }
+    for (const match of code.matchAll(/(?:^[ \t]*|;\(\) => \{)(\$)\s*:/gm)) {
+        const labelStart = match.index + match[0].indexOf('$');
+        expected[labelStart] = 1;
     }
     for (const match of code.matchAll(/__sveltets_2_store_get\(([^)]*)\)/g)) {
         const argumentStart = match.index + '__sveltets_2_store_get('.length;
