@@ -92,6 +92,20 @@ export class TsApiService {
         }
     }
 
+    /** Runs `fn` against all projects loaded in the language server's current snapshot */
+    async withLoadedProjects<T>(
+        fn: (projects: readonly tsApiAsync.Project[]) => Promise<T>
+    ): Promise<T> {
+        const snapshot = await this.tsApi.getCurrentLanguageServerSnapshot();
+        try {
+            return await fn(snapshot.getProjects());
+        } finally {
+            snapshot
+                .dispose()
+                .catch((error) => Logger.error('Failed to release TypeScript snapshot', error));
+        }
+    }
+
     /** Like `withProject`, with the source file of `uri` (virtual code for Svelte files) */
     async withSourceFile<T>(
         uri: string,

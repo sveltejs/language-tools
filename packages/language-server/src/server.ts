@@ -27,7 +27,8 @@ import {
     DocumentDiagnosticRequest,
     DocumentDiagnosticParams,
     DocumentDiagnosticReport,
-    DiagnosticRefreshRequest
+    DiagnosticRefreshRequest,
+    WorkspaceFolder
 } from 'vscode-languageserver';
 import { IPCMessageReader, IPCMessageWriter, createConnection } from 'vscode-languageserver/node';
 import {
@@ -61,7 +62,10 @@ import {
 import { createLanguageServices } from './plugins/css/service';
 import { FileSystemProvider } from './lib/FileSystemProvider';
 import { TemplateASTParseLoader } from './plugins/svelte/TemplateASTLoader';
-import { contentMapperEnableCheck } from './plugins/typescript-go/content-mapper';
+import {
+    checkContentMapperConfig,
+    ContentMapperConfigCheck
+} from './plugins/typescript-go/content-mapper';
 import {
     StoreBindingRequest,
     TransformTsgoResponseParams,
@@ -70,6 +74,9 @@ import {
 } from './plugins/typescript-go/middleware';
 import { TypeScriptGoPlugin } from './plugins/typescript-go/TypeScriptGoPlugin';
 import { TsApiService } from './plugins/typescript-go/TsApiService';
+
+/** Has to match the request name in the VS Code extension (`typescript-go/contentMapper.ts`) */
+const CheckContentMapperConfigRequest = '$/svelte/checkContentMapperConfig';
 
 namespace TagCloseRequest {
     export const type: RequestType<TextDocumentPositionParams, string | null, any> =
@@ -135,6 +142,7 @@ export function startServer(options?: LSOptions) {
     const recursiveWatchPattern = '**/' + nonRecursiveWatchPattern;
 
     let enableTs6Features = true;
+    let workspaceFoldersForContentMapperCheck: WorkspaceFolder[] = [];
 
     connection.onInitialize(async (evt) => {
         const workspaceUris = evt.workspaceFolders?.map((folder) => folder.uri.toString()) ?? [
@@ -209,9 +217,22 @@ export function startServer(options?: LSOptions) {
         const fileSystemProvider = new FileSystemProvider();
         const workspaceFolders = evt.workspaceFolders ?? [{ name: '', uri: evt.rootUri ?? '' }];
 
-        enableTs6Features =
-            !evt.initializationOptions?.tsGoContentMapperOptions?.enable ||
-            !contentMapperEnableCheck(workspaceFolders);
+        workspaceFoldersForContentMapperCheck = workspaceFolders;
+        // Only when the client says TS7 can serve Svelte files: does a tsconfig/jsconfig mention
+        // the Svelte content mapper? The client uses the result for the missing-config hint.
+        const contentMapperConfig: ContentMapperConfigCheck | undefined = evt.initializationOptions
+            ?.tsGoContentMapperOptions?.enable
+            ? checkContentMapperConfig(workspaceFolders)
+            : undefined;
+        enableTs6Features = !contentMapperConfig?.configFile;
+        if (contentMapperConfig) {
+            Logger.log(
+                'Content mapper mode:',
+                contentMapperConfig.configFile
+                    ? `on (${contentMapperConfig.configFile})`
+                    : 'off, no tsconfig/jsconfig registers the Svelte content mapper'
+            );
+        }
 
         const templateAstLoader = enableTs6Features
             ? undefined
@@ -414,7 +435,10 @@ export function startServer(options?: LSOptions) {
                           full: true
                       }
                     : undefined,
-                linkedEditingRangeProvider: enableTs6Features,
+                // HTML tag pairs (HTMLPlugin), not TS: also in content mapper mode. TS7 registers
+                // linked editing for Svelte files too, but VS Code asks us first (language
+                // selector beats TS7's pattern) and TS7 returns null for HTML tags anyway.
+                linkedEditingRangeProvider: true,
                 implementationProvider: enableTs6Features,
                 typeDefinitionProvider: enableTs6Features,
                 inlayHintProvider: enableTs6Features,
@@ -427,7 +451,9 @@ export function startServer(options?: LSOptions) {
             },
             customServerStatus: {
                 experimental: {
-                    contentMapperModeEnabled: !enableTs6Features
+                    contentMapperModeEnabled: !enableTs6Features,
+                    /** Only set when the client asked for content mapper mode */
+                    contentMapperConfig
                 }
             }
         };
@@ -706,6 +732,12 @@ export function startServer(options?: LSOptions) {
         StoreBindingRequest,
         async (params: TextDocumentPositionParams) =>
             tsgoResponseTransformer?.getStoreBinding(params) ?? null
+    );
+    // Lets the client re-evaluate the mode when a tsconfig changes, without restarting
+    connection.onRequest(
+        CheckContentMapperConfigRequest,
+        async (): Promise<ContentMapperConfigCheck> =>
+            checkContentMapperConfig(workspaceFoldersForContentMapperCheck)
     );
     connection.onRequest('$/getEditsForFileRename', async (fileRename: RenameFile) =>
         pluginHost.updateImports(fileRename)

@@ -10,6 +10,10 @@ import {
     isInVirtualCode,
     relocateVirtualCodeDiagnostics
 } from '../plugins/typescript-go/middleware/virtualCodeDiagnostics';
+import {
+    addUnresolvedSvelteImports,
+    findUnresolvedSvelteImports
+} from '../plugins/typescript-go/middleware/unresolvedSvelteImports';
 import { ApiDiagnostic, flattenMessage, toDiagnostic, toSeverity } from './convert';
 
 /** Source of the content mapper's own diagnostics (svelte2tsx parse errors), see the mapper's `initialize` */
@@ -28,6 +32,11 @@ export interface PostProcessOptions {
      * compiler reports the same error; without Svelte diagnostics they're the only report.
      */
     keepMapperDiagnostics: boolean;
+    /**
+     * Also report imports of `.svelte` files that don't exist (see `withUnresolvedSvelteImports`).
+     * Only if the program got to the semantic check.
+     */
+    unresolvedSvelteImports: boolean;
 }
 
 /**
@@ -71,14 +80,50 @@ export async function postProcessSvelteDiagnostics(
         }
     }
 
+    const withImports = options.unresolvedSvelteImports
+        ? await withUnresolvedSvelteImports(
+              result,
+              api,
+              document.uri,
+              document.getText(),
+              options.source
+          )
+        : result;
+
     if (options.keepMapperDiagnostics) {
         for (const diagnostic of diagnostics) {
             if (diagnostic.source === MAPPER_DIAGNOSTIC_SOURCE) {
-                result.push(toDiagnostic(diagnostic, options.source));
+                withImports.push(toDiagnostic(diagnostic, options.source));
             }
         }
     }
-    return result;
+    return withImports;
+}
+
+/**
+ * `diagnostics` (in original coordinates, LSP shape) of the file `uri` with text `text`, plus
+ * "Cannot find module" (2307) for its imports of `.svelte` files that don't exist, which Svelte's
+ * ambient `declare module '*.svelte'` hides from TS7 (the TS6 path blanks the declaration out).
+ * Also applies `@ts-ignore`/`@ts-expect-error` above such an import, including dropping the 2578
+ * TS7 reported for an `@ts-expect-error` that it now covers. Svelte files and TS/JS files.
+ *
+ * Nothing is added if TS7's snapshot has a different text for the file.
+ *
+ * @param source the `source` of the added diagnostics, like the file's other TypeScript diagnostics
+ */
+export async function withUnresolvedSvelteImports(
+    diagnostics: Diagnostic[],
+    api: TsApiAccess,
+    uri: string,
+    text: string,
+    source: string | undefined
+): Promise<Diagnostic[]> {
+    // TS7's text has no byte order mark, the file read from disk can
+    const unresolved = await findUnresolvedSvelteImports(api, uri, text.replace(/^\uFEFF/, ''));
+    return addUnresolvedSvelteImports(
+        diagnostics,
+        (unresolved ?? []).map((diagnostic) => ({ ...diagnostic, source }))
+    );
 }
 
 /** Like TS7's LSP: the problems in unmapped virtual code, folded into one 18080 at the start */
@@ -130,8 +175,11 @@ function expandVirtualCodeAggregate(
     return result;
 }
 
-/** The template AST for the `bind:` relocation. svelte2tsx (and with it TS6) is loaded on demand */
+/**
+ * The template AST for the `bind:` relocation, loaded on demand. From `svelte2tsx/tsgo`, the
+ * entry point that doesn't load TypeScript 6 (parsing the template needs no TypeScript at all).
+ */
 async function loadTemplateAst(document: Document): Promise<TemplateAstWalker> {
-    const { internalHelpers } = await import('svelte2tsx');
+    const { internalHelpers } = await import('svelte2tsx/tsgo');
     return parseTemplateAst(document, internalHelpers.parseTemplateOnly);
 }

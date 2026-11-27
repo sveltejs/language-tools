@@ -23,9 +23,12 @@ export function replaceGeneratedNames(text: string): string {
     return text.includes('__SvelteComponent_') ? text.replace(componentExportRegex, '$1') : text;
 }
 
-/** svelte2tsx's ambient type files, added to every program that contains Svelte files */
+/**
+ * svelte2tsx's ambient type files, added to every program that contains Svelte files: in its own
+ * directory, or copied to a hidden folder in the project's node_modules
+ */
 const shimFileRegex =
-    /[\\/]svelte2tsx[\\/](svelte-shims(-v4)?|svelte-jsx(-v4)?|svelte-native-jsx)\.d\.ts$/;
+    /[\\/](svelte2tsx|\.svelte2tsx-language-server-files)[\\/](svelte-shims(-v4)?|svelte-jsx(-v4)?|svelte-native-jsx)\.d\.ts$/;
 
 export function isSvelte2tsxShimUri(uri: string): boolean {
     let path = uri;

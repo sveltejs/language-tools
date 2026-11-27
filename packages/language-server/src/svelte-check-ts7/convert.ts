@@ -78,8 +78,9 @@ function getTags(diagnostic: ApiDiagnostic): DiagnosticTag[] {
 }
 
 /**
- * The `source` TS6 svelte-check reports for TypeScript diagnostics of a Svelte file: `ts` if a
- * script is TypeScript, `js` otherwise (`getScriptKindFromAttributes`)
+ * The `source` svelte-check reports for TypeScript diagnostics of a Svelte file: `ts` if a script
+ * has `lang="ts"` or `lang="typescript"`, `js` otherwise. Unlike TS6 svelte-check, the `type`
+ * attribute (`text/typescript`) doesn't count.
  */
 export function getSvelteFileSource(document: Document): 'ts' | 'js' {
     return [document.scriptInfo?.attributes, document.moduleScriptInfo?.attributes].some(
@@ -90,8 +91,5 @@ export function getSvelteFileSource(document: Document): 'ts' | 'js' {
 }
 
 function isTypeScriptScript(attributes: Record<string, string> | undefined) {
-    const type = attributes?.lang || attributes?.type;
-    return (
-        type === 'ts' || type === 'typescript' || type === 'text/ts' || type === 'text/typescript'
-    );
+    return attributes?.lang === 'ts' || attributes?.lang === 'typescript';
 }

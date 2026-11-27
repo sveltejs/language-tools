@@ -1,13 +1,20 @@
 import {
+    CompletionList,
+    CompletionParams,
     DocumentDiagnosticParams,
     DocumentDiagnosticReport,
     DocumentHighlight,
     DocumentHighlightParams,
+    DocumentSymbol,
+    DocumentSymbolParams,
     Position,
+    SymbolInformation,
     TextDocumentIdentifier,
     TextDocumentPositionParams
 } from 'vscode-languageserver';
-import { DocumentManager } from '../../../lib/documents';
+import { DocumentManager, getNodeIfIsInHTMLStartTag } from '../../../lib/documents';
+import { dedupeStartTagCompletions, TsgoCompletionResult } from './completions';
+import { getLostDocumentSymbols, mergeDocumentSymbols } from './documentSymbols';
 import { Logger } from '../../../logger';
 import { TemplateAstLoader } from '../../svelte/TemplateASTLoader';
 import { TsApiService } from '../TsApiService';
@@ -20,6 +27,7 @@ import {
 } from './languageFeatures';
 import { StoreBinding, TsgoStores } from './stores';
 import { relocateVirtualCodeDiagnostics } from './virtualCodeDiagnostics';
+import { addUnresolvedSvelteImports, findUnresolvedSvelteImports } from './unresolvedSvelteImports';
 
 export { StoreBindingRequest } from './stores';
 export type { StoreBinding } from './stores';
@@ -60,6 +68,11 @@ export interface TsgoResponseTransformerHost {
         textDocument: TextDocumentIdentifier,
         position: Position
     ): Promise<DocumentHighlight[] | null>;
+    /** Completions from the Svelte/HTML/CSS plugins (for the start tag dedupe) */
+    getCompletions?(
+        textDocument: TextDocumentIdentifier,
+        position: Position
+    ): Promise<CompletionList>;
 }
 
 export class TsgoResponseTransformer {
@@ -92,6 +105,16 @@ export class TsgoResponseTransformer {
                     return await this.transformMultiDocumentHighlight(
                         params as MultiDocumentHighlightParams,
                         result as MultiDocumentHighlight[] | null
+                    );
+                case 'textDocument/completion':
+                    return await this.transformCompletion(
+                        params as CompletionParams,
+                        result as TsgoCompletionResult
+                    );
+                case 'textDocument/documentSymbol':
+                    return await this.transformDocumentSymbols(
+                        params as DocumentSymbolParams,
+                        result as DocumentSymbol[] | SymbolInformation[] | null
                     );
                 case 'textDocument/signatureHelp':
                     return transformSignatureHelp(result as any);
@@ -175,11 +198,64 @@ export class TsgoResponseTransformer {
                   })
                 : undefined;
 
-        return transformDiagnosticReport(report, {
-            document,
-            virtualCode,
-            getTemplateAst: () => this.astLoader.loadTemplateAst(document)
+        const transformed = transformDiagnosticReport(report, { document, virtualCode });
+        if (transformed.kind !== 'full' || !this.tsApi) {
+            return transformed;
+        }
+        const unresolved = await findUnresolvedSvelteImports(
+            this.tsApi,
+            document.uri,
+            document.getText()
+        ).catch((error) => {
+            Logger.error('Error checking the Svelte imports', error);
+            return undefined;
         });
+        return unresolved
+            ? {
+                  ...transformed,
+                  items: addUnresolvedSvelteImports(transformed.items, unresolved)
+              }
+            : transformed;
+    }
+
+    /** Only forwarded by the client at start tag positions, see `dedupeStartTagCompletions` */
+    private async transformCompletion(
+        params: CompletionParams,
+        result: TsgoCompletionResult
+    ): Promise<TsgoCompletionResult> {
+        const document = this.docManager.get(params.textDocument.uri);
+        if (
+            !document ||
+            !result ||
+            !this.host.getCompletions ||
+            !getNodeIfIsInHTMLStartTag(document.html, document.offsetAt(params.position))
+        ) {
+            return result;
+        }
+        const svelteCompletions = await this.host.getCompletions(
+            params.textDocument,
+            params.position
+        );
+        return dedupeStartTagCompletions(
+            result,
+            new Set(svelteCompletions.items.map((item) => item.label))
+        );
+    }
+
+    /**
+     * TS7 drops the symbols of the instance script (they are nested in svelte2tsx's unmapped
+     * `$$render` function), so they are added from the virtual code, see `getLostDocumentSymbols`.
+     */
+    private async transformDocumentSymbols(
+        params: DocumentSymbolParams,
+        result: DocumentSymbol[] | SymbolInformation[] | null
+    ): Promise<DocumentSymbol[] | SymbolInformation[] | null> {
+        const document = this.docManager.get(params.textDocument.uri);
+        if (!document || !this.tsApi) {
+            return result;
+        }
+        const lost = await getLostDocumentSymbols(this.tsApi, document);
+        return mergeDocumentSymbols(result, lost, params.textDocument.uri);
     }
 
     /**

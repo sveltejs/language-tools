@@ -90,22 +90,45 @@ describe('TsgoResponseTransformer', () => {
 
 {x}{doubled}`;
 
-        it('drops unused `$` labels and comma noops of reactive statements', async () => {
+        it('drops unused `$` labels of reactive statements (hints, which directives miss)', async () => {
             const items = await transformDiagnostics(legacy, [
-                diag(
-                    [4, 4, 4, 5],
-                    2695,
-                    'Left side of comma operator is unused and has no side effects.'
-                ),
-                diag(
-                    [4, 4, 4, 8],
-                    2695,
-                    'Left side of comma operator is unused and has no side effects.'
-                ),
                 diag([4, 1, 4, 2], 7028, 'Unused label.', { severity: DiagnosticSeverity.Hint }),
                 diag([5, 1, 5, 2], 7028, 'Unused label.', { severity: DiagnosticSeverity.Hint })
             ]);
             assert.deepStrictEqual(items, []);
+        });
+
+        it('keeps comma noops of reactive statements (svelte2tsx only lets TS report the right ones)', async () => {
+            const noop = diag(
+                [4, 4, 4, 5],
+                2695,
+                'Left side of comma operator is unused and has no side effects.'
+            );
+            assert.deepStrictEqual(await transformDiagnostics(legacy, [noop]), [noop]);
+        });
+
+        it("gives a `bind:` of a prop that isn't bindable TS6's message", async () => {
+            const content = `<script lang="ts">\n\timport Child from './Child.svelte';\n\tlet v = '';\n</script>\n\n<Child bind:readonly={v} title={v} />`;
+            const nonBindable = diag(
+                [5, 7, 5, 22],
+                2322,
+                `Type '"readonly"' is not assignable to type '"can_bind"'.`
+            );
+            // a real type error of an attribute keeps its message
+            const other = diag(
+                [5, 23, 5, 28],
+                2322,
+                `Type 'string' is not assignable to type 'number'.`
+            );
+            const items = await transformDiagnostics(content, [nonBindable, other]);
+            assert.deepStrictEqual(
+                items.map((d) => d.message),
+                [
+                    "Cannot use 'bind:' with this property. It is declared as non-bindable inside the component.\n" +
+                        "To mark a property as bindable: 'let { readonly = $bindable() } = $props()'",
+                    "Type 'string' is not assignable to type 'number'."
+                ]
+            );
         });
 
         it('keeps comma noops outside of reactive statements', async () => {
