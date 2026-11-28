@@ -12,6 +12,7 @@ export interface TsFilesSpec {
 export class ProjectSvelteFilesManager {
     private projectFileToOriginalCasing = new Map<string, string>();
     private directoryWatchers = new Set<ts.FileWatcher>();
+    private scheduledUpdate: unknown;
 
     private static instances = new Map<string, ProjectSvelteFilesManager>();
 
@@ -93,7 +94,25 @@ export class ProjectSvelteFilesManager {
         // We can't just add the file to the project directly, because
         // - the casing of fileName is different
         // - we don't know whether the file was added or deleted
-        this.updateProjectSvelteFiles();
+        // That takes a scan of the whole project, so a burst of events (a build writing
+        // hundreds of svelte files) is answered with one scan once it settles
+        this.scheduleUpdateProjectSvelteFiles();
+    }
+
+    private scheduleUpdateProjectSvelteFiles() {
+        this.cancelScheduledUpdate();
+        // same delay tsserver uses before it updates a project after file changes
+        this.scheduledUpdate = this.serverHost.setTimeout(() => {
+            this.scheduledUpdate = undefined;
+            this.updateProjectSvelteFiles();
+        }, 250);
+    }
+
+    private cancelScheduledUpdate() {
+        if (this.scheduledUpdate !== undefined) {
+            this.serverHost.clearTimeout(this.scheduledUpdate);
+            this.scheduledUpdate = undefined;
+        }
     }
 
     private updateProjectSvelteFiles() {
@@ -181,6 +200,7 @@ export class ProjectSvelteFilesManager {
     }
 
     private disposeWatchers() {
+        this.cancelScheduledUpdate();
         this.directoryWatchers.forEach((watcher) => watcher.close());
         this.directoryWatchers.clear();
     }
